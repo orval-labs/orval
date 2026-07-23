@@ -103,13 +103,20 @@ function extractDeclaredNames(implementation: string): {
 export function buildTagHelpersImport(
   helpers: GeneratorTagHelpers,
   helperImportPath: string,
+  usedIn?: string,
 ): string {
+  const used = (name: string) =>
+    !usedIn || new RegExp(String.raw`\b${name}\b`).test(usedIn);
+
+  const typeNames = helpers.typeNames.filter(used);
+  const valueNames = helpers.valueNames.filter(used);
+
   let result = '';
-  if (helpers.typeNames.length > 0) {
-    result += `import type { ${helpers.typeNames.join(', ')} } from '${helperImportPath}';\n`;
+  if (typeNames.length > 0) {
+    result += `import type { ${typeNames.join(', ')} } from '${helperImportPath}';\n`;
   }
-  if (helpers.valueNames.length > 0) {
-    result += `import { ${helpers.valueNames.join(', ')} } from '${helperImportPath}';\n`;
+  if (valueNames.length > 0) {
+    result += `import { ${valueNames.join(', ')} } from '${helperImportPath}';\n`;
   }
   return result;
 }

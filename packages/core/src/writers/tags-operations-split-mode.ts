@@ -143,10 +143,7 @@ export async function writeTagsOperationsSplitMode({
 
         const operationFilePaths = await Promise.all(
           operations.map(async (operation) => {
-            const operationFilename = conventionName(
-              operation.operationName,
-              output.namingConvention,
-            );
+            const operationFilename = kebab(operation.operationName);
             const implementationPath = path.join(
               tagDir,
               `${operationFilename}${extension}`,
@@ -211,7 +208,11 @@ export async function writeTagsOperationsSplitMode({
             let data = header;
 
             if (hasHelpers) {
-              data += buildTagHelpersImport(helpers, helperImportPath);
+              data += buildTagHelpersImport(
+                helpers,
+                helperImportPath,
+                operation.implementation,
+              );
             }
 
             data += builder.imports({
@@ -235,40 +236,49 @@ export async function writeTagsOperationsSplitMode({
               data += generateMutatorImports({
                 mutators: operation.mutators,
                 implementation: operation.implementation,
+                oneMore: true,
               });
             }
 
             if (operation.clientMutators) {
               data += generateMutatorImports({
                 mutators: operation.clientMutators,
+                oneMore: true,
               });
             }
 
             if (operation.formData) {
-              data += generateMutatorImports({ mutators: operation.formData });
+              data += generateMutatorImports({
+                mutators: operation.formData,
+                oneMore: true,
+              });
             }
 
             if (operation.formUrlEncoded) {
               data += generateMutatorImports({
                 mutators: operation.formUrlEncoded,
+                oneMore: true,
               });
             }
 
             if (operation.paramsSerializer) {
               data += generateMutatorImports({
                 mutators: operation.paramsSerializer,
+                oneMore: true,
               });
             }
 
             if (operation.paramsFilter) {
               data += generateMutatorImports({
                 mutators: operation.paramsFilter,
+                oneMore: true,
               });
             }
 
             if (operation.fetchReviver) {
               data += generateMutatorImports({
                 mutators: operation.fetchReviver,
+                oneMore: true,
               });
             }
 
@@ -466,8 +476,21 @@ export async function writeTagsOperationsSplitMode({
     }),
   );
 
+  const allGeneratedPaths = generatedFilePathsArray.flat();
+
+  let rootIndexPath: string | undefined;
+  if (output.indexFiles) {
+    const importExtension = getImportExtension(extension, output.tsconfig);
+    const rootBarrelContent = tagEntries
+      .map(([tag]) => `export * from './${tag}/index${importExtension}';\n`)
+      .join('');
+    rootIndexPath = path.join(dirname, `index${extension}`);
+    await writeGeneratedFile(rootIndexPath, rootBarrelContent);
+  }
+
   return [
     ...(globalSchemasPath ? [globalSchemasPath] : []),
-    ...generatedFilePathsArray.flat(),
+    ...(rootIndexPath ? [rootIndexPath] : []),
+    ...allGeneratedPaths,
   ];
 }

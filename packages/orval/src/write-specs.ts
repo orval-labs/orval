@@ -419,19 +419,50 @@ function getImplementationPathsForIndex(
     output.mode === OutputMode.SPLIT &&
     getComparableFilePath(output.target) === getComparableFilePath(indexFile);
 
-  if (!isSplitModeWithColocatedTarget) {
+  if (isSplitModeWithColocatedTarget) {
+    const targetInfo = getFileInfo(output.target, {
+      extension: output.fileExtension,
+    });
+    const defaultSiblingSchemas = path.join(
+      targetInfo.dirname,
+      `${targetInfo.filename}.schemas${output.fileExtension}`,
+    );
+    return excludeFilePath(paths, defaultSiblingSchemas);
+  }
+
+  // tags-operations and tags-operations-split produce a root barrel
+  // (dirname/index<ext>) plus per-tag barrels and individual operation files.
+  // The workspace index must only re-export the root barrel (and the global
+  // schemas file when present) — re-exporting individual operation files,
+  // per-tag barrels, helper files, and per-operation schema files causes
+  // TS2308 ambiguous-re-export errors because many types appear in multiple
+  // files simultaneously (shared helpers across tags; shared schemas across
+  // operations).
+  const isTagsOperationsMode =
+    output.mode === OutputMode.TAGS_OPERATIONS ||
+    output.mode === OutputMode.TAGS_OPERATIONS_SPLIT;
+
+  if (!isTagsOperationsMode || !shouldExcludeSelf) {
     return paths;
   }
 
   const targetInfo = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const defaultSiblingSchemas = path.join(
+  const rootBarrel = path.join(
+    targetInfo.dirname,
+    `index${output.fileExtension}`,
+  );
+  const globalSchemas = path.join(
     targetInfo.dirname,
     `${targetInfo.filename}.schemas${output.fileExtension}`,
   );
 
-  return excludeFilePath(paths, defaultSiblingSchemas);
+  return paths.filter(
+    (p) =>
+      getComparableFilePath(p) === getComparableFilePath(rootBarrel) ||
+      getComparableFilePath(p) === getComparableFilePath(globalSchemas),
+  );
 }
 
 export async function writeSpecs(
