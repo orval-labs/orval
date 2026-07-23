@@ -1511,7 +1511,9 @@ test('default issue-3750 keeps plain Required<Pick> for parent properties', asyn
   // A nullable component target propagates null outside its nested allOf, so
   // the required key must stay guarded to avoid Pick<T, 'id'> violating a
   // `keyof T = never` constraint.
-  expect(refNullableItemDetail).toMatch(/Extract<\s*keyof \(/);
+  expect(refNullableItemDetail).toMatch(
+    /Required<\s*Pick<[\s\S]*Extract<\s*keyof \(/,
+  );
 });
 
 test('default regressions collect only guaranteed keys through nested allOf refs', async () => {

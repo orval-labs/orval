@@ -617,6 +617,17 @@ function combineValues({
       )
         ? Object.keys(parentProperties)
         : [];
+    // A nullable object parent's keys are not in `keyof joined`, but they are
+    // guaranteed on `NonNullable<joined>`. Keep the Extract fallback for the
+    // full nullable type and separately require these known keys on its object
+    // branch. Passing nullBranchesEliminated=true asks the same safety checks
+    // whether nullability is the only reason the own keys are unavailable.
+    const pickableNonNullParentProperties =
+      parentSchema &&
+      parentProperties &&
+      !cannotGuaranteeOwnPropertyKeys(parentSchema, context, false, true)
+        ? Object.keys(parentProperties)
+        : [];
     // Keep the parent keys local to required-key handling: `allProperties`
     // also drives unionAddMissingProperties for other separators and
     // intentionally contains member keys only.
@@ -630,12 +641,19 @@ function combineValues({
     const unresolvedRequiredProperties = overrideRequiredProperties.filter(
       (prop) => !pickableProperties.has(prop),
     );
+    const nullableParentRequiredProperties =
+      unresolvedRequiredProperties.filter((prop) =>
+        pickableNonNullParentProperties.includes(prop),
+      );
     let result = joined;
     if (pickableRequiredProperties.length > 0) {
       result = `${result} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
     }
     if (unresolvedRequiredProperties.length > 0) {
       result = `${result} & Required<Pick<${joined}, Extract<keyof (${joined}), '${unresolvedRequiredProperties.join("' | '")}'>>>`;
+    }
+    if (nullableParentRequiredProperties.length > 0) {
+      result = `${result} & (Required<Pick<NonNullable<${joined}>, '${nullableParentRequiredProperties.join("' | '")}'>> | null)`;
     }
     if (
       pickableRequiredProperties.length > 0 ||

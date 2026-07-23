@@ -36,5 +36,18 @@ export type RefNullableItemDetail =
             'id'
           >
         >
-      >)
+      > &
+      (Required<
+        Pick<
+          NonNullable<
+            (RefNullableObjectWrapper | null) &
+              unknown &
+              ({
+                id?: string;
+                [key: string]: unknown;
+              } | null)
+          >,
+          'id'
+        >
+      > | null))
   | null;

@@ -43,6 +43,10 @@ const nestedNullableItemWithoutId: NestedNullableItemDetail = {};
 // This declaration also guards against generating a Pick key constrained by
 // `never`, which makes the generated model fail TypeScript compilation.
 const refNullableItem: RefNullableItemDetail = null;
+const refNullableItemWithId: RefNullableItemDetail = { id: 'id' };
+
+// @ts-expect-error - id remains required on the non-null branch.
+const refNullableItemWithoutId: RefNullableItemDetail = {};
 
 void id;
 void name;
@@ -51,3 +55,5 @@ void itemWithoutName;
 void nullableItemWithoutId;
 void nestedNullableItemWithoutId;
 void refNullableItem;
+void refNullableItemWithId;
+void refNullableItemWithoutId;

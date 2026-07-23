@@ -300,6 +300,8 @@ describe('combineSchemas (allOf required handling)', () => {
 
       expect(result.value).toContain('Extract<keyof (');
       expect(result.value).not.toMatch(/Required<Pick<.+, 'id'>>$/s);
+      expect(result.value).toContain('& (Required<Pick<NonNullable<');
+      expect(result.value).toContain(", 'id'>> | null)");
     },
   );
 
