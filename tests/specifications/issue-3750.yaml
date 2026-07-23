@@ -1,0 +1,110 @@
+openapi: 3.1.0
+info:
+  title: issue-3750
+  description: |-
+    Required keys declared on the parent schema's own properties must keep a
+    plain Required<Pick> when a constraint-only allOf member requires them.
+  version: 1.0.0
+paths:
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemDetail'
+  /nullable-item:
+    get:
+      operationId: getNullableItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableItemDetail'
+  /nested-nullable-item:
+    get:
+      operationId: getNestedNullableItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NestedNullableItemDetail'
+  /ref-nullable-item:
+    get:
+      operationId: getRefNullableItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefNullableItemDetail'
+components:
+  schemas:
+    ItemDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          required:
+            - id
+            - name
+          additionalProperties: true
+    NullableItemDetail:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          required:
+            - id
+          additionalProperties: true
+    ObjectWrapper:
+      allOf:
+        - type: object
+    NestedNullableItemDetail:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - $ref: '#/components/schemas/ObjectWrapper'
+        - required:
+            - id
+    RefNullableObjectWrapper:
+      type:
+        - object
+        - 'null'
+      allOf:
+        - type: object
+    RefNullableItemDetail:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - $ref: '#/components/schemas/RefNullableObjectWrapper'
+        - required:
+            - id

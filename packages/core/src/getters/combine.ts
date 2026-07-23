@@ -246,13 +246,33 @@ function usesCanonicalNullableOneOfObject(
   );
 }
 
+function propagatesNullAcrossRef(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  crossesComponentRefBoundary: boolean,
+): boolean {
+  if (!crossesComponentRefBoundary) {
+    return false;
+  }
+  if (isDirectlyNullable(schema)) {
+    return true;
+  }
+  const anyOfMembers = (schema.anyOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return anyOfMembers.some(
+    (member) => !isReference(member) && isDirectlyNullable(member),
+  );
+}
+
 /**
  * True when this node can emit a branch that also omits keys contributed by
  * its `allOf` descendants. Direct non-object output escapes the full
- * intersection. Direct inline anyOf nullability does so only when `resolveValue`
- * resolves this node through a component `$ref` and appends `| null` to the
- * imported alias. Canonical nullable oneOf and all-enum sibling compositions
- * only make the node's own properties unsafe: `combineSchemas` still
+ * intersection. Direct or inline-anyOf nullability can also escape when
+ * `resolveValue` resolves this node through a component `$ref` and preserves
+ * or appends `| null` outside the alias intersection. Canonical nullable oneOf
+ * and all-enum sibling compositions only make the node's own properties
+ * unsafe: `combineSchemas` still
  * intersects every `allOf` member with their emitted union. A non-null object
  * sibling or guaranteed properties on the parent also eliminate an
  * object-or-null member's null branch from the parent intersection, preserving
@@ -269,16 +289,9 @@ function cannotGuaranteeAllOfPropertyKeys(
   ) {
     return true;
   }
-  const anyOfMembers = (schema.anyOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
-  return anyOfMembers.some(
-    (member) =>
-      crossesComponentRefBoundary &&
-      !nullBranchesEliminated &&
-      !isReference(member) &&
-      isDirectlyNullable(member),
+  return (
+    !nullBranchesEliminated &&
+    propagatesNullAcrossRef(schema, crossesComponentRefBoundary)
   );
 }
 
@@ -289,14 +302,14 @@ function cannotGuaranteeAllOfPropertyKeys(
  *
  * anyOf/oneOf members otherwise remain safe because `combineSchemas`
  * intersects the node's own properties into every grouped branch. The exception
- * is direct nullability in an inline anyOf member on a component `$ref` target:
- * `resolveValue` propagates it to the referenced wrapper as a separate `| null`.
- * Inline allOf members, reference members, non-null scalars, oneOf members, and
- * nested unions stay inside the grouped intersection. An all-enum composition
- * is also unsafe because `combineValues` emits the node's properties as a
- * separate union branch instead. Finally, the canonical nullable-oneOf object
- * shortcut emits only its inline object and `null`, dropping the node's own
- * properties.
+ * is nullability on a component `$ref` target or one of its direct inline anyOf
+ * members: `resolveValue`/`getScalar` can propagate it outside the referenced
+ * wrapper's allOf intersection. Inline allOf members, reference members,
+ * non-null scalars, oneOf members, and nested unions stay inside the grouped
+ * intersection. An all-enum composition is also unsafe because `combineValues`
+ * emits the node's properties as a separate union branch instead. Finally, the
+ * canonical nullable-oneOf object shortcut emits only its inline object and
+ * `null`, dropping the node's own properties.
  */
 function cannotGuaranteeOwnPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -360,34 +373,66 @@ function derefComponentSchema(
   return undefined;
 }
 
-/** A guaranteed own property proves this member cannot emit null. */
+/**
+ * True when this member is guaranteed to emit a non-null object. Walk the
+ * original `allOf` composition so object constraints hidden behind nested
+ * component refs are not lost when normalization merges an inline member into
+ * its parent. `seenRefs` keeps recursive component compositions cycle-safe.
+ */
 function guaranteesNonNullableObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
+  seenRefs = new Set<string>(),
+  crossesComponentRefBoundary = isReference(schema),
 ): boolean {
-  const crossesComponentRefBoundary = isReference(schema);
-  if (
-    cannotGuaranteeOwnPropertyKeys(schema, context, crossesComponentRefBoundary)
-  ) {
+  if (isReference(schema)) {
+    // A nullable/non-object sibling at the ref site can be lifted outside the
+    // referenced intersection, so the target cannot prove this site non-null.
+    if (
+      cannotGuaranteeOwnPropertyKeys(
+        schema,
+        context,
+        crossesComponentRefBoundary,
+      )
+    ) {
+      return false;
+    }
+    const resolvedSchema = derefComponentSchema(schema.$ref, context, seenRefs);
+    return resolvedSchema
+      ? guaranteesNonNullableObject(resolvedSchema, context, seenRefs, true)
+      : false;
+  }
+
+  // resolveValue/getScalar preserve direct nullability or append nullability
+  // found in a directly referenced anyOf outside the alias intersection. That
+  // branch cannot be removed by a nested object within the referenced schema.
+  if (propagatesNullAcrossRef(schema, crossesComponentRefBoundary)) {
     return false;
   }
-  const resolvedSchema = isReference(schema)
-    ? derefComponentSchema(schema.$ref, context, new Set<string>())
-    : schema;
-  if (!resolvedSchema) {
-    return false;
-  }
-  const properties = resolvedSchema.properties as
-    | Record<string, unknown>
-    | undefined;
-  return (
-    !!properties &&
-    Object.keys(properties).length > 0 &&
+
+  const properties = schema.properties as Record<string, unknown> | undefined;
+  const type = schema.type as string | string[] | undefined;
+  const isExplicitlyNonNullableObject =
+    type === 'object' ||
+    (Array.isArray(type) && type.length === 1 && type[0] === 'object');
+  const ownSchemaGuaranteesObject =
     !cannotGuaranteeOwnPropertyKeys(
-      resolvedSchema,
+      schema,
       context,
       crossesComponentRefBoundary,
-    )
+    ) &&
+    (isExplicitlyNonNullableObject ||
+      (!!properties && Object.keys(properties).length > 0));
+  if (ownSchemaGuaranteesObject) {
+    return true;
+  }
+
+  const members = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return members.some((member) =>
+    guaranteesNonNullableObject(member, context, new Set(seenRefs)),
   );
 }
 
@@ -487,6 +532,7 @@ interface CombineValuesOptions {
   separator: Separator;
   context: ContextSpec;
   parentSchema?: OpenApiSchemaObject;
+  parentNullBranchesEliminated?: boolean;
 }
 
 function combineValues({
@@ -495,6 +541,7 @@ function combineValues({
   separator,
   context,
   parentSchema,
+  parentNullBranchesEliminated = false,
 }: CombineValuesOptions) {
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
@@ -537,6 +584,12 @@ function combineValues({
     // Parent object may have set required properties that only exist in child
     // objects. Make sure the resulting object has these properties as required,
     // but there is no need to override properties that are already required
+    const parentProperties = parentSchema?.properties as
+      | Record<string, unknown>
+      | undefined;
+    const parentRequiredProperties = parentSchema?.required as
+      | string[]
+      | undefined;
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
         !resolvedData.originalSchema.some((schema) => {
@@ -546,26 +599,61 @@ function combineValues({
           const req = schema?.required as string[] | undefined;
           return props?.[prop] && req?.includes(prop);
         }) &&
-        !((): boolean => {
-          const parentProps = parentSchema?.properties as
-            | Record<string, unknown>
-            | undefined;
-          const parentReq = parentSchema?.required as string[] | undefined;
-          return !!(parentProps?.[prop] && parentReq?.includes(prop));
-        })(),
+        !(parentProperties?.[prop] && parentRequiredProperties?.includes(prop)),
     );
+    // `joined` intersects the parent's own object emission with every allOf
+    // member, so guaranteed own keys are just as safe to Pick as keys proven
+    // reachable through the member composition. A scalar/nullable/union parent
+    // may declare properties without emitting them on every branch, so keep
+    // those on the Extract-guarded path.
+    const pickableParentProperties =
+      parentSchema &&
+      parentProperties &&
+      !cannotGuaranteeOwnPropertyKeys(
+        parentSchema,
+        context,
+        false,
+        parentNullBranchesEliminated,
+      )
+        ? Object.keys(parentProperties)
+        : [];
+    // A nullable object parent's keys are not in `keyof joined`, but they are
+    // guaranteed on `NonNullable<joined>`. Keep the Extract fallback for the
+    // full nullable type and separately require these known keys on its object
+    // branch. Passing nullBranchesEliminated=true asks the same safety checks
+    // whether nullability is the only reason the own keys are unavailable.
+    const pickableNonNullParentProperties =
+      parentSchema &&
+      parentProperties &&
+      !cannotGuaranteeOwnPropertyKeys(parentSchema, context, false, true)
+        ? Object.keys(parentProperties)
+        : [];
+    // Keep the parent keys local to required-key handling: `allProperties`
+    // also drives unionAddMissingProperties for other separators and
+    // intentionally contains member keys only.
+    const pickableProperties = new Set([
+      ...resolvedData.allProperties,
+      ...pickableParentProperties,
+    ]);
     const pickableRequiredProperties = overrideRequiredProperties.filter(
-      (prop) => resolvedData.allProperties.includes(prop),
+      (prop) => pickableProperties.has(prop),
     );
     const unresolvedRequiredProperties = overrideRequiredProperties.filter(
-      (prop) => !resolvedData.allProperties.includes(prop),
+      (prop) => !pickableProperties.has(prop),
     );
+    const nullableParentRequiredProperties =
+      unresolvedRequiredProperties.filter((prop) =>
+        pickableNonNullParentProperties.includes(prop),
+      );
     let result = joined;
     if (pickableRequiredProperties.length > 0) {
       result = `${result} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
     }
     if (unresolvedRequiredProperties.length > 0) {
       result = `${result} & Required<Pick<${joined}, Extract<keyof (${joined}), '${unresolvedRequiredProperties.join("' | '")}'>>>`;
+    }
+    if (nullableParentRequiredProperties.length > 0) {
+      result = `${result} & (Required<Pick<NonNullable<${joined}>, '${nullableParentRequiredProperties.join("' | '")}'>> | null)`;
     }
     if (
       pickableRequiredProperties.length > 0 ||
@@ -633,6 +721,16 @@ export function combineSchemas({
   nullable: string;
   formDataContext?: FormDataContext;
 }): ScalarValue {
+  const originalAllOfMembers = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  const parentNullBranchesEliminated =
+    separator === 'allOf' &&
+    originalAllOfMembers.some((member) =>
+      guaranteesNonNullableObject(member, context),
+    );
+
   // Normalize allOf schemas by merging inline objects into parent (fixes #2458)
   // Only applies when: using allOf, not in v7 compat mode, no sibling oneOf/anyOf
   const canMergeInlineAllOf =
@@ -891,6 +989,7 @@ export function combineSchemas({
     resolvedValue,
     context,
     parentSchema: normalizedSchema,
+    parentNullBranchesEliminated,
   });
 
   return {

@@ -134,6 +134,237 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
+  // #3750: a constraint-only allOf member can require properties declared on
+  // the parent schema itself. Those properties are part of the emitted
+  // intersection and must therefore use a plain Required<Pick>. With an index
+  // signature, Extract<keyof T, K> collapses to never and loses requiredness.
+  it('keeps plain Required<Pick> for required keys declared on parent properties (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          required: ['id', 'name'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'ItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Required<Pick<');
+    expect(result.value).toContain(", 'id' | 'name'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('keeps plain Required<Pick> when an allOf object removes the nullable parent branch (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('keeps plain Required<Pick> when a nested allOf $ref removes the nullable parent branch (#3750)', () => {
+    const contextWithObjectWrapper = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            ObjectWrapper: {
+              allOf: [{ type: 'object' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        { $ref: '#/components/schemas/ObjectWrapper' },
+        { required: ['id'] },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NestedNullableItemDetail',
+      separator: 'allOf',
+      context: contextWithObjectWrapper,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it.each([
+    {
+      label: 'anyOf null member',
+      wrapper: {
+        allOf: [{ type: 'object' }],
+        anyOf: [{ type: 'object' }, { type: 'null' }],
+      },
+    },
+    {
+      label: "type: ['object', 'null']",
+      wrapper: {
+        type: ['object', 'null'],
+        allOf: [{ type: 'object' }],
+      },
+    },
+    {
+      label: 'nullable: true',
+      wrapper: {
+        type: 'object',
+        nullable: true,
+        allOf: [{ type: 'object' }],
+      },
+    },
+    {
+      label: "type: 'null'",
+      wrapper: {
+        type: 'null',
+        allOf: [{ type: 'object' }],
+      },
+    },
+  ])(
+    'keeps Extract guard when a nested object allOf cannot remove ref-propagated null ($label)',
+    ({ wrapper }) => {
+      const contextWithNullableObjectWrapper = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              NullableObjectWrapper: wrapper,
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+      const schema: OpenApiSchemaObject = {
+        type: ['object', 'null'],
+        properties: {
+          id: { type: 'string' },
+        },
+        additionalProperties: true,
+        allOf: [
+          { $ref: '#/components/schemas/NullableObjectWrapper' },
+          { required: ['id'] },
+        ],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'RefPropagatedNullableItemDetail',
+        separator: 'allOf',
+        context: contextWithNullableObjectWrapper,
+        nullable: '',
+      });
+
+      expect(result.value).toContain('Extract<keyof (');
+      expect(result.value).not.toMatch(/Required<Pick<.+, 'id'>>$/s);
+      expect(result.value).toContain('& (Required<Pick<NonNullable<');
+      expect(result.value).toContain(", 'id'>> | null)");
+    },
+  );
+
+  it('preserves the non-null object guarantee when allOf normalization merges its member (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            marker: { type: 'string' },
+          },
+        },
+        {
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NormalizedNullableItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('keeps Extract guard when parent properties are not emitted by its type', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      properties: {
+        id: { type: 'string' },
+      },
+      allOf: [
+        {
+          type: 'object',
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'InvalidParent',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Extract<keyof (');
+    expect(result.value).not.toMatch(/Required<Pick<.+, 'id'>>$/s);
+  });
+
   // #3748: required keys whose properties live two $ref hops away (the
   // referenced schema is itself an allOf composition) must resolve to a plain
   // Required<Pick>. The Extract guard is not equivalent here: with
