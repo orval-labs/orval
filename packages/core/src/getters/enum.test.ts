@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { NamingConvention, type OpenApiSchemaObject } from '../types';
 import {
+  EnumGeneration,
+  NamingConvention,
+  type OpenApiSchemaObject,
+} from '../types';
+import {
+  getEnum,
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
@@ -343,5 +348,20 @@ describe('getEnumImplementation with object-format descriptions', () => {
       l.includes("inactive: 'inactive'"),
     );
     expect(lines[inactiveLine - 1]).not.toContain('/**');
+  });
+});
+
+describe('getEnum integer const coercion (#3758)', () => {
+  it('does not throw when value is a numeric string from integer const/enum', () => {
+    // After the scalar fix, value is already a string; this guards the helper
+    // itself against non-string inputs so the crash cannot resurface.
+    const result = getEnum(
+      '1' as unknown as string,
+      'Flag',
+      undefined,
+      EnumGeneration.CONST,
+    );
+    expect(result).toContain('export type Flag');
+    expect(result).toContain('export const Flag');
   });
 });

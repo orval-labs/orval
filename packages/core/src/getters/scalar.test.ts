@@ -296,3 +296,36 @@ describe('getScalar (string const value escaping #3505)', () => {
     expect(result.value).toBe("'Asia/Tokyo'");
   });
 });
+
+describe('getScalar integer enum + const (#3758)', () => {
+  it('keeps a string type value when both enum and const are present', () => {
+    // FastAPI/Pydantic Literal[1] emits { type: integer, enum: [1], const: 1 }.
+    // The const branch used to overwrite the enum union with a raw number, which
+    // later crashed getTypeConstEnum via value.endsWith(...).
+    const schema: OpenApiSchemaObject = {
+      type: 'integer',
+      enum: [1],
+      const: 1,
+    };
+
+    const result = getScalar({ item: schema, name: 'flag', context });
+
+    expect(typeof result.value).toBe('string');
+    expect(result.value).toBe('1');
+    expect(result.isEnum).toBe(true);
+  });
+
+  it('preserves nullable suffix when const is present', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'integer',
+      enum: [1],
+      const: 1,
+      nullable: true,
+    };
+
+    const result = getScalar({ item: schema, name: 'flag', context });
+
+    expect(typeof result.value).toBe('string');
+    expect(result.value).toBe('1 | null');
+  });
+});

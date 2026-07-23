@@ -131,8 +131,12 @@ export function getScalar({
 
       value += nullable;
 
+      // Keep the type value a string. Numeric `const` values (common from
+      // FastAPI/Pydantic Literal[int] fields that also emit `enum`) must not
+      // replace the union with a raw number, or getTypeConstEnum crashes on
+      // `value.endsWith(...)` (#3758).
       if (schemaConst !== undefined) {
-        value = schemaConst;
+        value = `${schemaConst}${nullable}`;
       }
 
       return {
@@ -161,8 +165,10 @@ export function getScalar({
 
       value += nullable;
 
+      // Same string-coercion as integer/number so const never becomes a
+      // non-string type-value for downstream enum helpers (#3758).
       if (schemaConst !== undefined) {
-        value = schemaConst;
+        value = `${schemaConst}${nullable}`;
       }
 
       return {
