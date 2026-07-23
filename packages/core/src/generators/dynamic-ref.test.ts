@@ -349,6 +349,70 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
         );
       }
     });
+    it('references bound alias by name through a plain $ref hop (#3746)', () => {
+      const spec: OpenApiDocument = {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '0.1.0' },
+        paths: {},
+        components: {
+          schemas: {
+            SomeObject: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+            },
+            GenericArray: {
+              $id: 'https://example.com/schemas/GenericArray',
+              $defs: {
+                itemType: { $dynamicAnchor: 'itemType', not: {} },
+              },
+              type: 'object',
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $dynamicRef: '#itemType' },
+                },
+              },
+            },
+            ObjectArray: {
+              $defs: {
+                itemType: {
+                  $dynamicAnchor: 'itemType',
+                  $ref: '#/components/schemas/SomeObject',
+                },
+              },
+              $ref: '#/components/schemas/GenericArray',
+            },
+            Foo: {
+              type: 'object',
+              properties: {
+                bar: { $ref: '#/components/schemas/ObjectArray' },
+              },
+            },
+          },
+        },
+      };
+
+      const schemas = spec.components!.schemas!;
+      const result = generateSchemasDefinition(
+        schemas,
+        createContext(spec),
+        '',
+      );
+
+      // The bound alias is still emitted as its own specialized type.
+      const objectArray = result.find((s) => s.name === 'ObjectArray');
+      expect(objectArray).toBeDefined();
+      expect(objectArray!.model).toContain(
+        'type ObjectArray = GenericArray<SomeObject>',
+      );
+
+      // The plain $ref hop must reference the alias by name, not recurse
+      // through to the unspecialized template.
+      const foo = result.find((s) => s.name === 'Foo');
+      expect(foo).toBeDefined();
+      expect(foo!.model).toContain('bar?: ObjectArray');
+      expect(foo!.model).not.toContain('GenericArray');
+    });
     it('collects imports and readonly properties from allOf extra schemas', () => {
       const spec: OpenApiDocument = {
         openapi: '3.1.0',
