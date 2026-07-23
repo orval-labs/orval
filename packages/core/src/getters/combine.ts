@@ -246,29 +246,33 @@ function usesCanonicalNullableOneOfObject(
   );
 }
 
-function propagatesNullableAnyOfAcrossRef(
+function propagatesNullAcrossRef(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   crossesComponentRefBoundary: boolean,
 ): boolean {
+  if (!crossesComponentRefBoundary) {
+    return false;
+  }
+  if (isDirectlyNullable(schema)) {
+    return true;
+  }
   const anyOfMembers = (schema.anyOf ?? []) as (
     | OpenApiSchemaObject
     | OpenApiReferenceObject
   )[];
   return anyOfMembers.some(
-    (member) =>
-      crossesComponentRefBoundary &&
-      !isReference(member) &&
-      isDirectlyNullable(member),
+    (member) => !isReference(member) && isDirectlyNullable(member),
   );
 }
 
 /**
  * True when this node can emit a branch that also omits keys contributed by
  * its `allOf` descendants. Direct non-object output escapes the full
- * intersection. Direct inline anyOf nullability does so only when `resolveValue`
- * resolves this node through a component `$ref` and appends `| null` to the
- * imported alias. Canonical nullable oneOf and all-enum sibling compositions
- * only make the node's own properties unsafe: `combineSchemas` still
+ * intersection. Direct or inline-anyOf nullability can also escape when
+ * `resolveValue` resolves this node through a component `$ref` and preserves
+ * or appends `| null` outside the alias intersection. Canonical nullable oneOf
+ * and all-enum sibling compositions only make the node's own properties
+ * unsafe: `combineSchemas` still
  * intersects every `allOf` member with their emitted union. A non-null object
  * sibling or guaranteed properties on the parent also eliminate an
  * object-or-null member's null branch from the parent intersection, preserving
@@ -287,7 +291,7 @@ function cannotGuaranteeAllOfPropertyKeys(
   }
   return (
     !nullBranchesEliminated &&
-    propagatesNullableAnyOfAcrossRef(schema, crossesComponentRefBoundary)
+    propagatesNullAcrossRef(schema, crossesComponentRefBoundary)
   );
 }
 
@@ -298,14 +302,14 @@ function cannotGuaranteeAllOfPropertyKeys(
  *
  * anyOf/oneOf members otherwise remain safe because `combineSchemas`
  * intersects the node's own properties into every grouped branch. The exception
- * is direct nullability in an inline anyOf member on a component `$ref` target:
- * `resolveValue` propagates it to the referenced wrapper as a separate `| null`.
- * Inline allOf members, reference members, non-null scalars, oneOf members, and
- * nested unions stay inside the grouped intersection. An all-enum composition
- * is also unsafe because `combineValues` emits the node's properties as a
- * separate union branch instead. Finally, the canonical nullable-oneOf object
- * shortcut emits only its inline object and `null`, dropping the node's own
- * properties.
+ * is nullability on a component `$ref` target or one of its direct inline anyOf
+ * members: `resolveValue`/`getScalar` can propagate it outside the referenced
+ * wrapper's allOf intersection. Inline allOf members, reference members,
+ * non-null scalars, oneOf members, and nested unions stay inside the grouped
+ * intersection. An all-enum composition is also unsafe because `combineValues`
+ * emits the node's properties as a separate union branch instead. Finally, the
+ * canonical nullable-oneOf object shortcut emits only its inline object and
+ * `null`, dropping the node's own properties.
  */
 function cannotGuaranteeOwnPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -399,10 +403,10 @@ function guaranteesNonNullableObject(
       : false;
   }
 
-  // resolveValue appends nullability found in a directly referenced anyOf to
-  // the imported alias (`Alias | null`). That branch sits outside this node's
-  // allOf intersection and therefore cannot be removed by a nested object.
-  if (propagatesNullableAnyOfAcrossRef(schema, crossesComponentRefBoundary)) {
+  // resolveValue/getScalar preserve direct nullability or append nullability
+  // found in a directly referenced anyOf outside the alias intersection. That
+  // branch cannot be removed by a nested object within the referenced schema.
+  if (propagatesNullAcrossRef(schema, crossesComponentRefBoundary)) {
     return false;
   }
 

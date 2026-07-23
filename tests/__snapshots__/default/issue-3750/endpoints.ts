@@ -13,6 +13,7 @@ import type {
   ItemDetail,
   NestedNullableItemDetail,
   NullableItemDetail,
+  RefNullableItemDetail,
 } from './model';
 
 export const getItem = (
@@ -33,7 +34,15 @@ export const getNestedNullableItem = (
   return axios.get(`/nested-nullable-item`, options);
 };
 
+export const getRefNullableItem = (
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<RefNullableItemDetail | null>> => {
+  return axios.get(`/ref-nullable-item`, options);
+};
+
 export type GetItemResult = AxiosResponse<ItemDetail>;
 export type GetNullableItemResult = AxiosResponse<NullableItemDetail | null>;
 export type GetNestedNullableItemResult =
   AxiosResponse<NestedNullableItemDetail | null>;
+export type GetRefNullableItemResult =
+  AxiosResponse<RefNullableItemDetail | null>;

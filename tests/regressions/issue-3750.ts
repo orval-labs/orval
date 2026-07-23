@@ -1,6 +1,7 @@
 import type { ItemDetail } from '../generated/default/issue-3750/model/itemDetail';
 import type { NestedNullableItemDetail } from '../generated/default/issue-3750/model/nestedNullableItemDetail';
 import type { NullableItemDetail } from '../generated/default/issue-3750/model/nullableItemDetail';
+import type { RefNullableItemDetail } from '../generated/default/issue-3750/model/refNullableItemDetail';
 
 declare const item: ItemDetail;
 
@@ -38,9 +39,15 @@ if (nestedNullableItem !== null) {
 // @ts-expect-error - id must not silently become optional.
 const nestedNullableItemWithoutId: NestedNullableItemDetail = {};
 
+// The referenced wrapper propagates null outside its own allOf intersection.
+// This declaration also guards against generating a Pick key constrained by
+// `never`, which makes the generated model fail TypeScript compilation.
+const refNullableItem: RefNullableItemDetail = null;
+
 void id;
 void name;
 void itemWithoutId;
 void itemWithoutName;
 void nullableItemWithoutId;
 void nestedNullableItemWithoutId;
+void refNullableItem;

@@ -36,6 +36,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NestedNullableItemDetail'
+  /ref-nullable-item:
+    get:
+      operationId: getRefNullableItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefNullableItemDetail'
 components:
   schemas:
     ItemDetail:
@@ -78,5 +88,23 @@ components:
       additionalProperties: true
       allOf:
         - $ref: '#/components/schemas/ObjectWrapper'
+        - required:
+            - id
+    RefNullableObjectWrapper:
+      type:
+        - object
+        - 'null'
+      allOf:
+        - type: object
+    RefNullableItemDetail:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - $ref: '#/components/schemas/RefNullableObjectWrapper'
         - required:
             - id

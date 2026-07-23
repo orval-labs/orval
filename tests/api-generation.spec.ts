@@ -1485,6 +1485,10 @@ test('default issue-3750 keeps plain Required<Pick> for parent properties', asyn
     generated('default', 'issue-3750', 'model', 'nestedNullableItemDetail.ts'),
     'utf8',
   );
+  const refNullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'refNullableItemDetail.ts'),
+    'utf8',
+  );
 
   // Parent properties are part of the emitted intersection and are therefore
   // safe Pick keys even when required comes from a constraint-only member.
@@ -1503,6 +1507,11 @@ test('default issue-3750 keeps plain Required<Pick> for parent properties', asyn
   expect(nestedNullableItemDetail).toContain("'id'");
   expect(nestedNullableItemDetail).toContain('Required<');
   expect(nestedNullableItemDetail).not.toContain('Extract<');
+
+  // A nullable component target propagates null outside its nested allOf, so
+  // the required key must stay guarded to avoid Pick<T, 'id'> violating a
+  // `keyof T = never` constraint.
+  expect(refNullableItemDetail).toMatch(/Extract<\s*keyof \(/);
 });
 
 test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
