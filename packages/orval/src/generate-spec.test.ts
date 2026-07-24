@@ -1596,3 +1596,140 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
     }
   });
 });
+
+const ACTIVITY_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'Activity', version: '1.0.0' },
+  paths: {
+    '/activities': {
+      get: {
+        operationId: 'getActivities',
+        responses: {
+          '200': {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Activity' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      Activity: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      ActivityDto: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    },
+  },
+};
+
+const MASTER_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'Master', version: '1.0.0' },
+  paths: {
+    '/masters': {
+      get: {
+        operationId: 'getMasters',
+        responses: {
+          '200': {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Master' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      Master: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      MasterDto: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    },
+  },
+};
+
+describe('generateSpec - workspace barrel idempotency (#3756)', () => {
+  // Regression for #3756: the shared workspace barrel (`<workspace>/index.ts`)
+  // is appended to once per project. The dedup used a single-quote literal
+  // substring check, so an `afterAllFilesWrite` formatter flipping quotes
+  // (single -> double) caused every export to be re-appended on each run.
+  it('does not accumulate duplicate exports when a formatter changes quote style', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+
+    const countExports = async () => {
+      const content = await fs.readFile(barrel, 'utf8');
+      return (content.match(/export \*/g) ?? []).length;
+    };
+
+    try {
+      const baseOptions = await normalizeOptions(
+        {
+          input: { target: ACTIVITY_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/base/endpoints.ts',
+            schemas: './gen/api/base/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+      const masterOptions = await normalizeOptions(
+        {
+          input: { target: MASTER_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/master/endpoints.ts',
+            schemas: './gen/api/master/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+      const afterCycle1 = await countExports();
+      expect(afterCycle1).toBeGreaterThan(0);
+
+      // Simulate prettier flipping single -> double quotes between runs.
+      const flipped = (await fs.readFile(barrel, 'utf8')).replace(
+        /export \* from '([^']+)';/g,
+        'export * from "$1";',
+      );
+      await fs.writeFile(barrel, flipped);
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+      const afterCycle2 = await countExports();
+
+      expect(afterCycle2).toBe(afterCycle1);
+
+      const finalContent = await fs.readFile(barrel, 'utf8');
+      const specifiers = [
+        ...finalContent.matchAll(/export \* from ['"]([^'"]+)['"]/g),
+      ].map((m) => m[1]);
+      expect(new Set(specifiers).size).toBe(specifiers.length);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});

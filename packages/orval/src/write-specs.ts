@@ -39,11 +39,10 @@ import {
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { formatWithPrettier } from './formatters/prettier';
-import { executeHook } from './utils';
+import { executeHook, readReExportSpecifiers } from './utils';
 import {
   generateZodSchemasInline,
   writeZodSchemas,
@@ -172,13 +171,11 @@ async function addOperationSchemasReExport(
 
   const indexExists = await fs.pathExists(schemaIndexPath);
   if (indexExists) {
-    // Check if export already exists to prevent duplicates on re-runs
-    // Use regex to handle both single and double quotes
+    // Append the re-export only if it isn't already declared. The presence
+    // check reuses the shared barrel specifier reader so quote style can't
+    // cause duplicates (#3756).
     const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
-    const exportPattern = new RegExp(
-      String.raw`export\s*\*\s*from\s*['"]${esmImportPath.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}['"]`,
-    );
-    if (!exportPattern.test(existingContent)) {
+    if (!readReExportSpecifiers(existingContent).has(esmImportPath)) {
       await fs.appendFile(schemaIndexPath, exportLine);
     }
   } else {
@@ -806,23 +803,28 @@ export async function writeSpecs(
     }
 
     if (output.indexFiles) {
+      // The workspace barrel can share its path with the implementation
+      // target (#3675: `target` === `<workspace>/index.ts`), so append rather
+      // than overwrite to avoid clobbering non-export content. Dedup on the
+      // bare specifier (not the formatted line) so a formatter changing quote
+      // style between runs can't reintroduce duplicates (#3756).
       if (await fs.pathExists(indexFile)) {
-        const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter(
-          (imp) => !data.includes(`export * from '${imp}'`),
+        const declared = readReExportSpecifiers(
+          await fs.readFile(indexFile, 'utf8'),
         );
-        await fs.appendFile(
-          indexFile,
-          unique(importsNotDeclared)
-            .map((imp) => `export * from '${imp}';\n`)
-            .join(''),
-        );
+        const toAdd = [...new Set(imports.filter((imp) => !declared.has(imp)))];
+        if (toAdd.length > 0) {
+          await fs.appendFile(
+            indexFile,
+            toAdd.map((imp) => `export * from '${imp}';\n`).join(''),
+          );
+        }
       } else {
         await fs.outputFile(
           indexFile,
-          unique(imports)
+          `${[...new Set(imports)]
             .map((imp) => `export * from '${imp}';`)
-            .join('\n') + '\n',
+            .join('\n')}\n`,
         );
       }
 
