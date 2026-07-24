@@ -1,4 +1,5 @@
 export * from './component-definition';
+export * from './date-transform';
 export * from './factory';
 export * from './imports';
 export * from './input-filters';

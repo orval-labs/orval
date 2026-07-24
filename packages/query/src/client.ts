@@ -4,6 +4,7 @@ import {
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
+  generateResponseDateDeserializer,
   type GeneratorDependency,
   type GeneratorMutator,
   type GeneratorOptions,
@@ -320,6 +321,21 @@ export const generateAxiosRequestFunction = (
     isFormUrlEncoded,
   });
 
+  const dateDeserializer = override.useDatesTransform
+    ? generateResponseDateDeserializer({ operationName, response, context })
+    : undefined;
+  // Emitted AFTER the operation block: the orval writer prepends the
+  // operation's doc comment to this implementation string, so the operation
+  // const must come first to keep the JSDoc attached to it. The deserializer
+  // is only referenced inside the operation body (executed at call time), so
+  // the later declaration has no TDZ issue.
+  const dateDeserializerImplementation = dateDeserializer
+    ? `\n${dateDeserializer.implementation}`
+    : '';
+  const thenDateDeserializer = dateDeserializer
+    ? `.then(${dateDeserializer.name})`
+    : '';
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -362,7 +378,7 @@ export const generateAxiosRequestFunction = (
         ${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
-          ${requestOptions});
+          ${requestOptions})${thenDateDeserializer};
         }`;
 
       return `${
@@ -374,7 +390,7 @@ export const generateAxiosRequestFunction = (
 
         return ${adapter.wrapHookMutatorCallback(callback, operationName)}
       }
-    `;
+    ${dateDeserializerImplementation}`;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
@@ -386,9 +402,9 @@ export const generateAxiosRequestFunction = (
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
-      ${requestOptions});
+      ${requestOptions})${thenDateDeserializer};
     }
-  `;
+  ${dateDeserializerImplementation}`;
   }
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
@@ -427,9 +443,13 @@ export const generateAxiosRequestFunction = (
     ${bodyForm}
     return axios${
       isSyntheticDefaultImportsAllowed ? '' : '.default'
-    }.${verb}(${options});
+    }.${verb}(${options})${
+      dateDeserializer
+        ? `.then((res) => { res.data = ${dateDeserializer.name}(res.data); return res; })`
+        : ''
+    };
   }
-`;
+${dateDeserializerImplementation}`;
 
   return httpRequestFunctionImplementation;
 };

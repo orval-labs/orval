@@ -1630,4 +1630,24 @@ export default defineConfig({
       target: '../specifications/issue-1522.yaml',
     },
   },
+  datesTransform: {
+    output: {
+      target: '../generated/react-query/dates-transform/endpoints.ts',
+      schemas: '../generated/react-query/dates-transform/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        useDatesTransform: true,
+        mutator: {
+          path: '../mutators/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/dates-transform.yaml',
+    },
+  },
 });

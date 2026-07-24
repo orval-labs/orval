@@ -2003,4 +2003,56 @@ describe('normalizeOptions', () => {
       }
     });
   });
+
+  it('useDatesTransform implies useDates', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: 'gen.ts',
+            override: { useDatesTransform: true },
+          },
+        },
+        workspace,
+      );
+
+      expect(options.output.override.useDatesTransform).toBe(true);
+      expect(options.output.override.useDates).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('useDatesTransform defaults to false', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: { target: 'gen.ts' },
+        },
+        workspace,
+      );
+
+      expect(options.output.override.useDatesTransform).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
