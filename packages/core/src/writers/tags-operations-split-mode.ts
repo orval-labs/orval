@@ -11,7 +11,6 @@ import {
   isString,
   isSyntheticDefaultImportsAllow,
   kebab,
-  pascal,
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
@@ -118,7 +117,7 @@ export async function writeTagsOperationsSplitMode({
   interface MockIndexEntry {
     ext: OutputMockType;
     mockDir: string;
-    operations: { tag: string; opName: string }[];
+    operations: { tag: string; opName: string; handlerName: string }[];
   }
 
   // Accumulated across every tag and written once after `Promise.all`
@@ -400,7 +399,11 @@ export async function writeTagsOperationsSplitMode({
                   (o) => o.tag === tag && o.opName === kebabOperation,
                 )
               ) {
-                indexEntry.operations.push({ tag, opName: kebabOperation });
+                indexEntry.operations.push({
+                  tag,
+                  opName: kebabOperation,
+                  handlerName: mockOutput.implementation.handlerName,
+                });
               }
             }
 
@@ -471,14 +474,14 @@ export async function writeTagsOperationsSplitMode({
           (a, b) =>
             a.tag.localeCompare(b.tag) || a.opName.localeCompare(b.opName),
         )
-        .map(({ tag, opName }) => {
+        .map(({ tag, opName, handlerName }) => {
           const localMockPath = upath.joinSafe(
             './',
             tag,
             opName + '.' + ext + mockImportExtension,
           );
           return ext === OutputMockType.MSW
-            ? `export { get${pascal(opName)}Mock } from '${localMockPath}'\n`
+            ? `export { ${handlerName} } from '${localMockPath}'\n`
             : `export * from '${localMockPath}'\n`;
         })
         .join('');

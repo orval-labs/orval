@@ -861,7 +861,16 @@ export async function writeSpecs(
         );
       }
 
-      implementationPaths = [indexFile, ...implementationPathsForIndex];
+      // Use the full (unfiltered) implementation paths here, not
+      // `implementationPathsForIndex` — for tags-operations modes that list
+      // is narrowed to just the root barrel + global schemas so the barrel
+      // body above doesn't re-export ambiguous duplicate types, but every
+      // per-tag/operation/helper/schema/mock file must still reach
+      // `afterAllFilesWrite` and the formatter below.
+      implementationPaths = [
+        indexFile,
+        ...excludeFilePath(implementationPaths, indexFile),
+      ];
     }
   }
 

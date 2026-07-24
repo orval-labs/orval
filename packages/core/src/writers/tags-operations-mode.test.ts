@@ -401,9 +401,18 @@ describe('writeTagsOperationsMode', () => {
     expect(fs.existsSync(mockIndexPath)).toBe(true);
     expect(paths).toContain(mockIndexPath);
 
+    // Assert the exact export line, not just the file path: the index must
+    // re-export the mock's real handler name (`mockHandler`, per the
+    // `createSplitModeOperation` fixture), not a name re-derived from the
+    // kebab-cased operation filename (which previously produced e.g.
+    // `getListPetsMock` instead of the actual exported `mockHandler`).
     const mockIndex = fs.readFileSync(mockIndexPath, 'utf8');
-    expect(mockIndex).toContain('./pets/list-pets.msw');
-    expect(mockIndex).toContain('./health/get-health.msw');
+    expect(mockIndex).toContain(
+      "export { mockHandler } from './pets/list-pets.msw'",
+    );
+    expect(mockIndex).toContain(
+      "export { mockHandler } from './health/get-health.msw'",
+    );
   });
 
   it('throws a clear error for a client that groups operations into a shared structure', async () => {

@@ -204,7 +204,7 @@ describe('writeTagsOperationsSplitMode', () => {
     });
 
     expect(
-      fs.existsSync(path.join(tmpDir, 'health', 'getHealth.schemas.ts')),
+      fs.existsSync(path.join(tmpDir, 'health', 'get-health.schemas.ts')),
     ).toBe(false);
     expect(paths.some((p) => p.endsWith('.schemas.ts'))).toBe(false);
   });
