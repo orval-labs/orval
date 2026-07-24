@@ -471,6 +471,8 @@ export const OutputMode = {
   SPLIT: 'split',
   TAGS: 'tags',
   TAGS_SPLIT: 'tags-split',
+  TAGS_OPERATIONS: 'tags-operations',
+  TAGS_OPERATIONS_SPLIT: 'tags-operations-split',
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
@@ -1621,6 +1623,57 @@ export interface GeneratorOperation {
   types?: {
     result: (title?: string) => string;
   };
+}
+
+/**
+ * One operation's slice of a tag bucket, produced by
+ * `generateTargetForTagsOperations` for the `tags-operations` /
+ * `tags-operations-split` modes. Unlike `GeneratorTargetFull`, the
+ * implementation here is never merged with sibling operations — each
+ * operation keeps its own header/footer-wrapped implementation so it can be
+ * written to its own file.
+ */
+export interface GeneratorOperationTarget {
+  operationName: string;
+  imports: GeneratorImport[];
+  implementation: string;
+  mockOutputs: GeneratorMockOutput[];
+  mockOutputsFull: GeneratorMockOutputFull[];
+  mutators?: GeneratorMutator[];
+  clientMutators?: GeneratorMutator[];
+  formData?: GeneratorMutator[];
+  formUrlEncoded?: GeneratorMutator[];
+  paramsSerializer?: GeneratorMutator[];
+  paramsFilter?: GeneratorMutator[];
+  fetchReviver?: GeneratorMutator[];
+}
+
+/**
+ * Shared per-tag helper block (e.g. `AwaitedInput`/`Awaited`,
+ * `SecondParameter`, query-key helpers, deduplicated shared types) computed
+ * once per tag so every operation file in that tag can import it instead of
+ * redeclaring it.
+ */
+export interface GeneratorTagHelpers {
+  implementation: string;
+  sharedTypes?: SharedTypeDeclaration[];
+  /**
+   * Top-level `type` identifiers declared in `implementation`. Writers
+   * import these with `import type { ... }` — a side-effect import
+   * (`import './<tag>.helpers'`) never brings type names into scope.
+   */
+  typeNames: string[];
+  /**
+   * Top-level `const`/`function` identifiers declared in `implementation`
+   * (e.g. a query-key helper called at runtime). These must survive as a
+   * real value import, not `import type`.
+   */
+  valueNames: string[];
+}
+
+export interface GeneratorTagOperationsTarget {
+  helpers: GeneratorTagHelpers;
+  operations: GeneratorOperationTarget[];
 }
 
 export interface GeneratorVerbOptions {

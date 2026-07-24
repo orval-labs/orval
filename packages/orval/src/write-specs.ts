@@ -34,6 +34,8 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  writeTagsOperationsMode,
+  writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
 import { generateFakerForSchemas } from '@orval/mock';
@@ -417,19 +419,50 @@ function getImplementationPathsForIndex(
     output.mode === OutputMode.SPLIT &&
     getComparableFilePath(output.target) === getComparableFilePath(indexFile);
 
-  if (!isSplitModeWithColocatedTarget) {
+  if (isSplitModeWithColocatedTarget) {
+    const targetInfo = getFileInfo(output.target, {
+      extension: output.fileExtension,
+    });
+    const defaultSiblingSchemas = path.join(
+      targetInfo.dirname,
+      `${targetInfo.filename}.schemas${output.fileExtension}`,
+    );
+    return excludeFilePath(paths, defaultSiblingSchemas);
+  }
+
+  // tags-operations and tags-operations-split produce a root barrel
+  // (dirname/index<ext>) plus per-tag barrels and individual operation files.
+  // The workspace index must only re-export the root barrel (and the global
+  // schemas file when present) — re-exporting individual operation files,
+  // per-tag barrels, helper files, and per-operation schema files causes
+  // TS2308 ambiguous-re-export errors because many types appear in multiple
+  // files simultaneously (shared helpers across tags; shared schemas across
+  // operations).
+  const isTagsOperationsMode =
+    output.mode === OutputMode.TAGS_OPERATIONS ||
+    output.mode === OutputMode.TAGS_OPERATIONS_SPLIT;
+
+  if (!isTagsOperationsMode || !shouldExcludeSelf) {
     return paths;
   }
 
   const targetInfo = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const defaultSiblingSchemas = path.join(
+  const rootBarrel = path.join(
+    targetInfo.dirname,
+    `index${output.fileExtension}`,
+  );
+  const globalSchemas = path.join(
     targetInfo.dirname,
     `${targetInfo.filename}.schemas${output.fileExtension}`,
   );
 
-  return excludeFilePath(paths, defaultSiblingSchemas);
+  return paths.filter(
+    (p) =>
+      getComparableFilePath(p) === getComparableFilePath(rootBarrel) ||
+      getComparableFilePath(p) === getComparableFilePath(globalSchemas),
+  );
 }
 
 export async function writeSpecs(
@@ -828,7 +861,16 @@ export async function writeSpecs(
         );
       }
 
-      implementationPaths = [indexFile, ...implementationPathsForIndex];
+      // Use the full (unfiltered) implementation paths here, not
+      // `implementationPathsForIndex` — for tags-operations modes that list
+      // is narrowed to just the root barrel + global schemas so the barrel
+      // body above doesn't re-export ambiguous duplicate types, but every
+      // per-tag/operation/helper/schema/mock file must still reach
+      // `afterAllFilesWrite` and the formatter below.
+      implementationPaths = [
+        indexFile,
+        ...excludeFilePath(implementationPaths, indexFile),
+      ];
     }
   }
 
@@ -939,6 +981,12 @@ function getWriteMode(mode: OutputMode) {
     }
     case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS: {
+      return writeTagsOperationsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS_SPLIT: {
+      return writeTagsOperationsSplitMode;
     }
     default: {
       return writeSingleMode;
