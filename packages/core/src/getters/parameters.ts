@@ -43,5 +43,17 @@ export function getParameters({
       }
     }
   }
+
+  // Parameters are unique by their name and location. Callers provide
+  // path-level parameters first and operation-level parameters last, so
+  // replacing an existing entry applies the operation-level override.
+  for (const location of ['path', 'query', 'header'] as const) {
+    result[location] = [
+      ...new Map(
+        result[location].map((entry) => [entry.parameter.name, entry]),
+      ).values(),
+    ];
+  }
+
   return result;
 }

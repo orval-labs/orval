@@ -5,6 +5,30 @@ import type { OpenApiParameterObject, OpenApiReferenceObject } from '../types';
 import { getParameters } from './parameters';
 
 describe('getParameters', () => {
+  it('keeps the operation-level parameter when it overrides a path-level parameter (issue #3745)', () => {
+    const pathParameter: OpenApiParameterObject = {
+      name: 'name',
+      in: 'query',
+      description: 'Path-level definition',
+      schema: { type: 'string' },
+    };
+    const operationParameter: OpenApiParameterObject = {
+      name: 'name',
+      in: 'query',
+      description: 'Operation-level override',
+      schema: { type: 'integer' },
+    };
+
+    const result = getParameters({
+      parameters: [pathParameter, operationParameter],
+      context: createTestContextSpec(),
+    });
+
+    expect(result.query).toEqual([
+      { parameter: operationParameter, imports: [] },
+    ]);
+  });
+
   it('resolves a header parameter referenced via #/components/parameters/* and surfaces its named import', () => {
     // Refs that target a slot under `#/components/<NAMED_COMPONENT_SECTIONS>`
     // have a matching `export type` emitted by `generateParameterDefinition`,
