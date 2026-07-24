@@ -29,6 +29,30 @@ describe('getParameters', () => {
     ]);
   });
 
+  it('matches header parameter names case-insensitively when applying overrides', () => {
+    const pathParameter: OpenApiParameterObject = {
+      name: 'X-Trace-Id',
+      in: 'header',
+      description: 'Path-level definition',
+      schema: { type: 'string' },
+    };
+    const operationParameter: OpenApiParameterObject = {
+      name: 'x-trace-id',
+      in: 'header',
+      description: 'Operation-level override',
+      schema: { type: 'integer' },
+    };
+
+    const result = getParameters({
+      parameters: [pathParameter, operationParameter],
+      context: createTestContextSpec(),
+    });
+
+    expect(result.header).toEqual([
+      { parameter: operationParameter, imports: [] },
+    ]);
+  });
+
   it('resolves a header parameter referenced via #/components/parameters/* and surfaces its named import', () => {
     // Refs that target a slot under `#/components/<NAMED_COMPONENT_SECTIONS>`
     // have a matching `export type` emitted by `generateParameterDefinition`,
