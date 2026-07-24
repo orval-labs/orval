@@ -63,9 +63,9 @@ describe('writeTagsOperationsMode', () => {
       needSchema: false,
     });
 
-    const listPetsPath = path.join(tmpDir, 'pets', 'listPets.ts');
-    const getPetPath = path.join(tmpDir, 'pets', 'getPet.ts');
-    const getHealthPath = path.join(tmpDir, 'health', 'getHealth.ts');
+    const listPetsPath = path.join(tmpDir, 'pets', 'list-pets.ts');
+    const getPetPath = path.join(tmpDir, 'pets', 'get-pet.ts');
+    const getHealthPath = path.join(tmpDir, 'health', 'get-health.ts');
 
     expect(fs.existsSync(listPetsPath)).toBe(true);
     expect(fs.existsSync(getPetPath)).toBe(true);
@@ -168,8 +168,8 @@ describe('writeTagsOperationsMode', () => {
     expect(paths).toContain(indexPath);
 
     const content = fs.readFileSync(indexPath, 'utf8');
-    expect(content).toMatch(/export \* from '\.\/listPets'/);
-    expect(content).toMatch(/export \* from '\.\/getPet'/);
+    expect(content).toMatch(/export \* from '\.\/list-pets'/);
+    expect(content).toMatch(/export \* from '\.\/get-pet'/);
   });
 
   it('omits the per-tag barrel when indexFiles is false', async () => {
@@ -240,7 +240,7 @@ describe('writeTagsOperationsMode', () => {
 
     // Each operation file imports the shared helper rather than redeclaring it.
     const listPetsContent = fs.readFileSync(
-      path.join(tmpDir, 'pets', 'listPets.ts'),
+      path.join(tmpDir, 'pets', 'list-pets.ts'),
       'utf8',
     );
     expect(listPetsContent).toContain(
@@ -280,7 +280,7 @@ describe('writeTagsOperationsMode', () => {
     await writeTagsOperationsMode({ ...props, needSchema: false });
 
     const listPetsContent = fs.readFileSync(
-      path.join(tmpDir, 'pets', 'listPets.ts'),
+      path.join(tmpDir, 'pets', 'list-pets.ts'),
       'utf8',
     );
     expect(listPetsContent).toContain(
@@ -356,6 +356,54 @@ describe('writeTagsOperationsMode', () => {
     const mockPath = path.join(mockDir, 'pets', 'list-pets.msw.ts');
     expect(fs.existsSync(mockPath)).toBe(true);
     expect(paths).toContain(mockPath);
+  });
+
+  it('writes a single mock index aggregating operations across every tag', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const baseProps = createSplitModeProps(target);
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+          }),
+          getHealth: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'getHealth',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_OPERATIONS,
+        client: OutputClient.REACT_QUERY,
+        mock: {
+          indexMockFiles: true,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    const paths = await writeTagsOperationsMode({
+      ...props,
+      needSchema: false,
+    });
+
+    // The mock index lives at a tag-independent root path, so it must list
+    // operations from BOTH tags — before the write-once fix, only the
+    // last-completing tag survived.
+    const mockIndexPath = path.join(mockDir, 'index.msw.ts');
+    expect(fs.existsSync(mockIndexPath)).toBe(true);
+    expect(paths).toContain(mockIndexPath);
+
+    const mockIndex = fs.readFileSync(mockIndexPath, 'utf8');
+    expect(mockIndex).toContain('./pets/list-pets.msw');
+    expect(mockIndex).toContain('./health/get-health.msw');
   });
 
   it('throws a clear error for a client that groups operations into a shared structure', async () => {

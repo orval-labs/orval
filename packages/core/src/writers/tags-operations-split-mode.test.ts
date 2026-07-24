@@ -58,8 +58,8 @@ describe('writeTagsOperationsSplitMode', () => {
       needSchema: false,
     });
 
-    const implementationPath = path.join(tmpDir, 'pets', 'getPet.ts');
-    const schemasPath = path.join(tmpDir, 'pets', 'getPet.schemas.ts');
+    const implementationPath = path.join(tmpDir, 'pets', 'get-pet.ts');
+    const schemasPath = path.join(tmpDir, 'pets', 'get-pet.schemas.ts');
 
     expect(fs.existsSync(implementationPath)).toBe(true);
     expect(fs.existsSync(schemasPath)).toBe(true);
@@ -126,7 +126,7 @@ describe('writeTagsOperationsSplitMode', () => {
     await writeTagsOperationsSplitMode({ ...props, needSchema: false });
 
     const schemasContent = fs.readFileSync(
-      path.join(tmpDir, 'pets', 'getPet.schemas.ts'),
+      path.join(tmpDir, 'pets', 'get-pet.schemas.ts'),
       'utf8',
     );
     // Pet's own dependencies (Dog, Cat) must be pulled in transitively so
@@ -246,8 +246,8 @@ describe('writeTagsOperationsSplitMode', () => {
     const indexPath = path.join(tmpDir, 'pets', 'index.ts');
     expect(fs.existsSync(indexPath)).toBe(true);
     const content = fs.readFileSync(indexPath, 'utf8');
-    expect(content).toMatch(/export \* from '\.\/getPet';/);
-    expect(content).toMatch(/export \* from '\.\/listPets';/);
+    expect(content).toMatch(/export \* from '\.\/get-pet';/);
+    expect(content).toMatch(/export \* from '\.\/list-pets';/);
     // `.schemas` files are never barrel re-exported: two operations that
     // both reference the same component schema (e.g. a shared `Error` type)
     // would otherwise collide as an ambiguous re-export.

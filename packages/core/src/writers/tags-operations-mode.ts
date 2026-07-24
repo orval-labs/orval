@@ -143,8 +143,16 @@ export async function writeTagsOperationsMode({
   interface MockIndexEntry {
     ext: OutputMockType;
     mockDir: string;
-    operations: string[];
+    operations: { tag: string; opName: string }[];
   }
+
+  // Accumulated across every tag and written once after `Promise.all`
+  // resolves. The mock index lives at a tag-independent `mockDir`-root path
+  // whose entries reference `./<tag>/<op>`, so writing it per tag would let
+  // concurrent tags overwrite each other, leaving only the last tag's
+  // operations. This mirrors `split-tags-mode.ts`'s function-scoped
+  // accumulation.
+  const mockIndexEntries: MockIndexEntry[] = [];
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, { helpers, operations }]) => {
@@ -163,8 +171,6 @@ export async function writeTagsOperationsMode({
         if (hasHelpers) {
           await writeGeneratedFile(helperPath, header + helpers.implementation);
         }
-
-        const mockIndexEntries: MockIndexEntry[] = [];
 
         const operationFilePaths = await Promise.all(
           operations.map(async (operation) => {
@@ -375,8 +381,12 @@ export async function writeTagsOperationsMode({
                 indexEntry = { ext: mockExtension, mockDir, operations: [] };
                 mockIndexEntries.push(indexEntry);
               }
-              if (!indexEntry.operations.includes(kebabOperation)) {
-                indexEntry.operations.push(kebabOperation);
+              if (
+                !indexEntry.operations.some(
+                  (o) => o.tag === tag && o.opName === kebabOperation,
+                )
+              ) {
+                indexEntry.operations.push({ tag, opName: kebabOperation });
               }
             }
 
@@ -404,41 +414,10 @@ export async function writeTagsOperationsMode({
           indexPaths.push(indexPath);
         }
 
-        const mockIndexPaths: string[] = [];
-        if (output.mock.indexMockFiles) {
-          const mockImportExtension = getImportExtension(
-            extension,
-            output.tsconfig,
-          );
-          for (const {
-            ext,
-            mockDir,
-            operations: opNames,
-          } of mockIndexEntries) {
-            const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-            const indexContent = opNames
-              .toSorted((a, b) => a.localeCompare(b))
-              .map((opName) => {
-                const localMockPath = upath.joinSafe(
-                  './',
-                  tag,
-                  opName + '.' + ext + mockImportExtension,
-                );
-                return ext === OutputMockType.MSW
-                  ? `export { get${pascal(opName)}Mock } from '${localMockPath}'\n`
-                  : `export * from '${localMockPath}'\n`;
-              })
-              .join('');
-            await writeGeneratedFile(indexPath, indexContent);
-            mockIndexPaths.push(indexPath);
-          }
-        }
-
         return [
           ...(hasHelpers ? [helperPath] : []),
           ...operationFilePaths.flatMap(({ paths }) => paths),
           ...indexPaths,
-          ...mockIndexPaths,
         ];
       } catch (error) {
         throw new Error(
@@ -450,6 +429,36 @@ export async function writeTagsOperationsMode({
   );
 
   const allGeneratedPaths = generatedFilePathsArray.flat();
+
+  // Written once, after every tag has accumulated its operations into the
+  // shared `mockIndexEntries`, so the tag-independent mock index at
+  // `<mockDir>/index.<ext><ext>` lists operations from all tags rather than
+  // just the last-completing one.
+  const mockIndexPaths: string[] = [];
+  if (output.mock.indexMockFiles) {
+    const mockImportExtension = getImportExtension(extension, output.tsconfig);
+    for (const { ext, mockDir, operations } of mockIndexEntries) {
+      const indexPath = path.join(mockDir, `index.${ext}${extension}`);
+      const indexContent = operations
+        .toSorted(
+          (a, b) =>
+            a.tag.localeCompare(b.tag) || a.opName.localeCompare(b.opName),
+        )
+        .map(({ tag, opName }) => {
+          const localMockPath = upath.joinSafe(
+            './',
+            tag,
+            opName + '.' + ext + mockImportExtension,
+          );
+          return ext === OutputMockType.MSW
+            ? `export { get${pascal(opName)}Mock } from '${localMockPath}'\n`
+            : `export * from '${localMockPath}'\n`;
+        })
+        .join('');
+      await writeGeneratedFile(indexPath, indexContent);
+      mockIndexPaths.push(indexPath);
+    }
+  }
 
   let rootIndexPath: string | undefined;
   if (output.indexFiles) {
@@ -465,5 +474,6 @@ export async function writeTagsOperationsMode({
     ...(schemasPath ? [schemasPath] : []),
     ...(rootIndexPath ? [rootIndexPath] : []),
     ...allGeneratedPaths,
+    ...mockIndexPaths,
   ];
 }
