@@ -403,15 +403,16 @@ describe('writeTagsOperationsMode', () => {
 
     // Assert the exact export line, not just the file path: the index must
     // re-export the mock's real handler name (`mockHandler`, per the
-    // `createSplitModeOperation` fixture), not a name re-derived from the
-    // kebab-cased operation filename (which previously produced e.g.
-    // `getListPetsMock` instead of the actual exported `mockHandler`).
+    // `createSplitModeOperation` fixture) under a tag+operation-derived
+    // alias. Both fixture operations share the same `handlerName`
+    // (`mockHandler`), so re-exporting it verbatim from both would produce
+    // two identically-named exports in this one barrel file.
     const mockIndex = fs.readFileSync(mockIndexPath, 'utf8');
     expect(mockIndex).toContain(
-      "export { mockHandler } from './pets/list-pets.msw'",
+      "export { mockHandler as PetsListPetsMockHandler } from './pets/list-pets.msw'",
     );
     expect(mockIndex).toContain(
-      "export { mockHandler } from './health/get-health.msw'",
+      "export { mockHandler as HealthGetHealthMockHandler } from './health/get-health.msw'",
     );
   });
 

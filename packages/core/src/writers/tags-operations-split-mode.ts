@@ -11,6 +11,7 @@ import {
   isString,
   isSyntheticDefaultImportsAllow,
   kebab,
+  pascal,
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
@@ -480,8 +481,15 @@ export async function writeTagsOperationsSplitMode({
             tag,
             opName + '.' + ext + mockImportExtension,
           );
+          // Alias by `{tag, opName}` (this entry's dedup key, therefore
+          // always unique) rather than re-exporting `handlerName` verbatim:
+          // `handlerName` is derived from `operationName`, which a user's
+          // `override.operationName` function can map to the same value for
+          // multiple operations, producing two identically-named exports in
+          // this shared barrel.
+          const alias = `${pascal(tag)}${pascal(opName)}MockHandler`;
           return ext === OutputMockType.MSW
-            ? `export { ${handlerName} } from '${localMockPath}'\n`
+            ? `export { ${handlerName} as ${alias} } from '${localMockPath}'\n`
             : `export * from '${localMockPath}'\n`;
         })
         .join('');
