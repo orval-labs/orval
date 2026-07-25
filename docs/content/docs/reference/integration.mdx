@@ -84,6 +84,9 @@ const globalOptions: GlobalOptions = {
   // Package configuration
   packageJson: './package.json',
   input: './api-spec.yaml',
+
+  // Error handling
+  throwOnError: true, // Throw generation errors instead of only logging them
 };
 
 await generate('./orval.config.js', process.cwd(), globalOptions);
@@ -114,6 +117,25 @@ function generate(
 - `optionsExport`: Path to config file or configuration object
 - `workspace`: Working directory (defaults to `process.cwd()`)
 - `options`: Global options to override config settings
+
+## Error Handling
+
+By default, `generate()` logs generation errors and resolves after processing the configured project or projects. Set `throwOnError` when a script needs to catch failures and decide how to handle them:
+
+```ts
+import { generate, logError } from 'orval';
+
+try {
+  await generate('./orval.config.js', process.cwd(), {
+    throwOnError: true,
+  });
+} catch (error) {
+  logError(error);
+  process.exit(1);
+}
+```
+
+When a config file contains multiple projects, `throwOnError` stops on the first generation error instead of continuing with later projects.
 
 ## Watch Mode
 
