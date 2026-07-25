@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "8.22.0",
+  "version": "8.23.0",
   "private": true,
   "type": "module",
   "scripts": {
