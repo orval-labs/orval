@@ -86,7 +86,7 @@ const globalOptions: GlobalOptions = {
   input: './api-spec.yaml',
 
   // Error handling
-  throwOnError: true, // Throw generation errors instead of only logging them
+  throwOnError: true, // Throw initial generation errors instead of only logging them
 };
 
 await generate('./orval.config.js', process.cwd(), globalOptions);
@@ -120,7 +120,7 @@ function generate(
 
 ## Error Handling
 
-By default, `generate()` logs generation errors and resolves after processing the configured project or projects. Set `throwOnError` when a script needs to catch failures and decide how to handle them:
+By default, `generate()` logs initial generation errors and resolves after processing the configured project or projects. Set `throwOnError` when a script needs to catch initial generation failures and decide how to handle them:
 
 ```ts
 import { generate, logError } from 'orval';
@@ -135,7 +135,7 @@ try {
 }
 ```
 
-When a config file contains multiple projects, `throwOnError` stops on the first generation error instead of continuing with later projects.
+When a config file contains multiple projects, `throwOnError` stops on the first generation error during the initial run instead of continuing with later projects. Watch mode generation errors are still logged after the watcher has started.
 
 ## Watch Mode
 

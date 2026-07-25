@@ -57,9 +57,6 @@ export async function generate(
             try {
               await generateSpec(workspace, normalizedOptions, projectName);
             } catch (error) {
-              if (options.throwOnError) {
-                throw error;
-              }
               logError(error, projectName);
             }
             if (options.failOnWarnings && getWarningCount() > 0) {
@@ -108,9 +105,6 @@ export async function generate(
         try {
           await generateSpec(workspace, normalizedOptions);
         } catch (error) {
-          if (options.throwOnError) {
-            throw error;
-          }
           logError(error);
         }
         if (options.failOnWarnings && getWarningCount() > 0) {
