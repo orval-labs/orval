@@ -77,8 +77,10 @@ describe('assertion testing', () => {
     expect(isVerb(Verbs.OPTIONS)).toBeTruthy();
     expect(isVerb(Verbs.HEAD)).toBeTruthy();
     expect(isVerb(Verbs.PATCH)).toBeTruthy();
+    expect(isVerb(Verbs.QUERY)).toBeTruthy();
 
     // Negative checks: casing and unknown verbs
+    expect(isVerb('QUERY')).toBeFalsy();
     expect(isVerb('unknown')).toBeFalsy();
     expect(isVerb('')).toBeFalsy();
     expect(isVerb(undefined as unknown as string)).toBeFalsy();

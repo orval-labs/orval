@@ -225,8 +225,8 @@ export function isRetrievalVerb(
   if (clientOverride === 'httpResource') return true;
   if (clientOverride === 'httpClient') return false;
 
-  // Absent a per-operation override, GET is treated as a retrieval
-  if (verb === 'get') return true;
+  // Absent a per-operation override, safe retrieval verbs stay in httpResource.
+  if (verb === 'get' || verb === 'query') return true;
 
   // POST with a retrieval-like operation name
   if (verb === 'post' && operationName) {
