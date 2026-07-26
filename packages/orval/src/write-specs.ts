@@ -952,7 +952,7 @@ export async function writeSpecs(
       const project = await app.convert();
       if (project) {
         const outputPath = app.options.getValue('out');
-        await app.generateDocs(project, outputPath);
+        await app.generateOutputs(project);
 
         await runFormatter(output.formatter, [outputPath], projectTitle);
       } else {
