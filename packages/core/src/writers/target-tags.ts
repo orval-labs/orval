@@ -7,7 +7,12 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import { getOperationTagKey, isOperationInTagBucket, pascal } from '../utils';
+import {
+  escapeRegExp,
+  getOperationTagKey,
+  isOperationInTagBucket,
+  pascal,
+} from '../utils';
 import { flattenMockOutput } from './mock-outputs';
 import type { GeneratorTargetWithFull } from './target';
 import { hasTypeScriptAwaitedType } from './typescript-version';
@@ -32,6 +37,57 @@ function emptyMockOutputFull(
     type,
     implementation: { function: '', handler: '', handlerName: '' },
     imports: [],
+  };
+}
+
+function aliasConflictingSchemaFactory(
+  mockOutput: GeneratorMockOutputFull,
+  localMockName: string,
+): GeneratorMockOutputFull {
+  if (!mockOutput.implementation.handlerName) {
+    return mockOutput;
+  }
+
+  const hasCollision = mockOutput.imports.some(
+    (imp) => imp.schemaFactory && (imp.alias ?? imp.name) === localMockName,
+  );
+  if (!hasCollision) {
+    return mockOutput;
+  }
+
+  const implementation = Object.values(mockOutput.implementation).join('\n');
+  const usedBindings = new Set(
+    mockOutput.imports.map((imp) => imp.alias ?? imp.name),
+  );
+  let alias = `${localMockName}SchemaFactory`;
+  let suffix = 2;
+  while (
+    usedBindings.has(alias) ||
+    new RegExp(String.raw`\b${escapeRegExp(alias)}\b`).test(implementation)
+  ) {
+    alias = `${localMockName}SchemaFactory${suffix}`;
+    suffix += 1;
+  }
+
+  const bindingPattern = new RegExp(
+    String.raw`\b${escapeRegExp(localMockName)}\b`,
+    'g',
+  );
+  const replaceBinding = (value: string) =>
+    value.replaceAll(bindingPattern, alias);
+
+  return {
+    ...mockOutput,
+    implementation: {
+      function: replaceBinding(mockOutput.implementation.function),
+      handler: replaceBinding(mockOutput.implementation.handler),
+      handlerName: replaceBinding(mockOutput.implementation.handlerName),
+    },
+    imports: mockOutput.imports.map((imp) =>
+      imp.schemaFactory && (imp.alias ?? imp.name) === localMockName
+        ? { ...imp, alias }
+        : imp,
+    ),
   };
 }
 
@@ -252,22 +308,26 @@ export function generateTargetForTags(
         // accumulated handler entries. Mock outputs without a handler (faker
         // only) skip the wrap.
         const wrappedMockOutputs: GeneratorMockOutputFull[] =
-          target.mockOutputs.map((m) => ({
-            type: m.type,
-            implementation: {
-              function: m.implementation.function,
-              handler: m.implementation.handlerName
-                ? m.implementation.handler +
-                  header.implementationMock +
-                  m.implementation.handlerName +
-                  footer.implementationMock
-                : m.implementation.handler,
-              handlerName: m.implementation.handlerName,
-            },
-            imports: m.imports,
-            strictMockSchemaTypeNames: m.strictMockSchemaTypeNames,
-            strictMockSchemaKinds: m.strictMockSchemaKinds,
-          }));
+          target.mockOutputs.map((mockOutput) => {
+            const collisionSafeMockOutput = aliasConflictingSchemaFactory(
+              mockOutput,
+              titles.implementationMock,
+            );
+
+            return {
+              ...collisionSafeMockOutput,
+              implementation: {
+                function: collisionSafeMockOutput.implementation.function,
+                handler: collisionSafeMockOutput.implementation.handlerName
+                  ? collisionSafeMockOutput.implementation.handler +
+                    header.implementationMock +
+                    collisionSafeMockOutput.implementation.handlerName +
+                    footer.implementationMock
+                  : collisionSafeMockOutput.implementation.handler,
+                handlerName: collisionSafeMockOutput.implementation.handlerName,
+              },
+            };
+          });
 
         transformed[tag] = {
           implementation:

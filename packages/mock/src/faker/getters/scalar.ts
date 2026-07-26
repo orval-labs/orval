@@ -654,7 +654,13 @@ function getEnum(
 
   let enumValue = `[${joinedEnumValues}]`;
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
-    if (item.isRef || existingReferencedProperties.length === 0) {
+    const isRootSchema =
+      !item.parentName && existingReferencedProperties.at(-1) === item.name;
+    if (
+      item.isRef ||
+      existingReferencedProperties.length === 0 ||
+      isRootSchema
+    ) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
       imports.push({ name: item.name });
     } else {
