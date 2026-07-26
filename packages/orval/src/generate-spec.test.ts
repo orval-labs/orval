@@ -1732,4 +1732,57 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  it('removes stale exports whose generated targets no longer exist', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+    const baseDir = path.join(path.dirname(barrel), 'gen', 'api', 'base');
+    const masterDir = path.join(path.dirname(barrel), 'gen', 'api', 'master');
+
+    try {
+      const baseOptions = await normalizeOptions(
+        {
+          input: { target: ACTIVITY_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/base/endpoints.ts',
+            schemas: './gen/api/base/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+      const masterOptions = await normalizeOptions(
+        {
+          input: { target: MASTER_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/master/endpoints.ts',
+            schemas: './gen/api/master/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+
+      const beforeRemoval = await fs.readFile(barrel, 'utf8');
+      expect(beforeRemoval).toContain('./gen/api/base/endpoints');
+      expect(beforeRemoval).toContain('./gen/api/master/endpoints');
+
+      await fs.remove(masterDir);
+      await generateSpec(workspace, baseOptions, 'base');
+
+      const afterRemoval = await fs.readFile(barrel, 'utf8');
+      expect(await fs.pathExists(baseDir)).toBe(true);
+      expect(await fs.pathExists(masterDir)).toBe(false);
+      expect(afterRemoval).toContain('./gen/api/base/endpoints');
+      expect(afterRemoval).not.toContain('./gen/api/master/endpoints');
+      expect(afterRemoval).not.toContain('./gen/api/master/model');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });

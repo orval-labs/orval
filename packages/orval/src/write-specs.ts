@@ -190,6 +190,98 @@ async function addOperationSchemasReExport(
   }
 }
 
+const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
+
+function getReExportLineSpecifier(line: string): string | undefined {
+  return line.match(RE_EXPORT_LINE)?.[1];
+}
+
+async function reExportSpecifierExists(
+  indexFile: string,
+  specifier: string,
+  fileExtension: string,
+  importExtension: string,
+): Promise<boolean> {
+  if (!specifier.startsWith('.')) {
+    return true;
+  }
+
+  const resolved = path.resolve(path.dirname(indexFile), specifier);
+  const candidates = new Set<string>([resolved]);
+
+  if (importExtension && specifier.endsWith(importExtension)) {
+    candidates.add(resolved.slice(0, -importExtension.length) + fileExtension);
+  }
+
+  candidates.add(`${resolved}${fileExtension}`);
+  candidates.add(path.join(resolved, `index${fileExtension}`));
+
+  for (const candidate of candidates) {
+    if (await fs.pathExists(candidate)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function getResolvableReExportSpecifiers(
+  indexFile: string,
+  content: string,
+  fileExtension: string,
+  importExtension: string,
+): Promise<Set<string>> {
+  const specifiers = readReExportSpecifiers(content);
+  const resolvable = new Set<string>();
+
+  for (const specifier of specifiers) {
+    if (
+      await reExportSpecifierExists(
+        indexFile,
+        specifier,
+        fileExtension,
+        importExtension,
+      )
+    ) {
+      resolvable.add(specifier);
+    }
+  }
+
+  return resolvable;
+}
+
+function updateBarrelReExports(
+  content: string,
+  specifiers: Iterable<string>,
+): string {
+  const remaining = new Set(specifiers);
+  const seen = new Set<string>();
+  const eol = content.includes('\r\n') ? '\r\n' : '\n';
+  const retainedLines: string[] = [];
+
+  for (const line of content.split(/\r?\n/)) {
+    const specifier = getReExportLineSpecifier(line);
+
+    if (!specifier) {
+      retainedLines.push(line);
+      continue;
+    }
+
+    if (remaining.has(specifier) && !seen.has(specifier)) {
+      retainedLines.push(line);
+      seen.add(specifier);
+      remaining.delete(specifier);
+    }
+  }
+
+  const retainedContent = retainedLines.join(eol).trimEnd();
+  const appendedContent = [...remaining]
+    .map((specifier) => `export * from '${specifier}';`)
+    .join(eol);
+
+  return [retainedContent, appendedContent].filter(Boolean).join(eol) + eol;
+}
+
 /**
  * Emit `<schemas-dir>/index.faker.ts` (or `<output-root>/schemas.faker.ts`
  * when `output.schemas` is not configured) when a faker generator entry has
@@ -838,19 +930,26 @@ export async function writeSpecs(
     if (output.indexFiles) {
       // The workspace barrel can share its path with the implementation
       // target (#3675: `target` === `<workspace>/index.ts`), so append rather
-      // than overwrite to avoid clobbering non-export content. Dedup on the
-      // bare specifier (not the formatted line) so a formatter changing quote
-      // style between runs can't reintroduce duplicates (#3756).
+      // than overwrite non-export content. Dedup on the bare specifier (not
+      // the formatted line) so a formatter changing quote style between runs
+      // can't reintroduce duplicates (#3756). Stale relative exports whose
+      // targets no longer exist are pruned so removed operations/projects do
+      // not leave dangling imports behind.
       if (await fs.pathExists(indexFile)) {
-        const declared = readReExportSpecifiers(
-          await fs.readFile(indexFile, 'utf8'),
+        const existingContent = await fs.readFile(indexFile, 'utf8');
+        const declared = await getResolvableReExportSpecifiers(
+          indexFile,
+          existingContent,
+          output.fileExtension,
+          importExtension,
         );
-        const toAdd = [...new Set(imports.filter((imp) => !declared.has(imp)))];
-        if (toAdd.length > 0) {
-          await fs.appendFile(
-            indexFile,
-            toAdd.map((imp) => `export * from '${imp}';\n`).join(''),
-          );
+        const nextSpecifiers = [...new Set([...declared, ...imports])];
+        const nextContent = updateBarrelReExports(
+          existingContent,
+          nextSpecifiers,
+        );
+        if (nextContent !== existingContent) {
+          await fs.outputFile(indexFile, nextContent);
         }
       } else {
         await fs.outputFile(
