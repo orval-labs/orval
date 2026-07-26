@@ -233,6 +233,35 @@ describe('generateFakerForSchemas property overrides (schemas: true)', () => {
   });
 });
 
+describe('generateFakerForSchemas enum factories (#3747)', () => {
+  it('casts a top-level enum to its own array type', () => {
+    const context = createTestContextSpec({
+      override: { enumGenerationType: EnumGeneration.ENUM },
+    });
+
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'PetStatus',
+          model: 'PetStatus',
+          imports: [],
+          schema: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).toContain(
+      "faker.helpers.arrayElement(['available','pending','sold'] as PetStatus[])",
+    );
+    expect(result.implementation).not.toContain("PetStatus['PetStatus']");
+  });
+});
+
 describe('generateFakerForSchemas schema-scoped overrides (override.mock.schemas)', () => {
   const appleColor = () => `'red'`;
   const carColor = () => `'midnight black'`;

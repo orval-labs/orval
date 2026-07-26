@@ -1733,3 +1733,99 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
     }
   });
 });
+
+describe('generateSpec - faker schemas with tags-split MSW (#3747)', () => {
+  it('emits valid enum factories without colliding with tag mock aggregates', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'types');
+    const mswFile = path.join(workspace, 'sdk', 'pet', 'pet.msw.ts');
+
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Faker MSW collision', version: '1.0.0' },
+      paths: {
+        '/pets': {
+          get: {
+            operationId: 'listPets',
+            tags: ['Pet'],
+            responses: {
+              '200': {
+                description: 'A list of pets',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Pet' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          PetStatus: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+          },
+          Pet: {
+            type: 'object',
+            required: ['id', 'status'],
+            properties: {
+              id: { type: 'integer' },
+              status: { $ref: '#/components/schemas/PetStatus' },
+            },
+          },
+        },
+      },
+    };
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: spec },
+          output: {
+            target: './sdk/index.ts',
+            schemas: './types',
+            mode: 'tags-split',
+            client: 'react-query',
+            httpClient: 'axios',
+            mock: {
+              indexMockFiles: true,
+              generators: [
+                { type: 'msw' },
+                {
+                  type: 'faker',
+                  operationResponses: false,
+                  schemas: true,
+                },
+              ],
+            },
+            override: { enumGenerationType: 'enum' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const fakerSchemas = await fs.readFile(
+        path.join(schemasDir, 'index.faker.ts'),
+        'utf8',
+      );
+      expect(fakerSchemas).toContain(
+        "faker.helpers.arrayElement(['available','pending','sold'] as PetStatus[])",
+      );
+      expect(fakerSchemas).not.toContain("PetStatus['PetStatus']");
+
+      const mswContent = await fs.readFile(mswFile, 'utf8');
+      expect(mswContent).toContain('getPetMock as getPetMockSchemaFactory');
+      expect(mswContent).toContain('getPetMockSchemaFactory()');
+      expect(mswContent).toContain('export const getPetMock = () => [');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
