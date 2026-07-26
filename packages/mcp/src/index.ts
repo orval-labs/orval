@@ -54,6 +54,9 @@ const getAnnotations = (verb: Verbs): string => {
     case 'head': {
       return '{ readOnlyHint: true, destructiveHint: false }';
     }
+    case 'query': {
+      return '{ readOnlyHint: true, destructiveHint: false, idempotentHint: true }';
+    }
     case 'post': {
       return '{ destructiveHint: false }';
     }

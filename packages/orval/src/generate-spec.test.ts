@@ -46,9 +46,77 @@ const PETSTORE_SPEC: OpenApiDocument = {
   },
 };
 
+const QUERY_METHOD_SPEC = {
+  openapi: '3.2.0',
+  info: { title: 'Search API', version: '1.0.0' },
+  paths: {
+    '/search': {
+      query: {
+        operationId: 'searchPets',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  term: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Search results',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: PETSTORE_SPEC.components,
+} as unknown as OpenApiDocument;
+
 const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-gen-spec-'));
 };
+
+describe('generateSpec - HTTP QUERY method', () => {
+  it('generates clients for QUERY operations with request bodies', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: QUERY_METHOD_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf8');
+
+      expect(content).toContain('export const searchPets =');
+      expect(content).toContain("method: 'QUERY'");
+      expect(content).toContain('body: JSON.stringify(searchPetsBody)');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('generateSpec - schemas: false', () => {
   it('does not generate separate schema files when schemas is false', async () => {

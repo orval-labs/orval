@@ -1310,7 +1310,8 @@ export type Verbs =
   | 'delete'
   | 'options'
   | 'head'
-  | 'patch';
+  | 'patch'
+  | 'query';
 
 export const Verbs = {
   GET: 'get' as Verbs,
@@ -1320,6 +1321,7 @@ export const Verbs = {
   OPTIONS: 'options' as Verbs,
   HEAD: 'head' as Verbs,
   PATCH: 'patch' as Verbs,
+  QUERY: 'query' as Verbs,
 };
 
 /**
