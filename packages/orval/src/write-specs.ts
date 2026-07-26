@@ -231,23 +231,19 @@ async function getResolvableReExportSpecifiers(
   fileExtension: string,
   importExtension: string,
 ): Promise<Set<string>> {
-  const specifiers = readReExportSpecifiers(content);
-  const resolvable = new Set<string>();
-
-  for (const specifier of specifiers) {
-    if (
-      await reExportSpecifierExists(
+  const specifiers = [...readReExportSpecifiers(content)];
+  const exists = await Promise.all(
+    specifiers.map((specifier) =>
+      reExportSpecifierExists(
         indexFile,
         specifier,
         fileExtension,
         importExtension,
-      )
-    ) {
-      resolvable.add(specifier);
-    }
-  }
+      ),
+    ),
+  );
 
-  return resolvable;
+  return new Set(specifiers.filter((_, index) => exists[index]));
 }
 
 function updateBarrelReExports(
