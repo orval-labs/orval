@@ -470,7 +470,7 @@ export const getListPetsMockHandler = (overrideResponse?: Pets | ((info: Paramet
     return HttpResponse.json(overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
     : getListPetsResponseMock(),
-      { status: 200
+      { status: 200, headers: { 'Content-Type': 'application/hal+json' }
       })
   }, options)
 }

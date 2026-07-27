@@ -111,7 +111,7 @@ export const getListPetsByCountryMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getListPetsByCountryResponseMock(),
-        { status: 200 },
+        { status: 200, headers: { 'Content-Type': 'application/hal+json' } },
       );
     },
     options,
@@ -135,7 +135,7 @@ export const getListPetsByAgeMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getListPetsByAgeResponseMock(),
-        { status: 200 },
+        { status: 200, headers: { 'Content-Type': 'application/hal+json' } },
       );
     },
     options,
