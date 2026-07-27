@@ -1569,6 +1569,43 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
     }
   });
 
+  it('preserves underscores and $ in overridden operationName (#3775)', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'axios',
+            override: {
+              operationName: (_operation, route, _verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return `$${segments.join('_')}`;
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      expect(content).toContain('$api_catalog_items');
+      expect(content).toContain('$api_inventory_products');
+      // Type names are pascal-cased by the getters (pre-existing behavior),
+      // only the function/hook names are preserved verbatim per #2040.
+      expect(content).toContain('ApiCatalogItemsResult');
+      expect(content).toContain('ApiInventoryProductsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('produces globally unique type names across tags in tags-split mode', async () => {
     const workspace = await createTempWorkspace();
 
