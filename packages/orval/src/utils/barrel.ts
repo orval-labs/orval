@@ -1,11 +1,15 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 
-const RE_EXPORT_SPECIFIER = /export\s+\*\s+from\s*['"]([^'"]+)['"]/g;
 const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 
 export function readReExportSpecifiers(content: string): Set<string> {
-  return new Set([...content.matchAll(RE_EXPORT_SPECIFIER)].map((m) => m[1]));
+  const specifiers = new Set<string>();
+  for (const line of content.split(/\r?\n/)) {
+    const m = line.match(RE_EXPORT_LINE)?.[1];
+    if (m) specifiers.add(m);
+  }
+  return specifiers;
 }
 
 // Bare specifiers (no leading `.`) are assumed resolvable; the workspace
