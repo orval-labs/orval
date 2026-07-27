@@ -25,14 +25,7 @@ export const getCatalog = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<Product>> => {
     return axiosInstance.post(`/api/catalog/products`, product, options);
   };
-  const getProductsproductId = (
-    productId: string,
-    options?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<Product>> => {
-    return axiosInstance.get(`/api/catalog/products/${productId}`, options);
-  };
-  return { getProducts, postProducts, getProductsproductId };
+  return { getProducts, postProducts };
 };
 export type GetCatalogProductsResult = AxiosResponse<Product>;
 export type PostCatalogProductsResult = AxiosResponse<Product>;
-export type GetCatalogProductsproductIdResult = AxiosResponse<Product>;

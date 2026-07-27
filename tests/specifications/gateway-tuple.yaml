@@ -37,24 +37,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-  /api/catalog/products/{productId}:
-    get:
-      tags:
-        - catalog
-      operationId: getCatalogProductById
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: A single product
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Product'
   /api/inventory/stock:
     get:
       tags:
