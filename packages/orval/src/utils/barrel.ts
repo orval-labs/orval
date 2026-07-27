@@ -1,31 +1,109 @@
+import path from 'node:path';
 import fs from 'fs-extra';
 
 const RE_EXPORT_SPECIFIER = /export\s+\*\s+from\s*['"]([^'"]+)['"]/g;
+const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 
-/**
- * Extract the set of `export * from '...'` module specifiers from barrel
- * content. Quote-agnostic (matches both `'` and `"`) so it is unaffected by a
- * formatter changing quote style between generations.
- */
 export function readReExportSpecifiers(content: string): Set<string> {
   return new Set([...content.matchAll(RE_EXPORT_SPECIFIER)].map((m) => m[1]));
 }
 
-/**
- * Return the deduplicated list of specifiers for a barrel by unioning the
- * freshly generated `specifiers` with whatever re-exports already exist on
- * disk. Merging on the bare specifier (rather than the formatted line) makes
- * the barrel idempotent across regenerations regardless of how an external
- * formatter rewrites quotes, semicolons, or whitespace. On-disk order is
- * preserved and new specifiers are appended — matching the previous append
- * ordering — so callers control any sorting they want.
- */
-export async function mergeBarrelSpecifiers(
+// Bare specifiers (no leading `.`) are assumed resolvable; the workspace
+// barrel only emits relative paths, so node_modules probing is out of scope.
+export async function reExportSpecifierExists(
+  indexFile: string,
+  specifier: string,
+  fileExtension: string,
+  importExtension: string,
+): Promise<boolean> {
+  if (!specifier.startsWith('.')) return true;
+
+  const resolved = path.resolve(path.dirname(indexFile), specifier);
+  const candidates = new Set<string>([resolved]);
+  if (importExtension && specifier.endsWith(importExtension)) {
+    candidates.add(resolved.slice(0, -importExtension.length) + fileExtension);
+  }
+  candidates.add(`${resolved}${fileExtension}`);
+  candidates.add(path.join(resolved, `index${fileExtension}`));
+
+  for (const candidate of candidates) {
+    if (await fs.pathExists(candidate)) return true;
+  }
+  return false;
+}
+
+// Workspace barrel: line-preserving, prune stale exports on disk state,
+// conditional write (#3675, #3756, #3763).
+export async function reconcileWorkspaceBarrel(
   filePath: string,
   specifiers: string[],
-): Promise<string[]> {
-  const existing = (await fs.pathExists(filePath))
-    ? readReExportSpecifiers(await fs.readFile(filePath, 'utf8'))
+  fileExtension: string,
+  importExtension: string,
+): Promise<void> {
+  if (!(await fs.pathExists(filePath))) {
+    await fs.outputFile(
+      filePath,
+      specifiers.map((s) => `export * from '${s}';`).join('\n') + '\n',
+    );
+    return;
+  }
+
+  const existingContent = await fs.readFile(filePath, 'utf8');
+  const declared = [...readReExportSpecifiers(existingContent)];
+  const resolvable = await Promise.all(
+    declared.map((s) =>
+      reExportSpecifierExists(filePath, s, fileExtension, importExtension),
+    ),
+  );
+  const desired = new Set<string>(specifiers);
+  declared.forEach((s, i) => {
+    if (resolvable[i]) desired.add(s);
+  });
+
+  const seen = new Set<string>();
+  const eol = existingContent.includes('\r\n') ? '\r\n' : '\n';
+  const retained: string[] = [];
+  for (const line of existingContent.split(/\r?\n/)) {
+    const m = line.match(RE_EXPORT_LINE)?.[1];
+    if (!m) {
+      retained.push(line);
+    } else if (desired.has(m) && !seen.has(m)) {
+      retained.push(line);
+      seen.add(m);
+      desired.delete(m);
+    }
+  }
+
+  const retainedContent = retained.join(eol).trimEnd();
+  const appended = [...desired].map((s) => `export * from '${s}';`).join(eol);
+  const nextContent =
+    [retainedContent, appended].filter(Boolean).join(eol) + eol;
+
+  if (nextContent !== existingContent) {
+    await fs.outputFile(filePath, nextContent);
+  }
+}
+
+// Zod schemas barrel: header-prefixed, sorted. Skips write when content is
+// unchanged so no-op regenerations don't churn mtime (#3756).
+export async function reconcileZodBarrel(
+  filePath: string,
+  specifiers: string[],
+  header: string,
+  mergeExisting: boolean,
+): Promise<void> {
+  const existingContent = (await fs.pathExists(filePath))
+    ? await fs.readFile(filePath, 'utf8')
+    : '';
+  const existing = mergeExisting
+    ? readReExportSpecifiers(existingContent)
     : new Set<string>();
-  return [...new Set([...existing, ...specifiers])];
+  const body = [...new Set([...existing, ...specifiers])]
+    .sort()
+    .map((s) => `export * from '${s}';`)
+    .join('\n');
+  const nextContent = `${header}\n${body}\n`;
+  if (nextContent !== existingContent) {
+    await fs.outputFile(filePath, nextContent);
+  }
 }

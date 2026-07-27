@@ -44,7 +44,7 @@ import {
   rewriteReusableSchemas,
   rewriteSentinelsToDirect,
 } from './reusable-schemas';
-import { mergeBarrelSpecifiers } from './utils/barrel';
+import { reconcileZodBarrel } from './utils/barrel';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
@@ -513,17 +513,12 @@ async function writeZodSchemaIndex(
   // Dedup on the bare specifier (not the formatted line) so a formatter run
   // between generations can't reintroduce duplicates via quote-style changes
   // (#3756).
-  const specifiers = (
-    shouldMergeExisting
-      ? await mergeBarrelSpecifiers(indexPath, newSpecifiers)
-      : newSpecifiers
-  ).toSorted();
-
-  const exports = specifiers
-    .map((specifier) => `export * from '${specifier}';`)
-    .join('\n');
-
-  await fs.outputFile(indexPath, `${header}\n${exports}\n`);
+  await reconcileZodBarrel(
+    indexPath,
+    newSpecifiers,
+    header,
+    shouldMergeExisting,
+  );
 }
 
 export async function writeZodSchemaTagsSplitBarrel(
