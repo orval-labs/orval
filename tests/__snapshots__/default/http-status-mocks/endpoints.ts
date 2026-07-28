@@ -596,7 +596,7 @@ export const getListPetsMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getListPetsResponseMock(),
-        { status: 200 },
+        { status: 200, headers: { 'Content-Type': 'application/hal+json' } },
       );
     },
     options,
@@ -620,7 +620,7 @@ export const getListPetsMockHandler200 = (
             ? await overrideResponse(info)
             : overrideResponse
           : getListPetsResponseMock200(),
-        { status: 200 },
+        { status: 200, headers: { 'Content-Type': 'application/hal+json' } },
       );
     },
     options,
