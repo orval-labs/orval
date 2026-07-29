@@ -294,6 +294,36 @@ const isPlainObjectSchema = (
   );
 };
 
+// Keywords a member may carry while still describing no shape of its own:
+// `title` and `description` only annotate, and `not` is not translated into
+// anything by this generator today, so a branch carrying one renders as bare
+// `zod.unknown()` either way. Anything outside this set — `enum`, `const`,
+// `additionalProperties`, `nullable`, `default`, … — already renders to
+// something meaningful on its own and must be left alone.
+const SHAPELESS_MEMBER_KEYS = new Set([
+  'required',
+  'title',
+  'description',
+  'not',
+]);
+
+// A `oneOf`/`anyOf` member that declares no shape of its own and only narrows
+// which of the sibling properties must be present — e.g. two branches that each
+// `required` a different pair of keys. JSON Schema applies every branch to the
+// same instance, so the property types live on the composing schema rather than
+// on the branch. Rendered in isolation such a member has no type to resolve and
+// falls through to `zod.unknown()`, silently dropping its `required`. (#3780)
+const isConstraintOnlyMember = (
+  member: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean => {
+  if ('$ref' in member) return false;
+  const schema = member as OpenApiSchemaObject;
+  if (!Array.isArray(schema.required) || schema.required.length === 0) {
+    return false;
+  }
+  return Object.keys(schema).every((key) => SHAPELESS_MEMBER_KEYS.has(key));
+};
+
 // The branch must declare the discriminator key as a literal value — a `const`
 // or an `enum`. Both zod v3 (>=3.20) and v4 build their branch lookup by
 // reading discrete literal values off each option, and throw at construction if
@@ -748,11 +778,31 @@ export const generateZodValidationSchemaDefinition = (
         ]
       : undefined;
 
+    // Constraint-only branches have to be rendered against the composing
+    // schema's `properties`, otherwise their `required` is lost. Only for
+    // `oneOf`/`anyOf` — an `allOf` member already gets the same effect through
+    // `additionalRequired` above. (#3780)
+    const withSiblingProperties = (
+      member: OpenApiSchemaObject | OpenApiReferenceObject,
+    ) =>
+      (schema.oneOf || schema.anyOf) &&
+      isObject(schema.properties) &&
+      Object.keys(schema.properties).length > 0 &&
+      isConstraintOnlyMember(member)
+        ? ({
+            type: 'object',
+            properties: schema.properties,
+            required: (member as OpenApiSchemaObject).required,
+            // carried over so the branch keeps its `.describe(...)`
+            description: (member as OpenApiSchemaObject).description,
+          } as OpenApiSchemaObject)
+        : (member as OpenApiSchemaObject);
+
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
       generateZodValidationSchemaDefinition(
-        schema as OpenApiSchemaObject,
+        withSiblingProperties(schema),
         context,
         `${camel(name)}${pascal(getNumberWord(index + 1))}`,
         strict,
