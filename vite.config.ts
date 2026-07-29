@@ -56,7 +56,7 @@ export default defineConfig({
       'samples/react-app/docs-html-plugin/assets',
     ],
     rules: {
-      'no-array-constructor': 'error',
+      'eslint/no-array-constructor': 'error',
       'typescript/ban-ts-comment': 'error',
       'typescript/no-empty-object-type': 'error',
       'typescript/no-explicit-any': 'error',
@@ -71,8 +71,8 @@ export default defineConfig({
         // legitimately trips so `lint:samples` stays a useful, looser gate.
         files: ['samples/**'],
         rules: {
-          'no-unused-vars': 'off',
-          'no-extra-boolean-cast': 'off',
+          'eslint/no-unused-vars': 'off',
+          'eslint/no-extra-boolean-cast': 'off',
           'typescript/no-explicit-any': 'off',
           'typescript/no-empty-object-type': 'off',
           'typescript/no-unsafe-function-type': 'off',
