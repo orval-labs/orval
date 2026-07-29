@@ -12188,13 +12188,13 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     const zod = render(constraintOnlyOneOf);
 
     expect(zod).not.toContain('zod.unknown()');
-    // AB branch: A and B required, X and Y left optional
+    // pin both branches whole, so a key that goes missing or flips its
+    // requiredness cannot slip through
     expect(zod).toContain(
-      '"A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),',
+      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),\n  "Y": zod.number().int().optional()\n})',
     );
-    // XY branch: the other way round
     expect(zod).toContain(
-      '"A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),',
+      'zod.object({\n  "A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),\n  "Y": zod.number().int()\n})',
     );
   });
 
@@ -12206,7 +12206,12 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     } as OpenApiSchemaObject);
 
     expect(zod).not.toContain('zod.unknown()');
-    expect(zod).toContain('"A": zod.string(),\n  "B": zod.number().int(),');
+    expect(zod).toContain(
+      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),\n  "Y": zod.number().int().optional()\n})',
+    );
+    expect(zod).toContain(
+      'zod.object({\n  "A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),\n  "Y": zod.number().int()\n})',
+    );
   });
 
   it('leaves branches that declare their own shape untouched', () => {
@@ -12268,6 +12273,13 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     } as OpenApiSchemaObject);
 
     expect(zod).not.toContain('zod.unknown()');
+    // the `not` branch is still the AB shape, not an all-optional object
+    expect(zod).toContain(
+      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),\n  "Y": zod.number().int().optional()\n})',
+    );
+    expect(zod).toContain(
+      'zod.object({\n  "A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),\n  "Y": zod.number().int()\n})',
+    );
   });
 
   it('keeps the description of a rewritten branch', () => {
@@ -12279,6 +12291,20 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
 
     expect(zod).not.toContain('zod.unknown()');
     expect(zod).toContain(".describe('the A case')");
+  });
+
+  it('leaves a branch alone when a required key has no sibling property', () => {
+    const zod = render({
+      type: 'object',
+      oneOf: [{ required: ['kind'] }, { required: ['A'] }],
+      properties: { A: { type: 'string' } },
+    } as OpenApiSchemaObject);
+
+    // `kind` has no schema to attach to and zod cannot require an untyped key,
+    // so that branch keeps the existing behaviour instead of pretending to
+    // enforce it; the representable branch is still rewritten
+    expect(zod).toContain('zod.union([zod.unknown(),zod.object({');
+    expect(zod).toContain('"A": zod.string()');
   });
 
   it('leaves the branches alone when there are no sibling properties to apply', () => {

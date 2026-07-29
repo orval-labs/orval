@@ -784,19 +784,36 @@ export const generateZodValidationSchemaDefinition = (
     // `additionalRequired` above. (#3780)
     const withSiblingProperties = (
       member: OpenApiSchemaObject | OpenApiReferenceObject,
-    ) =>
-      (schema.oneOf || schema.anyOf) &&
-      isObject(schema.properties) &&
-      Object.keys(schema.properties).length > 0 &&
-      isConstraintOnlyMember(member)
-        ? ({
-            type: 'object',
-            properties: schema.properties,
-            required: (member as OpenApiSchemaObject).required,
-            // carried over so the branch keeps its `.describe(...)`
-            description: (member as OpenApiSchemaObject).description,
-          } as OpenApiSchemaObject)
-        : (member as OpenApiSchemaObject);
+    ) => {
+      const properties = schema.properties;
+      if (
+        !(schema.oneOf || schema.anyOf) ||
+        !isObject(properties) ||
+        Object.keys(properties).length === 0 ||
+        !isConstraintOnlyMember(member)
+      ) {
+        return member as OpenApiSchemaObject;
+      }
+
+      const required = (member as OpenApiSchemaObject).required as string[];
+
+      // Every key the branch requires needs a sibling schema to attach to. A key
+      // with none cannot be made required in zod — both `unknown` and `any` are
+      // treated as optional inside an object, so `{}` would still match — and
+      // rewriting would silently drop it. Leave the whole branch as-is rather
+      // than emit an object that only looks like it enforces the constraint.
+      if (!required.every((key) => Object.hasOwn(properties, key))) {
+        return member as OpenApiSchemaObject;
+      }
+
+      return {
+        type: 'object',
+        properties,
+        required,
+        // carried over so the branch keeps its `.describe(...)`
+        description: (member as OpenApiSchemaObject).description,
+      } as OpenApiSchemaObject;
+    };
 
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
