@@ -1839,6 +1839,43 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('keeps fetch boolean defaults when the user passes them as undefined', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              fetch: {
+                serializeResponseHeaders: undefined,
+                includeHttpResponseReturnType: undefined,
+                forceSuccessResponse: undefined,
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.fetch).toMatchObject({
+        serializeResponseHeaders: false,
+        includeHttpResponseReturnType: true,
+        forceSuccessResponse: false,
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   describe('optionsParamRequired with fetch httpClient', () => {
     const fetchOptionsRequiredWarningPattern =
       /httpClient: 'fetch'.*optionsParamRequired.*cannot make.*options.*required/s;

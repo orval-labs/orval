@@ -412,6 +412,9 @@ ${
   const hasSuccess = responseDataTypes.some((r) => r.success);
   const hasError = responseDataTypes.some((r) => !r.success);
 
+  const responseHeadersType = override.fetch.serializeResponseHeaders
+    ? 'Record<string, string>'
+    : 'Headers';
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
@@ -422,7 +425,7 @@ ${
         .filter((r) => r.success)
         .map((r) => r.name)
         .join(' | ')}) & {
-  headers: Headers;
+  headers: ${responseHeadersType};
 }`
     : ''
 };
@@ -432,7 +435,7 @@ ${
         .filter((r) => !r.success)
         .map((r) => r.name)
         .join(' | ')}) & {
-  headers: Headers;
+  headers: ${responseHeadersType};
 }`
     : ''
 };
@@ -589,6 +592,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }`;
   const fetchFnCall =
     useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
+  // Drop `set-cookie`: a dehydrated cache reaches the client. Names are lowercased.
+  const responseHeadersValue = (responseVarName: string) =>
+    override.fetch.serializeResponseHeaders
+      ? `Object.fromEntries([...${responseVarName}.headers.entries()].filter(([name]) => name !== 'set-cookie'))`
+      : `${responseVarName}.headers`;
   const blobFetchResponseImplementation = `const res = await ${fetchFnCall}(${fetchFnOptions})
 
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
@@ -596,7 +604,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body as ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}
   ${
     override.fetch.includeHttpResponseReturnType
-      ? `return { data, status: res.status, headers: res.headers } as ${fetchResponseType}`
+      ? `return { data, status: res.status, headers: ${responseHeadersValue('res')} } as ${fetchResponseType}`
       : 'return data'
   }
 `;
@@ -605,7 +613,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     override.fetch.includeHttpResponseReturnType
-      ? `return { status: stream.status, stream, headers: stream.headers } as ${fetchResponseType}`
+      ? `return { status: stream.status, stream, headers: ${responseHeadersValue('stream')} } as ${fetchResponseType}`
       : `return stream`
   }
   `
@@ -634,7 +642,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   ${
     override.fetch.includeHttpResponseReturnType
-      ? `return { data, status: res.status, headers: res.headers } as ${fetchResponseType}`
+      ? `return { data, status: res.status, headers: ${responseHeadersValue('res')} } as ${fetchResponseType}`
       : 'return data'
   }
 `;

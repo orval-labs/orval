@@ -2024,6 +2024,33 @@ Include HTTP status in return type. Set to `false` to return data directly.
 
 Throw on error responses instead of returning them.
 
+### serializeResponseHeaders
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Return response `headers` as a plain `Record<string, string>` instead of a `Headers` instance. Enable it when a response is cached across a serialization boundary — a `Headers` instance in `dehydrate()` state makes a Next.js Server Component fail with `Only plain objects can be passed to Client Components from Server Components`. Requires `includeHttpResponseReturnType` (the default).
+
+Header names are lowercased and repeated headers are joined with `, `. `set-cookie` is dropped, because a dehydrated cache is embedded in the RSC payload and upstream session cookies must not travel with it. Only `headers` is converted: `blob` responses still return a `Blob`, and `application/x-ndjson` responses still return the raw `Response` under `stream`.
+
+With a custom `mutator` the option changes the generated type but not the runtime value, because the mutator issues the request itself. The mutator must return headers that already match the declared shape — as it must for `includeHttpResponseReturnType` today.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+    },
+  },
+});
+```
+
 ### jsonReviver
 
 **Type:** `String | Object`

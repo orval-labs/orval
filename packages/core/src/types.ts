@@ -1212,6 +1212,7 @@ export interface SwrOptions {
 export interface NormalizedFetchOptions {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
+  serializeResponseHeaders: boolean;
   jsonReviver?: Mutator;
   runtimeValidation: boolean;
   useRuntimeFetcher: boolean;
@@ -1229,6 +1230,15 @@ export interface NormalizedFetchOptions {
 export interface FetchOptions {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
+  /**
+   * Return response `headers` as a plain `Record<string, string>` instead of a
+   * `Headers` instance, so the response stays serializable. Keys are lowercased
+   * and `set-cookie` is omitted. With a `mutator` this only changes the declared
+   * type — the mutator must return headers in that shape itself.
+   *
+   * @default false
+   */
+  serializeResponseHeaders?: boolean;
   jsonReviver?: Mutator;
   runtimeValidation?: boolean;
   useRuntimeFetcher?: boolean;

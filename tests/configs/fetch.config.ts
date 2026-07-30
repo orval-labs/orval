@@ -460,6 +460,83 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  serializeResponseHeaders: {
+    output: {
+      target: '../generated/fetch/serialize-response-headers/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // ndjson and blob build their return object separately from the json branch.
+  serializeResponseHeadersStream: {
+    output: {
+      target:
+        '../generated/fetch/serialize-response-headers-stream/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-stream/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/stream.yaml',
+    },
+  },
+  serializeResponseHeadersBlob: {
+    output: {
+      target: '../generated/fetch/serialize-response-headers-blob/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-blob/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/blob-file.yaml',
+    },
+  },
+  // A mutator owns the whole request, so the generated code cannot convert its
+  // headers — the option only changes the type the mutator has to satisfy.
+  serializeResponseHeadersMutator: {
+    output: {
+      target:
+        '../generated/fetch/serialize-response-headers-mutator/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-mutator/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/default-status.yaml',
+    },
+  },
   requestOptionsHeaders: {
     output: {
       target: '../generated/fetch/request-options-headers/endpoints.ts',

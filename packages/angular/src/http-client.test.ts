@@ -130,6 +130,7 @@ const createOutput = (
       fetch: {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
+        serializeResponseHeaders: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
       },
