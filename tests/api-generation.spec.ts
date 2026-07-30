@@ -2152,3 +2152,67 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // must not regress to the original empty `[]`.
   expect(content).not.toContain('point: []');
 });
+
+// `set-cookie` must be filtered out, so the response carries no session
+// credential across the serialization boundary.
+const serializedHeaders = (responseVar: string) =>
+  `[...${responseVar}.headers.entries()].filter(([name]) => name !== 'set-cookie')`;
+
+test('fetch serializeResponseHeaders stores headers as a plain object', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
+});
+
+test.each([
+  ['serialize-response-headers-stream', 'stream'],
+  ['serialize-response-headers-blob', 'res'],
+])(
+  'fetch serializeResponseHeaders converts headers in the %s response branch',
+  async (folder, responseVar) => {
+    const content = await readFile(
+      generated('fetch', folder, 'endpoints.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain('headers: Record<string, string>');
+    expect(content).not.toContain('headers: Headers');
+    expect(content).toContain(serializedHeaders(responseVar));
+    expect(content).not.toContain(`headers: ${responseVar}.headers`);
+  },
+);
+
+test('fetch serializeResponseHeaders leaves the conversion to a custom mutator', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers-mutator', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The mutator owns the request, so the option only declares the shape it has
+  // to return — there is no generated code left to do the conversion.
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toMatch(/return customFetch<\w+Response>\(/);
+  expect(content).not.toContain(serializedHeaders('res'));
+});
+
+// Runtime behaviour lives in serialize-response-headers.spec.ts; these only
+// inspect the generated source.
+test('react-query prefetch output declares serialized headers', async () => {
+  const content = await readFile(
+    generated('react-query', 'prefetch-serializable-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toMatch(/export const prefetchListPetsQuery = async </);
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
+});

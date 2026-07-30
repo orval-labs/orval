@@ -161,6 +161,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
+        serializeResponseHeaders: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
       },

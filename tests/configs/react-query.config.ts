@@ -1336,6 +1336,31 @@ export default defineConfig({
       target: '../specifications/models-with-special-char.yaml',
     },
   },
+  // Server-side prefetch: the dehydrated cache must stay serializable.
+  prefetchSerializableHeaders: {
+    output: {
+      target:
+        '../generated/react-query/prefetch-serializable-headers/endpoints.ts',
+      schemas:
+        '../generated/react-query/prefetch-serializable-headers/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+        query: {
+          useSuspenseQuery: true,
+          usePrefetch: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   usePrefetchWithFunctionMutator: {
     output: {
       target:

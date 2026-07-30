@@ -156,6 +156,7 @@ function createMockContext(): ContextSpec {
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
+          serializeResponseHeaders: false,
           runtimeValidation: false,
           useRuntimeFetcher: false,
         },
