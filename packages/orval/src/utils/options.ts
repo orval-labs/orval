@@ -121,6 +121,15 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
+  if (!isString(schemas.path) || schemas.path.trim() === '') {
+    throw new Error(
+      styleText(
+        'red',
+        `\`schemas.path\` is required when \`schemas\` is an object (e.g. \`schemas: { path: './model', type: 'zod' }\`). To generate schemas alongside the target instead, omit \`schemas\` or set \`schemas: false\`.`,
+      ),
+    );
+  }
+
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
   return {

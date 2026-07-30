@@ -3,3 +3,7 @@ reviews:
   path_filters:
     # Exclude generated test snapshots from review (noise, not human-authored)
     - "!**/__snapshots__/**"
+  tools:
+    eslint:
+      enabled: false
+

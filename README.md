@@ -185,16 +185,6 @@ Support us with a one-time donation and help us continue our activities on [Open
 
 **Note:** After becoming a sponsor or backer, please contact us on [Discord](https://discord.gg/6fC2sjDU7w) to upload your logo.
 
-## Star History
-
-<a href="https://star-history.com/#orval-labs/orval&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=orval-labs/orval&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=orval-labs/orval&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=orval-labs/orval&type=Date" />
-  </picture>
-</a>
-
 ### All Thanks To Our Contributors:
 
 <a href="https://github.com/orval-labs/orval/graphs/contributors">

@@ -326,6 +326,30 @@ function generateDefinition(
         ? 'html'
         : 'text';
 
+  // MSW's HttpResponse helpers set a default Content-Type that may differ
+  // from the OpenAPI-declared media type (e.g. application/problem+json is
+  // served as application/json by HttpResponse.json(), application/xml is
+  // served as text/xml by HttpResponse.xml()). Emit an explicit
+  // Content-Type header whenever the resolved media type diverges from the
+  // helper default so vendor/problem-details contracts survive the mock.
+  const firstJsonCt = contentTypesByPreference.find((ct) =>
+    ct.includes('json'),
+  );
+  const textHelperDefaultContentType =
+    textHelper === 'xml'
+      ? 'text/xml'
+      : textHelper === 'html'
+        ? 'text/html'
+        : 'text/plain';
+  const jsonCtHeaderSuffix =
+    firstJsonCt && firstJsonCt !== 'application/json'
+      ? `, headers: { 'Content-Type': '${firstJsonCt}' }`
+      : '';
+  const textCtHeaderSuffix =
+    firstTextCt && firstTextCt !== textHelperDefaultContentType
+      ? `, headers: { 'Content-Type': '${firstTextCt}' }`
+      : '';
+
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
   // (the expression contains `await` so must not be duplicated). Only emit it
@@ -361,14 +385,14 @@ function generateDefinition(
     let nonVoidBody: string;
     if (needsRuntimeContentTypeSwitch) {
       nonVoidBody = `typeof resolvedBody === 'string'
-        ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
-        : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+        ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode}${textCtHeaderSuffix} })
+        : HttpResponse.json(resolvedBody, { status: ${statusCode}${jsonCtHeaderSuffix} })`;
     } else if (isTextResponse && !shouldPreferJsonResponse) {
       nonVoidBody = `HttpResponse.${textHelper}(
         typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null),
-        { status: ${statusCode} })`;
+        { status: ${statusCode}${textCtHeaderSuffix} })`;
     } else {
-      nonVoidBody = `HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+      nonVoidBody = `HttpResponse.json(resolvedBody, { status: ${statusCode}${jsonCtHeaderSuffix} })`;
     }
     responseBody = `resolvedBody === undefined
       ? new HttpResponse(null, { status: ${noContentStatusCode} })
@@ -378,15 +402,15 @@ function generateDefinition(
     // appropriate text helper; otherwise fall back to HttpResponse.json()
     // so objects are never JSON.stringify'd under a text/xml Content-Type.
     responseBody = `typeof resolvedBody === 'string'
-      ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
-      : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+      ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode}${textCtHeaderSuffix} })
+      : HttpResponse.json(resolvedBody, { status: ${statusCode}${jsonCtHeaderSuffix} })`;
   } else if (isTextResponse && !shouldPreferJsonResponse) {
     responseBody = `HttpResponse.${textHelper}(textBody,
-      { status: ${statusCode}
+      { status: ${statusCode}${textCtHeaderSuffix}
       })`;
   } else {
     responseBody = `HttpResponse.json(${resolvedResponseExpr},
-      { status: ${statusCode}
+      { status: ${statusCode}${jsonCtHeaderSuffix}
       })`;
   }
 

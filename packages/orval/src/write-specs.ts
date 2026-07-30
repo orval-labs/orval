@@ -34,16 +34,21 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  writeTagsOperationsMode,
+  writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { formatWithPrettier } from './formatters/prettier';
-import { executeHook } from './utils';
+import {
+  executeHook,
+  readReExportSpecifiers,
+  reconcileWorkspaceBarrel,
+} from './utils';
 import {
   generateZodSchemasInline,
   writeZodSchemas,
@@ -172,13 +177,11 @@ async function addOperationSchemasReExport(
 
   const indexExists = await fs.pathExists(schemaIndexPath);
   if (indexExists) {
-    // Check if export already exists to prevent duplicates on re-runs
-    // Use regex to handle both single and double quotes
+    // Append the re-export only if it isn't already declared. The presence
+    // check reuses the shared barrel specifier reader so quote style can't
+    // cause duplicates (#3756).
     const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
-    const exportPattern = new RegExp(
-      String.raw`export\s*\*\s*from\s*['"]${esmImportPath.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}['"]`,
-    );
-    if (!exportPattern.test(existingContent)) {
+    if (!readReExportSpecifiers(existingContent).has(esmImportPath)) {
       await fs.appendFile(schemaIndexPath, exportLine);
     }
   } else {
@@ -420,19 +423,50 @@ function getImplementationPathsForIndex(
     output.mode === OutputMode.SPLIT &&
     getComparableFilePath(output.target) === getComparableFilePath(indexFile);
 
-  if (!isSplitModeWithColocatedTarget) {
+  if (isSplitModeWithColocatedTarget) {
+    const targetInfo = getFileInfo(output.target, {
+      extension: output.fileExtension,
+    });
+    const defaultSiblingSchemas = path.join(
+      targetInfo.dirname,
+      `${targetInfo.filename}.schemas${output.fileExtension}`,
+    );
+    return excludeFilePath(paths, defaultSiblingSchemas);
+  }
+
+  // tags-operations and tags-operations-split produce a root barrel
+  // (dirname/index<ext>) plus per-tag barrels and individual operation files.
+  // The workspace index must only re-export the root barrel (and the global
+  // schemas file when present) — re-exporting individual operation files,
+  // per-tag barrels, helper files, and per-operation schema files causes
+  // TS2308 ambiguous-re-export errors because many types appear in multiple
+  // files simultaneously (shared helpers across tags; shared schemas across
+  // operations).
+  const isTagsOperationsMode =
+    output.mode === OutputMode.TAGS_OPERATIONS ||
+    output.mode === OutputMode.TAGS_OPERATIONS_SPLIT;
+
+  if (!isTagsOperationsMode || !shouldExcludeSelf) {
     return paths;
   }
 
   const targetInfo = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const defaultSiblingSchemas = path.join(
+  const rootBarrel = path.join(
+    targetInfo.dirname,
+    `index${output.fileExtension}`,
+  );
+  const globalSchemas = path.join(
     targetInfo.dirname,
     `${targetInfo.filename}.schemas${output.fileExtension}`,
   );
 
-  return excludeFilePath(paths, defaultSiblingSchemas);
+  return paths.filter(
+    (p) =>
+      getComparableFilePath(p) === getComparableFilePath(rootBarrel) ||
+      getComparableFilePath(p) === getComparableFilePath(globalSchemas),
+  );
 }
 
 export async function writeSpecs(
@@ -806,27 +840,30 @@ export async function writeSpecs(
     }
 
     if (output.indexFiles) {
-      if (await fs.pathExists(indexFile)) {
-        const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter(
-          (imp) => !data.includes(`export * from '${imp}'`),
-        );
-        await fs.appendFile(
-          indexFile,
-          unique(importsNotDeclared)
-            .map((imp) => `export * from '${imp}';\n`)
-            .join(''),
-        );
-      } else {
-        await fs.outputFile(
-          indexFile,
-          unique(imports)
-            .map((imp) => `export * from '${imp}';`)
-            .join('\n') + '\n',
-        );
-      }
+      // The workspace barrel can share its path with the implementation
+      // target (#3675: `target` === `<workspace>/index.ts`), so non-export
+      // lines are preserved rather than overwritten. Dedup on the bare
+      // specifier (not the formatted line) so a formatter changing quote
+      // style between runs can't reintroduce duplicates (#3756). Stale
+      // relative exports whose targets no longer exist are pruned so removed
+      // operations/projects do not leave dangling imports behind (#3763).
+      await reconcileWorkspaceBarrel(
+        indexFile,
+        [...new Set(imports)],
+        output.fileExtension,
+        importExtension,
+      );
 
-      implementationPaths = [indexFile, ...implementationPathsForIndex];
+      // Use the full (unfiltered) implementation paths here, not
+      // `implementationPathsForIndex` — for tags-operations modes that list
+      // is narrowed to just the root barrel + global schemas so the barrel
+      // body above doesn't re-export ambiguous duplicate types, but every
+      // per-tag/operation/helper/schema/mock file must still reach
+      // `afterAllFilesWrite` and the formatter below.
+      implementationPaths = [
+        indexFile,
+        ...excludeFilePath(implementationPaths, indexFile),
+      ];
     }
   }
 
@@ -908,7 +945,7 @@ export async function writeSpecs(
       const project = await app.convert();
       if (project) {
         const outputPath = app.options.getValue('out');
-        await app.generateDocs(project, outputPath);
+        await app.generateOutputs(project);
 
         await runFormatter(output.formatter, [outputPath], projectTitle);
       } else {
@@ -937,6 +974,12 @@ function getWriteMode(mode: OutputMode) {
     }
     case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS: {
+      return writeTagsOperationsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS_SPLIT: {
+      return writeTagsOperationsSplitMode;
     }
     default: {
       return writeSingleMode;

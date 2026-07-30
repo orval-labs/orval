@@ -44,6 +44,7 @@ import {
   rewriteReusableSchemas,
   rewriteSentinelsToDirect,
 } from './reusable-schemas';
+import { reconcileZodBarrel } from './utils/barrel';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
@@ -500,32 +501,24 @@ async function writeZodSchemaIndex(
   const importFileExtension = getImportExtension(fileExtension, tsconfig);
   const indexPath = path.join(schemasPath, `index.ts`);
 
-  let existingExports = '';
-  if (shouldMergeExisting && (await fs.pathExists(indexPath))) {
-    const existingContent = await fs.readFile(indexPath, 'utf8');
-    const headerMatch = /^(\/\*\*[\s\S]*?\*\/\n)?/.exec(existingContent);
-    const headerPart = headerMatch ? headerMatch[0] : '';
-    existingExports = existingContent.slice(headerPart.length).trim();
-  }
+  const newSpecifiers = [
+    ...new Set(
+      schemaNames.map((schemaName) => {
+        const fileName = conventionName(schemaName, namingConvention);
+        return `./${fileName}${importFileExtension}`;
+      }),
+    ),
+  ];
 
-  const newExports = schemaNames
-    .map((schemaName) => {
-      const fileName = conventionName(schemaName, namingConvention);
-      return `export * from './${fileName}${importFileExtension}';`;
-    })
-    .toSorted()
-    .join('\n');
-
-  const allExports = existingExports
-    ? `${existingExports}\n${newExports}`
-    : newExports;
-
-  const uniqueExports = [...new Set(allExports.split('\n'))]
-    .filter((line) => line.trim())
-    .toSorted()
-    .join('\n');
-
-  await fs.outputFile(indexPath, `${header}\n${uniqueExports}\n`);
+  // Dedup on the bare specifier (not the formatted line) so a formatter run
+  // between generations can't reintroduce duplicates via quote-style changes
+  // (#3756).
+  await reconcileZodBarrel(
+    indexPath,
+    newSpecifiers,
+    header,
+    shouldMergeExisting,
+  );
 }
 
 export async function writeZodSchemaTagsSplitBarrel(

@@ -14,6 +14,7 @@ import {
   isBinaryContentType,
   isObject,
   makeRouteSafe,
+  type OpenApiOperationObject,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -22,6 +23,7 @@ import {
   type SharedTypeDeclaration,
   stringify,
   toObjectString,
+  type Verbs,
 } from '@orval/core';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
@@ -117,7 +119,9 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.spec.paths?.[pathRoute];
+  const spec = context.spec.paths?.[pathRoute] as
+    | Partial<Record<Verbs, OpenApiOperationObject>>
+    | undefined;
   const parameters = spec?.[verb]?.parameters ?? [];
   const parameterObjects = parameters.map((parameter) => {
     const { schema } = resolveRef(parameter, context);

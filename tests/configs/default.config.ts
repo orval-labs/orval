@@ -878,4 +878,13 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-3750': {
+    input: '../specifications/issue-3750.yaml',
+    output: {
+      target: '../generated/default/issue-3750/endpoints.ts',
+      schemas: '../generated/default/issue-3750/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

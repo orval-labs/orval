@@ -141,6 +141,10 @@ const getTypeConstEnum = (
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
 
+  // Coerce first: integer/number `const` used to overwrite the enum union with
+  // a raw number, so `value.endsWith` threw (#3758).
+  value = String(value);
+
   if (value.endsWith(' | null')) {
     value = value.replace(' | null', '');
     enumValue += ' | null';

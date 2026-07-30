@@ -43,5 +43,23 @@ export function getParameters({
       }
     }
   }
+
+  // Parameters are unique by their name and location. Callers provide
+  // path-level parameters first and operation-level parameters last, so
+  // replacing an existing entry applies the operation-level override. HTTP
+  // header names are case-insensitive, unlike names in the other locations.
+  for (const location of ['path', 'query', 'header'] as const) {
+    result[location] = [
+      ...new Map(
+        result[location].map((entry) => [
+          location === 'header'
+            ? entry.parameter.name?.toLowerCase()
+            : entry.parameter.name,
+          entry,
+        ]),
+      ).values(),
+    ];
+  }
+
   return result;
 }

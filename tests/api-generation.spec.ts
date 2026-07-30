@@ -921,6 +921,57 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
   expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
 });
 
+test('mock problem+json error response preserves the vendor Content-Type (RFC 9457)', async () => {
+  // Regression: MSW's HttpResponse.json() defaults the Content-Type to
+  // application/json, so an OpenAPI response declaring application/problem+json
+  // (RFC 9457 Problem Details for HTTP APIs) was served as application/json by
+  // the generated mock. Applications that validate the Content-Type of error
+  // responses on the client side could not exercise that path against an Orval
+  // mock. The generator now emits an explicit Content-Type header whenever the
+  // resolved media type differs from the MSW helper default.
+  const content = await readFile(
+    generated('mock', 'msw-problem-details-content-type', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The 404 handler must serve application/problem+json verbatim.
+  const handler404Start = content.indexOf('getGetPetMockHandler404');
+  expect(handler404Start, '404 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler404End = content.indexOf(
+    'export const get',
+    handler404Start + 1,
+  );
+  const handler404 = content.slice(
+    handler404Start,
+    handler404End === -1 ? content.length : handler404End,
+  );
+  expect(handler404).toContain(
+    "'Content-Type': 'application/problem+json'",
+  );
+
+  // The 200 status-specific handler (application/json) must NOT carry an
+  // explicit Content-Type header — application/json is the MSW default and is
+  // left implicit to keep the generated output minimal. Asserting against the
+  // status-specific *200 handler avoids the aggregate base handler, whose
+  // Content-Type is derived from operation-wide content types (see CodeRabbit
+  // review on PR #3779).
+  const handler200Start = content.indexOf('getGetPetMockHandler200');
+  expect(handler200Start, '200 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler200End = content.indexOf(
+    'export const get',
+    handler200Start + 1,
+  );
+  const handler200 = content.slice(
+    handler200Start,
+    handler200End === -1 ? content.length : handler200End,
+  );
+  expect(handler200).not.toMatch(/Content-Type/i);
+});
+
 test('react-query issue-2999 emits exactly one v5 overload block per NestJS-style hook', async () => {
   // Regression for #2999: the report described `useXxxFindAll` / `useXxxFindOne`
   // hooks "duplicated" in the generated output. Reproducing with the OP's
@@ -1470,6 +1521,50 @@ test('default issue-3748 keeps plain Required<Pick> for keys behind a nested all
   expect(itemDetail).toMatch(/'id' \| 'name'/);
   expect(itemDetail).toContain('Required<');
   expect(itemDetail).not.toContain('Extract<');
+});
+
+test('default issue-3750 keeps plain Required<Pick> for parent properties', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+  const nullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'nullableItemDetail.ts'),
+    'utf8',
+  );
+  const nestedNullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'nestedNullableItemDetail.ts'),
+    'utf8',
+  );
+  const refNullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'refNullableItemDetail.ts'),
+    'utf8',
+  );
+
+  // Parent properties are part of the emitted intersection and are therefore
+  // safe Pick keys even when required comes from a constraint-only member.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+
+  // The allOf object removes the nullable parent's null branch, making its own
+  // property safe to Pick without the index-signature-breaking Extract guard.
+  expect(nullableItemDetail).toContain("'id'");
+  expect(nullableItemDetail).toContain('Required<');
+  expect(nullableItemDetail).not.toContain('Extract<');
+
+  // The same guarantee must survive a nested allOf component ref and the
+  // inline-allOf normalization pass.
+  expect(nestedNullableItemDetail).toContain("'id'");
+  expect(nestedNullableItemDetail).toContain('Required<');
+  expect(nestedNullableItemDetail).not.toContain('Extract<');
+
+  // A nullable component target propagates null outside its nested allOf, so
+  // the required key must stay guarded to avoid Pick<T, 'id'> violating a
+  // `keyof T = never` constraint.
+  expect(refNullableItemDetail).toMatch(
+    /Required<\s*Pick<[\s\S]*Extract<\s*keyof \(/,
+  );
 });
 
 test('default regressions collect only guaranteed keys through nested allOf refs', async () => {

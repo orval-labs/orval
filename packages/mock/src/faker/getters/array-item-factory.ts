@@ -24,17 +24,24 @@ import { extractItemsRef } from './scalar';
 
 /**
  * Scope key for file-level array-item factory dedup. Must match how writers
- * group mock output: one bucket per tag file in tags modes, otherwise one
- * bucket for the whole target.
+ * group mock output: one bucket per tag file in tags modes, one bucket per
+ * operation file in the tags-operations modes (each operation gets its own
+ * mock file), otherwise one bucket for the whole target.
  */
 export function getArrayItemMockFileScope(
   context: ContextSpec,
   tags: string[],
+  operationId?: string,
 ): string {
   const mode = context.output.mode;
   const mockType = context.activeMockOutputType ?? OutputMockType.MSW;
   let base: string;
-  if (mode === OutputMode.TAGS || mode === OutputMode.TAGS_SPLIT) {
+  if (
+    mode === OutputMode.TAGS_OPERATIONS ||
+    mode === OutputMode.TAGS_OPERATIONS_SPLIT
+  ) {
+    base = `operation:${operationId ?? ''}`;
+  } else if (mode === OutputMode.TAGS || mode === OutputMode.TAGS_SPLIT) {
     base = `tag:${getOperationTagKey({ tags })}`;
   } else if (mode === OutputMode.SPLIT) {
     base = 'split';
@@ -345,7 +352,7 @@ export function extractArrayItemMock({
   }
 
   const { factoryName, typeName } = names;
-  const scope = getArrayItemMockFileScope(context, tags);
+  const scope = getArrayItemMockFileScope(context, tags, operationId);
   const fileLevelFactories = getFileLevelExtractedFactories(context, scope);
   const mockOptions = context.output.override.mock;
   const alreadyExtracted =

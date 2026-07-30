@@ -269,12 +269,14 @@ export async function generateVerbOptions({
   let operationName: string;
   let typeName: string;
   if (overrideOperationName) {
+    // ponytail: user-provided override is authoritative; sanitize would strip
+    // intentional `_` and `$` (regression introduced in #3693, fixed per #3775).
     const result = overrideOperationName(operation, route, verb);
     if (Array.isArray(result)) {
-      operationName = sanitize(result[0], { es5keyword: true });
-      typeName = sanitize(result[1], { es5keyword: true });
+      operationName = result[0];
+      typeName = result[1];
     } else {
-      operationName = sanitize(result, { es5keyword: true });
+      operationName = result;
       typeName = operationName;
     }
   } else {

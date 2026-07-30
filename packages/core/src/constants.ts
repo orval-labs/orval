@@ -21,6 +21,7 @@ export const VERBS_WITH_BODY = [
   Verbs.PUT,
   Verbs.PATCH,
   Verbs.DELETE,
+  Verbs.QUERY,
 ];
 
 export const URL_REGEX =

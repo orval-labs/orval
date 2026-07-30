@@ -46,9 +46,77 @@ const PETSTORE_SPEC: OpenApiDocument = {
   },
 };
 
+const QUERY_METHOD_SPEC = {
+  openapi: '3.2.0',
+  info: { title: 'Search API', version: '1.0.0' },
+  paths: {
+    '/search': {
+      query: {
+        operationId: 'searchPets',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  term: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Search results',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: PETSTORE_SPEC.components,
+} as unknown as OpenApiDocument;
+
 const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-gen-spec-'));
 };
+
+describe('generateSpec - HTTP QUERY method', () => {
+  it('generates clients for QUERY operations with request bodies', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: QUERY_METHOD_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf8');
+
+      expect(content).toContain('export const searchPets =');
+      expect(content).toContain("method: 'QUERY'");
+      expect(content).toContain('body: JSON.stringify(searchPetsBody)');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('generateSpec - schemas: false', () => {
   it('does not generate separate schema files when schemas is false', async () => {
@@ -1262,6 +1330,32 @@ describe('generateSpec - schemas.splitByTags validation', () => {
   });
 });
 
+describe('generateSpec - normalizeOptions pathless schemas object', () => {
+  // Regression: a `schemas` object with no `path` (e.g. `schemas: { type: 'zod' }`)
+  // normalized to an undefined path, which `clean: true` then resolved to the
+  // current working directory and wiped.
+  it('rejects a schemas object without a path', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: { target: PETSTORE_SPEC },
+            output: {
+              target: './src/generated/api.ts',
+              schemas: { type: 'zod' } as never,
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(/schemas\.path` is required/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - returnTypesToWrite isolation across tags (#3685)', () => {
   it("each tag emits its own *Result type, not the other tag's", async () => {
     const SPEC: OpenApiDocument = {
@@ -1475,6 +1569,81 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
     }
   });
 
+  it('preserves underscores and $ in overridden operationName (#3775)', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'axios',
+            override: {
+              operationName: (_operation, route, _verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return `$${segments.join('_')}`;
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      expect(content).toContain('$api_catalog_items');
+      expect(content).toContain('$api_inventory_products');
+      // Type names are pascal-cased by the getters (pre-existing behavior),
+      // only the function/hook names are preserved verbatim per #2040.
+      expect(content).toContain('ApiCatalogItemsResult');
+      expect(content).toContain('ApiInventoryProductsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves underscores and $ in overridden operationName tuple form (#3775)', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'axios',
+            override: {
+              operationName: (_operation, route, _verb) => {
+                const segments = route.split('/').filter(Boolean);
+                // methodName: short, typeName: long; both carry $ and _.
+                return [`$${segments.at(-1)}`, `$${segments.join('_')}`];
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      // Method name preserved verbatim, including $ and _.
+      expect(content).toContain('$items');
+      expect(content).toContain('$products');
+      // Type name (pascal-cased by getters) carries the longer typeName base.
+      expect(content).toContain('ApiCatalogItemsResult');
+      expect(content).toContain('ApiInventoryProductsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('produces globally unique type names across tags in tags-split mode', async () => {
     const workspace = await createTempWorkspace();
 
@@ -1565,6 +1734,292 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
       // Error type uses service-prefixed type name
       expect(content).toContain('GetCatalogItemsQueryError');
       expect(content).toContain('GetInventoryProductsQueryError');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+const ACTIVITY_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'Activity', version: '1.0.0' },
+  paths: {
+    '/activities': {
+      get: {
+        operationId: 'getActivities',
+        responses: {
+          '200': {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Activity' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      Activity: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      ActivityDto: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    },
+  },
+};
+
+const MASTER_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'Master', version: '1.0.0' },
+  paths: {
+    '/masters': {
+      get: {
+        operationId: 'getMasters',
+        responses: {
+          '200': {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Master' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      Master: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      MasterDto: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    },
+  },
+};
+
+describe('generateSpec - workspace barrel idempotency (#3756)', () => {
+  // Regression for #3756: the shared workspace barrel (`<workspace>/index.ts`)
+  // is appended to once per project. The dedup used a single-quote literal
+  // substring check, so an `afterAllFilesWrite` formatter flipping quotes
+  // (single -> double) caused every export to be re-appended on each run.
+  it('does not accumulate duplicate exports when a formatter changes quote style', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+
+    const countExports = async () => {
+      const content = await fs.readFile(barrel, 'utf8');
+      return (content.match(/export \*/g) ?? []).length;
+    };
+
+    try {
+      const baseOptions = await normalizeOptions(
+        {
+          input: { target: ACTIVITY_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/base/endpoints.ts',
+            schemas: './gen/api/base/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+      const masterOptions = await normalizeOptions(
+        {
+          input: { target: MASTER_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/master/endpoints.ts',
+            schemas: './gen/api/master/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+      const afterCycle1 = await countExports();
+      expect(afterCycle1).toBeGreaterThan(0);
+
+      // Simulate prettier flipping single -> double quotes between runs.
+      const flipped = (await fs.readFile(barrel, 'utf8')).replace(
+        /export \* from '([^']+)';/g,
+        'export * from "$1";',
+      );
+      await fs.writeFile(barrel, flipped);
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+      const afterCycle2 = await countExports();
+
+      expect(afterCycle2).toBe(afterCycle1);
+
+      const finalContent = await fs.readFile(barrel, 'utf8');
+      const specifiers = [
+        ...finalContent.matchAll(/export \* from ['"]([^'"]+)['"]/g),
+      ].map((m) => m[1]);
+      expect(new Set(specifiers).size).toBe(specifiers.length);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('removes stale exports whose generated targets no longer exist', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+    const baseDir = path.join(path.dirname(barrel), 'gen', 'api', 'base');
+    const masterDir = path.join(path.dirname(barrel), 'gen', 'api', 'master');
+
+    try {
+      const baseOptions = await normalizeOptions(
+        {
+          input: { target: ACTIVITY_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/base/endpoints.ts',
+            schemas: './gen/api/base/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+      const masterOptions = await normalizeOptions(
+        {
+          input: { target: MASTER_SPEC },
+          output: {
+            workspace: './gen',
+            target: './gen/api/master/endpoints.ts',
+            schemas: './gen/api/master/model',
+            client: 'axios',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, baseOptions, 'base');
+      await generateSpec(workspace, masterOptions, 'master');
+
+      const beforeRemoval = await fs.readFile(barrel, 'utf8');
+      expect(beforeRemoval).toContain('./gen/api/base/endpoints');
+      expect(beforeRemoval).toContain('./gen/api/master/endpoints');
+
+      await fs.remove(masterDir);
+      await generateSpec(workspace, baseOptions, 'base');
+
+      const afterRemoval = await fs.readFile(barrel, 'utf8');
+      expect(await fs.pathExists(baseDir)).toBe(true);
+      expect(await fs.pathExists(masterDir)).toBe(false);
+      expect(afterRemoval).toContain('./gen/api/base/endpoints');
+      expect(afterRemoval).not.toContain('./gen/api/master/endpoints');
+      expect(afterRemoval).not.toContain('./gen/api/master/model');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - faker schemas with tags-split MSW (#3747)', () => {
+  it('emits valid enum factories without colliding with tag mock aggregates', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'types');
+    const mswFile = path.join(workspace, 'sdk', 'pet', 'pet.msw.ts');
+
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Faker MSW collision', version: '1.0.0' },
+      paths: {
+        '/pets': {
+          get: {
+            operationId: 'listPets',
+            tags: ['Pet'],
+            responses: {
+              '200': {
+                description: 'A list of pets',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Pet' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          PetStatus: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+          },
+          Pet: {
+            type: 'object',
+            required: ['id', 'status'],
+            properties: {
+              id: { type: 'integer' },
+              status: { $ref: '#/components/schemas/PetStatus' },
+            },
+          },
+        },
+      },
+    };
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: spec },
+          output: {
+            target: './sdk/index.ts',
+            schemas: './types',
+            mode: 'tags-split',
+            client: 'react-query',
+            httpClient: 'axios',
+            mock: {
+              indexMockFiles: true,
+              generators: [
+                { type: 'msw' },
+                {
+                  type: 'faker',
+                  operationResponses: false,
+                  schemas: true,
+                },
+              ],
+            },
+            override: { enumGenerationType: 'enum' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const fakerSchemas = await fs.readFile(
+        path.join(schemasDir, 'index.faker.ts'),
+        'utf8',
+      );
+      expect(fakerSchemas).toContain(
+        "faker.helpers.arrayElement(['available','pending','sold'] as PetStatus[])",
+      );
+      expect(fakerSchemas).not.toContain("PetStatus['PetStatus']");
+
+      const mswContent = await fs.readFile(mswFile, 'utf8');
+      expect(mswContent).toContain('getPetMock as getPetMockSchemaFactory');
+      expect(mswContent).toContain('getPetMockSchemaFactory()');
+      expect(mswContent).toContain('export const getPetMock = () => [');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
