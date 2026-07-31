@@ -3,6 +3,9 @@ title: Output
 description: Output configuration options
 ---
 
+import { ConfigFields } from '../../../../src/components/config-fields';
+import { override } from '../../../../src/generated/config-reference/override';
+
 ## target
 
 **Type:** `String`
@@ -989,6 +992,10 @@ export default defineConfig({
   },
 });
 ```
+
+The callback receives `info`, the [OpenAPI Info Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#info-object). Its fields:
+
+<ConfigFields section={override} name="header" />
 
 ---
 
