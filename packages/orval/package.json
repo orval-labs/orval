@@ -89,7 +89,6 @@
     "@types/js-yaml": "^4.0.9",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {

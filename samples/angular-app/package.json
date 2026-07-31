@@ -42,7 +42,6 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "4.1.10"
   },
