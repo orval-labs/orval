@@ -1279,6 +1279,32 @@ test('fetch issue-3695 does not import zod for a path parameter named `z`', asyn
   expect(content).toContain('z: string');
 });
 
+test('hono handler filenames follow namingConvention', async () => {
+  // Handler files are the only hono output named after an operation, so they have
+  // to honor `namingConvention` like every other generated file does.
+  const endpoints = await readFile(
+    generated('hono', 'petstore-split-with-handlers-kebab', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The route file must import from the kebab-cased path, not the operation name.
+  expect(endpoints).toContain("from './src/handlers/list-pets'");
+  expect(endpoints).not.toContain("from './src/handlers/listPets'");
+
+  // And that file must exist under the same name.
+  const handler = await readFile(
+    generated(
+      'hono',
+      'petstore-split-with-handlers-kebab',
+      'src',
+      'handlers',
+      'list-pets.ts',
+    ),
+    'utf8',
+  );
+  expect(handler).toContain('listPetsHandlers');
+});
+
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {
   // `tests` installs Zod 4, so installed-version detection would emit Zod 4 for
   // both. These two clients generate from the SAME petstore spec but pin
