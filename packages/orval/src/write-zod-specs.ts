@@ -58,10 +58,11 @@ type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
   filePath: string;
 };
 
+// Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
+// which transitively references every locale table and cannot be tree-shaken. Matches
+// what `@orval/zod` and `@orval/effect` already emit via `namespaceImport`.
 const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
-  variant === 'mini'
-    ? `import * as zod from '${getZodImportSource(variant)}';`
-    : `import { z as zod } from '${getZodImportSource(variant)}';`;
+  `import * as zod from '${getZodImportSource(variant)}';`;
 
 interface WriteZodOutputOptions {
   namingConvention: NamingConvention;
@@ -218,9 +219,8 @@ function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
   zodVariant: ZodVariantOption,
-  // Omit the `import { z as zod }` line when the content is concatenated into a
-  // file that already imports zod (e.g. inline single-mode output, where the
-  // zod client already emits `import * as zod from 'zod'`).
+  // Omit the zod import when the content is concatenated into a file that already
+  // imports zod (e.g. inline single-mode output, where the zod client emits its own).
   includeZodImport = true,
 ): string {
   // Group the zod import with any reusable-schema imports (deduped across the

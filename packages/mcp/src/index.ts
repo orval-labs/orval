@@ -28,12 +28,12 @@ import {
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod, getZodImportSource } from '@orval/zod';
 
+// Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
+// which transitively references every locale table and cannot be tree-shaken. Matches
+// what `@orval/zod` and `@orval/effect` already emit via `namespaceImport`.
 const getZodSchemaImportStatement = (
   variant: NormalizedOutputOptions['override']['zod']['variant'],
-) =>
-  variant === 'mini'
-    ? `import * as zod from '${getZodImportSource(variant)}';`
-    : `import { z as zod } from '${getZodImportSource(variant)}';`;
+) => `import * as zod from '${getZodImportSource(variant)}';`;
 
 const getHeader = (
   option: false | ((info: OpenApiInfoObject) => string | string[]),
