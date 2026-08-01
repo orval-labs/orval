@@ -4,7 +4,7 @@
  * Tags Split Shared Models
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 import { Pagination } from '../pagination.zod';
 import { Pet } from './pet.zod';
 

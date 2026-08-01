@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const Pets = zod.array(zod.union([zod.union([zod.object({
   "cuteness": zod.int(),

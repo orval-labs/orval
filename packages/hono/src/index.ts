@@ -43,12 +43,12 @@ import {
 } from './handler-merge';
 import { getRoute } from './route';
 
+// Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
+// which transitively references every locale table and cannot be tree-shaken. Matches
+// what `@orval/zod` and `@orval/effect` already emit via `namespaceImport`.
 const getZodSchemaImportStatement = (
   variant: NormalizedOutputOptions['override']['zod']['variant'],
-) =>
-  variant === 'mini'
-    ? `import * as zod from '${getZodImportSource(variant)}';`
-    : `import { z as zod } from '${getZodImportSource(variant)}';`;
+) => `import * as zod from '${getZodImportSource(variant)}';`;
 
 // Warn at most once per run when the optional `typescript` peer is missing and a
 // non-`skip` strategy was requested, so the degraded behavior is never silent.
