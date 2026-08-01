@@ -3,6 +3,7 @@ import nodePath from 'node:path';
 import {
   camelPathParamName,
   type ClientBuilder,
+  conventionName,
   type ClientExtraFilesBuilder,
   type ClientFooterBuilder,
   type ClientGeneratorsBuilder,
@@ -143,7 +144,7 @@ export const getHonoHeader: ClientHeaderBuilder = ({
           nodePath.join(targetInfo.dirname, isSplitDir ? tag : ''),
           nodePath.join(
             handlerFileInfo.dirname,
-            `./${verbOption.operationName}`,
+            `./${conventionName(verbOption.operationName, output.namingConvention)}`,
           ),
         );
 
@@ -624,7 +625,8 @@ const generateHandlerFiles = async (
 
         const path = nodePath.join(
           output.override.hono.handlers ?? '',
-          `./${verbOption.operationName}` + extension,
+          `./${conventionName(verbOption.operationName, output.namingConvention)}` +
+            extension,
         );
 
         // Mirror the layout used by generateZodFiles/generateContextFiles so
@@ -1051,7 +1053,7 @@ const generateCompositeRoutes = (
           compositeRouteInfo.path,
           nodePath.join(
             handlerFileInfo.dirname,
-            `./${operationName}${targetInfo.extension}`,
+            `./${conventionName(operationName, output.namingConvention)}${targetInfo.extension}`,
           ),
           output.tsconfig,
         );
