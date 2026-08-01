@@ -260,10 +260,80 @@ describe('getMutatorInfo', () => {
     });
   });
 
+  describe('alias resolution', () => {
+    it('should resolve aliased mutator imports', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'alias-resolution-tests', 'mutation.ts'),
+        {
+          alias: {
+            '@mutator-alias': path.join(
+              basePath,
+              'default-anonymous-function-2-args.ts',
+            ),
+          },
+          external: [],
+        },
+      );
+
+      expect(result).toEqual({ numberOfParams: 2 });
+    });
+
+    it('should resolve aliased mutator imports without explicit externals', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'alias-resolution-tests', 'mutation.ts'),
+        {
+          alias: {
+            '@mutator-alias': path.join(
+              basePath,
+              'default-anonymous-function-2-args.ts',
+            ),
+          },
+        },
+      );
+
+      expect(result).toEqual({ numberOfParams: 2 });
+    });
+  });
+
+  describe('external wildcards', () => {
+    it('should support wildcard external patterns', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'external-wildcard-tests', 'mutation.ts'),
+        { external: ['*.scss'] },
+      );
+
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+  });
+
+  describe('external package subpaths', () => {
+    it('should externalize package subpaths from package externals', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'external-package-subpath-tests', 'mutation.ts'),
+        { external: ['external-package'] },
+      );
+
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+
+    it('should externalize scoped package subpaths from scoped package externals', async () => {
+      const result = await getMutatorInfo(
+        path.join(
+          basePath,
+          'external-package-subpath-tests',
+          'scoped-mutation.ts',
+        ),
+        { external: ['@scope/pkg'] },
+      );
+
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+  });
+
   describe('dynamic import', () => {
     // Regression test for https://github.com/orval-labs/orval/issues/1634.
-    // esbuild preserves dynamic `import()` in its ESM output, so the bundled
-    // code handed to acorn contains an `import()` expression. Acorn must be
+    // The bundled ESM output can preserve dynamic `import()`, so the code
+    // handed to acorn can contain an `import()` expression. Acorn must be
     // able to parse it; otherwise the named export is reported as missing.
     it('should find named export when body contains await import()', async () => {
       const result = await getMutatorInfo(

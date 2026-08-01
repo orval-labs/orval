@@ -91,7 +91,6 @@ export async function generateMutator({
     namedExport: mutatorInfoName,
     alias: mutator.alias,
     external: mutator.external,
-    tsconfig,
   });
 
   if (!mutatorInfo) {
