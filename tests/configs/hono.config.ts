@@ -82,6 +82,24 @@ export default defineConfig({
       },
     },
   },
+  petstoreSplitWithHandlersKebab: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/hono/petstore-split-with-handlers-kebab/endpoints.ts',
+      mode: 'split',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      namingConvention: 'kebab-case',
+      override: {
+        hono: {
+          handlers:
+            '../generated/hono/petstore-split-with-handlers-kebab/src/handlers',
+        },
+      },
+    },
+  },
   petstoreTagsWithHandlers: {
     input: '../specifications/petstore.yaml',
     output: {

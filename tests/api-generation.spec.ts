@@ -921,6 +921,57 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
   expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
 });
 
+test('mock problem+json error response preserves the vendor Content-Type (RFC 9457)', async () => {
+  // Regression: MSW's HttpResponse.json() defaults the Content-Type to
+  // application/json, so an OpenAPI response declaring application/problem+json
+  // (RFC 9457 Problem Details for HTTP APIs) was served as application/json by
+  // the generated mock. Applications that validate the Content-Type of error
+  // responses on the client side could not exercise that path against an Orval
+  // mock. The generator now emits an explicit Content-Type header whenever the
+  // resolved media type differs from the MSW helper default.
+  const content = await readFile(
+    generated('mock', 'msw-problem-details-content-type', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The 404 handler must serve application/problem+json verbatim.
+  const handler404Start = content.indexOf('getGetPetMockHandler404');
+  expect(handler404Start, '404 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler404End = content.indexOf(
+    'export const get',
+    handler404Start + 1,
+  );
+  const handler404 = content.slice(
+    handler404Start,
+    handler404End === -1 ? content.length : handler404End,
+  );
+  expect(handler404).toContain(
+    "'Content-Type': 'application/problem+json'",
+  );
+
+  // The 200 status-specific handler (application/json) must NOT carry an
+  // explicit Content-Type header — application/json is the MSW default and is
+  // left implicit to keep the generated output minimal. Asserting against the
+  // status-specific *200 handler avoids the aggregate base handler, whose
+  // Content-Type is derived from operation-wide content types (see CodeRabbit
+  // review on PR #3779).
+  const handler200Start = content.indexOf('getGetPetMockHandler200');
+  expect(handler200Start, '200 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler200End = content.indexOf(
+    'export const get',
+    handler200Start + 1,
+  );
+  const handler200 = content.slice(
+    handler200Start,
+    handler200End === -1 ? content.length : handler200End,
+  );
+  expect(handler200).not.toMatch(/Content-Type/i);
+});
+
 test('react-query issue-2999 emits exactly one v5 overload block per NestJS-style hook', async () => {
   // Regression for #2999: the report described `useXxxFindAll` / `useXxxFindOne`
   // hooks "duplicated" in the generated output. Reproducing with the OP's
@@ -1215,9 +1266,8 @@ test('fetch issue-3663 combines required from a constraint-only allOf overlay', 
 });
 
 test('fetch issue-3695 does not import zod for a path parameter named `z`', async () => {
-  // The fetch client imports zod as `import { z as zod } from 'zod'`. A path
-  // parameter named exactly `z` must not be mistaken for a zod usage and pull
-  // the (otherwise unused) zod import into the client. See #3695.
+  // A path parameter named exactly `z` must not be mistaken for a zod usage and
+  // pull the (otherwise unused) zod import into the client. See #3695.
   const content = await readFile(
     generated('fetch', 'issue-3695', 'endpoints.ts'),
     'utf8',
@@ -1226,6 +1276,32 @@ test('fetch issue-3695 does not import zod for a path parameter named `z`', asyn
   expect(content).not.toContain("from 'zod'");
   // The parameter itself is still generated as a normal string argument.
   expect(content).toContain('z: string');
+});
+
+test('hono handler filenames follow namingConvention', async () => {
+  // Handler files are the only hono output named after an operation, so they have
+  // to honor `namingConvention` like every other generated file does.
+  const endpoints = await readFile(
+    generated('hono', 'petstore-split-with-handlers-kebab', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The route file must import from the kebab-cased path, not the operation name.
+  expect(endpoints).toContain("from './src/handlers/list-pets'");
+  expect(endpoints).not.toContain("from './src/handlers/listPets'");
+
+  // And that file must exist under the same name.
+  const handler = await readFile(
+    generated(
+      'hono',
+      'petstore-split-with-handlers-kebab',
+      'src',
+      'handlers',
+      'list-pets.ts',
+    ),
+    'utf8',
+  );
+  expect(handler).toContain('listPetsHandlers');
 });
 
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {
@@ -2100,4 +2176,68 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // The nullable tuple (`anyOf: [tuple, null]`) is the issue's exact shape and
   // must not regress to the original empty `[]`.
   expect(content).not.toContain('point: []');
+});
+
+// `set-cookie` must be filtered out, so the response carries no session
+// credential across the serialization boundary.
+const serializedHeaders = (responseVar: string) =>
+  `[...${responseVar}.headers.entries()].filter(([name]) => name !== 'set-cookie')`;
+
+test('fetch serializeResponseHeaders stores headers as a plain object', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
+});
+
+test.each([
+  ['serialize-response-headers-stream', 'stream'],
+  ['serialize-response-headers-blob', 'res'],
+])(
+  'fetch serializeResponseHeaders converts headers in the %s response branch',
+  async (folder, responseVar) => {
+    const content = await readFile(
+      generated('fetch', folder, 'endpoints.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain('headers: Record<string, string>');
+    expect(content).not.toContain('headers: Headers');
+    expect(content).toContain(serializedHeaders(responseVar));
+    expect(content).not.toContain(`headers: ${responseVar}.headers`);
+  },
+);
+
+test('fetch serializeResponseHeaders leaves the conversion to a custom mutator', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers-mutator', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The mutator owns the request, so the option only declares the shape it has
+  // to return — there is no generated code left to do the conversion.
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toMatch(/return customFetch<\w+Response>\(/);
+  expect(content).not.toContain(serializedHeaders('res'));
+});
+
+// Runtime behaviour lives in serialize-response-headers.spec.ts; these only
+// inspect the generated source.
+test('react-query prefetch output declares serialized headers', async () => {
+  const content = await readFile(
+    generated('react-query', 'prefetch-serializable-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toMatch(/export const prefetchListPetsQuery = async </);
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
 });

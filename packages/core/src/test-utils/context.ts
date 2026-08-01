@@ -160,6 +160,7 @@ export function createTestContextSpec({
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
+        serializeResponseHeaders: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
       },

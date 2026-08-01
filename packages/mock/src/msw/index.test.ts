@@ -550,6 +550,92 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
+    it('should emit explicit Content-Type header for vendor +xml responses', () => {
+      const vendorXmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/vnd.api+xml'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(vendorXmlVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'application/vnd.api+xml'",
+      );
+    });
+
+    it('should emit explicit Content-Type header for problem+json responses', () => {
+      const problemJsonVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          contentTypes: ['application/problem+json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(problemJsonVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'application/problem+json'",
+      );
+    });
+
+    it('should emit explicit Content-Type header for vendor +json responses', () => {
+      const vendorJsonVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          contentTypes: ['application/vnd.api+json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(vendorJsonVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'application/vnd.api+json'",
+      );
+    });
+
+    it('should NOT emit Content-Type header for default application/json', () => {
+      const result = generateMSW(mockVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+      expect(result.implementation.handler).not.toContain('Content-Type');
+    });
+
     it('should avoid undefined array min/max in general JS types', () => {
       const numberArrayVerbOptions = {
         ...mockVerbOptions,
@@ -1292,6 +1378,14 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.xml(');
       expect(result.implementation.handler).toContain('HttpResponse.json(');
       expect(result.implementation.handler).not.toContain('JSON.stringify');
+      // Both vendor media types must be preserved as explicit Content-Type
+      // headers; MSW helpers default to application/xml / application/json.
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'application/vnd.orval+xml'",
+      );
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'application/vnd.orval+json'",
+      );
     });
 
     it('Test L: should not treat type names containing "string" as string return types', () => {

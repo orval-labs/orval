@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const Cat = zod.object({
   petsRequested: zod.number().int().optional(),

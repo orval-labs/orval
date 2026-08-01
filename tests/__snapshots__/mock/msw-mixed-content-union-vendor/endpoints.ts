@@ -65,8 +65,14 @@ export const getGetMixedContentVendorMockHandler = (
             : overrideResponse
           : getGetMixedContentVendorResponseMock();
       return typeof resolvedBody === 'string'
-        ? HttpResponse.xml(resolvedBody, { status: 200 })
-        : HttpResponse.json(resolvedBody, { status: 200 });
+        ? HttpResponse.xml(resolvedBody, {
+            status: 200,
+            headers: { 'Content-Type': 'application/vnd.orval+xml' },
+          })
+        : HttpResponse.json(resolvedBody, {
+            status: 200,
+            headers: { 'Content-Type': 'application/vnd.orval+json' },
+          });
     },
     options,
   );

@@ -4,7 +4,7 @@
  * Issue 3027 - zod suffix ref regression
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const ComposedPositionSchema = zod
   .object({

@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 import { stripNill } from '../../../../mutators/zod-preprocess';
 
 export const HealthCheckResponse = zod.preprocess(stripNill, zod.string());

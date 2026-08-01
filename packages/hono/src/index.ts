@@ -3,6 +3,7 @@ import nodePath from 'node:path';
 import {
   camelPathParamName,
   type ClientBuilder,
+  conventionName,
   type ClientExtraFilesBuilder,
   type ClientFooterBuilder,
   type ClientGeneratorsBuilder,
@@ -43,12 +44,12 @@ import {
 } from './handler-merge';
 import { getRoute } from './route';
 
+// Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
+// which transitively references every locale table and cannot be tree-shaken. Matches
+// what `@orval/zod` and `@orval/effect` already emit via `namespaceImport`.
 const getZodSchemaImportStatement = (
   variant: NormalizedOutputOptions['override']['zod']['variant'],
-) =>
-  variant === 'mini'
-    ? `import * as zod from '${getZodImportSource(variant)}';`
-    : `import { z as zod } from '${getZodImportSource(variant)}';`;
+) => `import * as zod from '${getZodImportSource(variant)}';`;
 
 // Warn at most once per run when the optional `typescript` peer is missing and a
 // non-`skip` strategy was requested, so the degraded behavior is never silent.
@@ -143,7 +144,7 @@ export const getHonoHeader: ClientHeaderBuilder = ({
           nodePath.join(targetInfo.dirname, isSplitDir ? tag : ''),
           nodePath.join(
             handlerFileInfo.dirname,
-            `./${verbOption.operationName}`,
+            `./${conventionName(verbOption.operationName, output.namingConvention)}`,
           ),
         );
 
@@ -624,7 +625,8 @@ const generateHandlerFiles = async (
 
         const path = nodePath.join(
           output.override.hono.handlers ?? '',
-          `./${verbOption.operationName}` + extension,
+          `./${conventionName(verbOption.operationName, output.namingConvention)}` +
+            extension,
         );
 
         // Mirror the layout used by generateZodFiles/generateContextFiles so
@@ -1051,7 +1053,7 @@ const generateCompositeRoutes = (
           compositeRouteInfo.path,
           nodePath.join(
             handlerFileInfo.dirname,
-            `./${operationName}${targetInfo.extension}`,
+            `./${conventionName(operationName, output.namingConvention)}${targetInfo.extension}`,
           ),
           output.tsconfig,
         );

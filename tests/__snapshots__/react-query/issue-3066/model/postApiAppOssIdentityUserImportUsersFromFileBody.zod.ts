@@ -4,7 +4,7 @@
  * Issue 3066
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const PostApiAppOssIdentityUserImportUsersFromFileBody = zod.object({
   File: zod.instanceof(File).optional(),

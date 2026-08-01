@@ -166,7 +166,10 @@ export const getGetMixedContentEachStatusMockHandler201 = (
         typeof resolvedBody === 'string'
           ? resolvedBody
           : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.xml(textBody, { status: 201 });
+      return HttpResponse.xml(textBody, {
+        status: 201,
+        headers: { 'Content-Type': 'application/xml' },
+      });
     },
     options,
   );

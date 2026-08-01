@@ -695,11 +695,15 @@ export async function normalizeOptions(
             : {}),
         },
         fetch: {
+          // Spread first so an explicit `undefined` cannot erase a default below.
+          ...outputOptions.override?.fetch,
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
+          serializeResponseHeaders:
+            outputOptions.override?.fetch?.serializeResponseHeaders ?? false,
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           useRuntimeFetcher:
@@ -707,7 +711,6 @@ export async function normalizeOptions(
           ...(outputOptions.override?.fetch?.arrayFormat
             ? { arrayFormat: outputOptions.override.fetch.arrayFormat }
             : {}),
-          ...outputOptions.override?.fetch,
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {
                 jsonReviver: normalizeMutator(
