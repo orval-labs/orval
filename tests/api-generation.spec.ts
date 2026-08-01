@@ -1266,9 +1266,8 @@ test('fetch issue-3663 combines required from a constraint-only allOf overlay', 
 });
 
 test('fetch issue-3695 does not import zod for a path parameter named `z`', async () => {
-  // The fetch client imports zod as `import { z as zod } from 'zod'`. A path
-  // parameter named exactly `z` must not be mistaken for a zod usage and pull
-  // the (otherwise unused) zod import into the client. See #3695.
+  // A path parameter named exactly `z` must not be mistaken for a zod usage and
+  // pull the (otherwise unused) zod import into the client. See #3695.
   const content = await readFile(
     generated('fetch', 'issue-3695', 'endpoints.ts'),
     'utf8',

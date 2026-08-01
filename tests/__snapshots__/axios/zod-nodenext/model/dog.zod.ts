@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 import { Dachshund } from './dachshund.zod.js';
 import { Labradoodle } from './labradoodle.zod.js';
 

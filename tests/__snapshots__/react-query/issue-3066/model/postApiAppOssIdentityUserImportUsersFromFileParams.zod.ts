@@ -4,7 +4,7 @@
  * Issue 3066
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const PostApiAppOssIdentityUserImportUsersFromFileParams = zod.object({
   FileType: zod.enum(['Csv', 'Excel']).optional(),

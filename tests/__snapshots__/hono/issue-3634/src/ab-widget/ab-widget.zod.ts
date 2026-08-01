@@ -4,7 +4,7 @@
  * Issue 3634 - tag normalization for multi-word / acronym tags
  * OpenAPI spec version: 1.0.0
  */
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 export const ListAbWidgetsQueryParams = zod.object({
   search: zod.string().optional(),
