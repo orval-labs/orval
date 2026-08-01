@@ -12,8 +12,11 @@ export type SupportedFormatter =
   (typeof SupportedFormatter)[keyof typeof SupportedFormatter];
 
 export interface Options {
+  /** Output configuration: a target path (string shorthand) or full options. */
   output?: string | OutputOptions;
+  /** Input specification: a path/URL, an array of them, or full input options. */
   input?: string | string[] | InputOptions;
+  /** Lifecycle hooks run during generation (e.g. format/build after write). */
   hooks?: Partial<HooksOptions>;
 }
 
@@ -334,8 +337,11 @@ export interface NormalizedSchemaOptions {
 }
 
 export interface OutputOptions {
+  /** Monorepo workspace name used to resolve the output `target` path. */
   workspace?: string;
+  /** Output directory for generated files. */
   target: string;
+  /** Path (string), schema options, or `false` to disable separate schema output. */
   schemas?: string | SchemaOptions | false;
   /**
    * Separate path for operation-derived types (params, bodies, responses).
@@ -343,7 +349,9 @@ export interface OutputOptions {
    * while regular schema types remain in the `schemas` path.
    */
   operationSchemas?: string;
+  /** Naming convention applied to generated type and function names. */
   namingConvention?: NamingConvention;
+  /** File extension for generated files (default `.ts`). */
   fileExtension?: string;
   /**
    * Optional file extension applied only to schema artifacts (TS types or
@@ -353,36 +361,65 @@ export interface OutputOptions {
    * otherwise mirrors `fileExtension`.
    */
   schemaFileExtension?: string;
+  /**
+   * File layout for generated output: `single`, `split`, `tags`,
+   * `tags-split`, `tags-operations`, or `tags-operations-split`.
+   */
   mode?: OutputMode;
-  // Mocks config. Accepts:
-  // - `true` shorthand: emits both msw + faker with defaults
-  // - OutputMocksConfig object with `generators` array and optional `indexMockFiles`
-  // - ClientMockBuilder function for advanced custom generators
+  /**
+   * Mock generation. `true` emits MSW + faker with defaults; an object gives
+   * full control; a function allows a custom generator.
+   */
   mock?: OutputMocksOption;
+  /** Generation overrides: mutators, per-client options, naming, etc. */
   override?: OverrideOutput;
+  /** Client style to generate (e.g. `react-query`, `axios`, `zod`, `fetch`). */
   client?: OutputClient | OutputClientFunc;
+  /** HTTP client used by generated functions: `axios`, `fetch`, or `angular`. */
   httpClient?: OutputHttpClient;
+  /** Delete the output directory before generation (`true`), or a list of paths to clean. */
   clean?: boolean | string[];
+  /** Generate API reference docs from the generated code via TypeDoc. */
   docs?: boolean | OutputDocsOptions;
+  /** Formatter applied to output: `prettier`, `biome`, or `oxfmt`. */
   formatter?: SupportedFormatter;
+  /** Path to a tsconfig (or an inline object) used for path/emit resolution. */
   tsconfig?: string | Tsconfig;
+  /** Path to a `package.json` used to resolve dependency imports. */
   packageJson?: string;
+  /** When `true` (default), emit a banner header comment atop generated files. */
   headers?: boolean;
+  /** Emit barrel `index.ts` files re-exporting generated modules. */
   indexFiles?: boolean;
+  /**
+   * Base URL for requests: a string, derived from the spec
+   * (`getBaseUrlFromSpecification`), a constant, or a runtime expression.
+   */
   baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant | BaseUrlRuntime;
+  /** Type all generated parameters as optional. */
   allParamsOptional?: boolean;
+  /** URL-encode generated path and query parameters. */
   urlEncodeParameters?: boolean;
+  /** Add missing required properties to union members so they stay structurally complete. */
   unionAddMissingProperties?: boolean;
+  /** Make the generated `options` (query params) argument required. */
   optionsParamRequired?: boolean;
+  /** Sort order for object properties in generated types: `Alphabetical` or `Specification`. */
   propertySortOrder?: PropertySortOrder;
+  /** Emit factory/builder methods for schema construction. */
   factoryMethods?: FactoryMethodsOptions;
+  /** Deduplicate shared types across per-tag files in `tags-split` mode. */
   tagsSplitDeduplication?: boolean;
+  /** Name of the shared/common types barrel file. */
   commonTypesFileName?: string;
 }
 
 export interface InputFiltersOptions {
+  /** Whether the `tags`/`schemas` filters are include-lists or exclude-lists. */
   mode?: 'include' | 'exclude';
+  /** Tag names (or regexes) to include/exclude. */
   tags?: (string | RegExp)[];
+  /** Schema names (or regexes) to include/exclude. */
   schemas?: (string | RegExp)[];
   /**
    * When `tags` is set, orval limits the output to only the schemas referenced
@@ -398,7 +435,12 @@ export interface InputFiltersOptions {
 }
 
 export interface InputOptions {
+  /**
+   * Path, URL, inline spec object, or an array of any of these, pointing at
+   * the OpenAPI/Swagger specification to generate from.
+   */
   target: string | string[] | Record<string, unknown> | OpenApiDocument;
+  /** Input-level overrides (spec transformer). */
   override?: OverrideInput;
   /**
    * Disable OpenAPI spec validation.
@@ -410,7 +452,9 @@ export interface InputOptions {
    * @default false
    */
   unsafeDisableValidation?: boolean;
+  /** Restrict generation to operations/schemas matching given tags or schema names. */
   filters?: InputFiltersOptions;
+  /** Parser options for spec loading: authenticated header domains and external `$ref` resolution. */
   parserOptions?: {
     headers?: {
       domains: string[];
@@ -500,60 +544,79 @@ export type PreferredContentType =
 
 // Shared by every mock generator.
 export interface CommonMockOptions {
-  // Use OpenAPI examples to seed mock values where available
+  /** Use OpenAPI examples to seed mock values where available. */
   useExamples?: boolean;
-  // Generate response factories for every HTTP status defined in the spec
+  /** Generate response factories for every HTTP status defined in the spec. */
   generateEachHttpStatus?: boolean;
-  // Faker locale (controls the `@faker-js/faker/locale/<x>` import path)
+  /** Faker locale (controls the `@faker-js/faker/locale/<x>` import path). */
   locale?: keyof typeof allLocales;
-  // Selects which response schema is mocked when multiple content types exist
+  /** Selects which response schema is mocked when multiple content types exist. */
   preferredContentType?: string;
-  // Emit reusable mock factories for object-like array item schemas found in
-  // operation responses (e.g. `getTenantResponseModelDtoMock` for
-  // `value: TenantResponseModelDto[]`). Defaults to `false`.
+  /**
+   * Emit reusable mock factories for object-like array item schemas found in
+   * operation responses (e.g. `getTenantResponseModelDtoMock` for
+   * `value: TenantResponseModelDto[]`).
+   *
+   * @default false
+   */
   arrayItems?: boolean;
 }
 
 export interface MswMockOptions extends CommonMockOptions {
+  /** Discriminator selecting the MSW mock generator. Must be `'msw'`. */
   type: typeof OutputMockType.MSW;
-  // Emit faker responses in MSW handler output, defaults to true. Disable to
-  // generate handlers only which require passing in mock responses, falls back
-  // to `undefined` if no mock response passed to handler.
+  /**
+   * Emit faker responses in MSW handler output. Disable to generate handlers
+   * only, which require passing in mock responses (falls back to `undefined`
+   * if no mock response is passed).
+   *
+   * @default true
+   */
   operationResponses?: boolean;
-  // Base URL prefix for the generated MSW route matchers
+  /** Base URL prefix for the generated MSW route matchers. */
   baseUrl?: string;
-  // Response delay before MSW handlers resolve (false disables delay)
+  /** Response delay before MSW handlers resolve (`false` disables delay). */
   delay?: false | number | (() => number);
-  // Execute the `delay` function at runtime rather than build time
+  /** Execute the `delay` function at runtime rather than build time. */
   delayFunctionLazyExecute?: boolean;
-  // Custom output directory for MSW mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
-  // modes, mock code is written to separate files instead of being inlined
-  // into the implementation file.
+  /**
+   * Custom output directory for MSW mock files. Overrides the shared
+   * `OutputMocksConfig.path` when set. In `single`/`tags` modes, mock code is
+   * written to separate files instead of being inlined.
+   */
   path?: string;
 }
 
 export interface FakerMockOptions extends CommonMockOptions {
+  /** Discriminator selecting the faker mock generator. Must be `'faker'`. */
   type: typeof OutputMockType.FAKER;
-  // Emit a consolidated mock factory file for every entry under
-  // `components/schemas` (one `get<SchemaName>Mock` per schema). Defaults to
-  // `false` — schema factories are opt-in to preserve existing output.
+  /**
+   * Emit a consolidated mock factory file for every entry under
+   * `components/schemas` (one `get<SchemaName>Mock` per schema).
+   *
+   * @default false
+   */
   schemas?: boolean;
-  // Package specifier for importing the schema-level faker factories (the
-  // `get<SchemaName>Mock` functions emitted when `schemas: true`). When set,
-  // it is used verbatim as the schema factory import path instead of appending
-  // `/index.faker` to `schemas.importPath`. This lets consumers expose fakers
-  // through a dedicated barrel separate from the production type barrel.
-  // Requires `schemas.importPath` to also be set.
+  /**
+   * Package specifier for importing the schema-level faker factories. Used
+   * verbatim instead of appending `/index.faker` to `schemas.importPath`, so
+   * consumers can expose fakers through a dedicated barrel. Requires
+   * `schemas.importPath` to also be set.
+   */
   schemasImportPath?: string;
-  // Emit per-operation response mock factories (the historical behavior).
-  // Defaults to `true`. Set to `false` together with `schemas: true` to get
-  // only the consolidated schema factories.
+  /**
+   * Emit per-operation response mock factories (the historical behavior). Set
+   * to `false` together with `schemas: true` to get only the consolidated
+   * schema factories.
+   *
+   * @default true
+   */
   operationResponses?: boolean;
-  // Custom output directory for faker mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
-  // modes, mock code is written to separate files instead of being inlined
-  // into the implementation file.
+  /**
+   * Custom output directory for faker mock files. Overrides the shared
+   * `OutputMocksConfig.path` when set. In `single`/`tags` modes, mock code is
+   * written to separate files instead of being inlined.
+   */
   path?: string;
 }
 
@@ -568,17 +631,21 @@ export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
 //     ],
 //   }
 export interface OutputMocksConfig {
-  // When true, emits one root-level `index.<ext>.ts` per generator entry
-  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in `split` and `tags-split`
-  // modes. In `tags-split` it re-exports each per-tag mock; in `split` it
-  // re-exports the single mock file. Keeps mocks in a dedicated barrel so the
-  // models/production barrels never pull them in.
+  /**
+   * Emit one root-level `index.<ext>.ts` per generator entry (e.g.
+   * `index.msw.ts` and/or `index.faker.ts`) in `split` and `tags-split` modes.
+   * In `tags-split` it re-exports each per-tag mock; in `split` it re-exports
+   * the single mock file. Keeps mocks in a dedicated barrel so the
+   * models/production barrels never pull them in.
+   */
   indexMockFiles?: boolean;
-  // Shared output directory for all mock files. Individual generators can
-  // override this with their own `path` property. When provided in `single`
-  // or `tags` modes, mock code is written to separate files instead of being
-  // inlined into the implementation file.
+  /**
+   * Shared output directory for all mock files. Individual generators can
+   * override this with their own `path` property. In `single`/`tags` modes,
+   * mock code is written to separate files instead of being inlined.
+   */
   path?: string;
+  /** Mock generator entries (MSW/faker options or custom builder functions). */
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -597,20 +664,36 @@ export interface NormalizedMocksConfig {
 }
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
+  /** Minimum number of array elements in generated mocks. */
   arrayMin?: number;
+  /** Maximum number of array elements in generated mocks. */
   arrayMax?: number;
+  /** Minimum length for generated string values. */
   stringMin?: number;
+  /** Maximum length for generated string values. */
   stringMax?: number;
+  /** Lower bound for generated numbers. */
   numberMin?: number;
+  /** Upper bound for generated numbers. */
   numberMax?: number;
-  required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
-  nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
+  /** When `true`, all mock properties are treated as required (non-optional). */
+  required?: boolean;
+  /** When `true`, nullable mock values are never wrapped in `arrayElement([value, null])`. */
+  nonNullable?: boolean;
+  /**
+   * Override generated mock values by property name, `/regex/`, or exact
+   * `#.path`. May also be a function of the parsed spec.
+   */
   properties?: MockProperties;
-  // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
-  // so the same property name can mock differently per schema. Matching rules are
-  // identical to `properties` (bare name, `/regex/`, exact `#.path`).
+  /**
+   * Scope property overrides to a named schema (e.g.
+   * `components/schemas/Apple`), so the same property name can mock
+   * differently per schema.
+   */
   schemas?: Record<string, { properties: MockProperties }>;
+  /** Per-OpenAPI-`format` mock overrides (e.g. `email`, `uri`). */
   format?: Record<string, unknown>;
+  /** Number of decimal digits for generated numbers. */
   fractionDigits?: number;
 };
 
@@ -695,12 +778,19 @@ export type FormDataType<TMutator> =
     };
 
 export interface OverrideOutput {
+  /** Customize the generated client title. Receives the default title and returns the new one. */
   title?: (title: string) => string;
+  /** Mutator (path or function) transforming the generated verb AST before serialization. */
   transformer?: OutputTransformer;
+  /** Mutator (path string or object) wrapping generated requests for a custom client/interceptor. */
   mutator?: Mutator;
+  /** Per-operation overrides, keyed by operationId (or generated operation name). */
   operations?: Record<string, OperationOptions>;
+  /** Per-tag overrides, keyed by tag name. */
   tags?: Record<string, OperationOptions>;
+  /** Mock-specific overrides (array sizing, requiredness, property values, formats). */
   mock?: OverrideMockOptions;
+  /** Include/exclude request body content types by pattern. */
   contentType?: OverrideOutputContentType;
   /**
    * The comment block written at the top of each generated file. This is
@@ -722,14 +812,21 @@ export interface OverrideOutput {
    * ]
    */
   header?: boolean | ((info: OpenApiInfoObject) => string[] | string);
+  /** Configure multipart form-data serialization: disable it, set a mutator, or configure array handling. */
   formData?: boolean | Mutator | FormDataType<Mutator>;
+  /** Configure `application/x-www-form-urlencoded` serialization (mutator, or disable). */
   formUrlEncoded?: boolean | Mutator;
+  /** Mutator that serializes query/path parameters into the request URL. */
   paramsSerializer?: Mutator;
+  /** Options for the default query-string serializer (e.g. `qs`). */
   paramsSerializerOptions?: ParamsSerializerOptions;
+  /** Mutator that filters which parameters are included in the request. */
   paramsFilter?: Mutator;
+  /** Override the naming convention for generated enum names. */
   namingConvention?: {
     enum?: NamingConvention;
   };
+  /** Suffixes applied to generated component type names (schemas, responses, parameters, requestBodies). */
   components?: {
     schemas?: {
       suffix?: string;
@@ -745,27 +842,47 @@ export interface OverrideOutput {
       suffix?: string;
     };
   };
+  /** Hono client options (handlers, validator, composite route). */
   hono?: HonoOptions;
+  /** Model Context Protocol server options. */
   mcp?: McpOptions;
+  /** React Query / TanStack Query options (hooks to emit, query keys, version). */
   query?: QueryOptions;
+  /** SWR options. */
   swr?: SwrOptions;
+  /** Angular options (DI provider, retrieval client style). */
   angular?: AngularOptions;
+  /** Zod schema options (variant, version, strict, coerce, etc.). */
   zod?: ZodOptions;
+  /** Effect Schema options. */
   effect?: EffectOptions;
+  /**
+   * Customize generated operation/function names. Receives the OpenAPI
+   * operation, the route path, and the HTTP verb.
+   */
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string | [string, string];
+  /** Fetch client options. */
   fetch?: FetchOptions;
 
+  /** Extra options merged into each generated request, or `false` to omit them. */
   requestOptions?: Record<string, unknown> | boolean;
+  /** Emit `Date` types for OpenAPI `date`/`date-time` formats instead of strings. */
   useDates?: boolean;
+  /** Emit object types as `type` aliases instead of `interface` declarations. */
   useTypeOverInterfaces?: boolean;
+  /** Generate functions for operations marked `deprecated`. */
   useDeprecatedOperations?: boolean;
+  /** Emit `bigint` for OpenAPI `integer` with `format: int64`. */
   useBigInt?: boolean;
+  /** Generate named parameters for requests instead of a single arguments object. */
   useNamedParameters?: boolean;
+  /** How OpenAPI enums are emitted: `const`, `enum`, or `union`. */
   enumGenerationType?: EnumGeneration;
+  /** Omit `readonly` modifiers in generated types. */
   suppressReadonlyModifier?: boolean;
   /**
    * Controls how readonly properties are handled for generated request-body types.
@@ -784,7 +901,9 @@ export interface OverrideOutput {
    * @default false
    */
   splitByContentType?: boolean;
+  /** Customize emitted JSDoc via a filter callback. */
   jsDoc?: JsDocOptions;
+  /** Combine aliased union/intersection types into single named types. */
   aliasCombinedTypes?: boolean;
   /**
    * When enabled, optional properties will be typed as `T | null` instead of just `T`.
@@ -794,6 +913,10 @@ export interface OverrideOutput {
 }
 
 export interface JsDocOptions {
+  /**
+   * Filter or rewrite the JSDoc entries emitted for a schema. Receives the
+   * parsed schema and returns the key/value JSDoc lines to emit.
+   */
   filter?: (
     schema: Record<string, unknown>,
   ) => { key: string; value: string }[];
@@ -806,7 +929,9 @@ export interface NormalizedJsDocOptions {
 }
 
 export interface OverrideOutputContentType {
+  /** Content-type patterns (string/regex) to include. */
   include?: string[];
+  /** Content-type patterns (string/regex) to exclude. */
   exclude?: string[];
 }
 
@@ -832,12 +957,16 @@ export interface NormalizedHonoOptions {
 }
 
 export interface ZodDateTimeOptions {
+  /** Include the timezone offset in generated `datetime` schemas. */
   offset?: boolean;
+  /** Emit a local (offset-less) datetime. */
   local?: boolean;
+  /** Subsecond precision for generated `datetime` schemas. */
   precision?: number;
 }
 
 export interface ZodTimeOptions {
+  /** Subsecond precision (`-1` for seconds-only) for generated `time` schemas. */
   precision?: -1 | 0 | 1 | 2 | 3;
 }
 
@@ -857,6 +986,7 @@ export type ZodVersionOption = 3 | 4 | 'auto';
 export type ZodVariantOption = 'classic' | 'mini';
 
 interface BaseZodOptions {
+  /** Apply `.strict()` per location (path/query/header/body/response). */
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -864,6 +994,7 @@ interface BaseZodOptions {
     body?: boolean;
     response?: boolean;
   };
+  /** Control which locations emit validators (path/query/header/body/response). */
   generate?: {
     param?: boolean;
     query?: boolean;
@@ -871,6 +1002,7 @@ interface BaseZodOptions {
     body?: boolean;
     response?: boolean;
   };
+  /** Coerce input per location: `true` for default coercion, or a list of target types. */
   coerce?: {
     param?: boolean | ZodCoerceType[];
     query?: boolean | ZodCoerceType[];
@@ -878,6 +1010,7 @@ interface BaseZodOptions {
     body?: boolean | ZodCoerceType[];
     response?: boolean | ZodCoerceType[];
   };
+  /** Mutator preprocessor applied per location before validation. */
   preprocess?: {
     param?: Mutator;
     query?: Mutator;
@@ -897,6 +1030,7 @@ interface BaseZodOptions {
    * location.
    */
   params?: Mutator;
+  /** Brand generated Zod schemas for nominal typing. */
   useBrandedTypes?: boolean;
 }
 
@@ -914,8 +1048,11 @@ export interface ZodOptions extends BaseZodOptions {
    * See {@link ZodVersionOption}.
    */
   version?: ZodVersionOption;
+  /** Options for generated `datetime` format schemas. */
   dateTimeOptions?: ZodDateTimeOptions;
+  /** Options for generated `time` format schemas. */
   timeOptions?: ZodTimeOptions;
+  /** Emit a Zod schema for every HTTP status defined in the spec, not just the success one. */
   generateEachHttpStatus?: boolean;
   /**
    * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
@@ -959,9 +1096,13 @@ export interface ZodOptions extends BaseZodOptions {
 export type OperationZodOptions = BaseZodOptions;
 
 export interface EffectOptions {
+  /** Apply strict Struct construction per location (path/query/header/body/response). */
   strict?: ZodOptions['strict'];
+  /** Control which locations emit Effect Schema validators. */
   generate?: ZodOptions['generate'];
+  /** Emit an Effect Schema for every HTTP status defined in the spec. */
   generateEachHttpStatus?: boolean;
+  /** Brand generated Effect Schema structs for nominal typing. */
   useBrandedTypes?: boolean;
   /**
    * When true, emits optional Struct properties with
@@ -1062,16 +1203,24 @@ export interface MutationInvalidatesRule {
 export type MutationInvalidatesConfig = MutationInvalidatesRule[];
 
 export interface HonoOptions {
+  /** Output path for generated Hono handler files. */
   handlers?: string;
+  /** How an existing handler file is treated on regeneration: `smart`, `skip`, or `full`. */
   handlerGenerationStrategy?: HonoHandlerStrategy;
+  /** Route prefix under which generated handlers are composed. */
   compositeRoute?: string;
+  /** Emit `zValidator` integration: `true` (zod), `'hono'`, or `false`. */
   validator?: boolean | 'hono';
+  /** Output path for the generated validator module. */
   validatorOutputPath?: string;
 }
 
 export interface McpServerOptions {
+  /** URL/path the MCP server exposes. */
   path: string;
+  /** Display name for the MCP server. */
   name?: string;
+  /** Mark this server as the default. */
   default?: boolean;
 }
 
@@ -1082,6 +1231,7 @@ export interface NormalizedMcpServerOptions {
 }
 
 export interface McpOptions {
+  /** MCP server descriptor (path, name, default). */
   server?: McpServerOptions;
 }
 
@@ -1119,35 +1269,61 @@ export interface NormalizedQueryOptions {
 }
 
 export interface QueryOptions {
+  /** Emit a `useQuery` hook for each query operation. */
   useQuery?: boolean;
+  /** Emit a `useSuspenseQuery` hook for each query operation. */
   useSuspenseQuery?: boolean;
+  /** Emit `useMutation` hooks for non-query operations. */
   useMutation?: boolean;
+  /** Emit `useInfiniteQuery` hooks for paginated query operations. */
   useInfinite?: boolean;
+  /** Emit `useSuspenseInfiniteQuery` hooks. */
   useSuspenseInfiniteQuery?: boolean;
+  /** Query parameter name used as the infinite-query cursor. */
   useInfiniteQueryParam?: string | string[];
+  /** Emit `usePrefetchQuery`/`usePrefetchInfiniteQuery` helpers. */
   usePrefetch?: boolean;
+  /** Emit `useInvalidate` helpers to invalidate queries after mutations. */
   useInvalidate?: boolean;
+  /** Emit `useSetQueryData` helpers. */
   useSetQueryData?: boolean;
+  /** Emit `useGetQueryData` helpers. */
   useGetQueryData?: boolean;
 
+  /** Extra options merged into each generated hook. */
   options?: Record<string, unknown>;
+  /** Mutator customizing the generated query key factory. */
   queryKey?: Mutator;
+  /** Mutator customizing the generated query options. */
   queryOptions?: Mutator;
+  /** Mutator customizing the generated mutation options. */
   mutationOptions?: Mutator;
+  /** Export mutator-based hooks (hooks that call a mutator) alongside the defaults. */
   shouldExportMutatorHooks?: boolean;
+  /** Export the underlying HTTP client function in addition to the hooks. */
   shouldExportHttpClient?: boolean;
+  /** Export the generated query key factories. */
   shouldExportQueryKey?: boolean;
+  /** Filter query keys by a pattern when invalidating. */
   shouldFilterQueryKey?: boolean;
+  /** Pattern (string/regex) used to filter which query keys are affected. */
   queryKeyFilter?: string;
+  /** Split the query key into separate partial keys. */
   shouldSplitQueryKey?: boolean;
+  /** Use the OpenAPI `operationId` verbatim as the query key. */
   useOperationIdAsQueryKey?: boolean;
+  /** Pass an `AbortSignal` through to generated query functions. */
   signal?: boolean;
+  /** Target TanStack Query major version: `3`, `4`, or `5`. */
   version?: 3 | 4 | 5;
+  /** Declarative rules invalidating queries after matching mutations. */
   mutationInvalidates?: MutationInvalidatesConfig;
+  /** Emit runtime validators for query/mutation responses. */
   runtimeValidation?: boolean;
 }
 
 export interface AngularOptions {
+  /** Angular DI `providedIn` value for generated services, or `false` for no provider. */
   provideIn?: 'root' | 'any' | boolean;
   /**
    * Preferred name for configuring how retrieval-style operations are emitted.
@@ -1166,7 +1342,9 @@ export interface AngularOptions {
    * Kept for compatibility with existing configs.
    */
   client?: 'httpClient' | 'httpResource' | 'both';
+  /** Emit runtime validators for generated service responses. */
   runtimeValidation?: boolean;
+  /** Options for Angular `httpResource` retrievals (default value, debug name, injector, equal). */
   httpResource?: AngularHttpResourceOptions;
   /**
    * Controls how object-typed query parameters are serialized when no
@@ -1219,12 +1397,19 @@ export interface AngularHttpResourceOptions {
 }
 
 export interface SwrOptions {
+  /** Emit `useSWRInfinite` hooks for paginated operations. */
   useInfinite?: boolean;
+  /** Use `useSWRMutation` for GET-style operations. */
   useSWRMutationForGet?: boolean;
+  /** Wrap generated hooks in `useSuspense`. */
   useSuspense?: boolean;
+  /** Generate typed error types for SWR hooks. */
   generateErrorTypes?: boolean;
+  /** Extra options merged into each generated `useSWR` call. */
   swrOptions?: unknown;
+  /** Extra options merged into each generated `useSWRMutation` call. */
   swrMutationOptions?: unknown;
+  /** Extra options merged into each generated `useSWRInfinite` call. */
   swrInfiniteOptions?: unknown;
 }
 
@@ -1247,7 +1432,9 @@ export interface NormalizedFetchOptions {
 }
 
 export interface FetchOptions {
+  /** Include the full `HttpResponse<T>` return type on generated functions. */
   includeHttpResponseReturnType?: boolean;
+  /** Force the generated response type to use the success (2xx) schema regardless of spec status codes. */
   forceSuccessResponse?: boolean;
   /**
    * Return response `headers` as a plain `Record<string, string>` instead of a
@@ -1258,8 +1445,11 @@ export interface FetchOptions {
    * @default false
    */
   serializeResponseHeaders?: boolean;
+  /** Mutator providing a JSON `reviver` applied when parsing response bodies. */
   jsonReviver?: Mutator;
+  /** Emit runtime validators for fetch responses. */
   runtimeValidation?: boolean;
+  /** Route requests through a user-provided runtime fetcher instead of the generated one. */
   useRuntimeFetcher?: boolean;
   /**
    * Serialization format for array query parameters that do not have an explicit
@@ -1279,42 +1469,72 @@ export type InputTransformerFn = (
 type InputTransformer = string | InputTransformerFn;
 
 export interface OverrideInput {
+  /**
+   * Transform the parsed spec before generation. A module path (default
+   * export) or a function receiving the OpenAPI document and returning (or
+   * resolving) the transformed document.
+   */
   transformer?: InputTransformer;
 }
 
 export interface OperationOptions {
+  /** Per-operation mutator transforming the generated verb AST before serialization. */
   transformer?: OutputTransformer;
+  /** Per-operation mutator (path or object) wrapping this operation's request. */
   mutator?: Mutator;
+  /** Per-operation mock overrides (data and/or property values). */
   mock?: {
     data?: MockData;
     properties?: MockProperties;
   };
+  /** Per-operation React Query options. */
   query?: QueryOptions;
+  /** Per-operation Angular options. */
   angular?: AngularOptions;
+  /** Per-operation SWR options. */
   swr?: SwrOptions;
+  /** Per-operation Zod options (subset; no output-wide target/layout settings). */
   zod?: OperationZodOptions;
+  /** Per-operation Effect Schema options. */
   effect?: EffectOptions;
+  /**
+   * Customize this operation's generated name. Receives the OpenAPI
+   * operation, the route path, and the HTTP verb.
+   */
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string | [string, string];
+  /** Per-operation fetch client options. */
   fetch?: FetchOptions;
+  /** Per-operation form-data serialization configuration. */
   formData?: boolean | Mutator | FormDataType<Mutator>;
+  /** Per-operation `x-www-form-urlencoded` serialization configuration. */
   formUrlEncoded?: boolean | Mutator;
+  /** Per-operation parameter serializer mutator. */
   paramsSerializer?: Mutator;
+  /** Per-operation parameter filter mutator. */
   paramsFilter?: Mutator;
+  /** Per-operation extra request options, or `false` to omit. */
   requestOptions?: object | boolean;
 }
 
+/**
+ * Run after all generated files are written. Receives the generated file paths
+ * (and dirs when `injectGeneratedDirsAndFiles` is set).
+ */
 export type Hook = 'afterAllFilesWrite';
 
+/** A function hook invoked with generated file paths/dirs. */
 export type HookFunction<TArgs extends unknown[] = unknown[]> = (
   ...args: TArgs
 ) => void | Promise<void>;
 
 export interface HookOption {
+  /** Shell command or function to run. */
   command: string | HookFunction;
+  /** Inject the list of generated directories/files as trailing arguments. */
   injectGeneratedDirsAndFiles?: boolean;
 }
 

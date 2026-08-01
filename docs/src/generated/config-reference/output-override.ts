@@ -4,14 +4,15 @@
 
 import type { ConfigSection } from './types';
 
-export const override = {
-  "section": "override",
+export const outputOverride = {
+  "section": "output.override",
   "interfaceName": "OverrideOutput",
   "fields": [
     {
       "name": "title",
       "type": "(title: string) => string",
       "optional": true,
+      "description": "Customize the generated client title. Receives the default title and returns the new one.",
       "callback": {
         "params": [
           {
@@ -26,137 +27,12 @@ export const override = {
       "name": "transformer",
       "type": "OutputTransformer",
       "optional": true,
+      "description": "Mutator (path or function) transforming the generated verb AST before serialization.",
       "callback": {
         "params": [
           {
             "name": "verb",
-            "type": "GeneratorVerbOptions",
-            "resolved": {
-              "typeName": "GeneratorVerbOptions",
-              "source": "local",
-              "fields": [
-                {
-                  "name": "verb",
-                  "type": "Verbs",
-                  "optional": false
-                },
-                {
-                  "name": "route",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "pathRoute",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "summary",
-                  "type": "string",
-                  "optional": true
-                },
-                {
-                  "name": "doc",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "tags",
-                  "type": "string[]",
-                  "optional": false
-                },
-                {
-                  "name": "operationId",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "operationName",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "typeName",
-                  "type": "string",
-                  "optional": false
-                },
-                {
-                  "name": "response",
-                  "type": "GetterResponse",
-                  "optional": false
-                },
-                {
-                  "name": "body",
-                  "type": "GetterBody",
-                  "optional": false
-                },
-                {
-                  "name": "headers",
-                  "type": "GetterQueryParam",
-                  "optional": true
-                },
-                {
-                  "name": "queryParams",
-                  "type": "GetterQueryParam",
-                  "optional": true
-                },
-                {
-                  "name": "params",
-                  "type": "GetterParams",
-                  "optional": false
-                },
-                {
-                  "name": "props",
-                  "type": "GetterProps",
-                  "optional": false
-                },
-                {
-                  "name": "mutator",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "formData",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "formUrlEncoded",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "paramsSerializer",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "paramsFilter",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "fetchReviver",
-                  "type": "GeneratorMutator",
-                  "optional": true
-                },
-                {
-                  "name": "override",
-                  "type": "NormalizedOverrideOutput",
-                  "optional": false
-                },
-                {
-                  "name": "deprecated",
-                  "type": "boolean",
-                  "optional": true
-                },
-                {
-                  "name": "originalOperation",
-                  "type": "OpenApiOperationObject",
-                  "optional": false
-                }
-              ]
-            }
+            "type": "GeneratorVerbOptions"
           }
         ],
         "returnType": "GeneratorVerbOptions"
@@ -165,27 +41,32 @@ export const override = {
     {
       "name": "mutator",
       "type": "Mutator",
-      "optional": true
+      "optional": true,
+      "description": "Mutator (path string or object) wrapping generated requests for a custom client/interceptor."
     },
     {
       "name": "operations",
       "type": "Record<string, OperationOptions>",
-      "optional": true
+      "optional": true,
+      "description": "Per-operation overrides, keyed by operationId (or generated operation name)."
     },
     {
       "name": "tags",
       "type": "Record<string, OperationOptions>",
-      "optional": true
+      "optional": true,
+      "description": "Per-tag overrides, keyed by tag name."
     },
     {
       "name": "mock",
       "type": "OverrideMockOptions",
-      "optional": true
+      "optional": true,
+      "description": "Mock-specific overrides (array sizing, requiredness, property values, formats)."
     },
     {
       "name": "contentType",
       "type": "OverrideOutputContentType",
-      "optional": true
+      "optional": true,
+      "description": "Include/exclude request body content types by pattern."
     },
     {
       "name": "header",
@@ -204,12 +85,12 @@ export const override = {
               "specUrl": "https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#info-object",
               "fields": [
                 {
-                  "name": "description",
+                  "name": "title",
                   "type": "string",
                   "optional": true
                 },
                 {
-                  "name": "title",
+                  "name": "description",
                   "type": "string",
                   "optional": true
                 },
@@ -248,77 +129,92 @@ export const override = {
     {
       "name": "formData",
       "type": "boolean | Mutator | FormDataType<Mutator>",
-      "optional": true
+      "optional": true,
+      "description": "Configure multipart form-data serialization: disable it, set a mutator, or configure array handling."
     },
     {
       "name": "formUrlEncoded",
       "type": "boolean | Mutator",
-      "optional": true
+      "optional": true,
+      "description": "Configure `application/x-www-form-urlencoded` serialization (mutator, or disable)."
     },
     {
       "name": "paramsSerializer",
       "type": "Mutator",
-      "optional": true
+      "optional": true,
+      "description": "Mutator that serializes query/path parameters into the request URL."
     },
     {
       "name": "paramsSerializerOptions",
       "type": "ParamsSerializerOptions",
-      "optional": true
+      "optional": true,
+      "description": "Options for the default query-string serializer (e.g. `qs`)."
     },
     {
       "name": "paramsFilter",
       "type": "Mutator",
-      "optional": true
+      "optional": true,
+      "description": "Mutator that filters which parameters are included in the request."
     },
     {
       "name": "namingConvention",
       "type": "{\n    enum?: NamingConvention;\n  }",
-      "optional": true
+      "optional": true,
+      "description": "Override the naming convention for generated enum names."
     },
     {
       "name": "components",
       "type": "{\n    schemas?: {\n      suffix?: string;\n      itemSuffix?: string;\n    };\n    responses?: {\n      suffix?: string;\n    };\n    parameters?: {\n      suffix?: string;\n    };\n    requestBodies?: {\n      suffix?: string;\n    };\n  }",
-      "optional": true
+      "optional": true,
+      "description": "Suffixes applied to generated component type names (schemas, responses, parameters, requestBodies)."
     },
     {
       "name": "hono",
       "type": "HonoOptions",
-      "optional": true
+      "optional": true,
+      "description": "Hono client options (handlers, validator, composite route)."
     },
     {
       "name": "mcp",
       "type": "McpOptions",
-      "optional": true
+      "optional": true,
+      "description": "Model Context Protocol server options."
     },
     {
       "name": "query",
       "type": "QueryOptions",
-      "optional": true
+      "optional": true,
+      "description": "React Query / TanStack Query options (hooks to emit, query keys, version)."
     },
     {
       "name": "swr",
       "type": "SwrOptions",
-      "optional": true
+      "optional": true,
+      "description": "SWR options."
     },
     {
       "name": "angular",
       "type": "AngularOptions",
-      "optional": true
+      "optional": true,
+      "description": "Angular options (DI provider, retrieval client style)."
     },
     {
       "name": "zod",
       "type": "ZodOptions",
-      "optional": true
+      "optional": true,
+      "description": "Zod schema options (variant, version, strict, coerce, etc.)."
     },
     {
       "name": "effect",
       "type": "EffectOptions",
-      "optional": true
+      "optional": true,
+      "description": "Effect Schema options."
     },
     {
       "name": "operationName",
       "type": "(\n    operation: OpenApiOperationObject,\n    route: string,\n    verb: Verbs,\n  ) => string | [string, string]",
       "optional": true,
+      "description": "Customize generated operation/function names. Receives the OpenAPI\noperation, the route path, and the HTTP verb.",
       "callback": {
         "params": [
           {
@@ -372,47 +268,56 @@ export const override = {
     {
       "name": "fetch",
       "type": "FetchOptions",
-      "optional": true
+      "optional": true,
+      "description": "Fetch client options."
     },
     {
       "name": "requestOptions",
       "type": "Record<string, unknown> | boolean",
-      "optional": true
+      "optional": true,
+      "description": "Extra options merged into each generated request, or `false` to omit them."
     },
     {
       "name": "useDates",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Emit `Date` types for OpenAPI `date`/`date-time` formats instead of strings."
     },
     {
       "name": "useTypeOverInterfaces",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Emit object types as `type` aliases instead of `interface` declarations."
     },
     {
       "name": "useDeprecatedOperations",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Generate functions for operations marked `deprecated`."
     },
     {
       "name": "useBigInt",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Emit `bigint` for OpenAPI `integer` with `format: int64`."
     },
     {
       "name": "useNamedParameters",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Generate named parameters for requests instead of a single arguments object."
     },
     {
       "name": "enumGenerationType",
       "type": "EnumGeneration",
-      "optional": true
+      "optional": true,
+      "description": "How OpenAPI enums are emitted: `const`, `enum`, or `union`."
     },
     {
       "name": "suppressReadonlyModifier",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Omit `readonly` modifiers in generated types."
     },
     {
       "name": "preserveReadonlyRequestBodies",
@@ -430,12 +335,14 @@ export const override = {
     {
       "name": "jsDoc",
       "type": "JsDocOptions",
-      "optional": true
+      "optional": true,
+      "description": "Customize emitted JSDoc via a filter callback."
     },
     {
       "name": "aliasCombinedTypes",
       "type": "boolean",
-      "optional": true
+      "optional": true,
+      "description": "Combine aliased union/intersection types into single named types."
     },
     {
       "name": "useNullForOptional",

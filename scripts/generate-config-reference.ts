@@ -30,14 +30,34 @@ const OPENAPI_ANCHORS: Record<string, string> = {
   ReferenceObject: 'reference-object',
 };
 
+// Public `defineConfig` surface, keyed by the user-facing config path.
+// Each entry maps a public path to the interface that describes it. The
+// registry exposes both `${path}` (section table) and `${path}.${field}`
+// (field detail).
 interface ManifestEntry {
-  section: string;
-  interfaceName: string;
-  description?: string;
+  path: string;
+  interface: string;
 }
-
 const MANIFEST: ManifestEntry[] = [
-  { section: 'override', interfaceName: 'OverrideOutput' },
+  { path: 'options', interface: 'Options' },
+  { path: 'input', interface: 'InputOptions' },
+  { path: 'input.override', interface: 'OverrideInput' },
+  { path: 'output', interface: 'OutputOptions' },
+  { path: 'output.override', interface: 'OverrideOutput' },
+  { path: 'output.override.operations', interface: 'OperationOptions' },
+  { path: 'output.override.jsDoc', interface: 'JsDocOptions' },
+  { path: 'output.override.mock', interface: 'OverrideMockOptions' },
+  { path: 'output.override.query', interface: 'QueryOptions' },
+  { path: 'output.override.swr', interface: 'SwrOptions' },
+  { path: 'output.override.angular', interface: 'AngularOptions' },
+  { path: 'output.override.zod', interface: 'ZodOptions' },
+  { path: 'output.override.effect', interface: 'EffectOptions' },
+  { path: 'output.override.hono', interface: 'HonoOptions' },
+  { path: 'output.override.mcp', interface: 'McpOptions' },
+  { path: 'output.override.fetch', interface: 'FetchOptions' },
+  // `hooks` is intentionally not generated: HooksOptions is a mapped type
+  // (Partial<Record<Hook, T>>) whose property JSDoc does not propagate, and the
+  // single `afterAllFilesWrite` field is already covered by the curated page.
 ];
 
 function createProgram(): ts.Program {
@@ -73,6 +93,22 @@ function findInterface(
   return found;
 }
 
+function findTypeAlias(
+  sf: ts.SourceFile,
+  name: string,
+): ts.TypeAliasDeclaration | undefined {
+  let found: ts.TypeAliasDeclaration | undefined;
+  const visit = (node: ts.Node): void => {
+    if (ts.isTypeAliasDeclaration(node) && node.name.text === name) {
+      found = node;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sf, visit);
+  return found;
+}
+
 function docComment(
   checker: ts.TypeChecker,
   symbol: ts.Symbol | undefined,
@@ -94,16 +130,6 @@ function jsDocTags(symbol: ts.Symbol | undefined) {
   return out;
 }
 
-function sourceOf(type: ts.Type): string {
-  const decls = [
-    ...(type.aliasSymbol?.declarations ?? []),
-    ...(type.symbol?.declarations ?? []),
-  ];
-  const file = decls[0]?.getSourceFile().fileName ?? '';
-  if (file.includes('@scalar/openapi-types')) return '@scalar/openapi-types';
-  return 'local';
-}
-
 function specUrlFor(typeName: string): string | undefined {
   const openApiName = typeName.startsWith('OpenApi')
     ? typeName.slice('OpenApi'.length)
@@ -113,8 +139,10 @@ function specUrlFor(typeName: string): string | undefined {
 }
 
 function propertyOptional(symbol: ts.Symbol): boolean {
-  return symbol.declarations.some(
-    (d) => ts.isPropertySignature(d) && d.questionToken != null,
+  return (
+    symbol.declarations?.some(
+      (d) => ts.isPropertySignature(d) && d.questionToken != null,
+    ) ?? false
   );
 }
 
@@ -122,25 +150,17 @@ function cleanType(s: string): string {
   return s.replace(/\s*\|\s*undefined$/, '');
 }
 
+// Only approved public OpenAPI aliases are expanded. Internal types
+// (GeneratorVerbOptions, etc.) stay as type references — they are not public
+// API merely because a callback references them.
 function resolveShape(
   checker: ts.TypeChecker,
   typeName: string,
   type: ts.Type,
 ):
-  | { typeName: string; source: string; specUrl?: string; fields: any[] }
+  | { typeName: string; source: string; specUrl?: string; fields: object[] }
   | undefined {
-  const isNamedRef = /^[A-Z][A-Za-z0-9_]*$/.test(typeName);
-  const isPrimitiveLike =
-    (type.flags &
-      (ts.TypeFlags.String |
-        ts.TypeFlags.Number |
-        ts.TypeFlags.Boolean |
-        ts.TypeFlags.Literal |
-        ts.TypeFlags.Union |
-        ts.TypeFlags.Enum |
-        ts.TypeFlags.EnumLiteral)) !==
-    0;
-  if (!isNamedRef || isPrimitiveLike) return undefined;
+  if (!typeName.startsWith('OpenApi')) return undefined;
   const props = type.getProperties();
   if (!props.length) return undefined;
   const fields = props.map((p) => {
@@ -152,11 +172,10 @@ function resolveShape(
       description: docComment(checker, p),
     };
   });
-  const specUrl = specUrlFor(typeName);
   return {
     typeName,
-    source: specUrl ? '@scalar/openapi-types' : sourceOf(type),
-    specUrl,
+    source: '@scalar/openapi-types',
+    specUrl: specUrlFor(typeName),
     fields,
   };
 }
@@ -164,7 +183,7 @@ function resolveShape(
 function extractCallback(
   checker: ts.TypeChecker,
   type: ts.Type,
-): { params: any[]; returnType: string } | undefined {
+): { params: object[]; returnType: string } | undefined {
   const signatures = (() => {
     const direct = type.getCallSignatures();
     if (direct.length) return direct;
@@ -194,8 +213,8 @@ function extractCallback(
 function extractInterface(
   checker: ts.TypeChecker,
   iface: ts.InterfaceDeclaration,
-): any[] {
-  const fields: any[] = [];
+): object[] {
+  const fields: object[] = [];
   for (const member of iface.members) {
     if (!ts.isPropertySignature(member) || !member.name) continue;
     const name = member.name.getText();
@@ -221,58 +240,179 @@ function extractInterface(
   return fields;
 }
 
-function header(lines: string[]): string {
+// Type aliases (e.g. `OverrideMockOptions = Partial<X> & { ... }`,
+// `HooksOptions = Partial<Record<Hook, T>>`) are resolved by the checker so
+// that mapped/intersection types expand into their concrete members.
+function extractTypeAlias(
+  checker: ts.TypeChecker,
+  alias: ts.TypeAliasDeclaration,
+): object[] {
+  const type = checker.getTypeAtLocation(alias);
+  return type.getProperties().map((symbol) => {
+    const t = checker.getTypeOfSymbol(symbol);
+    const tags = jsDocTags(symbol);
+    const callback = extractCallback(checker, t);
+    return {
+      name: symbol.getName(),
+      type: cleanType(checker.typeToString(t)),
+      optional: propertyOptional(symbol),
+      description: docComment(checker, symbol),
+      default: tags.default,
+      example: tags.example,
+      see: tags.see,
+      ...(callback ? { callback } : {}),
+    };
+  });
+}
+
+function toIdentifier(path: string): string {
+  return path
+    .split('.')
+    .map((part, i) => (i === 0 ? part : part[0].toUpperCase() + part.slice(1)))
+    .join('');
+}
+
+function toFileName(path: string): string {
+  return `${path.replace(/\./g, '-')}.ts`;
+}
+
+function generatedHeader(): string[] {
   return [
     '// AUTO-GENERATED by `bun run gen:config-reference`. Do not edit by hand.',
     '// Source: packages/core/src/types.ts',
     '// Regenerate with: bun run gen:config-reference',
-    '',
-    ...lines,
-  ].join('\n');
+  ];
 }
 
-async function emit(
+function coverageFor(fields: object[]): { total: number; documented: number } {
+  const total = fields.length;
+  const documented = fields.filter(
+    (f) => (f as { description?: string }).description,
+  ).length;
+  return { total, documented };
+}
+
+async function emitSection(
   checker: ts.TypeChecker,
   sf: ts.SourceFile,
   entry: ManifestEntry,
-): Promise<void> {
-  const iface = findInterface(sf, entry.interfaceName);
-  if (!iface) {
-    throw new Error(`Interface ${entry.interfaceName} not found in types.ts`);
+): Promise<{
+  entry: ManifestEntry;
+  cov: { total: number; documented: number };
+}> {
+  const iface = findInterface(sf, entry.interface);
+  const alias = iface ? undefined : findTypeAlias(sf, entry.interface);
+  if (!iface && !alias) {
+    throw new Error(
+      `Interface or type ${entry.interface} not found in types.ts`,
+    );
   }
-  const fields = extractInterface(checker, iface);
+  const fields = iface
+    ? extractInterface(checker, iface)
+    : extractTypeAlias(checker, alias!);
+  const cov = coverageFor(fields);
   const section = {
-    section: entry.section,
-    interfaceName: entry.interfaceName,
-    description: entry.description,
+    section: entry.path,
+    interfaceName: entry.interface,
     fields,
   };
+  const identifier = toIdentifier(entry.path);
   const body = JSON.stringify(section, null, 2);
-  const outPath = resolve(OUT_DIR, `${entry.section}.ts`);
-  const content = header([
+  const outPath = resolve(OUT_DIR, toFileName(entry.path));
+  const content = [
+    ...generatedHeader(),
+    '',
     "import type { ConfigSection } from './types';",
     '',
-    `export const ${entry.section} = ${body} satisfies ConfigSection;`,
+    `export const ${identifier} = ${body} satisfies ConfigSection;`,
     '',
-  ]);
+  ].join('\n');
   await mkdir(dirname(outPath), { recursive: true });
   await writeFile(outPath, content, 'utf8');
-  const documented = fields.filter((f) => f.description).length;
   console.log(
-    `  ${entry.section} (${entry.interfaceName}): ${fields.length} fields, ${documented} documented -> ${outPath.slice(REPO_ROOT.length + 1)}`,
+    `  ${entry.path} (${entry.interface}): ${cov.documented}/${cov.total} documented -> ${outPath.slice(REPO_ROOT.length + 1)}`,
   );
+  return { entry, cov };
+}
+
+async function emitIndex(emitted: { entry: ManifestEntry }[]): Promise<void> {
+  const imports = emitted
+    .map(
+      ({ entry }) =>
+        `import { ${toIdentifier(entry.path)} } from './${entry.path.replace(/\./g, '-')}';`,
+    )
+    .join('\n');
+  const entries = emitted
+    .map(
+      ({ entry }) =>
+        `{ path: '${entry.path}', data: ${toIdentifier(entry.path)} }`,
+    )
+    .join(',\n  ');
+  const content = [
+    ...generatedHeader(),
+    '',
+    "import type { ConfigField, ConfigSection, RegistryEntry } from './types';",
+    '',
+    imports,
+    '',
+    'const raw: Array<{ path: string; data: ConfigSection }> = [',
+    `  ${entries},`,
+    '];',
+    '',
+    'export const registry: Record<string, RegistryEntry> = {};',
+    'for (const { path, data } of raw) {',
+    '  registry[path] = { kind: "section", ...data };',
+    '  for (const field of data.fields) {',
+    '    registry[`${path}.${field.name}`] = { kind: "field", ...field };',
+    '  }',
+    '}',
+    '',
+    'export function getEntry(path: string): RegistryEntry | undefined {',
+    '  return registry[path];',
+    '}',
+    '',
+    'export type { ConfigField, ConfigSection, RegistryEntry } from "./types";',
+    '',
+  ].join('\n');
+  const outPath = resolve(OUT_DIR, 'index.ts');
+  await writeFile(outPath, content, 'utf8');
 }
 
 async function main(): Promise<void> {
+  const enforceCoverage = process.argv.includes('--check');
   const program = createProgram();
   const checker = program.getTypeChecker();
   const sf = program.getSourceFile(TYPES_FILE);
   if (!sf) throw new Error(`Could not load source: ${TYPES_FILE}`);
   console.log('Generating config reference...');
+  const emitted: {
+    entry: ManifestEntry;
+    cov: { total: number; documented: number };
+  }[] = [];
   for (const entry of MANIFEST) {
-    await emit(checker, sf, entry);
+    emitted.push(await emitSection(checker, sf, entry));
   }
-  console.log('Done.');
+  await emitIndex(emitted);
+  const totals = emitted.reduce(
+    (acc, e) => {
+      acc.total += e.cov.total;
+      acc.documented += e.cov.documented;
+      return acc;
+    },
+    { total: 0, documented: 0 },
+  );
+  console.log(
+    `Done. ${totals.documented}/${totals.total} public fields documented.`,
+  );
+  if (enforceCoverage && totals.documented !== totals.total) {
+    const missing = emitted
+      .filter((e) => e.cov.documented !== e.cov.total)
+      .map((e) => `${e.entry.path} (${e.cov.documented}/${e.cov.total})`)
+      .join(', ');
+    console.error(`\nCoverage check failed — undocumented fields: ${missing}`);
+    console.error('Add JSDoc to the listed public config fields.');
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

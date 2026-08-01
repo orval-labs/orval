@@ -13,6 +13,7 @@
     "format": "vp fmt --write",
     "format:check": "vp fmt --check",
     "gen:config-reference": "bun scripts/generate-config-reference.ts",
+    "test:config-reference": "bun scripts/config-reference.test.ts",
     "postinstall": "bun scripts/link-workspace-bins.mjs",
     "prepare": "vp config",
     "commitlint": "commitlint",

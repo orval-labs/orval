@@ -7,7 +7,7 @@ export interface ResolvedField {
 
 export interface ResolvedShape {
   typeName: string;
-  source: "local" | "@scalar/openapi-types" | string;
+  source: 'local' | '@scalar/openapi-types' | string;
   specUrl?: string;
   fields: ResolvedField[];
 }
@@ -24,6 +24,7 @@ export interface CallbackSignature {
 }
 
 export interface ConfigField {
+  kind?: 'field';
   name: string;
   type: string;
   optional: boolean;
@@ -35,8 +36,13 @@ export interface ConfigField {
 }
 
 export interface ConfigSection {
+  kind?: 'section';
   section: string;
   interfaceName: string;
   description?: string;
   fields: ConfigField[];
 }
+
+export type RegistryEntry =
+  | ({ kind: 'section' } & ConfigSection)
+  | ({ kind: 'field' } & ConfigField);
