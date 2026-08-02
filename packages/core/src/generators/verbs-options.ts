@@ -13,6 +13,7 @@ import type {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   GetterBody,
+  GetterParams,
   NormalizedInputOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
@@ -28,6 +29,7 @@ import {
   asyncReduce,
   camel,
   dynamicImport,
+  escapeRegExp,
   isObject,
   isString,
   isVerb,
@@ -49,6 +51,52 @@ export interface GenerateVerbOptionsParams {
   context: ContextSpec;
 }
 
+const renameFormIdentifier = (form: string, from: string, to: string) =>
+  form.replace(
+    new RegExp(`(?<![.\\w$'"\`])${escapeRegExp(from)}(?![\\w$])`, 'g'),
+    to,
+  );
+
+// A body parameter named like the generated function shadows it inside hooks
+// that reference `typeof <operationName>`.
+const resolveBodyNameShadowing = (
+  body: GetterBody,
+  operationName: string,
+  params: GetterParams,
+): GetterBody => {
+  if (!body.implementation || body.implementation !== operationName) {
+    return body;
+  }
+
+  const reservedNames = new Set([
+    operationName,
+    'params',
+    'headers',
+    ...params.map(({ name }) => name),
+  ]);
+  let implementation = camel(`${operationName}-body`);
+  let index = 2;
+  while (reservedNames.has(implementation)) {
+    implementation = camel(`${operationName}-body-${index}`);
+    index += 1;
+  }
+
+  return {
+    ...body,
+    implementation,
+    formData:
+      body.formData &&
+      renameFormIdentifier(body.formData, body.implementation, implementation),
+    formUrlEncoded:
+      body.formUrlEncoded &&
+      renameFormIdentifier(
+        body.formUrlEncoded,
+        body.implementation,
+        implementation,
+      ),
+  };
+};
+
 async function buildVerbOption({
   verb,
   output,
@@ -57,7 +105,7 @@ async function buildVerbOption({
   pathRoute,
   verbParameters = [],
   context,
-  body,
+  body: rawBody,
   operationName,
   typeName,
   operationId,
@@ -118,6 +166,8 @@ async function buildVerbOption({
     context,
     output,
   });
+
+  const body = resolveBodyNameShadowing(rawBody, operationName, params);
 
   const props = getProps({
     body,

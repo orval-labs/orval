@@ -1,6 +1,28 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  bodySchemaNameMatchesOperationId: {
+    output: {
+      target:
+        '../generated/react-query/body-schema-name-matches-operation-id/endpoints.ts',
+      schemas:
+        '../generated/react-query/body-schema-name-matches-operation-id/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      override: {
+        query: {
+          version: 5,
+          useQuery: true,
+          signal: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/body-schema-name-matches-operation-id.yaml',
+    },
+  },
   issue607: {
     output: {
       target: '../generated/react-query/issue-607/endpoints.ts',
