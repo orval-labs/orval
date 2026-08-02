@@ -1183,6 +1183,28 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     }
 `;
       }
+    } else if (override.query.shouldExportQueryKey) {
+      // A key mutator used to suppress the factories entirely, forcing
+      // consumers to rebuild keys by hand for invalidation. Emit them with
+      // the mutator call instead, mirroring the `{ url }` second-arg shape
+      // the invalidate / set / get helpers already use. Query options keep
+      // their inline call (its second arg also carries `queryOptions`), so
+      // the factories are only worth emitting when they are exported.
+      for (const queryOption of uniqueQueryOptionsByKeys) {
+        const queryKeyProps = buildKeyShapedProps({
+          props,
+          body,
+          mutator,
+          widenNonPath: makeOptionalParam,
+        });
+
+        queryKeyFns += `
+export const ${queryOption.queryKeyFnName} = (${queryKeyProps}) =>
+    ${queryKeyMutator.name}({ ${queryKeyProperties} }${
+      queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''
+    });
+`;
+      }
     }
 
     implementation += `
