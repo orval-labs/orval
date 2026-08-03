@@ -79,6 +79,19 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 const withQueryKey = <T extends object, K>(
   query: T,
   queryKey: K,
@@ -141,7 +154,7 @@ export const listPets = async (
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
-    headers: { ...headers, ...options?.headers },
+    headers: mergeOrvalHeaders({ ...headers }, options?.headers),
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -534,11 +547,10 @@ export const createPets = async (
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-      ...options?.headers,
-    },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json', ...headers },
+      options?.headers,
+    ),
     body: JSON.stringify(createPetsBody),
   });
 

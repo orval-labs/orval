@@ -5,6 +5,19 @@
  * Raw binary request bodies
  * OpenAPI spec version: 1.0.0
  */
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type replaceLotteryLogoResponse204 = {
   data: void;
   status: 204;
@@ -32,7 +45,10 @@ export const replaceLotteryLogo = async (
   const res = await fetch(getReplaceLotteryLogoUrl(id), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'image/png', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'image/png' },
+      options?.headers,
+    ),
     body: replaceLotteryLogoBody,
   });
 
