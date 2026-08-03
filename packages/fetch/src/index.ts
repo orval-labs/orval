@@ -523,6 +523,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchBodyOption = requestBodyParams
     ? (isFormData && body.formData) ||
       (isFormUrlEncoded && body.formUrlEncoded) ||
+      body.originalSchema?.format === 'binary' ||
       isRawRequestBodyContentType(body.contentType)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
