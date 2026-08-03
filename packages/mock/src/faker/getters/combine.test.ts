@@ -576,6 +576,363 @@ describe('combineSchemasMock', () => {
     expect(result.value).not.toContain('Derived1');
   });
 
+  // Regression test: `required` fields declared on a `$ref`'d allOf base must
+  // propagate to sibling override branches. `BaseError` requires `errorType`;
+  // the override branch narrows its enum to a single value without re-listing
+  // it in its own `required`. Treating it as optional there emits
+  // `faker.helpers.arrayElement([..., undefined])`, which breaks assignability
+  // to the generated intersection type (errorType stays required).
+  it('unions required fields from $ref allOf members into sibling branches', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        BaseError: {
+          type: 'object',
+          required: ['errorType', 'message'],
+          properties: {
+            errorType: {
+              type: 'string',
+              enum: ['GENERIC_ERROR', 'VALIDATION_ERROR'],
+            },
+            message: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'ValidationError',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/BaseError' },
+        {
+          type: 'object',
+          required: ['violations'],
+          properties: {
+            errorType: { type: 'string', enum: ['VALIDATION_ERROR'] },
+            violations: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toContain(
+      "errorType: faker.helpers.arrayElement(['VALIDATION_ERROR'] as const)",
+    );
+    expect(result.value).not.toContain('undefined');
+  });
+
+  // Same propagation, one level deeper: the base is itself an `allOf` whose
+  // required fields live on a nested `$ref` member. The union must be
+  // collected recursively.
+  it('unions required fields from nested allOf chains behind a $ref', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        RootError: {
+          type: 'object',
+          required: ['errorType'],
+          properties: {
+            errorType: {
+              type: 'string',
+              enum: ['GENERIC_ERROR', 'VALIDATION_ERROR'],
+            },
+          },
+        },
+        BaseError: {
+          allOf: [{ $ref: '#/components/schemas/RootError' }],
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'ValidationError',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/BaseError' },
+        {
+          type: 'object',
+          properties: {
+            errorType: { type: 'string', enum: ['VALIDATION_ERROR'] },
+          },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toContain(
+      "errorType: faker.helpers.arrayElement(['VALIDATION_ERROR'] as const)",
+    );
+    expect(result.value).not.toContain('undefined');
+  });
+
+  // The required union must survive `$ref`-to-`$ref` alias chains: the model
+  // side follows them (derefComponentSchema), so the mock must too or the
+  // undefined branch re-appears behind a one-hop alias.
+  it('unions required fields through $ref alias chains', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        BaseError: {
+          type: 'object',
+          required: ['errorType'],
+          properties: {
+            errorType: {
+              type: 'string',
+              enum: ['GENERIC_ERROR', 'VALIDATION_ERROR'],
+            },
+          },
+        },
+        BaseAlias: { $ref: '#/components/schemas/BaseError' },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'ValidationError',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/BaseAlias' },
+        {
+          type: 'object',
+          properties: {
+            errorType: { type: 'string', enum: ['VALIDATION_ERROR'] },
+          },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toContain(
+      "errorType: faker.helpers.arrayElement(['VALIDATION_ERROR'] as const)",
+    );
+    expect(result.value).not.toContain('undefined');
+  });
+
+  // Narrowing via the composed schema's own sibling `properties` (declared
+  // next to `allOf` instead of inside a member) is emitted last and wins the
+  // spread merge, so it must receive the same required union.
+  it('unions required fields into sibling properties declared next to allOf', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        BaseError: {
+          type: 'object',
+          required: ['errorType'],
+          properties: {
+            errorType: {
+              type: 'string',
+              enum: ['GENERIC_ERROR', 'VALIDATION_ERROR'],
+            },
+          },
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'ValidationError',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/BaseError' }],
+      properties: {
+        errorType: { type: 'string', enum: ['VALIDATION_ERROR'] },
+      },
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toContain(
+      "errorType: faker.helpers.arrayElement(['VALIDATION_ERROR'] as const)",
+    );
+    expect(result.value).not.toContain('undefined');
+  });
+
+  // A constraint-only member (`required` with no `type`/`properties`) makes
+  // the listed properties required on the composition (#3750 on the model
+  // side); the mock must agree and drop the undefined branch for them.
+  it('applies required from constraint-only allOf members', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        Item: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'ItemDetail',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/Item' }, { required: ['id'] }],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    // `id` is required through the constraint-only member; `name` stays
+    // optional (keeps its undefined branch).
+    expect(result.value).toMatch(/id: faker\.string\.alpha/);
+    expect(result.value).not.toMatch(
+      /id: faker\.helpers\.arrayElement\(\[faker\.string\.alpha[^\]]*, undefined\]\)/,
+    );
+    expect(result.value).toMatch(
+      /name: faker\.helpers\.arrayElement\(\[faker\.string\.alpha[^\]]*, undefined\]\)/,
+    );
+  });
+
+  // Nested `required` names that the nested composition never declares must
+  // NOT cross its boundary: the generated type keeps such a property optional,
+  // and treating it as required here would flip the #910 cyclic-reference
+  // guard from omission to `key: null` on a self-referential sibling,
+  // emitting a mock the type rejects.
+  it('does not propagate nested required names the nested composition never declares', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        NodeBase: {
+          allOf: [
+            {
+              type: 'object',
+              required: ['parent'],
+              properties: { label: { type: 'string' } },
+            },
+          ],
+        },
+        Node: {
+          allOf: [
+            { $ref: '#/components/schemas/NodeBase' },
+            {
+              type: 'object',
+              properties: { parent: { $ref: '#/components/schemas/Node' } },
+            },
+          ],
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'Node',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/NodeBase' },
+        {
+          type: 'object',
+          properties: { parent: { $ref: '#/components/schemas/Node' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: ['Node'],
+      splitMockImplementations: [],
+    });
+
+    // The cyclic `parent` property must be omitted (optional in the generated
+    // type), not emitted as `parent: null`.
+    expect(result.value).not.toContain('parent: null');
+  });
+
+  // The union is one-directional per JSON Schema semantics: a property listed
+  // in NO branch's `required` must stay optional in the mock.
+  it('keeps properties optional when no allOf member requires them', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        Base: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'Extended',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        {
+          type: 'object',
+          properties: {
+            label: { type: 'string', enum: ['EXTENDED'] },
+          },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toMatch(
+      /label: faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement\(\['EXTENDED'\] as const\), undefined\]\)/,
+    );
+  });
+
   // Regression test: a cycle made purely of top-level named schemas that
   // extend each other via `allOf` (`A: allOf[B]`, `B: allOf[A]`) used to
   // overflow the stack. Every hop has `item.isRef === true`, so the

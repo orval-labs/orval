@@ -347,6 +347,24 @@ export function resolveMockValue({
         ? 'oneOf'
         : 'anyOf';
 
+    // A shared factory only encodes the referenced schema's OWN optionality.
+    // When this $ref sits inside an allOf composition, combineSchemasMock
+    // attaches the composition-wide `required` union (schemaReference.required),
+    // e.g. a constraint-only sibling `{ required: [id] }` makes the base's
+    // optional `id` required. Delegating would keep the factory's
+    // `arrayElement([..., undefined])` branch for that property and emit a
+    // mock the composed type rejects, so inline the schema body instead.
+    const targetProperties = schemaRef?.properties as
+      | Record<string, unknown>
+      | undefined;
+    const targetOwnRequired = (schemaRef?.required as string[]) ?? [];
+    const delegationDropsRequired = (schemaReference.required ?? []).some(
+      (requiredName) =>
+        targetProperties &&
+        requiredName in targetProperties &&
+        !targetOwnRequired.includes(requiredName),
+    );
+
     // When schema-level faker factories are being emitted (`schemas: true`),
     // delegate to `get<X>Mock()` instead of inlining the body. The factory
     // already encodes the same fields, so this both deduplicates the output
@@ -354,8 +372,9 @@ export function resolveMockValue({
     const canDelegate =
       shouldDelegateToSchemaFactories(context) &&
       isComponentsSchemaRef(refPaths) &&
+      !delegationDropsRequired &&
       !hasOverrideTouchingSchema(
-        schemaRef?.properties as Record<string, unknown> | undefined,
+        targetProperties,
         mockOptions,
         operationId,
         tags,

@@ -1,0 +1,92 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: AllOf narrowed enum
+  description: |-
+    Regression: when an allOf member narrows an inherited enum property to a
+    single literal without re-listing it in its own `required`, the mock
+    generator used to treat the property as optional and emit
+    `faker.helpers.arrayElement([..., undefined])`, which is not assignable to
+    the composed type (the property stays required through the base schema).
+  license:
+    name: MIT
+
+paths:
+  /validation-error:
+    get:
+      operationId: getValidationError
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  schemas:
+    BaseError:
+      type: object
+      required: [errorType, message]
+      properties:
+        errorType:
+          type: string
+          enum: [GENERIC_ERROR, VALIDATION_ERROR]
+        message:
+          type: string
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          required: [violations]
+          properties:
+            errorType:
+              type: string
+              enum: [VALIDATION_ERROR]
+            violations:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+    # The base behind a $ref-to-$ref alias: required must still propagate.
+    BaseErrorAlias:
+      $ref: '#/components/schemas/BaseError'
+
+    AliasedValidationError:
+      allOf:
+        - $ref: '#/components/schemas/BaseErrorAlias'
+        - type: object
+          properties:
+            errorType:
+              type: string
+              enum: [VALIDATION_ERROR]
+
+    # Narrowing via sibling `properties` declared next to allOf instead of
+    # inside a member.
+    SiblingValidationError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+      properties:
+        errorType:
+          type: string
+          enum: [VALIDATION_ERROR]
+
+    # Constraint-only member: makes the parent's optional properties required.
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    ItemDetail:
+      allOf:
+        - $ref: '#/components/schemas/Item'
+        - required: [id, name]

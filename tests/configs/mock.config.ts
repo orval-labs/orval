@@ -283,6 +283,30 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression: an allOf member that narrows an inherited enum property to a
+  // single literal (without re-listing it in its own `required`) must not be
+  // mocked as optional — `required` unions across allOf members, including
+  // `$ref`'d bases, so emitting `arrayElement([..., undefined])` breaks
+  // assignability to the composed type. Covers both the inline msw path and
+  // the faker schema-factory path.
+  allofNarrowedEnum: {
+    output: {
+      target: '../generated/mock/allof-narrowed-enum/endpoints.ts',
+      schemas: '../generated/mock/allof-narrowed-enum/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/allof-narrowed-enum.yaml',
+    },
+  },
   allofSharedBase: {
     output: {
       target: '../generated/mock/allof-shared-base/endpoints.ts',
