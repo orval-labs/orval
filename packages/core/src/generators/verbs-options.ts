@@ -394,6 +394,7 @@ export async function generateVerbOptions({
         formUrlEncoded: '',
         contentType: '',
         isOptional: false,
+        isBlob: false,
       };
 
   const verbOption = await buildVerbOption({
