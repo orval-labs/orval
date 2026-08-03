@@ -90,3 +90,19 @@ components:
       allOf:
         - $ref: '#/components/schemas/Item'
         - required: [id, name]
+
+    # Overlay pattern: the base declares its properties behind its OWN allOf.
+    # The required union must still stop factory delegation for the base.
+    OverlayBase:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: string
+            label:
+              type: string
+
+    OverlayDetail:
+      allOf:
+        - $ref: '#/components/schemas/OverlayBase'
+        - required: [id]

@@ -17,6 +17,8 @@ export * from './baseErrorAlias';
 export * from './baseErrorErrorType';
 export * from './item';
 export * from './itemDetail';
+export * from './overlayBase';
+export * from './overlayDetail';
 export * from './siblingValidationError';
 export * from './siblingValidationErrorErrorType';
 export * from './validationError';

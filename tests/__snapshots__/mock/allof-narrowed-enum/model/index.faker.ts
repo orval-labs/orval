@@ -17,6 +17,8 @@ import type {
   BaseErrorAlias,
   Item,
   ItemDetail,
+  OverlayBase,
+  OverlayDetail,
   SiblingValidationError,
   ValidationError,
 } from '.';
@@ -82,5 +84,30 @@ export const getItemDetailMock = (): ItemDetail => ({
   ...{
     id: faker.string.alpha({ length: { min: 10, max: 20 } }),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
+});
+
+export const getOverlayBaseMock = (): OverlayBase => ({
+  ...{
+    id: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    label: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+  },
+});
+
+export const getOverlayDetailMock = (): OverlayDetail => ({
+  ...{
+    ...{
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      label: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+    },
   },
 });

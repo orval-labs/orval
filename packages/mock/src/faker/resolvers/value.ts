@@ -19,6 +19,7 @@ import {
 } from '../../mock-types';
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
+import { collectAllOfRequiredWithDeclared } from '../getters/all-of-required';
 import { getMockScalar } from '../getters/scalar';
 import { appendImportsDelta, mergeReturnedMockImports } from '../imports';
 
@@ -354,15 +355,19 @@ export function resolveMockValue({
     // optional `id` required. Delegating would keep the factory's
     // `arrayElement([..., undefined])` branch for that property and emit a
     // mock the composed type rejects, so inline the schema body instead.
-    const targetProperties = schemaRef?.properties as
-      | Record<string, unknown>
-      | undefined;
-    const targetOwnRequired = (schemaRef?.required as string[]) ?? [];
+    // The target's effective shape is computed recursively: its properties
+    // and required may themselves live behind the target's own allOf chain.
+    const targetEffective = schemaRef
+      ? collectAllOfRequiredWithDeclared(
+          [schemaRef as MockSchema],
+          context,
+          new Set(),
+        )
+      : undefined;
     const delegationDropsRequired = (schemaReference.required ?? []).some(
       (requiredName) =>
-        targetProperties &&
-        requiredName in targetProperties &&
-        !targetOwnRequired.includes(requiredName),
+        targetEffective?.declared.has(requiredName) &&
+        !targetEffective.required.includes(requiredName),
     );
 
     // When schema-level faker factories are being emitted (`schemas: true`),
@@ -374,7 +379,7 @@ export function resolveMockValue({
       isComponentsSchemaRef(refPaths) &&
       !delegationDropsRequired &&
       !hasOverrideTouchingSchema(
-        targetProperties,
+        schemaRef?.properties as Record<string, unknown> | undefined,
         mockOptions,
         operationId,
         tags,

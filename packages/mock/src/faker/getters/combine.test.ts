@@ -7,6 +7,7 @@ import {
   OutputClient,
   OutputHttpClient,
   OutputMode,
+  OutputMockType,
   PropertySortOrder,
 } from '@orval/core';
 import { describe, expect, it } from 'vitest';
@@ -886,6 +887,66 @@ describe('combineSchemasMock', () => {
     // The cyclic `parent` property must be omitted (optional in the generated
     // type), not emitted as `parent: null`.
     expect(result.value).not.toContain('parent: null');
+  });
+
+  // With faker `schemas: true`, a $ref member normally delegates to its
+  // shared `get<X>Mock()` factory. Delegation must be skipped when the
+  // composition requires a property the factory emits as optional, including
+  // when the target declares that property behind its OWN allOf chain
+  // (overlay pattern): the factory only encodes the target's own optionality.
+  it('skips factory delegation when the required union covers a property declared behind the target allOf', () => {
+    const context = createMockContext();
+    context.output.schemas = 'model';
+    context.output.mock = {
+      indexMockFiles: false,
+      generators: [{ type: OutputMockType.FAKER, schemas: true }],
+    };
+    context.spec.components = {
+      schemas: {
+        OverlayBase: {
+          allOf: [
+            {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                label: { type: 'string' },
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'OverlayDetail',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/OverlayBase' },
+        { required: ['id'] },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    // The base must be inlined (not `...getOverlayBaseMock()`), with `id`
+    // required and `label` still optional.
+    expect(result.value).not.toContain('getOverlayBaseMock');
+    expect(result.value).toMatch(/id: faker\.string\.alpha/);
+    expect(result.value).not.toMatch(
+      /id: faker\.helpers\.arrayElement\(\[faker\.string\.alpha[^\]]*, undefined\]\)/,
+    );
+    expect(result.value).toMatch(
+      /label: faker\.helpers\.arrayElement\(\[faker\.string\.alpha[^\]]*, undefined\]\)/,
+    );
   });
 
   // The union is one-directional per JSON Schema semantics: a property listed
