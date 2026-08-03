@@ -222,6 +222,183 @@ describe('getBody', () => {
     expect(result.isOptional).toBe(true);
   });
 
+  describe('isBlob detection', () => {
+    it.each([
+      ['application/octet-stream'],
+      ['application/pdf'],
+      ['application/zip'],
+    ])('sets isBlob to true for %s request body', (binaryApplicationType) => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          [binaryApplicationType]: {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadFile',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to false for application/json request body', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+            },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(false);
+    });
+
+    it('sets isBlob to true for text/csv with format: binary schema', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'text/csv': {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadCsv',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to true for image content type', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'image/png': {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadImage',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to true for */* with inline format: binary schema', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          '*/*': {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadFile',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to true for $ref to a format: binary schema', () => {
+      const context = createContext();
+      context.spec.components = {
+        ...context.spec.components,
+        schemas: {
+          ...context.spec.components?.schemas,
+          TestPdfFile: { type: 'string', format: 'binary' },
+        },
+      };
+
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          '*/*': {
+            schema: { $ref: '#/components/schemas/TestPdfFile' },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to true for schema with contentMediaType: application/octet-stream', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+            },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadFile',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('sets isBlob to false when contentMediaType has contentEncoding (base64-encoded string)', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+              contentEncoding: 'base64',
+            },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadFile',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(false);
+    });
+  });
+
   describe('x-codegen-request-body-name', () => {
     it('uses custom name from inline request body extension', () => {
       const result = getBody({
