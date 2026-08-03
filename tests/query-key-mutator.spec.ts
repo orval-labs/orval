@@ -14,11 +14,13 @@ import {
 // generated query options compute internally, so consumers can invalidate
 // or read the cache without rebuilding full query options.
 
+const headers = { 'X-EXAMPLE': 'ONE' } as const;
+
 test('key factory builds the key through the mutator', () => {
-  expect(getListPetsQueryKey({ sort: 'name' })).toEqual([
+  expect(getListPetsQueryKey({ sort: 'name' }, headers)).toEqual([
     'tenant-abc',
     '/pets',
-    { params: { sort: 'name' } },
+    { params: { sort: 'name' }, headers },
   ]);
 });
 
@@ -31,8 +33,8 @@ test('key factory interpolates path params into the url', () => {
 });
 
 test('key factory matches the key inside generated query options', () => {
-  expect(getListPetsQueryKey({ sort: 'name' })).toEqual(
-    useListPetsQueryOptions({ sort: 'name' }).queryKey,
+  expect(getListPetsQueryKey({ sort: 'name' }, headers)).toEqual(
+    useListPetsQueryOptions({ sort: 'name' }, headers).queryKey,
   );
   expect(getShowPetByIdQueryKey('42')).toEqual(
     useShowPetByIdQueryOptions('42').queryKey,
@@ -40,7 +42,7 @@ test('key factory matches the key inside generated query options', () => {
 });
 
 test('infinite key factory matches the infinite query options key', () => {
-  expect(getListPetsInfiniteQueryKey({ sort: 'name' })).toEqual(
-    useListPetsInfiniteQueryOptions({ sort: 'name' }).queryKey,
+  expect(getListPetsInfiniteQueryKey({ sort: 'name' }, headers)).toEqual(
+    useListPetsInfiniteQueryOptions({ sort: 'name' }, headers).queryKey,
   );
 });

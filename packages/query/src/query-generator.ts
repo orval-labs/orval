@@ -188,7 +188,8 @@ const renderSetQueryDataHelper = ({
 
 /**
  * Renders the prop list shared by `getXxxQueryKey`, `setXxxQueryData` and
- * `getXxxQueryData` helpers: headers are dropped, path params stay required,
+ * `getXxxQueryData` helpers: headers are dropped (unless `includeHeaders`
+ * is set — key-mutator factories need them), path params stay required,
  * non-path params (query params, body) are passed through `widenNonPath`
  * (defaults to identity — pass `makeOptionalParam` or `allowUndefinedParam`
  * to relax the signature).
@@ -201,16 +202,18 @@ const buildKeyShapedProps = ({
   body,
   mutator,
   widenNonPath = (impl) => impl,
+  includeHeaders = false,
 }: {
   props: GetterProps;
   body: GetterBody;
   mutator: GeneratorMutator | undefined;
   widenNonPath?: (impl: string) => string;
+  includeHeaders?: boolean;
 }) =>
   wrapPropsBodyWithMutatorBodyType({
     propsString: toObjectString(
       props
-        .filter((prop) => prop.type !== GetterPropType.HEADER)
+        .filter((prop) => includeHeaders || prop.type !== GetterPropType.HEADER)
         .map((prop) => ({
           ...prop,
           implementation:
@@ -1184,23 +1187,24 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
 `;
       }
     } else if (override.query.shouldExportQueryKey) {
-      // A key mutator used to suppress the factories entirely, forcing
-      // consumers to rebuild keys by hand for invalidation. Emit them with
-      // the mutator call instead, mirroring the `{ url }` second-arg shape
-      // the invalidate / set / get helpers already use. Query options keep
-      // their inline call (its second arg also carries `queryOptions`), so
-      // the factories are only worth emitting when they are exported.
+      // The factories call the mutator the same way the invalidate / set /
+      // get helpers do (`{ url }` second arg). Query options keep their own
+      // inline call — its second arg also carries `queryOptions` — so the
+      // factories are only worth emitting when they are exported. Headers
+      // stay in the signature: the mutator receives them inline and may key
+      // on them, so dropping them would miss the hook's cache entry.
       for (const queryOption of uniqueQueryOptionsByKeys) {
         const queryKeyProps = buildKeyShapedProps({
           props,
           body,
           mutator,
           widenNonPath: makeOptionalParam,
+          includeHeaders: true,
         });
 
         queryKeyFns += `
 export const ${queryOption.queryKeyFnName} = (${queryKeyProps}) =>
-    ${queryKeyMutator.name}({ ${queryKeyProperties} }${
+    ${queryKeyMutator.name}({ ${queryProperties} }${
       queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''
     });
 `;

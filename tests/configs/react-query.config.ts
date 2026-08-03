@@ -1449,6 +1449,7 @@ export default defineConfig({
       target: '../generated/react-query/custom-query-key-mutator/endpoints.ts',
       schemas: '../generated/react-query/custom-query-key-mutator/model',
       client: 'react-query',
+      headers: true,
       override: {
         query: {
           useInfinite: true,

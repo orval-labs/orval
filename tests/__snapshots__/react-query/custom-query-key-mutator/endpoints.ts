@@ -26,8 +26,10 @@ import type {
 
 import type {
   CreatePetsBody,
+  CreatePetsHeaders,
   CreatePetsParams,
   Error,
+  ListPetsHeaders,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -133,11 +135,13 @@ export const getListPetsUrl = (params: ListPetsParams) => {
  */
 export const listPets = async (
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
+    headers: { ...headers, ...options?.headers },
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -146,11 +150,15 @@ export const listPets = async (
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
-export const getListPetsInfiniteQueryKey = (params?: ListPetsParams) =>
-  customQueryKey({ params }, { url: `/pets` });
+export const getListPetsInfiniteQueryKey = (
+  params?: ListPetsParams,
+  headers?: ListPetsHeaders,
+) => customQueryKey({ params, headers }, { url: `/pets` });
 
-export const getListPetsQueryKey = (params?: ListPetsParams) =>
-  customQueryKey({ params }, { url: `/pets` });
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  headers?: ListPetsHeaders,
+) => customQueryKey({ params, headers }, { url: `/pets` });
 
 export const useListPetsInfiniteQueryOptions = <
   TData = InfiniteData<
@@ -160,6 +168,7 @@ export const useListPetsInfiniteQueryOptions = <
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -176,17 +185,20 @@ export const useListPetsInfiniteQueryOptions = <
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = customQueryKey({ params }, { url: `/pets`, queryOptions });
+  const queryKey = customQueryKey(
+    { params, headers },
+    { url: `/pets`, queryOptions },
+  );
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPets>>,
     QueryKey,
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
-    listPets(
-      { ...params, limit: pageParam ?? params?.['limit'] },
-      { signal, ...fetchOptions },
-    );
+    listPets({ ...params, limit: pageParam ?? params?.['limit'] }, headers, {
+      signal,
+      ...fetchOptions,
+    });
 
   return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -211,6 +223,7 @@ export function useListPetsInfinite<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options: {
     query: Partial<
       UseInfiniteQueryOptions<
@@ -245,6 +258,7 @@ export function useListPetsInfinite<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -279,6 +293,7 @@ export function useListPetsInfinite<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -308,6 +323,7 @@ export function useListPetsInfinite<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -325,7 +341,11 @@ export function useListPetsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = useListPetsInfiniteQueryOptions(params, options);
+  const queryOptions = useListPetsInfiniteQueryOptions(
+    params,
+    headers,
+    options,
+  );
 
   const query = useInfiniteQuery(
     queryOptions,
@@ -342,6 +362,7 @@ export const useListPetsQueryOptions = <
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -351,11 +372,14 @@ export const useListPetsQueryOptions = <
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = customQueryKey({ params }, { url: `/pets`, queryOptions });
+  const queryKey = customQueryKey(
+    { params, headers },
+    { url: `/pets`, queryOptions },
+  );
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, { signal, ...fetchOptions });
+  }) => listPets(params, headers, { signal, ...fetchOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -374,6 +398,7 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -397,6 +422,7 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -420,6 +446,7 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -439,6 +466,7 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
+  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -449,7 +477,7 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = useListPetsQueryOptions(params, options);
+  const queryOptions = useListPetsQueryOptions(params, headers, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -500,12 +528,17 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
+  headers: CreatePetsHeaders,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+      ...options?.headers,
+    },
     body: JSON.stringify(createPetsBody),
   });
 
@@ -526,14 +559,22 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    {
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+      headers: CreatePetsHeaders;
+    },
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  {
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+    headers: CreatePetsHeaders;
+  },
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -547,11 +588,15 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams }
+    {
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+      headers: CreatePetsHeaders;
+    }
   > = (props) => {
-    const { data, params } = props ?? {};
+    const { data, params, headers } = props ?? {};
 
-    return createPets(data, params, fetchOptions);
+    return createPets(data, params, headers, fetchOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -571,7 +616,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody; params: CreatePetsParams },
+      {
+        data: CreatePetsBody;
+        params: CreatePetsParams;
+        headers: CreatePetsHeaders;
+      },
       TContext
     >;
     fetch?: RequestInit;
@@ -580,7 +629,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  {
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+    headers: CreatePetsHeaders;
+  },
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
