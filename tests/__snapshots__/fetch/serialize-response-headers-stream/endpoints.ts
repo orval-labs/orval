@@ -10,6 +10,19 @@ interface TypedResponse<T> extends Response {
   json(): Promise<T>;
 }
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type streamResponse200 = {
   stream: TypedResponse<StreamEntry>;
   status: 200;
@@ -33,7 +46,10 @@ export const stream = async (
   const stream = await fetch(getStreamUrl(), {
     ...options,
     method: 'GET',
-    headers: { Accept: 'application/x-ndjson', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { Accept: 'application/x-ndjson' },
+      options?.headers,
+    ),
   });
 
   return {

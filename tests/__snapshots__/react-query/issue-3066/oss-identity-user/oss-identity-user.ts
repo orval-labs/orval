@@ -19,6 +19,19 @@ import type {
   PostApiAppOssIdentityUserSignInBody,
 } from '../model';
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type postApiAppOssIdentityUserImportUsersFromFileResponse200 = {
   data: ImportUsersFromFileOutput;
   status: 200;
@@ -206,10 +219,10 @@ export const postApiAppOssIdentityUserSignIn = async (
   const res = await fetch(getPostApiAppOssIdentityUserSignInUrl(), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      ...options?.headers,
-    },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/x-www-form-urlencoded' },
+      options?.headers,
+    ),
     body: formUrlEncoded,
   });
 

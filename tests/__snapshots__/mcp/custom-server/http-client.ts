@@ -14,7 +14,19 @@ import {
   CreatePetsParams,
   PetWithTag,
 } from './http-schemas';
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
 
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
@@ -153,7 +165,10 @@ export const createPets = async (
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(createPetsBody),
   });
 

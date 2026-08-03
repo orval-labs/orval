@@ -14,6 +14,19 @@ import type { Cookie, OptionalPetBodyBody, RequiredPetBodyBody } from './model';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type createPetsResponse204 = {
   data: void;
   status: 204;
@@ -35,7 +48,10 @@ export const createPets = async (
   const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(requiredPetBodyBody),
   });
 
@@ -104,7 +120,10 @@ export const updatePets = async (
   const res = await fetch(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(optionalPetBodyBody),
   });
 
@@ -173,7 +192,10 @@ export const createCookies = async (
   const res = await fetch(getCreateCookiesUrl(), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(cookie),
   });
 
@@ -244,7 +266,10 @@ export const updateCookies = async (
   const res = await fetch(getUpdateCookiesUrl(), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(cookie),
   });
 
