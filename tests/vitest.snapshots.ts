@@ -9,6 +9,7 @@ export default defineConfig({
       'api-generation.spec.ts',
       'handler-preservation.spec.ts',
       'query-key-mutator.spec.ts',
+      'request-headers.spec.ts',
       'serialize-response-headers.spec.ts',
     ],
     silent: 'passed-only',

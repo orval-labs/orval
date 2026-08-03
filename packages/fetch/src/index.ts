@@ -513,7 +513,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      ? `headers: mergeOrvalHeaders({ ${headersToAdd.join(',')} }, options?.headers)`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
@@ -793,11 +793,28 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   const needsStatusCodeTypes = /HTTPStatusCode[1-5]xx|<HTTPStatusCodes,/.test(
     clientImplementation,
   );
-  if (!needsStatusCodeTypes) return '';
+  const needsMergeHeaders = clientImplementation.includes('mergeOrvalHeaders(');
+  if (!needsStatusCodeTypes && !needsMergeHeaders) return '';
 
   return {
-    implementation: '',
-    sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
+    implementation: needsMergeHeaders
+      ? `function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}`
+      : '',
+    sharedTypes: needsStatusCodeTypes
+      ? HTTP_STATUS_CODE_SHARED_TYPES
+      : undefined,
   };
 };
 
