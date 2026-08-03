@@ -12,7 +12,8 @@ import {
 } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import type { MockSchemaObject } from '../../types';
+import type { MockSchema, MockSchemaObject } from '../../types';
+import { collectAllOfRequired } from './all-of-required';
 import { combineSchemasMock } from './combine';
 
 function createMockContext(): ContextSpec {
@@ -171,6 +172,77 @@ function createMockContext(): ContextSpec {
     },
   };
 }
+
+describe('collectAllOfRequired', () => {
+  // Two component schemas whose allOf entries reference each other directly.
+  // The `seen` cycle guard in derefAllOfMember must terminate the traversal
+  // while still collecting the required fields declared on each side.
+  it('terminates on a direct mutual $ref cycle and collects both sides', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: {
+          allOf: [
+            { $ref: '#/components/schemas/B' },
+            {
+              type: 'object',
+              required: ['aField'],
+              properties: { aField: { type: 'string' } },
+            },
+          ],
+        },
+        B: {
+          allOf: [
+            { $ref: '#/components/schemas/A' },
+            {
+              type: 'object',
+              required: ['bField'],
+              properties: { bField: { type: 'string' } },
+            },
+          ],
+        },
+      },
+    };
+
+    const members: MockSchema[] = [
+      { $ref: '#/components/schemas/B' },
+      {
+        type: 'object',
+        required: ['aField'],
+        properties: { aField: { type: 'string' } },
+      },
+    ];
+
+    let result: string[] = [];
+    expect(() => {
+      result = collectAllOfRequired(members, context);
+    }).not.toThrow();
+
+    expect(new Set(result)).toEqual(new Set(['aField', 'bField']));
+  });
+
+  // A schema alias chain that loops back on itself must resolve to nothing
+  // rather than recurse forever.
+  it('terminates on a cyclic $ref alias chain', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: { $ref: '#/components/schemas/B' },
+        B: { $ref: '#/components/schemas/A' },
+      },
+    };
+
+    let result: string[] = [];
+    expect(() => {
+      result = collectAllOfRequired(
+        [{ $ref: '#/components/schemas/A' }],
+        context,
+      );
+    }).not.toThrow();
+
+    expect(result).toEqual([]);
+  });
+});
 
 describe('combineSchemasMock', () => {
   it('should combine allOf schemas with primitive values', () => {
