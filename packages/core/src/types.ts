@@ -1397,13 +1397,21 @@ export interface AngularHttpResourceOptions {
 }
 
 export interface SwrOptions {
-  /** Emit `useSWRInfinite` hooks for paginated operations. */
+  /** Generate `useSWRInfinite` hooks. */
   useInfinite?: boolean;
-  /** Use `useSWRMutation` for GET-style operations. */
+  /** Generate `useSWRMutation` for GET requests. */
   useSWRMutationForGet?: boolean;
-  /** Wrap generated hooks in `useSuspense`. */
+  /**
+   * Generate Suspense-compatible hooks.
+   *
+   * @default false
+   */
   useSuspense?: boolean;
-  /** Generate typed error types for SWR hooks. */
+  /**
+   * Generate custom error type aliases.
+   *
+   * @default false
+   */
   generateErrorTypes?: boolean;
   /** Extra options merged into each generated `useSWR` call. */
   swrOptions?: unknown;

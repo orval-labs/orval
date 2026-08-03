@@ -12,25 +12,27 @@ export const outputOverrideSwr = {
       "name": "useInfinite",
       "type": "boolean",
       "optional": true,
-      "description": "Emit `useSWRInfinite` hooks for paginated operations."
+      "description": "Generate `useSWRInfinite` hooks."
     },
     {
       "name": "useSWRMutationForGet",
       "type": "boolean",
       "optional": true,
-      "description": "Use `useSWRMutation` for GET-style operations."
+      "description": "Generate `useSWRMutation` for GET requests."
     },
     {
       "name": "useSuspense",
       "type": "boolean",
       "optional": true,
-      "description": "Wrap generated hooks in `useSuspense`."
+      "description": "Generate Suspense-compatible hooks.",
+      "default": "false"
     },
     {
       "name": "generateErrorTypes",
       "type": "boolean",
       "optional": true,
-      "description": "Generate typed error types for SWR hooks."
+      "description": "Generate custom error type aliases.",
+      "default": "false"
     },
     {
       "name": "swrOptions",

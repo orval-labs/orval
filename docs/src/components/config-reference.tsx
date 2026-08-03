@@ -110,7 +110,13 @@ function ResolvedShapeTable({ resolved }: { resolved: ResolvedShape }) {
   );
 }
 
-function FieldDetail({ field }: { field: ConfigField }) {
+function FieldDetail({
+  field,
+  hideDescription,
+}: {
+  field: ConfigField;
+  hideDescription?: boolean;
+}) {
   const s = useStrings();
   return (
     <div className="not-prose my-4">
@@ -126,7 +132,7 @@ function FieldDetail({ field }: { field: ConfigField }) {
         <span className="text-fd-muted-foreground">{s.type}: </span>
         <Type>{field.type}</Type>
       </div>
-      {field.description ? (
+      {field.description && !hideDescription ? (
         <p className="mt-2 text-sm text-fd-foreground/90">{field.description}</p>
       ) : null}
       {field.default ? (
@@ -211,7 +217,13 @@ function SectionTable({ entry }: { entry: RegistryEntry }) {
   );
 }
 
-export function ConfigReference({ path }: { path: string }) {
+export function ConfigReference({
+  path,
+  hideDescription,
+}: {
+  path: string;
+  hideDescription?: boolean;
+}) {
   const entry = getEntry(path);
   if (!entry) {
     return (
@@ -221,7 +233,7 @@ export function ConfigReference({ path }: { path: string }) {
     );
   }
   return entry.kind === 'field' ? (
-    <FieldDetail field={entry} />
+    <FieldDetail field={entry} hideDescription={hideDescription} />
   ) : (
     <SectionTable entry={entry} />
   );
