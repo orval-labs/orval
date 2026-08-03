@@ -10,6 +10,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   type GeneratorMutator,
+  type GetterBody,
   GetterPropType,
   isBinaryContentType,
   isObject,
@@ -61,6 +62,16 @@ export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain' || isBinaryContentType(contentType);
+
+const isBinaryRequestBodySchema = (body: GetterBody): boolean => {
+  const originalSchema = body.originalSchema;
+
+  if ('format' in originalSchema && originalSchema.format === 'binary') {
+    return true;
+  }
+
+  return false;
+};
 
 const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   if (!mutator || !mutator.hasSecondArg) {
@@ -523,7 +534,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchBodyOption = requestBodyParams
     ? (isFormData && body.formData) ||
       (isFormUrlEncoded && body.formUrlEncoded) ||
-      body.originalSchema?.format === 'binary' ||
+      isBinaryRequestBodySchema(body) ||
       isRawRequestBodyContentType(body.contentType)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
