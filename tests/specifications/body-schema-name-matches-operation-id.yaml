@@ -1,0 +1,68 @@
+openapi: 3.0.0
+info:
+  title: Body schema name matching operationId
+  version: 1.0.0
+paths:
+  /api/v1/items:
+    post:
+      operationId: createItem
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItem'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /api/v1/items/upload:
+    post:
+      operationId: uploadItem
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadItem'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+components:
+  schemas:
+    UploadItem:
+      type: object
+      properties:
+        name:
+          type: string
+        file:
+          type: string
+          format: binary
+      required:
+        - name
+        - file
+    CreateItem:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string

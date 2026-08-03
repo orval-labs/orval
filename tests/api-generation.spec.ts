@@ -658,6 +658,27 @@ test('react-query issue-607 avoids options operation shadowing hook options', as
   expect(content).not.toContain('return petId(petId, fetchOptions)');
 });
 
+test('react-query renames a body parameter that matches the operation name', async () => {
+  const content = await readFile(
+    generated(
+      'react-query',
+      'body-schema-name-matches-operation-id',
+      'items',
+      'items.ts',
+    ),
+    'utf8',
+  );
+
+  expect(content).toContain('createItemBody: CreateItem');
+  expect(content).toContain('createItem(createItemBody, { signal');
+  expect(content).not.toContain('createItem: CreateItem');
+  expect(content).not.toContain('createItem(createItem,');
+
+  expect(content).toContain('uploadItemBody: UploadItem');
+  expect(content).toContain('formData.append(`name`, uploadItemBody.name)');
+  expect(content).not.toContain('uploadItem.name');
+});
+
 test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
   // Regression for #3153: `mutationOptions` mutators have received
   // `{ operationId, operationName }` as their third argument since #1974, but
