@@ -1466,6 +1466,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  customQueryKeyMutator: {
+    output: {
+      target: '../generated/react-query/custom-query-key-mutator/endpoints.ts',
+      schemas: '../generated/react-query/custom-query-key-mutator/model',
+      client: 'react-query',
+      headers: true,
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          queryKey: {
+            path: '../mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreCustomQueryOptionsWithOperation: {
     output: {
       target:
