@@ -121,20 +121,25 @@ export const generateRequestFunction = (
   const spec = context.spec.paths?.[pathRoute] as
     | OpenApiPathItemObject
     | undefined;
-  // Path-item-level parameters apply to every operation under the path and may be
-  // overridden per operation. Merge them with the operation-level parameters so that
-  // query parameters declared at the path level are still serialized into the request
-  // URL — reading only `spec[verb].parameters` dropped them, leaving an empty
-  // `URLSearchParams` loop. Mirrors the parameter merge already done by the zod and
-  // effect generators (and core's verbs-options).
+  // Path-item-level parameters apply to every operation under the path, and an
+  // operation-level parameter with the same name and location overrides them.
+  // Same dedup rule as `getParameters` in core.
   const parameters = [
     ...(spec?.parameters ?? []),
     ...(spec?.[verb]?.parameters ?? []),
   ];
-  const parameterObjects = parameters.map((parameter) => {
-    const { schema } = resolveRef(parameter, context);
-    return schema as OpenApiParameterObject;
-  });
+  const parameterObjects = [
+    ...new Map(
+      parameters.map((parameter) => {
+        const { schema } = resolveRef(parameter, context);
+        const parameterObject = schema as OpenApiParameterObject;
+        return [
+          `${parameterObject.in}:${parameterObject.in === 'header' ? parameterObject.name?.toLowerCase() : parameterObject.name}`,
+          parameterObject,
+        ] as const;
+      }),
+    ).values(),
+  ];
 
   const arrayFormat = override.fetch.arrayFormat;
 

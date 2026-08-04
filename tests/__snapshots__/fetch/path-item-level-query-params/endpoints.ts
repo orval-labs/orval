@@ -12,6 +12,14 @@ export type GetItem200 = {
   id?: string;
 };
 
+export type ListItemsParams = {
+  tags?: string[];
+};
+
+export type ListItems200Item = {
+  id?: string;
+};
+
 export type getItemResponse200 = {
   data: GetItem200;
   status: 200;
@@ -52,4 +60,49 @@ export const getItem = async (
 
   const data: getItemResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getItemResponse;
+};
+
+export type listItemsResponse200 = {
+  data: ListItems200Item[];
+  status: 200;
+};
+
+export type listItemsResponseSuccess = listItemsResponse200 & {
+  headers: Headers;
+};
+export type listItemsResponse = listItemsResponseSuccess;
+
+export const getListItemsUrl = (params?: ListItemsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/items?${stringifiedParams}`
+    : `/items`;
+};
+
+export const listItems = async (
+  params?: ListItemsParams,
+  options?: RequestInit,
+): Promise<listItemsResponse> => {
+  const res = await fetch(getListItemsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: listItemsResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as listItemsResponse;
 };
