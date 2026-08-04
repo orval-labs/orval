@@ -42,6 +42,7 @@ const minimalBody: GetterBody = {
   formData: undefined,
   formUrlEncoded: undefined,
   contentType: 'application/json',
+  isBlob: false,
   isOptional: false,
 };
 
