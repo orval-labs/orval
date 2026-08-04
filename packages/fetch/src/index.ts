@@ -14,8 +14,8 @@ import {
   isBinaryContentType,
   isObject,
   makeRouteSafe,
-  type OpenApiOperationObject,
   type OpenApiParameterObject,
+  type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
@@ -23,7 +23,6 @@ import {
   type SharedTypeDeclaration,
   stringify,
   toObjectString,
-  type Verbs,
 } from '@orval/core';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
@@ -120,9 +119,18 @@ export const generateRequestFunction = (
   );
 
   const spec = context.spec.paths?.[pathRoute] as
-    | Partial<Record<Verbs, OpenApiOperationObject>>
+    | OpenApiPathItemObject
     | undefined;
-  const parameters = spec?.[verb]?.parameters ?? [];
+  // Path-item-level parameters apply to every operation under the path and may be
+  // overridden per operation. Merge them with the operation-level parameters so that
+  // query parameters declared at the path level are still serialized into the request
+  // URL — reading only `spec[verb].parameters` dropped them, leaving an empty
+  // `URLSearchParams` loop. Mirrors the parameter merge already done by the zod and
+  // effect generators (and core's verbs-options).
+  const parameters = [
+    ...(spec?.parameters ?? []),
+    ...(spec?.[verb]?.parameters ?? []),
+  ];
   const parameterObjects = parameters.map((parameter) => {
     const { schema } = resolveRef(parameter, context);
     return schema as OpenApiParameterObject;

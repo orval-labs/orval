@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  title: Path-item-level query parameters
+  version: '1.0.0'
+paths:
+  /items/{itemId}:
+    # Parameters declared at the path-item level apply to every operation under this
+    # path. A query parameter defined here must still be serialized into the request
+    # URL. Regression for the fetch client dropping path-item-level query params.
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string

@@ -2262,3 +2262,19 @@ test('react-query prefetch output declares serialized headers', async () => {
   expect(content).toContain(serializedHeaders('res'));
   expect(content).not.toContain('headers: res.headers');
 });
+
+// Regression: the fetch URL builder must serialize query parameters that are
+// declared at the OpenAPI path-item level (shared across operations), not only
+// operation-level ones. Reading only `spec[verb].parameters` produced an empty
+// `URLSearchParams` loop, so path-level query params silently vanished from the URL.
+test('fetch serializes path-item-level query parameters into the URL', async () => {
+  const content = await readFile(
+    generated('fetch', 'path-item-level-query-params', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The `date` query param lives on the path item, not on the get operation.
+  expect(content).toContain('normalizedParams.append(key, value');
+  expect(content).not.toMatch(/forEach\(\(\[key, value\]\) => \{\s*\}\)/);
+  expect(content).toContain('?${stringifiedParams}');
+});
