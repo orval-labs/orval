@@ -1382,6 +1382,7 @@ describe('angular httpResource generator', () => {
           formData: '',
           formUrlEncoded: '',
           isOptional: false,
+          isBlob: false,
         },
         params: [],
         props: [
