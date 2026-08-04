@@ -1054,6 +1054,12 @@ to `GET` operations; per-operation overrides
 (`override.operations.<id>.query.useSuspenseQuery`) bypass that
 restriction for individual operations.
 
+Enabling this for a non-`GET` operation adds a Suspense Query hook alongside
+whatever the operation already generates — it does not change whether the
+operation is a Query or a Mutation. A `POST` operation that generates a
+Mutation hook by default keeps that Mutation hook and additionally gets a
+Suspense Query hook.
+
 ### useMutation
 
 **Type:** `Boolean`
@@ -1071,7 +1077,9 @@ Set to `false` to suppress Mutation hook generation; pair with
 `useQuery: true` if you want non-`GET` operations to be generated as
 Query hooks instead. When both `useQuery` and `useMutation` resolve to
 `true` for the same operation, the Mutation hook wins for `GET` and the
-Query hook wins for non-`GET`.
+Query hook wins for non-`GET`. This tie-break applies to `useQuery` only —
+`useSuspenseQuery`, `useInfinite`, and `useSuspenseInfiniteQuery` never
+suppress a Mutation hook; they add a hook of their own shape instead.
 
 ### useInfinite
 

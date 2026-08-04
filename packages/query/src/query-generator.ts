@@ -1000,11 +1000,15 @@ export const generateQueryHook = async (
       )) &&
     hasConfiguredInfiniteQueryParam;
 
-  let isQuery =
-    effectiveUseQuery ||
+  // Suspense and infinite select additional hook *shapes* for an operation
+  // that is already query-shaped — they must never flip a mutation into a
+  // query, so only `effectiveUseQuery` participates in the kind decision below.
+  const anyQueryVariant =
     effectiveUseSuspenseQuery ||
     effectiveUseInfinite ||
     effectiveUseSuspenseInfiniteQuery;
+
+  let isQuery = effectiveUseQuery || anyQueryVariant;
 
   // No verb gate here: `effectiveUseMutation` already encodes the
   // per-verb default (`verb !== Verbs.GET`), so an explicit
@@ -1013,8 +1017,11 @@ export const generateQueryHook = async (
   // for non-GET verbs (#3358).
   let isMutation = effectiveUseMutation;
 
-  // If both query and mutation are true for a non-GET operation, prioritize query
-  if (verb !== Verbs.GET && isQuery) {
+  // If both query and mutation are true for a non-GET operation, prioritize
+  // query — but only on `effectiveUseQuery`, not on a suspense/infinite
+  // variant alone, so e.g. `useSuspenseQuery: true` on a POST adds a
+  // suspense hook without suppressing the operation's mutation hook.
+  if (verb !== Verbs.GET && effectiveUseQuery) {
     isMutation = false;
   }
 
@@ -1022,6 +1029,14 @@ export const generateQueryHook = async (
   if (verb === Verbs.GET && isMutation) {
     isQuery = false;
   }
+
+  // The plain Query hook and the Mutation hook share the same identifier
+  // (`use${operationName}`) — when both kinds are generated for one
+  // operation (a suspense/infinite variant kept `isQuery` true alongside an
+  // explicit `isMutation`), only emit the plain Query hook when there is no
+  // Mutation hook to collide with. The suffixed variants (`-suspense`,
+  // `-infinite`, `-suspense-infinite`) are unique and always emit.
+  const emitPlainQuery = effectiveUseQuery && !isMutation;
 
   // Warn when an operation referenced by a `mutationInvalidates` rule's
   // `onMutations` list is generated as a Query (or no hook at all). The rule
@@ -1086,7 +1101,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(effectiveUseQuery
+      ...(emitPlainQuery
         ? [
             {
               name: operationName,
@@ -1243,7 +1258,7 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: effectiveUseQuery,
+        useQuery: emitPlainQuery,
         useInfinite: effectiveUseInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
@@ -1283,7 +1298,7 @@ ${queryKeyFns}`;
     mutators = mutationResult.mutators
       ? [...(mutators ?? []), ...mutationResult.mutators]
       : mutators;
-    imports = mutationResult.imports;
+    imports = [...imports, ...mutationResult.imports];
   }
 
   return {

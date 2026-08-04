@@ -26,11 +26,15 @@ export const normalizeQueryOptions = (
     ...(queryOptions.useMutation === undefined
       ? {}
       : { useMutation: queryOptions.useMutation }),
-    ...(queryOptions.useSuspenseQuery ? { useSuspenseQuery: true } : {}),
-    ...(queryOptions.useSuspenseInfiniteQuery
-      ? { useSuspenseInfiniteQuery: true }
-      : {}),
-    ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
+    ...(queryOptions.useSuspenseQuery === undefined
+      ? {}
+      : { useSuspenseQuery: queryOptions.useSuspenseQuery }),
+    ...(queryOptions.useSuspenseInfiniteQuery === undefined
+      ? {}
+      : { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }),
+    ...(queryOptions.useInfinite === undefined
+      ? {}
+      : { useInfinite: queryOptions.useInfinite }),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),

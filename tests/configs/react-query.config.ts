@@ -1700,4 +1700,30 @@ export default defineConfig({
       target: '../specifications/issue-1522.yaml',
     },
   },
+  // A per-operation `useSuspenseQuery: true` on a non-GET operation must add
+  // a Suspense Query hook without suppressing the operation's Mutation hook
+  // — asking for an extra hook *shape* must never change hook *kind*.
+  perOpSuspenseOnPostKeepsMutation: {
+    output: {
+      target:
+        '../generated/react-query/per-op-suspense-on-post-keeps-mutation/endpoints.ts',
+      schemas:
+        '../generated/react-query/per-op-suspense-on-post-keeps-mutation/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          createPets: {
+            query: {
+              useSuspenseQuery: true,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
