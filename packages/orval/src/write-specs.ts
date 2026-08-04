@@ -42,6 +42,7 @@ import {
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
+import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { formatWithPrettier } from './formatters/prettier';
