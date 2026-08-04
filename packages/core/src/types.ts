@@ -1871,6 +1871,7 @@ export interface GetterBody {
   formUrlEncoded?: string;
   contentType: string;
   isOptional: boolean;
+  isBlob: boolean;
 }
 
 export interface GetterParameters {

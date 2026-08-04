@@ -8,7 +8,13 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import { camel, filterByContentType, isReference, sanitize } from '../utils';
+import {
+  camel,
+  filterByContentType,
+  isBinaryContentType,
+  isReference,
+  sanitize,
+} from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
@@ -69,6 +75,13 @@ function buildBody(
   return {
     originalSchema: requestBody,
     definition: nonReadonlyDefinition,
+    isBlob: filteredBodyTypes.some(
+      (t) =>
+        (!!t.contentType && isBinaryContentType(t.contentType)) ||
+        t.originalSchema?.format === 'binary' ||
+        (t.originalSchema?.contentMediaType === 'application/octet-stream' &&
+          !t.originalSchema.contentEncoding),
+    ),
     implementation,
     imports,
     schemas,

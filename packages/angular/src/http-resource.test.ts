@@ -270,6 +270,7 @@ const createVerbOption = (
       contentType: '',
       formData: '',
       formUrlEncoded: '',
+      isBlob: false,
       isOptional: true,
     },
     headers: undefined,
@@ -623,6 +624,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -678,6 +680,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: true,
         },
         props: [
@@ -731,6 +734,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -780,6 +784,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -861,6 +866,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -955,6 +961,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1375,6 +1382,7 @@ describe('angular httpResource generator', () => {
           formData: '',
           formUrlEncoded: '',
           isOptional: false,
+          isBlob: false,
         },
         params: [],
         props: [
@@ -1978,6 +1986,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         response: baseResponse({
@@ -2262,6 +2271,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -2482,6 +2492,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         queryParams: createQueryParams({ isOptional: false }),
@@ -3171,6 +3182,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -3243,6 +3255,7 @@ describe('angular httpResource generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [

@@ -225,6 +225,7 @@ function makeVerbOptions(
       contentType: '',
       isOptional: true,
       originalSchema: {},
+      isBlob: false,
     } as GeneratorVerbOptions['body'],
     params: [],
     props: [],

@@ -224,6 +224,7 @@ const createVerbOption = (
       contentType: '',
       formData: '',
       formUrlEncoded: '',
+      isBlob: false,
       isOptional: true,
     },
     headers: undefined,
@@ -1018,6 +1019,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1059,6 +1061,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1109,6 +1112,7 @@ describe('angular HttpClient generator', () => {
           contentType: '',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: true,
         },
         response: baseResponse({
@@ -1182,6 +1186,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: true,
         },
         props: [
@@ -1310,6 +1315,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1372,6 +1378,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: true,
         },
         props: [
@@ -1457,6 +1464,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1576,6 +1584,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [
@@ -1866,6 +1875,7 @@ describe('angular HttpClient generator', () => {
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
+          isBlob: false,
           isOptional: false,
         },
         props: [

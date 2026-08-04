@@ -11,7 +11,6 @@ import {
   type GeneratorVerbOptions,
   type GeneratorMutator,
   GetterPropType,
-  isBinaryContentType,
   isObject,
   makeRouteSafe,
   type OpenApiOperationObject,
@@ -60,7 +59,7 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 const isRawRequestBodyContentType = (contentType: string) =>
-  contentType === 'text/plain' || isBinaryContentType(contentType);
+  contentType === 'text/plain';
 
 const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   if (!mutator || !mutator.hasSecondArg) {
@@ -523,6 +522,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchBodyOption = requestBodyParams
     ? (isFormData && body.formData) ||
       (isFormUrlEncoded && body.formUrlEncoded) ||
+      body.isBlob ||
       isRawRequestBodyContentType(body.contentType)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
