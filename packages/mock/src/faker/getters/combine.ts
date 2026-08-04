@@ -3,12 +3,12 @@ import {
   type GeneratorImport,
   getRefInfo,
   isReference,
-  isSchema,
   type MockOptions,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
+import { collectAllOfRequired } from './all-of-required';
 
 function getReferenceName(
   ref: string | undefined,
@@ -139,10 +139,35 @@ export function combineSchemasMock({
     ([key]) => key === 'properties',
   );
 
+  const allRequiredFields: string[] = [];
+  if (separator === 'allOf') {
+    if (itemRequired) {
+      allRequiredFields.push(...itemRequired);
+    }
+    allRequiredFields.push(...collectAllOfRequired(separatorItems, context));
+  }
+
+  // The composed schema's own sibling `properties` (declared next to the
+  // `allOf`) are one more member of the composition, and their emission is
+  // appended last, so it wins the spread merge. Resolve them with the same
+  // `required` union as the members, otherwise a property required by a base
+  // would be emitted here with an undefined branch the type rejects.
+  const itemSchemaForResolve = Object.fromEntries(
+    itemEntriesForResolve,
+  ) as MockSchemaObject;
+  if (separator === 'allOf' && allRequiredFields.length > 0) {
+    const itemResolveRequired = itemSchemaForResolve.required as
+      | string[]
+      | undefined;
+    itemSchemaForResolve.required = [
+      ...new Set([...allRequiredFields, ...(itemResolveRequired ?? [])]),
+    ];
+  }
+
   const itemResolvedValue =
     isRefAndNotExisting || hasResolvableProperties
       ? resolveMockValue({
-          schema: Object.fromEntries(itemEntriesForResolve) as MockSchemaObject,
+          schema: itemSchemaForResolve,
           combine: {
             separator: 'allOf',
             includedProperties: [],
@@ -161,18 +186,6 @@ export function combineSchemasMock({
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
-
-  const allRequiredFields: string[] = [];
-  if (separator === 'allOf') {
-    if (itemRequired) {
-      allRequiredFields.push(...itemRequired);
-    }
-    for (const val of separatorItems) {
-      if (isSchema(val) && val.required) {
-        allRequiredFields.push(...(val.required as string[]));
-      }
-    }
-  }
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
