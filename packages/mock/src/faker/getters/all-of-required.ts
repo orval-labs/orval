@@ -9,8 +9,9 @@ import { prop } from 'remeda';
 import type { MockSchema } from '../../types';
 
 // Resolve a `$ref` (following `$ref`-to-`$ref` alias chains, like the model
-// side's `derefComponentSchema`) to its target schema. `seen` breaks cycles;
-// returns undefined for unresolvable or already-visited refs.
+// side's `derefComponentSchema`) to its target schema. `seen` holds the refs
+// on the current traversal path and breaks cycles; returns undefined for
+// unresolvable or already-visited refs.
 function derefAllOfMember(
   member: MockSchema,
   context: ContextSpec,
@@ -61,7 +62,15 @@ export function collectAllOfRequiredWithDeclared(
   const declared = new Set<string>();
 
   for (const val of schemas) {
-    const schema = derefAllOfMember(val, context, seen);
+    // Branch-local copy: the cycle guard is scoped to the current traversal
+    // path, not shared across sibling members. A target first visited inside
+    // one member's nested chain (where the boundary filter may drop its
+    // undeclared names) must still be visitable as a later DIRECT member,
+    // whose `required` counts unfiltered. Termination is preserved because a
+    // ref still cannot repeat within a single path. Same pattern as
+    // `resolvesToObjectLike` in resolvers/value.ts.
+    const memberSeen = new Set(seen);
+    const schema = derefAllOfMember(val, context, memberSeen);
     if (!schema) {
       continue;
     }
@@ -81,7 +90,7 @@ export function collectAllOfRequiredWithDeclared(
       const inner = collectAllOfRequiredWithDeclared(
         schema.allOf as MockSchema[],
         context,
-        seen,
+        memberSeen,
       );
       required.push(
         ...inner.required.filter(

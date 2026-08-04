@@ -221,6 +221,29 @@ describe('collectAllOfRequired', () => {
     expect(new Set(result)).toEqual(new Set(['aField', 'bField']));
   });
 
+  // The cycle guard must be scoped to the traversal path, not shared across
+  // sibling members: visiting a target inside one member's nested chain must
+  // not consume it for a later DIRECT member. Here `Constraint` is first seen
+  // nested under `Wrapper` (where the boundary filter rightly drops its
+  // undeclared `id`), then referenced directly, where the direct-member
+  // exemption must still collect `id`.
+  it('collects a direct member also reachable through a nested chain', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        Constraint: { required: ['id'] },
+        Wrapper: { allOf: [{ $ref: '#/components/schemas/Constraint' }] },
+      },
+    };
+
+    const members: MockSchema[] = [
+      { $ref: '#/components/schemas/Wrapper' },
+      { $ref: '#/components/schemas/Constraint' },
+    ];
+
+    expect(collectAllOfRequired(members, context)).toContain('id');
+  });
+
   // A schema alias chain that loops back on itself must resolve to nothing
   // rather than recurse forever.
   it('terminates on a cyclic $ref alias chain', () => {
@@ -1019,6 +1042,47 @@ describe('combineSchemasMock', () => {
     expect(result.value).toMatch(
       /label: faker\.helpers\.arrayElement\(\[faker\.string\.alpha[^\]]*, undefined\]\)/,
     );
+  });
+
+  // End-to-end shape for the path-scoped cycle guard: `Constraint` appears
+  // both nested under `Wrapper` and as a direct member. The direct occurrence
+  // must make `id` (declared optional on `Item`) required in the emission.
+  it('applies required from a direct member also reachable through a nested chain', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        Item: {
+          type: 'object',
+          properties: { id: { type: 'string' } },
+        },
+        Constraint: { required: ['id'] },
+        Wrapper: { allOf: [{ $ref: '#/components/schemas/Constraint' }] },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'Detail',
+      isRef: true,
+      allOf: [
+        { $ref: '#/components/schemas/Item' },
+        { $ref: '#/components/schemas/Wrapper' },
+        { $ref: '#/components/schemas/Constraint' },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toMatch(/id: faker\.string\.alpha/);
+    expect(result.value).not.toContain('undefined');
   });
 
   // The union is one-directional per JSON Schema semantics: a property listed
