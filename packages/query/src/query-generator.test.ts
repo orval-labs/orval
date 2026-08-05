@@ -8,6 +8,7 @@ import {
   getQueryKeyVerbPrefix,
   hasQueryParam,
   makeOptionalParam,
+  resolveInfiniteQueryParam,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
 
@@ -215,6 +216,92 @@ describe('hasQueryParam', () => {
         'cursor',
       ),
     ).toBe(true);
+  });
+});
+
+describe('resolveInfiniteQueryParam', () => {
+  const paramsWith = (...paramNames: string[]) => ({
+    schema: { name: 'ListPetsParams', model: '', imports: [] },
+    deps: [],
+    isOptional: true,
+    paramNames,
+  });
+
+  it('allows infinite hooks without a page param when the option is unset', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page'), undefined),
+    ).toStrictEqual({
+      queryParam: undefined,
+      infiniteHookAllowed: true,
+    });
+  });
+
+  it('treats an empty array as no configuration', () => {
+    expect(resolveInfiniteQueryParam(paramsWith('page'), [])).toStrictEqual({
+      queryParam: undefined,
+      infiniteHookAllowed: true,
+    });
+  });
+
+  it('resolves a single configured name that the operation declares', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page', 'limit'), 'page'),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the single configured name is absent', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit'), 'page'),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+
+  it('picks the first candidate the operation declares', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit', 'cursor.marker'), [
+        'page',
+        'cursor.marker',
+      ]),
+    ).toStrictEqual({ queryParam: 'cursor.marker', infiniteHookAllowed: true });
+  });
+
+  it('prefers the earlier candidate when the operation declares several', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('cursor.marker', 'page'), [
+        'page',
+        'cursor.marker',
+      ]),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the operation declares no candidate', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit'), ['page', 'cursor.marker']),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+
+  it('ignores blank candidates', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page'), ['', 'page']),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('resolves the first candidate for transformed params that do not expose names', () => {
+    expect(
+      resolveInfiniteQueryParam(
+        {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+        },
+        ['page', 'cursor.marker'],
+      ),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the operation has no query params', () => {
+    expect(
+      resolveInfiniteQueryParam(undefined, ['page', 'cursor.marker']),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
   });
 });
 

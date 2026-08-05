@@ -1107,9 +1107,39 @@ that restriction for individual operations.
 
 ### useInfiniteQueryParam
 
-**Type:** `String`
+**Type:** `String | String[]`
 
-Query parameter name for infinite queries.
+Query parameter name for infinite queries. An operation only gets an infinite
+hook when it declares the configured parameter.
+
+Pass an array when a single spec paginates in more than one way. The names are
+candidates in priority order and are resolved per operation: the first one the
+operation actually declares becomes its page parameter, and an operation
+matching none of them gets no infinite hook.
+
+An `override.operations` entry replaces the global value entirely, so a single operation can opt into a different candidate
+list.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: ['page', 'cursor'],
+        },
+        operations: { 
+          listBets: {
+            useInfinite: true,
+            useInfiniteQueryParam: "cursor.marker",
+          }
+        }
+      },
+    },
+  },
+});
+```
 
 ### usePrefetch
 
