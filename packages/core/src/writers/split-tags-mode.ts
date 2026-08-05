@@ -9,6 +9,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  buildBarrelReExports,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -516,7 +517,43 @@ export async function writeSplitTagsMode({
       })
       .join('');
 
-    const indexContent = namedReExports + tagReExports;
+    // Client extra files (Angular's per-tag `*.resource.ts` under
+    // `retrievalClient: 'both'`) are written by `writeSpecs`, not here, but
+    // this barrel is the only complete entry point consumers import — without
+    // these lines the resource API is reachable only by importing per-tag
+    // paths directly, which is what a module-boundary-enforced monorepo
+    // forbids.
+    //
+    // Derived from the emitted paths rather than from tag names: a generator
+    // emits an extra file only for the tags that need one (a mutation-only tag
+    // has no resource file), so a name-derived barrel would re-export a file
+    // that does not exist. Files outside this directory belong to another
+    // barrel and are left alone.
+    const extraFileReExports = buildBarrelReExports(
+      builder.extraFiles
+        .map((file) => ({
+          sharedExports: file.sharedExports,
+          relativePath: upath.relativeSafe(dirname, file.path),
+        }))
+        .filter(({ relativePath }) => !relativePath.startsWith('..'))
+        .toSorted((a, b) => a.relativePath.localeCompare(b.relativePath))
+        .map(({ sharedExports, relativePath }) => ({
+          sharedExports,
+          // Strip the full `fileExtension` when present so a multi-part
+          // extension (`.generated.ts`) is removed in one piece rather than
+          // leaving `.generated` behind.
+          specifier:
+            (relativePath.endsWith(extension)
+              ? relativePath.slice(0, -extension.length)
+              : relativePath.replace(/\.[^./]+$/, '')) + importExtension,
+        })),
+      publicSharedTypeNames,
+    );
+
+    const indexContent =
+      namedReExports +
+      tagReExports +
+      extraFileReExports.map((line) => `${line}\n`).join('');
     indexFilePath = path.join(dirname, `index${extension}`);
     await writeGeneratedFile(indexFilePath, indexContent);
   }

@@ -1759,9 +1759,42 @@ export type ClientBuilder = (
   output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
+/**
+ * Names a generated file declares that its sibling files of the same kind
+ * declare identically.
+ *
+ * @remarks
+ * A generator that emits one file per tag repeats any shared boilerplate in
+ * every one of them. Wildcard-exporting two such files from a barrel makes
+ * each repeated name ambiguous (TS2308), so the barrel writer re-exports them
+ * explicitly from a single file first.
+ *
+ * The generator declares these rather than the barrel writer inferring them
+ * from the emitted source. Inference cannot distinguish intentional
+ * duplication from an accidental name collision between two tags, and would
+ * silently resolve the latter to one arbitrary file — turning a compile error
+ * into a wrong type at the call site.
+ */
+export interface SharedExports {
+  /**
+   * Type-only declarations. Re-exported via `export type { ... }` — kept
+   * separate from {@link SharedExports.values} because a type re-exported
+   * without the `type` modifier is an error under `verbatimModuleSyntax`,
+   * which Angular projects enable by default.
+   */
+  readonly types: readonly string[];
+  /** Value declarations, re-exported via `export { ... }`. */
+  readonly values: readonly string[];
+}
+
 export interface ClientFileBuilder {
   path: string;
   content: string;
+  /**
+   * Declared by generators whose extra files repeat shared boilerplate. Omit
+   * when a file declares nothing its siblings also declare.
+   */
+  sharedExports?: SharedExports;
 }
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,

@@ -30,6 +30,7 @@ import {
   OutputMode,
   pascal,
   type ResReqTypesValue,
+  type SharedExports,
   toObjectString,
   upath,
   getImportExtension,
@@ -298,6 +299,38 @@ type HttpResourceFactoryName =
   | 'httpResource.blob';
 
 const HTTP_RESOURCE_OPTIONS_TYPE_NAME = 'OrvalHttpResourceOptions';
+const HTTP_RESOURCE_REQUEST_EXTENSION_TYPE_NAME =
+  'OrvalHttpResourceRequestExtension';
+const RESOURCE_STATE_TYPE_NAME = 'ResourceState';
+const APPLY_REQUEST_EXTENSION_FUNCTION_NAME = 'applyOrvalRequestExtension';
+const TO_RESOURCE_STATE_FUNCTION_NAME = 'toResourceState';
+
+/**
+ * Boilerplate every generated `*.resource.ts` declares.
+ *
+ * @remarks
+ * `buildHttpResourceOptionsUtilities` and `buildResourceStateUtilities` are
+ * called unconditionally for each resource file, so in tag-based modes each
+ * tag repeats all five declarations. A barrel wildcard-exporting more than one
+ * of those files would make every name here ambiguous (TS2308), so the names
+ * are declared for the barrel writer to re-export explicitly from one file.
+ *
+ * These are the same constants the templates interpolate, so a rename cannot
+ * desynchronise the two. `http-resource.test.ts` additionally asserts this list
+ * against the names two generated resource files actually share, which catches
+ * a *new* shared declaration being added without being listed here.
+ */
+const HTTP_RESOURCE_SHARED_EXPORTS: SharedExports = {
+  types: [
+    HTTP_RESOURCE_OPTIONS_TYPE_NAME,
+    HTTP_RESOURCE_REQUEST_EXTENSION_TYPE_NAME,
+    RESOURCE_STATE_TYPE_NAME,
+  ],
+  values: [
+    APPLY_REQUEST_EXTENSION_FUNCTION_NAME,
+    TO_RESOURCE_STATE_FUNCTION_NAME,
+  ],
+};
 
 const getHttpResourceFactory = (
   response: { readonly isBlob: boolean },
@@ -1221,7 +1254,7 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
 };
 
 const buildHttpResourceOptionsUtilities = (omitParse: boolean): string => `
-export interface OrvalHttpResourceRequestExtension {
+export interface ${HTTP_RESOURCE_REQUEST_EXTENSION_TYPE_NAME} {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
   headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);
   /** Angular HttpContext forwarded to the underlying request. Pass a function to derive it reactively. */
@@ -1234,7 +1267,7 @@ export type ${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<TValue, TRaw = unknown, TOmitPars
   (TOmitParse extends true
     ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
     : HttpResourceOptions<TValue, TRaw>) &
-  OrvalHttpResourceRequestExtension;
+  ${HTTP_RESOURCE_REQUEST_EXTENSION_TYPE_NAME};
 
 function mergeOrvalResourceHeaders(
   base: HttpResourceRequest['headers'],
@@ -1270,9 +1303,9 @@ function mergeOrvalResourceHeaders(
   return { ...base, ...extra };
 }
 
-export function applyOrvalRequestExtension(
+export function ${APPLY_REQUEST_EXTENSION_FUNCTION_NAME}(
   request: string | HttpResourceRequest,
-  options?: OrvalHttpResourceRequestExtension,
+  options?: ${HTTP_RESOURCE_REQUEST_EXTENSION_TYPE_NAME},
 ): HttpResourceRequest {
   const base: HttpResourceRequest = typeof request === 'string' ? { url: request } : request;
   if (
@@ -1349,7 +1382,7 @@ const buildResourceStateUtilities = (): string => `
  *
  * Uses \`globalThis.Error\` to avoid collision with API model types named \`Error\`.
  */
-export interface ResourceState<T> {
+export interface ${RESOURCE_STATE_TYPE_NAME}<T> {
   readonly value: Signal<T | undefined>;
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
@@ -1362,7 +1395,7 @@ export interface ResourceState<T> {
  * Wraps an HttpResourceRef to expose a consistent ResourceState interface.
  * Useful when integrating with NgRx SignalStore via withResource().
  */
-export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
+export function ${TO_RESOURCE_STATE_FUNCTION_NAME}<T>(ref: HttpResourceRef<T>): ${RESOURCE_STATE_TYPE_NAME}<T> {
   return {
     value: ref.value,
     status: ref.status,
@@ -1774,6 +1807,7 @@ const buildHttpResourceExtraFile = (
   return {
     content: `${header}${importImplementation}${mutatorImports}${implementation}`,
     path: outputPath,
+    sharedExports: HTTP_RESOURCE_SHARED_EXPORTS,
   };
 };
 
