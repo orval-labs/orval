@@ -1,5 +1,6 @@
 import {
   asyncReduce,
+  buildSchemaTagMap,
   type ContextSpec,
   generateVerbsOptions,
   type GeneratorApiBuilder,
@@ -8,6 +9,7 @@ import {
   getFullRoute,
   getRoute,
   GetterPropType,
+  isObject,
   isReference,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
@@ -32,10 +34,17 @@ export async function getApiBuilder({
   input,
   output,
   context,
+  componentSchemas,
 }: {
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   context: ContextSpec;
+  /**
+   * Schemas derived from `components.schemas`, which the caller merges ahead
+   * of the operation-derived ones. Needed here so the schema→tag map is built
+   * over the complete schema list — the same list `writeSpecs` sees.
+   */
+  componentSchemas: GeneratorSchema[];
 }): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
     Object.entries(context.spec.paths ?? {}),
@@ -139,16 +148,34 @@ export async function getApiBuilder({
     } as GeneratorApiOperations,
   );
 
+  // Built here, not in `writeSpecs`, because extra files are rendered during
+  // API building and must route schema imports through the same map the mode
+  // writers use later. Computed over the merged schema list so it matches
+  // `WriteSpecBuilder.schemas` exactly — `api.schemas` alone omits every
+  // component schema, which would silently collapse tag routing to flat.
+  const schemaTagMap =
+    isObject(output.schemas) && output.schemas.splitByTags
+      ? buildSchemaTagMap(
+          Object.values(api.operations).map((operation) => ({
+            imports: operation.imports,
+            tags: operation.tags,
+          })),
+          [...componentSchemas, ...api.schemas],
+        )
+      : undefined;
+
   const extraFiles = await generateExtraFiles(
     output.client,
     api.verbOptions,
     output,
     context,
+    schemaTagMap,
   );
 
   return {
     operations: api.operations,
     schemas: api.schemas,
+    schemaTagMap,
     verbOptions: api.verbOptions,
     title: generateClientTitle,
     header: generateClientHeader,

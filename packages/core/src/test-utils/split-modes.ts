@@ -50,6 +50,7 @@ export const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
     info: { title: 'pet-store' },
     target,
     spec: {},
+    schemaTagMap: undefined,
   }) as unknown as WriteSpecBuilder;
 
 export const createSplitModeOutput = (

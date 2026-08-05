@@ -1,7 +1,6 @@
 import path from 'node:path';
 
 import {
-  buildSchemaTagMap,
   type ContextSpec,
   conventionName,
   createSuccessMessage,
@@ -478,23 +477,15 @@ export async function writeSpecs(
   const { info, schemas, target } = builder;
   const { output } = options;
 
-  // Compute the schema→tag map once when splitByTags is enabled so every
-  // downstream writer (zod schemas, typescript schemas, the mode writers,
-  // and the consolidated faker factory file) route imports consistently.
-  // Declared at function scope because it is consumed both inside the
-  // schemas-writing branch and by `writeFakerSchemaMocks` / mode dispatch
-  // which live outside that branch.
+  // The schema→tag map is built once during API building (`getApiBuilder`) and
+  // carried on the builder, so every consumer — the extra files rendered back
+  // then, and the writers below (zod schemas, typescript schemas, the mode
+  // writers, the consolidated faker factory file) — routes imports through the
+  // identical map. Recomputing it here would reintroduce the drift that let
+  // sibling files disagree with the main generated output.
   const shouldSplitSchemasByTags =
     isObject(output.schemas) && output.schemas.splitByTags;
-  const schemaTagMap = shouldSplitSchemasByTags
-    ? buildSchemaTagMap(
-        Object.values(builder.operations).map((op) => ({
-          imports: op.imports,
-          tags: op.tags,
-        })),
-        schemas,
-      )
-    : undefined;
+  const { schemaTagMap } = builder;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
