@@ -377,6 +377,10 @@ export function resolveMockValue({
     const canDelegate =
       shouldDelegateToSchemaFactories(context) &&
       isComponentsSchemaRef(refPaths) &&
+      // A ref already on the resolution path is recursive: delegating would
+      // emit a factory call that re-enters itself at runtime. Inline it so
+      // the recursion terminators can cut the cycle instead.
+      !existingReferencedProperties.includes(name) &&
       !delegationDropsRequired &&
       !hasOverrideTouchingSchema(
         schemaRef?.properties as Record<string, unknown> | undefined,

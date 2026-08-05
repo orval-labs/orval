@@ -386,3 +386,57 @@ describe('getMockObject', () => {
     expect(result.imports.length).toBeLessThan(200);
   });
 });
+
+describe('getMockObject recursive reference terminators', () => {
+  const nodeSchema = {
+    type: 'object',
+    required: ['next'],
+    properties: { next: { $ref: '#/components/schemas/Node' } },
+  } satisfies OpenApiSchemaObject;
+
+  const buildNode = (
+    schema: Exclude<OpenApiSchemaObject, boolean>,
+    mockOptions?: MockOptions,
+  ) => {
+    const context = createTestContextSpec({
+      spec: { components: { schemas: { Node: schema } } },
+    });
+    return getMockObject({
+      item: {
+        name: 'Node',
+        ...schema,
+      } as Parameters<typeof getMockObject>[0]['item'],
+      operationId: 'Node',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: ['Node'],
+      splitMockImplementations: [],
+      mockOptions,
+    });
+  };
+
+  it('casts a required non-nullable recursive $ref that cannot be stubbed', () => {
+    const result = buildNode(nodeSchema);
+
+    expect(result.value).toBe('{next: {} as unknown as Node}');
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'Node' }),
+    );
+  });
+
+  it('keeps null when the recursive $ref targets a nullable schema', () => {
+    const result = buildNode({
+      ...nodeSchema,
+      type: ['object', 'null'],
+    });
+
+    expect(result.value).toContain('next: null');
+  });
+
+  it('omits an optional recursive $ref', () => {
+    const result = buildNode({ ...nodeSchema, required: [] });
+
+    expect(result.value).toBe('{}');
+  });
+});

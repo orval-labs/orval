@@ -9,6 +9,7 @@ import {
   type OpenApiSchemaObject,
   PropertySortOrder,
 } from '@orval/core';
+import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
@@ -44,6 +45,59 @@ function getReferenceName(
   if (!ref) return '';
 
   return getRefInfo(ref, context).name;
+}
+
+function resolveRefTarget(
+  ref: string | undefined,
+  context: ContextSpec,
+): Partial<OpenApiSchemaObject> | undefined {
+  if (typeof ref !== 'string') return undefined;
+  const { refPaths } = getRefInfo(ref, context);
+  if (!Array.isArray(refPaths)) return undefined;
+
+  return prop(
+    context.spec,
+    // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+    ...refPaths,
+  ) as Partial<OpenApiSchemaObject> | undefined;
+}
+
+function isNullableRefTarget(
+  ref: string | undefined,
+  context: ContextSpec,
+): boolean {
+  return isNullableSchema(resolveRefTarget(ref, context));
+}
+
+// One-hop lookahead for a recursive ref about to be re-expanded: when the
+// target's own required `$ref` properties already sit on the resolution path
+// and can neither be nulled nor cut, the re-expansion is guaranteed to end in
+// casts and collapse back to one. Predicting that here skips the wasted work,
+// which otherwise dominates generation time on dense recursive specs.
+function reExpansionWouldCollapse(
+  ref: string | undefined,
+  context: ContextSpec,
+  existingReferencedProperties: string[],
+  nonNullable: boolean | undefined,
+): boolean {
+  const target = resolveRefTarget(ref, context);
+  const targetProperties = target?.properties as
+    | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
+    | undefined;
+  const targetRequired = target?.required as string[] | undefined;
+  if (!targetProperties || !Array.isArray(targetRequired)) return false;
+
+  return Object.entries(targetProperties).some(([key, property]) => {
+    if (!targetRequired.includes(key) || !isReference(property)) return false;
+    if (
+      !existingReferencedProperties.includes(
+        getReferenceName(property.$ref, context),
+      )
+    ) {
+      return false;
+    }
+    return nonNullable || !isNullableRefTarget(property.$ref, context);
+  });
 }
 
 interface GetMockObjectOptions {
@@ -238,19 +292,53 @@ export function getMockObject({
 
           const hasNullable = 'nullable' in prop && prop.nullable === true;
 
-          // Check to see if the property is a reference to an existing property
-          // Fixes issue #910
-          if (
-            isReference(prop) &&
-            existingReferencedProperties.includes(
-              getReferenceName(prop.$ref, context),
-            )
-          ) {
-            if (isRequired) {
-              const keyDefinition = getKey(key);
+          const refName = isReference(prop)
+            ? getReferenceName(prop.$ref, context)
+            : '';
+          const refVisits = refName
+            ? existingReferencedProperties.filter(
+                (existing) => existing === refName,
+              ).length
+            : 0;
+
+          // A property `$ref` already on the resolution path is recursive.
+          // Optional: drop it. Nullable: `null` is valid. Anything else
+          // expands once more so the array/union guards a hop deeper can
+          // close the cycle with a value the type accepts. At most one such
+          // re-expansion per path (any repeated name on the path casts
+          // immediately), and a re-expansion that still needed casts inside
+          // collapses back to a single cast below: an all-required cycle has
+          // no finite value anyway, and unbounded re-expansion blows up the
+          // output on dense recursive specs.
+          if (refVisits > 0) {
+            if (!isRequired) {
+              return;
+            }
+            const keyDefinition = getKey(key);
+            if (
+              !mockOptions?.nonNullable &&
+              (hasNullable ||
+                (isReference(prop) && isNullableRefTarget(prop.$ref, context)))
+            ) {
               return `${keyDefinition}: null`;
             }
-            return;
+            const inReExpansion =
+              new Set(existingReferencedProperties).size !==
+              existingReferencedProperties.length;
+            if (
+              refVisits >= 2 ||
+              inReExpansion ||
+              (isReference(prop) &&
+                reExpansionWouldCollapse(
+                  prop.$ref,
+                  context,
+                  existingReferencedProperties,
+                  mockOptions?.nonNullable,
+                ))
+            ) {
+              imports.push({ name: refName });
+              return `${keyDefinition}: {} as unknown as ${refName}`;
+            }
           }
 
           const importsBefore = imports.length;
@@ -283,6 +371,25 @@ export function getMockObject({
           includedProperties.push(key);
 
           const keyDefinition = getKey(key);
+
+          // A required `$ref` union whose variants were all recursively
+          // skipped resolves to `undefined`; cast it so the emitted literal
+          // still satisfies the type.
+          if (isRequired && refName && resolvedValue.value === 'undefined') {
+            imports.push({ name: refName });
+            return `${keyDefinition}: undefined as unknown as ${refName}`;
+          }
+
+          // A re-expansion that still needed casts gained nothing over
+          // casting here directly, so keep the smaller form.
+          if (
+            isRequired &&
+            refVisits > 0 &&
+            resolvedValue.value.includes(' as unknown as ')
+          ) {
+            imports.push({ name: refName });
+            return `${keyDefinition}: {} as unknown as ${refName}`;
+          }
 
           const hasDefault = 'default' in prop && prop.default !== undefined;
 

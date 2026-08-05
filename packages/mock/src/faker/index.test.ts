@@ -508,6 +508,267 @@ describe('generateFakerForSchemas recursion guards', () => {
   });
 });
 
+describe('generateFakerForSchemas recursive reference terminators', () => {
+  const run = (
+    schemas: Record<string, OpenApiSchemaObject>,
+    roots: string[],
+    context = createTestContextSpec(),
+  ) => {
+    context.spec.components = { schemas };
+    return generateFakerForSchemas(
+      roots.map((root) => ({
+        name: root,
+        model: root,
+        imports: [],
+        schema: schemas[root]!,
+      })),
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+  };
+
+  const factoryBody = (implementation: string, factoryName: string) => {
+    const start = implementation.indexOf(`export const ${factoryName}`);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = implementation.indexOf('export const', start + 1);
+    return implementation.slice(start, end === -1 ? undefined : end);
+  };
+
+  const levelSchema = {
+    type: 'object',
+    required: ['entityType', 'nextLevelsWithConditions'],
+    properties: {
+      entityType: { type: 'string' },
+      nextLevelsWithConditions: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/LevelWithCondition' },
+      },
+    },
+  } satisfies OpenApiSchemaObject;
+  const levelWithConditionSchema = {
+    type: 'object',
+    required: ['condition', 'level'],
+    properties: {
+      condition: { type: 'string' },
+      level: { $ref: '#/components/schemas/Level' },
+    },
+  } satisfies OpenApiSchemaObject;
+  const levelSchemas: Record<string, OpenApiSchemaObject> = {
+    Level: levelSchema,
+    LevelWithCondition: levelWithConditionSchema,
+  };
+
+  it('stubs a required non-nullable recursive $ref instead of emitting null', () => {
+    const result = run(levelSchemas, ['LevelWithCondition', 'Level']);
+
+    expect(result.implementation).not.toContain('level: null');
+    // The re-expansion terminates through the array guard one hop deeper.
+    const levelMock = factoryBody(result.implementation, 'getLevelMock');
+    expect(levelMock).toContain('level: {entityType:');
+    expect(levelMock).toContain('nextLevelsWithConditions: []');
+  });
+
+  it('picks a concrete variant for a union member referencing its parent union', () => {
+    const result = run(
+      {
+        TracingValue: {
+          oneOf: [
+            { $ref: '#/components/schemas/StringTracingValue' },
+            { $ref: '#/components/schemas/RangeTracingValue' },
+          ],
+        },
+        StringTracingValue: {
+          type: 'object',
+          required: ['value', 'type'],
+          properties: {
+            value: { type: 'string' },
+            type: { type: 'string', enum: ['StringTracingValue'] },
+          },
+        },
+        RangeTracingValue: {
+          type: 'object',
+          required: ['from', 'to', 'type'],
+          properties: {
+            from: { $ref: '#/components/schemas/TracingValue' },
+            to: { $ref: '#/components/schemas/TracingValue' },
+            type: { type: 'string', enum: ['RangeTracingValue'] },
+          },
+        },
+      },
+      ['StringTracingValue', 'RangeTracingValue', 'TracingValue'],
+    );
+
+    expect(result.implementation).not.toContain('from: null');
+    expect(result.implementation).not.toContain('to: null');
+    const helper = factoryBody(
+      result.implementation,
+      'getTracingValueResponseRangeTracingValueMock',
+    );
+    expect(helper).toContain(
+      'from: faker.helpers.arrayElement([{...getTracingValueResponseStringTracingValueMock()}',
+    );
+  });
+
+  it('keeps null for a required recursive $ref to a nullable schema', () => {
+    const schemas: Record<string, OpenApiSchemaObject> = {
+      ...levelSchemas,
+      Level: {
+        ...levelSchema,
+        type: ['object', 'null'],
+      },
+    };
+    const result = run(schemas, ['Level']);
+
+    const levelMock = factoryBody(result.implementation, 'getLevelMock');
+    expect(levelMock).toContain('level: null');
+  });
+
+  it('still omits an optional recursive $ref', () => {
+    const schemas: Record<string, OpenApiSchemaObject> = {
+      ...levelSchemas,
+      LevelWithCondition: {
+        ...levelWithConditionSchema,
+        required: ['condition'],
+      },
+    };
+    const result = run(schemas, ['Level']);
+
+    const levelMock = factoryBody(result.implementation, 'getLevelMock');
+    expect(levelMock).not.toContain('level:');
+  });
+
+  it('terminates a fully-required self cycle with a cast after one re-expansion', () => {
+    const result = run(
+      {
+        Ouro: {
+          type: 'object',
+          required: ['next'],
+          properties: { next: { $ref: '#/components/schemas/Ouro' } },
+        },
+      },
+      ['Ouro'],
+    );
+
+    expect(result.implementation).not.toContain('next: null');
+    expect(result.implementation).toContain('next: {} as unknown as Ouro');
+  });
+
+  it('terminates a fully-required mutual cycle with a cast', () => {
+    const result = run(
+      {
+        A: {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { $ref: '#/components/schemas/B' } },
+        },
+        B: {
+          type: 'object',
+          required: ['a'],
+          properties: { a: { $ref: '#/components/schemas/A' } },
+        },
+      },
+      ['A', 'B'],
+    );
+
+    expect(result.implementation).not.toContain(': null');
+    expect(result.implementation).toContain('as unknown as');
+  });
+
+  it('casts undefined for a required $ref union whose variants are all recursive', () => {
+    const result = run(
+      {
+        OnlyRange: {
+          oneOf: [{ $ref: '#/components/schemas/RangeOnly' }],
+        },
+        RangeOnly: {
+          type: 'object',
+          required: ['from'],
+          properties: { from: { $ref: '#/components/schemas/OnlyRange' } },
+        },
+      },
+      ['RangeOnly'],
+    );
+
+    expect(result.implementation).not.toContain('from: undefined,');
+    expect(result.implementation).toContain(
+      'from: undefined as unknown as OnlyRange',
+    );
+  });
+
+  it('collapses a re-expansion that still needed casts inside', () => {
+    const result = run(
+      {
+        Wrap: {
+          type: 'object',
+          required: ['inner'],
+          properties: {
+            inner: {
+              type: 'object',
+              required: ['next'],
+              properties: { next: { $ref: '#/components/schemas/Wrap' } },
+            },
+          },
+        },
+      },
+      ['Wrap'],
+    );
+
+    expect(result.implementation).toContain('next: {} as unknown as Wrap');
+    expect(result.implementation).not.toContain('next: {inner:');
+  });
+
+  it('keeps output bounded on a dense cluster of mutually required refs', () => {
+    const names = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5'];
+    const schemas: Record<string, OpenApiSchemaObject> = Object.fromEntries(
+      names.map((name) => [
+        name,
+        {
+          type: 'object',
+          required: names.filter((other) => other !== name),
+          properties: Object.fromEntries(
+            names
+              .filter((other) => other !== name)
+              .map((other) => [
+                other,
+                { $ref: `#/components/schemas/${other}` },
+              ]),
+          ),
+        },
+      ]),
+    );
+
+    const result = run(schemas, names);
+
+    expect(result.implementation.length).toBeLessThan(1_000_000);
+  });
+
+  it('does not delegate a recursive $ref to its own factory (runtime cycle)', () => {
+    const context = createTestContextSpec({
+      output: {
+        schemas: 'model',
+        mock: {
+          indexMockFiles: false,
+          generators: [{ type: OutputMockType.FAKER, schemas: true }],
+        },
+      },
+    });
+    const result = run(
+      {
+        TreeNode: {
+          type: 'object',
+          required: ['next'],
+          properties: { next: { $ref: '#/components/schemas/TreeNode' } },
+        },
+      },
+      ['TreeNode'],
+      context,
+    );
+
+    expect(result.implementation).not.toContain('next: { ...getTreeNodeMock()');
+    expect(result.implementation).toContain('next: {} as unknown as TreeNode');
+  });
+});
+
 describe('resolveMockValue returns one factory import per ref-property (#3606)', () => {
   // Delegation to a `get<X>Mock` factory requires output.schemas to be set and
   // the $ref to point at a components schema.
