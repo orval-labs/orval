@@ -1292,6 +1292,55 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     }
   });
 
+  it('routes Angular resource-file schema imports through the same tag map', async () => {
+    // Extra files (`*.resource.ts`) are rendered during API building, before
+    // any mode writer runs, so they need the schema→tag map computed there.
+    // That map must be built over the *merged* schema list — component schemas
+    // are appended after `getApiBuilder` returns, and computing it from the
+    // operation-derived schemas alone silently collapses tag routing to flat.
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            client: 'angular',
+            mode: 'tags-split',
+            indexFiles: false,
+            schemas: {
+              path: './model',
+              type: 'typescript',
+              splitByTags: true,
+              importPath: '@acme/models',
+            },
+            override: { angular: { retrievalClient: 'both' } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const resourceFile = path.join(workspace, 'pets', 'pets.resource.ts');
+      expect(await fs.pathExists(resourceFile)).toBe(true);
+
+      const resourceContent = await fs.readFile(resourceFile, 'utf8');
+      const serviceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.service.ts'),
+        'utf8',
+      );
+
+      // Both files must name the same module for `Pet`: the package
+      // specifier, with the tag subdirectory, and no local file extension.
+      expect(resourceContent).toContain(`from '@acme/models/pets/pet'`);
+      expect(serviceContent).toContain(`from '@acme/models/pets/pet'`);
+      expect(resourceContent).not.toMatch(/from\s+['"]\.\.?\//);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('generates zod schemas with splitByTags', async () => {
     const workspace = await createTempWorkspace();
     try {

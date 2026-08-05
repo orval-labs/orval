@@ -6,7 +6,7 @@ import {
   type ClientFooterBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
-  conventionName,
+  dedupeSchemaImports,
   escapeRegExp,
   generateDependencyImports,
   generateFormDataAndUrlEncodedFunction,
@@ -20,6 +20,7 @@ import {
   getFullRoute,
   GetterPropType,
   getOperationTagKey,
+  getSchemasImportPath,
   getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
@@ -30,9 +31,9 @@ import {
   OutputMode,
   pascal,
   type ResReqTypesValue,
+  resolveSchemaImportDependencies,
   toObjectString,
   upath,
-  getImportExtension,
 } from '@orval/core';
 
 import {
@@ -1578,61 +1579,48 @@ const buildHttpResourceFile = (
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
+/**
+ * Resolves the schema imports for a generated `*.resource.ts` file.
+ *
+ * Delegates path resolution to core's {@link resolveSchemaImportDependencies}
+ * so resource files agree with the service files emitted by the mode writers.
+ * Resource files are rendered before any writer runs, so re-deriving the rule
+ * here — rather than sharing it — is what previously let the two drift.
+ */
 const buildSchemaImportDependencies = (
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
-) => {
+  schemaTagMap?: Map<string, string>,
+): GeneratorDependency[] => {
   const isZod = isZodSchemaOutput(output);
-  const uniqueImports = [
-    ...new Map(imports.map((imp) => [imp.name, imp])).values(),
-  ];
 
-  if (!output.schemas) {
-    return [
-      {
-        exports: isZod
-          ? uniqueImports.map((imp) => ({ ...imp, values: true }))
-          : uniqueImports,
-        dependency: relativeSchemasPath,
-      },
-    ];
+  // Without emitted schemas, `relativeSchemasPath` is the single generated
+  // `*.schemas` file rather than a directory, so per-schema routing does not
+  // apply. (Core's mode writers guard this case on their own derived schemas
+  // path before calling in.)
+  const dependencies = output.schemas
+    ? resolveSchemaImportDependencies(output, relativeSchemasPath, imports, {
+        isZod,
+        schemaTagMap,
+      })
+    : [
+        {
+          exports: dedupeSchemaImports(imports),
+          dependency: relativeSchemasPath,
+        },
+      ];
+
+  if (!isZod) {
+    return dependencies;
   }
 
-  if (!output.indexFiles) {
-    return [...uniqueImports].map((imp) => {
-      const baseName = imp.schemaName ?? imp.name;
-      const name = conventionName(baseName, output.namingConvention);
-      const suffix = isZod ? '.zod' : '';
-      const importExtension = getImportExtension(
-        output.fileExtension,
-        output.tsconfig,
-      );
-      return {
-        exports: isZod ? [{ ...imp, values: true }] : [imp],
-        dependency: upath.joinSafe(
-          relativeSchemasPath,
-          `${name}${suffix}${importExtension}`,
-        ),
-      };
-    });
-  }
-
-  if (isZod) {
-    return [
-      {
-        exports: uniqueImports.map((imp) => ({ ...imp, values: true })),
-        dependency: relativeSchemasPath,
-      },
-    ];
-  }
-
-  return [
-    {
-      exports: uniqueImports,
-      dependency: relativeSchemasPath,
-    },
-  ];
+  // Zod schemas are runtime values, not types, so they must be emitted as
+  // value imports rather than `import type`.
+  return dependencies.map((dependency) => ({
+    ...dependency,
+    exports: dependency.exports.map((imp) => ({ ...imp, values: true })),
+  }));
 };
 
 const getHttpResourceExtraFilePath = (
@@ -1666,6 +1654,15 @@ const getHttpResourceRelativeSchemasPath = (
   output: NormalizedOutputOptions,
   outputPath: string,
 ): string => {
+  // `schemas.importPath` is a package specifier (e.g. `@acme/models`), not a
+  // filesystem path, so it is emitted verbatim rather than resolved relative
+  // to the resource file. Mirrors the split-mode writers, which already
+  // prefer it over the computed relative path.
+  const customImportPath = getSchemasImportPath(output.schemas);
+  if (customImportPath) {
+    return customImportPath;
+  }
+
   const schemasPath =
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
 
@@ -1692,6 +1689,7 @@ const buildHttpResourceExtraFile = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
   header: string,
+  schemaTagMap?: Map<string, string>,
 ) => {
   const implementation = buildHttpResourceFile(verbOptions, output, context);
   const verbImports = Object.values(verbOptions)
@@ -1725,6 +1723,7 @@ const buildHttpResourceExtraFile = (
     output,
     schemaVerbImports,
     getHttpResourceRelativeSchemasPath(output, outputPath),
+    schemaTagMap,
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
@@ -1792,6 +1791,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
   verbOptions,
   output,
   context,
+  schemaTagMap,
 ) => {
   const header = getHeader(output.override.header, context.spec.info);
 
@@ -1825,6 +1825,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
             output,
             context,
             header,
+            schemaTagMap,
           ),
         ),
     );
@@ -1837,6 +1838,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
       output,
       context,
       header,
+      schemaTagMap,
     ),
   ]);
 };

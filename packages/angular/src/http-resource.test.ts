@@ -3405,6 +3405,147 @@ describe('angular httpResource generator', () => {
     });
   });
 
+  describe('schema import resolution', () => {
+    /**
+     * Mirrors the matrix in
+     * `packages/core/src/utils/schema-import-path.test.ts`. Both sides call
+     * `resolveSchemaImportDependencies`, so the pair pins that a generated
+     * `*.resource.ts` resolves schemas exactly as the mode writers resolve
+     * them for the sibling `*.service.ts`. Keep the two in step.
+     *
+     * Resource files are rendered before any writer runs, so they cannot
+     * observe the writers' decisions — this shared rule is the only thing
+     * keeping the two files' imports in agreement.
+     */
+    const createSchemas = (
+      overrides: Partial<{
+        path: string;
+        type: 'typescript' | 'zod';
+        importPath: string;
+        splitByTags: boolean;
+      }> = {},
+      // Built to the shape `normalizeSchemasOption` actually produces: `type`
+      // and `splitByTags` are always set, never absent.
+    ): NormalizedOutputOptions['schemas'] =>
+      ({
+        path: '/libs/models/src/lib/generated/schemas',
+        type: 'typescript',
+        splitByTags: false,
+        ...overrides,
+      }) as NormalizedOutputOptions['schemas'];
+
+    const TAG_MAP = new Map([
+      ['Pet', 'pets'],
+      // `'.'` is the shared sentinel: referenced by 0 or 2+ tags, stays at root.
+      ['Error', '.'],
+    ]);
+
+    const generateResource = async (
+      output: NormalizedOutputOptions,
+      schemaTagMap?: Map<string, string>,
+    ) => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: output.target,
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+        schemaTagMap,
+      );
+
+      return extraFiles[0];
+    };
+
+    const CROSS_PACKAGE_TARGET =
+      '/libs/data-access/src/lib/generated/client/pets.ts';
+
+    it('emits the package specifier verbatim instead of a relative path', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          schemas: createSchemas({ importPath: '@acme/models' }),
+        }),
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
+      // The deep relative cross-package import this fix removes: it breaks
+      // module-boundary lint rules in monorepos (e.g. Nx libs).
+      expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\.\//);
+    });
+
+    it('returns the barrel verbatim even when schemas are split by tag', async () => {
+      // `splitByTags` still emits a root index re-exporting each tag dir, so
+      // the barrel covers everything and needs no tag segment.
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          schemas: createSchemas({
+            importPath: '@acme/models',
+            splitByTags: true,
+          }),
+        }),
+        TAG_MAP,
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
+    });
+
+    it('appends no file extension to package sub-paths when indexFiles is false', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          indexFiles: false,
+          schemas: createSchemas({ importPath: '@acme/models' }),
+        }),
+      );
+
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]@acme\/models\/pet['"]/,
+      );
+      expect(resourceFile?.content).not.toMatch(
+        /from\s+['"]@acme\/models\/pet\./,
+      );
+    });
+
+    it('inserts the tag subdirectory when indexFiles is false', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          indexFiles: false,
+          schemas: createSchemas({
+            importPath: '@acme/models',
+            splitByTags: true,
+          }),
+        }),
+        TAG_MAP,
+      );
+
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]@acme\/models\/pets\/pet['"]/,
+      );
+    });
+
+    it('still resolves a relative path when importPath is not set', async () => {
+      const resourceFile = await generateResource(
+        createOutput({ target: '/tmp/pets.ts', schemas: '/tmp/model' }),
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model['"]/);
+      expect(resourceFile?.content).not.toContain('@acme/models');
+    });
+  });
+
   describe('urlEncodeParameters', () => {
     const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {
       const verbOption = createVerbOption();
