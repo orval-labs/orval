@@ -86,6 +86,32 @@ export const hasQueryParam = (
   return queryParams.paramNames?.includes(queryParam) ?? true;
 };
 
+/**
+ * When nothing is configured, infinite hooks stay allowed, just without a
+ * page param. When candidates are configured but the operation declares none
+ * of them, the infinite hook is suppressed so orval does not emit a useless
+ * one for a non-paginated `GET`.
+ */
+export const resolveInfiniteQueryParam = (
+  queryParams: GetterQueryParam | undefined,
+  useInfiniteQueryParam: string | string[] | undefined,
+): { queryParam: string | undefined; infiniteHookAllowed: boolean } => {
+  const candidates = (
+    Array.isArray(useInfiniteQueryParam)
+      ? useInfiniteQueryParam
+      : [useInfiniteQueryParam]
+  ).filter((name): name is string => !!name);
+
+  if (candidates.length === 0) {
+    return { queryParam: undefined, infiniteHookAllowed: true };
+  }
+
+  const queryParam = candidates.find((name) =>
+    hasQueryParam(queryParams, name),
+  );
+  return { queryParam, infiniteHookAllowed: queryParam !== undefined };
+};
+
 const escapeRegExpMetaChars = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
@@ -986,19 +1012,23 @@ export const generateQueryHook = async (
   const effectiveUseSuspenseQuery =
     operationQueryOptions?.useSuspenseQuery ??
     globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
-  const hasConfiguredInfiniteQueryParam =
-    !query.useInfiniteQueryParam ||
-    hasQueryParam(queryParams, query.useInfiniteQueryParam);
+  // Read the per-operation value directly instead of trusting the merged
+  // `query`: `mergeDeep` concatenates arrays, so an op-level candidate array
+  // would be appended after the global one and lose first-match resolution.
+  const configuredInfiniteQueryParam =
+    operationQueryOptions?.useInfiniteQueryParam ?? query.useInfiniteQueryParam;
+  const { queryParam: infiniteQueryParam, infiniteHookAllowed } =
+    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam);
   const effectiveUseInfinite =
     (operationQueryOptions?.useInfinite ??
       globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
-    hasConfiguredInfiniteQueryParam;
+    infiniteHookAllowed;
   const effectiveUseSuspenseInfiniteQuery =
     (operationQueryOptions?.useSuspenseInfiniteQuery ??
       globalSuspenseOrInfiniteOnlyForGet(
         override.query.useSuspenseInfiniteQuery,
       )) &&
-    hasConfiguredInfiniteQueryParam;
+    infiniteHookAllowed;
 
   let isQuery =
     effectiveUseQuery ||
@@ -1081,7 +1111,7 @@ export const generateQueryHook = async (
               typeName: camel(`${typeName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: infiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -1115,7 +1145,7 @@ export const generateQueryHook = async (
               typeName: camel(`${typeName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: infiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
