@@ -1076,7 +1076,7 @@ export interface NormalizedQueryOptions {
   useMutation?: boolean;
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
-  useInfiniteQueryParam?: string;
+  useInfiniteQueryParam?: string | string[];
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
@@ -1105,7 +1105,7 @@ export interface QueryOptions {
   useMutation?: boolean;
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
-  useInfiniteQueryParam?: string;
+  useInfiniteQueryParam?: string | string[];
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;

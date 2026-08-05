@@ -1700,4 +1700,38 @@ export default defineConfig({
       target: '../specifications/issue-1522.yaml',
     },
   },
+  // `useInfiniteQueryParam` as an array: candidates in priority order, resolved
+  // per operation. `listPets` pages on `page`, `listBets` on `cursor.marker`,
+  // `listEvents` declares both so the earlier candidate `page` wins, and
+  // `getStatus` declares neither so it gets no infinite hook at all — the same
+  // as a single configured name that the operation does not declare.
+  // `listRaces` also declares both, but its per-operation override replaces
+  // the global candidate list, so it pages on `cursor.marker`.
+  infiniteQueryParamArray: {
+    output: {
+      target: '../generated/react-query/infinite-query-param-array/endpoints.ts',
+      schemas: '../generated/react-query/infinite-query-param-array/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useQuery: false,
+          useInfinite: true,
+          useInfiniteQueryParam: ['page', 'cursor.marker'],
+        },
+        operations: {
+          listRaces: {
+            query: {
+              useInfiniteQueryParam: ['cursor.marker'],
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/infinite-query-param-array.yaml',
+    },
+  },
 });

@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title:
+    Infinite query param array - one spec paginating in more than one way
+  version: 0.0.1
+paths:
+  # Page based: matches the first candidate, `page`.
+  /pets:
+    get:
+      operationId: listPets
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            format: int32
+            type: integer
+        - in: query
+          name: limit
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResult'
+  # Cursor based: matches the second candidate, `cursor.marker`.
+  /bets:
+    get:
+      operationId: listBets
+      parameters:
+        - in: query
+          name: cursor.marker
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResult'
+  # Declares both: the earlier candidate `page` wins.
+  /events:
+    get:
+      operationId: listEvents
+      parameters:
+        - in: query
+          name: cursor.marker
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResult'
+  # Declares both, but an `override.operations` array replaces the global
+  # candidates, so `cursor.marker` wins here instead of `page`.
+  /races:
+    get:
+      operationId: listRaces
+      parameters:
+        - in: query
+          name: cursor.marker
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResult'
+  # Not paginated: no infinite hook should be generated.
+  /status:
+    get:
+      operationId: getStatus
+      parameters:
+        - in: query
+          name: verbose
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+components:
+  schemas:
+    ListResult:
+      type: object
+      required: [data]
+      properties:
+        nextMarker:
+          type: string
+        data:
+          type: array
+          items:
+            type: string
