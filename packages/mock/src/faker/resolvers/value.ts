@@ -100,6 +100,9 @@ export function resolveRefTarget(
   context: ContextSpec,
 ): Partial<OpenApiSchemaObject> | undefined {
   if (typeof ref !== 'string') return undefined;
+  // getRefInfo throws on refs without a '#' fragment
+  const [, fragment] = ref.split('#');
+  if (!fragment) return undefined;
   const { refPaths } = getRefInfo(ref, context);
   if (!Array.isArray(refPaths)) return undefined;
 
