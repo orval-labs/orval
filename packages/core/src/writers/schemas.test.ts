@@ -652,10 +652,15 @@ describe('writeSchemas indexFiles', () => {
       const indexPath = path.join(schemaPath, 'index.ts');
       const content = await fs.readFile(indexPath, 'utf8');
 
-      expect(content).toContain("export * from './createUserRequest';");
-      expect(content).toContain("export * from './createUserResponse';");
-      expect(content).toContain("export * from './userDto';");
-      expect(content).toContain("export * from './userListResponse';");
+      const exportLines = content
+        .split('\n')
+        .filter((line) => line.startsWith('export * from'));
+      expect(exportLines).toEqual([
+        "export * from './createUserRequest';",
+        "export * from './createUserResponse';",
+        "export * from './userDto';",
+        "export * from './userListResponse';",
+      ]);
     } finally {
       await fs.remove(tempDir);
     }
