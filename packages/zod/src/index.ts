@@ -1396,15 +1396,70 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
+  const ENUM_NAME_EXTENSIONS = [
+    'x-enumNames',
+    'x-enum-varnames',
+    'x-enum-varNames',
+  ] as const;
+
+  const getEnumNames = (
+    schema: OpenApiSchemaObject,
+    values: unknown[],
+  ): string[] | undefined => {
+    for (const extension of ENUM_NAME_EXTENSIONS) {
+      const names = (schema as Record<string, unknown>)[extension];
+
+      if (
+        Array.isArray(names) &&
+        names.length === values.length &&
+        names.every(isString)
+      ) {
+        return names.map((name) => pascal(name));
+      }
+    }
+
+    return;
+  };
+
+  const buildEnumObjectConst = (
+    constName: string,
+    names: string[],
+    values: unknown[],
+  ) => {
+    const entries = names.map((name, index) => {
+      const value = values[index];
+
+      return `  ${name}: ${
+        isString(value) ? `'${jsStringLiteralEscape(value)}'` : stringify(value)
+      },`;
+    });
+
+    return `export const ${constName} = {${entries.join('\n')}} as const;`;
+  };
+
   // Array item enums are handled by the nested item schema. Guard parent-array
   // enum emission to avoid generating invalid trailing `.enum(...)` chains.
   if (schema.enum && type !== 'array') {
     const uniqueEnumValues = unique(schema.enum);
+    const enumNames = getEnumNames(schema, uniqueEnumValues);
 
-    if (uniqueEnumValues.every((value) => isString(value))) {
+    if (
+      context.output.override.zod.generateNativeEnums &&
+      enumNames &&
+      enumNames.length === uniqueEnumValues.length
+    ) {
+      const enumObjectName = `${pascal(name)}Object${constsCounterValue}`;
+      consts.push(
+        buildEnumObjectConst(enumObjectName, enumNames, uniqueEnumValues),
+      );
+
+      functions.push(['objectEnum', enumObjectName]);
+    } else if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${uniqueEnumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
+        `[${uniqueEnumValues
+          .map((value) => `'${jsStringLiteralEscape(value)}'`)
+          .join(', ')}]`,
       ]);
     } else {
       functions.push([
@@ -1682,6 +1737,14 @@ ${Object.entries(objectArgs)
         const refArgs = args as { name: string; sourceRef: string };
         usedRefs.add(refArgs.name);
         current = { expr: `__REF_${refArgs.name}__`, kind: 'ref' };
+        continue;
+      }
+
+      if (fn === 'enumObject') {
+        current = {
+          expr: zodMiniCall('enum', String(args)),
+          kind: 'enum',
+        };
         continue;
       }
 
@@ -2027,6 +2090,10 @@ ${Object.entries(mergedProperties)
       const refArgs = args as { name: string; sourceRef: string };
       usedRefs.add(refArgs.name);
       return `__REF_${refArgs.name}__`;
+    }
+
+    if (fn === 'enumObject') {
+      return isZodV4 ? `.enum(${args})` : `.nativeEnum(${args})`;
     }
 
     // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.
