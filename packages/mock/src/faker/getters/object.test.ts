@@ -434,6 +434,16 @@ describe('getMockObject recursive reference terminators', () => {
     expect(result.value).toContain('next: null');
   });
 
+  it('casts instead of null when nonNullable is set', () => {
+    const result = buildNode(
+      { ...nodeSchema, type: ['object', 'null'] },
+      { nonNullable: true },
+    );
+
+    expect(result.value).not.toContain('next: null');
+    expect(result.value).toContain('as unknown as Node');
+  });
+
   it('omits an optional recursive $ref', () => {
     const result = buildNode({ ...nodeSchema, required: [] });
 

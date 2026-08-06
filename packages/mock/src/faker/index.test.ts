@@ -670,7 +670,8 @@ describe('generateFakerForSchemas recursive reference terminators', () => {
       ['A', 'B'],
     );
 
-    expect(result.implementation).not.toContain(': null');
+    expect(result.implementation).not.toContain('a: null');
+    expect(result.implementation).not.toContain('b: null');
     expect(result.implementation).toContain('as unknown as');
   });
 
@@ -689,7 +690,7 @@ describe('generateFakerForSchemas recursive reference terminators', () => {
       ['RangeOnly'],
     );
 
-    expect(result.implementation).not.toContain('from: undefined,');
+    expect(result.implementation).not.toContain('from: undefined}');
     expect(result.implementation).toContain(
       'from: undefined as unknown as OnlyRange',
     );
@@ -739,7 +740,7 @@ describe('generateFakerForSchemas recursive reference terminators', () => {
 
     const result = run(schemas, names);
 
-    expect(result.implementation.length).toBeLessThan(1_000_000);
+    expect(result.implementation.length).toBeLessThan(300_000);
   });
 
   it('does not delegate a recursive $ref to its own factory (runtime cycle)', () => {

@@ -9,7 +9,6 @@ import {
   type OpenApiSchemaObject,
   PropertySortOrder,
 } from '@orval/core';
-import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
@@ -17,6 +16,7 @@ import {
   resolveMockValue,
   getNullable,
   isNullableSchema,
+  resolveRefTarget,
 } from '../resolvers/value';
 import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
@@ -47,21 +47,6 @@ function getReferenceName(
   return getRefInfo(ref, context).name;
 }
 
-function resolveRefTarget(
-  ref: string | undefined,
-  context: ContextSpec,
-): Partial<OpenApiSchemaObject> | undefined {
-  if (typeof ref !== 'string') return undefined;
-  const { refPaths } = getRefInfo(ref, context);
-  if (!Array.isArray(refPaths)) return undefined;
-
-  return prop(
-    context.spec,
-    // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-    ...refPaths,
-  ) as Partial<OpenApiSchemaObject> | undefined;
-}
-
 function isNullableRefTarget(
   ref: string | undefined,
   context: ContextSpec,
@@ -69,11 +54,9 @@ function isNullableRefTarget(
   return isNullableSchema(resolveRefTarget(ref, context));
 }
 
-// One-hop lookahead for a recursive ref about to be re-expanded: when the
-// target's own required `$ref` properties already sit on the resolution path
-// and can neither be nulled nor cut, the re-expansion is guaranteed to end in
-// casts and collapse back to one. Predicting that here skips the wasted work,
-// which otherwise dominates generation time on dense recursive specs.
+// One-hop lookahead before re-expanding a recursive ref: when the target's
+// own required refs already sit on the path and cannot be nulled, the
+// re-expansion can only end in casts, so skip the wasted work.
 function reExpansionWouldCollapse(
   ref: string | undefined,
   context: ContextSpec,
@@ -295,22 +278,16 @@ export function getMockObject({
           const refName = isReference(prop)
             ? getReferenceName(prop.$ref, context)
             : '';
-          const refVisits = refName
-            ? existingReferencedProperties.filter(
-                (existing) => existing === refName,
-              ).length
-            : 0;
+          const isRecursiveRef =
+            !!refName && existingReferencedProperties.includes(refName);
 
-          // A property `$ref` already on the resolution path is recursive.
-          // Optional: drop it. Nullable: `null` is valid. Anything else
-          // expands once more so the array/union guards a hop deeper can
-          // close the cycle with a value the type accepts. At most one such
-          // re-expansion per path (any repeated name on the path casts
-          // immediately), and a re-expansion that still needed casts inside
-          // collapses back to a single cast below: an all-required cycle has
-          // no finite value anyway, and unbounded re-expansion blows up the
-          // output on dense recursive specs.
-          if (refVisits > 0) {
+          // Recursive $ref. Optional properties are dropped, nullable ones
+          // keep null. The rest expands one more level, letting the deeper
+          // array/union guards close the cycle with a typed stub. One
+          // re-expansion per path, and none when it could only end in casts:
+          // an all-required cycle has no finite value, and unbounded
+          // re-expansion blows up on dense specs.
+          if (isRecursiveRef) {
             if (!isRequired) {
               return;
             }
@@ -326,7 +303,6 @@ export function getMockObject({
               new Set(existingReferencedProperties).size !==
               existingReferencedProperties.length;
             if (
-              refVisits >= 2 ||
               inReExpansion ||
               (isReference(prop) &&
                 reExpansionWouldCollapse(
@@ -372,9 +348,8 @@ export function getMockObject({
 
           const keyDefinition = getKey(key);
 
-          // A required `$ref` union whose variants were all recursively
-          // skipped resolves to `undefined`; cast it so the emitted literal
-          // still satisfies the type.
+          // A required $ref union whose variants were all recursively
+          // skipped resolves to undefined; cast it to satisfy the type.
           if (isRequired && refName && resolvedValue.value === 'undefined') {
             imports.push({ name: refName });
             return `${keyDefinition}: undefined as unknown as ${refName}`;
@@ -384,7 +359,7 @@ export function getMockObject({
           // casting here directly, so keep the smaller form.
           if (
             isRequired &&
-            refVisits > 0 &&
+            isRecursiveRef &&
             resolvedValue.value.includes(' as unknown as ')
           ) {
             imports.push({ name: refName });
