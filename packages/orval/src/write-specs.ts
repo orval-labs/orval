@@ -104,6 +104,39 @@ export async function runFormatter(
   }
 }
 
+const DOCS_MARKDOWN_PLUGIN = 'typedoc-plugin-markdown';
+const DOCS_MARKDOWN_THEME = 'markdown';
+
+export function getDocsTypedocOptions(
+  entryPoints: string[],
+  config: Partial<TypeDocOptions>,
+): Partial<TypeDocOptions> {
+  const plugin = config.plugin ?? [];
+
+  return {
+    entryPoints,
+    // Skip TypeScript diagnostics on the consuming project: TypeDoc would
+    // otherwise pick up the user's tsconfig and surface errors from files
+    // unrelated to the generated entry points (e.g. a demo `App.tsx`
+    // with an unused `React` default import under the new JSX transform —
+    // see #3338). User-overridable via the `docs` option below.
+    skipErrorChecking: true,
+    // Set the custom config location if it has been provided.
+    ...config,
+    plugin: plugin.includes(DOCS_MARKDOWN_PLUGIN)
+      ? plugin
+      : [DOCS_MARKDOWN_PLUGIN, ...plugin],
+  };
+}
+
+/**
+ * Gives the TypeDoc output for a theme. The markdown plugin makes markdown the
+ * default output, thus all other themes must use the html output.
+ */
+export function getDocsOutputName(theme: unknown): 'html' | 'markdown' {
+  return theme === DOCS_MARKDOWN_THEME ? 'markdown' : 'html';
+}
+
 function getComparableFilePath(filePath: string): string {
   const resolvedPath = path.resolve(filePath);
   let comparablePath = resolvedPath;
@@ -922,20 +955,16 @@ export async function writeSpecs(
       };
 
       const Application = await getTypedocApplication();
-      const app = await Application.bootstrapWithPlugins({
-        entryPoints: paths.map((x) => upath.toUnix(x)),
-        theme: 'markdown',
-        // Skip TypeScript diagnostics on the consuming project: TypeDoc would
-        // otherwise pick up the user's tsconfig and surface errors from files
-        // unrelated to the generated entry points (e.g. a demo `App.tsx`
-        // with an unused `React` default import under the new JSX transform —
-        // see #3338). User-overridable via the `docs` option below.
-        skipErrorChecking: true,
-        // Set the custom config location if it has been provided.
-        ...config,
-        plugin: ['typedoc-plugin-markdown', ...(config.plugin ?? [])],
-      });
+      const app = await Application.bootstrapWithPlugins(
+        getDocsTypedocOptions(
+          paths.map((x) => upath.toUnix(x)),
+          config,
+        ),
+      );
       // Set defaults if the have not been provided by the external config.
+      if (!app.options.isSet('theme')) {
+        app.options.setValue('theme', DOCS_MARKDOWN_THEME);
+      }
       if (!app.options.isSet('readme')) {
         app.options.setValue('readme', 'none');
       }
@@ -945,6 +974,9 @@ export async function writeSpecs(
       const project = await app.convert();
       if (project) {
         const outputPath = app.options.getValue('out');
+        app.outputs.setDefaultOutputName(
+          getDocsOutputName(app.options.getValue('theme')),
+        );
         await app.generateOutputs(project);
 
         await runFormatter(output.formatter, [outputPath], projectTitle);

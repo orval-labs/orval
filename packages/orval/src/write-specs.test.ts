@@ -32,7 +32,11 @@ vi.mock('@orval/core', async (importOriginal) => {
 
 import { execa } from 'execa';
 
-import { runFormatter } from './write-specs';
+import {
+  getDocsOutputName,
+  getDocsTypedocOptions,
+  runFormatter,
+} from './write-specs';
 
 const mockedExeca = vi.mocked(execa);
 
@@ -82,5 +86,56 @@ describe('runFormatter', () => {
     expect(logWarning).toHaveBeenCalledWith(
       expect.stringContaining('oxfmt not found'),
     );
+  });
+});
+
+describe('getDocsTypedocOptions', () => {
+  const entryPoints = ['/tmp/petstore.ts'];
+
+  it('adds the markdown plugin and keeps the user plugins', () => {
+    const options = getDocsTypedocOptions(entryPoints, {
+      plugin: ['typedoc-plugin-coverage'],
+    });
+
+    expect(options.plugin).toEqual([
+      'typedoc-plugin-markdown',
+      'typedoc-plugin-coverage',
+    ]);
+    expect(options.entryPoints).toEqual(entryPoints);
+  });
+
+  it('does not add the markdown plugin two times', () => {
+    const options = getDocsTypedocOptions(entryPoints, {
+      plugin: ['typedoc-plugin-markdown'],
+    });
+
+    expect(options.plugin).toEqual(['typedoc-plugin-markdown']);
+  });
+
+  it('does not set a theme, thus the user config stays authoritative', () => {
+    expect(getDocsTypedocOptions(entryPoints, {})).not.toHaveProperty('theme');
+    expect(getDocsTypedocOptions(entryPoints, { theme: 'default' }).theme).toBe(
+      'default',
+    );
+  });
+
+  it('lets the user config override skipErrorChecking', () => {
+    expect(getDocsTypedocOptions(entryPoints, {}).skipErrorChecking).toBe(true);
+    expect(
+      getDocsTypedocOptions(entryPoints, { skipErrorChecking: false })
+        .skipErrorChecking,
+    ).toBe(false);
+  });
+});
+
+describe('getDocsOutputName', () => {
+  it('uses the markdown output for the markdown theme', () => {
+    expect(getDocsOutputName('markdown')).toBe('markdown');
+  });
+
+  it('uses the html output for all other themes', () => {
+    expect(getDocsOutputName('default')).toBe('html');
+    expect(getDocsOutputName('custom-theme')).toBe('html');
+    expect(getDocsOutputName(undefined)).toBe('html');
   });
 });
