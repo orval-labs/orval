@@ -552,7 +552,7 @@ describe('angular httpResource generator', () => {
       expect(functionSection).not.toContain('url:');
     });
 
-    it('includes @experimental JSDoc annotation', () => {
+    it('includes the Angular availability JSDoc annotation', () => {
       const verbOption = createVerbOption();
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
@@ -568,8 +568,10 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('@experimental');
-      expect(header).toContain('httpResource is experimental');
+      expect(header).toContain(
+        '@remarks httpResource is available in Angular 19.2 and later.',
+      );
+      expect(header).not.toContain('@experimental');
     });
 
     it('scopes generated resources by tag when tag is provided', () => {
