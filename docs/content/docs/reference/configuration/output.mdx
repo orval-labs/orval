@@ -1251,6 +1251,81 @@ parameter, orval passes operation identity so the mutator can branch on it
 - `mutationOptions` mutator — `{ operationId, operationName }` (the `url`
   is supplied in the second parameter)
 
+Each option takes a mutator, so point it at a file and an exported name:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryKey: {
+            path: './src/mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+`queryKey` replaces the generated key factory. It receives the operation's
+query properties and a context carrying the `url`:
+
+```ts title="src/mutators/custom-query-key.ts"
+export function customQueryKey(
+  // The properties dictionary varies per operation (params, petId, ...), so
+  // type it broadly if one mutator serves every endpoint.
+  properties: Record<string, unknown>,
+  context: { url: string },
+) {
+  return ['tenant-abc', context.url, properties] as const;
+}
+```
+
+`queryOptions` wraps the options object passed to the generated hook. The
+third parameter is the operation identity described above:
+
+```ts title="src/mutators/custom-query-options.ts"
+import type { QueryKey } from '@tanstack/react-query';
+
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+  _queryProperties: Record<string, unknown>,
+  operation: { url: string; operationId: string; operationName: string },
+): T {
+  return {
+    ...options,
+    queryKey: ['operation', operation.operationId, ...options.queryKey],
+  };
+}
+```
+
+`mutationOptions` works the same way for mutations, which is where branching
+on `operationId` is most useful:
+
+```ts title="src/mutators/custom-mutation.ts"
+import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+
+export const useCustomMutation = <T, TError, TData, TContext>(
+  options: UseMutationOptions<T, TError, TData, TContext>,
+  _: { url: string },
+  operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId === 'deletePetById') {
+    queryClient.invalidateQueries({ queryKey: ['/pets'] });
+  }
+  return options;
+};
+```
+
+Because the mutator receives `operationId`, one file can serve every
+operation and branch where the behaviour needs to differ, which is the usual
+alternative to a per-operation configuration option.
+
 ### shouldExportMutatorHooks
 
 **Type:** `Boolean`
