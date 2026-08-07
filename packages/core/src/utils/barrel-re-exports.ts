@@ -1,89 +1,95 @@
 import type { SharedExports } from '../types';
+import { pathWithoutExtension } from './file';
+import * as upath from './path';
 
-export interface BarrelReExportEntry {
-  /** Module specifier as it should appear in the barrel. */
-  specifier: string;
+export interface BarrelReExportFile {
+  /** Path of the emitted file. */
+  path: string;
   /** Declared by generators whose files repeat shared boilerplate. */
   sharedExports?: SharedExports;
 }
 
+export interface BarrelReExportOptions {
+  /** Directory that holds the barrel. Files outside it are ignored. */
+  dirname: string;
+  /** Extension of the emitted files, for example `.ts` or `.generated.ts`. */
+  extension: string;
+  /** Extension to write in the module specifier. Usually empty. */
+  importExtension: string;
+}
+
 /**
- * Barrel lines re-exporting a set of sibling files.
+ * Barrel lines that re-export a set of sibling files.
  *
  * @remarks
- * Wildcard-exporting two files that both declare a name makes that name
- * ambiguous and TypeScript reports TS2308. An explicit re-export takes
- * precedence over `export *`, so every name declared by more than one entry is
- * re-exported by name from the first entry that declares it, ahead of the
- * wildcards.
+ * Two files that both declare a name make that name ambiguous when the barrel
+ * wildcard-exports both. TypeScript reports TS2308. An explicit re-export
+ * shadows `export *`, so each name that more than one file declares is also
+ * re-exported by name from the first file that declares it. Textual order does
+ * not matter to TypeScript. The lines are ordered only to keep the output
+ * stable.
  *
- * Ownership is per name rather than per file: a name shared by the second and
- * third entries but absent from the first is still resolved, so a generator
- * emitting some of its shared declarations conditionally stays correct.
+ * Only the names that a generator {@link SharedExports | declares} count. An
+ * accidental collision between two tags stays a build error.
  *
- * Only names a generator {@link SharedExports | declared} are considered.
- * Inferring them from emitted source would also swallow accidental collisions
- * between two tags, silently resolving them to one arbitrary file instead of
- * failing the build.
- *
- * @param entries - Sibling files in barrel order.
- * @param alreadyExported - Names the barrel re-exports by name already;
- * re-emitting one would be a duplicate declaration (TS2323).
+ * @param files - Sibling files, in barrel order.
+ * @param alreadyExported - Names that the barrel re-exports by name already.
+ * A second line for one of them is a duplicate declaration (TS2323).
  * @returns Barrel lines, named re-exports first. No trailing newlines.
  */
 export function buildBarrelReExports(
-  entries: readonly BarrelReExportEntry[],
+  files: readonly BarrelReExportFile[],
+  { dirname, extension, importExtension }: BarrelReExportOptions,
   alreadyExported: readonly string[] = [],
 ): string[] {
-  const excluded = new Set(alreadyExported);
+  const entries = files
+    .map((file) => ({
+      sharedExports: file.sharedExports,
+      relativePath: upath.relativeSafe(dirname, file.path),
+    }))
+    .filter(({ relativePath }) => !relativePath.startsWith('..'))
+    .toSorted((a, b) => a.relativePath.localeCompare(b.relativePath))
+    .map(({ sharedExports, relativePath }) => ({
+      sharedExports,
+      // Strip the full `extension` when present. A multi-part extension
+      // (`.generated.ts`) then goes in one piece and leaves no `.generated`
+      // behind.
+      specifier:
+        (relativePath.endsWith(extension)
+          ? relativePath.slice(0, -extension.length)
+          : pathWithoutExtension(relativePath)) + importExtension,
+    }));
 
   const declarationCounts = new Map<string, number>();
   for (const { sharedExports } of entries) {
     if (!sharedExports) continue;
-    const declared = new Set([...sharedExports.types, ...sharedExports.values]);
-    for (const name of declared) {
+    for (const name of new Set([
+      ...sharedExports.types,
+      ...sharedExports.values,
+    ])) {
       declarationCounts.set(name, (declarationCounts.get(name) ?? 0) + 1);
     }
   }
 
-  const owners = new Map<string, { types: string[]; values: string[] }>();
-  const claimed = new Set<string>();
-
-  const claim = (
-    specifier: string,
-    name: string,
-    kind: 'types' | 'values',
-  ): void => {
-    if (
-      claimed.has(name) ||
-      excluded.has(name) ||
-      (declarationCounts.get(name) ?? 0) < 2
-    ) {
-      return;
-    }
-    claimed.add(name);
-    const owner = owners.get(specifier) ?? { types: [], values: [] };
-    owner[kind].push(name);
-    owners.set(specifier, owner);
+  const claimed = new Set(alreadyExported);
+  const claim = (names: readonly string[]): string[] => {
+    const owned = names.filter(
+      (name) => !claimed.has(name) && (declarationCounts.get(name) ?? 0) > 1,
+    );
+    for (const name of owned) claimed.add(name);
+    return owned.toSorted();
   };
 
+  const lines: string[] = [];
   for (const { specifier, sharedExports } of entries) {
     if (!sharedExports) continue;
-    for (const name of sharedExports.types) claim(specifier, name, 'types');
-    for (const name of sharedExports.values) claim(specifier, name, 'values');
-  }
-
-  const lines: string[] = [];
-  for (const [specifier, { types, values }] of owners) {
+    const types = claim(sharedExports.types);
+    const values = claim(sharedExports.values);
     if (types.length > 0) {
-      lines.push(
-        `export type { ${types.toSorted().join(', ')} } from '${specifier}';`,
-      );
+      lines.push(`export type { ${types.join(', ')} } from '${specifier}';`);
     }
     if (values.length > 0) {
-      lines.push(
-        `export { ${values.toSorted().join(', ')} } from '${specifier}';`,
-      );
+      lines.push(`export { ${values.join(', ')} } from '${specifier}';`);
     }
   }
   lines.push(

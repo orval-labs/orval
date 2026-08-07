@@ -1760,20 +1760,9 @@ export type ClientBuilder = (
 ) => GeneratorClient | Promise<GeneratorClient>;
 
 /**
- * Names a generated file declares that its sibling files of the same kind
- * declare identically.
- *
- * @remarks
- * A generator that emits one file per tag repeats any shared boilerplate in
- * every one of them. Wildcard-exporting two such files from a barrel makes
- * each repeated name ambiguous (TS2308), so the barrel writer re-exports them
- * explicitly from a single file first.
- *
- * The generator declares these rather than the barrel writer inferring them
- * from the emitted source. Inference cannot distinguish intentional
- * duplication from an accidental name collision between two tags, and would
- * silently resolve the latter to one arbitrary file — turning a compile error
- * into a wrong type at the call site.
+ * Names that a generated file declares and that its sibling files of the same
+ * kind declare identically. The barrel writer uses them to prevent TS2308.
+ * See `buildBarrelReExports` for the rule.
  */
 export interface SharedExports {
   /**
@@ -1790,6 +1779,12 @@ export interface SharedExports {
 export interface ClientFileBuilder {
   path: string;
   content: string;
+  /**
+   * Set this to re-export the file from the `tags-split` barrel. Omit it when
+   * the file is not part of the public client surface, or when the file runs
+   * code at module level and an import must not start that code.
+   */
+  barrelExport?: boolean;
   /**
    * Declared by generators whose extra files repeat shared boilerplate. Omit
    * when a file declares nothing its siblings also declare.

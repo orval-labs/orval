@@ -3334,12 +3334,8 @@ describe('angular httpResource generator', () => {
       }
     });
 
-    // `sharedExports` tells the tags-split barrel writer which names it must
-    // re-export from a single file to avoid TS2308. The list is built from the
-    // same constants the templates interpolate, so it cannot drift on a
-    // *rename* — but it would drift if a new shared declaration were added to
-    // the boilerplate without being listed. This asserts the declaration
-    // against the names two generated resource files actually share.
+    // A rename cannot desynchronise `sharedExports`, but a new shared
+    // declaration that nobody adds to the list can. This catches that.
     it('declares exactly the names its per-tag resource files share', async () => {
       const petsVerb = createVerbOption({ tags: ['Pets'] });
       const healthVerb = createVerbOption({

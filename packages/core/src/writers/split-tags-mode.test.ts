@@ -615,7 +615,11 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
   };
 
   const buildProps = (
-    extraFiles: { path: string; sharedExports?: typeof sharedExports }[],
+    extraFiles: {
+      path: string;
+      barrelExport?: boolean;
+      sharedExports?: typeof sharedExports;
+    }[],
   ) => {
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);
@@ -630,7 +634,11 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
             operationName: 'healthCheck',
           }),
         },
-        extraFiles: extraFiles.map((file) => ({ content: '', ...file })),
+        extraFiles: extraFiles.map((file) => ({
+          content: '',
+          barrelExport: true,
+          ...file,
+        })),
       },
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS_SPLIT,
@@ -698,5 +706,21 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
     });
 
     expect(readBarrel().join('\n')).not.toContain('somewhere-else');
+  });
+
+  it('ignores an extra file that does not set barrelExport', async () => {
+    // Other generators put internal files in `extraFiles`. The mcp `server.ts`
+    // even starts a transport at module level, so an import must not reach it.
+    await writeSplitTagsMode({
+      ...buildProps([
+        { path: path.join(tmpDir, 'server.ts'), barrelExport: false },
+        { path: path.join(tmpDir, 'pets', 'pets.resource.ts') },
+      ]),
+      needSchema: false,
+    });
+
+    const barrel = readBarrel().join('\n');
+    expect(barrel).not.toContain('server');
+    expect(barrel).toContain("export * from './pets/pets.resource';");
   });
 });

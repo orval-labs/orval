@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { buildBarrelReExports } from './barrel-re-exports';
 
+const options = { dirname: '/out', extension: '.ts', importExtension: '' };
+
 // Mirrors Angular's `retrievalClient: 'both'` output: one file per tag, each
 // repeating the same httpResource boilerplate.
-const resourceEntry = (tag: string) => ({
-  specifier: `./${tag}/${tag}.resource`,
+const resourceFile = (tag: string) => ({
+  path: `/out/${tag}/${tag}.resource.ts`,
   sharedExports: {
     types: ['OrvalHttpResourceOptions', 'ResourceState'],
     values: ['toResourceState'],
@@ -13,23 +15,26 @@ const resourceEntry = (tag: string) => ({
 });
 
 describe('buildBarrelReExports', () => {
-  it('wildcard-exports every entry', () => {
+  it('wildcard-exports every file, in path order', () => {
     expect(
-      buildBarrelReExports([
-        { specifier: './pets/pets.resource' },
-        { specifier: './health/health.resource' },
-      ]),
+      buildBarrelReExports(
+        [
+          { path: '/out/pets/pets.resource.ts' },
+          { path: '/out/health/health.resource.ts' },
+        ],
+        options,
+      ),
     ).toEqual([
-      "export * from './pets/pets.resource';",
       "export * from './health/health.resource';",
+      "export * from './pets/pets.resource';",
     ]);
   });
 
-  it('re-exports names declared by more than one entry ahead of the wildcards', () => {
-    const lines = buildBarrelReExports([
-      resourceEntry('health'),
-      resourceEntry('pets'),
-    ]);
+  it('re-exports names declared by more than one file ahead of the wildcards', () => {
+    const lines = buildBarrelReExports(
+      [resourceFile('health'), resourceFile('pets')],
+      options,
+    );
 
     expect(lines).toEqual([
       "export type { OrvalHttpResourceOptions, ResourceState } from './health/health.resource';",
@@ -39,36 +44,42 @@ describe('buildBarrelReExports', () => {
     ]);
   });
 
-  it('leaves a name declared by a single entry on its wildcard', () => {
-    const lines = buildBarrelReExports([
-      resourceEntry('health'),
-      {
-        specifier: './pets/pets.resource',
-        sharedExports: { types: ['SomethingElse'], values: [] },
-      },
-    ]);
+  it('leaves a name declared by a single file on its wildcard', () => {
+    const lines = buildBarrelReExports(
+      [
+        resourceFile('health'),
+        {
+          path: '/out/pets/pets.resource.ts',
+          sharedExports: { types: ['SomethingElse'], values: [] },
+        },
+      ],
+      options,
+    );
 
     expect(lines.join('\n')).not.toContain('SomethingElse');
     expect(lines.join('\n')).not.toContain('OrvalHttpResourceOptions');
   });
 
-  it('attributes each shared name to the first entry declaring it', () => {
-    // `ResourceState` is absent from the first entry, so intersecting the
-    // shared set with entry one would drop it and leave TS2308 unresolved.
-    const lines = buildBarrelReExports([
-      {
-        specifier: './a/a.resource',
-        sharedExports: { types: ['Shared'], values: [] },
-      },
-      {
-        specifier: './b/b.resource',
-        sharedExports: { types: ['Shared', 'ResourceState'], values: [] },
-      },
-      {
-        specifier: './c/c.resource',
-        sharedExports: { types: ['ResourceState'], values: [] },
-      },
-    ]);
+  it('attributes each shared name to the first file declaring it', () => {
+    // `ResourceState` is absent from the first file, so intersecting the
+    // shared set with file one would drop it and leave TS2308 unresolved.
+    const lines = buildBarrelReExports(
+      [
+        {
+          path: '/out/a/a.resource.ts',
+          sharedExports: { types: ['Shared'], values: [] },
+        },
+        {
+          path: '/out/b/b.resource.ts',
+          sharedExports: { types: ['Shared', 'ResourceState'], values: [] },
+        },
+        {
+          path: '/out/c/c.resource.ts',
+          sharedExports: { types: ['ResourceState'], values: [] },
+        },
+      ],
+      options,
+    );
 
     expect(lines).toEqual([
       "export type { Shared } from './a/a.resource';",
@@ -81,7 +92,8 @@ describe('buildBarrelReExports', () => {
 
   it('skips names the barrel already re-exports by name', () => {
     const lines = buildBarrelReExports(
-      [resourceEntry('health'), resourceEntry('pets')],
+      [resourceFile('health'), resourceFile('pets')],
+      options,
       ['ResourceState'],
     );
 
@@ -93,16 +105,35 @@ describe('buildBarrelReExports', () => {
     );
   });
 
-  it('ignores entries that declare no shared exports', () => {
-    const lines = buildBarrelReExports([
-      { specifier: './pets/pets.handlers' },
-      { specifier: './health/health.handlers' },
-    ]);
+  it('ignores files that declare no shared exports', () => {
+    const lines = buildBarrelReExports(
+      [
+        { path: '/out/pets/pets.handlers.ts' },
+        { path: '/out/health/health.handlers.ts' },
+      ],
+      options,
+    );
 
     expect(lines.every((line) => line.startsWith('export *'))).toBe(true);
   });
 
-  it('returns nothing for no entries', () => {
-    expect(buildBarrelReExports([])).toEqual([]);
+  it('ignores files outside the barrel directory', () => {
+    expect(
+      buildBarrelReExports([{ path: '/somewhere-else.resource.ts' }], options),
+    ).toEqual([]);
+  });
+
+  it('strips a multi-part extension in one piece and adds the import extension', () => {
+    expect(
+      buildBarrelReExports([{ path: '/out/pets/pets.resource.generated.ts' }], {
+        dirname: '/out',
+        extension: '.generated.ts',
+        importExtension: '.js',
+      }),
+    ).toEqual(["export * from './pets/pets.resource.js';"]);
+  });
+
+  it('returns nothing for no files', () => {
+    expect(buildBarrelReExports([], options)).toEqual([]);
   });
 });

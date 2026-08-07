@@ -306,19 +306,12 @@ const APPLY_REQUEST_EXTENSION_FUNCTION_NAME = 'applyOrvalRequestExtension';
 const TO_RESOURCE_STATE_FUNCTION_NAME = 'toResourceState';
 
 /**
- * Boilerplate every generated `*.resource.ts` declares.
+ * Boilerplate that every generated `*.resource.ts` declares. In a tag-based
+ * mode each tag repeats it. The barrel writer needs the list to prevent
+ * TS2308. See `buildBarrelReExports`.
  *
- * @remarks
- * `buildHttpResourceOptionsUtilities` and `buildResourceStateUtilities` are
- * called unconditionally for each resource file, so in tag-based modes each
- * tag repeats all five declarations. A barrel wildcard-exporting more than one
- * of those files would make every name here ambiguous (TS2308), so the names
- * are declared for the barrel writer to re-export explicitly from one file.
- *
- * These are the same constants the templates interpolate, so a rename cannot
- * desynchronise the two. `http-resource.test.ts` additionally asserts this list
- * against the names two generated resource files actually share, which catches
- * a *new* shared declaration being added without being listed here.
+ * These are the same constants that the templates interpolate, so a rename
+ * cannot desynchronise the two.
  */
 const HTTP_RESOURCE_SHARED_EXPORTS: SharedExports = {
   types: [
@@ -1807,6 +1800,9 @@ const buildHttpResourceExtraFile = (
   return {
     content: `${header}${importImplementation}${mutatorImports}${implementation}`,
     path: outputPath,
+    // Part of the public client surface, so the `tags-split` barrel re-exports
+    // it.
+    barrelExport: true,
     sharedExports: HTTP_RESOURCE_SHARED_EXPORTS,
   };
 };
