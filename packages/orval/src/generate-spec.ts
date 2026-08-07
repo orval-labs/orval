@@ -1,13 +1,54 @@
 import {
+  getConfiguredMockDirectories,
   getFileInfo,
   isString,
   log,
   type NormalizedOptions,
+  OutputMockType,
   removeFilesAndEmptyFolders,
+  upath,
 } from '@orval/core';
 
 import { importSpecs } from './import-specs';
 import { writeSpecs } from './write-specs';
+
+/**
+ * Source extensions that a mock file can carry. `output.fileExtension` selects
+ * one of them, but a run after a change of that option must still find the
+ * files that the previous extension left behind.
+ */
+const MOCK_FILE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+];
+
+/** An absolute POSIX path, so paths from different options compare equal. */
+const toComparablePath = (directory: string): string =>
+  upath.resolve(directory);
+
+/**
+ * Tells whether `child` names a directory below `parent`. The comparison is
+ * per path segment, so `src/api/mocks-extra` is not below `src/api/mocks`.
+ */
+const isBelow = (parent: string, child: string): boolean => {
+  const parentSegments = parent.split('/');
+  const childSegments = child.split('/');
+
+  return (
+    childSegments.length > parentSegments.length &&
+    parentSegments.every((segment, index) => segment === childSegments[index])
+  );
+};
+
+/** The path of `child` relative to `parent`. Requires `isBelow(parent, child)`. */
+const relativeToParent = (parent: string, child: string): string =>
+  child.split('/').slice(parent.split('/').length).join('/');
 
 /**
  * Generate client/spec files for a single Orval project.
@@ -30,21 +71,66 @@ export async function generateSpec(
       ? options.output.clean
       : [];
 
+    // `target` and `schemas` are Orval's own directories, so they are emptied.
+    // A configured mock directory can hold hand-written code, so only Orval's
+    // own mock files are removed there. A mock directory below an owned one
+    // keeps that protection: the wipe skips it and the prune cleans it.
+    const ownedDirectories = new Set<string>();
+
     if (options.output.target) {
-      await removeFilesAndEmptyFolders(
-        ['**/*', '!**/*.d.ts', ...extraPatterns],
-        getFileInfo(options.output.target).dirname,
+      ownedDirectories.add(
+        toComparablePath(getFileInfo(options.output.target).dirname),
       );
     }
     if (options.output.schemas) {
-      const schemasPath = isString(options.output.schemas)
-        ? options.output.schemas
-        : options.output.schemas.path;
-      await removeFilesAndEmptyFolders(
-        ['**/*', '!**/*.d.ts', ...extraPatterns],
-        getFileInfo(schemasPath).dirname,
+      // `schemas` names a directory and the writers join onto it directly.
+      // `getFileInfo(...).dirname` would give the parent of that directory
+      // whenever the last segment contains a dot.
+      ownedDirectories.add(
+        toComparablePath(
+          isString(options.output.schemas)
+            ? options.output.schemas
+            : options.output.schemas.path,
+        ),
       );
     }
+
+    const mockDirectories = getConfiguredMockDirectories(
+      options.output.mock,
+    ).map(toComparablePath);
+
+    for (const directory of ownedDirectories) {
+      const nestedMockPatterns = mockDirectories
+        .filter((mockDirectory) => isBelow(directory, mockDirectory))
+        .map(
+          (mockDirectory) =>
+            `!${relativeToParent(directory, mockDirectory)}/**`,
+        );
+
+      await removeFilesAndEmptyFolders(
+        ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
+        directory,
+      );
+    }
+
+    // `OutputMockType` gives the name segment that the writers interpolate
+    // (`<name>.<type><extension>`), so the patterns cannot drift from what is
+    // emitted. `extraPatterns` is left out on purpose: a positive glob there
+    // would reach hand-written files that Orval never wrote.
+    const mockPatterns = Object.values(OutputMockType).flatMap((type) =>
+      [...new Set([options.output.fileExtension, ...MOCK_FILE_EXTENSIONS])].map(
+        (extension) => `**/*.${type}${extension}`,
+      ),
+    );
+
+    for (const directory of mockDirectories) {
+      // An owned directory of the same path is emptied above.
+      if (ownedDirectories.has(directory)) continue;
+      await removeFilesAndEmptyFolders(mockPatterns, directory, {
+        followSymbolicLinks: false,
+      });
+    }
+
     log(`${projectName} Cleaning output folder`);
   }
 

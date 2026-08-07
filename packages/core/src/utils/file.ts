@@ -36,10 +36,17 @@ export function getFileInfo(
 export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
+  /**
+   * Set `followSymbolicLinks` to `false` in a directory that Orval shares with
+   * the user. A symlinked subdirectory would otherwise let the glob reach
+   * files outside `dir` and delete them.
+   */
+  { followSymbolicLinks = true }: { followSymbolicLinks?: boolean } = {},
 ) {
   const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
+    followSymbolicLinks,
   });
 
   // Remove files
@@ -50,6 +57,7 @@ export async function removeFilesAndEmptyFolders(
     cwd: dir,
     absolute: true,
     onlyDirectories: true,
+    followSymbolicLinks,
   });
 
   // Sort directories by depth (deepest first) to ensure we can remove nested empty folders
