@@ -839,8 +839,24 @@ export default defineConfig({
 ## headers
 
 **Type:** `Boolean`
+**Default:** `false`
 
-Enable generation of headers.
+Generate typed parameters for the HTTP request headers an operation declares in
+the specification. When disabled, header parameters are omitted from the
+generated function signatures.
+
+This is unrelated to [`override.header`](#header), which controls the comment
+block written at the top of each generated file.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      headers: true,
+    },
+  },
+});
+```
 
 ## tsconfig
 
@@ -969,9 +985,15 @@ export default defineConfig({
 ### header
 
 **Type:** `Boolean | Function`
-**Default:** `true`
+**Default:** the built-in header function
 
-Customize or disable the generated file header:
+Customize or disable the comment block written at the top of each generated
+file. This is unrelated to [`output.headers`](#headers), which controls HTTP
+request header parameters.
+
+Pass `false` to omit the comment block, or a function to replace it. Passing
+`true` produces the same output as omitting the option, since any value that is
+neither `false` nor a function falls back to the built-in header.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
