@@ -1264,6 +1264,14 @@ export default defineConfig({
             path: './src/mutators/custom-query-key.ts',
             name: 'customQueryKey',
           },
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
         },
       },
     },
@@ -1295,7 +1303,7 @@ export function customQueryOptions<T extends { queryKey: QueryKey }>(
   options: T,
   _queryProperties: Record<string, unknown>,
   operation: { url: string; operationId: string; operationName: string },
-): T {
+): T & { queryKey: QueryKey } {
   return {
     ...options,
     queryKey: ['operation', operation.operationId, ...options.queryKey],
@@ -1304,21 +1312,32 @@ export function customQueryOptions<T extends { queryKey: QueryKey }>(
 ```
 
 `mutationOptions` works the same way for mutations, which is where branching
-on `operationId` is most useful:
+on `operationId` is most useful.
+
+The mutator runs where the options object is built, inside the hook body, so
+side effects belong in a callback rather than in the mutator itself. Calling
+`invalidateQueries()` directly would fire on every render instead of after the
+mutation succeeds:
 
 ```ts title="src/mutators/custom-mutation.ts"
 import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
 
-export const useCustomMutation = <T, TError, TData, TContext>(
-  options: UseMutationOptions<T, TError, TData, TContext>,
+export const useCustomMutation = <TData, TError, TVariables, TContext>(
+  options: UseMutationOptions<TData, TError, TVariables, TContext>,
   _: { url: string },
   operation: { operationId: string; operationName: string },
 ) => {
   const queryClient = useQueryClient();
-  if (operation.operationId === 'deletePetById') {
-    queryClient.invalidateQueries({ queryKey: ['/pets'] });
-  }
-  return options;
+  if (operation.operationId !== 'deletePetById') return options;
+
+  return {
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options.onSuccess>>) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      // Keep whatever the caller already passed.
+      return options.onSuccess?.(...args);
+    },
+  };
 };
 ```
 
