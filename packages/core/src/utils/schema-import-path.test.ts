@@ -18,6 +18,9 @@ const createOutput = (
     target: '/tmp/pets.ts',
     namingConvention: 'camelCase',
     fileExtension: '.ts',
+    // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
+    // output, or to the user's `fileExtension` when they set one.
+    schemaFileExtension: '.zod.ts',
     indexFiles: true,
     schemas: {
       path: '/models',
@@ -51,7 +54,7 @@ const resolve = (
   imports: GeneratorImport[] = [PET, ERROR],
   options: { isZod?: boolean; schemaTagMap?: Map<string, string> } = {},
 ) =>
-  resolveSchemaImportDependencies(output, base, imports, {
+  resolveSchemaImportDependencies(output, imports, base, {
     isZod: options.isZod ?? false,
     schemaTagMap: options.schemaTagMap,
   }).map((dependency) => dependency.dependency);
@@ -172,16 +175,32 @@ describe('resolveSchemaImportDependencies', () => {
       ]);
     });
 
+    it('names zod files from schemaFileExtension, not a hardcoded .zod', () => {
+      // A user-set `fileExtension` also becomes `schemaFileExtension`, so the
+      // zod writer emits `pet.gen.ts`. A hardcoded `.zod` would resolve to
+      // `pet.zod.gen`, a file that is never written.
+      const output = createOutput({
+        indexFiles: false,
+        fileExtension: '.gen.ts',
+        schemaFileExtension: '.gen.ts',
+        schemas: createSchemas({ type: 'zod' }),
+      });
+
+      expect(resolve(output, '../models', [PET], { isZod: true })).toEqual([
+        '../models/pet.gen',
+      ]);
+    });
+
     it('keeps both imports when the same name is aliased differently', () => {
       const output = createOutput({ indexFiles: false });
 
       const [dependency] = resolveSchemaImportDependencies(
         output,
-        '../models',
         [
           { name: 'Pet', alias: 'PetModel' },
           { name: 'Pet', alias: 'PetDto' },
         ],
+        '../models',
         { isZod: false },
       );
 
@@ -196,8 +215,8 @@ describe('resolveSchemaImportDependencies', () => {
 
       const [dependency] = resolveSchemaImportDependencies(
         output,
-        '../models',
         [{ name: 'Pet' }, { name: 'Pet' }],
+        '../models',
         { isZod: false },
       );
 

@@ -477,15 +477,11 @@ export async function writeSpecs(
   const { info, schemas, target } = builder;
   const { output } = options;
 
-  // The schema→tag map is built once during API building (`getApiBuilder`) and
-  // carried on the builder, so every consumer — the extra files rendered back
-  // then, and the writers below (zod schemas, typescript schemas, the mode
-  // writers, the consolidated faker factory file) — routes imports through the
-  // identical map. Recomputing it here would reintroduce the drift that let
-  // sibling files disagree with the main generated output.
-  const shouldSplitSchemasByTags =
-    isObject(output.schemas) && output.schemas.splitByTags;
+  // `getApiBuilder` builds the schema→tag map when `schemas.splitByTags` is on,
+  // and leaves it undefined when it is off. The extra files rendered there and
+  // the writers below share that one map, so all their imports agree.
   const { schemaTagMap } = builder;
+  const shouldSplitSchemasByTags = schemaTagMap !== undefined;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -607,10 +603,7 @@ export async function writeSpecs(
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          operations: Object.values(builder.operations).map((op) => ({
-            imports: op.imports,
-            tags: op.tags,
-          })),
+          schemaTagMap,
         });
       } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =

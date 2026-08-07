@@ -3406,17 +3406,9 @@ describe('angular httpResource generator', () => {
   });
 
   describe('schema import resolution', () => {
-    /**
-     * Mirrors the matrix in
-     * `packages/core/src/utils/schema-import-path.test.ts`. Both sides call
-     * `resolveSchemaImportDependencies`, so the pair pins that a generated
-     * `*.resource.ts` resolves schemas exactly as the mode writers resolve
-     * them for the sibling `*.service.ts`. Keep the two in step.
-     *
-     * Resource files are rendered before any writer runs, so they cannot
-     * observe the writers' decisions — this shared rule is the only thing
-     * keeping the two files' imports in agreement.
-     */
+    // Mirrors the matrix in `packages/core/src/utils/schema-import-path.test.ts`.
+    // Keep the two in step: together they pin that a `*.resource.ts` file
+    // resolves schemas in the same way as its sibling `*.service.ts` file.
     const createSchemas = (
       overrides: Partial<{
         path: string;
@@ -3424,8 +3416,8 @@ describe('angular httpResource generator', () => {
         importPath: string;
         splitByTags: boolean;
       }> = {},
-      // Built to the shape `normalizeSchemasOption` actually produces: `type`
-      // and `splitByTags` are always set, never absent.
+      // Matches the shape of `normalizeSchemasOption`: `type` and
+      // `splitByTags` are always set.
     ): NormalizedOutputOptions['schemas'] =>
       ({
         path: '/libs/models/src/lib/generated/schemas',

@@ -11,52 +11,36 @@ import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
 
 export interface ResolveSchemaImportDependenciesOptions {
-  /**
-   * `true` when schemas are emitted as Zod schemas rather than TypeScript
-   * types. Zod schemas live in `*.zod` files and are runtime values, so
-   * callers that need value imports set `values` on the returned exports
-   * themselves — this helper only resolves paths.
-   */
+  /** `true` when schemas are emitted as Zod schemas, not TypeScript types. */
   isZod: boolean;
   /**
-   * Schema→tag map computed when `schemas.splitByTags` is enabled. Consulted
-   * only in the `indexFiles: false` branch, where the root barrel does not
-   * exist and each import must resolve to its actual file. `'.'` is the
-   * sentinel for shared schemas (referenced by 0 or 2+ tags), which stay at
-   * the schemas root.
+   * Schema→tag map, set when `schemas.splitByTags` is enabled. The sentinel
+   * `'.'` marks a shared schema, which stays at the schemas root.
    */
   schemaTagMap?: Map<string, string>;
 }
 
 /**
- * Resolves schema imports to the modules they should be imported from.
+ * Resolves schema imports to the modules that export them.
  *
- * This is the single source of truth for how generated code refers to emitted
- * schemas. It is shared between `generateImportsForBuilder` (which resolves
- * imports for the main generated files) and client generators that emit extra
- * sibling files — notably Angular's `*.resource.ts`. Those sibling files are
- * rendered before any mode writer runs, so they cannot observe the writers'
- * import decisions and must re-derive them from `output`; sharing this helper
- * is what keeps the two in agreement.
- *
- * Callers are responsible for their own export shaping (aliasing, `values`,
- * default imports).
+ * Shared by `generateImportsForBuilder` and by client generators that emit
+ * sibling files, so both refer to the emitted schemas in the same way.
+ * Callers shape their own exports (aliasing, `values`, default imports).
  *
  * @param output - Normalized output options.
- * @param relativeSchemasPath - Module the schemas resolve from: a package
- *   specifier when `schemas.importPath` is set, otherwise a relative path.
- * @param imports - Schema imports to resolve. Imports carrying their own
- *   `importPath` must be filtered out by the caller.
- * @param options - Zod mode and the optional schema→tag map.
- * @returns One dependency per distinct module, each carrying its imports.
+ * @param imports - Schema imports to resolve. The caller must first remove
+ *   imports that carry their own `importPath`.
+ * @param relativeSchemasPath - Module that the schemas resolve from: a package
+ *   specifier when `schemas.importPath` is set, or a relative path.
+ * @returns One dependency per module, each with its imports.
  */
 export function resolveSchemaImportDependencies(
   output: NormalizedOutputOptions,
-  relativeSchemasPath: string,
   imports: readonly GeneratorImport[],
+  relativeSchemasPath: string,
   { isZod, schemaTagMap }: ResolveSchemaImportDependenciesOptions,
 ): GeneratorDependency[] {
-  // With a root barrel, every schema is reachable from one module.
+  // A root barrel makes every schema available from one module.
   if (output.indexFiles) {
     return [
       {
@@ -66,36 +50,39 @@ export function resolveSchemaImportDependencies(
     ];
   }
 
+  // Zod schema files are named with `schemaFileExtension` (`.zod.ts` by
+  // default), TypeScript ones with `fileExtension`. Derive the import tail
+  // from the same value, or the import names a file that is never emitted.
+  const schemaFileExtension = isZod
+    ? output.schemaFileExtension
+    : output.fileExtension;
+
   // A package specifier resolves through the consumer's module resolution, so
-  // appending a local file extension would produce an unresolvable sub-path
-  // (`@acme/models/pet.js`).
+  // drop the module extension. `@acme/models/pet.js` does not resolve. Passing
+  // no tsconfig removes it without the NodeNext `.ts`→`.js` rewrite.
   const isPackageImport = !!getSchemasImportPath(output.schemas);
   const importExtension = isPackageImport
-    ? ''
-    : getImportExtension(output.fileExtension, output.tsconfig);
-  const suffix = isZod ? '.zod' : '';
+    ? getImportExtension(schemaFileExtension)
+    : getImportExtension(schemaFileExtension, output.tsconfig);
 
   const importsByDependency = new Map<string, GeneratorImport[]>();
 
   for (const schemaImport of imports) {
-    // Zod schema files are named from the TS identifier; TypeScript schema
-    // files prefer the original spec name when it differs.
+    // Zod files are named from the TS identifier. TypeScript files prefer the
+    // original spec name when it differs.
     const baseName = isZod
       ? schemaImport.name
       : (schemaImport.schemaName ?? schemaImport.name);
     const normalizedName = conventionName(baseName, output.namingConvention);
 
-    // The lookup uses the TS identifier (`schemaImport.name`), not
-    // `schemaName`, because `buildSchemaTagMap` keys on `schema.name` which is
-    // the pascal-cased identifier produced by `getRefInfo`. `baseName` is only
-    // correct for the filename, where `conventionName` happens to be
-    // idempotent on already-pascal-cased input.
+    // `buildSchemaTagMap` keys on the TS identifier, so look up
+    // `schemaImport.name` and not `schemaName`.
     const tagDir = schemaTagMap?.get(schemaImport.name);
     const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
 
     const dependency = upath.joinSafe(
       relativeSchemasPath,
-      `${tagSegment}${normalizedName}${suffix}${importExtension}`,
+      `${tagSegment}${normalizedName}${importExtension}`,
     );
 
     const existing = importsByDependency.get(dependency);
@@ -115,13 +102,8 @@ export function resolveSchemaImportDependencies(
 }
 
 /**
- * Collapses imports that would emit identical import specifiers. Keyed on
- * every field that affects the emitted specifier, so two imports of the same
- * name under different aliases both survive.
- *
- * Exported for callers that resolve a single dependency themselves — notably
- * when no schemas are emitted and the "schemas path" is one file rather than a
- * directory — so they dedupe by the same rule.
+ * Collapses imports that emit the same import specifier. The key holds every
+ * field that changes the specifier, so one name under two aliases stays twice.
  */
 export function dedupeSchemaImports(
   imports: readonly GeneratorImport[],

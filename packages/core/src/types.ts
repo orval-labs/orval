@@ -1767,10 +1767,8 @@ export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpec,
-  // Schema→tag map, present only when `schemas.splitByTags` is enabled.
-  // Extra files are rendered before any mode writer runs, so builders that
-  // resolve schema imports need this to route them into the same tag
-  // subdirectories the writers will use. `undefined` means the flat layout.
+  // Extra files are rendered before the mode writers run, so they need this
+  // map to route schema imports into the same tag subdirectories.
   schemaTagMap?: Map<string, string>,
 ) => Promise<ClientFileBuilder[]>;
 
@@ -2036,16 +2034,8 @@ export interface WriteSpecBuilder {
   info: OpenApiInfoObject;
   target: string;
   spec: OpenApiDocument;
-  /**
-   * Schema→tag map computed once during API building, when
-   * `schemas.splitByTags` is enabled; `undefined` otherwise.
-   *
-   * Required rather than optional so every construction site is forced to
-   * supply it: extra files and mode writers must route schema imports through
-   * the *same* map, and a silently-absent one would disable tag routing
-   * rather than fail.
-   */
-  schemaTagMap: Map<string, string> | undefined;
+  /** Schema→tag map built during API building, when `splitByTags` is on. */
+  schemaTagMap?: Map<string, string>;
 }
 
 export interface WriteModeProps {
@@ -2146,7 +2136,7 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   ) => string;
   extraFiles: ClientFileBuilder[];
   /** See {@link WriteSpecBuilder.schemaTagMap}. */
-  schemaTagMap: Map<string, string> | undefined;
+  schemaTagMap?: Map<string, string>;
 };
 
 export class ErrorWithTag extends Error {

@@ -1580,12 +1580,9 @@ const buildHttpResourceFile = (
 };
 
 /**
- * Resolves the schema imports for a generated `*.resource.ts` file.
- *
- * Delegates path resolution to core's {@link resolveSchemaImportDependencies}
- * so resource files agree with the service files emitted by the mode writers.
- * Resource files are rendered before any writer runs, so re-deriving the rule
- * here — rather than sharing it — is what previously let the two drift.
+ * Resolves the schema imports of a generated `*.resource.ts` file. Uses core's
+ * {@link resolveSchemaImportDependencies} so a resource file and its sibling
+ * service file agree on the module that exports each schema.
  */
 const buildSchemaImportDependencies = (
   output: NormalizedOutputOptions,
@@ -1596,11 +1593,9 @@ const buildSchemaImportDependencies = (
   const isZod = isZodSchemaOutput(output);
 
   // Without emitted schemas, `relativeSchemasPath` is the single generated
-  // `*.schemas` file rather than a directory, so per-schema routing does not
-  // apply. (Core's mode writers guard this case on their own derived schemas
-  // path before calling in.)
+  // `*.schemas` file and not a directory, so per-schema routing does not apply.
   const dependencies = output.schemas
-    ? resolveSchemaImportDependencies(output, relativeSchemasPath, imports, {
+    ? resolveSchemaImportDependencies(output, imports, relativeSchemasPath, {
         isZod,
         schemaTagMap,
       })
@@ -1615,8 +1610,7 @@ const buildSchemaImportDependencies = (
     return dependencies;
   }
 
-  // Zod schemas are runtime values, not types, so they must be emitted as
-  // value imports rather than `import type`.
+  // Zod schemas are runtime values, so import them as values and not as types.
   return dependencies.map((dependency) => ({
     ...dependency,
     exports: dependency.exports.map((imp) => ({ ...imp, values: true })),
@@ -1650,14 +1644,12 @@ const getHttpResourceExtraFilePath = (
   }
 };
 
-const getHttpResourceRelativeSchemasPath = (
+const getHttpResourceSchemasModule = (
   output: NormalizedOutputOptions,
   outputPath: string,
 ): string => {
   // `schemas.importPath` is a package specifier (e.g. `@acme/models`), not a
-  // filesystem path, so it is emitted verbatim rather than resolved relative
-  // to the resource file. Mirrors the split-mode writers, which already
-  // prefer it over the computed relative path.
+  // filesystem path, so emit it as it is. This mirrors the split-mode writers.
   const customImportPath = getSchemasImportPath(output.schemas);
   if (customImportPath) {
     return customImportPath;
@@ -1722,7 +1714,7 @@ const buildHttpResourceExtraFile = (
   const schemaImports = buildSchemaImportDependencies(
     output,
     schemaVerbImports,
-    getHttpResourceRelativeSchemasPath(output, outputPath),
+    getHttpResourceSchemasModule(output, outputPath),
     schemaTagMap,
   );
 

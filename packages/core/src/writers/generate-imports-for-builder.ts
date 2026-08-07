@@ -10,6 +10,7 @@ import {
 } from '../types';
 import {
   getImportExtension,
+  getSchemasImportPath,
   isFunction,
   isObject,
   resolveSchemaImportDependencies,
@@ -26,8 +27,7 @@ export function generateImportsForBuilder(
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
 ): GeneratorDependency[] {
-  const isPackageImport =
-    isObject(output.schemas) && !!output.schemas.importPath;
+  const isPackageImport = !!getSchemasImportPath(output.schemas);
 
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
@@ -73,8 +73,8 @@ export function generateImportsForBuilder(
 
   const schemaImports = resolveSchemaImportDependencies(
     output,
-    relativeSchemasPath,
     imports.filter((i) => !i.importPath),
+    relativeSchemasPath,
     { isZod: isZodSchemaOutput, schemaTagMap },
   );
 

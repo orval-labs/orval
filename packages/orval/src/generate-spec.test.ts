@@ -1293,11 +1293,8 @@ describe('generateSpec - schemas.splitByTags validation', () => {
   });
 
   it('routes Angular resource-file schema imports through the same tag map', async () => {
-    // Extra files (`*.resource.ts`) are rendered during API building, before
-    // any mode writer runs, so they need the schema→tag map computed there.
-    // That map must be built over the *merged* schema list — component schemas
-    // are appended after `getApiBuilder` returns, and computing it from the
-    // operation-derived schemas alone silently collapses tag routing to flat.
+    // The `*.resource.ts` file is rendered during API building, before the mode
+    // writers run. It must use the same schema→tag map as the writers.
     const workspace = await createTempWorkspace();
     try {
       const options = await normalizeOptions(
@@ -1373,6 +1370,45 @@ describe('generateSpec - schemas.splitByTags validation', () => {
         await fs.pathExists(path.join(modelDir, 'pets', 'pet.zod.ts')),
       ).toBe(true);
       expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - zod schemas with a custom fileExtension', () => {
+  // A user-set `fileExtension` also becomes `schemaFileExtension`, so the zod
+  // writer emits `pet.gen.ts` and not `pet.zod.ts`. Imports used to keep a
+  // hardcoded `.zod`, so they named a file that was never written.
+  it('imports the file name that the zod writer emits', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            indexFiles: false,
+            fileExtension: '.gen.ts',
+            schemas: { path: './model', type: 'zod' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      expect(
+        await fs.pathExists(path.join(workspace, 'model', 'pet.gen.ts')),
+      ).toBe(true);
+
+      const endpoints = await fs.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf8',
+      );
+      expect(endpoints).toContain(`from './model/pet.gen'`);
+      expect(endpoints).not.toContain('.zod');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
