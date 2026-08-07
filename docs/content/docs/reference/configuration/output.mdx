@@ -426,6 +426,87 @@ my-app/src/
     └── users.ts
 ```
 
+In `tags-split` mode, [`artifacts`](#artifacts) additionally gives the client
+group its own directory and generated barrel — one per-tag `*.service.ts` /
+`*.resource.ts` re-export, built from the files actually written.
+
+## artifacts
+
+**Type:** `Object`
+**Default:** `undefined`
+
+Ergonomic sugar for emitting independently importable output groups —
+schemas, client, MSW, and Faker — each with its own directory and its own
+generated barrel. See the [Angular guide's runtime-safe artifact
+groups](/docs/guides/angular#runtime-safe-artifact-groups) section for the
+full walkthrough (including the equivalent config using only `schemas`,
+`mock.generators[].path`, and `mock.indexMockFiles` directly).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './api/client/petstore.ts',
+      client: 'angular',
+      artifacts: {
+        schemas: './api/schemas',
+        msw: './api/msw',
+        faker: './api/faker',
+      },
+    },
+  },
+});
+```
+
+| Property  | Type                          | Description                                                                                     |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `schemas` | `string \| SchemaOptions`     | Same shape as [`output.schemas`](#schemas). Conflicts with an explicit `output.schemas`.          |
+| `client`  | `string \| { path: string }`  | Client group directory. Defaults to the directory of `output.target`; if set explicitly it must equal that directory. |
+| `msw`     | `string \| { path: string }`  | Routes the `msw` mock generator's `path` here and forces `mock.indexMockFiles: true`.              |
+| `faker`   | `string \| { path: string }`  | Routes the `faker` mock generator's `path` here and forces `mock.indexMockFiles: true`.            |
+
+Generates:
+
+```
+api/
+├── schemas/
+│   ├── pet.ts
+│   └── index.ts
+├── client/
+│   ├── pets/
+│   │   ├── pets.service.ts
+│   │   └── pets.resource.ts
+│   └── index.ts          ← new: re-exports every *.service.ts/*.resource.ts actually written
+├── msw/
+│   ├── pets/pets.msw.ts
+│   └── index.msw.ts
+└── faker/
+    ├── pets/pets.faker.ts
+    └── index.faker.ts
+```
+
+Interaction rules:
+
+- Requires [`mode`](#mode) to be `'tags-split'` — every other mode inlines or
+  names mocks differently, so `artifacts` throws a clear error instead of
+  guessing.
+- Requires `indexFiles` to stay enabled (its default of `true`).
+- Conflicts with [`workspace`](#workspace) — a workspace barrel is a single
+  combined entry point, the exact anti-pattern `artifacts` replaces.
+- `artifacts.schemas` conflicts with an explicit `output.schemas` — configure
+  the schemas group in exactly one place.
+- Declaring `artifacts.msw` / `artifacts.faker` without a matching entry in
+  `mock.generators` auto-creates one with defaults. An explicit
+  `mock.generators[].path` that differs from the artifacts directory throws.
+- `artifacts.client`, if set explicitly, must equal the directory of
+  `output.target` — per-tag client files (and, in Angular `both` mode, sibling
+  `*.resource.ts` files) are always written alongside `output.target`.
+- Recommended: set [`tagsSplitDeduplication`](#tagssplitdeduplication) to
+  `true` alongside `artifacts` so shared inline types are hoisted into
+  `common-types.ts` — without it, the client barrel's `export *` re-exports
+  silently drop same-named types duplicated across per-tag files.
+
 ## baseUrl
 
 **Type:** `String | Object`
@@ -596,6 +677,10 @@ export default defineConfig({
 | `indexMockFiles` | `Boolean` | `false` | In `split` and `tags-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
 | `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. When set in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. Ignored on function-form generators, which always fall back to the shared `path`. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
+
+In `tags-split` mode, [`output.artifacts`](#artifacts) is sugar for exactly
+this `path` + `indexMockFiles: true` combination — set per-group via
+`artifacts.msw` / `artifacts.faker` instead of `mock.generators[].path`.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
