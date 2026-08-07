@@ -178,7 +178,7 @@ export const EXAMPLES: Record<string, Example[]> = {
       tags: [],
       config: dedent(/* JSON */ `{
         "output": {
-          "httpClient": "fetch",
+          "client": "fetch",
           "target": "./src/generated/endpoints.ts"
         },
         "input": {

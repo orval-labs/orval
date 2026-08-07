@@ -94,6 +94,25 @@ export function resolveMockOverride(
   };
 }
 
+/** Resolves a `$ref` string to its schema in the loaded spec, if any. */
+export function resolveRefTarget(
+  ref: string | undefined,
+  context: ContextSpec,
+): Partial<OpenApiSchemaObject> | undefined {
+  if (typeof ref !== 'string') return undefined;
+  // getRefInfo throws on refs without a '#' fragment
+  const [, fragment] = ref.split('#');
+  if (!fragment) return undefined;
+  const { refPaths } = getRefInfo(ref, context);
+  if (!Array.isArray(refPaths)) return undefined;
+
+  return prop(
+    context.spec,
+    // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+    ...refPaths,
+  ) as Partial<OpenApiSchemaObject> | undefined;
+}
+
 /** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
 export function isNullableSchema(schema: unknown): boolean {
   if (!schema || typeof schema !== 'object') {
@@ -245,13 +264,7 @@ export function resolveMockValue({
     const schemaRefPath = typeof schema.$ref === 'string' ? schema.$ref : '';
     const { name, refPaths } = getRefInfo(schemaRefPath, context);
 
-    const schemaRef = Array.isArray(refPaths)
-      ? (prop(
-          context.spec,
-          // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-          ...refPaths,
-        ) as Partial<OpenApiSchemaObject>)
-      : undefined;
+    const schemaRef = resolveRefTarget(schemaRefPath, context);
 
     const newSchema = {
       ...schemaRef,
@@ -377,6 +390,10 @@ export function resolveMockValue({
     const canDelegate =
       shouldDelegateToSchemaFactories(context) &&
       isComponentsSchemaRef(refPaths) &&
+      // A ref already on the resolution path is recursive: delegating would
+      // emit a factory call that re-enters itself at runtime. Inline it so
+      // the recursion terminators can cut the cycle instead.
+      !existingReferencedProperties.includes(name) &&
       !delegationDropsRequired &&
       !hasOverrideTouchingSchema(
         schemaRef?.properties as Record<string, unknown> | undefined,
@@ -579,14 +596,7 @@ function resolvesToObjectLike(
       return false;
     }
     seen = new Set(seen).add(schema.$ref);
-    const { refPaths } = getRefInfo(schema.$ref, context);
-    resolved = Array.isArray(refPaths)
-      ? (prop(
-          context.spec,
-          // @ts-expect-error: refPaths are not guaranteed to be valid keys of the spec
-          ...refPaths,
-        ) as Partial<OpenApiSchemaObject>)
-      : undefined;
+    resolved = resolveRefTarget(schema.$ref, context);
   } else {
     resolved = schema as Partial<OpenApiSchemaObject>;
   }

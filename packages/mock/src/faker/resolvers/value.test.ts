@@ -1,7 +1,13 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { getNullable, isNullableSchema, resolveMockOverride } from './value';
+import { createTestContextSpec } from '../../../../core/src/test-utils/context';
+import {
+  getNullable,
+  isNullableSchema,
+  resolveMockOverride,
+  resolveRefTarget,
+} from './value';
 
 type Item = OpenApiSchemaObject & { name: string; path?: string };
 
@@ -16,6 +22,27 @@ describe('isNullableSchema', () => {
 
   it('returns false for non-nullable schemas', () => {
     expect(isNullableSchema({ type: 'string' })).toBe(false);
+  });
+});
+
+describe('resolveRefTarget', () => {
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: { Pet: { type: 'object', required: ['name'] } },
+      },
+    },
+  });
+
+  it('resolves a same-document fragment ref', () => {
+    expect(resolveRefTarget('#/components/schemas/Pet', context)).toEqual({
+      type: 'object',
+      required: ['name'],
+    });
+  });
+
+  it('returns undefined for a fragmentless external ref', () => {
+    expect(resolveRefTarget('./pet.yaml', context)).toBeUndefined();
   });
 });
 
