@@ -5,6 +5,11 @@ import { glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
 
+/** Removes the last extension from a path. A dot in a directory name stays. */
+export function pathWithoutExtension(filePath: string) {
+  return filePath.replace(/\.[^/.]+$/, '');
+}
+
 export function getFileInfo(
   target = '',
   {
@@ -16,7 +21,6 @@ export function getFileInfo(
   const filePath = isDir
     ? path.join(target, backupFilename + extension)
     : target;
-  const pathWithoutExtension = filePath.replace(/\.[^/.]+$/, '');
   const dir = path.dirname(filePath);
   const filename = path.basename(
     filePath,
@@ -25,7 +29,7 @@ export function getFileInfo(
 
   return {
     path: filePath,
-    pathWithoutExtension,
+    pathWithoutExtension: pathWithoutExtension(filePath),
     extension,
     isDirectory: isDir,
     dirname: dir,

@@ -1,5 +1,6 @@
 export * from './assertion';
 export * from './async-reduce';
+export * from './barrel-re-exports';
 export * from './case';
 export * from './compare-version';
 export * from './content-type';
