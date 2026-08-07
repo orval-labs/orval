@@ -2,7 +2,11 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { type OpenApiDocument, OutputMockType } from '@orval/core';
+import {
+  type OpenApiDocument,
+  OutputMockType,
+  type OutputOptions,
+} from '@orval/core';
 import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
@@ -2041,40 +2045,56 @@ const listFilesRecursively = async (dir: string): Promise<string[]> => {
     .toSorted();
 };
 
-describe('generateSpec - clean prunes configured mock directories', () => {
-  const generate = async (
-    workspace: string,
-    clean: boolean | string[] = true,
-  ) => {
-    const options = await normalizeOptions(
-      {
-        input: { target: PETSTORE_SPEC },
-        output: {
-          target: './src/client/api.ts',
-          schemas: './src/models',
-          mode: 'tags-split',
-          client: 'fetch',
-          clean,
-          mock: {
-            indexMockFiles: true,
-            generators: [
-              { type: 'msw', path: './src/mocks/msw' },
-              { type: 'faker', path: './src/mocks/faker' },
-            ],
-          },
-        },
+/**
+ * Generates once into `workspace`. The output options that the clean tests
+ * share are applied first, then `output` replaces the parts under test.
+ */
+const generateWithOutput = async (
+  workspace: string,
+  output: Partial<OutputOptions> = {},
+) => {
+  const options = await normalizeOptions(
+    {
+      input: { target: PETSTORE_SPEC },
+      output: {
+        target: './src/client/api.ts',
+        mode: 'tags-split',
+        client: 'fetch',
+        clean: true,
+        ...output,
       },
-      workspace,
-    );
+    },
+    workspace,
+  );
 
-    await generateSpec(workspace, options);
+  await generateSpec(workspace, options);
+
+  return options;
+};
+
+describe('generateSpec - clean prunes configured mock directories', () => {
+  /** Mock directories that sit outside `target` and `schemas`. */
+  const separateMockDirectories: Partial<OutputOptions> = {
+    schemas: './src/models',
+    mock: {
+      indexMockFiles: true,
+      generators: [
+        { type: 'msw', path: './src/mocks/msw' },
+        { type: 'faker', path: './src/mocks/faker' },
+      ],
+    },
+  };
+
+  /** A single shared mock directory, as `mock.path` alone configures it. */
+  const sharedMockDirectory: Partial<OutputOptions> = {
+    mock: { path: './src/mocks', generators: [{ type: 'msw' }] },
   };
 
   it('removes stale mock files from generator-specific mock paths', async () => {
     const workspace = await createTempWorkspace();
 
     try {
-      await generate(workspace);
+      await generateWithOutput(workspace, separateMockDirectories);
 
       // Files left over from a previous run, e.g. a tag removed from the spec.
       const staleMsw = path.join(workspace, 'src/mocks/msw/stale.msw.ts');
@@ -2082,7 +2102,7 @@ describe('generateSpec - clean prunes configured mock directories', () => {
       await fs.outputFile(staleMsw, '// stale');
       await fs.outputFile(staleFaker, '// stale');
 
-      await generate(workspace);
+      await generateWithOutput(workspace, separateMockDirectories);
 
       expect(await fs.pathExists(staleMsw)).toBe(false);
       expect(await fs.pathExists(staleFaker)).toBe(false);
@@ -2099,31 +2119,35 @@ describe('generateSpec - clean prunes configured mock directories', () => {
     const workspace = await createTempWorkspace();
 
     try {
-      const options = await normalizeOptions(
-        {
-          input: { target: PETSTORE_SPEC },
-          output: {
-            target: './src/client/api.ts',
-            mode: 'tags-split',
-            client: 'fetch',
-            clean: true,
-            mock: {
-              path: './src/mocks',
-              generators: [{ type: 'msw' }],
-            },
-          },
-        },
-        workspace,
-      );
-
-      await generateSpec(workspace, options);
+      await generateWithOutput(workspace, sharedMockDirectory);
 
       const stale = path.join(workspace, 'src/mocks/stale.msw.ts');
       await fs.outputFile(stale, '// stale');
 
-      await generateSpec(workspace, options);
+      await generateWithOutput(workspace, sharedMockDirectory);
 
       expect(await fs.pathExists(stale)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('removes mock files written under a previous fileExtension', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await generateWithOutput(workspace, sharedMockDirectory);
+
+      // A run before `fileExtension` changed from `.ts` to `.js` wrote these.
+      const staleTs = path.join(workspace, 'src/mocks/pets.msw.ts');
+      await fs.outputFile(staleTs, '// stale');
+
+      await generateWithOutput(workspace, {
+        ...sharedMockDirectory,
+        fileExtension: '.js',
+      });
+
+      expect(await fs.pathExists(staleTs)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -2133,24 +2157,12 @@ describe('generateSpec - clean prunes configured mock directories', () => {
     const workspace = await createTempWorkspace();
 
     try {
-      const withBoth = await normalizeOptions(
-        {
-          input: { target: PETSTORE_SPEC },
-          output: {
-            target: './src/client/api.ts',
-            mode: 'tags-split',
-            client: 'fetch',
-            clean: true,
-            mock: {
-              path: './src/mocks',
-              generators: [{ type: 'msw' }, { type: 'faker' }],
-            },
-          },
+      await generateWithOutput(workspace, {
+        mock: {
+          path: './src/mocks',
+          generators: [{ type: 'msw' }, { type: 'faker' }],
         },
-        workspace,
-      );
-
-      await generateSpec(workspace, withBoth);
+      });
       const fakerFiles = (
         await listFilesRecursively(path.join(workspace, 'src/mocks'))
       ).filter((file) => file.endsWith('.faker.ts'));
@@ -2158,24 +2170,7 @@ describe('generateSpec - clean prunes configured mock directories', () => {
 
       // Dropping the faker generator orphans everything it wrote. Deriving the
       // patterns from the configured generators alone would strand these.
-      const mswOnly = await normalizeOptions(
-        {
-          input: { target: PETSTORE_SPEC },
-          output: {
-            target: './src/client/api.ts',
-            mode: 'tags-split',
-            client: 'fetch',
-            clean: true,
-            mock: {
-              path: './src/mocks',
-              generators: [{ type: 'msw' }],
-            },
-          },
-        },
-        workspace,
-      );
-
-      await generateSpec(workspace, mswOnly);
+      await generateWithOutput(workspace, sharedMockDirectory);
 
       const remaining = await listFilesRecursively(
         path.join(workspace, 'src/mocks'),
@@ -2195,7 +2190,7 @@ describe('generateSpec - clean prunes configured mock directories', () => {
     const workspace = await createTempWorkspace();
 
     try {
-      await generate(workspace);
+      await generateWithOutput(workspace, separateMockDirectories);
 
       // A configured mock directory is not Orval's to empty: the documented
       // example points it inside the application source tree, next to
@@ -2209,7 +2204,7 @@ describe('generateSpec - clean prunes configured mock directories', () => {
         await fs.outputFile(file, '// keep');
       }
 
-      await generate(workspace);
+      await generateWithOutput(workspace, separateMockDirectories);
 
       for (const file of handWritten) {
         expect(await fs.pathExists(file)).toBe(true);
@@ -2227,15 +2222,15 @@ describe('generateSpec - clean prunes configured mock directories', () => {
       // deletion set. It must reach the owned directories and stop at the mock
       // directories, or a configuration could delete hand-written files Orval
       // never wrote.
-      const widening = ['**/.*'];
-      await generate(workspace, widening);
+      const widened = { ...separateMockDirectories, clean: ['**/.*'] };
+      await generateWithOutput(workspace, widened);
 
       const inMockDir = path.join(workspace, 'src/mocks/msw/.eslintrc.json');
       const inTargetDir = path.join(workspace, 'src/client/.eslintrc.json');
       await fs.outputFile(inMockDir, '{}');
       await fs.outputFile(inTargetDir, '{}');
 
-      await generate(workspace, widening);
+      await generateWithOutput(workspace, widened);
 
       expect(await fs.pathExists(inMockDir)).toBe(true);
       expect(await fs.pathExists(inTargetDir)).toBe(false);
@@ -2253,25 +2248,16 @@ describe('generateSpec - clean prunes configured mock directories', () => {
       const workspace = await createTempWorkspace();
 
       try {
-        const options = await normalizeOptions(
-          {
-            input: { target: PETSTORE_SPEC },
-            output: {
-              target: './src/client/api.ts',
-              schemas: './src/models',
-              mode,
-              client: 'fetch',
-              mock: {
-                indexMockFiles: true,
-                path: './src/mocks',
-                generators: [{ type: 'msw' }, { type: 'faker' }],
-              },
-            },
+        const options = await generateWithOutput(workspace, {
+          schemas: './src/models',
+          mode,
+          clean: false,
+          mock: {
+            indexMockFiles: true,
+            path: './src/mocks',
+            generators: [{ type: 'msw' }, { type: 'faker' }],
           },
-          workspace,
-        );
-
-        await generateSpec(workspace, options);
+        });
 
         const emitted = await listFilesRecursively(
           path.join(workspace, 'src/mocks'),
@@ -2293,32 +2279,123 @@ describe('generateSpec - clean prunes configured mock directories', () => {
   );
 });
 
+describe('generateSpec - clean prunes mock directories nested in owned ones', () => {
+  /** The layout the `mock.path` documentation recommends. */
+  const nestedInTarget: Partial<OutputOptions> = {
+    target: './src/api/petstore.ts',
+    mock: { path: './src/api/mocks', generators: [{ type: 'msw' }] },
+  };
+
+  it('keeps hand-written files in a mock directory below target', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await generateWithOutput(workspace, nestedInTarget);
+
+      const handWritten = [
+        path.join(workspace, 'src/api/mocks/browser.ts'),
+        path.join(workspace, 'src/api/mocks/server.ts'),
+        path.join(workspace, 'src/api/mocks/fixtures/pets.json'),
+      ];
+      for (const file of handWritten) {
+        await fs.outputFile(file, '// keep');
+      }
+      const stale = path.join(workspace, 'src/api/mocks/removed.msw.ts');
+      await fs.outputFile(stale, '// stale');
+
+      await generateWithOutput(workspace, nestedInTarget);
+
+      for (const file of handWritten) {
+        expect(await fs.pathExists(file)).toBe(true);
+      }
+      // The directory is still pruned of Orval's own output.
+      expect(await fs.pathExists(stale)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps hand-written files in a mock directory below schemas', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const nestedInSchemas: Partial<OutputOptions> = {
+        schemas: './src/models',
+        mock: { path: './src/models/mocks', generators: [{ type: 'faker' }] },
+      };
+      await generateWithOutput(workspace, nestedInSchemas);
+
+      const handWritten = path.join(workspace, 'src/models/mocks/fixtures.ts');
+      await fs.outputFile(handWritten, '// keep');
+      const stale = path.join(workspace, 'src/models/mocks/removed.faker.ts');
+      await fs.outputFile(stale, '// stale');
+
+      await generateWithOutput(workspace, nestedInSchemas);
+
+      expect(await fs.pathExists(handWritten)).toBe(true);
+      expect(await fs.pathExists(stale)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('does not let extra clean patterns reach a nested mock directory', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const widened = { ...nestedInTarget, clean: ['**/.*'] };
+      await generateWithOutput(workspace, widened);
+
+      const inMockDir = path.join(workspace, 'src/api/mocks/.eslintrc.json');
+      const inTargetDir = path.join(workspace, 'src/api/.eslintrc.json');
+      await fs.outputFile(inMockDir, '{}');
+      await fs.outputFile(inTargetDir, '{}');
+
+      await generateWithOutput(workspace, widened);
+
+      expect(await fs.pathExists(inMockDir)).toBe(true);
+      expect(await fs.pathExists(inTargetDir)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('protects the mock directory only, not a sibling with a longer name', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await generateWithOutput(workspace, nestedInTarget);
+
+      const inMockDir = path.join(workspace, 'src/api/mocks/browser.ts');
+      const inSiblingDir = path.join(workspace, 'src/api/mocks-extra/notes.ts');
+      await fs.outputFile(inMockDir, '// keep');
+      await fs.outputFile(inSiblingDir, '// wiped');
+
+      await generateWithOutput(workspace, nestedInTarget);
+
+      expect(await fs.pathExists(inMockDir)).toBe(true);
+      // `mocks-extra` is not the mock directory, so `target` owns it.
+      expect(await fs.pathExists(inSiblingDir)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - clean scopes to the configured schemas directory', () => {
-  // #3624: `getFileInfo(...).dirname` collapses to the parent whenever the last
+  // `getFileInfo(...).dirname` collapses to the parent whenever the last
   // segment contains a dot, so a dotted schemas directory used to clean the
   // directory above the one the writers fill.
-  const generate = async (workspace: string) => {
-    const options = await normalizeOptions(
-      {
-        input: { target: PETSTORE_SPEC },
-        output: {
-          target: './src/client/api.ts',
-          schemas: './src/api/petstore.schemas',
-          client: 'fetch',
-          clean: true,
-        },
-      },
-      workspace,
-    );
-
-    await generateSpec(workspace, options);
+  const dottedSchemas: Partial<OutputOptions> = {
+    mode: 'split',
+    schemas: './src/api/petstore.schemas',
   };
 
   it('cleans the dotted schemas directory, not its parent', async () => {
     const workspace = await createTempWorkspace();
 
     try {
-      await generate(workspace);
+      await generateWithOutput(workspace, dottedSchemas);
 
       const mutator = path.join(
         workspace,
@@ -2331,7 +2408,7 @@ describe('generateSpec - clean scopes to the configured schemas directory', () =
       await fs.outputFile(mutator, '// keep');
       await fs.outputFile(stale, '// stale');
 
-      await generate(workspace);
+      await generateWithOutput(workspace, dottedSchemas);
 
       expect(await fs.pathExists(mutator)).toBe(true);
       expect(await fs.pathExists(stale)).toBe(false);

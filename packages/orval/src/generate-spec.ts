@@ -1,69 +1,54 @@
 import {
+  getConfiguredMockDirectories,
   getFileInfo,
-  getMockDir,
   isString,
   log,
   type NormalizedOptions,
   OutputMockType,
   removeFilesAndEmptyFolders,
+  upath,
 } from '@orval/core';
 
 import { importSpecs } from './import-specs';
 import { writeSpecs } from './write-specs';
 
 /**
- * Collects the directories mock files are written to.
- *
- * @remarks
- * Resolved through {@link getMockDir}, the same helper the mode writers use to
- * decide where to *write* mock files, so cleaning cannot target a different
- * directory than generation does. `mock.path` is included even when no
- * generator resolves to it, so removing the last generator from a
- * configuration still prunes what earlier runs left there.
- *
- * The paths are used as configured rather than through
- * `getFileInfo(...).dirname`, which collapses to the parent directory when the
- * last segment contains a dot (#3624).
- *
- * @returns The configured mock output directories, possibly empty.
+ * Source extensions that a mock file can carry. `output.fileExtension` selects
+ * one of them, but a run after a change of that option must still find the
+ * files that the previous extension left behind.
  */
-function getConfiguredMockDirectories(
-  mock: NormalizedOptions['output']['mock'],
-): string[] {
-  const directories = new Set<string>();
+const MOCK_FILE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+];
 
-  if (mock.path) {
-    directories.add(mock.path);
-  }
-  for (const generator of mock.generators) {
-    const directory = getMockDir(generator, mock);
-    if (directory) {
-      directories.add(directory);
-    }
-  }
-
-  return [...directories];
-}
+/** An absolute POSIX path, so paths from different options compare equal. */
+const toComparablePath = (directory: string): string =>
+  upath.resolve(directory);
 
 /**
- * Globs matching the mock files Orval writes into a configured mock directory.
- *
- * @remarks
- * Derived from {@link OutputMockType}, whose values are exactly what the mode
- * writers interpolate when naming mock files (`<name>.<type><extension>`), so
- * the patterns cannot drift from what is emitted and a new mock type is
- * covered by adding it to that enum. Every type is matched in every configured
- * mock directory rather than only the types currently configured for it —
- * dropping a generator from a configuration is one of the ways a directory
- * acquires orphans in the first place.
- *
- * @param fileExtension - The configured output file extension.
+ * Tells whether `child` names a directory below `parent`. The comparison is
+ * per path segment, so `src/api/mocks-extra` is not below `src/api/mocks`.
  */
-function getMockCleanPatterns(fileExtension: string): string[] {
-  return Object.values(OutputMockType).map(
-    (type) => `**/*.${type}${fileExtension}`,
+const isBelow = (parent: string, child: string): boolean => {
+  const parentSegments = parent.split('/');
+  const childSegments = child.split('/');
+
+  return (
+    childSegments.length > parentSegments.length &&
+    parentSegments.every((segment, index) => segment === childSegments[index])
   );
-}
+};
+
+/** The path of `child` relative to `parent`. Requires `isBelow(parent, child)`. */
+const relativeToParent = (parent: string, child: string): string =>
+  child.split('/').slice(parent.split('/').length).join('/');
 
 /**
  * Generate client/spec files for a single Orval project.
@@ -86,41 +71,64 @@ export async function generateSpec(
       ? options.output.clean
       : [];
 
-    // Directories the documentation declares Orval's own and tells users to
-    // keep hand-written files out of. Only these are emptied wholesale.
+    // `target` and `schemas` are Orval's own directories, so they are emptied.
+    // A configured mock directory can hold hand-written code, so only Orval's
+    // own mock files are removed there. A mock directory below an owned one
+    // keeps that protection: the wipe skips it and the prune cleans it.
     const ownedDirectories = new Set<string>();
 
     if (options.output.target) {
-      ownedDirectories.add(getFileInfo(options.output.target).dirname);
+      ownedDirectories.add(
+        toComparablePath(getFileInfo(options.output.target).dirname),
+      );
     }
     if (options.output.schemas) {
-      // Used as configured: `schemas` names a directory and the writers join
-      // onto it directly, so passing it through `getFileInfo(...).dirname`
-      // would clean the parent of the directory generation actually fills
-      // whenever the last segment contains a dot (#3624).
+      // `schemas` names a directory and the writers join onto it directly.
+      // `getFileInfo(...).dirname` would give the parent of that directory
+      // whenever the last segment contains a dot.
       ownedDirectories.add(
-        isString(options.output.schemas)
-          ? options.output.schemas
-          : options.output.schemas.path,
+        toComparablePath(
+          isString(options.output.schemas)
+            ? options.output.schemas
+            : options.output.schemas.path,
+        ),
       );
     }
 
+    const mockDirectories = getConfiguredMockDirectories(
+      options.output.mock,
+    ).map(toComparablePath);
+
     for (const directory of ownedDirectories) {
+      const nestedMockPatterns = mockDirectories
+        .filter((mockDirectory) => isBelow(directory, mockDirectory))
+        .map(
+          (mockDirectory) =>
+            `!${relativeToParent(directory, mockDirectory)}/**`,
+        );
+
       await removeFilesAndEmptyFolders(
-        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
         directory,
       );
     }
 
-    // A configured mock directory carries no such promise — the documented
-    // example points it inside the application source tree — so it is pruned
-    // of Orval's own output instead of emptied. `extraPatterns` is deliberately
-    // not applied: a positive glob there would reach hand-written files in a
-    // directory Orval does not own.
-    const mockPatterns = getMockCleanPatterns(options.output.fileExtension);
-    for (const directory of getConfiguredMockDirectories(options.output.mock)) {
+    // `OutputMockType` gives the name segment that the writers interpolate
+    // (`<name>.<type><extension>`), so the patterns cannot drift from what is
+    // emitted. `extraPatterns` is left out on purpose: a positive glob there
+    // would reach hand-written files that Orval never wrote.
+    const mockPatterns = Object.values(OutputMockType).flatMap((type) =>
+      [...new Set([options.output.fileExtension, ...MOCK_FILE_EXTENSIONS])].map(
+        (extension) => `**/*.${type}${extension}`,
+      ),
+    );
+
+    for (const directory of mockDirectories) {
+      // An owned directory of the same path is emptied above.
       if (ownedDirectories.has(directory)) continue;
-      await removeFilesAndEmptyFolders(mockPatterns, directory);
+      await removeFilesAndEmptyFolders(mockPatterns, directory, {
+        followSymbolicLinks: false,
+      });
     }
 
     log(`${projectName} Cleaning output folder`);
