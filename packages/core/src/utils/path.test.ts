@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { getRelativeImportPath } from './path';
+import { getRelativeImportPath, getSchemaFileName } from './path';
 
 // Build absolute paths that are valid on both Windows and Linux.
 // path.parse(process.cwd()).root gives 'C:\' on Windows and '/' on Linux.
@@ -148,5 +148,22 @@ describe('getRelativeImportPath', () => {
         getRelativeImportPath('bad/path.ts', abs('src', 'exporter.ts')),
       ).toThrow('"bad/path.ts"');
     });
+  });
+});
+
+describe('getSchemaFileName', () => {
+  it('drops the extension from the file name', () => {
+    expect(getSchemaFileName('petstore.yaml')).toBe('petstore');
+    expect(getSchemaFileName('specs/petstore.yaml')).toBe('petstore');
+    expect(getSchemaFileName('./petstore.json')).toBe('petstore');
+  });
+
+  it('keeps a file name that has no extension', () => {
+    expect(getSchemaFileName('specs/no-ext')).toBe('no-ext');
+  });
+
+  it('ignores an extension that appears in a directory name', () => {
+    expect(getSchemaFileName('v1.yaml/petstore.yaml')).toBe('petstore');
+    expect(getSchemaFileName('a.json/b/c.json')).toBe('c');
   });
 });

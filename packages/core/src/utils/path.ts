@@ -32,9 +32,15 @@ export function relativeSafe(from: string, to: string) {
 }
 
 export function getSchemaFileName(path: string) {
-  return path
-    .replace(`.${getExtension(path)}`, '')
-    .slice(path.lastIndexOf('/') + 1);
+  // Take the file name first. Stripping the extension from the whole path
+  // removes the first occurrence, which may sit in a directory name, and the
+  // slice offset was computed on the original path, so the two disagreed.
+  const fileName = path.slice(path.lastIndexOf('/') + 1);
+  const extension = `.${getExtension(path)}`;
+
+  return fileName.endsWith(extension)
+    ? fileName.slice(0, -extension.length)
+    : fileName;
 }
 
 export const separator = '/';
