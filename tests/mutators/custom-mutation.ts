@@ -9,8 +9,20 @@ export const useCustomMutation = <T, TError, TData, TContext>(
   operation: { operationId: string; operationName: string },
 ) => {
   const queryClient = useQueryClient();
-  if (operation.operationId === 'deletePetById') {
-    queryClient.invalidateQueries({ queryKey: ['/pets'] });
+
+  if (operation.operationId !== 'deletePetById') {
+    return options;
   }
-  return options;
+
+  // Invalidate after the mutation settles, not while the hook renders. The
+  // generated options function calls this mutator on every render, so an
+  // invalidation in the body refetches `/pets` on each one, and the refetch
+  // re-renders.
+  return {
+    ...options,
+    onSuccess: (data: T, variables: TData, context: TContext) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      return options.onSuccess?.(data, variables, context);
+    },
+  };
 };
