@@ -3068,6 +3068,18 @@ describe('angular httpResource generator', () => {
 
       expect(footer).toContain('ResourceState');
       expect(footer).toContain('toResourceState');
+      expect(footer).toContain(
+        'readonly hasValue: () => this is ResolvedResourceState<T>;',
+      );
+      expect(footer).toContain(
+        'export interface ResolvedResourceState<T> extends ResourceState<T>',
+      );
+      expect(footer).toContain(
+        'readonly value: Signal<Exclude<T, undefined>>;',
+      );
+      expect(footer).toContain(
+        'hasValue(this: ResourceState<T>): this is ResolvedResourceState<T>',
+      );
     });
 
     it('emits ResourceResult type aliases after header generation', () => {
