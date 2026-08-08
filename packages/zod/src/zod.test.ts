@@ -12376,6 +12376,27 @@ describe('misplaced boolean `required` (#3719)', () => {
     ).toThrowError(/schema "Composed" has `required: true`/);
   });
 
+  it('names the offending allOf member, not the composing schema', () => {
+    // A constraint-only member has no properties, so it never reaches the
+    // object path that validates `required`. Without a check here the same
+    // malformed keyword is reported in one position and ignored in another.
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          allOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { required: true },
+          ],
+        } as unknown as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'Member',
+        true,
+        false,
+        { required: true },
+      ),
+    ).toThrowError(/schema "Member\.allOf\[1\]" has `required: true`/);
+  });
+
   it('still accepts a valid required array', () => {
     expect(() =>
       generateZodValidationSchemaDefinition(
@@ -12386,6 +12407,24 @@ describe('misplaced boolean `required` (#3719)', () => {
         } as OpenApiSchemaObject,
         { output: { override: {} } } as ContextSpec,
         'Valid',
+        true,
+        false,
+        { required: true },
+      ),
+    ).not.toThrow();
+  });
+
+  it('still accepts a valid required array on an allOf member', () => {
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          allOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { required: ['a'] },
+          ],
+        } as unknown as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'ValidMember',
         true,
         false,
         { required: true },
