@@ -23,6 +23,8 @@ import {
   makeRouteSafe,
   pascal,
   toObjectString,
+  type EnumMember,
+  EnumGeneration,
 } from '@orval/core';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
@@ -161,25 +163,22 @@ const buildAcceptHelper = (
   output: ContextSpec['output'],
 ): string => {
   const acceptHelperName = getAcceptHelperName(typeName);
-  const unionValue = contentTypes
-    .map((contentType) => `'${contentType}'`)
-    .join(' | ');
-  const names = contentTypes.map((contentType) =>
-    toAcceptHelperKey(contentType),
-  );
-  const implementation = getEnumImplementation(
-    unionValue,
-    names,
-    undefined,
-    output.override.namingConvention.enum,
-  );
+
+  const enumMembers: EnumMember[] = contentTypes.map((contentType) => ({
+    value: contentType,
+    name: toAcceptHelperKey(contentType),
+  }));
+
+  const implementation = getEnumImplementation(enumMembers, {
+    enumNamingConvention: output.override.namingConvention.enum,
+    enumGenerationType: EnumGeneration.CONST,
+  });
 
   return `export type ${acceptHelperName} = typeof ${acceptHelperName}[keyof typeof ${acceptHelperName}];
-
+  
 export const ${acceptHelperName} = {
 ${implementation}} as const;`;
 };
-
 /**
  * Builds the shared `Accept` helper declarations for all operations in the
  * current Angular generation scope.
