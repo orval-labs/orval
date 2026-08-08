@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { type GeneratorSchema, NamingConvention } from '../types';
+import { buildSchemaTagMap } from './schema-tag-mapper';
 import { writeSchemasTagsSplit } from './schemas-tags-split';
 
 const tmpDir = () => fs.mkdtemp(path.join(os.tmpdir(), 'orval-test-'));
@@ -47,7 +48,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
@@ -70,7 +71,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
@@ -90,7 +91,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     const petContent = await fs.readFile(
@@ -113,7 +114,7 @@ describe('writeSchemasTagsSplit', () => {
       schemas,
       ...baseOptions,
       tsconfig: { compilerOptions: { moduleResolution: 'NodeNext' } },
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     const petContent = await fs.readFile(
@@ -133,7 +134,7 @@ describe('writeSchemasTagsSplit', () => {
       schemas,
       ...baseOptions,
       indexFiles: false,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
@@ -153,7 +154,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'pet.ts'))).toBe(true);
@@ -173,7 +174,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
@@ -182,13 +183,14 @@ describe('writeSchemasTagsSplit', () => {
 
   it('handles empty schemas array', async () => {
     dir = await tmpDir();
+    const schemas: GeneratorSchema[] = [];
     const operations = [{ imports: [{ name: 'Pet' }], tags: ['pets'] }];
 
     await writeSchemasTagsSplit({
       schemaPath: dir,
-      schemas: [],
+      schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
@@ -217,7 +219,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaPath: dir,
       schemas,
       ...baseOptions,
-      operations,
+      schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
     const indexContent = await fs.readFile(path.join(dir, 'index.ts'), 'utf8');

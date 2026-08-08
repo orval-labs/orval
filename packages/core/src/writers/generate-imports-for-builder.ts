@@ -9,10 +9,11 @@ import {
   type NormalizedOutputOptions,
 } from '../types';
 import {
-  conventionName,
   getImportExtension,
+  getSchemasImportPath,
   isFunction,
   isObject,
+  resolveSchemaImportDependencies,
   upath,
 } from '../utils';
 
@@ -26,8 +27,7 @@ export function generateImportsForBuilder(
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
 ): GeneratorDependency[] {
-  const isPackageImport =
-    isObject(output.schemas) && !!output.schemas.importPath;
+  const isPackageImport = !!getSchemasImportPath(output.schemas);
 
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
@@ -71,68 +71,12 @@ export function generateImportsForBuilder(
   // each schema (`Pet`, `PetWithTag`, ...). They're routed below.
   imports = imports.filter((i) => !i.schemaFactory);
 
-  let schemaImports: GeneratorDependency[];
-  if (output.indexFiles) {
-    schemaImports = isZodSchemaOutput
-      ? [
-          {
-            exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
-          },
-        ]
-      : [
-          {
-            exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
-          },
-        ];
-  } else {
-    const importsByDependency = new Map<string, GeneratorImport[]>();
-
-    for (const schemaImport of imports.filter((i) => !i.importPath)) {
-      const baseName = isZodSchemaOutput
-        ? schemaImport.name
-        : (schemaImport.schemaName ?? schemaImport.name);
-      const normalizedName = conventionName(baseName, output.namingConvention);
-      const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = isPackageImport
-        ? ''
-        : getImportExtension(output.fileExtension, output.tsconfig);
-      // When schemas are split by tag, route each import into its tag
-      // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
-      // root (sentinel `'.'`); their path is unchanged from the flat layout.
-      // The lookup uses the TS identifier (`schemaImport.name`), not
-      // `schemaName`, because `buildSchemaTagMap` keys on `schema.name`
-      // which is the pascal-cased TS identifier produced by `getRefInfo`.
-      // `baseName` (which prefers `schemaName`) is only correct for the
-      // filename computation below, where `conventionName` happens to be
-      // idempotent on already-pascal-cased input.
-      const tagDir = schemaTagMap?.get(schemaImport.name);
-      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
-      const dependency = upath.joinSafe(
-        relativeSchemasPath,
-        `${tagSegment}${normalizedName}${suffix}${importExtension}`,
-      );
-
-      if (!importsByDependency.has(dependency)) {
-        importsByDependency.set(dependency, []);
-      }
-      importsByDependency.get(dependency)?.push(schemaImport);
-    }
-
-    schemaImports = [...importsByDependency.entries()].map(
-      ([dependency, dependencyImports]) => ({
-        dependency,
-        exports: uniqueBy(
-          dependencyImports,
-          (entry) =>
-            `${entry.name}|${entry.alias ?? ''}|${String(entry.values)}|${String(
-              entry.default,
-            )}`,
-        ),
-      }),
-    );
-  }
+  const schemaImports = resolveSchemaImportDependencies(
+    output,
+    imports.filter((i) => !i.importPath),
+    relativeSchemasPath,
+    { isZod: isZodSchemaOutput, schemaTagMap },
+  );
 
   const otherImportsMap = new Map<string, GeneratorImport[]>();
   for (const imp of uniqueBy(

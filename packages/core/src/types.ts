@@ -1786,6 +1786,9 @@ export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpec,
+  // Extra files are rendered before the mode writers run, so they need this
+  // map to route schema imports into the same tag subdirectories.
+  schemaTagMap?: Map<string, string>,
 ) => Promise<ClientFileBuilder[]>;
 
 export interface SharedTypeDeclaration {
@@ -2050,6 +2053,8 @@ export interface WriteSpecBuilder {
   info: OpenApiInfoObject;
   target: string;
   spec: OpenApiDocument;
+  /** Schema→tag map built during API building, when `splitByTags` is on. */
+  schemaTagMap?: Map<string, string>;
 }
 
 export interface WriteModeProps {
@@ -2149,6 +2154,8 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
     options: FinalizeMockImplementationOptions,
   ) => string;
   extraFiles: ClientFileBuilder[];
+  /** See {@link WriteSpecBuilder.schemaTagMap}. */
+  schemaTagMap?: Map<string, string>;
 };
 
 export class ErrorWithTag extends Error {
