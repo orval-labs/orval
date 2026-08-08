@@ -20,8 +20,11 @@ export const useCustomMutation = <T, TError, TData, TContext>(
   // re-renders.
   return {
     ...options,
-    onSuccess: (data: T, variables: TData, context: TContext) => {
-      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+    onSuccess: async (data: T, variables: TData, context: TContext) => {
+      // `onSuccess` may return a promise, and the mutation waits for it, so
+      // awaiting the invalidation keeps the mutation pending until `/pets` is
+      // refreshed instead of settling while the refetch is still in flight.
+      await queryClient.invalidateQueries({ queryKey: ['/pets'] });
       return options.onSuccess?.(data, variables, context);
     },
   };
