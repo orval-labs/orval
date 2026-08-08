@@ -12333,3 +12333,102 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     expect(zod).toContain('"B": zod.number().int().optional()');
   });
 });
+
+describe('misplaced boolean `required` (#3719)', () => {
+  // Some generators put `required: true` on the schema a request body
+  // references, borrowing the boolean that belongs on the request body object.
+  // That used to surface as `(schema.required ?? []) is not iterable`, which
+  // names neither the schema nor the expected shape.
+  const schema = {
+    type: 'object',
+    required: true,
+    properties: { name: { type: 'string' } },
+  } as unknown as OpenApiSchemaObject;
+
+  it('names the schema and the expected shape', () => {
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        schema,
+        { output: { override: {} } } as ContextSpec,
+        'Item',
+        true,
+        false,
+        { required: true },
+      ),
+    ).toThrowError(
+      /schema "Item" has `required: true`, but a schema object's `required` must be an array of property names/,
+    );
+  });
+
+  it('reports it on the allOf path too', () => {
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          allOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
+          required: true,
+        } as unknown as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'Composed',
+        true,
+        false,
+        { required: true },
+      ),
+    ).toThrowError(/schema "Composed" has `required: true`/);
+  });
+
+  it('names the offending allOf member, not the composing schema', () => {
+    // A constraint-only member has no properties, so it never reaches the
+    // object path that validates `required`. Without a check here the same
+    // malformed keyword is reported in one position and ignored in another.
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          allOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { required: true },
+          ],
+        } as unknown as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'Member',
+        true,
+        false,
+        { required: true },
+      ),
+    ).toThrowError(/schema "Member\.allOf\[1\]" has `required: true`/);
+  });
+
+  it('still accepts a valid required array', () => {
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          required: ['name'],
+          properties: { name: { type: 'string' } },
+        } as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'Valid',
+        true,
+        false,
+        { required: true },
+      ),
+    ).not.toThrow();
+  });
+
+  it('still accepts a valid required array on an allOf member', () => {
+    expect(() =>
+      generateZodValidationSchemaDefinition(
+        {
+          allOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { required: ['a'] },
+          ],
+        } as unknown as OpenApiSchemaObject,
+        { output: { override: {} } } as ContextSpec,
+        'ValidMember',
+        true,
+        false,
+        { required: true },
+      ),
+    ).not.toThrow();
+  });
+});
