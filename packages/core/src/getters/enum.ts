@@ -159,13 +159,25 @@ export function getEnumMembers(
       array.findIndex((item) => item.value === member.value) === index,
   );
 
-  applyEnumMetadata(members, getEnumNameMetadata(metadataObject), 'name');
+  // Apply metadata from the schema first as the fallback.
+  applyEnumMetadata(members, getEnumNameMetadata(schemaObject), 'name');
 
   applyEnumMetadata(
     members,
-    getEnumDescriptionMetadata(metadataObject),
+    getEnumDescriptionMetadata(schemaObject),
     'description',
   );
+
+  // Metadata from the outer object (e.g. a query parameter) takes precedence.
+  if (metadataObject !== schemaObject) {
+    applyEnumMetadata(members, getEnumNameMetadata(metadataObject), 'name');
+
+    applyEnumMetadata(
+      members,
+      getEnumDescriptionMetadata(metadataObject),
+      'description',
+    );
+  }
 
   return members;
 }

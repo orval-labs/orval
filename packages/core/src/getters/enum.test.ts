@@ -431,6 +431,105 @@ describe('getEnumMembers', () => {
   });
 });
 
+describe('getEnumMembers metadata precedence', () => {
+  it('uses metadata from the schema when no outer metadata is present', () => {
+    const schema = {
+      enum: ['a', 'b'],
+      'x-enumNames': ['Alpha', 'Beta'],
+      'x-enumDescriptions': ['Description A', 'Description B'],
+    } as unknown as OpenApiSchemaObject;
+
+    const metadataObject = {
+      enum: ['a', 'b'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+        description: 'Description A',
+      },
+      {
+        value: 'b',
+        name: 'Beta',
+        description: 'Description B',
+      },
+    ]);
+  });
+
+  it('prefers metadata from the outer object over schema metadata', () => {
+    const schema = {
+      enum: ['a', 'b'],
+      'x-enumNames': ['SchemaAlpha', 'SchemaBeta'],
+      'x-enumDescriptions': ['Schema description A', 'Schema description B'],
+    } as unknown as OpenApiSchemaObject;
+
+    const metadataObject = {
+      'x-enumNames': ['ParameterAlpha', 'ParameterBeta'],
+      'x-enumDescriptions': [
+        'Parameter description A',
+        'Parameter description B',
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'ParameterAlpha',
+        description: 'Parameter description A',
+      },
+      {
+        value: 'b',
+        name: 'ParameterBeta',
+        description: 'Parameter description B',
+      },
+    ]);
+  });
+
+  it('only overrides metadata provided by the outer object', () => {
+    const schema = {
+      enum: ['a', 'b', 'c'],
+      'x-enumNames': {
+        a: 'Alpha',
+        b: 'Beta',
+        c: 'Charlie',
+      },
+      'x-enumDescriptions': {
+        a: 'Description A',
+        b: 'Description B',
+        c: 'Description C',
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    const metadataObject = {
+      'x-enumNames': {
+        b: 'ParameterBeta',
+      },
+      'x-enumDescriptions': {
+        c: 'Parameter description C',
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+        description: 'Description A',
+      },
+      {
+        value: 'b',
+        name: 'ParameterBeta',
+        description: 'Description B',
+      },
+      {
+        value: 'c',
+        name: 'Charlie',
+        description: 'Parameter description C',
+      },
+    ]);
+  });
+});
+
 describe('getEnumUnionFromSchema — value escaping (#3505)', () => {
   it('should JS-escape backslashes in enum values', () => {
     const result = getEnumUnion([
