@@ -109,9 +109,19 @@ export const listPets = (
     ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
-  const request$ = http
-    .get<Pets>(url, { params: httpParams })
-    .pipe(map((data) => Pets.parse(data)));
+  const request$ = http.get<Pets>(url, { params: httpParams }).pipe(
+    map((data) => {
+      const result = Pets.safeParse(data);
+      if (!result.success) {
+        console.error(
+          '[orval] listPets response validation failed',
+          result.error,
+        );
+        throw result.error;
+      }
+      return result.data;
+    }),
+  );
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -213,7 +223,19 @@ export const createPets = (
   const url = `/pets`;
   const request$ = http
     .post<Pet>(url, createPetsBody, { params: httpParams })
-    .pipe(map((data) => Pet.parse(data)));
+    .pipe(
+      map((data) => {
+        const result = Pet.safeParse(data);
+        if (!result.success) {
+          console.error(
+            '[orval] createPets response validation failed',
+            result.error,
+          );
+          throw result.error;
+        }
+        return result.data;
+      }),
+    );
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -297,7 +319,19 @@ export const showPetById = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
   const url = `/pets/${petId}`;
-  const request$ = http.get<Pet>(url).pipe(map((data) => Pet.parse(data)));
+  const request$ = http.get<Pet>(url).pipe(
+    map((data) => {
+      const result = Pet.safeParse(data);
+      if (!result.success) {
+        console.error(
+          '[orval] showPetById response validation failed',
+          result.error,
+        );
+        throw result.error;
+      }
+      return result.data;
+    }),
+  );
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -488,9 +522,19 @@ export const showPetWithOwner = (
   options?: { signal?: AbortSignal | null },
 ): Promise<PetWithTag> => {
   const url = `/pets/${petId}/owner`;
-  const request$ = http
-    .get<PetWithTag>(url)
-    .pipe(map((data) => PetWithTag.parse(data)));
+  const request$ = http.get<PetWithTag>(url).pipe(
+    map((data) => {
+      const result = PetWithTag.safeParse(data);
+      if (!result.success) {
+        console.error(
+          '[orval] showPetWithOwner response validation failed',
+          result.error,
+        );
+        throw result.error;
+      }
+      return result.data;
+    }),
+  );
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),

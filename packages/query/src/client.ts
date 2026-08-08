@@ -1,5 +1,6 @@
 import {
   type ClientHeaderBuilder,
+  emitResponseValidation,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -235,16 +236,21 @@ export const generateAngularHttpRequestFunction = (
   const isZodOutput =
     isObject(context.output.schemas) && context.output.schemas.type === 'zod';
   const isValidateResponse =
-    override.query.runtimeValidation &&
+    override.query.runtimeValidation?.enabled &&
     isZodOutput &&
     !isPrimitiveType &&
     hasSchema;
 
-  // If validation is enabled, pipe through map(data => Schema.parse(data))
+  // If validation is enabled, pipe through the shared runtime-validation emitter
   if (isValidateResponse) {
     const schemaValueRef =
       responseType === 'Error' ? 'ErrorSchema' : responseType;
-    httpCall = `${httpCall}.pipe(map(data => ${schemaValueRef}.parse(data)))`;
+    httpCall = `${httpCall}${emitResponseValidation({
+      schemaRef: schemaValueRef,
+      operationName,
+      strategy: override.query.runtimeValidation?.strategy ?? 'throw',
+      context: 'rxjs-map',
+    })}`;
   }
 
   // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation

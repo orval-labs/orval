@@ -101,7 +101,7 @@ export function createTestContextSpec({
       angular: {
         provideIn: 'root',
         client: 'httpClient',
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         queryObjectSerialization: 'spec',
       },
       swr: {},
@@ -161,7 +161,7 @@ export function createTestContextSpec({
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
         serializeResponseHeaders: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       enumGenerationType: EnumGeneration.UNION,
