@@ -1,0 +1,61 @@
+openapi: 3.0.0
+info:
+  title: Path-item-level query parameters
+  version: '1.0.0'
+paths:
+  /items/{itemId}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+  /items:
+    parameters:
+      - name: tags
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+    get:
+      operationId: listItems
+      # Overrides the path-item-level `tags` parameter, which explodes by default.
+      parameters:
+        - name: tags
+          in: query
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string

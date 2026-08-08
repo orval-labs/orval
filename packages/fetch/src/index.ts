@@ -13,8 +13,8 @@ import {
   GetterPropType,
   isObject,
   makeRouteSafe,
-  type OpenApiOperationObject,
   type OpenApiParameterObject,
+  type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
@@ -22,7 +22,6 @@ import {
   type SharedTypeDeclaration,
   stringify,
   toObjectString,
-  type Verbs,
 } from '@orval/core';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
@@ -119,13 +118,27 @@ export const generateRequestFunction = (
   );
 
   const spec = context.spec.paths?.[pathRoute] as
-    | Partial<Record<Verbs, OpenApiOperationObject>>
+    | OpenApiPathItemObject
     | undefined;
-  const parameters = spec?.[verb]?.parameters ?? [];
-  const parameterObjects = parameters.map((parameter) => {
-    const { schema } = resolveRef(parameter, context);
-    return schema as OpenApiParameterObject;
-  });
+  // Path-item-level parameters apply to every operation under the path, and an
+  // operation-level parameter with the same name and location overrides them.
+  // Same dedup rule as `getParameters` in core.
+  const parameters = [
+    ...(spec?.parameters ?? []),
+    ...(spec?.[verb]?.parameters ?? []),
+  ];
+  const parameterObjects = [
+    ...new Map(
+      parameters.map((parameter) => {
+        const { schema } = resolveRef(parameter, context);
+        const parameterObject = schema as OpenApiParameterObject;
+        return [
+          `${parameterObject.in}:${parameterObject.in === 'header' ? parameterObject.name?.toLowerCase() : parameterObject.name}`,
+          parameterObject,
+        ] as const;
+      }),
+    ).values(),
+  ];
 
   const arrayFormat = override.fetch.arrayFormat;
 

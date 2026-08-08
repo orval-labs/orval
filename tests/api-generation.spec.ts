@@ -2262,3 +2262,23 @@ test('react-query prefetch output declares serialized headers', async () => {
   expect(content).toContain(serializedHeaders('res'));
   expect(content).not.toContain('headers: res.headers');
 });
+
+test('fetch serializes path-item-level query parameters into the URL', async () => {
+  const content = await readFile(
+    generated('fetch', 'path-item-level-query-params', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const urlFn = (name: string) => {
+    const start = content.indexOf(`export const ${name} = (`);
+    expect(start).toBeGreaterThan(-1);
+    return content.slice(start, content.indexOf('\n};', start));
+  };
+
+  // `date` is declared on the path item, not on the get operation.
+  expect(urlFn('getGetItemUrl')).toContain('normalizedParams.append(key, value');
+
+  // `tags` explodes at the path-item level but the operation overrides it with
+  // `explode: false`, so the exploding branch must not be generated.
+  expect(urlFn('getListItemsUrl')).not.toContain('const explodeParameters');
+});
