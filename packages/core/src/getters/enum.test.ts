@@ -457,6 +457,22 @@ describe('getEnumMembers metadata precedence', () => {
     ]);
   });
 
+  it('should escape enum names in object metadata format', () => {
+    const schema = {
+      enum: ['a'],
+      'x-enumNames': {
+        a: "It's active",
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+        name: String.raw`It\'s active`,
+      },
+    ]);
+  });
+
   it('prefers metadata from the outer object over schema metadata', () => {
     const schema = {
       enum: ['a', 'b'],

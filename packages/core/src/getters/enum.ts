@@ -141,7 +141,7 @@ function applyEnumMetadata(
     const value = metadata[String(member.value)];
 
     if (value) {
-      member[key] = value;
+      member[key] = jsStringEscape(value);
     }
   });
 }
