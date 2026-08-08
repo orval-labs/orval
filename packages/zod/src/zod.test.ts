@@ -3,6 +3,7 @@ import type {
   GeneratorMutator,
   GeneratorOptions,
   NormalizedMutator,
+  ZodVariantOption,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { PropertySortOrder } from '@orval/core';
@@ -2827,12 +2828,310 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
-  describe('enum handling', () => {
-    const context = makeContextSpec({
-      override: {
-        useDates: false,
+  describe.each([
+    {
+      name: 'Zod 3 classic',
+      isZodV4: false,
+      variant: 'classic' as ZodVariantOption,
+    },
+    {
+      name: 'Zod 4 classic',
+      isZodV4: true,
+      variant: 'classic' as ZodVariantOption,
+    },
+    {
+      name: 'Zod 4 mini',
+      isZodV4: true,
+      variant: 'mini' as ZodVariantOption,
+    },
+  ])('enum with metadata handling - $name', ({ isZodV4, variant }) => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          namingConvention: {
+            enum: 'PascalCase',
+          },
+          zod: {
+            variant,
+            version: isZodV4 ? 4 : 3,
+          },
+        },
       },
+    } as ContextSpec;
+
+    const enumMethod = isZodV4 ? 'enum' : 'nativeEnum';
+
+    it('generates an enum for a string', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      );
+
+      const expectedZod =
+        variant === 'mini'
+          ? "/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(['cat', 'dog']))"
+          : "zod.enum(['cat', 'dog']).optional()";
+
+      expect(parsed.zod).toBe(expectedZod);
     });
+
+    it('generates an enum as a union of literal because its boolean', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'boolean',
+        enum: [true, false],
+        'x-enumDescriptions': ['Status is open', 'Status is closed'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'oneOf',
+            [
+              { functions: [['literal', true]], consts: [] },
+              { functions: [['literal', false]], consts: [] },
+            ],
+          ],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      );
+
+      const expectedZod =
+        variant === 'mini'
+          ? '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.union([/*#__PURE__*/ zod.literal(true),/*#__PURE__*/ zod.literal(false)]))'
+          : 'zod.union([zod.literal(true),zod.literal(false)]).optional()';
+
+      expect(parsed.zod).toBe(expectedZod);
+    });
+
+    it('generates an enum without any x-enumNames but with description', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'number',
+        enum: [0, 1, 2],
+        'x-enumDescriptions': [
+          'Status is open',
+          'Status is closed',
+          'Status is in progress',
+        ],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      const enumObject =
+        `{\n` +
+        `  /** Status is open */\n` +
+        `  Number0: 0,\n` +
+        `  /** Status is closed */\n` +
+        `  Number1: 1,\n` +
+        `  /** Status is in progress */\n` +
+        `  Number2: 2,\n` +
+        `}`;
+
+      expect(result).toEqual({
+        functions: [
+          ['enumObject', enumObject],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      );
+
+      const expectedZod =
+        variant === 'mini'
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          : `zod.${enumMethod}(${enumObject}).optional()`;
+
+      expect(parsed.zod).toBe(expectedZod);
+    });
+
+    it('generates an enum with number array as const and assigns it to zod.enum', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'number',
+        enum: [0, 1, 2],
+        'x-enumNames': ['OPEN', 'CLOSED', 'PROGRESS'],
+        'x-enumDescriptions': [
+          'Status is open',
+          'Status is closed',
+          'Status is in progress',
+        ],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      const enumObject =
+        `{\n` +
+        `  /** Status is open */\n` +
+        `  OPEN: 0,\n` +
+        `  /** Status is closed */\n` +
+        `  CLOSED: 1,\n` +
+        `  /** Status is in progress */\n` +
+        `  PROGRESS: 2,\n` +
+        `}`;
+
+      expect(result).toEqual({
+        functions: [
+          ['enumObject', enumObject],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      );
+
+      const expectedZod =
+        variant === 'mini'
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          : `zod.${enumMethod}(${enumObject}).optional()`;
+
+      expect(parsed.zod).toBe(expectedZod);
+    });
+
+    it('generates an enum with string array and metadata', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        'x-enumNames': ['Cat', 'Dog'],
+        'x-enumDescriptions': ['Represents a cat', 'Represents a dog'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      const enumObject =
+        `{\n` +
+        `  /** Represents a cat */\n` +
+        `  Cat: 'cat',\n` +
+        `  /** Represents a dog */\n` +
+        `  Dog: 'dog',\n` +
+        `}`;
+
+      expect(result).toEqual({
+        functions: [
+          ['enumObject', enumObject],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      );
+
+      const expectedZod =
+        variant === 'mini'
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          : `zod.${enumMethod}(${enumObject}).optional()`;
+
+      expect(parsed.zod).toBe(expectedZod);
+    });
+  });
+
+  describe('enum handling', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          namingConvention: {
+            enum: 'PascalCase',
+          },
+        },
+      },
+    } as ContextSpec;
 
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {

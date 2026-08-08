@@ -6,7 +6,10 @@
  */
 
 export enum DogGroup {
+  /** Dog Group 1 */
   NUMBER_1 = 1,
+  /** Dog Group 2 */
   NUMBER_2 = 2,
+  /** Dog Group 3 */
   NUMBER_3 = 3,
 }

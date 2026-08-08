@@ -14,8 +14,54 @@ import {
   sanitize,
 } from '../utils';
 
+type EnumConstBranch = {
+  const?: SchemaEnumValue;
+  enum?: SchemaEnumValue[];
+  title?: string;
+  type?: string | string[];
+  description?: string;
+  deprecated?: boolean;
+};
+
 /** Bridge type for enum values from AnyOtherAttribute-infected schema extensions */
 type SchemaEnumValue = string | number | boolean | null;
+
+/** Represents x-enumnames,... and x-enumdescriptions,... values */
+type EnumMetadata = string[] | Record<string, string>;
+
+/**
+ * Normalized representation of an enum member, independent of how it was
+ * authored in the OpenAPI schema (vendor extensions or `oneOf` + `const`).
+ *
+ * Used as the shared model for TypeScript and Zod code generation.
+ */
+export type EnumMember = {
+  value: SchemaEnumValue;
+  name?: string;
+  description?: string;
+  deprecated?: boolean;
+};
+
+/**
+ * Metadata describing the type and logical structure of an enum.
+ */
+export interface EnumValueInfo {
+  isHomogeneous: boolean;
+  isBoolean: boolean;
+}
+
+interface CombinedEnumInput {
+  value: string;
+  isRef: boolean;
+  schema: OpenApiSchemaObject | undefined;
+  enumMembers?: EnumMember[];
+}
+
+interface CombinedEnumValue {
+  value: string;
+  valueImports: string[];
+  hasNull: boolean;
+}
 
 /**
  * Map of special characters to semantic word replacements.
@@ -36,285 +82,418 @@ const ENUM_SPECIAL_CHARACTER_MAP: Record<string, string> = {
 };
 
 /**
- * Replace special characters with semantic words (plus an underscore separator)
- * so that naming convention transforms (PascalCase, etc.) produce unique keys.
- *
- * The trailing underscore acts as a word boundary so that PascalCase treats the
- * replacement as a separate word: "-created_at" → "minus_created_at" → "MinusCreatedAt".
+ * Vendor extension keys used by various OpenAPI tools
+ * to define custom names for enum members.
  */
-function replaceSpecialCharacters(key: string): string {
-  let result = '';
-  for (const char of key) {
-    const replacement = ENUM_SPECIAL_CHARACTER_MAP[char];
-    result += replacement ? replacement + '_' : char;
+const ENUM_NAME_EXTENSIONS = [
+  'x-enumNames',
+  'x-enumnames',
+  'x-enum-varnames',
+] as const;
+
+/**
+ * Vendor extension keys used to provide explicit documentation or descriptions
+ * for individual enum members in OpenAPI schemas.
+ */
+const ENUM_DESC_EXTENSIONS = [
+  'x-enumDescriptions',
+  'x-enumdescriptions',
+  'x-enum-descriptions',
+] as const;
+
+function getEnumNameMetadata(
+  schemaObject: OpenApiSchemaObject | undefined,
+): EnumMetadata | undefined {
+  if (!schemaObject) return undefined;
+
+  // Find the first matching extension key present in the object
+  const key = ENUM_NAME_EXTENSIONS.find((ext) => ext in schemaObject);
+  return key ? (schemaObject[key] as EnumMetadata) : undefined;
+}
+
+function getEnumDescriptionMetadata(
+  schemaObject: OpenApiSchemaObject | undefined,
+): EnumMetadata | undefined {
+  if (!schemaObject) return undefined;
+
+  const key = ENUM_DESC_EXTENSIONS.find((ext) => ext in schemaObject);
+  return key ? (schemaObject[key] as EnumMetadata) : undefined;
+}
+
+function applyEnumMetadata(
+  members: EnumMember[],
+  metadata: EnumMetadata | undefined,
+  key: 'name' | 'description',
+) {
+  if (!metadata) return;
+
+  if (Array.isArray(metadata)) {
+    metadata.forEach((value, index) => {
+      if (value && members[index]) {
+        members[index][key] = jsStringEscape(value);
+      }
+    });
+
+    return;
   }
+
+  members.forEach((member) => {
+    const value = metadata[String(member.value)];
+
+    if (value) {
+      member[key] = jsStringEscape(value);
+    }
+  });
+}
+
+export function getEnumMembers(
+  schemaObject: OpenApiSchemaObject | undefined,
+  metadataObject: OpenApiSchemaObject | undefined = schemaObject,
+): EnumMember[] {
+  if (!schemaObject) {
+    return [];
+  }
+
+  const members = getRawEnumMembers(schemaObject).filter(
+    (member, index, array) =>
+      array.findIndex((item) => item.value === member.value) === index,
+  );
+
+  // Apply metadata from the schema first as the fallback.
+  applyEnumMetadata(members, getEnumNameMetadata(schemaObject), 'name');
+
+  applyEnumMetadata(
+    members,
+    getEnumDescriptionMetadata(schemaObject),
+    'description',
+  );
+
+  // Metadata from the outer object (e.g. a query parameter) takes precedence.
+  if (metadataObject !== schemaObject) {
+    applyEnumMetadata(members, getEnumNameMetadata(metadataObject), 'name');
+
+    applyEnumMetadata(
+      members,
+      getEnumDescriptionMetadata(metadataObject),
+      'description',
+    );
+  }
+
+  return members;
+}
+
+/**
+ * Generates the internal key-value members as string for either a native typeScript enum plain javaScript object map or union,
+ */
+export function getEnumImplementation(
+  members: EnumMember[],
+  options: {
+    enumGenerationType: EnumGeneration;
+    enumNamingConvention?: NamingConvention | undefined;
+  },
+): string {
+  if (options.enumGenerationType === EnumGeneration.UNION) {
+    return getEnumUnion(members);
+  }
+  const assignmentOperator =
+    options.enumGenerationType === EnumGeneration.CONST ? ':' : '=';
+  const membersWithoutNull = getEnumMembersWithoutNull(members);
+
+  const disambiguate =
+    !!options.enumNamingConvention &&
+    new Set(
+      membersWithoutNull.map((member) =>
+        deriveEnumKey(member.value, options.enumNamingConvention),
+      ),
+    ).size < membersWithoutNull.length;
+
+  let result = '';
+
+  for (const member of membersWithoutNull) {
+    const value = isString(member.value)
+      ? `'${jsStringLiteralEscape(member.value as string)}'`
+      : String(member.value);
+
+    const comment = member.description
+      ? `  /** ${member.description} */\n`
+      : '';
+
+    const rawKey = member.name
+      ? member.name
+      : deriveEnumKey(member.value, options.enumNamingConvention, disambiguate);
+
+    // Native enums do not allow quoted string literals as keys in standard TS syntax,
+    // but object literals do. Choose key representation safely.
+    const formattedKey = keyword.isIdentifierNameES5(rawKey)
+      ? rawKey
+      : `'${jsStringLiteralEscape(rawKey)}'`;
+
+    result += `${comment}  ${formattedKey}${assignmentOperator} ${value},\n`;
+  }
+
   return result;
 }
 
-export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
-  const names = (schemaObject?.['x-enumNames'] ??
-    schemaObject?.['x-enumnames'] ??
-    schemaObject?.['x-enum-varnames']) as
-    | string[]
-    | Record<string, string>
-    | undefined;
-
-  if (!names) return;
-
-  if (Array.isArray(names)) {
-    return names.map((name: string) => jsStringEscape(name));
-  }
-
-  // Object/Map format: keys correspond to enum values, values are the names.
-  // Convert to an array ordered by the schema's enum values.
-  if (typeof names === 'object') {
-    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
-    return enumValues.map((enumVal) => {
-      const key = String(enumVal);
-      return key in names ? jsStringEscape(names[key]) : undefined;
-    });
-  }
-
-  return;
-}
-
-export function getEnumDescriptions(
-  schemaObject: OpenApiSchemaObject | undefined,
-) {
-  const descriptions = (schemaObject?.['x-enumDescriptions'] ??
-    schemaObject?.['x-enumdescriptions'] ??
-    schemaObject?.['x-enum-descriptions']) as
-    | string[]
-    | Record<string, string>
-    | undefined;
-
-  if (!descriptions) return;
-
-  if (Array.isArray(descriptions)) {
-    return descriptions.map((description: string) =>
-      jsStringEscape(description),
-    );
-  }
-
-  // Object/Map format: keys correspond to enum values, values are the descriptions.
-  // Convert to an array ordered by the schema's enum values.
-  if (typeof descriptions === 'object') {
-    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
-    return enumValues.map((enumVal) => {
-      const key = String(enumVal);
-      return key in descriptions
-        ? jsStringEscape(descriptions[key])
-        : undefined;
-    });
-  }
-
-  return;
-}
-
 export function getEnum(
-  value: string,
+  enumMembers: EnumMember[],
   enumName: string,
-  names: (string | undefined)[] | undefined,
+  nullable: boolean,
   enumGenerationType: EnumGeneration,
-  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) {
-  if (enumGenerationType === EnumGeneration.CONST)
+  if (enumGenerationType === EnumGeneration.CONST) {
     return getTypeConstEnum(
-      value,
+      enumMembers,
       enumName,
-      names,
-      descriptions,
+      nullable,
       enumNamingConvention,
     );
-  if (enumGenerationType === EnumGeneration.ENUM)
-    return getNativeEnum(value, enumName, names, enumNamingConvention);
-  return getUnion(value, enumName);
+  }
+
+  if (enumGenerationType === EnumGeneration.ENUM) {
+    return getNativeEnum(enumMembers, enumName, enumNamingConvention);
+  }
+
+  return getUnion(enumMembers, enumName);
+}
+
+/**
+ * Ensures all enum objects possess metadata names to prevent unstable,
+ * auto-generated keys during code generation.
+ */
+export function hasEnumMetadata(members: EnumMember[]): boolean {
+  return members.some(
+    (member) => member.name !== undefined || member.description !== undefined,
+  );
+}
+
+export function getEnumValueInfo(members: EnumMember[]): EnumValueInfo {
+  const firstValue = members[0]?.value;
+  const firstType = typeof firstValue;
+
+  return {
+    isHomogeneous: members.every((member) => typeof member.value === firstType),
+    isBoolean:
+      members.length > 0 &&
+      members.every((member) => typeof member.value === 'boolean'),
+  };
+}
+
+export function getEnumUnion(enumMembers: EnumMember[]) {
+  return enumMembers
+    .map(({ value }) =>
+      value === null
+        ? 'null'
+        : isString(value)
+          ? `'${jsStringLiteralEscape(value as string)}'`
+          : String(value),
+    )
+    .join(' | ');
+}
+
+export function getCombinedEnumValue(
+  inputs: CombinedEnumInput[],
+): CombinedEnumValue {
+  const valueImports: string[] = [];
+
+  const hasNull = inputs.some((input) => {
+    if (input.value.includes('| null')) return true;
+    const members = input.enumMembers ?? getEnumMembers(input.schema);
+    return members.some((member) => member.value === null);
+  });
+
+  const addValueImport = (name: string) => {
+    if (!valueImports.includes(name)) {
+      valueImports.push(name);
+    }
+  };
+
+  if (inputs.length === 1) {
+    const input = inputs[0];
+
+    if (input.isRef) {
+      const refName = stripNullUnion(input.value);
+
+      if (isSpreadableEnumRef(input.schema, refName)) {
+        addValueImport(refName);
+
+        return {
+          value: refName,
+          valueImports,
+          hasNull,
+        };
+      }
+
+      return {
+        value: `{${buildInlineEnum(input.schema)}} as const`,
+        valueImports,
+        hasNull,
+      };
+    }
+
+    return {
+      value: `{${buildInlineEnum(input.schema)}} as const`,
+      valueImports,
+      hasNull,
+    };
+  }
+
+  const enums = inputs
+    .map((input) => {
+      if (input.isRef) {
+        const refName = stripNullUnion(input.value);
+
+        if (isSpreadableEnumRef(input.schema, refName)) {
+          addValueImport(refName);
+          return `...${refName},`;
+        }
+
+        return buildInlineEnum(input.schema);
+      }
+
+      return buildInlineEnum(input.schema);
+    })
+    .join('');
+
+  return {
+    value: `{${enums}} as const`,
+    valueImports,
+    hasNull,
+  };
+}
+
+function getEnumMembersFromBranches(
+  schemaObject: OpenApiSchemaObject | undefined,
+): EnumMember[] {
+  if (!schemaObject) {
+    return [];
+  }
+
+  const branches = [
+    ...(schemaObject.oneOf ?? []),
+    ...(schemaObject.anyOf ?? []),
+  ] as EnumConstBranch[];
+
+  const members: EnumMember[] = [];
+
+  for (const branch of branches) {
+    if (hasConst(branch)) {
+      members.push({
+        value: branch.const,
+        name: branch.title ? jsStringEscape(branch.title) : undefined,
+        description: branch.description
+          ? jsStringEscape(branch.description)
+          : undefined,
+        deprecated: branch.deprecated === true ? true : undefined,
+      });
+      continue;
+    }
+
+    const enumValues = getSchemaEnumValues(branch.enum);
+
+    members.push(
+      ...enumValues.map((value) => ({
+        value,
+      })),
+    );
+
+    if (
+      branch.type === 'null' ||
+      (Array.isArray(branch.type) && branch.type.includes('null'))
+    ) {
+      members.push({
+        value: null,
+      });
+    }
+  }
+
+  return members.filter(
+    (member, index, array) =>
+      array.findIndex((item) => item.value === member.value) === index,
+  );
+}
+
+function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is SchemaEnumValue =>
+          typeof item === 'string' ||
+          typeof item === 'number' ||
+          typeof item === 'boolean' ||
+          item === null,
+      )
+    : [];
+}
+
+function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
+  if ('const' in schemaObject) {
+    return [
+      {
+        value: schemaObject.const as SchemaEnumValue,
+      },
+    ];
+  }
+
+  if (schemaObject.enum) {
+    const enumValues = schemaObject.enum as SchemaEnumValue[];
+
+    return enumValues.map((value) => ({
+      value,
+    }));
+  }
+
+  return getEnumMembersFromBranches(schemaObject);
+}
+
+function getEnumMembersWithoutNull(members: EnumMember[]): EnumMember[] {
+  return members.filter((member) => member.value !== null);
 }
 
 const getTypeConstEnum = (
-  value: string,
+  enumMembers: EnumMember[],
   enumName: string,
-  names?: (string | undefined)[],
-  descriptions?: (string | undefined)[],
+  nullable: boolean,
   enumNamingConvention?: NamingConvention,
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
 
-  // Coerce first: integer/number `const` used to overwrite the enum union with
-  // a raw number, so `value.endsWith` threw (#3758).
-  value = String(value);
-
-  if (value.endsWith(' | null')) {
-    value = value.replace(' | null', '');
+  if (nullable) {
     enumValue += ' | null';
   }
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(
-    value,
-    names,
-    descriptions,
-    enumNamingConvention,
-  );
+  const implementation = getEnumImplementation(enumMembers, {
+    enumGenerationType: EnumGeneration.CONST,
+    enumNamingConvention: enumNamingConvention,
+  });
 
   enumValue += '\n\n';
-
   enumValue += `export const ${enumName} = {\n${implementation}} as const;\n`;
 
   return enumValue;
 };
 
-/**
- * Derive the object/enum key for a single enum value.
- *
- * Handles numeric prefixes, sanitization, and optional naming convention
- * transforms.  When `disambiguate` is true, special characters (-/+) are
- * replaced with semantic words before the convention transform to prevent
- * key collisions.
- */
-function deriveEnumKey(
-  val: string,
-  enumNamingConvention?: NamingConvention,
-  disambiguate = false,
-): string {
-  let key = val.startsWith("'") ? val.slice(1, -1) : val;
-
-  if (isNumeric(key)) {
-    key = toNumberKey(key);
-  }
-
-  if (key.length > 1) {
-    key = sanitize(key, {
-      whitespace: '_',
-      underscore: true,
-      dash: true,
-      special: true,
-    });
-  }
-
-  if (enumNamingConvention) {
-    if (disambiguate) {
-      key = replaceSpecialCharacters(key);
-    }
-    key = conventionName(key, enumNamingConvention);
-  }
-
-  return key;
-}
-
-export function getEnumImplementation(
-  value: string,
-  names?: (string | undefined)[],
-  descriptions?: (string | undefined)[],
-  enumNamingConvention?: NamingConvention,
-) {
-  // empty enum or null-only enum
-  if (value === '') return '';
-
-  const uniqueValues = [...new Set(value.split(' | '))];
-
-  // Check whether the naming convention produces duplicate keys.
-  // Only apply special-character disambiguation when it does,
-  // so that existing output is preserved for non-colliding enums.
-  const disambiguate =
-    !!enumNamingConvention &&
-    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
-      .size < uniqueValues.length;
-
-  let result = '';
-  for (const [index, val] of uniqueValues.entries()) {
-    const name = names?.[index];
-    const description = descriptions?.[index];
-    const comment = description ? `  /** ${description} */\n` : '';
-
-    if (name) {
-      result +=
-        comment +
-        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`;
-      continue;
-    }
-
-    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
-
-    result +=
-      comment +
-      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`;
-  }
-  return result;
-}
-
 const getNativeEnum = (
-  value: string,
+  enumMembers: EnumMember[],
   enumName: string,
-  names?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
-  const enumItems = getNativeEnumItems(value, names, enumNamingConvention);
-  const enumValue = `export enum ${enumName} {\n${enumItems}\n}`;
+  const membersWithoutNull = getEnumMembersWithoutNull(enumMembers);
 
-  return enumValue;
+  const enumItems = getEnumImplementation(membersWithoutNull, {
+    enumNamingConvention: enumNamingConvention,
+    enumGenerationType: EnumGeneration.ENUM,
+  });
+
+  return `export enum ${enumName} {\n${enumItems}\n}`;
 };
 
-const getNativeEnumItems = (
-  value: string,
-  names?: (string | undefined)[],
-  enumNamingConvention?: NamingConvention,
-) => {
-  if (value === '') return '';
-
-  const uniqueValues = [...new Set(value.split(' | '))];
-
-  const disambiguate =
-    !!enumNamingConvention &&
-    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
-      .size < uniqueValues.length;
-
-  let result = '';
-  for (const [index, val] of uniqueValues.entries()) {
-    const name = names?.[index];
-    if (name) {
-      result += `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}= ${val},\n`;
-      continue;
-    }
-
-    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
-
-    result += `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}= ${val},\n`;
-  }
-  return result;
-};
-
-const toNumberKey = (value: string) => {
-  if (value.startsWith('-')) {
-    return `NUMBER_MINUS_${value.slice(1)}`;
-  }
-  if (value.startsWith('+')) {
-    return `NUMBER_PLUS_${value.slice(1)}`;
-  }
-  return `NUMBER_${value}`;
-};
-
-const getUnion = (value: string, enumName: string) => {
-  return `export type ${enumName} = ${value};`;
-};
-
-interface CombinedEnumInput {
-  value: string;
-  isRef: boolean;
-  schema: OpenApiSchemaObject | undefined;
+function getUnion(enumMembers: EnumMember[], enumName: string) {
+  return `export type ${enumName} = ${getEnumUnion(enumMembers)};`;
 }
 
-interface CombinedEnumValue {
-  value: string;
-  valueImports: string[];
-  hasNull: boolean;
-}
-
-export function getEnumUnionFromSchema(
-  schema: OpenApiSchemaObject | undefined,
-) {
+function getEnumUnionFromSchema(schema: OpenApiSchemaObject | undefined) {
   if (!schema?.enum) return '';
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
@@ -341,73 +520,79 @@ const isSpreadableEnumRef = (
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(refName);
 };
 
-const buildInlineEnum = (
-  schema: OpenApiSchemaObject | undefined,
-  enumValue?: string,
-) => {
-  const names = getEnumNames(schema);
-  const descriptions = getEnumDescriptions(schema);
-  const unionValue = enumValue ?? getEnumUnionFromSchema(schema);
-  return getEnumImplementation(unionValue, names, descriptions);
+const buildInlineEnum = (schema: OpenApiSchemaObject | undefined) => {
+  return getEnumImplementation(getEnumMembers(schema), {
+    enumGenerationType: EnumGeneration.CONST,
+  });
 };
 
-export function getCombinedEnumValue(
-  inputs: CombinedEnumInput[],
-): CombinedEnumValue {
-  const valueImports: string[] = [];
-  const hasNull = inputs.some((input) => {
-    if (input.value.includes('| null')) return true;
-    const schema = input.schema;
-    if (!schema) return false;
-    if (schema.nullable === true) return true;
-    if (Array.isArray(schema.type) && schema.type.includes('null')) return true;
-    const schemaEnum = schema.enum as SchemaEnumValue[] | undefined;
-    // eslint-disable-next-line unicorn/no-null -- OpenAPI enum values include literal null
-    return schemaEnum?.includes(null) ?? false;
-  });
+/**
+ * Replace special characters with semantic words (plus an underscore separator)
+ * so that naming convention transforms (PascalCase, etc.) produce unique keys.
+ *
+ * The trailing underscore acts as a word boundary so that PascalCase treats the
+ * replacement as a separate word: "-created_at" → "minus_created_at" → "MinusCreatedAt".
+ */
+function replaceSpecialCharacters(key: string): string {
+  let result = '';
+  for (const char of key) {
+    const replacement = ENUM_SPECIAL_CHARACTER_MAP[char];
+    result += replacement ? replacement + '_' : char;
+  }
+  return result;
+}
 
-  const addValueImport = (name: string) => {
-    if (!valueImports.includes(name)) {
-      valueImports.push(name);
-    }
-  };
+const toNumberKey = (value: string) => {
+  if (value.startsWith('-')) {
+    return `NUMBER_MINUS_${value.slice(1)}`;
+  }
+  if (value.startsWith('+')) {
+    return `NUMBER_PLUS_${value.slice(1)}`;
+  }
+  return `NUMBER_${value}`;
+};
 
-  if (inputs.length === 1) {
-    const input = inputs[0];
-    if (input.isRef) {
-      const refName = stripNullUnion(input.value);
-      if (isSpreadableEnumRef(input.schema, refName)) {
-        addValueImport(refName);
-        return { value: refName, valueImports, hasNull };
-      }
-      return {
-        value: `{${buildInlineEnum(input.schema)}} as const`,
-        valueImports,
-        hasNull,
-      };
-    }
+/**
+ * Derive the object/enum key for a single enum value.
+ *
+ * Handles numeric prefixes, sanitization, and optional naming convention
+ * transforms.  When `disambiguate` is true, special characters (-/+) are
+ * replaced with semantic words before the convention transform to prevent
+ * key collisions.
+ */
+function deriveEnumKey(
+  val: string | number | boolean | null,
+  enumNamingConvention?: NamingConvention,
+  disambiguate = false,
+): string {
+  let key = String(val);
 
-    return {
-      value: `{${buildInlineEnum(input.schema, stripNullUnion(input.value))}} as const`,
-      valueImports,
-      hasNull,
-    };
+  if (isNumeric(key)) {
+    key = toNumberKey(key);
   }
 
-  const enums = inputs
-    .map((input) => {
-      if (input.isRef) {
-        const refName = stripNullUnion(input.value);
-        if (isSpreadableEnumRef(input.schema, refName)) {
-          addValueImport(refName);
-          return `...${refName},`;
-        }
-        return buildInlineEnum(input.schema);
-      }
+  if (key.length > 1) {
+    key = sanitize(key, {
+      whitespace: '_',
+      underscore: true,
+      dash: true,
+      special: true,
+    });
+  }
 
-      return buildInlineEnum(input.schema, stripNullUnion(input.value));
-    })
-    .join('');
+  if (enumNamingConvention) {
+    if (disambiguate) {
+      key = replaceSpecialCharacters(key);
+    }
 
-  return { value: `{${enums}} as const`, valueImports, hasNull };
+    key = conventionName(key, enumNamingConvention);
+  }
+
+  return key;
+}
+
+function hasConst(
+  branch: EnumConstBranch,
+): branch is EnumConstBranch & { const: SchemaEnumValue } {
+  return 'const' in branch;
 }

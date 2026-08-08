@@ -1,4 +1,4 @@
-import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
+import { getEnum, getEnumMembers } from '../getters/enum';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
@@ -110,14 +110,26 @@ function resolveObjectOriginal({
     };
   }
 
+  const isSchemaNullableAtRoot = (schema?: OpenApiSchemaObject) => {
+    if (!schema) {
+      return false;
+    }
+
+    if (schema.nullable === true) {
+      return true;
+    }
+
+    const type = schema.type;
+    return Array.isArray(type) && type.includes('null');
+  };
+
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
     const doc = jsDoc(resolvedValue.originalSchema);
     const enumValue = getEnum(
-      resolvedValue.value,
+      getEnumMembers(resolvedValue.originalSchema),
       propName,
-      getEnumNames(resolvedValue.originalSchema),
+      isSchemaNullableAtRoot(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
-      getEnumDescriptions(resolvedValue.originalSchema),
       context.output.override.namingConvention.enum,
     );
 
