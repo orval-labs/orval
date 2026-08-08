@@ -102,6 +102,19 @@ export type HTTPStatusCodes =
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 const withQueryKey = <T extends object, K>(
   query: T,
   queryKey: K,
@@ -320,7 +333,10 @@ export const createPets = async (
   return customFetch<createPetsResponse>(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(createPetsBodyItem),
   });
 };
@@ -426,7 +442,10 @@ export const updatePets = async (
   return customFetch<updatePetsResponse>(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(pet),
   });
 };

@@ -20,6 +20,19 @@ import type {
   Pets,
 } from '../model';
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export const getListPetsUrl = (params: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -115,7 +128,10 @@ export const createPets = async (
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(createPetsBody),
   });
 

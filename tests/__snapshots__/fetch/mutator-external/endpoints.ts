@@ -57,6 +57,19 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;
@@ -149,7 +162,10 @@ export const createPets = async (
   return customFetchWithScss<createPetsResponse>(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(createPetsBody),
   });
 };

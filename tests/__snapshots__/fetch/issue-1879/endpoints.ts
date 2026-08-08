@@ -11,6 +11,19 @@ import type {
   RequestBHeaders,
 } from './model';
 
+function mergeOrvalHeaders(
+  ...headers: Array<HeadersInit | undefined>
+): Record<string, string> {
+  const mergedHeaders: Record<string, string> = {};
+
+  for (const header of headers) {
+    new Headers(header).forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+  }
+
+  return mergedHeaders;
+}
 export type requestAResponse200 = {
   data: void;
   status: 200;
@@ -36,11 +49,10 @@ export const requestA = async (
   const res = await fetch(getRequestAUrl(), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-      ...options?.headers,
-    },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json', ...headers },
+      options?.headers,
+    ),
     body: JSON.stringify(requestABody),
   });
 
@@ -75,11 +87,10 @@ export const requestB = async (
   const res = await fetch(getRequestBUrl(), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-      ...options?.headers,
-    },
+    headers: mergeOrvalHeaders(
+      { 'Content-Type': 'application/json', ...headers },
+      options?.headers,
+    ),
     body: JSON.stringify(requestBBody),
   });
 
