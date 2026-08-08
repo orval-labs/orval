@@ -13,5 +13,16 @@ export async function writeGeneratedFile(
   filePath: string,
   content: string,
 ): Promise<void> {
-  await fs.outputFile(filePath, content.replaceAll(TRAILING_WHITESPACE_RE, ''));
+  const nextContent = content.replaceAll(TRAILING_WHITESPACE_RE, '');
+
+  // Skip the write when the file already holds this exact output, so a no-op
+  // regeneration does not churn mtime and wake every downstream watcher. Same
+  // reasoning as the barrel writers (#3756), applied to generated artifacts
+  // as well. (#3787)
+  if (await fs.pathExists(filePath)) {
+    const existingContent = await fs.readFile(filePath, 'utf8');
+    if (existingContent === nextContent) return;
+  }
+
+  await fs.outputFile(filePath, nextContent);
 }
