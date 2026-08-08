@@ -36,7 +36,7 @@ export function getSchemaFileName(path: string) {
   // removes the first occurrence, which may sit in a directory name, and the
   // slice offset was computed on the original path, so the two disagreed.
   const fileName = path.slice(path.lastIndexOf('/') + 1);
-  const extension = `.${getExtension(path)}`;
+  const extension = `.${getExtension(fileName)}`;
 
   return fileName.endsWith(extension)
     ? fileName.slice(0, -extension.length)

@@ -165,5 +165,6 @@ describe('getSchemaFileName', () => {
   it('ignores an extension that appears in a directory name', () => {
     expect(getSchemaFileName('v1.yaml/petstore.yaml')).toBe('petstore');
     expect(getSchemaFileName('a.json/b/c.json')).toBe('c');
+    expect(getSchemaFileName('v1.yaml/petstore.json')).toBe('petstore');
   });
 });
