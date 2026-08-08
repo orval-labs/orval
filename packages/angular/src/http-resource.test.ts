@@ -552,7 +552,7 @@ describe('angular httpResource generator', () => {
       expect(functionSection).not.toContain('url:');
     });
 
-    it('includes @experimental JSDoc annotation', () => {
+    it('includes the Angular availability JSDoc annotation', () => {
       const verbOption = createVerbOption();
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
@@ -568,8 +568,10 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('@experimental');
-      expect(header).toContain('httpResource is experimental');
+      expect(header).toContain(
+        '@remarks httpResource is available in Angular 19.2 and later.',
+      );
+      expect(header).not.toContain('@experimental');
     });
 
     it('scopes generated resources by tag when tag is provided', () => {
@@ -3066,6 +3068,18 @@ describe('angular httpResource generator', () => {
 
       expect(footer).toContain('ResourceState');
       expect(footer).toContain('toResourceState');
+      expect(footer).toContain(
+        'readonly hasValue: () => this is ResolvedResourceState<T>;',
+      );
+      expect(footer).toContain(
+        'export interface ResolvedResourceState<T> extends ResourceState<T>',
+      );
+      expect(footer).toContain(
+        'readonly value: Signal<Exclude<T, undefined>>;',
+      );
+      expect(footer).toContain(
+        'hasValue(this: ResourceState<T>): this is ResolvedResourceState<T>',
+      );
     });
 
     it('emits ResourceResult type aliases after header generation', () => {
