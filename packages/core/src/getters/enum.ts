@@ -362,33 +362,6 @@ export function getCombinedEnumValue(
   };
 }
 
-function getEnumMembersFromConstBranchesAndMetadata(
-  schemaObject: OpenApiSchemaObject | undefined,
-): EnumMember[] {
-  if (!schemaObject) {
-    return [];
-  }
-
-  const branches = [
-    ...(schemaObject.oneOf ?? []),
-    ...(schemaObject.anyOf ?? []),
-  ] as EnumConstBranch[];
-
-  return branches
-    .filter(
-      (branch): branch is EnumConstBranch & { const: string } =>
-        branch.const !== undefined,
-    )
-    .map((branch) => ({
-      value: branch.const,
-      name: branch.title ? jsStringEscape(branch.title) : undefined,
-      description: branch.description
-        ? jsStringEscape(branch.description)
-        : undefined,
-      deprecated: branch.deprecated === true ? true : undefined,
-    }));
-}
-
 function getEnumMembersFromBranches(
   schemaObject: OpenApiSchemaObject | undefined,
 ): EnumMember[] {
@@ -404,6 +377,18 @@ function getEnumMembersFromBranches(
   const members: EnumMember[] = [];
 
   for (const branch of branches) {
+    if (hasConst(branch)) {
+      members.push({
+        value: branch.const,
+        name: branch.title ? jsStringEscape(branch.title) : undefined,
+        description: branch.description
+          ? jsStringEscape(branch.description)
+          : undefined,
+        deprecated: branch.deprecated === true ? true : undefined,
+      });
+      continue;
+    }
+
     const enumValues = getSchemaEnumValues(branch.enum);
 
     members.push(
@@ -421,6 +406,7 @@ function getEnumMembersFromBranches(
       });
     }
   }
+
   return members.filter(
     (member, index, array) =>
       array.findIndex((item) => item.value === member.value) === index,
@@ -440,7 +426,7 @@ function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
 }
 
 function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
-  if (schemaObject.const !== undefined) {
+  if ('const' in schemaObject) {
     return [
       {
         value: schemaObject.const as SchemaEnumValue,
@@ -456,13 +442,7 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
     }));
   }
 
-  const branchMembers = getEnumMembersFromBranches(schemaObject);
-
-  if (branchMembers.length > 0) {
-    return branchMembers;
-  }
-
-  return getEnumMembersFromConstBranchesAndMetadata(schemaObject);
+  return getEnumMembersFromBranches(schemaObject);
 }
 
 function getEnumMembersWithoutNull(members: EnumMember[]): EnumMember[] {
@@ -609,4 +589,10 @@ function deriveEnumKey(
   }
 
   return key;
+}
+
+function hasConst(
+  branch: EnumConstBranch,
+): branch is EnumConstBranch & { const: SchemaEnumValue } {
+  return 'const' in branch;
 }

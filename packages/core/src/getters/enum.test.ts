@@ -228,6 +228,66 @@ describe('getEnumMembers', () => {
     ]);
   });
 
+  it('should preserve const branches together with a null branch', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'ACTIVE',
+          title: 'Active',
+          description: 'Active status',
+        },
+        {
+          const: 'INACTIVE',
+          title: 'Inactive',
+          deprecated: true,
+        },
+        {
+          type: 'null',
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+        name: 'Active',
+        description: 'Active status',
+      },
+      {
+        value: 'INACTIVE',
+        name: 'Inactive',
+        deprecated: true,
+      },
+      {
+        value: null,
+      },
+    ]);
+  });
+
+  it('should preserve const null branches', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'ACTIVE',
+          title: 'Active',
+        },
+        {
+          const: null,
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+        name: 'Active',
+      },
+      {
+        value: null,
+      },
+    ]);
+  });
+
   it('should not add null to enum members for a nullable enum', () => {
     const schema = {
       nullable: true,
