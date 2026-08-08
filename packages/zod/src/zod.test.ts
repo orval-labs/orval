@@ -2834,9 +2834,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
     {
       isZodV4: true,
     },
-    {
-      isZodV4: true,
-    },
   ])('enum with metadata handling - $name', ({ isZodV4 }) => {
     const context = {
       output: {

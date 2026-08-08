@@ -1719,6 +1719,14 @@ ${Object.entries(objectArgs)
         continue;
       }
 
+      if (fn === 'enumObject') {
+        current = {
+          expr: zodMiniCall('enum', String(args)),
+          kind: 'enum',
+        };
+        continue;
+      }
+
       if (fn === 'allOf') {
         const allOfArgs = args as ZodValidationSchemaDefinition[];
         const mergedProperties = strict
