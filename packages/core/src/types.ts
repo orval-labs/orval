@@ -1388,6 +1388,12 @@ export interface ContextSpec {
    */
   dynamicAnchorIndex?: Map<string, DynamicAnchorIndexEntry>;
   /**
+   * Lazily-built set of normalized component schema names, used while naming
+   * inline object-property schemas so component name collision checks do not
+   * rescan `components.schemas` for every property.
+   */
+  normalizedComponentSchemaNames?: Set<string>;
+  /**
    * Tracks array-item mock factory names already emitted per output file scope.
    * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
    * factories are not re-declared within the same file (single/split) or tag
