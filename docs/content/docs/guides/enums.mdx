@@ -72,9 +72,9 @@ Orval recognizes the following extensions:
 - `x-enum-descriptions`
 
 <Callout type="info">
-Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default) or `enum'. They are not applied when using `union`. 
+Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default) or `enum`. They are not applied when using `union`. 
 </Callout>
 
 
 ## Zod
-Metadata generates `z.enum({ ... })` for Zod4 and `z.nativeEnum({ ... })` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
+Metadata generates `z.enum({ ... })` for Zod4 and `z.nativeEnum({ ... } as const)` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
