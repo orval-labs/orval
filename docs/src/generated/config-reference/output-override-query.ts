@@ -40,7 +40,7 @@ export const outputOverrideQuery = {
     },
     {
       "name": "useInfiniteQueryParam",
-      "type": "string",
+      "type": "string | string[]",
       "optional": true,
       "description": "Query parameter name used as the infinite-query cursor."
     },
