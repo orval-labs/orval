@@ -2064,7 +2064,7 @@ ${Object.entries(mergedProperties)
       const enumObjectImplementation = args as string;
       return isZodV4
         ? `.enum(${enumObjectImplementation})`
-        : `.nativeEnum(${enumObjectImplementation})`;
+        : `.nativeEnum(${enumObjectImplementation} as const)`;
     }
 
     // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.

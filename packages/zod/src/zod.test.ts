@@ -2860,8 +2860,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       },
     } as ContextSpec;
 
-    const enumMethod = isZodV4 ? 'enum' : 'nativeEnum';
-
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {
         type: 'string',
@@ -3005,7 +3003,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const expectedZod =
         variant === 'mini'
           ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
-          : `zod.${enumMethod}(${enumObject}).optional()`;
+          : isZodV4
+            ? `zod.enum(${enumObject}).optional()`
+            : `zod.nativeEnum(${enumObject} as const).optional()`;
 
       expect(parsed.zod).toBe(expectedZod);
     });
@@ -3063,7 +3063,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const expectedZod =
         variant === 'mini'
           ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
-          : `zod.${enumMethod}(${enumObject}).optional()`;
+          : isZodV4
+            ? `zod.enum(${enumObject}).optional()`
+            : `zod.nativeEnum(${enumObject} as const).optional()`;
 
       expect(parsed.zod).toBe(expectedZod);
     });
@@ -3115,7 +3117,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const expectedZod =
         variant === 'mini'
           ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
-          : `zod.${enumMethod}(${enumObject}).optional()`;
+          : isZodV4
+            ? `zod.enum(${enumObject}).optional()`
+            : `zod.nativeEnum(${enumObject} as const).optional()`;
 
       expect(parsed.zod).toBe(expectedZod);
     });
