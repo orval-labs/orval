@@ -12,17 +12,17 @@ const mocks = vi.hoisted(() => ({
   readdir: vi.fn(),
   resolveConfig: vi.fn(),
   stat: vi.fn(),
-  writeFile: vi.fn(),
+  writeGeneratedFile: vi.fn(),
 }));
 
 vi.mock('@orval/core', () => ({
   logWarning: mocks.logWarning,
+  writeGeneratedFile: mocks.writeGeneratedFile,
 }));
 
 vi.mock('node:fs/promises', () => ({
   default: {
     readFile: mocks.readFile,
-    writeFile: mocks.writeFile,
     stat: mocks.stat,
     readdir: mocks.readdir,
   },
@@ -50,7 +50,7 @@ describe('formatWithPrettier', () => {
     mocks.resolveConfig.mockResolvedValue({ semi: true });
     mocks.readFile.mockResolvedValue('const value=1');
     mocks.format.mockResolvedValue('const value = 1;\n');
-    mocks.writeFile.mockImplementation(async () => {
+    mocks.writeGeneratedFile.mockImplementation(async () => {
       await Promise.resolve();
     });
   });
@@ -60,7 +60,7 @@ describe('formatWithPrettier', () => {
       code: 'ENOENT',
     });
 
-    mocks.writeFile.mockRejectedValueOnce(missingFileError);
+    mocks.writeGeneratedFile.mockRejectedValueOnce(missingFileError);
 
     await expect(
       formatWithPrettier([FILE_PATH], 'petstore'),
@@ -93,7 +93,7 @@ describe('formatWithPrettier', () => {
     expect(mocks.format).toHaveBeenCalledWith('const value=1', {
       filepath: FILE_PATH,
     });
-    expect(mocks.writeFile).toHaveBeenCalledWith(
+    expect(mocks.writeGeneratedFile).toHaveBeenCalledWith(
       FILE_PATH,
       'const value = 1;\n',
     );

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { writeGeneratedFile } from './file';
+import { withGeneratedFileTransform, writeGeneratedFile } from './file';
 
 describe('writeGeneratedFile', () => {
   let dir: string;
@@ -28,15 +28,34 @@ describe('writeGeneratedFile', () => {
   it('leaves mtime untouched when the final content is unchanged', async () => {
     const filePath = path.join(dir, 'out.ts');
     await writeGeneratedFile(filePath, 'const a = 1;\n');
-    const before = (await fs.stat(filePath)).mtimeMs;
+    const past = new Date('2020-01-01T00:00:00.000Z');
+    await fs.utimes(filePath, past, past);
 
     // Same final content, reached from a different source string: the trailing
     // whitespace is stripped before the comparison.
-    await new Promise((resolve) => setTimeout(resolve, 20));
     await writeGeneratedFile(filePath, 'const a = 1;   \n');
 
-    expect((await fs.stat(filePath)).mtimeMs).toBe(before);
+    expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
     expect(await fs.readFile(filePath, 'utf8')).toBe('const a = 1;\n');
+  });
+
+  it('compares transformed content before writing', async () => {
+    const filePath = path.join(dir, 'out.ts');
+    const format = async (_filePath: string, content: string) =>
+      content.replaceAll("'", '"');
+
+    await withGeneratedFileTransform(format, () =>
+      writeGeneratedFile(filePath, "const value = 'test';\n"),
+    );
+    const past = new Date('2020-01-01T00:00:00.000Z');
+    await fs.utimes(filePath, past, past);
+
+    await withGeneratedFileTransform(format, () =>
+      writeGeneratedFile(filePath, "const value = 'test';\n"),
+    );
+
+    expect(await fs.readFile(filePath, 'utf8')).toBe('const value = "test";\n');
+    expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
   });
 
   it('still writes when the content differs', async () => {
