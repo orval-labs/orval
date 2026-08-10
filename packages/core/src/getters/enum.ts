@@ -154,10 +154,7 @@ export function getEnumMembers(
     return [];
   }
 
-  const members = getRawEnumMembers(schemaObject).filter(
-    (member, index, array) =>
-      array.findIndex((item) => item.value === member.value) === index,
-  );
+  const members = dedupeEnumMembersByValue(getRawEnumMembers(schemaObject));
 
   // Apply metadata from the schema first as the fallback.
   applyEnumMetadata(members, getEnumNameMetadata(schemaObject), 'name');
@@ -183,7 +180,7 @@ export function getEnumMembers(
 }
 
 /**
- * Generates the internal key-value members as string for either a native typeScript enum plain javaScript object map or union,
+ * Generates the implementation of an enum from normalized enum members.
  */
 export function getEnumImplementation(
   members: EnumMember[],
@@ -210,9 +207,7 @@ export function getEnumImplementation(
   let result = '';
 
   for (const member of membersWithoutNull) {
-    const value = isString(member.value)
-      ? `'${jsStringLiteralEscape(member.value as string)}'`
-      : String(member.value);
+    const value = stringifyEnumValue(member.value);
 
     const comment = member.description
       ? `  /** ${member.description} */\n`
@@ -258,8 +253,7 @@ export function getEnum(
 }
 
 /**
- * Ensures all enum objects possess metadata names to prevent unstable,
- * auto-generated keys during code generation.
+ * Checks whether any enum member has a name, description, or deprecation metadata.
  */
 export function hasEnumMetadata(members: EnumMember[]): boolean {
   return members.some(
@@ -280,15 +274,7 @@ export function getEnumValueInfo(members: EnumMember[]): EnumValueInfo {
 }
 
 export function getEnumUnion(enumMembers: EnumMember[]) {
-  return enumMembers
-    .map(({ value }) =>
-      value === null
-        ? 'null'
-        : isString(value)
-          ? `'${jsStringLiteralEscape(value as string)}'`
-          : String(value),
-    )
-    .join(' | ');
+  return enumMembers.map(({ value }) => stringifyEnumValue(value)).join(' | ');
 }
 
 export function getCombinedEnumValue(
@@ -407,10 +393,7 @@ function getEnumMembersFromBranches(
     }
   }
 
-  return members.filter(
-    (member, index, array) =>
-      array.findIndex((item) => item.value === member.value) === index,
-  );
+  return dedupeEnumMembersByValue(members);
 }
 
 function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
@@ -542,6 +525,14 @@ function replaceSpecialCharacters(key: string): string {
   return result;
 }
 
+function stringifyEnumValue(value: SchemaEnumValue): string {
+  if (value === null) {
+    return 'null';
+  }
+
+  return isString(value) ? `'${jsStringLiteralEscape(value)}'` : String(value);
+}
+
 const toNumberKey = (value: string) => {
   if (value.startsWith('-')) {
     return `NUMBER_MINUS_${value.slice(1)}`;
@@ -595,4 +586,11 @@ function hasConst(
   branch: EnumConstBranch,
 ): branch is EnumConstBranch & { const: SchemaEnumValue } {
   return 'const' in branch;
+}
+
+function dedupeEnumMembersByValue(members: EnumMember[]): EnumMember[] {
+  return members.filter(
+    (member, index, array) =>
+      array.findIndex((item) => item.value === member.value) === index,
+  );
 }

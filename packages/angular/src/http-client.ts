@@ -179,6 +179,7 @@ const buildAcceptHelper = (
 export const ${acceptHelperName} = {
 ${implementation}} as const;`;
 };
+
 /**
  * Builds the shared `Accept` helper declarations for all operations in the
  * current Angular generation scope.
