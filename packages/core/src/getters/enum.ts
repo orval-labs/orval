@@ -214,9 +214,7 @@ export function getEnumImplementation(
       ? `'${jsStringLiteralEscape(member.value as string)}'`
       : String(member.value);
 
-    const comment = member.description
-      ? `  /** ${member.description} */\n`
-      : '';
+    const comment = getEnumMemberComment(member);
 
     const rawKey = member.name
       ? member.name
@@ -291,16 +289,50 @@ export function getEnumUnion(enumMembers: EnumMember[]) {
     .join(' | ');
 }
 
+/**
+ * Builds the runtime value for a combined enum.
+ *
+ * Each input represents an individually resolved enum branch. Inline branches
+ * are normalized into enum members so their names, descriptions, and
+ * deprecation metadata can be preserved in the generated enum object.
+ *
+ * Referenced enum branches keep the existing spread and import behavior.
+ */
 export function getCombinedEnumValue(
   inputs: CombinedEnumInput[],
 ): CombinedEnumValue {
-  const valueImports: string[] = [];
+  const membersByInput = inputs.map((input) => ({
+    input,
+    members: getEnumMembers(input.schema),
+  }));
 
-  const hasNull = inputs.some((input) => {
-    if (input.value.includes('| null')) return true;
-    const members = input.enumMembers ?? getEnumMembers(input.schema);
+  const members = membersByInput.flatMap(({ input, members }) =>
+    input.isRef ? [] : members,
+  );
+
+  const hasNull = membersByInput.some(({ input, members }) => {
+    if (input.value === 'null' || input.value.includes('| null')) {
+      return true;
+    }
+
     return members.some((member) => member.value === null);
   });
+
+  const hasAnnotatedInlineEnum =
+    inputs.every((input) => !input.isRef) && hasEnumMetadata(members);
+
+  if (hasAnnotatedInlineEnum) {
+    return {
+      value: `{
+${getEnumImplementation(members, {
+  enumGenerationType: EnumGeneration.CONST,
+})}} as const`,
+      valueImports: [],
+      hasNull,
+    };
+  }
+
+  const valueImports: string[] = [];
 
   const addValueImport = (name: string) => {
     if (!valueImports.includes(name)) {
@@ -430,6 +462,13 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
     return [
       {
         value: schemaObject.const as SchemaEnumValue,
+        name: schemaObject.title
+          ? jsStringEscape(schemaObject.title)
+          : undefined,
+        description: schemaObject.description
+          ? jsStringEscape(schemaObject.description)
+          : undefined,
+        deprecated: schemaObject.deprecated === true ? true : undefined,
       },
     ];
   }
@@ -448,6 +487,22 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
 function getEnumMembersWithoutNull(members: EnumMember[]): EnumMember[] {
   return members.filter((member) => member.value !== null);
 }
+
+const getEnumMemberComment = (member: EnumMember): string => {
+  if (member.description && member.deprecated) {
+    return `  /**\n   * ${member.description}\n   * @deprecated\n   */\n`;
+  }
+
+  if (member.description) {
+    return `  /** ${member.description} */\n`;
+  }
+
+  if (member.deprecated) {
+    return `  /** @deprecated */\n`;
+  }
+
+  return '';
+};
 
 const getTypeConstEnum = (
   enumMembers: EnumMember[],

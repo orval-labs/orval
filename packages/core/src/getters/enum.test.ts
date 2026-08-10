@@ -288,6 +288,56 @@ describe('getEnumMembers', () => {
     ]);
   });
 
+  it('should emit const branch metadata in const enum output', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'ACTIVE',
+          title: 'Active',
+          description: 'Active status',
+        },
+        {
+          const: 'LEGACY',
+          title: 'Legacy',
+          description: 'Legacy status',
+          deprecated: true,
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    const result = getEnumImplementation(getEnumMembers(schema), {
+      enumGenerationType: EnumGeneration.CONST,
+    });
+
+    expect(result).toContain('/** Active status */');
+    expect(result).toContain("Active: 'ACTIVE'");
+
+    expect(result).toContain(
+      '  /**\n   * Legacy status\n   * @deprecated\n   */\n',
+    );
+    expect(result).toContain("Legacy: 'LEGACY'");
+  });
+
+  it('should generate deprecated JSDoc without a description', () => {
+    const result = getEnumImplementation(
+      [
+        {
+          value: 'LEGACY',
+          name: 'Legacy',
+          deprecated: true,
+        },
+      ],
+      {
+        enumGenerationType: EnumGeneration.CONST,
+      },
+    );
+
+    expect(result).toContain(
+      `  /** @deprecated */
+  Legacy: 'LEGACY',`,
+    );
+  });
+
   it('should not add null to enum members for a nullable enum', () => {
     const schema = {
       nullable: true,
