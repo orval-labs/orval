@@ -171,6 +171,16 @@ interface GetObjectOptions {
   formDataContext?: FormDataContext;
 }
 
+function getNormalizedComponentSchemaNames(context: ContextSpec): Set<string> {
+  context.normalizedComponentSchemaNames ??= new Set(
+    Object.keys(context.spec.components?.schemas ?? {}).map((schemaName) =>
+      pascal(schemaName),
+    ),
+  );
+
+  return context.normalizedComponentSchemaNames;
+}
+
 /**
  * Return the output type from an object
  *
@@ -398,11 +408,8 @@ export function getObject({
         );
       }
 
-      const allSpecSchemas = context.spec.components?.schemas ?? {};
-
-      const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
-        (schemaName) => pascal(schemaName) === propName,
-      );
+      const isNameAlreadyTaken =
+        getNormalizedComponentSchemaNames(context).has(propName);
 
       if (isNameAlreadyTaken) {
         propName = propName + 'Property';
