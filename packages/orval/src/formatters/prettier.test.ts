@@ -98,4 +98,13 @@ describe('formatWithPrettier', () => {
       'const value = 1;\n',
     );
   });
+
+  it('resolves prettier config for each file', async () => {
+    const schemaPath = path.resolve('/tmp/pets.schema.ts');
+
+    await formatWithPrettier([FILE_PATH, schemaPath], 'petstore');
+
+    expect(mocks.resolveConfig).toHaveBeenCalledWith(FILE_PATH);
+    expect(mocks.resolveConfig).toHaveBeenCalledWith(schemaPath);
+  });
 });

@@ -16,19 +16,9 @@ export async function createPrettierFileTransform(
     return;
   }
 
-  const configs = new Map<
-    string,
-    Awaited<ReturnType<typeof prettier.resolveConfig>>
-  >();
-
   return async (filePath, content) => {
     try {
-      const directory = path.dirname(filePath);
-      let config = configs.get(directory);
-      if (!configs.has(directory)) {
-        config = await prettier.resolveConfig(filePath);
-        configs.set(directory, config);
-      }
+      const config = await prettier.resolveConfig(filePath);
 
       return await prettier.format(content, {
         ...config,

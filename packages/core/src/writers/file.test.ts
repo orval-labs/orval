@@ -42,7 +42,7 @@ describe('writeGeneratedFile', () => {
   it('compares transformed content before writing', async () => {
     const filePath = path.join(dir, 'out.ts');
     const format = async (_filePath: string, content: string) =>
-      content.replaceAll("'", '"');
+      content.replace(';\n', ';   \n').replaceAll("'", '"');
 
     await withGeneratedFileTransform(format, () =>
       writeGeneratedFile(filePath, "const value = 'test';\n"),
