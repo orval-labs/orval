@@ -7,13 +7,19 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/solid-query';
 import type {
   DataTag,
+  DefinedInitialDataInfiniteOptions,
+  DefinedInitialDataOptions,
+  DefinedUseInfiniteQueryResult,
+  DefinedUseQueryResult,
   InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
-  UseInfiniteQueryOptions,
+  SolidInfiniteQueryOptions,
+  SolidQueryOptions,
+  UndefinedInitialDataInfiniteOptions,
+  UndefinedInitialDataOptions,
   UseInfiniteQueryResult,
-  UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/solid-query';
 
@@ -80,16 +86,29 @@ export const getListPetsInfiniteQueryOptions = <
 >(
   params: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        QueryKey,
-        ListPetsParams['limit']
-      >
-    >;
+  options: {
+    query: Omit<
+      Partial<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >
+      >,
+      'initialPageParam' | 'getNextPageParam' | 'initialData'
+    > &
+      Pick<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >,
+        'initialPageParam' | 'getNextPageParam'
+      >;
   },
 ) => {
   const { query: queryOptions } = options ?? {};
@@ -120,6 +139,141 @@ export type ListPetsInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsInfiniteQueryError = Error;
 
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >
+      >,
+      'initialPageParam' | 'getNextPageParam' | 'initialData'
+    > &
+      Pick<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >,
+        'initialPageParam' | 'getNextPageParam'
+      > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataInfiniteOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData,
+            QueryKey,
+            ListPetsParams['limit']
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >
+      >,
+      'initialPageParam' | 'getNextPageParam' | 'initialData'
+    > &
+      Pick<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >,
+        'initialPageParam' | 'getNextPageParam'
+      > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataInfiniteOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData,
+            QueryKey,
+            ListPetsParams['limit']
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >
+      >,
+      'initialPageParam' | 'getNextPageParam' | 'initialData'
+    > &
+      Pick<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >,
+        'initialPageParam' | 'getNextPageParam'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary List all pets
  */
@@ -133,16 +287,29 @@ export function useListPetsInfinite<
 >(
   params: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        QueryKey,
-        ListPetsParams['limit']
-      >
-    >;
+  options: {
+    query: Omit<
+      Partial<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >
+      >,
+      'initialPageParam' | 'getNextPageParam' | 'initialData'
+    > &
+      Pick<
+        SolidInfiniteQueryOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey,
+          ListPetsParams['limit']
+        >,
+        'initialPageParam' | 'getNextPageParam'
+      >;
   },
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
@@ -169,8 +336,11 @@ export const getListPetsQueryOptions = <
   params: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -195,6 +365,80 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary List all pets
  */
@@ -206,8 +450,11 @@ export function useListPets<
   params: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,
@@ -264,8 +511,11 @@ export const getCreatePetsQueryOptions = <
   params: CreatePetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -290,6 +540,83 @@ export type CreatePetsQueryResult = NonNullable<
 >;
 export type CreatePetsQueryError = Error;
 
+export function useCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof createPets>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof createPets>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary Create a pet
  */
@@ -302,8 +629,11 @@ export function useCreatePets<
   params: CreatePetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,
@@ -351,8 +681,15 @@ export const getShowPetByIdQueryOptions = <
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -381,6 +718,92 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary Info for a specific pet
  */
@@ -392,8 +815,15 @@ export function useShowPetById<
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,
@@ -439,8 +869,15 @@ export const getDeletePetByIdQueryOptions = <
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof deletePetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -469,6 +906,92 @@ export type DeletePetByIdQueryResult = NonNullable<
 >;
 export type DeletePetByIdQueryError = Error;
 
+export function useDeletePetById<
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof deletePetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof deletePetById>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeletePetById<
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof deletePetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof deletePetById>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeletePetById<
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof deletePetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary Deletes a specific pet
  */
@@ -480,8 +1003,15 @@ export function useDeletePetById<
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof deletePetById>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,
@@ -519,8 +1049,15 @@ export const getHealthCheckQueryOptions = <
 >(
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -545,6 +1082,89 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary health check
  */
@@ -555,8 +1175,15 @@ export function useHealthCheck<
 >(
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,
@@ -602,12 +1229,15 @@ export const getShowPetWithOwnerQueryOptions = <
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof showPetWithOwner>>,
-        TError,
-        TData
-      >
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
 ) => {
@@ -636,6 +1266,92 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = Error;
 
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  version: undefined | number,
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof showPetWithOwner>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof showPetWithOwner>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    >;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary combinate nullable and $ref
  */
@@ -647,12 +1363,15 @@ export function useShowPetWithOwner<
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof showPetWithOwner>>,
-        TError,
-        TData
-      >
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
   },
   queryClient?: () => QueryClient,

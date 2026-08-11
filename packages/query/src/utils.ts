@@ -111,7 +111,7 @@ const normalizeMutator = (
 };
 
 export const getQueryTypeForFramework = (type: string): string => {
-  // Angular Query and Svelte Query don't have suspense variants, map them to regular queries
+  // Angular, Svelte and Solid Query don't have suspense variants, map them to regular queries
   switch (type) {
     case 'suspenseQuery': {
       return 'query';

@@ -28,7 +28,9 @@ import { generateMutationHook } from './mutation-generator';
 import {
   generateQueryOptions,
   getQueryOptionsDefinition,
+  isInfiniteQuery,
   QueryType,
+  requiresUserSuppliedQueryOptions,
 } from './query-options';
 import { getHasSignal } from './utils';
 
@@ -211,6 +213,38 @@ const renderSetQueryDataHelper = ({
   ${body}
 }\n`;
 };
+
+/**
+ * Rewrites `name?: T` to `name: undefined | T` on the given prop field, so a
+ * mandatory parameter may follow it (TS1016).
+ *
+ * The `undefined |` prefix order is load-bearing:
+ * `wrapPropsBodyWithMutatorBodyType` matches an optional `undefined\s*\|\s*`
+ * prefix when swapping in a mutator body type, and would miss the suffix form
+ * that the sibling `allowUndefinedParam` emits.
+ *
+ * A prop carrying a default (`name: T = x`) is deliberately left alone — the
+ * anchored `?:` cannot match it, and TS1016 does not apply to it either.
+ */
+export const widenOptionalPropsToUndefined = (
+  props: GetterProps,
+  field: 'definition' | 'implementation',
+): GetterProps =>
+  props.map((prop) => {
+    const regex = new RegExp(
+      String.raw`^${escapeRegExpMetaChars(prop.name)}\s*\?:`,
+    );
+
+    if (!regex.test(prop[field])) {
+      return prop;
+    }
+
+    const widened = prop[field].replace(regex, `${prop.name}: undefined | `);
+
+    return field === 'definition'
+      ? { ...prop, definition: widened }
+      : { ...prop, implementation: widened };
+  });
 
 /**
  * Renders the prop list shared by `getXxxQueryKey`, `setXxxQueryData` and
@@ -472,40 +506,54 @@ const generateQueryImplementation = ({
     (prop: GetterProp) => prop.name === 'signal',
   );
 
+  const requiresUserQueryOptions = requiresUserSuppliedQueryOptions(
+    adapter,
+    type,
+    options,
+  );
+  const signatureProps = requiresUserQueryOptions
+    ? widenOptionalPropsToUndefined(props, 'implementation')
+    : props;
+
+  // The override-type overloads end in the same mandatory `options` parameter as
+  // the hook, so their props need the same widening (TS1016).
   const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
-    propsString: toObjectString(props, 'definition'),
+    propsString: toObjectString(
+      requiresUserQueryOptions
+        ? widenOptionalPropsToUndefined(props, 'definition')
+        : props,
+      'definition',
+    ),
     body,
     mutator,
   });
   const definedInitialDataQueryPropsDefinitions =
     wrapPropsBodyWithMutatorBodyType({
       propsString: toObjectString(
-        props.map((prop) => {
-          const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
-
-          if (!regex.test(prop.definition)) {
-            return prop;
-          }
-
-          const definitionWithUndefined = prop.definition.replace(
-            regex,
-            `${prop.name}: undefined | `,
-          );
-          return {
-            ...prop,
-            definition: definitionWithUndefined,
-          };
-        }),
+        widenOptionalPropsToUndefined(props, 'definition'),
         'definition',
       ),
       body,
       mutator,
     });
+
   const queryProps = wrapPropsBodyWithMutatorBodyType({
     propsString: toObjectString(props, 'implementation'),
     body,
     mutator,
   });
+
+  // Only the signatures that end in a mandatory `options` parameter may use the
+  // widened props; a required parameter cannot follow an optional one (TS1016).
+  // The invalidate helper's trailing `options?` is optional, so widening its
+  // props would add a required argument for no reason.
+  const queryPropsBeforeRequiredOptions = requiresUserQueryOptions
+    ? wrapPropsBodyWithMutatorBodyType({
+        propsString: toObjectString(signatureProps, 'implementation'),
+        body,
+        mutator,
+      })
+    : queryProps;
 
   const infiniteQueryParamType =
     hasQueryParam(queryParams, queryParam) && queryParams && queryParam
@@ -561,6 +609,7 @@ const generateQueryImplementation = ({
     initialData: 'defined',
     httpClient,
     useRuntimeFetcher,
+    options,
   });
   const undefinedInitialDataQueryArguments = adapter.generateQueryArguments({
     operationName,
@@ -573,6 +622,7 @@ const generateQueryImplementation = ({
     initialData: 'undefined',
     httpClient,
     useRuntimeFetcher,
+    options,
   });
   const queryArguments = adapter.generateQueryArguments({
     operationName,
@@ -584,6 +634,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     useRuntimeFetcher,
+    options,
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -598,6 +649,7 @@ const generateQueryImplementation = ({
     httpClient,
     forQueryOptions: true,
     useRuntimeFetcher,
+    options,
   });
 
   const queryOptions = getQueryOptions({
@@ -671,7 +723,7 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryPropsBeforeRequiredOptions} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
 
@@ -698,7 +750,15 @@ ${hookOptions}
     }>>${
       hasQueryV5 && hasInfiniteQueryParam
         ? `, QueryKey, ${infiniteQueryParamType}`
-        : ''
+        : // Without an explicit page param the queryFn's TPageParam defaults to
+          // `never` while the options interface defaults it to `unknown`. An
+          // adapter that casts the options literal launders that mismatch; one
+          // that does not needs the two spelled out so they agree.
+          hasQueryV5 &&
+            isInfiniteQuery(type) &&
+            adapter.shouldCastQueryOptions?.() === false
+          ? `, QueryKey, unknown`
+          : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
     }${queryOptions});
@@ -756,7 +816,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     useInfinite,
     operationName,
     mutator,
-    queryProps,
+    queryProps: queryPropsBeforeRequiredOptions,
     dataType,
     errorType,
     queryArguments: queryArgumentsForOptions,
@@ -889,7 +949,7 @@ ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
     {
-      propsString: adapter.getHookPropsDefinitions(props),
+      propsString: adapter.getHookPropsDefinitions(signatureProps),
       body,
       mutator,
     },

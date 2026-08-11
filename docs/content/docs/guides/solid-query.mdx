@@ -116,6 +116,34 @@ export default defineConfig({
 });
 ```
 
+TanStack Query requires `initialPageParam` and `getNextPageParam` on every infinite
+query, and orval cannot infer either of them. Solid Query is generated without the
+`as` cast the other frameworks use, so the generated primitive asks the caller for
+them instead of asserting over the gap:
+
+```tsx
+const pets = useListPetsInfinite(params, {
+  query: {
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextId,
+  },
+});
+```
+
+Supply them once in `override.query.options` instead, and they are baked into the
+generated primitive — the `options` argument then goes back to being optional:
+
+```ts
+options: {
+  initialPageParam: undefined,
+  getNextPageParam: (lastPage) => lastPage.nextId,
+},
+```
+
+`initialData` is not accepted on the `query` object. Pass it through the generated
+primitive's own overload instead, which is what preserves the distinction between
+`data` being defined and possibly undefined.
+
 ## SolidStart vs Solid Query
 
 If you're using SolidStart, consider using the [SolidStart client](/docs/guides/solid-start) instead, which uses native Solid Router primitives (`query()` and `action()`) for better SSR integration.

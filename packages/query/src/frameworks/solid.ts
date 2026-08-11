@@ -1,4 +1,4 @@
-import { OutputClient } from '@orval/core';
+import { OutputClient, pascal } from '@orval/core';
 
 import type {
   FrameworkAdapterConfig,
@@ -8,7 +8,23 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
-import { QueryType } from '../query-options';
+import { isInfiniteQuery } from '../query-options';
+import { getQueryTypeForFramework } from '../utils';
+
+// `initialData` is excluded from the accepted options because an
+// optional-but-present `initialData` matches neither the `{ initialData: … }`
+// nor the `{ initialData?: undefined }` overload of `useQuery` — the same
+// discrimination loss that turning off `shouldCastQueryOptions()` exists to
+// avoid. The overload signatures add it back with the exact type each one needs.
+// See packages/query/DEVELOPMENT.md.
+const QUERY_OPTIONS_CONSTRAINT = {
+  exclude: ['initialData'],
+} as const;
+
+const INFINITE_QUERY_OPTIONS_CONSTRAINT = {
+  require: ['initialPageParam', 'getNextPageParam'],
+  exclude: ['initialData'],
+} as const;
 
 export const createSolidAdapter = ({
   hasQueryV5,
@@ -88,16 +104,56 @@ export const createSolidAdapter = ({
     return false;
   },
 
-  getQueryReturnType({ type }: QueryReturnTypeContext): string {
+  getUserQueryOptionsConstraint(type) {
+    if (!hasQueryV5) {
+      return undefined;
+    }
+
+    return isInfiniteQuery(type)
+      ? INFINITE_QUERY_OPTIONS_CONSTRAINT
+      : QUERY_OPTIONS_CONSTRAINT;
+  },
+
+  getQueryType(type: string): string {
+    // Solid Query ships no suspense hooks, so a suspense config would otherwise
+    // emit `useSuspenseQuery` / `useSuspenseInfiniteQuery`, which do not exist.
+    return getQueryTypeForFramework(type);
+  },
+
+  shouldGenerateOverrideTypes(): boolean {
+    // The overloads are what let `options.query` use the plain interface: they,
+    // not the `Accessor` alias, carry the `initialData` discrimination.
+    return hasQueryV5;
+  },
+
+  getInitialDataOptionsType({
+    initialData,
+    isInfinite,
+    funcReturnType,
+    infiniteTypeArgs,
+  }): string {
+    const name = `${pascal(initialData)}InitialData${
+      isInfinite ? 'Infinite' : ''
+    }Options`;
+
+    // `ReturnType` unwraps the `Accessor<…>`; picking a property straight off the
+    // alias yields `{}`. Solid Query's own `queryOptions()` unwraps the same way.
+    return `ReturnType<${name}<${funcReturnType}, TError, TData${infiniteTypeArgs}>>`;
+  },
+
+  getQueryReturnType({
+    type,
+    isInitialDataDefined,
+  }: QueryReturnTypeContext): string {
     const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
     const queryKeyType = hasQueryV5
       ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>`
       : 'QueryKey';
+    const resultName = isInfiniteQuery(type)
+      ? 'InfiniteQueryResult'
+      : 'QueryResult';
 
-    if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
-      return `${prefix}QueryResult<TData, TError> & { queryKey: ${queryKeyType} }`;
-    }
-    return `${prefix}InfiniteQueryResult<TData, TError> & { queryKey: ${queryKeyType} }`;
+    return `${isInitialDataDefined ? 'Defined' : ''}${prefix}${resultName}<TData, TError> & { queryKey: ${queryKeyType} }`;
   },
 
   getMutationReturnType({

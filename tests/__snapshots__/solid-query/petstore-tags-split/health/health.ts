@@ -7,10 +7,13 @@
 import { useQuery } from '@tanstack/solid-query';
 import type {
   DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   QueryClient,
   QueryFunction,
   QueryKey,
-  UseQueryOptions,
+  SolidQueryOptions,
+  UndefinedInitialDataOptions,
   UseQueryResult,
 } from '@tanstack/solid-query';
 
@@ -119,8 +122,11 @@ export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+  query?: Omit<
+    Partial<
+      SolidQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    >,
+    'initialData'
   >;
   fetch?: RequestInit;
 }) => {
@@ -140,6 +146,89 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options: {
+    query: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          DefinedInitialDataOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: () => QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    > &
+      Pick<
+        ReturnType<
+          UndefinedInitialDataOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: () => QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary health check
  */
@@ -149,8 +238,15 @@ export function useHealthCheck<
   TError = Error,
 >(
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    query?: Omit<
+      Partial<
+        SolidQueryOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          TData
+        >
+      >,
+      'initialData'
     >;
     fetch?: RequestInit;
   },

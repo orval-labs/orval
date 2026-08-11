@@ -33,26 +33,6 @@ const excludedByFolder = new Map([
   // Yarn avoided this by nesting a separate zod@4.x for the SDK.
   // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
   ['mcp', ['generated/mcp/**/server.ts']],
-
-  // FIXME: solid-query infinite hooks fail to compile with TS2769. The options
-  // factory returns `{ queryKey, queryFn, enabled, ...queryOptions }` with neither
-  // `initialPageParam` nor `getNextPageParam`, both required by
-  // `SolidInfiniteQueryOptions`. Every other framework hides that gap behind the
-  // `as UseInfiniteQueryOptions<...>` cast in packages/query/src/query-generator.ts,
-  // which `shouldCastQueryOptions()` in packages/query/src/frameworks/solid.ts
-  // suppresses for Solid. Suppressing it is correct on the plain query path, where the
-  // cast breaks initialData overload discrimination, but it also strips the cast from
-  // the infinite path where it was load-bearing. Only the three targets configured
-  // with `useInfinite: true` are affected. Delete this entry with the fix.
-  [
-    'solid-query',
-    [
-      'generated/solid-query/mutator/endpoints.ts',
-      'generated/solid-query/named-parameters/endpoints.ts',
-      'generated/solid-query/petstore/endpoints.ts',
-    ],
-  ],
-
 ]);
 
 const results = [];

@@ -184,6 +184,46 @@ export interface FrameworkAdapter {
   /** Whether to cast the query options return type. Solid Query needs this to be false for proper initialData discrimination. */
   shouldCastQueryOptions?(): boolean;
 
+  /**
+   * Constrain the user-facing `options.query` type for a query type.
+   *
+   * `require` keys become mandatory on `options.query`, which also makes
+   * `options` itself mandatory. Because the generated options literal ends with
+   * `...queryOptions`, requiring a key there is what makes the literal satisfy
+   * the framework's options interface without an `as` cast. `exclude` keys are
+   * dropped from the accepted type. Returning undefined keeps the default
+   * parameter.
+   *
+   * Returning a constraint with only `exclude` is meaningful: it renders the
+   * parameter from the plain interface and drops those keys, without making
+   * `options` mandatory.
+   *
+   * Only honoured together with `getOptionsReturnTypeName()`, which supplies the
+   * plain options interface these keys are read off; an adapter that implements
+   * one without the other is ignored rather than emitting a parameter that
+   * demands nothing. See packages/query/DEVELOPMENT.md.
+   */
+  getUserQueryOptionsConstraint?(
+    type: (typeof QueryType)[keyof typeof QueryType],
+  ): { require?: readonly string[]; exclude?: readonly string[] } | undefined;
+
+  /**
+   * The applied type that `initialData` is picked off for the overload
+   * signatures. Defaults to `${pascal(initialData)}InitialDataOptions<…>`, which
+   * is the plain object shape in most target libraries.
+   *
+   * Solid Query overrides this because its aliases are `Accessor<…>` function
+   * types — picking a property off one yields `{}` — and because its infinite
+   * queries need the `…InitialDataInfiniteOptions` variant, whose `initialData`
+   * is an `InfiniteData<…>` rather than a bare page.
+   */
+  getInitialDataOptionsType?(context: {
+    initialData: 'defined' | 'undefined';
+    isInfinite: boolean;
+    funcReturnType: string;
+    infiniteTypeArgs: string;
+  }): string;
+
   /** queryClient?: QueryClient vs queryClient?: () => QueryClient vs '' */
   getOptionalQueryClientArgument(hasInvalidation?: boolean): string;
 
@@ -243,6 +283,8 @@ export interface FrameworkAdapter {
     forQueryOptions?: boolean;
     hasInvalidation?: boolean;
     useRuntimeFetcher?: boolean;
+    /** `override.query.options` — the keys already written into the literal. */
+    options?: object | boolean;
   }): string;
 
   // --- Mutation Hook Generation ---
