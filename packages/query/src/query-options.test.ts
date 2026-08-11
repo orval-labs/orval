@@ -128,7 +128,7 @@ describe('getQueryOptionsDefinition — solid-query type names (issue #3365)', (
     expect(returnType).not.toContain('SolidMutationOptions<');
   });
 
-  it('keeps the Accessor-shape Partial<UseQueryOptions<…>> for the user-facing options.query param on solid-query (preserves useQuery overload discrimination)', () => {
+  it('builds the user-facing options.query param from the plain SolidQueryOptions and drops initialData, so the emitted overloads carry the discrimination', () => {
     const adapter = createFrameworkAdapter({
       outputClient: 'solid-query',
       packageJson: solidPkg('5.99.0'),
@@ -138,7 +138,52 @@ describe('getQueryOptionsDefinition — solid-query type names (issue #3365)', (
       type: QueryType.QUERY,
       isReturnType: false,
     });
-    expect(out).toContain('Partial<UseQueryOptions<');
+
+    // The Accessor alias erases every property under Partial<…>, which is why
+    // the plain interface is used instead.
+    expect(out).not.toContain('UseQueryOptions<');
+    expect(out).toContain('Omit<Partial<SolidQueryOptions<');
+    expect(out).toContain("'initialData'");
+    // Nothing is required, so `options` itself stays optional.
+    expect(out).not.toContain('Pick<');
+  });
+
+  it('adds the initialData pick, unwrapped from the Accessor, on the overload signatures', () => {
+    const adapter = createFrameworkAdapter({
+      outputClient: 'solid-query',
+      packageJson: solidPkg('5.99.0'),
+    });
+
+    const defined = getQueryOptionsDefinition({
+      ...buildArgs(adapter),
+      type: QueryType.QUERY,
+      isReturnType: false,
+      initialData: 'defined',
+    });
+    const undef = getQueryOptionsDefinition({
+      ...buildArgs(adapter),
+      type: QueryType.QUERY,
+      isReturnType: false,
+      initialData: 'undefined',
+    });
+
+    expect(defined).toContain('ReturnType<DefinedInitialDataOptions<');
+    expect(undef).toContain('ReturnType<UndefinedInitialDataOptions<');
+  });
+
+  it('requires the page params the caller must supply on solid-query infinite queries', () => {
+    const adapter = createFrameworkAdapter({
+      outputClient: 'solid-query',
+      packageJson: solidPkg('5.99.0'),
+    });
+    const out = getQueryOptionsDefinition({
+      ...buildArgs(adapter),
+      type: QueryType.INFINITE,
+      isReturnType: false,
+    });
+
+    expect(out).toContain('Pick<SolidInfiniteQueryOptions<');
+    expect(out).toContain("'initialPageParam' | 'getNextPageParam'");
   });
 
   it('emits SolidQueryOptions<…> for the helper return type on solid-query (isReturnType true)', () => {

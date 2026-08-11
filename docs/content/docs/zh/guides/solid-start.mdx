@@ -23,6 +23,8 @@ export default defineConfig({
 
 生成代码通常包含请求函数、query/action primitives、类型和缓存辅助函数。
 
+导出对象以 spec 标题命名；在 `tags` / `tags-split` 模式下则以 tag 命名。若该名称与同一文件导入的 schema 重名，orval 会为导出名加上 `Api` 后缀（`Pets` 变为 `PetsApi`）并输出警告，因为 TypeScript 不允许同一文件既导入又导出同名标识符。
+
 ## 基础用法
 
 在路由组件中调用生成的 primitive，让 SolidStart 负责数据加载和缓存。
