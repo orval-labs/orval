@@ -215,16 +215,12 @@ const renderSetQueryDataHelper = ({
 };
 
 /**
- * Rewrites `name?: T` to `name: undefined | T` on the given prop field, so a
- * mandatory parameter may follow it (TS1016).
+ * Rewrites `name?: T` to `name: undefined | T` so a required parameter can follow
+ * it (TS1016).
  *
- * The `undefined |` prefix order is load-bearing:
- * `wrapPropsBodyWithMutatorBodyType` matches an optional `undefined\s*\|\s*`
- * prefix when swapping in a mutator body type, and would miss the suffix form
- * that the sibling `allowUndefinedParam` emits.
- *
- * A prop carrying a default (`name: T = x`) is deliberately left alone — the
- * anchored `?:` cannot match it, and TS1016 does not apply to it either.
+ * Keep `undefined` first. `wrapPropsBodyWithMutatorBodyType` matches an optional
+ * `undefined\s*\|\s*` prefix when it swaps in a mutator body type, and misses the
+ * `T | undefined` form that `allowUndefinedParam` emits.
  */
 export const widenOptionalPropsToUndefined = (
   props: GetterProps,

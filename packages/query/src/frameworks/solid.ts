@@ -12,8 +12,8 @@ import { isInfiniteQuery } from '../query-options';
 import { getQueryTypeForFramework } from '../utils';
 
 // `initialData` is excluded from the accepted options because an
-// optional-but-present `initialData` matches neither the `{ initialData: … }`
-// nor the `{ initialData?: undefined }` overload of `useQuery` — the same
+// optional-but-present `initialData` matches neither the `{ initialData: T }`
+// nor the `{ initialData?: undefined }` overload of `useQuery`. That is the same
 // discrimination loss that turning off `shouldCastQueryOptions()` exists to
 // avoid. The overload signatures add it back with the exact type each one needs.
 // See packages/query/DEVELOPMENT.md.
