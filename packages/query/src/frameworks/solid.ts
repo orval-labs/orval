@@ -109,9 +109,14 @@ export const createSolidAdapter = ({
       return undefined;
     }
 
-    return isInfiniteQuery(type)
-      ? INFINITE_QUERY_OPTIONS_CONSTRAINT
-      : QUERY_OPTIONS_CONSTRAINT;
+    if (isInfiniteQuery(type)) {
+      return INFINITE_QUERY_OPTIONS_CONSTRAINT;
+    }
+
+    // Excluding `initialData` is only safe when the overload signatures can add
+    // it back, which needs the `Defined*Result` types. See
+    // shouldGenerateOverrideTypes below.
+    return hasSolidQueryUsePrefix ? QUERY_OPTIONS_CONSTRAINT : undefined;
   },
 
   getQueryType(type: string): string {
@@ -123,7 +128,13 @@ export const createSolidAdapter = ({
   shouldGenerateOverrideTypes(): boolean {
     // The overloads are what let `options.query` use the plain interface: they,
     // not the `Accessor` alias, carry the `initialData` discrimination.
-    return hasQueryV5;
+    //
+    // They name `DefinedUseQueryResult` and `DefinedUseInfiniteQueryResult`,
+    // which arrived with the `use` prefix in 5.71.5. `@tanstack/solid-query`
+    // 5.0.0 exports `DefinedCreateQueryResult` but no infinite counterpart, so
+    // earlier versions keep the previous output rather than referencing a type
+    // that does not exist.
+    return hasQueryV5 && hasSolidQueryUsePrefix;
   },
 
   getInitialDataOptionsType({

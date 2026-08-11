@@ -121,8 +121,8 @@ query, and orval cannot infer either of them. Solid Query is generated without t
 `as` cast the other frameworks use, so the generated primitive asks the caller for
 them instead of asserting over the gap:
 
-```tsx
-const pets = useListPetsInfinite(params, {
+```ts
+const pets = createListPetsInfinite(params, {
   query: {
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage.nextId,
