@@ -23,15 +23,15 @@ import type {
  *
  * Examples:
  *   // Invalidate all calls to a query
- *   revalidate(Pets.listPets.key);
+ *   revalidate(PetsApi.listPets.key);
  *
  *   // Invalidate a specific call with arguments
- *   revalidate(Pets.showPetById.keyFor("pet-123", 1));
+ *   revalidate(PetsApi.showPetById.keyFor("pet-123", 1));
  *
  *   // Invalidate multiple queries
- *   revalidate([Pets.listPets.key, Pets.showPetById.keyFor("pet-123", 1)]);
+ *   revalidate([PetsApi.listPets.key, PetsApi.showPetById.keyFor("pet-123", 1)]);
  */
-export const Pets = {
+export const PetsApi = {
   /**
    * @summary List all pets
    */

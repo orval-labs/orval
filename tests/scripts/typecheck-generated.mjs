@@ -53,19 +53,6 @@ const excludedByFolder = new Map([
     ],
   ],
 
-  // FIXME: in `tags` and `tags-split` modes solid-start names the namespace object
-  // after the pascal-cased tag (`generateSolidStartTitle` in
-  // packages/solid-start/src/index.ts), so the `pets` tag emits `export const Pets`
-  // into a file that also imports the schema named `Pets` from ./model. The two
-  // declarations merge and TypeScript rejects the file with TS2395. Delete this entry
-  // with the fix.
-  [
-    'solid-start',
-    [
-      'generated/solid-start/petstore-tags-split/pets/pets.ts',
-      'generated/solid-start/tags/pets.ts',
-    ],
-  ],
 ]);
 
 const results = [];

@@ -67,12 +67,11 @@ Every framework this package targets is snapshot covered, Solid included: `tests
 
 So a change to `withDefaults()` or to a shared generator shows up as a snapshot diff for all five frameworks. Run `vp run -w test:snapshots:update` and read the diff before committing.
 
-Two known defects keep some generated Solid files out of `tests/scripts/typecheck-generated.mjs`. They are listed with their cause in `excludedByFolder` in that script:
+One known defect keeps some generated Solid files out of `tests/scripts/typecheck-generated.mjs`. It is listed with its cause in `excludedByFolder` in that script:
 
 - solid-query infinite hooks are missing `initialPageParam` and `getNextPageParam`, because `shouldCastQueryOptions()` returns `false` for Solid and that also strips the cast from the infinite path.
-- solid-start names its namespace object after the pascal-cased tag, which collides with a schema of the same name.
 
-The snapshots still capture the broken output, so a fix shows up as a diff. Delete the matching entry when you fix one.
+The snapshots still capture the broken output, so a fix shows up as a diff. Delete the entry when you fix it.
 
 ## Common Pitfalls
 
