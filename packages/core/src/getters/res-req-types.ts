@@ -16,7 +16,7 @@ import {
   type OpenApiSchemaObject,
   type ResReqTypesValue,
 } from '../types';
-import { camel } from '../utils';
+import { camel, sanitize } from '../utils';
 import { isReference } from '../utils/assertion';
 import { pascal } from '../utils/case';
 import {
@@ -245,7 +245,12 @@ export function getResReqTypes(
       if (res.content) {
         const contents = Object.entries(res.content).map(
           ([contentType, mediaType], index, arr) => {
-            let propName = key ? pascal(name) + pascal(key) : undefined;
+            let propName = key
+              ? sanitize(pascal(name) + pascal(key), {
+                  es5keyword: true,
+                  es5IdentifierName: true,
+                })
+              : undefined;
 
             if (propName && arr.length > 1) {
               propName = propName + pascal(getNumberWord(index + 1));
@@ -388,7 +393,12 @@ export function getResReqTypes(
           : undefined;
 
       if (swaggerSchema) {
-        const propName = key ? pascal(name) + pascal(key) : undefined;
+        const propName = key
+          ? sanitize(pascal(name) + pascal(key), {
+              es5keyword: true,
+              es5IdentifierName: true,
+            })
+          : undefined;
         const resolvedValue = resolveObject({
           schema: swaggerSchema,
           propName,
