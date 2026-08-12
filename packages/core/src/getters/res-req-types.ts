@@ -247,6 +247,9 @@ export function getResReqTypes(
           ([contentType, mediaType], index, arr) => {
             let propName = key
               ? sanitize(pascal(name) + pascal(key), {
+                  underscore: '_',
+                  whitespace: '_',
+                  dash: true,
                   es5keyword: true,
                   es5IdentifierName: true,
                 })
@@ -395,6 +398,9 @@ export function getResReqTypes(
       if (swaggerSchema) {
         const propName = key
           ? sanitize(pascal(name) + pascal(key), {
+              underscore: '_',
+              whitespace: '_',
+              dash: true,
               es5keyword: true,
               es5IdentifierName: true,
             })
