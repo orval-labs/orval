@@ -421,6 +421,29 @@ const isDiscriminatableMember = (
   return hasLiteralDiscriminator(resolved, property);
 };
 
+/**
+ * Read a schema object's `required` keyword.
+ *
+ * Some generators emit `required: true` on the schema referenced by a request
+ * body, borrowing the boolean that belongs on the request body object. Spreading
+ * that boolean fails with `(schema.required ?? []) is not iterable`, which says
+ * nothing about the document. Report the offending schema and the expected shape
+ * instead. The document is not rewritten: a boolean carries no property names,
+ * so there is nothing to recover from it. (#3719)
+ */
+const getRequiredKeys = (schema: OpenApiSchemaObject, name: string) => {
+  const required = schema.required as unknown;
+
+  if (required === undefined) return [];
+  if (Array.isArray(required)) return required;
+
+  throw new Error(
+    `Invalid OpenAPI document: schema "${name}" has \`required: ${JSON.stringify(
+      required,
+    )}\`, but a schema object's \`required\` must be an array of property names. A boolean \`required\` belongs on the request body object or on a parameter, not on the schema it references.`,
+  );
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
@@ -765,19 +788,24 @@ export const generateZodValidationSchemaDefinition = (
     const allOfRequired = schema.allOf
       ? [
           ...new Set([
-            ...(schema.required ?? []),
-            ...schemas.flatMap((member) => {
+            ...getRequiredKeys(schema, name),
+            ...schemas.flatMap((member, index) => {
               // Only the member's top-level `required` is needed. For `$ref`
               // members resolve shallowly (no deep property dereference) and
               // tolerate unresolvable refs — they simply contribute no keys.
-              const resolved =
-                '$ref' in member && typeof member.$ref === 'string'
-                  ? tryResolveRefSchema(member.$ref, context)
-                  : (member as OpenApiSchemaObject);
-              const memberRequired = resolved?.required;
-              return Array.isArray(memberRequired)
-                ? (memberRequired as string[])
-                : [];
+              const isRef = '$ref' in member && typeof member.$ref === 'string';
+              const resolved = isRef
+                ? tryResolveRefSchema(member.$ref as string, context)
+                : (member as OpenApiSchemaObject);
+              if (!resolved) return [];
+              // A constraint-only member never reaches the object path below,
+              // so a misplaced boolean here would otherwise pass unreported.
+              // Name the member, not the composing schema, or the message
+              // points at the wrong place in the document.
+              return getRequiredKeys(
+                resolved,
+                isRef ? (member.$ref as string) : `${name}.allOf[${index}]`,
+              );
             }),
           ]),
         ]
@@ -1235,7 +1263,7 @@ export const generateZodValidationSchemaDefinition = (
           // A property is required when this schema requires it OR when a
           // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
           const requiredKeys = new Set<string>([
-            ...(schema.required ?? []),
+            ...getRequiredKeys(schema, name),
             ...(rules?.additionalRequired ?? []),
           ]);
 
