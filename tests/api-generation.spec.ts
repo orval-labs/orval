@@ -22,6 +22,8 @@ await describeApiGenerationSnapshots({
     generated('mock'),
     generated('multi-files'),
     generated('react-query'),
+    generated('solid-query'),
+    generated('solid-start'),
     generated('svelte-query'),
     generated('swr'),
     generated('vue-query'),
@@ -55,8 +57,21 @@ test('mock issue-3574 strict mock types in tags-split MSW+faker output', async (
     expect(content).toMatch(/export type KeysWithNull/);
   }
 
-  expect(mswContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
-  expect(fakerContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
+  // The factories live in the faker file, the msw file imports them instead
+  // of re-declaring them and no longer references `getPetMock` itself.
+  expect(fakerContent).toMatch(
+    /export const getPetMock|import \{ getPetMock \}/,
+  );
+  expect(fakerContent).toContain('export const getGetPetsResponseMock');
+  expect(mswContent).toMatch(
+    /import \{[\s\S]*?getGetPetsResponseMock[\s\S]*?\} from '\.\/pets\.faker'/,
+  );
+  expect(mswContent).not.toContain('export const getGetPetsResponseMock');
+  expect(mswContent).not.toContain('getPetMock');
+  // Re-exported so importing the factories from pets.msw still works.
+  expect(mswContent).toMatch(
+    /export \{[\s\S]*?getGetPetsResponseMock[\s\S]*?\} from '\.\/pets\.faker'/,
+  );
 });
 
 test('mock issue-3574 accumulates strict mock types across operations per tag', async () => {
@@ -132,6 +147,92 @@ test('angular issue-3326 paramsFilter replaces the built-in filter', async () =>
   // The user mutator is imported and called; the built-in helper is gone.
   expect(content).toContain('flattenParamsFilter');
   expect(content).not.toContain('function filterParams(');
+});
+
+test('angular issue-3713 multi-content resources read signals inside the httpResource factory', async () => {
+  // Multi-content-type httpResource resources used to build the request
+  // object (including param/path signal reads) eagerly, before httpResource()
+  // was called — Angular only tracks signals read during factory execution,
+  // so these resources never refetched when inputs changed. See #3713.
+  const file = generated('angular', 'http-resource-multi-content', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+  // listItemsResource is emitted as two narrow overloads followed by the
+  // implementation signature; only the implementation has a body, so anchor
+  // on its *last* occurrence.
+  const start = content.lastIndexOf('export function listItemsResource(');
+  const end = content.indexOf('export function', start + 1);
+  const impl = content.slice(start, end === -1 ? undefined : end);
+
+  const buildRequestIdx = impl.indexOf('const buildRequest');
+  expect(buildRequestIdx).toBeGreaterThan(-1);
+  expect(impl.indexOf('params?.()')).toBeGreaterThan(buildRequestIdx);
+  // Prettier may wrap the call across lines (`httpResource<Items>(\n
+  // buildRequest,`), so allow whitespace between the callee and the arg.
+  expect(impl).toMatch(/httpResource<Items>\(\s*buildRequest/);
+  expect(impl).toMatch(/httpResource\.text<string>\(\s*buildRequest/);
+  expect(impl).not.toMatch(/\(\)\s*=>\s*\(\{\s*\.\.\.normalizedRequest/);
+});
+
+test('angular http-resource-headers exposes request descriptor extension (#3710)', async () => {
+  const file = generated('angular', 'http-resource-headers', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  // Emitted extension surface: headers/context/request escape hatch.
+  expect(content).toContain(
+    'export interface OrvalHttpResourceRequestExtension',
+  );
+  expect(content).toContain(
+    "context?: HttpContext | (() => HttpContext);",
+  );
+  expect(content).toContain(
+    'request?: (request: HttpResourceRequest) => HttpResourceRequest;',
+  );
+  expect(content).toContain('export function applyOrvalRequestExtension(');
+
+  // The extension is applied INSIDE the reactive httpResource factory so
+  // signal reads inside `options.headers()`/`options.context()` stay tracked.
+  expect(content).toMatch(/\(\)\s*=>\s*applyOrvalRequestExtension\(/);
+
+  // The already-supported OpenAPI `in: header` forwarding (top-level
+  // `output.headers: true`) still works alongside the new extension.
+  expect(content).toContain('headers: headers?.()');
+  expect(content).toMatch(/headers[?]?:\s*Signal<[A-Za-z]+Headers>/);
+});
+
+test('angular issue-3712 sends required nullable params as empty string without a serializer', async () => {
+  // A query param the spec declares required+nullable must still reach the
+  // wire when its runtime value is null, or the request violates the
+  // OpenAPI contract. Without a paramsSerializer, `null` is emitted as an
+  // empty string (`''`) instead of being dropped. See #3712.
+  const file = generated('angular', 'issue-3712', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain("new Set<string>(['cursor'])");
+  expect(content).toContain(
+    "filteredParams[key] = preserveRequiredNullables ? null : '';",
+  );
+  expect(content).not.toMatch(/new Set<string>\(\['cursor'\]\),\s*true/);
+});
+
+test('angular issue-3712 httpResource has the same empty-string fallback', async () => {
+  const file = generated('angular', 'issue-3712-http-resource', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain("new Set<string>(['cursor'])");
+  expect(content).toContain(
+    "filteredParams[key] = preserveRequiredNullables ? null : '';",
+  );
+  expect(content).toContain('params: filterParams(params?.() ?? {}');
+});
+
+test('angular issue-3712 still passes literal null to a configured paramsSerializer', async () => {
+  // With a paramsSerializer configured, the literal `null` is preserved for
+  // the serializer to encode instead of being converted to an empty string.
+  const file = generated('angular', 'issue-3712-serializer', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toMatch(/new Set<string>\(\['cursor'\]\),\s*true,/);
+  expect(content).toContain('customParamsSerializer(');
 });
 
 test('fetch arrayFormat repeat serializes arrays as repeated keys', async () => {
@@ -559,6 +660,27 @@ test('react-query issue-607 avoids options operation shadowing hook options', as
   expect(content).not.toContain('return petId(petId, fetchOptions)');
 });
 
+test('react-query renames a body parameter that matches the operation name', async () => {
+  const content = await readFile(
+    generated(
+      'react-query',
+      'body-schema-name-matches-operation-id',
+      'items',
+      'items.ts',
+    ),
+    'utf8',
+  );
+
+  expect(content).toContain('createItemBody: CreateItem');
+  expect(content).toContain('createItem(createItemBody, { signal');
+  expect(content).not.toContain('createItem: CreateItem');
+  expect(content).not.toContain('createItem(createItem,');
+
+  expect(content).toContain('uploadItemBody: UploadItem');
+  expect(content).toContain('formData.append(`name`, uploadItemBody.name)');
+  expect(content).not.toContain('uploadItem.name');
+});
+
 test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
   // Regression for #3153: `mutationOptions` mutators have received
   // `{ operationId, operationName }` as their third argument since #1974, but
@@ -820,6 +942,57 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
   // prefix so a charset suffix (e.g. `text/plain; charset=utf-8`) still trips
   // the assertion.
   expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
+});
+
+test('mock problem+json error response preserves the vendor Content-Type (RFC 9457)', async () => {
+  // Regression: MSW's HttpResponse.json() defaults the Content-Type to
+  // application/json, so an OpenAPI response declaring application/problem+json
+  // (RFC 9457 Problem Details for HTTP APIs) was served as application/json by
+  // the generated mock. Applications that validate the Content-Type of error
+  // responses on the client side could not exercise that path against an Orval
+  // mock. The generator now emits an explicit Content-Type header whenever the
+  // resolved media type differs from the MSW helper default.
+  const content = await readFile(
+    generated('mock', 'msw-problem-details-content-type', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The 404 handler must serve application/problem+json verbatim.
+  const handler404Start = content.indexOf('getGetPetMockHandler404');
+  expect(handler404Start, '404 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler404End = content.indexOf(
+    'export const get',
+    handler404Start + 1,
+  );
+  const handler404 = content.slice(
+    handler404Start,
+    handler404End === -1 ? content.length : handler404End,
+  );
+  expect(handler404).toContain(
+    "'Content-Type': 'application/problem+json'",
+  );
+
+  // The 200 status-specific handler (application/json) must NOT carry an
+  // explicit Content-Type header — application/json is the MSW default and is
+  // left implicit to keep the generated output minimal. Asserting against the
+  // status-specific *200 handler avoids the aggregate base handler, whose
+  // Content-Type is derived from operation-wide content types (see CodeRabbit
+  // review on PR #3779).
+  const handler200Start = content.indexOf('getGetPetMockHandler200');
+  expect(handler200Start, '200 handler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const handler200End = content.indexOf(
+    'export const get',
+    handler200Start + 1,
+  );
+  const handler200 = content.slice(
+    handler200Start,
+    handler200End === -1 ? content.length : handler200End,
+  );
+  expect(handler200).not.toMatch(/Content-Type/i);
 });
 
 test('react-query issue-2999 emits exactly one v5 overload block per NestJS-style hook', async () => {
@@ -1115,6 +1288,45 @@ test('fetch issue-3663 combines required from a constraint-only allOf overlay', 
   expect(barInlineType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
 });
 
+test('fetch issue-3695 does not import zod for a path parameter named `z`', async () => {
+  // A path parameter named exactly `z` must not be mistaken for a zod usage and
+  // pull the (otherwise unused) zod import into the client. See #3695.
+  const content = await readFile(
+    generated('fetch', 'issue-3695', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).not.toContain("from 'zod'");
+  // The parameter itself is still generated as a normal string argument.
+  expect(content).toContain('z: string');
+});
+
+test('hono handler filenames follow namingConvention', async () => {
+  // Handler files are the only hono output named after an operation, so they have
+  // to honor `namingConvention` like every other generated file does.
+  const endpoints = await readFile(
+    generated('hono', 'petstore-split-with-handlers-kebab', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The route file must import from the kebab-cased path, not the operation name.
+  expect(endpoints).toContain("from './src/handlers/list-pets'");
+  expect(endpoints).not.toContain("from './src/handlers/listPets'");
+
+  // And that file must exist under the same name.
+  const handler = await readFile(
+    generated(
+      'hono',
+      'petstore-split-with-handlers-kebab',
+      'src',
+      'handlers',
+      'list-pets.ts',
+    ),
+    'utf8',
+  );
+  expect(handler).toContain('listPetsHandlers');
+});
+
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {
   // `tests` installs Zod 4, so installed-version detection would emit Zod 4 for
   // both. These two clients generate from the SAME petstore spec but pin
@@ -1330,6 +1542,232 @@ test('default issue-3583 param default values with backslashes are JS-escaped', 
   // Forward slashes must not be over-escaped (#3530 guard).
   expect(endpoints).toContain("tz: string = 'Asia/Tokyo'");
   expect(endpoints).not.toContain('\\/');
+});
+
+test('default issue-3722 avoids invalid Required<Pick> for ghost keys', async () => {
+  const petTagInfo = await readFile(
+    generated('default', 'issue-3722', 'model', 'petTagInfo.ts'),
+    'utf8',
+  );
+
+  expect(petTagInfo).toContain('tagMetadata:');
+  expect(petTagInfo).toContain('TagMetadataItem');
+  expect(petTagInfo).not.toMatch(/Required<Pick<TagMetadataItem, 'tagId'>>/);
+  expect(petTagInfo).not.toMatch(/^\s+tagId:/m);
+});
+
+test('default issue-3748 keeps plain Required<Pick> for keys behind a nested allOf $ref', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3748', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+
+  // Keys resolved two $ref hops away (ItemDetail -> ItemBase -> Contents) must
+  // not fall into the Extract guard: the additionalProperties index signature
+  // collapses `Extract<keyof T, ...>` to `never`, silently dropping the
+  // required override.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+});
+
+test('default issue-3750 keeps plain Required<Pick> for parent properties', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+  const nullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'nullableItemDetail.ts'),
+    'utf8',
+  );
+  const nestedNullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'nestedNullableItemDetail.ts'),
+    'utf8',
+  );
+  const refNullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'refNullableItemDetail.ts'),
+    'utf8',
+  );
+
+  // Parent properties are part of the emitted intersection and are therefore
+  // safe Pick keys even when required comes from a constraint-only member.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+
+  // The allOf object removes the nullable parent's null branch, making its own
+  // property safe to Pick without the index-signature-breaking Extract guard.
+  expect(nullableItemDetail).toContain("'id'");
+  expect(nullableItemDetail).toContain('Required<');
+  expect(nullableItemDetail).not.toContain('Extract<');
+
+  // The same guarantee must survive a nested allOf component ref and the
+  // inline-allOf normalization pass.
+  expect(nestedNullableItemDetail).toContain("'id'");
+  expect(nestedNullableItemDetail).toContain('Required<');
+  expect(nestedNullableItemDetail).not.toContain('Extract<');
+
+  // A nullable component target propagates null outside its nested allOf, so
+  // the required key must stay guarded to avoid Pick<T, 'id'> violating a
+  // `keyof T = never` constraint.
+  expect(refNullableItemDetail).toMatch(
+    /Required<\s*Pick<[\s\S]*Extract<\s*keyof \(/,
+  );
+});
+
+test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
+  const unionItem = await readFile(
+    generated('default', 'regressions', 'model', 'unionItem.ts'),
+    'utf8',
+  );
+  const scalarItem = await readFile(
+    generated('default', 'regressions', 'model', 'scalarItem.ts'),
+    'utf8',
+  );
+  const nestedUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'nestedUnionItem.ts'),
+    'utf8',
+  );
+  const nestedComposedUnionItem = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nestedComposedUnionItem.ts',
+    ),
+    'utf8',
+  );
+  const directScalarUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'directScalarUnionItem.ts'),
+    'utf8',
+  );
+  const refMemberUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'refMemberUnionItem.ts'),
+    'utf8',
+  );
+  const enumUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'enumUnionItem.ts'),
+    'utf8',
+  );
+  const siblingEnumItem = await readFile(
+    generated('default', 'regressions', 'model', 'siblingEnumItem.ts'),
+    'utf8',
+  );
+  const canonicalNullableOneOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'canonicalNullableOneOfItem.ts',
+    ),
+    'utf8',
+  );
+  const canonicalNullableOneOfSiblingItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'canonicalNullableOneOfSiblingItem.ts',
+    ),
+    'utf8',
+  );
+  const inlineNullableAnyOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'inlineNullableAnyOfItem.ts',
+    ),
+    'utf8',
+  );
+  const allEnumSiblingItem = await readFile(
+    generated('default', 'regressions', 'model', 'allEnumSiblingItem.ts'),
+    'utf8',
+  );
+  const nullableAllOfMemberItem = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nullableAllOfMemberItem.ts',
+    ),
+    'utf8',
+  );
+  const nullableParentItem = await readFile(
+    generated('default', 'regressions', 'model', 'nullableParentItem.ts'),
+    'utf8',
+  );
+
+  expect(unionItem).toContain("'id'");
+  expect(unionItem).toContain('Required<');
+  expect(unionItem).not.toContain('Extract<');
+
+  expect(scalarItem).toContain("Extract<keyof ScalarWrapper, 'id'>");
+  expect(scalarItem).not.toContain("Pick<ScalarWrapper, 'id'>");
+
+  expect(nestedUnionItem).toContain(
+    "Extract<keyof NestedUnionWrapper, 'id'>",
+  );
+  expect(nestedUnionItem).not.toContain(
+    "Pick<NestedUnionWrapper, 'id'>",
+  );
+
+  expect(nestedComposedUnionItem).toContain(
+    "Pick<NestedComposedUnionWrapper, 'id'>",
+  );
+  expect(nestedComposedUnionItem).not.toContain('Extract<');
+
+  expect(directScalarUnionItem).toContain(
+    "Pick<DirectScalarUnionWrapper, 'id'>",
+  );
+  expect(directScalarUnionItem).not.toContain('Extract<');
+
+  expect(refMemberUnionItem).toContain(
+    "Pick<RefMemberUnionWrapper, 'id'>",
+  );
+  expect(refMemberUnionItem).not.toContain('Extract<');
+
+  expect(enumUnionItem).toContain(
+    "Extract<keyof EnumUnionWrapper, 'id'>",
+  );
+  expect(enumUnionItem).not.toContain("Pick<EnumUnionWrapper, 'id'>");
+
+  expect(siblingEnumItem).toContain(
+    "Extract<keyof SiblingEnumWrapper, 'id'>",
+  );
+  expect(siblingEnumItem).not.toContain("Pick<SiblingEnumWrapper, 'id'>");
+
+  expect(canonicalNullableOneOfItem).toContain(
+    "Extract<keyof CanonicalNullableOneOfWrapper, 'id'>",
+  );
+  expect(canonicalNullableOneOfItem).not.toContain(
+    "Pick<CanonicalNullableOneOfWrapper, 'id'>",
+  );
+
+  expect(canonicalNullableOneOfSiblingItem).toContain(
+    "Pick<CanonicalNullableOneOfSiblingWrapper, 'id'>",
+  );
+  expect(canonicalNullableOneOfSiblingItem).not.toContain('Extract<');
+
+  expect(inlineNullableAnyOfItem).toContain(
+    "Pick<InlineNullableAnyOfWrapper, 'id'>",
+  );
+  expect(inlineNullableAnyOfItem).not.toContain('Extract<');
+
+  expect(allEnumSiblingItem).toContain(
+    "Pick<AllEnumSiblingWrapper, 'id'>",
+  );
+  expect(allEnumSiblingItem).not.toContain('Extract<');
+
+  expect(nullableAllOfMemberItem).toContain(
+    "Pick<NullableAllOfMemberWrapper, 'id'>",
+  );
+  expect(nullableAllOfMemberItem).not.toContain('Extract<');
+
+  expect(nullableParentItem).toContain(
+    "Pick<NullableParentWrapper, 'id'>",
+  );
+  expect(nullableParentItem).not.toContain('Extract<');
 });
 
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
@@ -1761,4 +2199,68 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // The nullable tuple (`anyOf: [tuple, null]`) is the issue's exact shape and
   // must not regress to the original empty `[]`.
   expect(content).not.toContain('point: []');
+});
+
+// `set-cookie` must be filtered out, so the response carries no session
+// credential across the serialization boundary.
+const serializedHeaders = (responseVar: string) =>
+  `[...${responseVar}.headers.entries()].filter(([name]) => name !== 'set-cookie')`;
+
+test('fetch serializeResponseHeaders stores headers as a plain object', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
+});
+
+test.each([
+  ['serialize-response-headers-stream', 'stream'],
+  ['serialize-response-headers-blob', 'res'],
+])(
+  'fetch serializeResponseHeaders converts headers in the %s response branch',
+  async (folder, responseVar) => {
+    const content = await readFile(
+      generated('fetch', folder, 'endpoints.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain('headers: Record<string, string>');
+    expect(content).not.toContain('headers: Headers');
+    expect(content).toContain(serializedHeaders(responseVar));
+    expect(content).not.toContain(`headers: ${responseVar}.headers`);
+  },
+);
+
+test('fetch serializeResponseHeaders leaves the conversion to a custom mutator', async () => {
+  const content = await readFile(
+    generated('fetch', 'serialize-response-headers-mutator', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The mutator owns the request, so the option only declares the shape it has
+  // to return — there is no generated code left to do the conversion.
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toMatch(/return customFetch<\w+Response>\(/);
+  expect(content).not.toContain(serializedHeaders('res'));
+});
+
+// Runtime behaviour lives in serialize-response-headers.spec.ts; these only
+// inspect the generated source.
+test('react-query prefetch output declares serialized headers', async () => {
+  const content = await readFile(
+    generated('react-query', 'prefetch-serializable-headers', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toMatch(/export const prefetchListPetsQuery = async </);
+  expect(content).toContain('headers: Record<string, string>');
+  expect(content).not.toContain('headers: Headers');
+  expect(content).toContain(serializedHeaders('res'));
+  expect(content).not.toContain('headers: res.headers');
 });

@@ -24,6 +24,257 @@ components:
       properties:
         id:
           description: not defined type schema
+    UnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    UnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/UnionBase'
+    UnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/UnionWrapper'
+    ScalarBase:
+      type: string
+      properties:
+        id:
+          type: string
+    ScalarWrapper:
+      allOf:
+        - $ref: '#/components/schemas/ScalarBase'
+    ScalarItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/ScalarWrapper'
+    NestedUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: object
+          nullable: true
+          properties:
+            left:
+              type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    NestedUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NestedUnionBase'
+    NestedUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NestedUnionWrapper'
+    NestedComposedUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - anyOf:
+            - type: object
+              nullable: true
+              properties:
+                left:
+                  type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    NestedComposedUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NestedComposedUnionBase'
+    NestedComposedUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NestedComposedUnionWrapper'
+    DirectScalarUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    DirectScalarUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/DirectScalarUnionBase'
+    DirectScalarUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/DirectScalarUnionWrapper'
+    RefNullableBase:
+      type: object
+      properties:
+        left:
+          type: string
+    RefMemberUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - $ref: '#/components/schemas/RefNullableBase'
+          nullable: true
+        - type: object
+          properties:
+            right:
+              type: string
+    RefMemberUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/RefMemberUnionBase'
+    RefMemberUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/RefMemberUnionWrapper'
+    EnumUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    EnumUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/EnumUnionBase'
+    EnumUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/EnumUnionWrapper'
+    SiblingEnumBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          properties:
+            base:
+              type: string
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    SiblingEnumWrapper:
+      allOf:
+        - $ref: '#/components/schemas/SiblingEnumBase'
+    SiblingEnumItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/SiblingEnumWrapper'
+    AllEnumObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    AllEnumSiblingBase:
+      allOf:
+        - $ref: '#/components/schemas/AllEnumObjectBase'
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    AllEnumSiblingWrapper:
+      allOf:
+        - $ref: '#/components/schemas/AllEnumSiblingBase'
+    AllEnumSiblingItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/AllEnumSiblingWrapper'
+    NullableAllOfMemberBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    NullableAllOfMemberWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfMemberBase'
+          nullable: true
+        - type: object
+          properties:
+            marker:
+              type: string
+    NullableAllOfMemberItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfMemberWrapper'
+    NullableParentBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    NullableParentWrapper:
+      type: object
+      properties:
+        marker:
+          type: string
+      allOf:
+        - $ref: '#/components/schemas/NullableParentBase'
+          nullable: true
+    NullableParentItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NullableParentWrapper'
 paths:
   /endpointA:
     get:

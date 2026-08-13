@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "8.20.0",
+  "version": "8.24.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "next": "14.2.35",
+    "next": "15.5.21",
     "react": "catalog:react",
     "react-dom": "^18.3.1"
   },
@@ -27,7 +27,7 @@
     "eslint-config-next": "16.1.6",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "postcss": "8.5.13",
+    "postcss": "8.5.23",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
     "typescript": "catalog:",

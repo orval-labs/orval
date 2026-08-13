@@ -13,7 +13,7 @@ function makeContext(): ContextSpec {
 
 function gen(
   schema: OpenApiSchemaObject,
-  options?: { required?: boolean; strict?: boolean },
+  options?: { required?: boolean; strict?: boolean; exactOptional?: boolean },
 ) {
   const context = makeContext();
   const definition = generateEffectValidationSchemaDefinition(
@@ -27,6 +27,8 @@ function gen(
     definition,
     context,
     options?.strict ?? false,
+    undefined,
+    options?.exactOptional ?? false,
   );
   return { effect, consts };
 }
@@ -205,6 +207,27 @@ describe('nullable and optional', () => {
       // not required => optional
     });
     expect(effect).toContain('"name": S.optional(S.String)');
+  });
+
+  it('wraps with S.optionalWith exact when exactOptional is set', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    };
+    expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"name": S.optionalWith(S.String, { exact: true })',
+    );
+    expect(gen(schema).effect).toContain('"name": S.optional(S.String)');
+  });
+
+  it('leaves a nullish property as S.optional even with exactOptional (nullish admits undefined; only .optional() narrows)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { name: { type: 'string', nullable: true } },
+    };
+    expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"name": S.optional(S.NullOr(S.String))',
+    );
   });
 });
 

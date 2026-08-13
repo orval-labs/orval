@@ -143,6 +143,36 @@ export type MyError = Error;
 
       expect(dep).toBe("import {\n  schema$Value\n} from '../models';\n");
     });
+
+    // Regression for #3695: an aliased import is referenced by its alias only
+    // (rendered `name as alias`), so a bare occurrence of the pre-alias name in
+    // generated code (e.g. a path param `z` colliding with `z as zod`) must not
+    // pull the dependency in.
+    it('does not add an aliased import when only its pre-alias name appears', () => {
+      const dep = addDependency({
+        implementation: 'export const getUrl = (z: string) => `/${z}`;',
+        dependency: 'zod',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'z', alias: 'zod', values: true }],
+      });
+
+      expect(dep).toBeUndefined();
+    });
+
+    it('adds an aliased import when its alias appears', () => {
+      const dep = addDependency({
+        implementation: 'const schema = zod.string();',
+        dependency: 'zod',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'z', alias: 'zod', values: true }],
+      });
+
+      expect(dep).toBe("import {\n  z as zod\n} from 'zod';\n");
+    });
   });
 
   // `oneMore` is set only by the tags-split writer (split-tags-mode.ts),

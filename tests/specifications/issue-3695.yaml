@@ -1,0 +1,20 @@
+openapi: 3.1.0
+info:
+  title: Issue 3695 - path parameter named `z` must not pull in the zod import
+  version: 1.0.0
+paths:
+  # The fetch client imports zod as `import { z as zod } from 'zod'`. A path
+  # parameter named exactly `z` used to collide with the pre-alias name `z`,
+  # forcing an unused zod import into the generated client. See #3695.
+  /{z}:
+    get:
+      operationId: getZ
+      parameters:
+        - name: z
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ok

@@ -377,6 +377,7 @@ describe('validation', () => {
           output: { target: '' },
           input: {
             target: specPath,
+            parserOptions: { externalRefs: { allow: ['refs.yaml'] } },
             override: {
               transformer: (input: OpenApiDocument) => {
                 const next = structuredClone(input);
@@ -415,6 +416,219 @@ describe('validation', () => {
       expect(field?.model).not.toContain('refs.yaml');
     } finally {
       await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('externalRefs', () => {
+  async function createExternalRefWorkspace() {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-allow-'));
+    const specPath = path.join(workspace, 'spec.yaml');
+    const externalPath = path.join(workspace, 'external.yaml');
+    const external = {
+      openapi: '3.0.2',
+      info: { title: 'ext', version: '1.0' },
+      paths: {},
+      components: { schemas: { Foo: { type: 'string' } } },
+    };
+    const spec = {
+      openapi: '3.0.2',
+      info: { title: 'main', version: '1.0' },
+      paths: {
+        '/x': {
+          get: {
+            operationId: 'getX',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: 'external.yaml#/components/schemas/Foo' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    await writeFile(externalPath, JSON.stringify(external), 'utf8');
+    await writeFile(specPath, JSON.stringify(spec), 'utf8');
+    return { workspace, specPath };
+  }
+
+  it('should block external $ref by default and print a config snippet', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    try {
+      const normalizedOptions = await normalizeOptions(
+        { output: { target: '' }, input: { target: specPath } },
+        workspace,
+        {},
+      );
+      await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
+        /External \$ref targets are not allowed by default/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should resolve external $ref when explicitly allowed', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: { externalRefs: { allow: ['external.yaml'] } },
+          },
+        },
+        workspace,
+        {},
+      );
+      const spec = await importSpecs(workspace, normalizedOptions);
+      expect(spec.verbOptions).toHaveProperty('getX');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should resolve all external $refs with wildcard and emit warnings', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    const warnSpy = vi
+      .spyOn(orvalCore, 'logWarning')
+      .mockImplementation(() => {});
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: { externalRefs: { allow: ['*'] } },
+          },
+        },
+        workspace,
+        {},
+      );
+      const spec = await importSpecs(workspace, normalizedOptions);
+      expect(spec.verbOptions).toHaveProperty('getX');
+
+      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      expect(warnings).toContain('External $ref documents being resolved');
+      expect(warnings).toContain('external.yaml');
+    } finally {
+      warnSpy.mockRestore();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should use configured headers when loading a remote top-level spec', async () => {
+    const remoteTarget = 'https://api.example.com/openapi.json';
+    const spec = {
+      openapi: '3.0.2',
+      info: { title: 'remote', version: '1.0' },
+      paths: {},
+    };
+    const fetchMock = vi.fn<typeof fetch>(async (_input, init) => {
+      expect(new Headers(init?.headers).get('Authorization')).toBe(
+        'Bearer token',
+      );
+      if (init?.method === 'HEAD') {
+        return new Response(undefined, { status: 200 });
+      }
+      return new Response(JSON.stringify(spec), { status: 200 });
+    });
+
+    vi.stubGlobal('fetch', fetchMock as typeof fetch);
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: [remoteTarget],
+            parserOptions: {
+              headers: [
+                {
+                  domains: ['api.example.com'],
+                  headers: { Authorization: 'Bearer token' },
+                },
+              ],
+            },
+          },
+        },
+        'test',
+        {},
+      );
+
+      const specBuilder = await importSpecs('test', normalizedOptions);
+
+      expect(specBuilder.spec.info?.title).toBe('remote');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('should allow remote relative refs when listed relative to the remote spec', async () => {
+    const remoteTarget = 'https://api.example.com/openapi.json';
+    const spec = {
+      openapi: '3.0.2',
+      info: { title: 'remote', version: '1.0' },
+      paths: {
+        '/x': {
+          get: {
+            operationId: 'getX',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: './common.yaml#/components/schemas/Foo' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const external = {
+      openapi: '3.0.2',
+      info: { title: 'external', version: '1.0' },
+      paths: {},
+      components: { schemas: { Foo: { type: 'string' } } },
+    };
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      if (init?.method === 'HEAD') {
+        return new Response(undefined, { status: 200 });
+      }
+      const url = input instanceof Request ? input.url : String(input);
+      return new Response(
+        JSON.stringify(url.endsWith('/common.yaml') ? external : spec),
+        { status: 200 },
+      );
+    });
+
+    vi.stubGlobal('fetch', fetchMock as typeof fetch);
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: [remoteTarget],
+            parserOptions: { externalRefs: { allow: ['./common.yaml'] } },
+          },
+        },
+        'test',
+        {},
+      );
+
+      const specBuilder = await importSpecs('test', normalizedOptions);
+
+      expect(specBuilder.verbOptions).toHaveProperty('getX');
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

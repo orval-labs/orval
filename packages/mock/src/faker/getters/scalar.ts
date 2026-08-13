@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
+  compareNatural,
   type ContextSpec,
   EnumGeneration,
   type GeneratorImport,
@@ -87,7 +88,7 @@ export function getMockScalar({
     properties: {},
   };
   const sortedTags = Object.entries(safeMockOptions.tags ?? {}).toSorted(
-    (a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }),
+    (a, b) => compareNatural(a[0], b[0]),
   );
   for (const [tag, options] of sortedTags) {
     if (!tags.includes(tag)) {
@@ -654,7 +655,13 @@ function getEnum(
 
   let enumValue = `[${joinedEnumValues}]`;
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
-    if (item.isRef || existingReferencedProperties.length === 0) {
+    const isRootSchema =
+      !item.parentName && existingReferencedProperties.at(-1) === item.name;
+    if (
+      item.isRef ||
+      existingReferencedProperties.length === 0 ||
+      isRootSchema
+    ) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
       imports.push({ name: item.name });
     } else {

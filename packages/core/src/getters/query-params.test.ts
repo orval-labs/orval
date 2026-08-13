@@ -763,6 +763,222 @@ describe('getQueryParams getter', () => {
     });
   });
 
+  // Derives the Angular object-serialization strategy (issue #3705) from a
+  // query parameter's declared `style`/`explode`, per the OpenAPI spec
+  // defaults (style: form, explode: true for form).
+  describe('objectQueryParams (style/explode)', () => {
+    it('defaults an object param with no style/explode to flatten (form + explode:true)', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'arg0',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'object',
+                properties: {
+                  itemReferences: { type: 'array', items: { type: 'string' } },
+                  pageNumber: { type: 'integer' },
+                },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toEqual([
+        { key: 'arg0', strategy: 'flatten' },
+      ]);
+    });
+
+    it('maps style:form + explode:false to comma', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              style: 'form',
+              explode: false,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toEqual([
+        { key: 'filters', strategy: 'comma' },
+      ]);
+    });
+
+    it('maps style:deepObject to deepObject regardless of explode', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              style: 'deepObject',
+              explode: false,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toEqual([
+        { key: 'filters', strategy: 'deepObject' },
+      ]);
+    });
+
+    it('honors an explicit explode:true with style:form as flatten', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              style: 'form',
+              explode: true,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toEqual([
+        { key: 'filters', strategy: 'flatten' },
+      ]);
+    });
+
+    it('excludes arrays of objects (no style/explode object serialization defined for them)', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'items',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { type: 'object' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toBeUndefined();
+      // Still tracked as non-primitive for the existing passthrough path.
+      expect(result?.nonPrimitiveKeys).toEqual(['items']);
+    });
+
+    it('excludes primitive params', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'id',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toBeUndefined();
+    });
+
+    it('excludes content-based (application/json) object params', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              content: {
+                'application/json': {
+                  schema: { type: 'object' },
+                },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toBeUndefined();
+    });
+
+    it('aggregates multiple object params with mixed strategies alongside primitives', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'arg0',
+              in: 'query',
+              required: false,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              style: 'deepObject',
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'q',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.objectQueryParams).toEqual([
+        { key: 'arg0', strategy: 'flatten' },
+        { key: 'filters', strategy: 'deepObject' },
+      ]);
+    });
+  });
+
   // Locks the contract that getParameters/issue-1879 fix relies on: when the
   // caller surfaces an import (i.e. the parameter resolved to a named
   // `#/components/parameters/*` slot), the type must be that import name, and

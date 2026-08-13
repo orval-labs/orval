@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -61,10 +61,11 @@ const api = getPetsApi(customAxios);
 
 ## httpClient
 
-**Type:** `'fetch' | 'axios'`
+**Type:** `'fetch' | 'axios' | 'angular'`
 **Default:** `'fetch'`
 
-HTTP client used for `swr`, `react-query`, `vue-query`, and `svelte-query` clients.
+HTTP transport used by compatible generated clients. Use `fetch` or `axios` for
+query clients, and `angular` for `angular` and `angular-query` output.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -628,6 +629,7 @@ export default defineConfig({
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | Discriminator for MSW handler generation. |
 | `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
+| `operationResponses` | `Boolean` | `true` | Emit `get<Op>ResponseMock` factories in the MSW output. Set to `false` to generate handlers only, response fallbacks become `undefined`. No effect when a Faker generator also emits the factories, the handlers then import them from the `.faker` file. Honored in `split` and `tags-split` modes. |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
 | `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
@@ -639,6 +641,8 @@ export default defineConfig({
 ### Faker generator (`type: 'faker'`)
 
 The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emit, but without any `msw` dependency or HTTP handler code. Useful for tests or stories that only need fake response data.
+
+In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `get<Op>ResponseMock` factories to the `.faker` file. The `.msw` file only contains the handlers and imports (and re-exports) the factories instead of duplicating them. If the Faker generator is configured with `operationResponses: false` it emits no factories, so there is nothing to move and the `.msw` file keeps them inline.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -1103,9 +1107,39 @@ that restriction for individual operations.
 
 ### useInfiniteQueryParam
 
-**Type:** `String`
+**Type:** `String | String[]`
 
-Query parameter name for infinite queries.
+Query parameter name for infinite queries. An operation only gets an infinite
+hook when it declares the configured parameter.
+
+Pass an array when a single spec paginates in more than one way. The names are
+candidates in priority order and are resolved per operation: the first one the
+operation actually declares becomes its page parameter, and an operation
+matching none of them gets no infinite hook.
+
+An `override.operations` entry replaces the global value entirely, so a single operation can opt into a different candidate
+list.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: ['page', 'cursor'],
+        },
+        operations: { 
+          listBets: {
+            useInfinite: true,
+            useInfiniteQueryParam: "cursor.marker",
+          }
+        }
+      },
+    },
+  },
+});
+```
 
 ### usePrefetch
 
@@ -1226,6 +1260,100 @@ parameter, orval passes operation identity so the mutator can branch on it
 - `queryOptions` mutator — `{ url, operationId, operationName }`
 - `mutationOptions` mutator — `{ operationId, operationName }` (the `url`
   is supplied in the second parameter)
+
+Each option takes a mutator, so point it at a file and an exported name:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryKey: {
+            path: './src/mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+`queryKey` replaces the generated key factory. It receives the operation's
+query properties and a context carrying the `url`:
+
+```ts title="src/mutators/custom-query-key.ts"
+export function customQueryKey(
+  // The properties dictionary varies per operation (params, petId, ...), so
+  // type it broadly if one mutator serves every endpoint.
+  properties: Record<string, unknown>,
+  context: { url: string },
+) {
+  return ['tenant-abc', context.url, properties] as const;
+}
+```
+
+`queryOptions` wraps the options object passed to the generated hook. The
+third parameter is the operation identity described above:
+
+```ts title="src/mutators/custom-query-options.ts"
+import type { QueryKey } from '@tanstack/react-query';
+
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+  _queryProperties: Record<string, unknown>,
+  operation: { url: string; operationId: string; operationName: string },
+): T & { queryKey: QueryKey } {
+  return {
+    ...options,
+    queryKey: ['operation', operation.operationId, ...options.queryKey],
+  };
+}
+```
+
+`mutationOptions` works the same way for mutations, which is where branching
+on `operationId` is most useful.
+
+The mutator runs where the options object is built, inside the hook body, so
+side effects belong in a callback rather than in the mutator itself. Calling
+`invalidateQueries()` directly would fire on every render instead of after the
+mutation succeeds:
+
+```ts title="src/mutators/custom-mutation.ts"
+import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+
+export const useCustomMutation = <TData, TError, TVariables, TContext>(
+  options: UseMutationOptions<TData, TError, TVariables, TContext>,
+  _: { url: string },
+  operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId !== 'deletePetById') return options;
+
+  return {
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options.onSuccess>>) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      // Keep whatever the caller already passed.
+      return options.onSuccess?.(...args);
+    },
+  };
+};
+```
+
+Because the mutator receives `operationId`, one file can serve every
+operation and branch where the behaviour needs to differ, which is the usual
+alternative to a per-operation configuration option.
 
 ### shouldExportMutatorHooks
 
@@ -1607,6 +1735,25 @@ Behavior:
 - **Inheritance (`allOf`).** Branches composed with `allOf` are flattened into a single object so they remain valid discriminated-union options — this is the case that previously forced the feature to be reverted ([#2085](https://github.com/orval-labs/orval/issues/2085)). With [`generateReusableSchemas`](#generatereusableschemas), a branch that references an `allOf` schema stays a plain union (the referenced schema can't be guaranteed to be an object from the reference alone).
 - Works with both Zod v3 (>= 3.20) and v4, and with the [`mini`](#variant) variant.
 
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional object properties with `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of `.optional()`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
+
+```ts
+// override: { zod: { exactOptional: true } }
+export const Pet = zod.object({ name: zod.string().exactOptional() });
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, optional properties emit `.optional()` as before, so existing output is unchanged.
+- **zod v4 only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted.
+- Applies to optional properties in both the classic and [`mini`](#variant) variants.
+
 ---
 
 ## override.effect
@@ -1661,6 +1808,14 @@ Control which schemas are generated.
 **Default:** `false`
 
 Append `S.brand()` to generated Effect schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded.
+
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional Struct properties with `S.optionalWith(schema, { exact: true })` instead of `S.optional(schema)`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
 
 ---
 
@@ -1748,6 +1903,45 @@ Enable Zod runtime validation for Angular output. Requires
 Validation is skipped for primitive types, non-JSON responses,
 `observe: 'events' | 'response'`, and custom mutator paths that bypass the
 generated validation flow.
+
+### queryObjectSerialization
+
+**Type:** `'spec' | 'legacy'`
+**Default:** `'spec'`
+
+Controls how query parameters whose declared schema is a plain object are
+serialized when no `paramsSerializer`/`paramsFilter` is configured for the
+operation. See the
+[Object query parameters guide](/docs/guides/angular#object-query-parameters-style--explode)
+for the full explanation and a worked example.
+
+- `spec` (default): honor the OpenAPI parameter's `style`/`explode` — `form` +
+  `explode: true` (the OpenAPI default) spreads the object's properties as
+  top-level query params, `form` + `explode: false` joins them into a single
+  comma-separated value, and `deepObject` emits bracketed `name[prop]` keys.
+- `legacy`: restore the pre-#3705 behavior of silently dropping object-typed
+  query params from the generated request.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          queryObjectSerialization: 'legacy',
+        },
+      },
+    },
+  },
+});
+```
+
+Like `retrievalClient`/`runtimeValidation`, this can be set globally, per-tag
+(`override.tags[...].angular`), or per-operation
+(`override.operations[...].angular`). It has no effect when a
+`paramsSerializer` or `paramsFilter` is configured — those remain in full
+control of the raw value. See
+[issue #3705](https://github.com/orval-labs/orval/issues/3705).
 
 ### httpResource
 
@@ -2047,6 +2241,33 @@ Include HTTP status in return type. Set to `false` to return data directly.
 
 Throw on error responses instead of returning them.
 
+### serializeResponseHeaders
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Return response `headers` as a plain `Record<string, string>` instead of a `Headers` instance. Enable it when a response is cached across a serialization boundary — a `Headers` instance in `dehydrate()` state makes a Next.js Server Component fail with `Only plain objects can be passed to Client Components from Server Components`. Requires `includeHttpResponseReturnType` (the default).
+
+Header names are lowercased and repeated headers are joined with `, `. `set-cookie` is dropped, because a dehydrated cache is embedded in the RSC payload and upstream session cookies must not travel with it. Only `headers` is converted: `blob` responses still return a `Blob`, and `application/x-ndjson` responses still return the raw `Response` under `stream`.
+
+With a custom `mutator` the option changes the generated type but not the runtime value, because the mutator issues the request itself. The mutator must return headers that already match the declared shape — as it must for `includeHttpResponseReturnType` today.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+    },
+  },
+});
+```
+
 ### jsonReviver
 
 **Type:** `String | Object`
@@ -2308,7 +2529,9 @@ Override by OpenAPI tag (same options as `operations`).
 
 **Type:** `Function`
 
-Custom function to override generated operation names:
+Custom function to override generated operation names.
+
+**Return `string`** to control both the method name and the type-name base together:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2323,6 +2546,46 @@ export default defineConfig({
   },
 });
 ```
+
+**Return `[methodName, typeNameBase]`** to decouple method names from type-identifier names. This is useful for gateway-aggregated specs where multiple services share the same REST patterns (`GET /products`, `GET /orders`) — bare method names are safe per-tag (each service class scopes them), but type names (`*Params`, `*Body`, `*Error`, `*Result`) need to be globally unique to avoid barrel-level collisions with `tags-split` + `splitByTags` + `indexFiles`:
+
+```ts title="orval.config.ts"
+import { pascal } from '@orval/core';
+
+export default defineConfig({
+  api: {
+    output: {
+      mode: 'tags-split',
+      schemas: { path: './model', splitByTags: true },
+      override: {
+        operationName: (_operation, route, verb) => {
+          const segments = route.split('/').filter(Boolean);
+          return [
+            `${verb}${pascal(segments.slice(2).join('-'))}`,  // getProducts
+            `${verb}${pascal(segments.slice(1).join('-'))}`,  // getCatalogProducts
+          ];
+        },
+      },
+    },
+  },
+});
+```
+
+Result:
+
+```ts
+// catalog/catalog.service.ts
+class CatalogService {
+  getProducts = (params: GetCatalogProductsParams) => ...;
+}
+
+// inventory/inventory.service.ts
+class InventoryService {
+  getProducts = (params: GetInventoryProductsParams) => ...;
+}
+```
+
+The first element controls the function/hook name. The second controls the base for all operation-specific TypeScript type identifiers (`*Params`, `*Body`, `*Error`, `*Result`, `*Accept`, zod/hono/effect schema names).
 
 ---
 

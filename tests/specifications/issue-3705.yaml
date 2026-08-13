@@ -1,0 +1,104 @@
+openapi: 3.0.4
+info:
+  title: Issue 3705 - Angular query-object serialization (style/explode)
+  version: 1.0.0
+paths:
+  /catalog-items:
+    get:
+      operationId: searchCatalog
+      tags:
+        - catalog
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: arg0
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CatalogFilter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogItem'
+  /catalog-items/comma:
+    get:
+      operationId: searchCatalogComma
+      tags:
+        - catalog
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: arg0
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            $ref: '#/components/schemas/CatalogFilter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogItem'
+  /catalog-items/deep-object:
+    get:
+      operationId: searchCatalogDeepObject
+      tags:
+        - catalog
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: arg0
+          in: query
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/CatalogFilter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogItem'
+components:
+  schemas:
+    CatalogFilter:
+      type: object
+      properties:
+        itemReferences:
+          type: array
+          items:
+            type: string
+        pageNumber:
+          type: integer
+          format: int32
+    CatalogItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string

@@ -102,6 +102,7 @@ export function createTestContextSpec({
         provideIn: 'root',
         client: 'httpClient',
         runtimeValidation: false,
+        queryObjectSerialization: 'spec',
       },
       swr: {},
       zod: {
@@ -133,6 +134,7 @@ export function createTestContextSpec({
         generateReusableSchemas: false,
         generateMeta: false,
         generateDiscriminatedUnion: false,
+        exactOptional: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
@@ -153,10 +155,12 @@ export function createTestContextSpec({
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
+        serializeResponseHeaders: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
       },

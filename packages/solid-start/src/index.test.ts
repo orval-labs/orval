@@ -17,7 +17,7 @@ import {
 } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { generateSolidStart } from './index';
+import { generateSolidStart, generateSolidStartHeader } from './index';
 
 type SolidStartGeneratorOptions = Parameters<typeof generateSolidStart>[1];
 type SolidStartGeneratorResult = Awaited<ReturnType<typeof generateSolidStart>>;
@@ -103,6 +103,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         provideIn: 'root',
         client: 'httpClient',
         runtimeValidation: false,
+        queryObjectSerialization: 'spec',
       },
       swr: {},
       zod: {
@@ -134,6 +135,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         generateReusableSchemas: false,
         generateMeta: false,
         generateDiscriminatedUnion: false,
+        exactOptional: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
@@ -154,10 +156,12 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
+        serializeResponseHeaders: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
       },
@@ -221,6 +225,7 @@ function makeVerbOptions(
       contentType: '',
       isOptional: true,
       originalSchema: {},
+      isBlob: false,
     } as GeneratorVerbOptions['body'],
     params: [],
     props: [],
@@ -637,5 +642,84 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
 
     expect(implementation).not.toContain('const explodeParameters');
     expect(implementation).not.toContain('v instanceof Date ? v.toISOString()');
+  });
+});
+
+describe('generateSolidStartHeader namespace collision', () => {
+  const verbImporting = (
+    tags: string[],
+    importNames: string[],
+  ): GeneratorVerbOptions => {
+    const base = makeVerbOptions({ tags });
+    return {
+      ...base,
+      response: {
+        ...base.response,
+        imports: importNames.map((name) => ({ name })),
+      },
+    } as GeneratorVerbOptions;
+  };
+
+  const namespaceFor = (
+    title: string,
+    verbOptions: Record<string, GeneratorVerbOptions>,
+    tag?: string,
+  ) => {
+    const header = generateSolidStartHeader({
+      title,
+      verbOptions,
+      tag,
+    } as unknown as Parameters<typeof generateSolidStartHeader>[0]);
+    const source = typeof header === 'string' ? header : header.implementation;
+    return /export const (\w+) = \{/.exec(source)?.[1];
+  };
+
+  it('keeps the plain tag name when nothing in the file collides', () => {
+    expect(
+      namespaceFor(
+        'Pets',
+        { listPets: verbImporting(['pets'], ['Pet']) },
+        'pets',
+      ),
+    ).toBe('Pets');
+  });
+
+  it('suffixes when this file imports a schema of the same name', () => {
+    expect(
+      namespaceFor(
+        'Pets',
+        { listPets: verbImporting(['pets'], ['Pets']) },
+        'pets',
+      ),
+    ).toBe('PetsApi');
+  });
+
+  it('does not suffix when only another tag imports the colliding name', () => {
+    expect(
+      namespaceFor(
+        'Health',
+        {
+          healthCheck: verbImporting(['health'], []),
+          listPets: verbImporting(['pets'], ['Health']),
+        },
+        'health',
+      ),
+    ).toBe('Health');
+  });
+
+  it('escalates past a suffixed name that is also taken', () => {
+    expect(
+      namespaceFor(
+        'Pets',
+        { listPets: verbImporting(['pets'], ['Pets', 'PetsApi']) },
+        'pets',
+      ),
+    ).toBe('PetsApi2');
+  });
+
+  it('scans every operation when there is no tag bucket (single-file mode)', () => {
+    expect(
+      namespaceFor('Pets', { listPets: verbImporting([], ['Pets']) }),
+    ).toBe('PetsApi');
   });
 });

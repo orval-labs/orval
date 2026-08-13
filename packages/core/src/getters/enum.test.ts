@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { NamingConvention, type OpenApiSchemaObject } from '../types';
 import {
-  getEnumDescriptions,
+  EnumGeneration,
+  NamingConvention,
+  type OpenApiSchemaObject,
+} from '../types';
+import {
+  getEnum,
   getEnumImplementation,
-  getEnumNames,
-  getEnumUnionFromSchema,
+  getEnumMembers,
+  getEnumUnion,
 } from './enum';
 
 describe('getEnumImplementation', () => {
   it('should generate enum keys without naming convention', () => {
-    const result = getEnumImplementation("'created_at' | '-created_at'");
-
+    const result = getEnumImplementation(
+      [{ value: 'created_at' }, { value: '-created_at' }],
+      {
+        enumGenerationType: EnumGeneration.CONST,
+      },
+    );
     // Without naming convention, keys preserve the original form
     expect(result).toContain('created_at');
     expect(result).toContain("'-created_at'");
@@ -20,10 +28,16 @@ describe('getEnumImplementation', () => {
   describe('PascalCase naming convention', () => {
     it('should disambiguate keys that would collide after PascalCase transform', () => {
       const result = getEnumImplementation(
-        "'created_at' | '-created_at' | 'email' | '-email'",
-        undefined,
-        undefined,
-        NamingConvention.PASCAL_CASE,
+        [
+          { value: 'created_at' },
+          { value: '-created_at' },
+          { value: 'email' },
+          { value: '-email' },
+        ],
+        {
+          enumNamingConvention: NamingConvention.PASCAL_CASE,
+          enumGenerationType: EnumGeneration.CONST,
+        },
       );
 
       expect(result).toContain('CreatedAt');
@@ -46,10 +60,11 @@ describe('getEnumImplementation', () => {
 
     it('should handle "+" prefix the same way', () => {
       const result = getEnumImplementation(
-        "'score' | '+score' | '-score'",
-        undefined,
-        undefined,
-        NamingConvention.PASCAL_CASE,
+        [{ value: 'score' }, { value: '+score' }, { value: '-score' }],
+        {
+          enumNamingConvention: NamingConvention.PASCAL_CASE,
+          enumGenerationType: EnumGeneration.CONST,
+        },
       );
 
       expect(result).toContain('Score');
@@ -59,10 +74,11 @@ describe('getEnumImplementation', () => {
 
     it('should not affect enums without special characters', () => {
       const result = getEnumImplementation(
-        "'active' | 'inactive' | 'pending'",
-        undefined,
-        undefined,
-        NamingConvention.PASCAL_CASE,
+        [{ value: 'active' }, { value: 'inactive' }, { value: 'pending' }],
+        {
+          enumNamingConvention: NamingConvention.PASCAL_CASE,
+          enumGenerationType: EnumGeneration.CONST,
+        },
       );
 
       expect(result).toContain('Active');
@@ -73,10 +89,11 @@ describe('getEnumImplementation', () => {
     it('should not change keys when dash values do not collide', () => {
       // "-date" alone (no "date") should still produce "Date", not "MinusDate"
       const result = getEnumImplementation(
-        "'-date' | 'name'",
-        undefined,
-        undefined,
-        NamingConvention.PASCAL_CASE,
+        [{ value: '-date' }, { value: 'name' }],
+        {
+          enumNamingConvention: NamingConvention.PASCAL_CASE,
+          enumGenerationType: EnumGeneration.CONST,
+        },
       );
 
       expect(result).toContain('Date');
@@ -86,25 +103,111 @@ describe('getEnumImplementation', () => {
   });
 });
 
-describe('getEnumDescriptions', () => {
-  it('should return undefined when no descriptions are present', () => {
-    const schema = { enum: ['a', 'b'] } as OpenApiSchemaObject;
-    expect(getEnumDescriptions(schema)).toBeUndefined();
-  });
-
-  it('should handle array format (existing behavior)', () => {
+describe('getEnumMembers', () => {
+  it('should return enum values without metadata', () => {
     const schema = {
-      enum: ['active', 'inactive'],
-      'x-enumDescriptions': ['Active status', 'Inactive status'],
-    } as unknown as OpenApiSchemaObject;
+      enum: ['a', 'b'],
+    } as OpenApiSchemaObject;
 
-    expect(getEnumDescriptions(schema)).toEqual([
-      'Active status',
-      'Inactive status',
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+      },
+      {
+        value: 'b',
+      },
     ]);
   });
 
-  it('should handle object/Map format (Redocly spec)', () => {
+  it('should handle enum names in array format', () => {
+    const schema = {
+      enum: ['a', 'b'],
+      'x-enumNames': ['Alpha', 'Beta'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+      },
+      {
+        value: 'b',
+        name: 'Beta',
+      },
+    ]);
+  });
+
+  it('should handle enum names in object format', () => {
+    const schema = {
+      enum: ['a', 'b'],
+      'x-enumNames': {
+        a: 'Alpha',
+        b: 'Beta',
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+      },
+      {
+        value: 'b',
+        name: 'Beta',
+      },
+    ]);
+  });
+
+  it('should handle partial enum names', () => {
+    const schema = {
+      enum: ['a', 'b', 'c'],
+      'x-enumNames': {
+        a: 'Alpha',
+        c: 'Charlie',
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+      },
+      {
+        value: 'b',
+      },
+      {
+        value: 'c',
+        name: 'Charlie',
+      },
+    ]);
+  });
+
+  it('should generate a nullable const enum', () => {
+    const schema = {
+      nullable: true,
+      type: 'integer',
+      enum: [10, 20, 30],
+    } as unknown as OpenApiSchemaObject;
+
+    const result = getEnum(
+      getEnumMembers(schema),
+      'IntegerEnumNullable',
+      schema.nullable,
+      EnumGeneration.CONST,
+    );
+
+    expect(result).toContain(
+      'export type IntegerEnumNullable = typeof IntegerEnumNullable[keyof typeof IntegerEnumNullable] | null;',
+    );
+
+    expect(result).toContain('export const IntegerEnumNullable = {');
+
+    expect(result).toContain('10: 10');
+    expect(result).toContain('20: 20');
+    expect(result).toContain('30: 30');
+  });
+
+  it('should handle enum descriptions', () => {
     const schema = {
       enum: ['active', 'inactive'],
       'x-enumDescriptions': {
@@ -113,29 +216,132 @@ describe('getEnumDescriptions', () => {
       },
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumDescriptions(schema)).toEqual([
-      'Active status',
-      'Inactive status',
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'active',
+        description: 'Active status',
+      },
+      {
+        value: 'inactive',
+        description: 'Inactive status',
+      },
     ]);
   });
 
-  it('should handle object format with partial descriptions', () => {
+  it('should preserve const branches together with a null branch', () => {
     const schema = {
-      enum: ['active', 'inactive', 'pending'],
-      'x-enumDescriptions': {
-        active: 'Active status',
-        pending: 'Pending status',
-      },
+      oneOf: [
+        {
+          const: 'ACTIVE',
+          title: 'Active',
+          description: 'Active status',
+        },
+        {
+          const: 'INACTIVE',
+          title: 'Inactive',
+          deprecated: true,
+        },
+        {
+          type: 'null',
+        },
+      ],
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumDescriptions(schema)).toEqual([
-      'Active status',
-      undefined,
-      'Pending status',
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+        name: 'Active',
+        description: 'Active status',
+      },
+      {
+        value: 'INACTIVE',
+        name: 'Inactive',
+        deprecated: true,
+      },
+      {
+        value: null,
+      },
     ]);
   });
 
-  it('should handle object format with numeric enum values', () => {
+  it('should preserve const null branches', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'ACTIVE',
+          title: 'Active',
+        },
+        {
+          const: null,
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+        name: 'Active',
+      },
+      {
+        value: null,
+      },
+    ]);
+  });
+
+  it('should not add null to enum members for a nullable enum', () => {
+    const schema = {
+      nullable: true,
+      type: 'integer',
+      enum: [10, 20, 30],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      { value: 10 },
+      { value: 20 },
+      { value: 30 },
+    ]);
+  });
+
+  it('should handle names and descriptions together', () => {
+    const schema = {
+      enum: ['active', 'inactive'],
+      'x-enumNames': ['Active', 'Inactive'],
+      'x-enumDescriptions': ['Active status', 'Inactive status'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'active',
+        name: 'Active',
+        description: 'Active status',
+      },
+      {
+        value: 'inactive',
+        name: 'Inactive',
+        description: 'Inactive status',
+      },
+    ]);
+  });
+
+  it('should handle enum descriptions in array format', () => {
+    const schema = {
+      enum: ['active', 'inactive'],
+      'x-enumDescriptions': ['Active status', 'Inactive status'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'active',
+        description: 'Active status',
+      },
+      {
+        value: 'inactive',
+        description: 'Inactive status',
+      },
+    ]);
+  });
+
+  it('should handle numeric enum values in metadata maps', () => {
     const schema = {
       enum: [0, 1, 2],
       'x-enumDescriptions': {
@@ -145,111 +351,271 @@ describe('getEnumDescriptions', () => {
       },
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumDescriptions(schema)).toEqual(['Zero', 'One', 'Two']);
-  });
-
-  it('should escape special characters in descriptions (array format)', () => {
-    const schema = {
-      enum: ['a'],
-      'x-enumDescriptions': ["It's a test"],
-    } as unknown as OpenApiSchemaObject;
-
-    const result = getEnumDescriptions(schema);
-    expect(result).toBeDefined();
-    expect(result?.[0]).toBe(String.raw`It\'s a test`);
-  });
-
-  it('should escape special characters in descriptions (object format)', () => {
-    const schema = {
-      enum: ['a'],
-      'x-enumDescriptions': {
-        a: "It's a test",
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 0,
+        description: 'Zero',
       },
-    } as unknown as OpenApiSchemaObject;
-
-    const result = getEnumDescriptions(schema);
-    expect(result).toBeDefined();
-    expect(result?.[0]).toBe(String.raw`It\'s a test`);
-  });
-
-  it('should support x-enumdescriptions (lowercase) in object format', () => {
-    const schema = {
-      enum: ['a', 'b'],
-      'x-enumdescriptions': {
-        a: 'Description A',
-        b: 'Description B',
+      {
+        value: 1,
+        description: 'One',
       },
-    } as unknown as OpenApiSchemaObject;
-
-    expect(getEnumDescriptions(schema)).toEqual([
-      'Description A',
-      'Description B',
+      {
+        value: 2,
+        description: 'Two',
+      },
     ]);
   });
 
-  it('should support x-enum-descriptions (hyphenated) in object format', () => {
+  it('should handle const branches without metadata', () => {
     const schema = {
-      enum: ['a', 'b'],
-      'x-enum-descriptions': {
-        a: 'Description A',
-        b: 'Description B',
-      },
+      oneOf: [{ const: 'PENDING' }, { const: 'APPROVED' }],
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumDescriptions(schema)).toEqual([
-      'Description A',
-      'Description B',
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'PENDING',
+      },
+      {
+        value: 'APPROVED',
+      },
+    ]);
+  });
+
+  it('should handle const branch names from title', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'PENDING',
+          title: 'Pending',
+        },
+        {
+          const: 'APPROVED',
+          title: 'Approved',
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'PENDING',
+        name: 'Pending',
+      },
+      {
+        value: 'APPROVED',
+        name: 'Approved',
+      },
+    ]);
+  });
+
+  it('should handle const branch descriptions', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'PENDING',
+          description: 'Awaiting manual review',
+        },
+        {
+          const: 'APPROVED',
+          description: 'Reviewed and approved',
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'PENDING',
+        description: 'Awaiting manual review',
+      },
+      {
+        value: 'APPROVED',
+        description: 'Reviewed and approved',
+      },
+    ]);
+  });
+
+  it('should handle deprecated const branches', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'ACTIVE',
+        },
+        {
+          const: 'LEGACY',
+          deprecated: true,
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+      },
+      {
+        value: 'LEGACY',
+        deprecated: true,
+      },
+    ]);
+  });
+
+  it('should handle all const branch metadata together', () => {
+    const schema = {
+      oneOf: [
+        {
+          const: 'PENDING',
+          title: 'Pending',
+          description: 'Awaiting manual review',
+        },
+        {
+          const: 'LEGACY',
+          title: 'Legacy',
+          description: 'No longer issued',
+          deprecated: true,
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'PENDING',
+        name: 'Pending',
+        description: 'Awaiting manual review',
+      },
+      {
+        value: 'LEGACY',
+        name: 'Legacy',
+        description: 'No longer issued',
+        deprecated: true,
+      },
     ]);
   });
 });
 
-describe('getEnumNames', () => {
-  it('should return undefined when no names are present', () => {
-    const schema = { enum: ['a', 'b'] } as OpenApiSchemaObject;
-    expect(getEnumNames(schema)).toBeUndefined();
-  });
-
-  it('should handle array format (existing behavior)', () => {
+describe('getEnumMembers metadata precedence', () => {
+  it('uses metadata from the schema when no outer metadata is present', () => {
     const schema = {
       enum: ['a', 'b'],
       'x-enumNames': ['Alpha', 'Beta'],
+      'x-enumDescriptions': ['Description A', 'Description B'],
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumNames(schema)).toEqual(['Alpha', 'Beta']);
+    const metadataObject = {
+      enum: ['a', 'b'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+        description: 'Description A',
+      },
+      {
+        value: 'b',
+        name: 'Beta',
+        description: 'Description B',
+      },
+    ]);
   });
 
-  it('should handle object/Map format', () => {
+  it('should escape enum names in object metadata format', () => {
     const schema = {
-      enum: ['a', 'b'],
+      enum: ['a'],
       'x-enumNames': {
-        a: 'Alpha',
-        b: 'Beta',
+        a: "It's active",
       },
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumNames(schema)).toEqual(['Alpha', 'Beta']);
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'a',
+        name: String.raw`It\'s active`,
+      },
+    ]);
   });
 
-  it('should handle object format with partial names', () => {
+  it('prefers metadata from the outer object over schema metadata', () => {
+    const schema = {
+      enum: ['a', 'b'],
+      'x-enumNames': ['SchemaAlpha', 'SchemaBeta'],
+      'x-enumDescriptions': ['Schema description A', 'Schema description B'],
+    } as unknown as OpenApiSchemaObject;
+
+    const metadataObject = {
+      'x-enumNames': ['ParameterAlpha', 'ParameterBeta'],
+      'x-enumDescriptions': [
+        'Parameter description A',
+        'Parameter description B',
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'ParameterAlpha',
+        description: 'Parameter description A',
+      },
+      {
+        value: 'b',
+        name: 'ParameterBeta',
+        description: 'Parameter description B',
+      },
+    ]);
+  });
+
+  it('only overrides metadata provided by the outer object', () => {
     const schema = {
       enum: ['a', 'b', 'c'],
       'x-enumNames': {
         a: 'Alpha',
+        b: 'Beta',
         c: 'Charlie',
+      },
+      'x-enumDescriptions': {
+        a: 'Description A',
+        b: 'Description B',
+        c: 'Description C',
       },
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumNames(schema)).toEqual(['Alpha', undefined, 'Charlie']);
+    const metadataObject = {
+      'x-enumNames': {
+        b: 'ParameterBeta',
+      },
+      'x-enumDescriptions': {
+        c: 'Parameter description C',
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema, metadataObject)).toEqual([
+      {
+        value: 'a',
+        name: 'Alpha',
+        description: 'Description A',
+      },
+      {
+        value: 'b',
+        name: 'ParameterBeta',
+        description: 'Description B',
+      },
+      {
+        value: 'c',
+        name: 'Charlie',
+        description: 'Parameter description C',
+      },
+    ]);
   });
 });
 
 describe('getEnumUnionFromSchema — value escaping (#3505)', () => {
   it('should JS-escape backslashes in enum values', () => {
-    const schema = {
-      enum: [String.raw`App\Models\Document`, String.raw`App\Models\Template`],
-    } as OpenApiSchemaObject;
-
-    const result = getEnumUnionFromSchema(schema);
+    const result = getEnumUnion([
+      {
+        value: String.raw`App\Models\Document`,
+      },
+      {
+        value: String.raw`App\Models\Template`,
+      },
+    ]);
 
     expect(result).toBe(
       String.raw`'App\\Models\\Document' | 'App\\Models\\Template'`,
@@ -257,36 +623,48 @@ describe('getEnumUnionFromSchema — value escaping (#3505)', () => {
   });
 
   it('should JS-escape a value ending in a backslash', () => {
-    const schema = {
-      enum: ['C:\\logs\\'],
-    } as OpenApiSchemaObject;
-
-    const result = getEnumUnionFromSchema(schema);
-
+    const result = getEnumUnion([
+      {
+        value: 'C:\\logs\\',
+      },
+    ]);
     expect(result).toBe(String.raw`'C:\\logs\\'`);
   });
 
   it('should not escape forward slashes (#3530)', () => {
-    const schema = {
-      enum: ['Asia/Tokyo', 'America/New_York'],
-    } as OpenApiSchemaObject;
-
-    const result = getEnumUnionFromSchema(schema);
+    const result = getEnumUnion([
+      {
+        value: 'Asia/Tokyo',
+      },
+      {
+        value: 'America/New_York',
+      },
+    ]);
 
     expect(result).toBe("'Asia/Tokyo' | 'America/New_York'");
   });
 
   it('should not escape asterisks', () => {
-    const schema = { enum: ['a*b'] } as OpenApiSchemaObject;
+    const result = getEnumUnion([
+      {
+        value: 'a*b',
+      },
+    ]);
 
-    expect(getEnumUnionFromSchema(schema)).toBe("'a*b'");
+    expect(result).toBe("'a*b'");
   });
 });
 
 describe('getEnumImplementation — backslash escaping (#3505)', () => {
   it('should preserve backslash-escaped values in keys and values of the const body', () => {
     const result = getEnumImplementation(
-      String.raw`'App\\Models\\Document' | 'App\\Models\\Template'`,
+      [
+        { value: String.raw`App\Models\Document` },
+        { value: String.raw`App\Models\Template` },
+      ],
+      {
+        enumGenerationType: EnumGeneration.CONST,
+      },
     );
 
     expect(result).toContain(
@@ -299,20 +677,21 @@ describe('getEnumImplementation — backslash escaping (#3505)', () => {
 });
 
 describe('getEnumImplementation with object-format descriptions', () => {
-  it('should generate JSDoc comments from object format descriptions', () => {
-    const schema = {
-      enum: ['active', 'inactive'],
-      'x-enumDescriptions': {
-        active: 'Active status',
-        inactive: 'Inactive status',
-      },
-    } as unknown as OpenApiSchemaObject;
-
-    const descriptions = getEnumDescriptions(schema);
+  it('should generate JSDoc comments from enum member descriptions', () => {
     const result = getEnumImplementation(
-      "'active' | 'inactive'",
-      undefined,
-      descriptions,
+      [
+        {
+          value: 'active',
+          description: 'Active status',
+        },
+        {
+          value: 'inactive',
+          description: 'Inactive status',
+        },
+      ],
+      {
+        enumGenerationType: EnumGeneration.CONST,
+      },
     );
 
     expect(result).toContain('/** Active status */');
@@ -321,27 +700,49 @@ describe('getEnumImplementation with object-format descriptions', () => {
     expect(result).toContain("inactive: 'inactive'");
   });
 
-  it('should skip JSDoc for undefined descriptions in partial object format', () => {
-    const schema = {
-      enum: ['active', 'inactive'],
-      'x-enumDescriptions': {
-        active: 'Active status',
-      },
-    } as unknown as OpenApiSchemaObject;
-
-    const descriptions = getEnumDescriptions(schema);
+  it('should skip JSDoc for undefined descriptions', () => {
     const result = getEnumImplementation(
-      "'active' | 'inactive'",
-      undefined,
-      descriptions,
+      [
+        {
+          value: 'active',
+          description: 'Active status',
+        },
+        {
+          value: 'inactive',
+        },
+      ],
+      {
+        enumGenerationType: EnumGeneration.CONST,
+      },
     );
 
     expect(result).toContain('/** Active status */');
-    // inactive should not have a JSDoc comment
+
     const lines = result.split('\n');
-    const inactiveLine = lines.findIndex((l) =>
-      l.includes("inactive: 'inactive'"),
+    const inactiveLine = lines.findIndex((line) =>
+      line.includes("inactive: 'inactive'"),
     );
+
+    expect(inactiveLine).toBeGreaterThan(0);
     expect(lines[inactiveLine - 1]).not.toContain('/**');
+  });
+});
+
+describe('getEnum integer const coercion (#3758)', () => {
+  it('does not throw when value is a numeric string from integer const/enum', () => {
+    // After the scalar fix, value is already a string; this guards the helper
+    // itself against non-string inputs so the crash cannot resurface.
+    const result = getEnum(
+      [
+        {
+          value: 1,
+        },
+      ],
+      'Flag',
+      false,
+      EnumGeneration.CONST,
+    );
+    expect(result).toContain('export type Flag');
+    expect(result).toContain('export const Flag');
   });
 });

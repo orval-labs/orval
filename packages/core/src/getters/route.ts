@@ -1,3 +1,5 @@
+import jsesc from 'jsesc';
+
 import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
@@ -29,40 +31,70 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
   return '${' + t + '}';
 }
 
-const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
+// Matches a `{name}` path-parameter template and captures the name
+// (`{petId}`, `{user_id}`, `{scope.id}`, `{kebab-case}`, `{path*}`). The
+// (?<!\$) guard is shared policy for every consumer (template-literal,
+// Hono and MSW routes): a `${...}` block in a spec path is never treated
+// as an OpenAPI param — it stays literal text in the emitted route. The name
+// must be non-empty so a malformed `{}` also stays literal instead of
+// emitting an invalid `${}` interpolation.
+const PATH_PARAM_REGEX = /(?<!\$)\{([\w.*-]+)\}/g;
 
-const getRoutePath = (path: string): string => {
-  const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
-  if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
+// Spec paths are required to start with `/`, but malformed specs without it
+// are tolerated by normalizing here.
+const ensureLeadingSlash = (path: string): string =>
+  path && !path.startsWith('/') ? `/${path}` : path;
 
-  const prev = matches[1];
-  const rawParam = matches[2];
-  const rest = matches[3];
-  const param = sanitize(camel(rawParam), {
-    es5keyword: true,
-    underscore: true,
-    dash: true,
-    dot: true,
-  });
-  const next = hasParam(rest) ? getRoutePath(rest) : rest;
+/**
+ * Sanitizes an OpenAPI path-parameter name while preserving the spec's
+ * spelling: keeps word characters, underscores, dashes and dots, strips
+ * everything else, and prefixes ES5 keywords with an underscore. Use this
+ * when the emitted name must match the spec (e.g. Hono routes).
+ */
+export const sanitizePathParamName = (name: string): string =>
+  sanitize(name, { es5keyword: true, underscore: true, dash: true, dot: true });
 
-  return hasParam(path)
-    ? `${prev}\${${param}}${next}`
-    : `${prev}${param}${next}`;
-};
+/**
+ * Derives the generated JS identifier for an OpenAPI path-parameter name
+ * (`scope.id` → `scopeId`, `_id` → `id`, `class` → `_class`). This is the
+ * single source of truth for param variable names: the emitted route
+ * interpolations, the generated function arguments and the spec-parameter
+ * matching must all agree on it.
+ */
+export const camelPathParamName = (name: string): string =>
+  sanitize(camel(name), { es5keyword: true });
 
+/**
+ * Converts every `{param}` in an OpenAPI path to `:param` (Hono/MSW style
+ * routes). `formatParamName` maps the raw OpenAPI parameter name to the
+ * emitted one (`sanitizePathParamName` or `camelPathParamName`).
+ */
+export const toColonRoutePath = (
+  path: string,
+  formatParamName: (rawName: string) => string,
+): string =>
+  ensureLeadingSlash(path).replaceAll(
+    PATH_PARAM_REGEX,
+    (_, name: string) => `:${formatParamName(name)}`,
+  );
+
+const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
+
+/**
+ * Converts an OpenAPI path (`{param}`) to a template-literal route (`${param}`),
+ * escaping static text with jsesc for safe embedding in backtick strings.
+ * The `route` arg must be a raw OpenAPI path; a non-empty route always emits
+ * with a leading `/`.
+ */
 export function getRoute(route: string) {
-  const splittedRoute = route.split('/');
-
-  let result = '';
-  for (const [i, path] of splittedRoute.entries()) {
-    if (!path && !i) {
-      continue;
-    }
-
-    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
-  }
-  return result;
+  // Splitting on the capture group leaves param names at odd indices and
+  // literal text at even indices. `${...}` blocks in the spec path fall into
+  // the literal parts (via the lookbehind) so they are escaped, not
+  // interpolated.
+  return ensureLeadingSlash(route)
+    .split(PATH_PARAM_REGEX)
+    .map((part, i) => (i % 2 ? `\${${camelPathParamName(part)}}` : esc(part)))
+    .join('');
 }
 
 /**
@@ -75,6 +107,11 @@ export function getRoute(route: string) {
  * relative-URL fallback (e.g. the Angular DI base-url token) can use this
  * directly, while `getFullRoute` still throws for its own
  * `getBaseUrlFromSpecification` path to preserve existing behavior.
+ *
+ * The returned value is NOT escaped for embedding in a template literal —
+ * callers that splice it into generated backtick source (e.g. `getFullRoute`)
+ * must escape it themselves; callers that embed it via `JSON.stringify`
+ * (e.g. the Angular DI base-url token file) should use the raw value as-is.
  */
 export function resolveServerUrl(
   servers: OpenApiServerObject[] | undefined,
@@ -108,6 +145,14 @@ export function resolveServerUrl(
   return url;
 }
 
+/**
+ * Prepends a base URL to an already-processed route.
+ *
+ * `route` must be the output of {@link getRoute} (already escaped for template
+ * literals). This function does NOT re-escape it — jsesc is not idempotent, so
+ * escaping twice would double the backslashes. Only the server URL from
+ * `getBaseUrlFromSpecification` is escaped here, after variable substitution.
+ */
 export function getFullRoute(
   route: string,
   servers: OpenApiServerObject[] | undefined,
@@ -130,10 +175,14 @@ export function getFullRoute(
           "Orval is configured to use baseUrl from the specifications 'servers' field, but there exist no servers in the specification.",
         );
       }
-      return resolveServerUrl(servers, {
-        index: baseUrl.index,
-        variables: baseUrl.variables,
-      });
+      // `resolveServerUrl` returns the raw (unescaped) URL; escape it here
+      // for safe embedding in the generated backtick template literal.
+      return esc(
+        resolveServerUrl(servers, {
+          index: baseUrl.index,
+          variables: baseUrl.variables,
+        }),
+      );
     }
     return baseUrl.baseUrl;
   };
@@ -185,15 +234,16 @@ export function getRouteAsArray(route: string): string {
     .filter((i) => i !== '')
     .flatMap((segment) => {
       if (!segment.includes('${')) {
-        return [`'${segment}'`];
+        return [`'${segment.replaceAll("'", "\\'")}'`];
       }
-      // Split by template tags, keeping the delimiters
+      // Split by template tags, keeping the delimiters.
+      // (?<!\\) prevents matching \${...} (jsesc-escaped) as a template tag.
       return segment
-        .split(/(\$\{.+?\})/g)
+        .split(/(?<!\\)(\$\{.+?\})/g)
         .filter(Boolean)
         .map((part) => {
-          const match = /^\$\{(.+?)\}$/.exec(part);
-          return match ? match[1] : `'${part}'`;
+          const match = /^(?<!\\)\$\{(.+?)\}$/.exec(part);
+          return match ? match[1] : `'${part.replaceAll("'", "\\'")}'`;
         });
     })
     .join(',');

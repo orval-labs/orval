@@ -28,7 +28,9 @@ import { generateMutationHook } from './mutation-generator';
 import {
   generateQueryOptions,
   getQueryOptionsDefinition,
+  isInfiniteQuery,
   QueryType,
+  requiresUserSuppliedQueryOptions,
 } from './query-options';
 import { getHasSignal } from './utils';
 
@@ -84,6 +86,32 @@ export const hasQueryParam = (
   }
 
   return queryParams.paramNames?.includes(queryParam) ?? true;
+};
+
+/**
+ * When nothing is configured, infinite hooks stay allowed, just without a
+ * page param. When candidates are configured but the operation declares none
+ * of them, the infinite hook is suppressed so orval does not emit a useless
+ * one for a non-paginated `GET`.
+ */
+export const resolveInfiniteQueryParam = (
+  queryParams: GetterQueryParam | undefined,
+  useInfiniteQueryParam: string | string[] | undefined,
+): { queryParam: string | undefined; infiniteHookAllowed: boolean } => {
+  const candidates = (
+    Array.isArray(useInfiniteQueryParam)
+      ? useInfiniteQueryParam
+      : [useInfiniteQueryParam]
+  ).filter((name): name is string => !!name);
+
+  if (candidates.length === 0) {
+    return { queryParam: undefined, infiniteHookAllowed: true };
+  }
+
+  const queryParam = candidates.find((name) =>
+    hasQueryParam(queryParams, name),
+  );
+  return { queryParam, infiniteHookAllowed: queryParam !== undefined };
 };
 
 const escapeRegExpMetaChars = (value: string): string =>
@@ -187,8 +215,37 @@ const renderSetQueryDataHelper = ({
 };
 
 /**
+ * Rewrites `name?: T` to `name: undefined | T` so a required parameter can follow
+ * it (TS1016).
+ *
+ * Keep `undefined` first. `wrapPropsBodyWithMutatorBodyType` matches an optional
+ * `undefined\s*\|\s*` prefix when it swaps in a mutator body type, and misses the
+ * `T | undefined` form that `allowUndefinedParam` emits.
+ */
+export const widenOptionalPropsToUndefined = (
+  props: GetterProps,
+  field: 'definition' | 'implementation',
+): GetterProps =>
+  props.map((prop) => {
+    const regex = new RegExp(
+      String.raw`^${escapeRegExpMetaChars(prop.name)}\s*\?:`,
+    );
+
+    if (!regex.test(prop[field])) {
+      return prop;
+    }
+
+    const widened = prop[field].replace(regex, `${prop.name}: undefined | `);
+
+    return field === 'definition'
+      ? { ...prop, definition: widened }
+      : { ...prop, implementation: widened };
+  });
+
+/**
  * Renders the prop list shared by `getXxxQueryKey`, `setXxxQueryData` and
- * `getXxxQueryData` helpers: headers are dropped, path params stay required,
+ * `getXxxQueryData` helpers: headers are dropped (unless `includeHeaders`
+ * is set — key-mutator factories need them), path params stay required,
  * non-path params (query params, body) are passed through `widenNonPath`
  * (defaults to identity — pass `makeOptionalParam` or `allowUndefinedParam`
  * to relax the signature).
@@ -201,16 +258,18 @@ const buildKeyShapedProps = ({
   body,
   mutator,
   widenNonPath = (impl) => impl,
+  includeHeaders = false,
 }: {
   props: GetterProps;
   body: GetterBody;
   mutator: GeneratorMutator | undefined;
   widenNonPath?: (impl: string) => string;
+  includeHeaders?: boolean;
 }) =>
   wrapPropsBodyWithMutatorBodyType({
     propsString: toObjectString(
       props
-        .filter((prop) => prop.type !== GetterPropType.HEADER)
+        .filter((prop) => includeHeaders || prop.type !== GetterPropType.HEADER)
         .map((prop) => ({
           ...prop,
           implementation:
@@ -358,9 +417,17 @@ const generatePrefetch = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type, queryKeyFnName },
+  queryOption: {
+    name,
+    typeName: optionTypeName,
+    queryParam,
+    options,
+    type,
+    queryKeyFnName,
+  },
   operationId,
   operationName,
+  typeName,
   queryProperties,
   queryKeyProperties,
   queryParams,
@@ -389,6 +456,7 @@ const generateQueryImplementation = ({
 }: {
   queryOption: {
     name: string;
+    typeName: string;
     options?: object | boolean;
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
@@ -397,6 +465,7 @@ const generateQueryImplementation = ({
   isRequestOptions: boolean;
   operationId: string;
   operationName: string;
+  typeName: string;
   queryProperties: string;
   queryKeyProperties: string;
   params: GetterParams;
@@ -433,40 +502,54 @@ const generateQueryImplementation = ({
     (prop: GetterProp) => prop.name === 'signal',
   );
 
+  const requiresUserQueryOptions = requiresUserSuppliedQueryOptions(
+    adapter,
+    type,
+    options,
+  );
+  const signatureProps = requiresUserQueryOptions
+    ? widenOptionalPropsToUndefined(props, 'implementation')
+    : props;
+
+  // The override-type overloads end in the same mandatory `options` parameter as
+  // the hook, so their props need the same widening (TS1016).
   const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
-    propsString: toObjectString(props, 'definition'),
+    propsString: toObjectString(
+      requiresUserQueryOptions
+        ? widenOptionalPropsToUndefined(props, 'definition')
+        : props,
+      'definition',
+    ),
     body,
     mutator,
   });
   const definedInitialDataQueryPropsDefinitions =
     wrapPropsBodyWithMutatorBodyType({
       propsString: toObjectString(
-        props.map((prop) => {
-          const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
-
-          if (!regex.test(prop.definition)) {
-            return prop;
-          }
-
-          const definitionWithUndefined = prop.definition.replace(
-            regex,
-            `${prop.name}: undefined | `,
-          );
-          return {
-            ...prop,
-            definition: definitionWithUndefined,
-          };
-        }),
+        widenOptionalPropsToUndefined(props, 'definition'),
         'definition',
       ),
       body,
       mutator,
     });
+
   const queryProps = wrapPropsBodyWithMutatorBodyType({
     propsString: toObjectString(props, 'implementation'),
     body,
     mutator,
   });
+
+  // Only the signatures that end in a mandatory `options` parameter may use the
+  // widened props; a required parameter cannot follow an optional one (TS1016).
+  // The invalidate helper's trailing `options?` is optional, so widening its
+  // props would add a required argument for no reason.
+  const queryPropsBeforeRequiredOptions = requiresUserQueryOptions
+    ? wrapPropsBodyWithMutatorBodyType({
+        propsString: toObjectString(signatureProps, 'implementation'),
+        body,
+        mutator,
+      })
+    : queryProps;
 
   const infiniteQueryParamType =
     hasQueryParam(queryParams, queryParam) && queryParams && queryParam
@@ -500,7 +583,7 @@ const generateQueryImplementation = ({
   });
 
   const errorType = getQueryErrorType(
-    operationName,
+    typeName,
     response,
     httpClient,
     mutator,
@@ -522,6 +605,7 @@ const generateQueryImplementation = ({
     initialData: 'defined',
     httpClient,
     useRuntimeFetcher,
+    options,
   });
   const undefinedInitialDataQueryArguments = adapter.generateQueryArguments({
     operationName,
@@ -534,6 +618,7 @@ const generateQueryImplementation = ({
     initialData: 'undefined',
     httpClient,
     useRuntimeFetcher,
+    options,
   });
   const queryArguments = adapter.generateQueryArguments({
     operationName,
@@ -545,6 +630,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     useRuntimeFetcher,
+    options,
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -559,6 +645,7 @@ const generateQueryImplementation = ({
     httpClient,
     forQueryOptions: true,
     useRuntimeFetcher,
+    options,
   });
 
   const queryOptions = getQueryOptions({
@@ -632,7 +719,7 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryPropsBeforeRequiredOptions} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
 
@@ -659,7 +746,15 @@ ${hookOptions}
     }>>${
       hasQueryV5 && hasInfiniteQueryParam
         ? `, QueryKey, ${infiniteQueryParamType}`
-        : ''
+        : // Without an explicit page param the queryFn's TPageParam defaults to
+          // `never` while the options interface defaults it to `unknown`. An
+          // adapter that casts the options literal launders that mismatch; one
+          // that does not needs the two spelled out so they agree.
+          hasQueryV5 &&
+            isInfiniteQuery(type) &&
+            adapter.shouldCastQueryOptions?.() === false
+          ? `, QueryKey, unknown`
+          : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
     }${queryOptions});
@@ -717,7 +812,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     useInfinite,
     operationName,
     mutator,
-    queryProps,
+    queryProps: queryPropsBeforeRequiredOptions,
     dataType,
     errorType,
     queryArguments: queryArgumentsForOptions,
@@ -842,15 +937,15 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 ${queryOptionsFn}
 
 export type ${pascal(
-    name,
+    optionTypeName,
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
-export type ${pascal(name)}QueryError = ${errorType}
+export type ${pascal(optionTypeName)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
     {
-      propsString: adapter.getHookPropsDefinitions(props),
+      propsString: adapter.getHookPropsDefinitions(signatureProps),
       body,
       mutator,
     },
@@ -919,6 +1014,7 @@ export const generateQueryHook = async (
   const {
     queryParams,
     operationName,
+    typeName,
     body,
     props: _props,
     verb,
@@ -972,19 +1068,23 @@ export const generateQueryHook = async (
   const effectiveUseSuspenseQuery =
     operationQueryOptions?.useSuspenseQuery ??
     globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
-  const hasConfiguredInfiniteQueryParam =
-    !query.useInfiniteQueryParam ||
-    hasQueryParam(queryParams, query.useInfiniteQueryParam);
+  // Read the per-operation value directly instead of trusting the merged
+  // `query`: `mergeDeep` concatenates arrays, so an op-level candidate array
+  // would be appended after the global one and lose first-match resolution.
+  const configuredInfiniteQueryParam =
+    operationQueryOptions?.useInfiniteQueryParam ?? query.useInfiniteQueryParam;
+  const { queryParam: infiniteQueryParam, infiniteHookAllowed } =
+    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam);
   const effectiveUseInfinite =
     (operationQueryOptions?.useInfinite ??
       globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
-    hasConfiguredInfiniteQueryParam;
+    infiniteHookAllowed;
   const effectiveUseSuspenseInfiniteQuery =
     (operationQueryOptions?.useSuspenseInfiniteQuery ??
       globalSuspenseOrInfiniteOnlyForGet(
         override.query.useSuspenseInfiniteQuery,
       )) &&
-    hasConfiguredInfiniteQueryParam;
+    infiniteHookAllowed;
 
   let isQuery =
     effectiveUseQuery ||
@@ -1064,9 +1164,10 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-infinite`),
+              typeName: camel(`${typeName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: infiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -1075,6 +1176,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: operationName,
+              typeName,
               options: query.options,
               type: QueryType.QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
@@ -1085,6 +1187,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-suspense`),
+              typeName: camel(`${typeName}-suspense`),
               options: query.options,
               type: QueryType.SUSPENSE_QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
@@ -1095,9 +1198,10 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
+              typeName: camel(`${typeName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: infiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -1168,6 +1272,29 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     }
 `;
       }
+    } else if (override.query.shouldExportQueryKey) {
+      // The factories call the mutator the same way the invalidate / set /
+      // get helpers do (`{ url }` second arg). Query options keep their own
+      // inline call — its second arg also carries `queryOptions` — so the
+      // factories are only worth emitting when they are exported. Headers
+      // stay in the signature: the mutator receives them inline and may key
+      // on them, so dropping them would miss the hook's cache entry.
+      for (const queryOption of uniqueQueryOptionsByKeys) {
+        const queryKeyProps = buildKeyShapedProps({
+          props,
+          body,
+          mutator,
+          widenNonPath: makeOptionalParam,
+          includeHeaders: true,
+        });
+
+        queryKeyFns += `
+export const ${queryOption.queryKeyFnName} = (${queryKeyProps}) =>
+    ${queryKeyMutator.name}({ ${queryProperties} }${
+      queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''
+    });
+`;
+      }
     }
 
     implementation += `
@@ -1180,6 +1307,7 @@ ${queryKeyFns}`;
         queryOption,
         operationId,
         operationName,
+        typeName,
         queryProperties,
         queryKeyProperties,
         params,

@@ -85,6 +85,7 @@ export const buildServiceClassOpen = ({
   provideIn,
   hasQueryParams,
   baseUrlFieldInitializer,
+  hasObjectParams = false,
 }: {
   title: string;
   isRequestOptions: boolean;
@@ -98,6 +99,11 @@ export const buildServiceClassOpen = ({
    * pick up the same base-URL DI token as their sibling `HttpClient` output.
    */
   baseUrlFieldInitializer?: string;
+  /**
+   * Whether the emitted helper needs the object-serialization overload
+   * (issue #3705). Only meaningful when `hasQueryParams` is `true`.
+   */
+  hasObjectParams?: boolean;
 }): string => {
   const provideInValue = provideIn
     ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
@@ -110,7 +116,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
     : ''
 }
 
@@ -226,8 +232,8 @@ export function isRetrievalVerb(
   if (clientOverride === 'httpResource') return true;
   if (clientOverride === 'httpClient') return false;
 
-  // Absent a per-operation override, GET is treated as a retrieval
-  if (verb === 'get') return true;
+  // Absent a per-operation override, safe retrieval verbs stay in httpResource.
+  if (verb === 'get' || verb === 'query') return true;
 
   // POST with a retrieval-like operation name
   if (verb === 'post' && operationName) {

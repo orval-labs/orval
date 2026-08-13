@@ -189,7 +189,7 @@ export default defineConfig({
 
 Per-operation and per-tag overrides accept the settings that apply to an individual schema: `strict`, `generate`, `coerce`, `preprocess`, `params`, and `useBrandedTypes`.
 
-Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, `generateMeta`, and `generateDiscriminatedUnion` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
+Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, `generateMeta`, `generateDiscriminatedUnion`, and `exactOptional` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
 
 ```
 ⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported field: zod.version.

@@ -5,7 +5,8 @@ import type {
   GetterParams,
   NormalizedOutputOptions,
 } from '../types';
-import { camel, sanitize, stringify } from '../utils';
+import { stringify } from '../utils';
+import { camelPathParamName } from './route';
 
 /**
  * Return every params in a path
@@ -36,6 +37,41 @@ interface GetParamsOptions {
   output: NormalizedOutputOptions;
 }
 
+/**
+ * Resolves a route placeholder to its single matching spec path parameter.
+ * `identifier` already is the generated JS identifier (it comes from the
+ * processed route), so we re-derive the same identifier from each spec name via
+ * `camelPathParamName` to match. Throws when two spec names collapse onto the
+ * same identifier, or when none match.
+ */
+function resolvePathParam(
+  identifier: string,
+  pathParams: GetterParameters['query'],
+  operationId: string,
+): GetterParameters['query'][number] {
+  const matching = pathParams.filter(
+    ({ parameter }) => camelPathParamName(parameter.name ?? '') === identifier,
+  );
+
+  if (matching.length > 1) {
+    const names = matching
+      .map(({ parameter }) => `'${parameter.name}'`)
+      .join(', ');
+    throw new Error(
+      `Path parameters ${names} all map to the same generated identifier '${identifier}' (${operationId}). Rename them so they don't collide.`,
+    );
+  }
+
+  const pathParam = matching[0];
+  if (!pathParam) {
+    throw new Error(
+      `The path params ${identifier} can't be found in parameters (${operationId})`,
+    );
+  }
+
+  return pathParam;
+}
+
 export function getParams({
   route,
   pathParams = [],
@@ -45,20 +81,7 @@ export function getParams({
 }: GetParamsOptions): GetterParams {
   const params = getParamsInPath(route);
   return params.map((p) => {
-    const pathParam = pathParams.find(
-      ({ parameter }) =>
-        sanitize(camel(parameter.name), {
-          es5keyword: true,
-          underscore: true,
-          dash: true,
-        }) === p,
-    );
-
-    if (!pathParam) {
-      throw new Error(
-        `The path params ${p} can't be found in parameters (${operationId})`,
-      );
-    }
+    const pathParam = resolvePathParam(p, pathParams, operationId);
 
     const {
       name: nameWithoutSanitize,
@@ -66,7 +89,7 @@ export function getParams({
       schema,
     } = pathParam.parameter;
 
-    const name = sanitize(camel(nameWithoutSanitize), { es5keyword: true });
+    const name = camelPathParamName(nameWithoutSanitize ?? '');
 
     if (!schema) {
       return {

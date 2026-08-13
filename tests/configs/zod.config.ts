@@ -193,7 +193,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/import-from-subdirectory/petstore.yaml',
+    input: {
+      target: '../specifications/import-from-subdirectory/petstore.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   dateTimeOptions: {
     output: {
@@ -238,6 +241,22 @@ export default defineConfig({
       client: 'zod',
       clean: true,
       formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
+  'enums-v3': {
+    output: {
+      target: '../generated/zod/enums-v3/enums-v3.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          version: 3
+        }
+      }
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -353,7 +372,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/issue-3027/issue-3027.yaml',
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   'issue-3171': {
     output: {

@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: issue-3748
+  description: |-
+    Required keys resolved through a nested allOf $ref must keep a plain
+    Required<Pick>: the Extract guard collapses to never under the
+    additionalProperties index signature, silently dropping requiredness.
+  version: 1.0.0
+paths:
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemDetail'
+components:
+  schemas:
+    Contents:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      additionalProperties: true
+    ItemBase:
+      allOf:
+        - $ref: '#/components/schemas/Contents'
+        - type: object
+          properties:
+            status:
+              type: string
+          required:
+            - status
+          additionalProperties: true
+      additionalProperties: true
+    ItemDetail:
+      allOf:
+        - $ref: '#/components/schemas/ItemBase'
+        - type: object
+          properties:
+            extra:
+              type: number
+          required:
+            - id
+            - name
+          additionalProperties: true
+      additionalProperties: true

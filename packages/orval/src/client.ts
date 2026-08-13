@@ -159,6 +159,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
 export const generateClientFooter: GeneratorClientFooter = ({
   outputClient,
   operationNames,
+  operations,
   hasMutator,
   hasAwaitedType,
   titles,
@@ -186,6 +187,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
     } else {
       implementation = footer({
         operationNames,
+        operations,
         title: titles.implementation,
         hasMutator,
         hasAwaitedType,
@@ -194,6 +196,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
   } catch {
     implementation = footer({
       operationNames,
+      operations,
       title: titles.implementation,
       hasMutator,
       hasAwaitedType,
@@ -345,6 +348,9 @@ export const generateOperations = (
         paramsFilter: verbOption.paramsFilter,
         operationName: verbOption.operationName,
         fetchReviver: verbOption.fetchReviver,
+        ...(client.returnType
+          ? { types: { result: client.returnType } }
+          : undefined),
       };
 
       return acc;

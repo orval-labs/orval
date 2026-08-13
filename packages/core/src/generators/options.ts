@@ -11,6 +11,12 @@ import {
 import { getIsBodyVerb, isObject, stringify } from '../utils';
 
 /**
+ * Per-parameter Angular query-object serialization strategy, mirroring
+ * {@link GetterQueryParam.objectQueryParams}. See issue #3705.
+ */
+export type AngularObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
+
+/**
  * Filters query params for Angular's HttpClient.
  *
  * Why: Angular's HttpParams / HttpClient `params` type does not accept `null` or
@@ -18,6 +24,13 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * Orval models often include nullable query params, so we remove nullish values
  * (including nulls inside arrays) before passing params to HttpClient or a
  * paramsSerializer to avoid runtime and type issues.
+ *
+ * Required-nullable params (spec `required: true` + `nullable: true`) are the
+ * exception: dropping them silently would violate the OpenAPI contract. When a
+ * `paramsSerializer` is configured (preserveRequiredNullables), a `null` value
+ * is preserved for the serializer to encode. Without a serializer, `null` is
+ * instead emitted as an empty string (`''`, wire form `?key=`) so the key
+ * still reaches the request. See #3712.
  *
  * Returns an inline IIFE expression. For paths that benefit from a shared helper
  * (e.g. observe-mode branches), prefer getAngularFilteredParamsCallExpression +
@@ -28,8 +41,12 @@ export const getAngularFilteredParamsExpression = (
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
   nonPrimitiveKeys: string[] = [],
+  objectParamStrategies: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  > = {},
 ): string => {
   const hasPassthrough = nonPrimitiveKeys.length > 0;
+  const hasObjectStrategies = Object.keys(objectParamStrategies).length > 0;
   const filteredParamValueType = hasPassthrough
     ? 'unknown'
     : `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
@@ -43,19 +60,87 @@ export const getAngularFilteredParamsExpression = (
 `
     : '';
 
-  // Generate requiredNullableParamKeys only if preserveRequiredNullables are 'true'
-  // Otherwise, typescript throw an error (TS6133: 'requiredNullableParamKeys' is declared but its value is never read.)
-  let preserveNullableBranch: string;
-  let requiredNullableParamKeysBranch: string;
-  if (preserveRequiredNullables) {
-    preserveNullableBranch = `    } else if (value === null && requiredNullableParamKeys.has(key)) {
-      filteredParams[key] = null;
-`;
-    requiredNullableParamKeysBranch = `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`;
-  } else {
-    preserveNullableBranch = '';
-    requiredNullableParamKeysBranch = '';
-  }
+  const objectStrategyBranch = hasObjectStrategies
+    ? `    if (
+      value != null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.prototype.hasOwnProperty.call(objectParamStrategies, key)
+    ) {
+      const objectStrategy = objectParamStrategies[key];
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (objectStrategy === 'comma') {
+        const commaParts: string[] = [];
+        for (const [prop, propValue] of entries) {
+          if (Array.isArray(propValue)) {
+            const filteredItems = propValue.filter(
+              (item) =>
+                item != null &&
+                (typeof item === 'string' ||
+                  typeof item === 'number' ||
+                  typeof item === 'boolean'),
+            ) as Array<string | number | boolean>;
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
+            propValue != null &&
+            (typeof propValue === 'string' ||
+              typeof propValue === 'number' ||
+              typeof propValue === 'boolean')
+          ) {
+            commaParts.push(prop, String(propValue));
+          }
+        }
+        if (commaParts.length) {
+          filteredParams[key] = commaParts.join(',');
+        }
+      } else {
+        for (const [prop, propValue] of entries) {
+          const targetKey =
+            objectStrategy === 'deepObject' ? key + '[' + prop + ']' : prop;
+          if (Array.isArray(propValue)) {
+            const filteredProp = propValue.filter(
+              (item) =>
+                item != null &&
+                (typeof item === 'string' ||
+                  typeof item === 'number' ||
+                  typeof item === 'boolean'),
+            ) as Array<string | number | boolean>;
+            if (filteredProp.length) {
+              filteredParams[targetKey] = filteredProp;
+            }
+          } else if (
+            propValue != null &&
+            (typeof propValue === 'string' ||
+              typeof propValue === 'number' ||
+              typeof propValue === 'boolean')
+          ) {
+            filteredParams[targetKey] = propValue;
+          }
+        }
+      }
+      continue;
+    }
+`
+    : '';
+
+  // With a downstream paramsSerializer (preserveRequiredNullables) the
+  // literal `null` is preserved for it to consume; without one, `null`
+  // becomes an empty string so the required key still reaches the wire as
+  // `?key=` instead of being silently dropped (#3712). The Set declaration
+  // is only emitted when the branch that reads it is emitted, otherwise
+  // TypeScript reports TS6133 (see #3593).
+  const emitRequiredNullableBranch =
+    preserveRequiredNullables || requiredNullableParamKeys.length > 0;
+  const preserveNullableBranch = emitRequiredNullableBranch
+    ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
+      filteredParams[key] = ${preserveRequiredNullables ? 'null' : "''"};
+`
+    : '';
+  const requiredNullableParamKeysBranch = emitRequiredNullableBranch
+    ? `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`
+    : '';
 
   const scalarBranch = `    } else if (
       value != null &&
@@ -69,12 +154,15 @@ export const getAngularFilteredParamsExpression = (
   const passthroughDecl = hasPassthrough
     ? `  const passthroughKeys = new Set<string>(${JSON.stringify(nonPrimitiveKeys)});\n`
     : '';
+  const objectStrategiesDecl = hasObjectStrategies
+    ? `  const objectParamStrategies: Readonly<Record<string, 'flatten' | 'comma' | 'deepObject'>> = ${JSON.stringify(objectParamStrategies)};\n`
+    : '';
 
   return `(() => {
-${passthroughDecl}  ${requiredNullableParamKeysBranch}
+${passthroughDecl}${objectStrategiesDecl}  ${requiredNullableParamKeysBranch}
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
-${passthroughBranch}    if (Array.isArray(value)) {
+${passthroughBranch}${objectStrategyBranch}    if (Array.isArray(value)) {
       const filtered = value.filter(
         (item) =>
           item != null &&
@@ -94,9 +182,26 @@ ${preserveNullableBranch}${scalarBranch}  }
  * Returns the body of a standalone `filterParams` helper function
  * to be emitted once in the generated file header, replacing the
  * inline IIFE that was previously duplicated in every method.
+ *
+ * Pass `{ hasObjectParams: true }` only when at least one operation in the
+ * file actually needs the object-serialization overload (issue #3705) —
+ * with the flag omitted/false this returns the exact same string as before
+ * that feature existed, so files without object query params see zero
+ * helper churn.
+ *
+ * Required-nullable handling: a query param that the spec marks both
+ * `required` and `nullable` must still reach the wire when its runtime
+ * value is `null`, or the request violates the OpenAPI contract. When a
+ * `paramsSerializer` is configured (preserveRequiredNullables), the literal
+ * `null` is preserved for the serializer to encode. Without a serializer,
+ * `null` is instead emitted as an empty string (`''`, wire form `?key=`) so
+ * the key is not silently dropped. See #3712.
  */
-export const getAngularFilteredParamsHelperBody = (): string =>
-  `type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+export const getAngularFilteredParamsHelperBody = ({
+  hasObjectParams = false,
+}: { hasObjectParams?: boolean } = {}): string => {
+  if (!hasObjectParams) {
+    return `type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
 type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 
 function filterParams(
@@ -142,12 +247,12 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (
-      preserveRequiredNullables &&
-      value === null &&
-      requiredNullableKeys.has(key)
-    ) {
-      filteredParams[key] = null;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as \`?key=\`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -159,6 +264,134 @@ function filterParams(
   }
   return filteredParams;
 }`;
+  }
+
+  return `type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+type AngularObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
+
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string>,
+): Record<string, unknown>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string> | undefined,
+  objectParamStrategies: Readonly<Record<string, AngularObjectParamStrategy>>,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+  passthroughKeys: ReadonlySet<string> = new Set(),
+  objectParamStrategies: Readonly<Record<string, AngularObjectParamStrategy>> = {},
+): Record<string, unknown> {
+  const filteredParams: Record<string, unknown> = {};
+  const filterPrimitiveArray = (
+    value: unknown[],
+  ): Array<string | number | boolean> =>
+    value.filter(
+      (item) =>
+        item != null &&
+        (typeof item === 'string' ||
+          typeof item === 'number' ||
+          typeof item === 'boolean'),
+    ) as Array<string | number | boolean>;
+  for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
+    if (
+      value != null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.prototype.hasOwnProperty.call(objectParamStrategies, key)
+    ) {
+      const objectStrategy = objectParamStrategies[key];
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (objectStrategy === 'comma') {
+        const commaParts: string[] = [];
+        for (const [prop, propValue] of entries) {
+          if (Array.isArray(propValue)) {
+            const filteredItems = filterPrimitiveArray(propValue);
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
+            propValue != null &&
+            (typeof propValue === 'string' ||
+              typeof propValue === 'number' ||
+              typeof propValue === 'boolean')
+          ) {
+            commaParts.push(prop, String(propValue));
+          }
+        }
+        if (commaParts.length) {
+          filteredParams[key] = commaParts.join(',');
+        }
+      } else {
+        for (const [prop, propValue] of entries) {
+          const targetKey =
+            objectStrategy === 'deepObject' ? key + '[' + prop + ']' : prop;
+          if (Array.isArray(propValue)) {
+            const filteredProp = filterPrimitiveArray(propValue);
+            if (filteredProp.length) {
+              filteredParams[targetKey] = filteredProp;
+            }
+          } else if (
+            propValue != null &&
+            (typeof propValue === 'string' ||
+              typeof propValue === 'number' ||
+              typeof propValue === 'boolean')
+          ) {
+            filteredParams[targetKey] = propValue;
+          }
+        }
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const filtered = filterPrimitiveArray(value);
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as \`?key=\`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+  }
+  return filteredParams;
+}`;
+};
 
 /**
  * Returns a call expression to the `filterParams` helper function.
@@ -168,8 +401,15 @@ export const getAngularFilteredParamsCallExpression = (
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
   nonPrimitiveKeys: string[] = [],
+  objectParamStrategies: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  > = {},
 ): string => {
   const baseArgs = `${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})`;
+  const hasObjectStrategies = Object.keys(objectParamStrategies).length > 0;
+  if (hasObjectStrategies) {
+    return `filterParams(${baseArgs}, ${preserveRequiredNullables}, new Set<string>(${JSON.stringify(nonPrimitiveKeys)}), ${JSON.stringify(objectParamStrategies)} as const)`;
+  }
   if (nonPrimitiveKeys.length > 0) {
     return `filterParams(${baseArgs}, ${preserveRequiredNullables}, new Set<string>(${JSON.stringify(nonPrimitiveKeys)}))`;
   }
@@ -191,6 +431,7 @@ export const buildAngularParamsFilterExpression = ({
   requiredNullableParamKeys = [],
   preserveRequiredNullables = false,
   nonPrimitiveKeys = [],
+  objectParamStrategies = {},
   paramsFilter,
   useSharedHelper,
 }: {
@@ -198,6 +439,7 @@ export const buildAngularParamsFilterExpression = ({
   requiredNullableParamKeys?: string[];
   preserveRequiredNullables?: boolean;
   nonPrimitiveKeys?: string[];
+  objectParamStrategies?: Readonly<Record<string, AngularObjectParamStrategy>>;
   paramsFilter?: GeneratorMutator;
   useSharedHelper: boolean;
 }): string => {
@@ -210,6 +452,7 @@ export const buildAngularParamsFilterExpression = ({
       requiredNullableParamKeys,
       preserveRequiredNullables,
       nonPrimitiveKeys,
+      objectParamStrategies,
     );
   }
   return getAngularFilteredParamsExpression(
@@ -217,6 +460,43 @@ export const buildAngularParamsFilterExpression = ({
     requiredNullableParamKeys,
     preserveRequiredNullables,
     nonPrimitiveKeys,
+    objectParamStrategies,
+  );
+};
+
+/**
+ * Computes the gated object-serialization strategy map for a single
+ * operation's query params (issue #3705).
+ *
+ * Strategies are suppressed — returning `{}`, restoring the pre-#3705
+ * dropping behavior — whenever:
+ * - a `paramsFilter` mutator is configured (it bypasses the built-in filter
+ *   entirely and owns raw object/array handling itself), or
+ * - a `paramsSerializer` mutator is configured (it receives the raw object
+ *   via the existing `nonPrimitiveKeys` passthrough instead), or
+ * - `override.angular.queryObjectSerialization` is `'legacy'`.
+ */
+export const getAngularObjectParamStrategies = ({
+  queryParams,
+  paramsSerializer,
+  paramsFilter,
+  queryObjectSerialization,
+}: {
+  queryParams?: GetterQueryParam;
+  paramsSerializer?: GeneratorMutator;
+  paramsFilter?: GeneratorMutator;
+  queryObjectSerialization: 'spec' | 'legacy';
+}): Readonly<Record<string, AngularObjectParamStrategy>> => {
+  if (
+    paramsFilter ||
+    paramsSerializer ||
+    queryObjectSerialization === 'legacy' ||
+    !queryParams?.objectQueryParams?.length
+  ) {
+    return {};
+  }
+  return Object.fromEntries(
+    queryParams.objectQueryParams.map(({ key, strategy }) => [key, strategy]),
   );
 };
 
@@ -255,6 +535,9 @@ interface GenerateAxiosOptions {
   angularParamsRef?: string;
   requiredNullableQueryParamKeys?: string[];
   nonPrimitiveQueryParamKeys?: string[];
+  objectQueryParamStrategies?: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  >;
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
@@ -273,6 +556,7 @@ export function generateAxiosOptions({
   angularParamsRef,
   requiredNullableQueryParamKeys,
   nonPrimitiveQueryParamKeys,
+  objectQueryParamStrategies,
   queryParams,
   headers,
   requestOptions,
@@ -287,6 +571,13 @@ export function generateAxiosOptions({
   const angularPassthroughQueryParamKeys = paramsSerializer
     ? nonPrimitiveQueryParamKeys
     : [];
+  // Object-serialization strategies (issue #3705) are, like the passthrough
+  // keys above, only meaningful when there's no downstream `paramsSerializer`
+  // to hand the raw object to — a configured serializer always wins and
+  // receives the untouched value instead.
+  const angularObjectParamStrategies = paramsSerializer
+    ? {}
+    : (objectQueryParamStrategies ?? {});
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
   const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
@@ -325,6 +616,7 @@ export function generateAxiosOptions({
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
           preserveRequiredNullables: !!paramsSerializer,
           nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          objectParamStrategies: angularObjectParamStrategies,
           paramsFilter,
           useSharedHelper: false,
         });
@@ -379,6 +671,7 @@ export function generateAxiosOptions({
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
           preserveRequiredNullables: true,
           nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          objectParamStrategies: angularObjectParamStrategies,
           paramsFilter,
           useSharedHelper: true,
         });
@@ -388,6 +681,7 @@ export function generateAxiosOptions({
           paramsExpression: '{...params, ...options?.params}',
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
           nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          objectParamStrategies: angularObjectParamStrategies,
           paramsFilter,
           useSharedHelper: true,
         });
@@ -425,6 +719,14 @@ interface GenerateOptionsOptions {
   angularParamsRef?: string;
   headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
+  /**
+   * Per-parameter object-serialization strategies (issue #3705), already
+   * gated by the caller for `override.angular.queryObjectSerialization` and
+   * any configured `paramsFilter`/`paramsSerializer`.
+   */
+  objectQueryParamStrategies?: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  >;
   response: GetterResponse;
   verb: Verbs;
   requestOptions?: object | boolean;
@@ -446,6 +748,7 @@ export function generateOptions({
   angularParamsRef,
   headers,
   queryParams,
+  objectQueryParamStrategies,
   response,
   verb,
   requestOptions,
@@ -469,6 +772,7 @@ export function generateOptions({
     angularParamsRef,
     requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
     nonPrimitiveQueryParamKeys: queryParams?.nonPrimitiveKeys,
+    objectQueryParamStrategies,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
     requestOptions,

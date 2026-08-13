@@ -272,6 +272,57 @@ export default defineConfig({
 });
 ```
 
+### externalRefs
+
+Control how external `$ref` targets (local files or remote URLs) are resolved.
+
+By default, orval refuses to resolve any external `$ref` and prints a config snippet you can paste into your `parserOptions`.
+
+#### allow
+
+**Type:** `string[]`
+**Default:** `[]`
+
+External `$ref` document targets to allow. Each entry should be the document part of the `$ref` (without the `#/...` fragment). File paths are relative to the spec file.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './openapi.yaml',
+      parserOptions: {
+        externalRefs: {
+          allow: [
+            './schemas/pet.yaml',
+            './schemas/user.yaml',
+            'https://example.com/schemas/shared.json',
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+Use `['*']` to allow all external refs (previous behavior). Orval will emit a warning listing external documents referenced by the top-level spec:
+
+```ts
+parserOptions: {
+  externalRefs: {
+    allow: ['*'],
+  },
+}
+```
+
+<Callout type="warn">
+  **Security:** External `$ref` values come from the spec being processed, which may
+  be untrusted. Allowing all external refs (`['*']`) means orval will read arbitrary
+  local files and fetch arbitrary URLs referenced by the spec. Prefer listing
+  specific documents you trust.
+</Callout>
+
 ## unsafeDisableValidation
 
 Disable OpenAPI spec validation during code generation.

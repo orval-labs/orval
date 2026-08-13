@@ -7,7 +7,7 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { conventionName } from '../utils';
+import { compareNatural, conventionName } from '../utils';
 import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
@@ -58,7 +58,7 @@ export function generateImports({
   );
 
   return Object.entries(grouped)
-    .toSorted(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
+    .toSorted(([a], [b]) => compareNatural(a, b))
     .map(([, group]) => {
       const sample = group[0];
       const canAggregate =
@@ -242,16 +242,20 @@ export function addDependency({
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
-    const searchWords = [e.alias, e.name]
-      .filter((p): p is string => Boolean(p?.length))
-      .map((part) => escapeRegExp(part))
-      .join('|');
+    // An aliased import is rendered as `name as alias`, so the alias is the only
+    // binding in scope; the pre-alias name never appears as a reference. Match on
+    // the alias when present (otherwise the name) to avoid false positives such as
+    // a path param `z` colliding with `z as zod` (#3695).
+    const identifier = e.alias?.length ? e.alias : e.name;
 
-    if (!searchWords) {
+    if (!identifier) {
       return false;
     }
 
-    const pattern = new RegExp(String.raw`\b(${searchWords})\b`, 'g');
+    const pattern = new RegExp(
+      String.raw`\b(${escapeRegExp(identifier)})\b`,
+      'g',
+    );
 
     return implementation.match(pattern);
   });

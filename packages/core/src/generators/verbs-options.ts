@@ -13,6 +13,7 @@ import type {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   GetterBody,
+  GetterParams,
   NormalizedInputOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
@@ -28,6 +29,7 @@ import {
   asyncReduce,
   camel,
   dynamicImport,
+  escapeRegExp,
   isObject,
   isString,
   isVerb,
@@ -49,6 +51,52 @@ export interface GenerateVerbOptionsParams {
   context: ContextSpec;
 }
 
+const renameFormIdentifier = (form: string, from: string, to: string) =>
+  form.replace(
+    new RegExp(`(?<![.\\w$'"\`])${escapeRegExp(from)}(?![\\w$])`, 'g'),
+    to,
+  );
+
+// A body parameter named like the generated function shadows it inside hooks
+// that reference `typeof <operationName>`.
+const resolveBodyNameShadowing = (
+  body: GetterBody,
+  operationName: string,
+  params: GetterParams,
+): GetterBody => {
+  if (!body.implementation || body.implementation !== operationName) {
+    return body;
+  }
+
+  const reservedNames = new Set([
+    operationName,
+    'params',
+    'headers',
+    ...params.map(({ name }) => name),
+  ]);
+  let implementation = camel(`${operationName}-body`);
+  let index = 2;
+  while (reservedNames.has(implementation)) {
+    implementation = camel(`${operationName}-body-${index}`);
+    index += 1;
+  }
+
+  return {
+    ...body,
+    implementation,
+    formData:
+      body.formData &&
+      renameFormIdentifier(body.formData, body.implementation, implementation),
+    formUrlEncoded:
+      body.formUrlEncoded &&
+      renameFormIdentifier(
+        body.formUrlEncoded,
+        body.implementation,
+        implementation,
+      ),
+  };
+};
+
 async function buildVerbOption({
   verb,
   output,
@@ -57,8 +105,9 @@ async function buildVerbOption({
   pathRoute,
   verbParameters = [],
   context,
-  body,
+  body: rawBody,
   operationName,
+  typeName,
   operationId,
   override,
   tags,
@@ -75,6 +124,7 @@ async function buildVerbOption({
   context: ContextSpec;
   body: GetterBody;
   operationName: string;
+  typeName: string;
   operationId: string;
   override: NormalizedOverrideOutput;
   tags: string[];
@@ -84,7 +134,7 @@ async function buildVerbOption({
 }): Promise<GeneratorVerbOptions> {
   const response = getResponse({
     responses: operation.responses ?? {},
-    operationName,
+    operationName: typeName,
     context,
     contentType: override.contentType,
   });
@@ -96,14 +146,14 @@ async function buildVerbOption({
 
   const queryParams = getQueryParams({
     queryParams: parameters.query,
-    operationName,
+    operationName: typeName,
     context,
   });
 
   const headers = output.headers
     ? getQueryParams({
         queryParams: parameters.header,
-        operationName,
+        operationName: typeName,
         context,
         suffix: 'headers',
       })
@@ -117,18 +167,20 @@ async function buildVerbOption({
     output,
   });
 
+  const body = resolveBodyNameShadowing(rawBody, operationName, params);
+
   const props = getProps({
     body,
     queryParams,
     params,
     headers,
-    operationName,
+    operationName: typeName,
     context,
   });
 
   const mutator = await generateMutator({
     output: output.target,
-    name: operationName,
+    name: typeName,
     mutator: override.mutator,
     workspace: context.workspace,
     tsconfig: context.output.tsconfig,
@@ -138,7 +190,7 @@ async function buildVerbOption({
     !override.formData.disabled && body.formData
       ? await generateMutator({
           output: output.target,
-          name: operationName,
+          name: typeName,
           mutator: override.formData.mutator,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
@@ -149,7 +201,7 @@ async function buildVerbOption({
     isString(override.formUrlEncoded) || isObject(override.formUrlEncoded)
       ? await generateMutator({
           output: output.target,
-          name: operationName,
+          name: typeName,
           mutator: override.formUrlEncoded as NormalizedMutator,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
@@ -198,6 +250,7 @@ async function buildVerbOption({
     summary,
     operationId,
     operationName,
+    typeName,
     response,
     body,
     headers,
@@ -263,16 +316,30 @@ export async function generateVerbOptions({
 
   const overrideOperationName =
     overrideOperation?.operationName ?? output.override.operationName;
-  const operationName = overrideOperationName
-    ? overrideOperationName(operation, route, verb)
-    : sanitize(camel(operationId), { es5keyword: true });
+  let operationName: string;
+  let typeName: string;
+  if (overrideOperationName) {
+    // ponytail: user-provided override is authoritative; sanitize would strip
+    // intentional `_` and `$` (regression introduced in #3693, fixed per #3775).
+    const result = overrideOperationName(operation, route, verb);
+    if (Array.isArray(result)) {
+      operationName = result[0];
+      typeName = result[1];
+    } else {
+      operationName = result;
+      typeName = operationName;
+    }
+  } else {
+    operationName = sanitize(camel(operationId), { es5keyword: true });
+    typeName = operationName;
+  }
 
   const splitByContentType = override.splitByContentType;
 
   if (splitByContentType && requestBody) {
     const bodies = getBodiesByContentType({
       requestBody,
-      operationName,
+      operationName: typeName,
       context,
       contentType: override.contentType,
     });
@@ -283,6 +350,9 @@ export async function generateVerbOptions({
       const suffixedName = contentTypeSuffix
         ? `${operationName}With${contentTypeSuffix}`
         : operationName;
+      const suffixedTypeName = contentTypeSuffix
+        ? `${typeName}With${contentTypeSuffix}`
+        : typeName;
 
       const verbOption = await buildVerbOption({
         verb,
@@ -294,6 +364,7 @@ export async function generateVerbOptions({
         context,
         body,
         operationName: suffixedName,
+        typeName: suffixedTypeName,
         operationId,
         override,
         tags,
@@ -309,7 +380,7 @@ export async function generateVerbOptions({
   const body = requestBody
     ? getBody({
         requestBody,
-        operationName,
+        operationName: typeName,
         context,
         contentType: override.contentType,
       })
@@ -323,6 +394,7 @@ export async function generateVerbOptions({
         formUrlEncoded: '',
         contentType: '',
         isOptional: false,
+        isBlob: false,
       };
 
   const verbOption = await buildVerbOption({
@@ -335,6 +407,7 @@ export async function generateVerbOptions({
     context,
     body,
     operationName,
+    typeName,
     operationId,
     override,
     tags,

@@ -1,8 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const watcherMock = vi.hoisted(() => {
+  const handlers = new Map<string, (...args: unknown[]) => void>();
+  const watcher = {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+      handlers.set(event, handler);
+      return watcher;
+    }),
+  };
+
+  return {
+    handlers,
+    watch: vi.fn(() => watcher),
+    watcher,
+  };
+});
+
 vi.mock('@orval/core', () => ({
   getWarningCount: vi.fn().mockReturnValue(0),
+  isBoolean: (value: unknown) => typeof value === 'boolean',
   isString: (value: unknown) => typeof value === 'string',
+  log: vi.fn(),
   logError: vi.fn(),
   resetWarnings: vi.fn(),
   setVerbose: vi.fn(),
@@ -23,13 +41,18 @@ vi.mock('./utils/options', () => ({
   }),
 }));
 
-vi.mock('./utils/watcher', () => ({
-  startWatcher: vi.fn(),
+vi.mock('chokidar', () => ({
+  watch: watcherMock.watch,
 }));
 
-import { getWarningCount, setVerbose } from '@orval/core';
+import { getWarningCount, logError, setVerbose } from '@orval/core';
 
 import { generate } from './generate';
+import { generateSpec } from './generate-spec';
+
+beforeEach(() => {
+  watcherMock.handlers.clear();
+});
 
 describe('generate - verbose handling', () => {
   beforeEach(() => {
@@ -86,5 +109,56 @@ describe('generate - failOnWarnings', () => {
     await expect(
       generate({ input: 'spec.yaml', output: 'out.ts' }, '/workspace'),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('generate - throwOnError', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('logs and resolves generation errors by default', async () => {
+    const error = new Error('generation failed');
+    vi.mocked(generateSpec).mockRejectedValueOnce(error);
+
+    await expect(
+      generate({ input: 'spec.yaml', output: 'out.ts' }, '/workspace'),
+    ).resolves.toBeUndefined();
+
+    expect(logError).toHaveBeenCalledWith(error);
+  });
+
+  it('throws generation errors when throwOnError is enabled', async () => {
+    const error = new Error('generation failed');
+    vi.mocked(generateSpec).mockRejectedValueOnce(error);
+
+    await expect(
+      generate({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        throwOnError: true,
+      }),
+    ).rejects.toThrow(error);
+
+    expect(logError).not.toHaveBeenCalled();
+  });
+
+  it('logs watch event generation errors when throwOnError is enabled', async () => {
+    const error = new Error('watch generation failed');
+    await generate({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+      throwOnError: true,
+      watch: true,
+    });
+
+    const readyHandler = watcherMock.handlers.get('ready');
+    expect(readyHandler).toBeDefined();
+    readyHandler?.();
+
+    vi.mocked(generateSpec).mockRejectedValueOnce(error);
+
+    const changeHandler = watcherMock.handlers.get('all');
+    expect(changeHandler).toBeDefined();
+    changeHandler?.('change', 'spec.yaml');
+
+    await Promise.resolve();
+    expect(logError).toHaveBeenCalledWith(error);
   });
 });

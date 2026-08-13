@@ -235,7 +235,7 @@ describe('resolveRef', () => {
     });
   });
 
-  it('fully resolves through bound-alias (generic binding) refs', () => {
+  it('stops at bound-alias (generic binding) ref, referencing it by name (#3746)', () => {
     const context = createContext({
       openapi: '3.1.0',
       components: {
@@ -284,10 +284,12 @@ describe('resolveRef', () => {
       },
     });
     expect('$ref' in result.schema).toBe(false);
-    expect(result.imports[0]).toEqual({
-      name: 'PaginatedTemplate',
-      schemaName: 'PaginatedTemplate',
-    });
+    // The bound alias must be referenced by name (not resolved through to the
+    // unspecialized template); the template is recorded as a secondary hop.
+    expect(result.imports).toEqual([
+      { name: 'PaginatedUserResponse', schemaName: 'PaginatedUserResponse' },
+      { name: 'PaginatedTemplate', schemaName: 'PaginatedTemplate' },
+    ]);
   });
 
   it('orders bound-alias type args from encoded template schema names', () => {

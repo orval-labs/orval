@@ -36,6 +36,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3327/spec.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
       override: {
         transformer: '../transformers/issue-3327-inject-external-ref.js',
       },
@@ -339,7 +340,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/import-from-subdirectory/petstore.yaml',
+    input: {
+      target: '../specifications/import-from-subdirectory/petstore.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   defaultOnlyResponse: {
     output: {
@@ -454,6 +458,83 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  serializeResponseHeaders: {
+    output: {
+      target: '../generated/fetch/serialize-response-headers/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // ndjson and blob build their return object separately from the json branch.
+  serializeResponseHeadersStream: {
+    output: {
+      target:
+        '../generated/fetch/serialize-response-headers-stream/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-stream/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/stream.yaml',
+    },
+  },
+  serializeResponseHeadersBlob: {
+    output: {
+      target: '../generated/fetch/serialize-response-headers-blob/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-blob/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/blob-file.yaml',
+    },
+  },
+  // A mutator owns the whole request, so the generated code cannot convert its
+  // headers — the option only changes the type the mutator has to satisfy.
+  serializeResponseHeadersMutator: {
+    output: {
+      target:
+        '../generated/fetch/serialize-response-headers-mutator/endpoints.ts',
+      schemas: '../generated/fetch/serialize-response-headers-mutator/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/default-status.yaml',
     },
   },
   requestOptionsHeaders: {
@@ -584,6 +665,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSplit: {
@@ -612,6 +694,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTags: {
@@ -638,6 +721,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsSplit: {
@@ -665,6 +749,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSingleNoRuntimeValidation: {
@@ -691,6 +776,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSplitNoRuntimeValidation: {
@@ -719,6 +805,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsNoRuntimeValidation: {
@@ -746,6 +833,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsSplitNoRuntimeValidation: {
@@ -773,6 +861,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   wildcardResponses: {
@@ -911,6 +1000,28 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3663.yaml',
+    },
+  },
+  'issue-3695': {
+    output: {
+      target: '../generated/fetch/issue-3695/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3695.yaml',
+    },
+  },
+  'dotted-path-params': {
+    output: {
+      target: '../generated/fetch/dotted-path-params/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/dotted-path-params.yaml',
     },
   },
 });

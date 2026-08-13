@@ -18,6 +18,8 @@ export default defineConfig({
       mode: 'single',
       target: './src/petstore.ts',
       schemas: './src/model',
+      client: 'react-query',
+      httpClient: 'fetch',
       mock: true,
     },
     input: {
@@ -36,8 +38,14 @@ The output options configure how and where you want to write the generated code.
 | `mode` | Specifies how files are generated. Default: `single` (one file with everything) |
 | `target` | Specifies where the generated file(s) will be written |
 | `schemas` | Specifies where the models will be written |
-| `client` | Specifies the HTTP client to generate (`axios`, `react-query`, `vue-query`, etc.) |
+| `client` | Selects the generated client: `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, or `mcp` |
+| `httpClient` | Selects the request transport: `fetch` (default), `axios`, or `angular`. The available transport depends on the selected `client`. |
 | `mock` | Generates mocks with MSW. See the [MSW guide](/docs/guides/msw) |
+
+`client` and `httpClient` control different parts of the generated output. The
+`client` selects the generated API style, while `httpClient` selects the
+request implementation used by compatible clients. For example, the
+configuration above generates React Query hooks backed by the Fetch API.
 
 ## Input Options
 

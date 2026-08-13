@@ -10,7 +10,10 @@ export { MY_CONST, ANOTHER_CONST };
 
 export default defineConfig({
   api: {
-    input: '../specifications/multi-files/api.yaml',
+    input: {
+      target: '../specifications/multi-files/api.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
     output: {
       target: '../generated/multi-files/api/endpoints.ts',
       clean: true,

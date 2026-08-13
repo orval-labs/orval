@@ -1,4 +1,4 @@
-import type { GeneratorMutator, GetterBody } from '@orval/core';
+import type { GeneratorMutator, GetterBody, GetterProps } from '@orval/core';
 import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
@@ -8,6 +8,8 @@ import {
   getQueryKeyVerbPrefix,
   hasQueryParam,
   makeOptionalParam,
+  resolveInfiniteQueryParam,
+  widenOptionalPropsToUndefined,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
 
@@ -218,6 +220,92 @@ describe('hasQueryParam', () => {
   });
 });
 
+describe('resolveInfiniteQueryParam', () => {
+  const paramsWith = (...paramNames: string[]) => ({
+    schema: { name: 'ListPetsParams', model: '', imports: [] },
+    deps: [],
+    isOptional: true,
+    paramNames,
+  });
+
+  it('allows infinite hooks without a page param when the option is unset', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page'), undefined),
+    ).toStrictEqual({
+      queryParam: undefined,
+      infiniteHookAllowed: true,
+    });
+  });
+
+  it('treats an empty array as no configuration', () => {
+    expect(resolveInfiniteQueryParam(paramsWith('page'), [])).toStrictEqual({
+      queryParam: undefined,
+      infiniteHookAllowed: true,
+    });
+  });
+
+  it('resolves a single configured name that the operation declares', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page', 'limit'), 'page'),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the single configured name is absent', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit'), 'page'),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+
+  it('picks the first candidate the operation declares', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit', 'cursor.marker'), [
+        'page',
+        'cursor.marker',
+      ]),
+    ).toStrictEqual({ queryParam: 'cursor.marker', infiniteHookAllowed: true });
+  });
+
+  it('prefers the earlier candidate when the operation declares several', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('cursor.marker', 'page'), [
+        'page',
+        'cursor.marker',
+      ]),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the operation declares no candidate', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('limit'), ['page', 'cursor.marker']),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+
+  it('ignores blank candidates', () => {
+    expect(
+      resolveInfiniteQueryParam(paramsWith('page'), ['', 'page']),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('resolves the first candidate for transformed params that do not expose names', () => {
+    expect(
+      resolveInfiniteQueryParam(
+        {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+        },
+        ['page', 'cursor.marker'],
+      ),
+    ).toStrictEqual({ queryParam: 'page', infiniteHookAllowed: true });
+  });
+
+  it('suppresses the infinite hook when the operation has no query params', () => {
+    expect(
+      resolveInfiniteQueryParam(undefined, ['page', 'cursor.marker']),
+    ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+});
+
 describe('wrapPropsBodyWithMutatorBodyType', () => {
   const mutatorWithBodyType = {
     bodyTypeName: 'BodyType',
@@ -398,5 +486,74 @@ describe('allowUndefinedParam', () => {
         mutator: { bodyTypeName: 'BodyType' } as unknown as GeneratorMutator,
       }),
     ).toBe('createPetsBody: BodyType<CreatePetsBody> | undefined');
+  });
+});
+
+describe('widenOptionalPropsToUndefined', () => {
+  const prop = (name: string, definition: string, implementation: string) =>
+    ({
+      name,
+      definition,
+      implementation,
+      default: false,
+      required: false,
+      type: 'param',
+    }) as unknown as GetterProps[number];
+
+  it('widens an optional prop on the requested field only', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('params', 'params?: ListPetsParams', 'params?: ListPetsParams')],
+      'implementation',
+    );
+
+    // The space after `?:` survives the replacement; prettier normalises the
+    // generated output, so the raw form carries a double space.
+    expect(widened.implementation).toBe('params: undefined |  ListPetsParams');
+    expect(widened.definition).toBe('params?: ListPetsParams');
+  });
+
+  it('emits the `undefined |` prefix form that the mutator body swap matches', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('params', 'params?: ListPetsParams', 'params?: ListPetsParams')],
+      'definition',
+    );
+
+    expect(widened.definition).toMatch(
+      /^params: undefined \|\s+ListPetsParams$/,
+    );
+    expect(widened.definition).not.toContain('ListPetsParams | undefined');
+  });
+
+  it('leaves an already-required prop untouched', () => {
+    const input = [
+      prop('params', 'params: ListPetsParams', 'params: ListPetsParams'),
+    ];
+
+    expect(widenOptionalPropsToUndefined(input, 'implementation')[0]).toBe(
+      input[0],
+    );
+  });
+
+  it('leaves a prop carrying a default untouched, since TS1016 does not apply to it', () => {
+    const input = [
+      prop(
+        'pathParams',
+        '{ version = 1 }: ListPetsPathParameters = {}',
+        '{ version = 1 }: ListPetsPathParameters = {}',
+      ),
+    ];
+
+    expect(widenOptionalPropsToUndefined(input, 'implementation')[0]).toBe(
+      input[0],
+    );
+  });
+
+  it('treats a regex metacharacter in the prop name literally', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('a.b', 'a.b?: string', 'a.b?: string')],
+      'implementation',
+    );
+
+    expect(widened.implementation).toMatch(/^a\.b: undefined \|\s+string$/);
   });
 });
