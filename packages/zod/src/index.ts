@@ -2933,6 +2933,8 @@ export const parseParameters = ({
     params: {},
   };
 
+  const constNameRegistry: Record<string, number> = {};
+
   const defintionsByParameters = data.reduce((acc, val) => {
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
@@ -2990,6 +2992,7 @@ export const parseParameters = ({
       {
         required: parameter.required,
         useReusableSchemas,
+        constNameRegistry,
       },
     );
 
