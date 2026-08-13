@@ -9,14 +9,14 @@ import * as zod from 'zod';
 /**
  * @summary sample cat
  */
-export const GetApiCatResponseItem = zod.enum({
+export const GetApiCatResponseItem = zod.nativeEnum({
   /** Dog Group 1 */
   NUMBER_1: 1,
   /** Dog Group 2 */
   NUMBER_2: 2,
   /** Dog Group 3 */
   NUMBER_3: 3,
-});
+} as const);
 export const GetApiCatResponse = zod.array(GetApiCatResponseItem);
 
 /**
@@ -27,7 +27,7 @@ export const GetApiRequiredCatResponse = zod.object({
     .array(
       zod.object({
         colours: zod.array(
-          zod.enum({
+          zod.nativeEnum({
             /** Represents black colour */
             Black: 'BLACK',
             /** Represents brown colour */
@@ -36,7 +36,7 @@ export const GetApiRequiredCatResponse = zod.object({
             White: 'WHITE',
             /** Represents grey colour */
             Grey: 'GREY',
-          }),
+          } as const),
         ),
       }),
     )
@@ -48,14 +48,14 @@ export const GetApiRequiredCatResponse = zod.object({
  */
 export const GetApiDogResponse = zod.object({
   group: zod
-    .enum({
+    .nativeEnum({
       /** Dog Group 1 */
       NUMBER_1: 1,
       /** Dog Group 2 */
       NUMBER_2: 2,
       /** Dog Group 3 */
       NUMBER_3: 3,
-    })
+    } as const)
     .optional(),
   petsRequested: zod
     .array(
@@ -98,7 +98,7 @@ export const GetApiCatDogResponse = zod.union([
 /**
  * @summary sample pet training
  */
-export const GetApiPetTrainingResponse = zod.enum({
+export const GetApiPetTrainingResponse = zod.nativeEnum({
   /** Animal knows basic commands like sit and stay */
   Novice: 1,
   /** Animal responds well to off-leash training */
@@ -107,7 +107,7 @@ export const GetApiPetTrainingResponse = zod.enum({
   Advanced: 3,
   /** Animal is fully certified for service work */
   Expert: 4,
-});
+} as const);
 
 /**
  * @summary sample pet needs training

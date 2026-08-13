@@ -12,6 +12,8 @@ export * from './catDog';
 export * from './dog';
 export * from './dogGroup';
 export * from './duck';
+export * from './petNeedsTraining';
+export * from './petTrainingLevel';
 export * from './requiredBulldog';
 export * from './requiredBulldogColour';
 export * from './requiredCat';

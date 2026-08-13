@@ -65,6 +65,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CatDog'
+  /api/pet-training:
+    get:
+      summary: sample pet training
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetTrainingLevel'
+  /api/pet-needs-training:
+    get:
+      summary: sample pet needs training
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetNeedsTraining'
 components:
   schemas:
     Siamese:
@@ -161,6 +181,10 @@ components:
         - 1
         - 2
         - 3
+      x-enum-descriptions:
+        - Dog Group 1
+        - Dog Group 2
+        - Dog Group 3
       type: integer
       format: int32
     CatDog:
@@ -168,3 +192,29 @@ components:
         - 1
         - '2'
         - a
+    PetTrainingLevel:
+      type: integer
+      format: int32
+      x-enumNames:
+        - Novice
+        - Intermediate
+        - Advanced
+        - Expert
+      x-enum-descriptions:
+        - Animal knows basic commands like sit and stay
+        - Animal responds well to off-leash training
+        - Animal can perform specific agility tasks
+        - Animal is fully certified for service work
+      enum:
+        - 1
+        - 2
+        - 3
+        - 4
+    PetNeedsTraining:
+      type: boolean
+      x-enum-descriptions:
+        - Pet needs training
+        - Pet does not need training
+      enum:
+        - true
+        - false

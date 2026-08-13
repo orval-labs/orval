@@ -1,48 +1,76 @@
 ---
 title: Enum Extensions
-description: 使用 OpenAPI 扩展生成带名称和描述的枚举
+description: 使用 OpenAPI 扩展生成带有清晰名称和描述的枚举
 ---
 
-Orval 支持读取 OpenAPI schema 上的枚举扩展，用更可读的名称和描述生成 TypeScript 枚举。
+使用 OpenAPI 扩展生成具有清晰名称和描述的枚举。
 
 ## OpenAPI Schema
 
+使用 `x-enumNames` 为枚举成员指定有意义的名称，并使用 `x-enumDescriptions` 添加会显示在 IDE 工具提示中的 JSDoc 注释。
+
 ```yaml
+openapi: '3.1.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
 components:
   schemas:
-    PetStatus:
-      type: string
-      enum:
-        - available
-        - pending
-        - sold
-      x-enum-varnames:
-        - Available
-        - Pending
-        - Sold
-      x-enum-descriptions:
-        - Pet is available
-        - Pet is pending
-        - Pet is sold
+    MyObject:
+      type: object
+      properties:
+        myEnum:
+          type: number
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          x-enumNames:
+            - One
+            - Two
+            - Three
+            - Four
+          x-enumDescriptions:
+            - Represents the first value
+            - Represents the second value
+            - Represents the third value
+            - Represents the fourth value
 ```
 
 ## 生成结果
 
 ```ts
-export enum PetStatus {
-  Available = 'available',
-  Pending = 'pending',
-  Sold = 'sold',
-}
+export const MyEnum = {
+  /** Represents the first value */
+  One: 1,
+  /** Represents the second value */
+  Two: 2,
+  /** Represents the third value */
+  Three: 3,
+  /** Represents the fourth value */
+  Four: 4,
+} as const;
+
+export type MyEnum = typeof MyEnum[keyof typeof MyEnum];
 ```
 
 ## 支持的扩展
 
-常见扩展包括：
+Orval 支持以下扩展：
 
-- `x-enum-varnames`
+**枚举名称：**
+
 - `x-enumNames`
-- `x-enum-descriptions`
-- `x-enumDescriptions`
+- `x-enumnames`
+- `x-enum-varnames`
 
-这些扩展只影响生成代码的可读性，不改变接口契约中的实际枚举值。
+**枚举描述：**
+
+- `x-enumDescriptions`
+- `x-enumdescriptions`
+- `x-enum-descriptions`
+
+## Zod
+
+当存在枚举元数据时，Zod 4 会生成 `z.enum({ ... })`，Zod 3 会生成 `z.nativeEnum({ ... } as const)`。布尔类型或混合类型的枚举仍然使用字面量联合类型，而没有元数据的枚举则保持现有的生成方式。

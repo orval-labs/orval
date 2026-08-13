@@ -36,6 +36,11 @@ import {
   stringify,
   type ZodCoerceType,
   type ZodVariantOption,
+  getEnumMembers,
+  hasEnumMetadata,
+  getEnumValueInfo,
+  getEnumImplementation,
+  EnumGeneration,
 } from '@orval/core';
 import jsesc from 'jsesc';
 import { unique } from 'remeda';
@@ -1398,22 +1403,40 @@ export const generateZodValidationSchemaDefinition = (
 
   // Array item enums are handled by the nested item schema. Guard parent-array
   // enum emission to avoid generating invalid trailing `.enum(...)` chains.
-  if (schema.enum && type !== 'array') {
-    const uniqueEnumValues = unique(schema.enum);
 
-    if (uniqueEnumValues.every((value) => isString(value))) {
+  if (schema.enum && type !== 'array') {
+    const enumMembers = getEnumMembers(schema);
+    const hasMetadata = hasEnumMetadata(enumMembers);
+    const enumValueInfo = getEnumValueInfo(enumMembers);
+
+    const enumValues = enumMembers.map((member) => member.value);
+
+    const canUseEnumObject =
+      enumValueInfo.isHomogeneous && !enumValueInfo.isBoolean && hasMetadata;
+
+    if (canUseEnumObject) {
+      const enumContent = getEnumImplementation(enumMembers, {
+        enumNamingConvention: context.output.override.namingConvention.enum,
+        enumGenerationType: EnumGeneration.CONST,
+      });
+      functions.push(['enumObject', `{\n${enumContent}}`]);
+    } else if (enumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${uniqueEnumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
+        `[${enumValues
+          .map((value) => `'${jsStringLiteralEscape(value)}'`)
+          .join(', ')}]`,
       ]);
     } else {
       functions.push([
         'oneOf',
-        uniqueEnumValues.map((value) => ({
+        enumMembers.map((member) => ({
           functions: [
             [
               'literal',
-              isString(value) ? `'${jsStringLiteralEscape(value)}'` : value,
+              isString(member.value)
+                ? `'${jsStringLiteralEscape(member.value)}'`
+                : member.value,
             ],
           ],
           consts: [],
@@ -1692,6 +1715,14 @@ ${Object.entries(objectArgs)
             `[${zodMiniCall('instanceof', 'File')}, ${zodMiniCall('string')}]`,
           ),
           kind: 'union',
+        };
+        continue;
+      }
+
+      if (fn === 'enumObject') {
+        current = {
+          expr: zodMiniCall('enum', String(args)),
+          kind: 'enum',
         };
         continue;
       }
@@ -2027,6 +2058,13 @@ ${Object.entries(mergedProperties)
       const refArgs = args as { name: string; sourceRef: string };
       usedRefs.add(refArgs.name);
       return `__REF_${refArgs.name}__`;
+    }
+
+    if (fn === 'enumObject') {
+      const enumObjectImplementation = args as string;
+      return isZodV4
+        ? `.enum(${enumObjectImplementation})`
+        : `.nativeEnum(${enumObjectImplementation} as const)`;
     }
 
     // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.
