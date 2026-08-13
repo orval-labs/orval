@@ -1778,7 +1778,12 @@ const buildHttpResourceExtraFile = (
     : [];
   const importImplementation = generateDependencyImports(
     implementation,
-    [...schemaImports, ...externalVerbImports, ...dependencies, ...baseUrlDependency],
+    [
+      ...schemaImports,
+      ...externalVerbImports,
+      ...dependencies,
+      ...baseUrlDependency,
+    ],
     context.projectName,
     !!output.schemas,
     isSyntheticDefaultImportsAllow(output.tsconfig),
