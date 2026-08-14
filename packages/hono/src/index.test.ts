@@ -226,6 +226,12 @@ describe('resolveDefaultSchemaModule', () => {
   });
 
   it('returns the configured schemas directory when set', () => {
+    // Normalized `output.schemas` is a directory path; getFileInfo treats an
+    // extension-less path as a directory, so dirname resolves to the
+    // directory itself, not its parent.
+    expect(resolveDefaultSchemaModule(output({ schemas: '/out/model' }))).toBe(
+      '/out/model',
+    );
     expect(
       resolveDefaultSchemaModule(
         output({ schemas: '/out/model/index.generated.ts' }),

@@ -692,6 +692,7 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
     expect(barrel).not.toContain("export * from './health/health.resource';");
     // A single extra file is unambiguous, so nothing is re-exported by name.
     expect(barrel.join('\n')).not.toContain('export type {');
+    expect(barrel.join('\n')).not.toContain('export {');
   });
 
   it('ignores extra files written outside the client directory', async () => {
