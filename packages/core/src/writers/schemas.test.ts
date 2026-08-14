@@ -616,7 +616,7 @@ describe('fixRegularSchemaImports', () => {
 });
 
 describe('writeSchemas indexFiles', () => {
-  it('replaces index exports with the current run when re-generating the same schema path', async () => {
+  it('merges index exports across projects that share a schema path (#2842)', async () => {
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-index-'),
     );
@@ -652,10 +652,15 @@ describe('writeSchemas indexFiles', () => {
       const indexPath = path.join(schemaPath, 'index.ts');
       const content = await fs.readFile(indexPath, 'utf8');
 
-      expect(content).toContain("export * from './userDto';");
-      expect(content).toContain("export * from './userListResponse';");
-      expect(content).not.toContain("export * from './createUserRequest';");
-      expect(content).not.toContain("export * from './createUserResponse';");
+      const exportLines = content
+        .split('\n')
+        .filter((line) => line.startsWith('export * from'));
+      expect(exportLines).toEqual([
+        "export * from './createUserRequest';",
+        "export * from './createUserResponse';",
+        "export * from './userDto';",
+        "export * from './userListResponse';",
+      ]);
     } finally {
       await fs.remove(tempDir);
     }

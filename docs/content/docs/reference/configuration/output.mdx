@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -61,10 +61,11 @@ const api = getPetsApi(customAxios);
 
 ## httpClient
 
-**Type:** `'fetch' | 'axios'`
+**Type:** `'fetch' | 'axios' | 'angular'`
 **Default:** `'fetch'`
 
-HTTP client used for `swr`, `react-query`, `vue-query`, and `svelte-query` clients.
+HTTP transport used by compatible generated clients. Use `fetch` or `axios` for
+query clients, and `angular` for `angular` and `angular-query` output.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1097,9 +1098,39 @@ that restriction for individual operations.
 
 ### useInfiniteQueryParam
 
-**Type:** `String`
+**Type:** `String | String[]`
 
-Query parameter name for infinite queries.
+Query parameter name for infinite queries. An operation only gets an infinite
+hook when it declares the configured parameter.
+
+Pass an array when a single spec paginates in more than one way. The names are
+candidates in priority order and are resolved per operation: the first one the
+operation actually declares becomes its page parameter, and an operation
+matching none of them gets no infinite hook.
+
+An `override.operations` entry replaces the global value entirely, so a single operation can opt into a different candidate
+list.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: ['page', 'cursor'],
+        },
+        operations: { 
+          listBets: {
+            useInfinite: true,
+            useInfiniteQueryParam: "cursor.marker",
+          }
+        }
+      },
+    },
+  },
+});
+```
 
 ### usePrefetch
 
@@ -1220,6 +1251,100 @@ parameter, orval passes operation identity so the mutator can branch on it
 - `queryOptions` mutator — `{ url, operationId, operationName }`
 - `mutationOptions` mutator — `{ operationId, operationName }` (the `url`
   is supplied in the second parameter)
+
+Each option takes a mutator, so point it at a file and an exported name:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryKey: {
+            path: './src/mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+`queryKey` replaces the generated key factory. It receives the operation's
+query properties and a context carrying the `url`:
+
+```ts title="src/mutators/custom-query-key.ts"
+export function customQueryKey(
+  // The properties dictionary varies per operation (params, petId, ...), so
+  // type it broadly if one mutator serves every endpoint.
+  properties: Record<string, unknown>,
+  context: { url: string },
+) {
+  return ['tenant-abc', context.url, properties] as const;
+}
+```
+
+`queryOptions` wraps the options object passed to the generated hook. The
+third parameter is the operation identity described above:
+
+```ts title="src/mutators/custom-query-options.ts"
+import type { QueryKey } from '@tanstack/react-query';
+
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+  _queryProperties: Record<string, unknown>,
+  operation: { url: string; operationId: string; operationName: string },
+): T & { queryKey: QueryKey } {
+  return {
+    ...options,
+    queryKey: ['operation', operation.operationId, ...options.queryKey],
+  };
+}
+```
+
+`mutationOptions` works the same way for mutations, which is where branching
+on `operationId` is most useful.
+
+The mutator runs where the options object is built, inside the hook body, so
+side effects belong in a callback rather than in the mutator itself. Calling
+`invalidateQueries()` directly would fire on every render instead of after the
+mutation succeeds:
+
+```ts title="src/mutators/custom-mutation.ts"
+import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+
+export const useCustomMutation = <TData, TError, TVariables, TContext>(
+  options: UseMutationOptions<TData, TError, TVariables, TContext>,
+  _: { url: string },
+  operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId !== 'deletePetById') return options;
+
+  return {
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options.onSuccess>>) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      // Keep whatever the caller already passed.
+      return options.onSuccess?.(...args);
+    },
+  };
+};
+```
+
+Because the mutator receives `operationId`, one file can serve every
+operation and branch where the behaviour needs to differ, which is the usual
+alternative to a per-operation configuration option.
 
 ### shouldExportMutatorHooks
 

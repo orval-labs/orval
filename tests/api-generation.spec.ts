@@ -23,6 +23,8 @@ await describeApiGenerationSnapshots({
     generated('multi-files'),
     generated('react-query'),
     generated('runtime-validation'),
+    generated('solid-query'),
+    generated('solid-start'),
     generated('svelte-query'),
     generated('swr'),
     generated('vue-query'),

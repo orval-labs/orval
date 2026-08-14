@@ -6,8 +6,12 @@
  */
 
 export enum RequiredSiameseColoursItem {
+  /** Represents black colour */
   Black = 'BLACK',
+  /** Represents brown colour */
   Brown = 'BROWN',
+  /** Represents white colour */
   White = 'WHITE',
+  /** Represents grey colour */
   Grey = 'GREY',
 }
