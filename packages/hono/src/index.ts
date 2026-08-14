@@ -1145,7 +1145,7 @@ export const resolveDefaultSchemaModule = (
     return path;
   }
 
-  return nodePath.join(dirname, `${filename}.schemas${extension}`);
+  return upath.join(dirname, `${filename}.schemas${extension}`);
 };
 
 export const generateExtraFiles: ClientExtraFilesBuilder = async (

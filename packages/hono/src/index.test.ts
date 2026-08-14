@@ -207,7 +207,7 @@ describe('resolveDefaultSchemaModule', () => {
     // `client.generated.schemas.generated.ts` instead of
     // `client.schemas.generated.ts`.
     expect(resolveDefaultSchemaModule(output({}))).toBe(
-      path.join('/out', 'client.schemas.generated.ts'),
+      '/out/client.schemas.generated.ts',
     );
   });
 
@@ -216,7 +216,7 @@ describe('resolveDefaultSchemaModule', () => {
       resolveDefaultSchemaModule(
         output({ target: '/out/client.ts', fileExtension: '.ts' }),
       ),
-    ).toBe(path.join('/out', 'client.schemas.ts'));
+    ).toBe('/out/client.schemas.ts');
   });
 
   it('returns the target path itself in single mode', () => {
@@ -230,6 +230,6 @@ describe('resolveDefaultSchemaModule', () => {
       resolveDefaultSchemaModule(
         output({ schemas: '/out/model/index.generated.ts' }),
       ),
-    ).toBe(path.join('/out', 'model'));
+    ).toBe('/out/model');
   });
 });
