@@ -24,6 +24,17 @@ const folders = readdirSync(generatedDir)
   .filter((f) => statSync(join(generatedDir, f)).isDirectory())
   .sort();
 
+// Files that are generated but do not compile yet. Every entry is a defect with
+// its own fix; none of them may be widened to swallow a new failure.
+const excludedByFolder = new Map([
+  // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
+  // which ships both v3 and v4 compat types. The SDK's zod-compat.d.ts loads both
+  // type systems, causing exponential type inference in server.registerTool() calls.
+  // Yarn avoided this by nesting a separate zod@4.x for the SDK.
+  // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
+  ['mcp', ['generated/mcp/**/server.ts']],
+]);
+
 const results = [];
 let hasFailure = false;
 
@@ -40,18 +51,9 @@ for (const folder of folders) {
     include: [`generated/${folder}`, 'mutators', 'regressions'],
   };
 
-  const exclude = [];
+  const exclude = excludedByFolder.get(folder);
 
-  // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
-  // which ships both v3 and v4 compat types. The SDK's zod-compat.d.ts loads both
-  // type systems, causing exponential type inference in server.registerTool() calls.
-  // Yarn avoided this by nesting a separate zod@4.x for the SDK.
-  // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
-  if (folder === 'mcp') {
-    exclude.push('generated/mcp/**/server.ts');
-  }
-
-  if (exclude.length > 0) {
+  if (exclude) {
     config.exclude = exclude;
   }
 

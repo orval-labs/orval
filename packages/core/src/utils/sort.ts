@@ -23,3 +23,11 @@ export const sortByPriority = <T>(
     }
     return 0;
   });
+
+let naturalCompareCollator: Intl.Collator | undefined;
+
+export function compareNatural(a: string, b: string): number {
+  naturalCompareCollator ??= new Intl.Collator('en', { numeric: true });
+
+  return naturalCompareCollator.compare(a, b);
+}

@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -61,10 +61,11 @@ const api = getPetsApi(customAxios);
 
 ## httpClient
 
-**Type:** `'fetch' | 'axios'`
+**Type:** `'fetch' | 'axios' | 'angular'`
 **Default:** `'fetch'`
 
-HTTP client used for `swr`, `react-query`, `vue-query`, and `svelte-query` clients.
+HTTP transport used by compatible generated clients. Use `fetch` or `axios` for
+query clients, and `angular` for `angular` and `angular-query` output.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -839,8 +840,24 @@ export default defineConfig({
 ## headers
 
 **Type:** `Boolean`
+**Default:** `false`
 
-Enable generation of headers.
+Generate typed parameters for the HTTP request headers an operation declares in
+the specification. When disabled, header parameters are omitted from the
+generated function signatures.
+
+This is unrelated to [`override.header`](#header), which controls the comment
+block written at the top of each generated file.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      headers: true,
+    },
+  },
+});
+```
 
 ## tsconfig
 
@@ -969,9 +986,15 @@ export default defineConfig({
 ### header
 
 **Type:** `Boolean | Function`
-**Default:** `true`
+**Default:** the built-in header function
 
-Customize or disable the generated file header:
+Customize or disable the comment block written at the top of each generated
+file. This is unrelated to [`output.headers`](#headers), which controls HTTP
+request header parameters.
+
+Pass `false` to omit the comment block, or a function to replace it. Passing
+`true` produces the same output as omitting the option, since any value that is
+neither `false` nor a function falls back to the built-in header.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1250,6 +1273,100 @@ parameter, orval passes operation identity so the mutator can branch on it
 - `queryOptions` mutator — `{ url, operationId, operationName }`
 - `mutationOptions` mutator — `{ operationId, operationName }` (the `url`
   is supplied in the second parameter)
+
+Each option takes a mutator, so point it at a file and an exported name:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryKey: {
+            path: './src/mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+`queryKey` replaces the generated key factory. It receives the operation's
+query properties and a context carrying the `url`:
+
+```ts title="src/mutators/custom-query-key.ts"
+export function customQueryKey(
+  // The properties dictionary varies per operation (params, petId, ...), so
+  // type it broadly if one mutator serves every endpoint.
+  properties: Record<string, unknown>,
+  context: { url: string },
+) {
+  return ['tenant-abc', context.url, properties] as const;
+}
+```
+
+`queryOptions` wraps the options object passed to the generated hook. The
+third parameter is the operation identity described above:
+
+```ts title="src/mutators/custom-query-options.ts"
+import type { QueryKey } from '@tanstack/react-query';
+
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+  _queryProperties: Record<string, unknown>,
+  operation: { url: string; operationId: string; operationName: string },
+): T & { queryKey: QueryKey } {
+  return {
+    ...options,
+    queryKey: ['operation', operation.operationId, ...options.queryKey],
+  };
+}
+```
+
+`mutationOptions` works the same way for mutations, which is where branching
+on `operationId` is most useful.
+
+The mutator runs where the options object is built, inside the hook body, so
+side effects belong in a callback rather than in the mutator itself. Calling
+`invalidateQueries()` directly would fire on every render instead of after the
+mutation succeeds:
+
+```ts title="src/mutators/custom-mutation.ts"
+import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+
+export const useCustomMutation = <TData, TError, TVariables, TContext>(
+  options: UseMutationOptions<TData, TError, TVariables, TContext>,
+  _: { url: string },
+  operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId !== 'deletePetById') return options;
+
+  return {
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options.onSuccess>>) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      // Keep whatever the caller already passed.
+      return options.onSuccess?.(...args);
+    },
+  };
+};
+```
+
+Because the mutator receives `operationId`, one file can serve every
+operation and branch where the behaviour needs to differ, which is the usual
+alternative to a per-operation configuration option.
 
 ### shouldExportMutatorHooks
 

@@ -294,11 +294,11 @@ const getSolidQueryImports = (
   const capitalized = prefix === 'use' ? 'Use' : 'Create';
   // Solid Query renamed the plain options interfaces in v5.100.6, dropping the
   // `Solid` prefix: `SolidQueryOptions` → `QueryOptions`, `SolidInfiniteQueryOptions` →
-  // `InfiniteQueryOptions`, `SolidMutationOptions` → `MutationOptions`. The
-  // `Use*Options` / `Create*Options` Accessor aliases keep their names but
-  // are still imported because queries use them as the user-facing
-  // `options.query` param type (Solid's `useQuery` overloads rely on that
-  // shape so the `initialData?` discrimination keeps working).
+  // `InfiniteQueryOptions`, `SolidMutationOptions` → `MutationOptions`.
+  //
+  // `addDependency` only emits an import when the export name appears in the
+  // generated file, so listing every candidate here costs nothing for outputs
+  // that do not use them.
   const queryOptionsTypeName = hasRenamedOptionsTypes
     ? 'QueryOptions'
     : 'SolidQueryOptions';
@@ -323,6 +323,12 @@ const getSolidQueryImports = (
         { name: 'MutationFunction' },
         { name: `${capitalized}QueryResult` },
         { name: `${capitalized}InfiniteQueryResult` },
+        { name: `Defined${capitalized}QueryResult` },
+        { name: `Defined${capitalized}InfiniteQueryResult` },
+        { name: 'DefinedInitialDataOptions' },
+        { name: 'UndefinedInitialDataOptions' },
+        { name: 'DefinedInitialDataInfiniteOptions' },
+        { name: 'UndefinedInitialDataInfiniteOptions' },
         { name: 'QueryKey' },
         { name: 'InfiniteData' },
         { name: `${capitalized}MutationResult` },

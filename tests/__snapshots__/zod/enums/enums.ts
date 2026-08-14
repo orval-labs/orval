@@ -9,11 +9,14 @@ import * as zod from 'zod';
 /**
  * @summary sample cat
  */
-export const GetApiCatResponseItem = zod.union([
-  zod.literal(1),
-  zod.literal(2),
-  zod.literal(3),
-]);
+export const GetApiCatResponseItem = zod.enum({
+  /** Dog Group 1 */
+  NUMBER_1: 1,
+  /** Dog Group 2 */
+  NUMBER_2: 2,
+  /** Dog Group 3 */
+  NUMBER_3: 3,
+});
 export const GetApiCatResponse = zod.array(GetApiCatResponseItem);
 
 /**
@@ -23,7 +26,18 @@ export const GetApiRequiredCatResponse = zod.object({
   petsRequested: zod
     .array(
       zod.object({
-        colours: zod.array(zod.enum(['BLACK', 'BROWN', 'WHITE', 'GREY'])),
+        colours: zod.array(
+          zod.enum({
+            /** Represents black colour */
+            Black: 'BLACK',
+            /** Represents brown colour */
+            Brown: 'BROWN',
+            /** Represents white colour */
+            White: 'WHITE',
+            /** Represents grey colour */
+            Grey: 'GREY',
+          }),
+        ),
       }),
     )
     .optional(),
@@ -33,7 +47,16 @@ export const GetApiRequiredCatResponse = zod.object({
  * @summary sample dog
  */
 export const GetApiDogResponse = zod.object({
-  group: zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]).optional(),
+  group: zod
+    .enum({
+      /** Dog Group 1 */
+      NUMBER_1: 1,
+      /** Dog Group 2 */
+      NUMBER_2: 2,
+      /** Dog Group 3 */
+      NUMBER_3: 3,
+    })
+    .optional(),
   petsRequested: zod
     .array(
       zod.object({
@@ -70,4 +93,26 @@ export const GetApiCatDogResponse = zod.union([
   zod.literal(1),
   zod.literal('2'),
   zod.literal('a'),
+]);
+
+/**
+ * @summary sample pet training
+ */
+export const GetApiPetTrainingResponse = zod.enum({
+  /** Animal knows basic commands like sit and stay */
+  Novice: 1,
+  /** Animal responds well to off-leash training */
+  Intermediate: 2,
+  /** Animal can perform specific agility tasks */
+  Advanced: 3,
+  /** Animal is fully certified for service work */
+  Expert: 4,
+});
+
+/**
+ * @summary sample pet needs training
+ */
+export const GetApiPetNeedsTrainingResponse = zod.union([
+  zod.literal(true),
+  zod.literal(false),
 ]);
