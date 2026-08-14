@@ -90,6 +90,38 @@ describe('buildBarrelReExports', () => {
     ]);
   });
 
+  it('picks a later file as canonical when only later files share the name', () => {
+    // Regression: `canonical` must not be pinned to `entries[0]` — the first
+    // file here declares only a name unique to it, so a canonical picker that
+    // always looks at the first entry would never see `Shared` declared there
+    // and would leave both later files wildcard-exporting it, keeping the
+    // TS2308 ambiguity unresolved.
+    const lines = buildBarrelReExports(
+      [
+        {
+          path: '/out/a/a.resource.ts',
+          sharedExports: { types: ['OnlyInA'], values: [] },
+        },
+        {
+          path: '/out/b/b.resource.ts',
+          sharedExports: { types: ['Shared'], values: [] },
+        },
+        {
+          path: '/out/c/c.resource.ts',
+          sharedExports: { types: ['Shared'], values: [] },
+        },
+      ],
+      options,
+    );
+
+    expect(lines).toEqual([
+      "export type { Shared } from './b/b.resource';",
+      "export * from './a/a.resource';",
+      "export * from './b/b.resource';",
+      "export * from './c/c.resource';",
+    ]);
+  });
+
   it('skips names the barrel already re-exports by name', () => {
     const lines = buildBarrelReExports(
       [resourceFile('health'), resourceFile('pets')],

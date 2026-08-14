@@ -3,6 +3,27 @@ import fs from 'fs-extra';
 
 const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 
+/**
+ * Strip the configured `fileExtension` from a relative import path, in one
+ * piece, before appending the module-resolution import extension.
+ *
+ * @remarks
+ * A multi-part `fileExtension` (e.g. `.generated.ts`) must be removed whole.
+ * Stripping only the last dot-segment (`/\.[^./]+$/`) leaves `.generated`
+ * behind, so a subsequent `+ importExtension` doubles the suffix, e.g.
+ * `pets.generated.ts` becomes `pets.generated` then `pets.generated.generated`.
+ * The fallback (strip just the last segment) only fires for a relative path
+ * that doesn't end with the full configured extension.
+ */
+export function stripFileExtension(
+  relativePath: string,
+  fileExtension: string,
+): string {
+  return relativePath.endsWith(fileExtension)
+    ? relativePath.slice(0, -fileExtension.length)
+    : relativePath.replace(/\.[^/.]+$/, '');
+}
+
 export function readReExportSpecifiers(content: string): Set<string> {
   const specifiers = new Set<string>();
   for (const line of content.split(/\r?\n/)) {

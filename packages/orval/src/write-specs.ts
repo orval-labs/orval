@@ -48,6 +48,7 @@ import {
   executeHook,
   readReExportSpecifiers,
   reconcileWorkspaceBarrel,
+  stripFileExtension,
 } from './utils';
 import {
   generateZodSchemasInline,
@@ -812,10 +813,9 @@ export async function writeSpecs(
       )
       .map((p) => {
         const relative = upath.getRelativeImportPath(indexFile, p, true);
-        const withoutExt = relative.endsWith(output.fileExtension)
-          ? relative.slice(0, -output.fileExtension.length)
-          : relative.replace(/\.[^/.]+$/, '');
-        return withoutExt + importExtension;
+        return (
+          stripFileExtension(relative, output.fileExtension) + importExtension
+        );
       });
 
     if (output.schemas) {
