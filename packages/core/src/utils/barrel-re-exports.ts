@@ -33,14 +33,21 @@ export interface BarrelReExportOptions {
  * accidental collision between two tags stays a build error.
  *
  * @param files - Sibling files, in barrel order.
- * @param alreadyExported - Names that the barrel re-exports by name already.
- * A second line for one of them is a duplicate declaration (TS2323).
+ * @param alreadyExported - Names that the barrel re-exports by name already,
+ * split by {@link SharedExports} category. A second line for one of them is a
+ * duplicate declaration (TS2323). A name preclaimed as a type does not
+ * preclaim it as a value, and vice versa — the two live in the same
+ * identifier namespace, but a common name that is a type in one file and a
+ * value in another still needs one explicit line per category.
  * @returns Barrel lines, named re-exports first. No trailing newlines.
  */
 export function buildBarrelReExports(
   files: readonly BarrelReExportFile[],
   { dirname, extension, importExtension }: BarrelReExportOptions,
-  alreadyExported: readonly string[] = [],
+  alreadyExported: {
+    readonly types?: readonly string[];
+    readonly values?: readonly string[];
+  } = {},
 ): string[] {
   const entries = files
     .map((file) => ({
@@ -71,8 +78,18 @@ export function buildBarrelReExports(
     }
   }
 
-  const claimed = new Set(alreadyExported);
-  const claim = (names: readonly string[]): string[] => {
+  // Kept separate per {@link SharedExports} category: a name can be a type in
+  // one file and a value in another (or both, in the same or different
+  // files). Claiming it in one category must not suppress the explicit
+  // re-export the other category still needs — a value re-export left to
+  // `export *` while its type sibling was already claimed is just as
+  // ambiguous (TS2308) as if neither had been claimed.
+  const claimedTypes = new Set(alreadyExported.types);
+  const claimedValues = new Set(alreadyExported.values);
+  const claim = (
+    names: readonly string[],
+    claimed: Set<string>,
+  ): string[] => {
     const owned = names.filter(
       (name) => !claimed.has(name) && (declarationCounts.get(name) ?? 0) > 1,
     );
@@ -83,8 +100,8 @@ export function buildBarrelReExports(
   const lines: string[] = [];
   for (const { specifier, sharedExports } of entries) {
     if (!sharedExports) continue;
-    const types = claim(sharedExports.types);
-    const values = claim(sharedExports.values);
+    const types = claim(sharedExports.types, claimedTypes);
+    const values = claim(sharedExports.values, claimedValues);
     if (types.length > 0) {
       lines.push(`export type { ${types.join(', ')} } from '${specifier}';`);
     }

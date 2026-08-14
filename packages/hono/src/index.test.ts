@@ -2,10 +2,13 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { GeneratorVerbOptions } from '@orval/core';
+import type {
+  GeneratorVerbOptions,
+  NormalizedOutputOptions,
+} from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { generateHandlerFile } from './index';
+import { generateHandlerFile, resolveDefaultSchemaModule } from './index';
 
 const verb = (operationName: string): GeneratorVerbOptions =>
   ({
@@ -185,5 +188,48 @@ describe('generateHandlerFile — NodeNext module resolution', () => {
     });
 
     expect(result).toContain("from './endpoints.context';");
+  });
+});
+
+describe('resolveDefaultSchemaModule', () => {
+  const output = (overrides: Partial<NormalizedOutputOptions>) =>
+    ({
+      target: '/out/client.generated.ts',
+      fileExtension: '.generated.ts',
+      mode: 'split',
+      schemas: undefined,
+      ...overrides,
+    }) as unknown as NormalizedOutputOptions;
+
+  it('does not leave `.generated` behind for a multi-part fileExtension', () => {
+    // A naive last-extension strip on `/out/client.generated.ts` leaves
+    // `/out/client.generated`, which then produced
+    // `client.generated.schemas.generated.ts` instead of
+    // `client.schemas.generated.ts`.
+    expect(resolveDefaultSchemaModule(output({}))).toBe(
+      path.join('/out', 'client.schemas.generated.ts'),
+    );
+  });
+
+  it('still works for a single-part fileExtension', () => {
+    expect(
+      resolveDefaultSchemaModule(
+        output({ target: '/out/client.ts', fileExtension: '.ts' }),
+      ),
+    ).toBe(path.join('/out', 'client.schemas.ts'));
+  });
+
+  it('returns the target path itself in single mode', () => {
+    expect(
+      resolveDefaultSchemaModule(output({ mode: 'single' })),
+    ).toBe('/out/client.generated.ts');
+  });
+
+  it('returns the configured schemas directory when set', () => {
+    expect(
+      resolveDefaultSchemaModule(
+        output({ schemas: '/out/model/index.generated.ts' }),
+      ),
+    ).toBe(path.join('/out', 'model'));
   });
 });

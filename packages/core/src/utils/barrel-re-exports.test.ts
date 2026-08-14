@@ -126,7 +126,7 @@ describe('buildBarrelReExports', () => {
     const lines = buildBarrelReExports(
       [resourceFile('health'), resourceFile('pets')],
       options,
-      ['ResourceState'],
+      { types: ['ResourceState'] },
     );
 
     expect(lines).toContain(
@@ -135,6 +135,48 @@ describe('buildBarrelReExports', () => {
     expect(lines.join('\n')).not.toContain(
       'export type { OrvalHttpResourceOptions, ResourceState }',
     );
+  });
+
+  it('claims a name as both a type and a value when different files declare each', () => {
+    // Regression: claiming `Shared` as a type in one file must not suppress
+    // the explicit value re-export another file still needs — a single
+    // shared `claimed` set across categories left the value wildcard-only,
+    // which TypeScript still reports as TS2308.
+    const lines = buildBarrelReExports(
+      [
+        {
+          path: '/out/a/a.resource.ts',
+          sharedExports: { types: ['Shared'], values: [] },
+        },
+        {
+          path: '/out/b/b.resource.ts',
+          sharedExports: { types: ['Shared'], values: ['Shared'] },
+        },
+      ],
+      options,
+    );
+
+    expect(lines).toContain("export type { Shared } from './a/a.resource';");
+    expect(lines).toContain("export { Shared } from './b/b.resource';");
+  });
+
+  it('preclaiming a name as a type does not preclaim it as a value', () => {
+    const lines = buildBarrelReExports(
+      [
+        {
+          path: '/out/a/a.resource.ts',
+          sharedExports: { types: [], values: ['Shared'] },
+        },
+        {
+          path: '/out/b/b.resource.ts',
+          sharedExports: { types: [], values: ['Shared'] },
+        },
+      ],
+      options,
+      { types: ['Shared'] },
+    );
+
+    expect(lines).toContain("export { Shared } from './a/a.resource';");
   });
 
   it('ignores files that declare no shared exports', () => {

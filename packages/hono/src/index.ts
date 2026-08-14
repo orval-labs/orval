@@ -1115,28 +1115,46 @@ ${honoAppExport}
   ];
 };
 
-export const generateExtraFiles: ClientExtraFilesBuilder = async (
-  verbOptions,
-  output,
-  context,
-) => {
-  const { path, pathWithoutExtension, extension } = getFileInfo(output.target, {
+/**
+ * Path (or directory, when `output.schemas` names one explicitly) that the
+ * generated `.context` and `.zod` modules import shared schema types from.
+ *
+ * @remarks
+ * `filename` comes from {@link getFileInfo}, which strips the full
+ * (possibly multi-part) `extension` via `path.basename(filePath, extension)`.
+ * A naive last-extension strip would leave `.generated` behind for a
+ * `.generated.ts` extension and produce
+ * `client.generated.schemas.generated.ts` instead of
+ * `client.schemas.generated.ts`.
+ */
+export const resolveDefaultSchemaModule = (
+  output: NormalizedOutputOptions,
+): string => {
+  const { path, dirname, filename, extension } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const validator = generateZvalidator(output, context);
-  let schemaModule: string;
 
   if (output.schemas != undefined) {
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
-    const basePath = getFileInfo(schemasPath).dirname;
-    schemaModule = basePath;
-  } else if (output.mode === 'single') {
-    schemaModule = path;
-  } else {
-    schemaModule = `${pathWithoutExtension}.schemas${extension}`;
+    return getFileInfo(schemasPath).dirname;
   }
+
+  if (output.mode === 'single') {
+    return path;
+  }
+
+  return nodePath.join(dirname, `${filename}.schemas${extension}`);
+};
+
+export const generateExtraFiles: ClientExtraFilesBuilder = async (
+  verbOptions,
+  output,
+  context,
+) => {
+  const validator = generateZvalidator(output, context);
+  const schemaModule = resolveDefaultSchemaModule(output);
 
   const contexts = generateContextFiles(
     verbOptions,
