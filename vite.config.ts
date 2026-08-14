@@ -51,6 +51,9 @@ export default defineConfig({
       'docs',
       'tests',
       'packages/hono/src/zValidator.ts',
+      // Committed TypeDoc bundles: minified vendor output, not lintable source.
+      'samples/react-app/docs-html/assets',
+      'samples/react-app/docs-html-plugin/assets',
     ],
     rules: {
       'no-array-constructor': 'error',
