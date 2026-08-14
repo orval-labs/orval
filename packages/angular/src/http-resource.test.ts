@@ -3496,6 +3496,7 @@ describe('angular httpResource generator', () => {
           formData: '',
           formUrlEncoded: '',
           isOptional: false,
+          isBlob: false,
         },
         props: [
           {
@@ -3588,6 +3589,7 @@ describe('angular httpResource generator', () => {
           formData: '',
           formUrlEncoded: '',
           isOptional: false,
+          isBlob: false,
         },
         props: [
           {

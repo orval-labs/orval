@@ -22,6 +22,7 @@ const angularOverride = {
   provideIn: 'root',
   client: 'httpClient',
   runtimeValidation: false,
+  queryObjectSerialization: 'spec',
 } as const;
 
 const createOutput = (
@@ -90,6 +91,7 @@ const createOutput = (
         generateMeta: false,
         generateDiscriminatedUnion: false,
         useBrandedTypes: false,
+        exactOptional: false,
         dateTimeOptions: {},
         timeOptions: {},
       },
@@ -110,12 +112,14 @@ const createOutput = (
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         runtimeValidation: false,
         useRuntimeFetcher: false,
+        serializeResponseHeaders: false,
       },
       enumGenerationType: 'const',
       splitByContentType: false,
