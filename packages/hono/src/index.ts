@@ -1138,11 +1138,11 @@ export const resolveDefaultSchemaModule = (
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
-    return getFileInfo(schemasPath).dirname;
+    return upath.toUnix(getFileInfo(schemasPath).dirname);
   }
 
   if (output.mode === 'single') {
-    return path;
+    return upath.toUnix(path);
   }
 
   return upath.join(dirname, `${filename}.schemas${extension}`);
