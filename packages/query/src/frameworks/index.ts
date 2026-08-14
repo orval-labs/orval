@@ -34,7 +34,10 @@ import type {
   FrameworkAdapterConfig,
   MutationOnSuccessContext,
 } from '../framework-adapter';
-import { getQueryOptionsDefinition } from '../query-options';
+import {
+  getQueryOptionsDefinition,
+  requiresUserSuppliedQueryOptions,
+} from '../query-options';
 import { createAngularAdapter } from './angular';
 import { createReactAdapter } from './react';
 import { createSolidAdapter } from './solid';
@@ -156,6 +159,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       httpClient,
       hasInvalidation,
       useRuntimeFetcher,
+      options,
     }) {
       const prefix = composed.getQueryOptionsDefinitionPrefix();
       const definition = getQueryOptionsDefinition({
@@ -172,11 +176,21 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         isReturnType: false,
         initialData,
         adapter: composed,
+        options,
       });
+
+      // Options the adapter demands from the caller make the whole parameter
+      // mandatory: an optional parameter could be omitted, and then the
+      // `...queryOptions` spread would not carry them into the options literal.
+      const requiresUserQueryOptions = requiresUserSuppliedQueryOptions(
+        composed,
+        type,
+        options,
+      );
 
       if (!isRequestOptions) {
         return `${type ? 'queryOptions' : 'mutationOptions'}${
-          initialData === 'defined' ? '' : '?'
+          initialData === 'defined' || requiresUserQueryOptions ? '' : '?'
         }: ${definition}`;
       }
 
@@ -185,7 +199,8 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         mutator,
         useRuntimeFetcher,
       );
-      const isQueryRequired = initialData === 'defined';
+      const isQueryRequired =
+        initialData === 'defined' || requiresUserQueryOptions;
       const skipInvalidationProp =
         !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
       const optionsType = `{ ${

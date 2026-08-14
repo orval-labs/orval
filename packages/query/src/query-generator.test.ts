@@ -1,4 +1,4 @@
-import type { GeneratorMutator, GetterBody } from '@orval/core';
+import type { GeneratorMutator, GetterBody, GetterProps } from '@orval/core';
 import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
@@ -9,6 +9,7 @@ import {
   hasQueryParam,
   makeOptionalParam,
   resolveInfiniteQueryParam,
+  widenOptionalPropsToUndefined,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
 
@@ -485,5 +486,74 @@ describe('allowUndefinedParam', () => {
         mutator: { bodyTypeName: 'BodyType' } as unknown as GeneratorMutator,
       }),
     ).toBe('createPetsBody: BodyType<CreatePetsBody> | undefined');
+  });
+});
+
+describe('widenOptionalPropsToUndefined', () => {
+  const prop = (name: string, definition: string, implementation: string) =>
+    ({
+      name,
+      definition,
+      implementation,
+      default: false,
+      required: false,
+      type: 'param',
+    }) as unknown as GetterProps[number];
+
+  it('widens an optional prop on the requested field only', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('params', 'params?: ListPetsParams', 'params?: ListPetsParams')],
+      'implementation',
+    );
+
+    // The space after `?:` survives the replacement; prettier normalises the
+    // generated output, so the raw form carries a double space.
+    expect(widened.implementation).toBe('params: undefined |  ListPetsParams');
+    expect(widened.definition).toBe('params?: ListPetsParams');
+  });
+
+  it('emits the `undefined |` prefix form that the mutator body swap matches', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('params', 'params?: ListPetsParams', 'params?: ListPetsParams')],
+      'definition',
+    );
+
+    expect(widened.definition).toMatch(
+      /^params: undefined \|\s+ListPetsParams$/,
+    );
+    expect(widened.definition).not.toContain('ListPetsParams | undefined');
+  });
+
+  it('leaves an already-required prop untouched', () => {
+    const input = [
+      prop('params', 'params: ListPetsParams', 'params: ListPetsParams'),
+    ];
+
+    expect(widenOptionalPropsToUndefined(input, 'implementation')[0]).toBe(
+      input[0],
+    );
+  });
+
+  it('leaves a prop carrying a default untouched, since TS1016 does not apply to it', () => {
+    const input = [
+      prop(
+        'pathParams',
+        '{ version = 1 }: ListPetsPathParameters = {}',
+        '{ version = 1 }: ListPetsPathParameters = {}',
+      ),
+    ];
+
+    expect(widenOptionalPropsToUndefined(input, 'implementation')[0]).toBe(
+      input[0],
+    );
+  });
+
+  it('treats a regex metacharacter in the prop name literally', () => {
+    const [widened] = widenOptionalPropsToUndefined(
+      [prop('a.b', 'a.b?: string', 'a.b?: string')],
+      'implementation',
+    );
+
+    expect(widened.implementation).toMatch(/^a\.b: undefined \|\s+string$/);
   });
 });

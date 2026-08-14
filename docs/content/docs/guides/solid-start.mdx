@@ -30,7 +30,13 @@ export default defineConfig({
 
 ## Generated Output
 
-Orval generates code using native SolidStart primitives:
+Orval generates code using native SolidStart primitives. The exported object is
+named after the spec title, or after the tag in `tags` and `tags-split` mode.
+
+If that name collides with a schema the same file imports, orval suffixes the
+export with `Api` (`Pets` becomes `PetsApi`) and logs a warning naming both, since
+TypeScript rejects a file that both imports and exports the same name. Rename the
+schema if you would rather keep the plain name.
 
 ```ts
 import { query, action, revalidate } from '@solidjs/router';

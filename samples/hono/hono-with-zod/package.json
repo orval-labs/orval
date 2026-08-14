@@ -21,5 +21,5 @@
     "vitest": "catalog:",
     "wrangler": "^4.79.0"
   },
-  "version": "8.23.0"
+  "version": "8.24.0"
 }
