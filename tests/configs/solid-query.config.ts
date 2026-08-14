@@ -24,6 +24,95 @@ export default defineConfig({
       },
     },
   },
+  // Pins that a caller is not asked for page params the config already writes
+  // into the emitted literal, and that the query helpers keep their optional
+  // props when the trailing `options` parameter is itself optional.
+  queryHelpers: {
+    output: {
+      target: '../generated/solid-query/query-helpers/endpoints.ts',
+      schemas: '../generated/solid-query/query-helpers/model',
+      client: 'solid-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          useInvalidate: true,
+          options: {
+            initialPageParam: '',
+            getNextPageParam: () => undefined,
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Pins that only the signatures ending in a mandatory `options` parameter get
+  // their preceding optional props widened. The invalidate helper's trailing
+  // `options?` is optional, so its props must stay optional.
+  infiniteInvalidate: {
+    output: {
+      target: '../generated/solid-query/infinite-invalidate/endpoints.ts',
+      schemas: '../generated/solid-query/infinite-invalidate/model',
+      client: 'solid-query',
+      allParamsOptional: true,
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+          useInvalidate: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1522.yaml',
+    },
+  },
+  // Solid Query ships no suspense hooks, so these must map to the plain ones.
+  suspense: {
+    output: {
+      target: '../generated/solid-query/suspense/endpoints.ts',
+      schemas: '../generated/solid-query/suspense/model',
+      client: 'solid-query',
+      override: {
+        query: {
+          useSuspenseQuery: true,
+          useSuspenseInfiniteQuery: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Without an explicit page param the queryFn and the options interface must
+  // still agree on TPageParam, which no cast is laundering here.
+  infiniteNoQueryParam: {
+    output: {
+      target: '../generated/solid-query/infinite-no-query-param/endpoints.ts',
+      schemas: '../generated/solid-query/infinite-no-query-param/model',
+      client: 'solid-query',
+      override: {
+        query: {
+          useInfinite: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/solid-query/zod-schema-response/endpoints.ts',

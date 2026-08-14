@@ -9,7 +9,7 @@ import type {
   OpenApiSchemaObject,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
+import { getEnum, getEnumMembers } from './enum';
 import { getKey } from './keys';
 
 interface QueryParamsType {
@@ -325,14 +325,20 @@ function getQueryParamsTypes(
       // upgrade, which moves standard schema fields into `schema` but leaves
       // vendor extensions at the parameter level.
       const parameterAsSchema = parameter as OpenApiSchemaObject;
+      const enumMembers = getEnumMembers(
+        resolvedValue.originalSchema,
+        parameterAsSchema,
+      );
+
+      const isNullable =
+        isSchemaNullable(resolvedValue.originalSchema) ||
+        isSchemaNullable(parameterAsSchema);
+
       const enumValue = getEnum(
-        resolvedValue.value,
+        enumMembers,
         enumName,
-        getEnumNames(resolvedValue.originalSchema) ??
-          getEnumNames(parameterAsSchema),
+        isNullable,
         context.output.override.enumGenerationType,
-        getEnumDescriptions(resolvedValue.originalSchema) ??
-          getEnumDescriptions(parameterAsSchema),
         context.output.override.namingConvention.enum,
       );
 

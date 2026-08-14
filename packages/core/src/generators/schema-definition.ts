@@ -1,12 +1,7 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { isArray, isEmptyish } from 'remeda';
 
-import {
-  getEnum,
-  getEnumDescriptions,
-  getEnumNames,
-  resolveDiscriminators,
-} from '../getters';
+import { getEnum, getEnumMembers, resolveDiscriminators } from '../getters';
 import {
   buildDynamicScope,
   dynamicAnchorsToUniqueParamNames,
@@ -242,6 +237,13 @@ function generateSchemaDefinitions(
     ];
   }
 
+  const schemaType = schema.type as string | string[] | undefined;
+  const nullable =
+    (Array.isArray(schemaType) && schemaType.includes('null')) ||
+    schema.nullable === true
+      ? ' | null'
+      : '';
+
   const alias = extractBoundAliasInfo(schema, context);
   if (alias) {
     const genericParams = alias.genericParams.map((paramName) => ({
@@ -255,13 +257,6 @@ function generateSchemaDefinitions(
 
     const typeArgsStr = alias.typeArgs.join(', ');
     const genericPart = `${alias.genericName}<${typeArgsStr}>`;
-
-    const schemaType = schema.type as string | string[] | undefined;
-    const nullable =
-      (Array.isArray(schemaType) && schemaType.includes('null')) ||
-      schema.nullable === true
-        ? ' | null'
-        : '';
 
     let model: string;
     const allImports: { name: string; schemaName: string }[] = [
@@ -359,11 +354,10 @@ function generateSchemaDefinitions(
 
   if (resolvedValue.isEnum && !resolvedValue.isRef) {
     output += getEnum(
-      resolvedValue.value,
+      getEnumMembers(resolvedValue.originalSchema),
       sanitizedSchemaName,
-      getEnumNames(resolvedValue.originalSchema),
+      !!nullable,
       context.output.override.enumGenerationType,
-      getEnumDescriptions(resolvedValue.originalSchema),
       context.output.override.namingConvention.enum,
     );
   } else if (

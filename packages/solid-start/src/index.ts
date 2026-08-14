@@ -13,6 +13,8 @@ import {
   type GeneratorVerbOptions,
   getIsBodyVerb,
   isObject,
+  isOperationInTagBucket,
+  logWarning,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -50,7 +52,54 @@ export const generateSolidStartTitle: ClientTitleBuilder = (title) => {
   return pascal(sanTitle);
 };
 
-export const generateSolidStartHeader: ClientHeaderBuilder = ({ title }) => `
+// TypeScript rejects a file that both imports a type named `Pets` and exports a
+// value named `Pets` with TS2395, because one declaration is imported and the
+// other exported. Suffixing only on an actual collision keeps the plain tag name
+// for every spec that does not hit it; renaming unconditionally would change a
+// public export for everyone.
+//
+// `verbOptions` is the whole spec's operation map at every call site, so it must
+// be narrowed to the bucket this file is being written for. Without that, a
+// schema imported by another tag's file renames this file's export.
+const resolveNamespaceName = (
+  title: string,
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  tag?: string,
+) => {
+  const importedNames = new Set(
+    Object.values(verbOptions)
+      .filter((verbOption) => isOperationInTagBucket(verbOption, tag))
+      .flatMap((verbOption) =>
+        generateVerbImports(verbOption).map(
+          (verbImport) => verbImport.alias ?? verbImport.name,
+        ),
+      ),
+  );
+
+  if (!importedNames.has(title)) {
+    return title;
+  }
+
+  let candidate = `${title}Api`;
+  for (let suffix = 2; importedNames.has(candidate); suffix++) {
+    candidate = `${title}Api${suffix}`;
+  }
+
+  logWarning(
+    `solid-start: exporting the namespace as \`${candidate}\` instead of \`${title}\`, because this file also imports a schema named \`${title}\`. Import \`${candidate}\` from this file, or rename the schema to keep \`${title}\`.`,
+  );
+
+  return candidate;
+};
+
+export const generateSolidStartHeader: ClientHeaderBuilder = ({
+  title,
+  verbOptions,
+  tag,
+}) => {
+  const namespace = resolveNamespaceName(title, verbOptions, tag);
+
+  return `
 /**
  * Cache Invalidation:
  *
@@ -58,16 +107,17 @@ export const generateSolidStartHeader: ClientHeaderBuilder = ({ title }) => `
  *
  * Examples:
  *   // Invalidate all calls to a query
- *   revalidate(${title}.listPets.key);
+ *   revalidate(${namespace}.listPets.key);
  *
  *   // Invalidate a specific call with arguments
- *   revalidate(${title}.showPetById.keyFor("pet-123", 1));
+ *   revalidate(${namespace}.showPetById.keyFor("pet-123", 1));
  *
  *   // Invalidate multiple queries
- *   revalidate([${title}.listPets.key, ${title}.showPetById.keyFor("pet-123", 1)]);
+ *   revalidate([${namespace}.listPets.key, ${namespace}.showPetById.keyFor("pet-123", 1)]);
  */
-export const ${title} = {
+export const ${namespace} = {
 `;
+};
 
 export const generateSolidStartFooter: ClientFooterBuilder = () => {
   return '};\n';
