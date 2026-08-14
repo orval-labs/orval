@@ -10,6 +10,7 @@ import {
   SchemaType,
 } from '../types';
 import {
+  compareNatural,
   isReference,
   isString,
   jsDoc,
@@ -169,6 +170,16 @@ interface GetObjectOptions {
    * @see FormDataContext
    */
   formDataContext?: FormDataContext;
+}
+
+function getNormalizedComponentSchemaNames(context: ContextSpec): Set<string> {
+  context.normalizedComponentSchemaNames ??= new Set(
+    Object.keys(context.spec.components?.schemas ?? {}).map((schemaName) =>
+      pascal(schemaName),
+    ),
+  );
+
+  return context.normalizedComponentSchemaNames;
 }
 
 /**
@@ -359,9 +370,7 @@ export function getObject({
     const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
-        return a[0].localeCompare(b[0], 'en', {
-          numeric: true,
-        });
+        return compareNatural(a[0], b[0]);
       });
     }
     const acc: ScalarValue = {
@@ -398,11 +407,8 @@ export function getObject({
         );
       }
 
-      const allSpecSchemas = context.spec.components?.schemas ?? {};
-
-      const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
-        (schemaName) => pascal(schemaName) === propName,
-      );
+      const isNameAlreadyTaken =
+        getNormalizedComponentSchemaNames(context).has(propName);
 
       if (isNameAlreadyTaken) {
         propName = propName + 'Property';

@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import {
+  compareNatural,
   type ContextSpec,
   conventionName,
   DefaultTag,
@@ -479,13 +480,11 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   }
 
   const sortedGroups = [...grouped.values()].map((group) =>
-    [...group].toSorted((a, b) =>
-      a.filePath.localeCompare(b.filePath, 'en', { numeric: true }),
-    ),
+    [...group].toSorted((a, b) => compareNatural(a.filePath, b.filePath)),
   );
 
   return sortedGroups.toSorted((a, b) =>
-    a[0].filePath.localeCompare(b[0].filePath, 'en', { numeric: true }),
+    compareNatural(a[0].filePath, b[0].filePath),
   );
 };
 
@@ -569,7 +568,7 @@ export async function writeZodSchemaTagsSplitBarrel(
 
   const tagDirs = [...allDirs.keys()]
     .filter((dir) => dir !== ROOT_DIR)
-    .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    .toSorted((a, b) => compareNatural(a, b));
 
   const tagExports = tagDirs.map((dir) => {
     const dirPath = indexImportExt

@@ -246,6 +246,22 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  'enums-v3': {
+    output: {
+      target: '../generated/zod/enums-v3/enums-v3.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          version: 3
+        }
+      }
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
   'nullable-any-of-refs': {
     output: {
       target: '../generated/zod/nullable-any-of-refs/nullable-any-of-refs.ts',

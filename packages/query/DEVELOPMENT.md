@@ -61,10 +61,79 @@ Also check that imports in generated files are correct (no missing or extra impo
 
 **Always use `vp run update-samples`** to regenerate across all frameworks. Never regenerate only one sample when shared code changed.
 
+## Snapshot coverage
+
+Generated output for every client is committed under `tests/__snapshots__/`. A
+change to `withDefaults` in `src/frameworks/index.ts`, or to any shared generator,
+shows up as a snapshot diff across all five query frameworks. After an intentional
+change, run `vp run -w test:snapshots:update` and review the diff.
+
+Snapshots record what the generator produced, not whether it was correct. Output
+can be recorded and still fail to compile; `tests/scripts/typecheck-generated.mjs`
+is what catches that.
+
+Three lists must agree before a client is covered: a config in `tests/configs/`, a
+matching `generate:` script in `tests/package.json`, and an entry in the `dirs`
+array in `tests/api-generation.spec.ts`. Nothing verifies that they agree — a
+client missing from `dirs` is generated and type-checked, but never compared
+against a snapshot.
+
+## Solid Query option types
+
+Adapter methods named here are declared in `src/framework-adapter.ts` and
+implemented for Solid in `src/frameworks/solid.ts`. The option type is assembled
+by `getQueryOptionsDefinition` in `src/query-options.ts`.
+
+**The plain interface, not the accessor.** In `@tanstack/solid-query`,
+`SolidQueryOptions` is an object type and `UseQueryOptions` is
+`Accessor<SolidQueryOptions<T>>` — a function type, so options stay reactive.
+`Partial<T>` maps over properties and a function type has none, so
+`Partial<UseQueryOptions<T>>` is empty and accepts anything:
+
+```ts
+useListPets(params, { query: { staleTime: 'not a number' } }); // compiled, unchecked
+```
+
+Solid builds the type from `SolidQueryOptions` instead. `getOptionsReturnTypeName`
+returns which name to use, accounting for `@tanstack/solid-query` 5.100.6 dropping
+the `Solid` prefix.
+
+**initialData.** TanStack Query decides whether `data` can be `undefined` from two
+`useQuery` overloads: one taking `initialData`, one taking `initialData?: undefined`.
+An optional `initialData` matches neither, and Solid cannot hide that behind a type
+assertion because `shouldCastQueryOptions` returns `false`. So `initialData` is
+removed from the base type and each generated hook declares the same overload pair,
+adding it back per overload. `getInitialDataOptionsType` supplies the type to take
+it from, wrapping the accessor alias in `ReturnType` to reach the object type.
+
+**Options the caller must supply.** Infinite queries need `initialPageParam` and
+`getNextPageParam`, which TanStack Query requires and orval cannot infer.
+`getUserQueryOptionsConstraint` returns `require` (becomes required on
+`options.query`, which makes `options` required too) and `exclude` (removed from
+`options.query`). These render as
+`Omit<Partial<Options>, require | exclude> & Pick<Options, require>`, each half
+dropped when empty, so returning only `exclude` reshapes the type without requiring
+anything. A property already set in `override.query.options` is dropped from
+`require`, so callers are not asked for what the configuration provides.
+
+**Required options force earlier parameters to widen.** TypeScript rejects a
+required parameter after an optional one (TS1016), so a non-empty `require` means
+preceding optional parameters become `name: undefined | T`, via
+`widenOptionalPropsToUndefined` in `src/query-generator.ts`. Apply it only where
+`options` is required: `invalidateListPets` and every other generated `invalidate`
+helper ends in an optional `options?: InvalidateOptions`, and widening those would
+force callers to pass `undefined` for nothing.
+
+**Before adopting this in another adapter.** Two places build parameter lists from
+the `definition` field rather than `implementation` and need the same widening
+first, or the generated signatures fail with TS1016: the overload declarations in
+`overrideTypes` in `src/query-generator.ts`, and `getHookPropsDefinitions` in
+`src/frameworks/angular.ts` and `src/frameworks/svelte.ts`.
+
 ## Common Pitfalls
 
 - **Forgetting `vp run update-samples`** after changing generation logic — CI will catch stale samples as a diff.
 - **Testing only one framework** after changing `withDefaults()` or shared generators — regressions in other frameworks won't be caught.
 - **Adding `if (isAngular)` in shared generators** — use adapter methods instead. The FrameworkAdapter pattern exists to avoid framework conditionals in shared code.
 - **Framework detection helpers in `utils.ts`** (`isAngular()`, `isVue()`, etc.) are for `dependencies.ts` only — never use them in generators or adapter code.
-- **Angular test gap** — `tests/configs/angular-query.config.ts` has no `generate:` script in `tests/package.json`, so Angular generation is NOT verified by `test:cli`. Rely on `samples/angular-query` tests instead.
+- **Adding a `tests/configs/*.config.ts` without a matching `generate:` script** in `tests/package.json`. `generate-api` is `run-p 'generate:*'`, so a config with no script is generated by nobody and snapshot-checked by nobody. Every config has one today; keep it that way when you add a framework.

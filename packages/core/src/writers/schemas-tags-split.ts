@@ -6,7 +6,12 @@ import {
   type NamingConvention,
   type Tsconfig,
 } from '../types';
-import { conventionName, getImportExtension, upath } from '../utils';
+import {
+  compareNatural,
+  conventionName,
+  getImportExtension,
+  upath,
+} from '../utils';
 import { writeGeneratedFile } from './file';
 import { buildSchemaTagMap, SHARED_DIR } from './schema-tag-mapper';
 import { writeSchemas } from './schemas';
@@ -91,9 +96,7 @@ export async function writeSchemasTagsSplit({
 
     const tagDirs = [...groups.keys()]
       .filter((dir) => dir !== SHARED_DIR)
-      .toSorted((a: string, b: string) =>
-        a.localeCompare(b, 'en', { numeric: true }),
-      );
+      .toSorted((a: string, b: string) => compareNatural(a, b));
     const tagExports = tagDirs.map((dir) => {
       const dirPath = importExtension
         ? `./${dir}/index${importExtension}`
