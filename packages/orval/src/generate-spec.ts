@@ -1,8 +1,12 @@
+import fs from 'node:fs/promises';
+
 import {
+  escapePath,
   getConfiguredMockDirectories,
   getFileInfo,
   isString,
   log,
+  logWarning,
   type NormalizedOptions,
   OutputMockType,
   removeFilesAndEmptyFolders,
@@ -100,11 +104,16 @@ export async function generateSpec(
     ).map(toComparablePath);
 
     for (const directory of ownedDirectories) {
+      // The relative path is embedded in a glob pattern below, so a mock
+      // directory name that itself carries glob metacharacters (e.g.
+      // `mocks[legacy]`) must be escaped. Otherwise the negation pattern
+      // does not match the literal directory and the wipe below can delete
+      // hand-written files inside it.
       const nestedMockPatterns = mockDirectories
         .filter((mockDirectory) => isBelow(directory, mockDirectory))
         .map(
           (mockDirectory) =>
-            `!${relativeToParent(directory, mockDirectory)}/**`,
+            `!${escapePath(relativeToParent(directory, mockDirectory))}/**`,
         );
 
       await removeFilesAndEmptyFolders(
@@ -126,6 +135,26 @@ export async function generateSpec(
     for (const directory of mockDirectories) {
       // An owned directory of the same path is emptied above.
       if (ownedDirectories.has(directory)) continue;
+
+      // `followSymbolicLinks: false` only keeps the glob from following a
+      // symlink found *below* `directory` — it does not validate `directory`
+      // itself. If the configured mock path is a symlink, it would still be
+      // used as the glob's cwd, and cleanup would follow it straight through
+      // to files outside the workspace. lstat (not stat, so the link itself
+      // is inspected rather than its target) and skip it.
+      let mockRootStats;
+      try {
+        mockRootStats = await fs.lstat(directory);
+      } catch {
+        continue; // Nothing to clean if the directory doesn't exist yet.
+      }
+      if (mockRootStats.isSymbolicLink()) {
+        logWarning(
+          `${projectName ? `${projectName} ` : ''}Skipped cleaning "${directory}": the configured mock path is a symbolic link.`,
+        );
+        continue;
+      }
+
       await removeFilesAndEmptyFolders(mockPatterns, directory, {
         followSymbolicLinks: false,
       });

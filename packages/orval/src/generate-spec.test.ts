@@ -2380,6 +2380,84 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  // Regression: the nested-mock exclusion pattern is built by appending the
+  // mock directory's path (relative to the owned directory) to `/**`. A mock
+  // directory name that itself carries glob metacharacters — `[`/`]` open a
+  // character class — must be escaped before it is embedded in that pattern,
+  // or the negation silently fails to match the literal directory and the
+  // owned-directory wipe deletes hand-written files inside it.
+  it('keeps hand-written files in a mock directory whose name has glob metacharacters', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const nestedWithMetachars: Partial<OutputOptions> = {
+        target: './src/api/petstore.ts',
+        mock: {
+          path: './src/api/mocks[legacy]',
+          generators: [{ type: 'msw' }],
+        },
+      };
+
+      await generateWithOutput(workspace, nestedWithMetachars);
+
+      const handWritten = path.join(
+        workspace,
+        'src/api/mocks[legacy]/browser.ts',
+      );
+      await fs.outputFile(handWritten, '// keep');
+      const stale = path.join(
+        workspace,
+        'src/api/mocks[legacy]/removed.msw.ts',
+      );
+      await fs.outputFile(stale, '// stale');
+
+      await generateWithOutput(workspace, nestedWithMetachars);
+
+      expect(await fs.pathExists(handWritten)).toBe(true);
+      expect(await fs.pathExists(stale)).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - clean skips a symlinked mock directory', () => {
+  // Regression: `followSymbolicLinks: false` only keeps the glob from
+  // following a symlink found *below* the cleanup cwd — it does not validate
+  // the cwd itself. If `mock.path` is a symlink, cleanup previously followed
+  // it straight through to the link's target, which can sit outside the
+  // workspace entirely. The fix lstats each mock root first and skips
+  // cleaning it (with a warning) when it is a symbolic link.
+  it('does not touch files in the target of a symlinked mock.path', async () => {
+    const workspace = await createTempWorkspace();
+    const outsideTarget = await createTempWorkspace();
+
+    try {
+      const outsideFile = path.join(outsideTarget, 'do-not-touch.ts');
+      await fs.outputFile(outsideFile, '// outside the workspace');
+
+      const mockLink = path.join(workspace, 'src/mocks');
+      await fs.ensureDir(path.dirname(mockLink));
+      await fs.symlink(outsideTarget, mockLink, 'dir');
+
+      // A stale-looking file already sitting in the symlink target, matching
+      // the mock cleanup patterns, so a naive fix (just widening the glob
+      // options) would still be caught by an assertion on file survival.
+      const staleLookingFile = path.join(outsideTarget, 'stale.msw.ts');
+      await fs.outputFile(staleLookingFile, '// looks stale, is not ours');
+
+      await generateWithOutput(workspace, {
+        mock: { path: './src/mocks', generators: [{ type: 'msw' }] },
+      });
+
+      expect(await fs.pathExists(outsideFile)).toBe(true);
+      expect(await fs.pathExists(staleLookingFile)).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      await rm(outsideTarget, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('generateSpec - clean scopes to the configured schemas directory', () => {

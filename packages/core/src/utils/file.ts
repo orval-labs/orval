@@ -1,9 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { glob } from 'tinyglobby';
+import { escapePath, glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
+
+/**
+ * Escapes glob metacharacters (`*?()[]{}!`, a leading `!`, and a literal
+ * backslash) in a path segment so it can be embedded in a glob pattern and
+ * only ever match itself. Re-exported from `tinyglobby`, the glob engine
+ * {@link removeFilesAndEmptyFolders} runs on, so callers that build patterns
+ * around a user-configured directory name (which may contain those
+ * characters) stay in step with whatever engine is in use.
+ */
+export { escapePath };
 
 export function getFileInfo(
   target = '',
