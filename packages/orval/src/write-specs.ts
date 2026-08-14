@@ -211,8 +211,12 @@ const DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT: Partial<
 > = {
   [OutputClient.ANGULAR]: {
     fileSuffix: '.resource',
-    typeNames: ['OrvalHttpResourceOptions', 'ResourceState'],
-    valueNames: ['toResourceState'],
+    typeNames: [
+      'OrvalHttpResourceOptions',
+      'OrvalHttpResourceRequestExtension',
+      'ResourceState',
+    ],
+    valueNames: ['applyOrvalRequestExtension', 'toResourceState'],
   },
 };
 
