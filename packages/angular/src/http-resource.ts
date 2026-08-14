@@ -1354,19 +1354,11 @@ export interface ResourceState<T> {
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
   readonly isLoading: Signal<boolean>;
-  /**
-   * Narrows the state to \`ResolvedResourceState<T>\` when a value is available.
-   * Guard reads of \`value()\` with this call, because \`value()\` throws in the
-   * error state.
-   */
+  /** Guard reads of \`value()\` with this call: \`value()\` throws in the error state. */
   readonly hasValue: () => this is ResolvedResourceState<T>;
   readonly reload: () => boolean;
 }
 
-/**
- * A ResourceState that holds a value, so \`value()\` is no longer optional.
- * Obtained by narrowing a \`ResourceState<T>\` with \`hasValue()\`.
- */
 export interface ResolvedResourceState<T> extends ResourceState<T> {
   readonly value: Signal<Exclude<T, undefined>>;
 }
