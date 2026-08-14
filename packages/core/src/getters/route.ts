@@ -128,7 +128,7 @@ export function resolveServerUrl(
   const variables = options.variables;
   for (const variableKey of Object.keys(server.variables)) {
     const variable = server.variables[variableKey];
-    if (variables?.[variableKey]) {
+    if (variables?.[variableKey] !== undefined) {
       if (
         variable.enum &&
         !variable.enum.some((e) => e == variables[variableKey])
