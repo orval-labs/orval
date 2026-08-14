@@ -3538,6 +3538,93 @@ describe('angular httpResource generator', () => {
     });
   });
 
+  describe('zod schema import deduplication', () => {
+    // Regression test for a Copilot review finding on #3813: in Zod mode,
+    // `buildSchemaImportDependencies` deduped schema imports *before* forcing
+    // every export to `{ values: true }`. `dedupeSchemaImports` keys on the
+    // `values` field, so a schema name that shows up once as a value import
+    // (`Pet`, auto-detected as the response's runtime-validation schema) and
+    // once as a type-only import (`Pet`, imported for a named path-params
+    // type) survived the pre-force dedupe as two distinct entries, and
+    // forcing `values: true` on both collapsed them into identical entries
+    // that were never deduped again.
+    //
+    // Core's `generateDependency` (used when rendering the final import
+    // statement) happens to `unique()` its named-import specifiers too, so
+    // this duplication was already masked in the emitted file and this test
+    // passes with or without the `dedupeSchemaImports` call below. It is
+    // kept anyway as a guard on `buildSchemaImportDependencies`'s own
+    // output — the function that this dependency list is meant to be
+    // self-consistent, independent of a downstream safety net — and because
+    // it is the reproduction the review comment asked for.
+    it('collapses a schema imported once as a value and once as a type into a single specifier', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          // Auto-detected as the runtime-validation schema (schemas.type is
+          // 'zod' and runtimeValidation is on by default), so this import is
+          // forced to `values: true` by `getHttpResourceVerbImports`.
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+        // A named path-params prop pulls in its schema as a plain,
+        // type-only import (no `values` field set). Reusing the `Pet` name
+        // here reproduces the type-only + value duplicate.
+        props: [
+          {
+            type: GetterPropType.NAMED_PATH_PARAMS,
+            name: 'params',
+            definition: 'params: Pet',
+            implementation: 'params: Pet',
+            default: false,
+            required: true,
+            destructured: '{ petId }',
+            schema: { name: 'Pet', model: '', imports: [] },
+          } as never,
+        ],
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+          splitByTags: false,
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: output.target,
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      // The schema import may be pretty-printed across multiple lines, so
+      // isolate the `import { ... } from './schemas'` block rather than a
+      // single line.
+      const schemaImportBlock = resourceFile?.content.match(
+        /import\s*\{([^}]*)\}\s*from\s*['"]\.\/schemas['"];?/,
+      );
+
+      expect(schemaImportBlock).toBeDefined();
+      const specifiers = schemaImportBlock?.[1]
+        .split(',')
+        .map((specifier) => specifier.trim())
+        .filter(Boolean);
+
+      // Exactly one `Pet` specifier, not `import { Pet, Pet } from '...'`.
+      expect(specifiers?.filter((specifier) => specifier === 'Pet')).toEqual([
+        'Pet',
+      ]);
+    });
+  });
+
   describe('urlEncodeParameters', () => {
     const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {
       const verbOption = createVerbOption();
