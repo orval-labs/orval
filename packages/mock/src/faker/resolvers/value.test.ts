@@ -1,7 +1,15 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { getNullable, isNullableSchema, resolveMockOverride } from './value';
+import { createTestContextSpec } from '../../../../core/src/test-utils/context';
+import type { MockSchema } from '../../types';
+import {
+  getNullable,
+  isNullableSchema,
+  resolveMockOverride,
+  resolveMockValue,
+  resolveRefTarget,
+} from './value';
 
 type Item = OpenApiSchemaObject & { name: string; path?: string };
 
@@ -16,6 +24,27 @@ describe('isNullableSchema', () => {
 
   it('returns false for non-nullable schemas', () => {
     expect(isNullableSchema({ type: 'string' })).toBe(false);
+  });
+});
+
+describe('resolveRefTarget', () => {
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: { Pet: { type: 'object', required: ['name'] } },
+      },
+    },
+  });
+
+  it('resolves a same-document fragment ref', () => {
+    expect(resolveRefTarget('#/components/schemas/Pet', context)).toEqual({
+      type: 'object',
+      required: ['name'],
+    });
+  });
+
+  it('returns undefined for a fragmentless external ref', () => {
+    expect(resolveRefTarget('./pet.yaml', context)).toBeUndefined();
   });
 });
 
@@ -198,5 +227,49 @@ describe('resolveMockOverride (#3470 — nested transparency precedence)', () =>
     const result = resolveMockOverride({ 'country.name': "'France'" }, item);
 
     expect(result).toBeUndefined();
+  });
+});
+
+describe('misplaced boolean `required` (#3719)', () => {
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          Item: {
+            type: 'object',
+            required: ['name'],
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    },
+  });
+
+  const resolve = (schema: unknown) =>
+    resolveMockValue({
+      schema: schema as MockSchema,
+      operationId: 'listItems',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  it('names the offending schema instead of failing on the spread', () => {
+    // A property that is a `$ref` with a sibling `required: true` used to reach
+    // the spread in `resolveMockValue` and fail with
+    // `(schemaReference.required ?? []) is not iterable`, which names neither
+    // the schema nor the expected shape. The same document generates fine with
+    // `mock: false`.
+    expect(() =>
+      resolve({ $ref: '#/components/schemas/Item', required: true }),
+    ).toThrowError(/schema "Item" has `required: true`/);
+  });
+
+  it('still resolves a valid required array on the reference', () => {
+    expect(() =>
+      resolve({ $ref: '#/components/schemas/Item', required: ['name'] }),
+    ).not.toThrow();
   });
 });

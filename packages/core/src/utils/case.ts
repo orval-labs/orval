@@ -91,12 +91,17 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
   return fill(low(prep(s, !!fillWith)), fillWith, isDeapostrophe);
 };
 
-// Caches the previously converted strings to improve performance
-const pascalMemory: Record<string, string> = {};
+// Caches the previously converted strings to improve performance.
+// A Map, not an object literal: the keys are names taken from the OpenAPI
+// document, and a schema is free to call a property `toString` or
+// `constructor`. On an object those read back off `Object.prototype`, so the
+// lookup would return a function instead of a string.
+const pascalMemory = new Map<string, string>();
 
 export function pascal(s = '') {
-  if (pascalMemory[s]) {
-    return pascalMemory[s];
+  const cached = pascalMemory.get(s);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const isStartWithUnderscore = s.startsWith('_');
@@ -114,7 +119,7 @@ export function pascal(s = '') {
     ? `_${pascalString}`
     : pascalString;
 
-  pascalMemory[cacheKey] = pascalWithUnderscore;
+  pascalMemory.set(cacheKey, pascalWithUnderscore);
 
   return pascalWithUnderscore;
 }
