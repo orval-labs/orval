@@ -1,0 +1,4 @@
+# Generated TypeDoc bundles committed so the sample docs work from a clone;
+# they are minified vendor output, not lintable source.
+samples/react-app/docs-html/assets/*.js
+samples/react-app/docs-html-plugin/assets/*.js
