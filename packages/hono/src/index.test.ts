@@ -220,9 +220,9 @@ describe('resolveDefaultSchemaModule', () => {
   });
 
   it('returns the target path itself in single mode', () => {
-    expect(
-      resolveDefaultSchemaModule(output({ mode: 'single' })),
-    ).toBe('/out/client.generated.ts');
+    expect(resolveDefaultSchemaModule(output({ mode: 'single' }))).toBe(
+      '/out/client.generated.ts',
+    );
   });
 
   it('returns the configured schemas directory when set', () => {

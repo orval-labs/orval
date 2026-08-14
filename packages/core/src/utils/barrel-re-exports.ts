@@ -86,10 +86,7 @@ export function buildBarrelReExports(
   // ambiguous (TS2308) as if neither had been claimed.
   const claimedTypes = new Set(alreadyExported.types);
   const claimedValues = new Set(alreadyExported.values);
-  const claim = (
-    names: readonly string[],
-    claimed: Set<string>,
-  ): string[] => {
+  const claim = (names: readonly string[], claimed: Set<string>): string[] => {
     const owned = names.filter(
       (name) => !claimed.has(name) && (declarationCounts.get(name) ?? 0) > 1,
     );
