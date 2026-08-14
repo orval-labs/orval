@@ -164,12 +164,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer(['typedoc-plugin-coverage']);
 
-    await reader.read(
-      container as never,
-      undefined as never,
-      '',
-      () => {},
-    );
+    await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).toHaveBeenCalledWith('plugin', [
       'typedoc-plugin-coverage',
@@ -181,12 +176,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer(['typedoc-plugin-markdown']);
 
-    await reader.read(
-      container as never,
-      undefined as never,
-      '',
-      () => {},
-    );
+    await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).not.toHaveBeenCalled();
   });
@@ -195,12 +185,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer();
 
-    await reader.read(
-      container as never,
-      undefined as never,
-      '',
-      () => {},
-    );
+    await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).toHaveBeenCalledWith('plugin', [
       'typedoc-plugin-markdown',
@@ -223,7 +208,10 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'orval-typedoc-'));
     try {
       const entryFile = path.join(tmpDir, 'index.ts');
-      await fs.writeFile(entryFile, 'export interface Foo {\n  bar: string;\n}\n');
+      await fs.writeFile(
+        entryFile,
+        'export interface Foo {\n  bar: string;\n}\n',
+      );
       await fs.writeJson(path.join(tmpDir, 'tsconfig.json'), {
         compilerOptions: { strict: true },
         files: ['index.ts'],
