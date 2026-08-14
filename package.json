@@ -1,6 +1,6 @@
 {
   "name": "orval-workspaces",
-  "version": "8.23.0",
+  "version": "8.24.0",
   "private": true,
   "license": "MIT",
   "workspaces": [
@@ -113,6 +113,11 @@
       "svelte": "5.53.0",
       "svelte-check": "3.8.6",
       "@tanstack/svelte-query": "4.41.0"
+    },
+    "solid": {
+      "solid-js": "1.9.11",
+      "@solidjs/router": "0.15.4",
+      "@tanstack/solid-query": "5.90.23"
     },
     "react": {
       "react": "18.3.1",
