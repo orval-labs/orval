@@ -92,6 +92,50 @@ const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-gen-spec-'));
 };
 
+describe('generateSpec - unchanged formatted output', () => {
+  it('keeps mtimes when prettier produces the same final files', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+    const schemasDir = path.join(workspace, 'model');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './endpoints.ts',
+            schemas: './model',
+            client: 'zod',
+            formatter: 'prettier',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+      const generatedFiles = [
+        targetFile,
+        ...(await fs.readdir(schemasDir)).map((file) =>
+          path.join(schemasDir, file),
+        ),
+      ];
+      const past = new Date('2020-01-01T00:00:00.000Z');
+      await Promise.all(
+        generatedFiles.map((file) => fs.utimes(file, past, past)),
+      );
+
+      await generateSpec(workspace, options);
+
+      const mtimes = await Promise.all(
+        generatedFiles.map(async (file) => (await fs.stat(file)).mtimeMs),
+      );
+      expect(mtimes).toEqual(generatedFiles.map(() => past.getTime()));
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - HTTP QUERY method', () => {
   it('generates clients for QUERY operations with request bodies', async () => {
     const workspace = await createTempWorkspace();
