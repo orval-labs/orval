@@ -198,13 +198,32 @@ function collectSwagger2FormDataItems(
   for (const [path, pathItem] of Object.entries(paths)) {
     if (!isObject(pathItem)) continue;
 
+    const pathLevelParams = Array.isArray(pathItem.parameters)
+      ? pathItem.parameters
+      : [];
+
     for (const [method, operation] of Object.entries(pathItem)) {
-      if (!isObject(operation) || !Array.isArray(operation.parameters)) {
+      if (!isObject(operation)) {
+        continue;
+      }
+      const operationParams = Array.isArray(operation.parameters)
+        ? operation.parameters
+        : undefined;
+      if (!operationParams && pathLevelParams.length === 0) {
         continue;
       }
 
+      // Swagger 2.0 applies path-item parameters to every operation, with
+      // operation-level parameters overriding path-level ones on the same
+      // (name, in) pair — including a ref and its inline equivalent.
+      const merged = mergePathAndOperationParameters(
+        pathLevelParams,
+        operationParams,
+        resolveParameter,
+      );
+
       const byName = new Map<string, Record<string, unknown>>();
-      for (const rawParam of operation.parameters) {
+      for (const rawParam of merged) {
         const param = resolveParameter(rawParam);
         if (!param || param.in !== 'formData' || !isObject(param.items)) {
           continue;
@@ -224,6 +243,34 @@ function collectSwagger2FormDataItems(
   }
 
   return formDataItems;
+}
+
+/**
+ * Merge path-item parameters into an operation's own parameters per Swagger 2.0
+ * semantics: operation-level parameters override path-level ones with the same
+ * (name, in) pair. `$ref`s are resolved (when possible) so a ref and its inline
+ * equivalent dedupe against each other.
+ */
+function mergePathAndOperationParameters(
+  pathLevel: unknown[],
+  operationLevel: unknown[] | undefined,
+  resolveParameter: (p: unknown) => Record<string, unknown> | undefined,
+): unknown[] {
+  const keyOf = (p: unknown): string | undefined => {
+    const resolved = resolveParameter(p);
+    if (!resolved) return undefined;
+    return `${String(resolved.in ?? '')}:${String(resolved.name ?? '')}`;
+  };
+  const opKeys = new Set(
+    (operationLevel ?? [])
+      .map(keyOf)
+      .filter((k): k is string => k !== undefined),
+  );
+  const kept = pathLevel.filter((p) => {
+    const key = keyOf(p);
+    return key === undefined || !opKeys.has(key);
+  });
+  return [...kept, ...(operationLevel ?? [])];
 }
 
 /**
@@ -309,13 +356,15 @@ function restoreSwagger2FormDataItems<T extends Record<string, unknown>>(
         bodies.add(directBody);
       }
       // The upgrader leaves reusable formData parameters as `$ref` entries in
-      // the operation's `parameters` array pointing at components.requestBodies.
-      if (Array.isArray(operation.parameters)) {
-        for (const rawParam of operation.parameters) {
-          const body = resolveRequestBody(rawParam);
-          if (body) {
-            bodies.add(body);
-          }
+      // the operation's `parameters` array pointing at components.requestBodies
+      // — or, for path-level parameters, in the Path Item's `parameters` array.
+      for (const rawParam of [
+        ...(Array.isArray(operation.parameters) ? operation.parameters : []),
+        ...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []),
+      ]) {
+        const body = resolveRequestBody(rawParam);
+        if (body) {
+          bodies.add(body);
         }
       }
 

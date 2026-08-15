@@ -525,6 +525,122 @@ describe('swagger2FormData', () => {
     expect(body?.model).not.toContain('unknown[]');
   });
 
+  it('keeps items on path-level inline formData array parameters (#3857)', async () => {
+    // Swagger 2.0 allows parameters on a Path Item Object; they apply to every
+    // operation under the path. The capture must merge them in.
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level form data', version: '1.0.0' },
+      paths: {
+        '/submit': {
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+            },
+          ],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['application/x-www-form-urlencoded'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    const body = result.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps items on path-level reusable formData parameters (#3857)', async () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level reusable form data', version: '1.0.0' },
+      parameters: {
+        tagList: {
+          name: 'tags',
+          in: 'formData',
+          required: true,
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      paths: {
+        '/submit': {
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['multipart/form-data'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    // Reusable formData parameters are promoted to a requestBody component, so
+    // the generated body type takes its name from the reusable parameter key.
+    const body = result.schemas.find((s) => s.name === 'TagListBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('lets operation-level parameters override path-level ones (#3857)', async () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level override', version: '1.0.0' },
+      paths: {
+        '/submit': {
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+            },
+          ],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['application/x-www-form-urlencoded'],
+            parameters: [
+              {
+                name: 'tags',
+                in: 'formData',
+                required: true,
+                type: 'array',
+                items: { type: 'integer', format: 'int64' },
+              },
+            ],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    const body = result.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: number[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
   it('does not alter OAS 3 formData array parameters (#3857)', async () => {
     // The working OAS 3.0 counterpart from the issue: item types are already
     // preserved by the upgrader, so the repair must be a no-op.
