@@ -128,11 +128,204 @@ async function resolveSpec(
     }
   }
 
-  const { specification } = upgrade(transformedData);
+  // The upgrader converts Swagger 2.0 `formData` parameters into a
+  // `requestBody` schema but drops the `items` of array-typed parameters,
+  // which would degrade generated types from e.g. `string[]` to `unknown[]`
+  // (#3857). Capture the item schemas before upgrading (the upgrader also
+  // mutates its input, so `swagger: '2.0'` is gone afterwards) and re-apply
+  // them to the upgraded document.
+  const formDataItems = isSwagger2(transformedData)
+    ? collectSwagger2FormDataItems(transformedData)
+    : undefined;
+
+  const upgraded = upgrade(transformedData);
+  let specification = upgraded.specification;
 
   // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
   // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
+  if (formDataItems && formDataItems.size > 0) {
+    specification = restoreSwagger2FormDataItems(specification, formDataItems);
+  }
+
   return specification as OpenApiDocument;
+}
+
+// ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────
+
+/**
+ * A capture of Swagger 2.0 `formData` array parameter item schemas, keyed by
+ * path → method → parameter name. `@scalar/openapi-parser`'s `upgrade()`
+ * rewrites `formData` parameters into a `requestBody.content` schema but does
+ * not carry the parameter's `items` over, so array-typed fields would be
+ * generated as `unknown[]` instead of e.g. `string[]`.
+ */
+type Swagger2FormDataItems = Map<
+  string,
+  Map<string, Map<string, Record<string, unknown>>>
+>;
+
+function isSwagger2(document: Record<string, unknown>): boolean {
+  return document.swagger === '2.0';
+}
+
+function collectSwagger2FormDataItems(
+  document: Record<string, unknown>,
+): Swagger2FormDataItems {
+  const reusableParameters = isObject(document.parameters)
+    ? (document.parameters as Record<string, unknown>)
+    : {};
+
+  const resolveParameter = (
+    param: unknown,
+  ): Record<string, unknown> | undefined => {
+    if (!isObject(param)) {
+      return undefined;
+    }
+    if ('$ref' in param && isString(param.$ref)) {
+      const ref = param.$ref;
+      if (!ref.startsWith('#/parameters/')) {
+        return undefined;
+      }
+      const target = reusableParameters[ref.slice('#/parameters/'.length)];
+      return isObject(target) ? target : undefined;
+    }
+    return param;
+  };
+
+  const formDataItems: Swagger2FormDataItems = new Map();
+  const paths = isObject(document.paths) ? document.paths : {};
+
+  for (const [path, pathItem] of Object.entries(paths)) {
+    if (!isObject(pathItem)) continue;
+
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!isObject(operation) || !Array.isArray(operation.parameters)) {
+        continue;
+      }
+
+      const byName = new Map<string, Record<string, unknown>>();
+      for (const rawParam of operation.parameters) {
+        const param = resolveParameter(rawParam);
+        if (!param || param.in !== 'formData' || !isObject(param.items)) {
+          continue;
+        }
+        byName.set(String(param.name), param.items);
+      }
+
+      if (byName.size > 0) {
+        let methods = formDataItems.get(path);
+        if (!methods) {
+          methods = new Map();
+          formDataItems.set(path, methods);
+        }
+        methods.set(method, byName);
+      }
+    }
+  }
+
+  return formDataItems;
+}
+
+/**
+ * Re-apply captured Swagger 2.0 formData item schemas onto the upgraded
+ * document. Only patches array-typed schema properties that the upgrader
+ * left without an `items` key, so it never overrides anything the upgrader
+ * already preserved.
+ */
+function restoreSwagger2FormDataItems<T extends Record<string, unknown>>(
+  document: T,
+  captured: Swagger2FormDataItems,
+): T {
+  const paths = isObject(document.paths) ? document.paths : {};
+
+  // The upgrader promotes reusable formData parameters (`$ref` to
+  // `#/parameters/...`) to `components.requestBodies` and leaves the
+  // operation's `requestBody` as a `$ref` to them.
+  const components = isObject(document.components) ? document.components : {};
+  const requestBodies = isObject(components.requestBodies)
+    ? (components.requestBodies as Record<string, unknown>)
+    : {};
+
+  const resolveRequestBody = (
+    requestBody: unknown,
+  ): Record<string, unknown> | undefined => {
+    if (!isObject(requestBody)) {
+      return undefined;
+    }
+    if ('$ref' in requestBody && isString(requestBody.$ref)) {
+      const ref = requestBody.$ref;
+      if (!ref.startsWith('#/components/requestBodies/')) {
+        return undefined;
+      }
+      const target =
+        requestBodies[ref.slice('#/components/requestBodies/'.length)];
+      return isObject(target) ? target : undefined;
+    }
+    return requestBody;
+  };
+
+  const patchProperties = (
+    requestBody: Record<string, unknown>,
+    byName: Map<string, Record<string, unknown>>,
+  ): void => {
+    const content = requestBody.content;
+    if (!isObject(content)) return;
+
+    for (const mediaType of Object.values(content)) {
+      if (!isObject(mediaType)) continue;
+      const schema = mediaType.schema;
+      if (!isObject(schema)) continue;
+      const properties = schema.properties;
+      if (!isObject(properties)) continue;
+
+      for (const [paramName, items] of byName) {
+        const property = properties[paramName];
+        if (!isObject(property)) continue;
+
+        const propType = property.type;
+        const isArray =
+          propType === 'array' ||
+          (Array.isArray(propType) && propType.includes('array'));
+        if (!isArray || property.items !== undefined) continue;
+
+        // The captured item schema is a plain Items Object (a `$ref` is not
+        // valid there in Swagger 2.0), so it can be assigned as-is.
+        property.items = items;
+      }
+    }
+  };
+
+  for (const [path, methods] of captured) {
+    const pathItem = paths[path];
+    if (!isObject(pathItem)) continue;
+
+    for (const [method, byName] of methods) {
+      const operation = pathItem[method];
+      if (!isObject(operation)) continue;
+
+      const bodies = new Set<Record<string, unknown>>();
+      const directBody = resolveRequestBody(operation.requestBody);
+      if (directBody) {
+        bodies.add(directBody);
+      }
+      // The upgrader leaves reusable formData parameters as `$ref` entries in
+      // the operation's `parameters` array pointing at components.requestBodies.
+      if (Array.isArray(operation.parameters)) {
+        for (const rawParam of operation.parameters) {
+          const body = resolveRequestBody(rawParam);
+          if (body) {
+            bodies.add(body);
+          }
+        }
+      }
+
+      for (const body of bodies) {
+        patchProperties(body, byName);
+      }
+    }
+  }
+
+  return document;
 }
 
 async function applyInputTransformer(

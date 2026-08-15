@@ -420,6 +420,172 @@ describe('validation', () => {
   });
 });
 
+describe('swagger2FormData', () => {
+  // Regression spec for https://github.com/orval-labs/orval/issues/3857:
+  // @scalar/openapi-parser's upgrade() drops the `items` of Swagger 2.0
+  // formData array parameters when converting them to a requestBody schema,
+  // so generated types would degrade from `string[]` to `unknown[]`.
+  const SWAGGER2_FORM_DATA_SPEC = {
+    swagger: '2.0',
+    info: { title: 'Form Data API (OAS 2.0)', version: '1.0.0' },
+    basePath: '/',
+    parameters: {
+      tagList: {
+        name: 'tags',
+        in: 'formData',
+        required: true,
+        type: 'array',
+        items: { type: 'string' },
+      },
+    },
+    paths: {
+      '/submit': {
+        post: {
+          operationId: 'submitForm',
+          consumes: ['application/x-www-form-urlencoded'],
+          produces: ['application/json'],
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+              collectionFormat: 'csv',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Success',
+              schema: {
+                type: 'object',
+                properties: { ok: { type: 'boolean' } },
+              },
+            },
+          },
+        },
+      },
+      '/upload': {
+        post: {
+          operationId: 'uploadForm',
+          consumes: ['multipart/form-data'],
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          responses: { '200': { description: 'Success' } },
+        },
+      },
+      '/ints': {
+        post: {
+          operationId: 'intListForm',
+          consumes: ['application/x-www-form-urlencoded'],
+          parameters: [
+            {
+              name: 'ids',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'integer', format: 'int64' },
+            },
+          ],
+          responses: { '200': { description: 'Success' } },
+        },
+      },
+    },
+  };
+
+  async function importSwagger2FormData() {
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SWAGGER2_FORM_DATA_SPEC },
+      },
+      'test',
+      {},
+    );
+    return importSpecs('test', normalizedOptions);
+  }
+
+  it('keeps items on inline formData array parameters (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps items on reusable formData parameters referenced via #/parameters (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'TagListBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps non-string item types (integer → number[]) (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'IntListFormBody');
+    expect(body?.model).toContain('ids: number[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('does not alter OAS 3 formData array parameters (#3857)', async () => {
+    // The working OAS 3.0 counterpart from the issue: item types are already
+    // preserved by the upgrader, so the repair must be a no-op.
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.0.3',
+            info: { title: 'Form Data API (OAS 3.0)', version: '1.0.0' },
+            paths: {
+              '/submit': {
+                post: {
+                  operationId: 'submitForm',
+                  requestBody: {
+                    required: true,
+                    content: {
+                      'application/x-www-form-urlencoded': {
+                        schema: {
+                          type: 'object',
+                          required: ['tags'],
+                          properties: {
+                            tags: {
+                              type: 'array',
+                              items: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  responses: {
+                    '200': {
+                      description: 'Success',
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: { ok: { type: 'boolean' } },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'test',
+      {},
+    );
+
+    const spec = await importSpecs('test', normalizedOptions);
+    const body = spec.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+});
+
 describe('externalRefs', () => {
   async function createExternalRefWorkspace() {
     const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-allow-'));
