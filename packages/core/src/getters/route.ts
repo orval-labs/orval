@@ -98,6 +98,54 @@ export function getRoute(route: string) {
 }
 
 /**
+ * Resolves a concrete base URL from an OpenAPI specification's `servers`
+ * field, applying the same `index`/`variables` selection semantics as
+ * `BaseUrlFromSpec`.
+ *
+ * Unlike `getFullRoute`'s `BaseUrlFromSpec` handling, this returns `''` when
+ * `servers` is missing or empty instead of throwing — callers that want a
+ * relative-URL fallback (e.g. the Angular DI base-url token) can use this
+ * directly, while `getFullRoute` still throws for its own
+ * `getBaseUrlFromSpecification` path to preserve existing behavior.
+ *
+ * The returned value is NOT escaped for embedding in a template literal —
+ * callers that splice it into generated backtick source (e.g. `getFullRoute`)
+ * must escape it themselves; callers that embed it via `JSON.stringify`
+ * (e.g. the Angular DI base-url token file) should use the raw value as-is.
+ */
+export function resolveServerUrl(
+  servers: OpenApiServerObject[] | undefined,
+  options: { index?: number; variables?: Record<string, string> },
+): string {
+  if (!servers || servers.length === 0) return '';
+
+  const server = servers.at(Math.min(options.index ?? 0, servers.length - 1));
+  if (!server) return '';
+  const serverUrl = server.url ?? '';
+  if (!server.variables) return serverUrl;
+
+  let url = serverUrl;
+  const variables = options.variables;
+  for (const variableKey of Object.keys(server.variables)) {
+    const variable = server.variables[variableKey];
+    if (variables?.[variableKey] !== undefined) {
+      if (
+        variable.enum &&
+        !variable.enum.some((e) => e == variables[variableKey])
+      ) {
+        throw new Error(
+          `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
+        );
+      }
+      url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
+    } else {
+      url = url.replaceAll(`{${variableKey}}`, String(variable.default));
+    }
+  }
+  return url;
+}
+
+/**
  * Prepends a base URL to an already-processed route.
  *
  * `route` must be the output of {@link getRoute} (already escaped for template
@@ -127,33 +175,14 @@ export function getFullRoute(
           "Orval is configured to use baseUrl from the specifications 'servers' field, but there exist no servers in the specification.",
         );
       }
-      const server = servers.at(
-        Math.min(baseUrl.index ?? 0, servers.length - 1),
+      // `resolveServerUrl` returns the raw (unescaped) URL; escape it here
+      // for safe embedding in the generated backtick template literal.
+      return esc(
+        resolveServerUrl(servers, {
+          index: baseUrl.index,
+          variables: baseUrl.variables,
+        }),
       );
-      if (!server) return '';
-      const serverUrl = server.url ?? '';
-      if (!server.variables)
-        return jsesc(serverUrl, { quotes: 'backtick', wrap: false });
-
-      let url = serverUrl;
-      const variables = baseUrl.variables;
-      for (const variableKey of Object.keys(server.variables)) {
-        const variable = server.variables[variableKey];
-        if (variables?.[variableKey]) {
-          if (
-            variable.enum &&
-            !variable.enum.some((e) => e == variables[variableKey])
-          ) {
-            throw new Error(
-              `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
-            );
-          }
-          url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
-        } else {
-          url = url.replaceAll(`{${variableKey}}`, String(variable.default));
-        }
-      }
-      return jsesc(url, { quotes: 'backtick', wrap: false });
     }
     return baseUrl.baseUrl;
   };

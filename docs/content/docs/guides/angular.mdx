@@ -128,6 +128,8 @@ Quick rule of thumb:
 
 ## Setting the Backend URL
 
+### Single API
+
 Use an HTTP interceptor to automatically add the API base URL. In modern
 standalone Angular apps, a functional interceptor keeps the setup compact:
 
@@ -153,6 +155,268 @@ export const appConfig: ApplicationConfig = {
   providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
 };
 ```
+
+An interceptor is global, though: it can only route by sniffing the outgoing
+`req.url`. That falls apart once you generate more than one Angular API into
+the same app and sit them behind a gateway or proxy that assigns each API its
+own path prefix (or host) — the interceptor has no reliable way to know which
+generated client a given request came from.
+
+### DI-based base URL composition (multiple APIs / gateway routing)
+
+Set `override.angular.baseUrl` to compose the base URL for a specific output
+through Angular's dependency injection instead of a global interceptor. Unlike
+the interceptor, the base URL is resolved per generated API, so a gateway that
+maps different generated clients to different upstream paths can be modeled
+directly in DI.
+
+`apiId` is required and explicit — Orval never derives it from the
+specification title or file name — so the generated token and helper names
+stay stable across regenerations:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          baseUrl: { apiId: 'petstore' },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+#### Generated artifacts
+
+With `override.angular.baseUrl` set, Orval emits a sibling `<target>.base-url.ts`
+file alongside the generated client:
+
+```ts title="petstore.base-url.ts"
+export const PETSTORE_SERVER_URL: string = 'http://petstore.swagger.io/v1';
+
+export function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '');
+}
+
+export interface PetstoreBaseUrlResolverContext {
+  readonly apiId: 'petstore';
+  readonly serverUrl: string;
+}
+
+export type PetstoreBaseUrlResolver = (
+  context: PetstoreBaseUrlResolverContext,
+) => string;
+
+export const PETSTORE_BASE_URL_RESOLVER =
+  new InjectionToken<PetstoreBaseUrlResolver>('PETSTORE_BASE_URL_RESOLVER', {
+    providedIn: 'root',
+    factory: (): PetstoreBaseUrlResolver => (context) => context.serverUrl,
+  });
+
+export const PETSTORE_BASE_URL = new InjectionToken<string>(
+  'PETSTORE_BASE_URL',
+  {
+    providedIn: 'root',
+    factory: (): string => {
+      const resolver = inject(PETSTORE_BASE_URL_RESOLVER);
+      return normalizeBaseUrl(
+        resolver({ apiId: 'petstore', serverUrl: PETSTORE_SERVER_URL }),
+      );
+    },
+  },
+);
+
+export function providePetstoreBaseUrl(baseUrl: string): Provider {
+  return { provide: PETSTORE_BASE_URL, useValue: normalizeBaseUrl(baseUrl) };
+}
+
+export function providePetstoreBaseUrlResolver(
+  resolver: PetstoreBaseUrlResolver,
+): Provider {
+  return { provide: PETSTORE_BASE_URL_RESOLVER, useValue: resolver };
+}
+```
+
+Identifiers are derived from `apiId` alone (`petstore` → `PETSTORE_*` /
+`Petstore*` / `providePetstore*`), so they stay collision-free when multiple
+outputs with different `apiId`s are generated into the same app. Every
+generated `HttpClient` service method and `httpResource` function in this
+output injects `PETSTORE_BASE_URL` and prefixes its route with it.
+
+#### Precedence
+
+`PETSTORE_BASE_URL` resolves in this order:
+
+1. A directly provided value via `providePetstoreBaseUrl(...)` — wins outright,
+   the resolver below is never invoked.
+2. A resolver provided via `providePetstoreBaseUrlResolver(...)`.
+3. The default resolver factory, which just returns the embedded server URL.
+4. The embedded `PETSTORE_SERVER_URL` constant, resolved at generation time
+   from the specification's `servers` field (empty string `''` when the
+   specification has no `servers` entry, which yields relative URLs).
+
+Whatever value wins is passed through `normalizeBaseUrl`, which strips
+trailing slashes (`'/api/x/'` → `'/api/x'`, `'https://h/'` → `'https://h'`,
+`'/'` → `''`). Generated routes always start with `/`, so plain interpolation
+(`` `${baseUrl}${route}` ``) can never double up or drop the separator between
+them.
+
+#### Multiple APIs behind one gateway
+
+Because `InjectionToken` identity is per output, two generated outputs can't
+literally share one token instance without a shared runtime package — Orval's
+Angular output has no runtime dependency, by design. Instead, share one
+resolver *function* and register it against each output's resolver token.
+Type it against a small structural interface so it's assignable to every
+generated `<Api>BaseUrlResolver`, regardless of `apiId`:
+
+```ts title="app.config.ts"
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { providePetstoreBaseUrlResolver } from './api/petstore.base-url';
+import { provideInventoryBaseUrlResolver } from './api/inventory.base-url';
+
+interface GatewayContext {
+  apiId: string;
+  serverUrl: string;
+}
+
+// One registry, one resolver function, shared across every generated API.
+const gatewayRoutes: Record<string, string> = {
+  petstore: '/gateway/petstore',
+  inventory: '/gateway/inventory',
+};
+
+const gatewayResolver = (ctx: GatewayContext): string =>
+  gatewayRoutes[ctx.apiId] ?? ctx.serverUrl;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(),
+    providePetstoreBaseUrlResolver(gatewayResolver),
+    provideInventoryBaseUrlResolver(gatewayResolver),
+  ],
+};
+```
+
+Each output still resolves its *own* token independently — `gatewayResolver`
+is just dispatched with a different `apiId` depending on which token invoked
+it — so requests from the petstore client and the inventory client can land on
+different upstream paths (or hosts) through the same gateway.
+
+#### Testing
+
+Override the token (or the resolver) in `TestBed` like any other provider:
+
+```ts title="pets.service.spec.ts"
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import {
+  providePetstoreBaseUrl,
+  providePetstoreBaseUrlResolver,
+} from './api/petstore.base-url';
+import { PetsService } from './api/petstore.service';
+
+describe('PetsService', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        providePetstoreBaseUrl('/gateway/petstore'),
+        // or: providePetstoreBaseUrlResolver((ctx) => `/gateway/${ctx.apiId}`),
+      ],
+    });
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('prefixes requests with the provided base URL', () => {
+    TestBed.inject(PetsService)
+      .createPets({ name: 'Rex', tag: 'dog' })
+      .subscribe();
+
+    httpMock.expectOne('/gateway/petstore/v1/pets').flush(null);
+  });
+});
+```
+
+The same token, provided once in `TestBed`, backs both the `HttpClient`
+service and any `httpResource` functions generated for the same output — so a
+single provider override is enough to redirect every request in a test.
+
+#### `httpResource` and injection context
+
+Generated `httpResource` functions read the token with `inject()` when called
+inside an injection context, and fall back to `options.injector.get(...)` when
+an explicit `injector` is passed — the same rule that already applies to every
+other injected dependency in generated `httpResource` functions:
+
+```ts title="petstore.resource.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept?: ShowPetByIdAccept,
+  version?: Signal<number>,
+  options?: OrvalHttpResourceOptions<Pet, unknown>,
+): HttpResourceRef<Pet | undefined> {
+  const baseUrl = options?.injector
+    ? options.injector.get(PETSTORE_BASE_URL)
+    : inject(PETSTORE_BASE_URL);
+  // ...
+}
+```
+
+Call these functions during Angular's injection context (a constructor, a
+field initializer, or `runInInjectionContext`), or pass an explicit
+`injector` in `options` when you can't.
+
+#### Notes
+
+- **Zod runtime validation is unaffected.** `override.angular.runtimeValidation`
+  keeps validating responses exactly as before — the base URL token only
+  changes how the request URL is composed, not how the response is parsed.
+- **Custom mutators receive the composed URL.** The `${baseUrl}` prefix is
+  applied to the route before it's handed to `generateMutatorConfig`, so a
+  configured `mutator` sees the same fully composed URL a plain `HttpClient`
+  call would use.
+- **MSW mocks stay relative.** Mock route matching is unaffected by
+  `override.angular.baseUrl` — MSW handlers keep matching on the route path,
+  not the composed base URL.
+- **Mutually exclusive with `output.baseUrl`.** `output.baseUrl` bakes a
+  static prefix into every generated route string for *all* clients;
+  combining it with `override.angular.baseUrl` would double-prefix (or
+  conflict with) every URL, so Orval throws a config-time error if both are
+  set on the same output. Remove `output.baseUrl` and use
+  `providePetstoreBaseUrlResolver` if you need the equivalent of a
+  runtime-configurable prefix.
+- **`apiId` is always explicit.** It's never derived from the specification's
+  `info.title` or the target file name, so renaming your spec or output file
+  doesn't silently rename the generated DI tokens.
+- Only the specification's top-level `servers` field is embedded as the
+  fallback URL. If your specification sets `servers` per path/operation,
+  the token still falls back to the spec-level `servers` entry (selected via
+  `index`/`variables`), not a per-path override.
 
 ## httpResource Output (Angular v19.2+)
 
