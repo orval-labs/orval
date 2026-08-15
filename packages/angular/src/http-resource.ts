@@ -59,6 +59,7 @@ import {
   createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
+  getInlineArrayElement,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isMutationVerb,
@@ -634,6 +635,15 @@ const getParseSchemaName = (
   if (!responseType) return undefined;
   if (isPrimitiveType(responseType)) return undefined;
 
+  // An inline array response (`Item[]`) has no generated schema of its own;
+  // the element name is returned so the element import is promoted to a value
+  // import and its `…Output` type is added (see `getParseExpression`).
+  const inlineArrayElement = getInlineArrayElement(
+    response.imports,
+    responseType,
+  );
+  if (inlineArrayElement != undefined) return inlineArrayElement;
+
   // Verify a matching import exists (the response type name resolves to a zod schema)
   const hasMatchingImport = response.imports.some(
     (imp) => imp.name === responseType,
@@ -681,6 +691,12 @@ const getHttpResourceVerbImports = (
   const parsedZodImports = responseImports.filter((imp) =>
     parsedZodImportNames.has(imp.name),
   );
+  // An inline array response (`Item[]`) validates via `zod.array(Item).parse`,
+  // which references the `zod` namespace directly in the resource file.
+  const needsZodNamespaceImport = response.types.success.some(
+    (successType) =>
+      getInlineArrayElement(response.imports, successType.value) != undefined,
+  );
 
   return [
     ...responseImports.map((imp) =>
@@ -689,6 +705,16 @@ const getHttpResourceVerbImports = (
     ...parsedZodImports
       .filter((imp) => !isPrimitiveType(imp.name))
       .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
+    ...(needsZodNamespaceImport
+      ? [
+          {
+            name: 'zod',
+            values: true,
+            namespaceImport: true,
+            importPath: 'zod',
+          },
+        ]
+      : []),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -717,8 +743,20 @@ const getParseExpression = (
     output,
     responseTypeOverride,
   );
+  if (!schemaName) return undefined;
 
-  return schemaName ? `${schemaName}.parse` : undefined;
+  // Inline array responses have no dedicated schema; compose the parse
+  // expression from the element schema (`zod.array(Item).parse`).
+  const responseType = responseTypeOverride ?? response.definition.success;
+  const inlineArrayElement = getInlineArrayElement(
+    response.imports,
+    responseType,
+  );
+  if (inlineArrayElement != undefined) {
+    return `zod.array(${inlineArrayElement}).parse`;
+  }
+
+  return `${schemaName}.parse`;
 };
 
 /**
@@ -879,16 +917,19 @@ const buildHttpResourceFunction = (
   const dataType = response.definition.success || 'unknown';
   const omitParse = isZodSchemaOutput(output);
   const responseSchemaImports = getHttpResourceResponseImports(response);
-  const hasResponseSchemaImport = responseSchemaImports.some(
-    (imp) => imp.name === dataType,
-  );
+  const inlineArrayElement = getInlineArrayElement(response.imports, dataType);
+  const hasResponseSchemaImport =
+    responseSchemaImports.some((imp) => imp.name === dataType) ||
+    inlineArrayElement != undefined;
   const resourceName = `${operationName}Resource`;
   const parsedDataType =
     omitParse &&
     output.override.angular.runtimeValidation &&
     !isPrimitiveType(dataType) &&
     hasResponseSchemaImport
-      ? getSchemaOutputTypeRef(dataType)
+      ? inlineArrayElement != undefined
+        ? `${getSchemaOutputTypeRef(inlineArrayElement)}[]`
+        : getSchemaOutputTypeRef(dataType)
       : dataType;
   const successTypes = response.types.success;
   const overallReturnType =
@@ -1341,10 +1382,15 @@ const getHttpResourceGeneratedResponseType = (
     output.override.angular.runtimeValidation &&
     !!contentType &&
     (contentType.includes('json') || contentType.includes('+json')) &&
-    !isPrimitiveType(value) &&
-    responseImports.some((imp) => imp.name === value)
+    !isPrimitiveType(value)
   ) {
-    return getSchemaOutputTypeRef(value);
+    const arrayElement = getInlineArrayElement(responseImports, value);
+    if (arrayElement != undefined) {
+      return `${getSchemaOutputTypeRef(arrayElement)}[]`;
+    }
+    if (responseImports.some((imp) => imp.name === value)) {
+      return getSchemaOutputTypeRef(value);
+    }
   }
 
   return getContentTypeReturnType(contentType, value);
