@@ -195,7 +195,7 @@ export const ConfirmReservationAccept = {
 } as const;
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listItemsResource(
   params: Signal<ListItemsParams>,
@@ -375,8 +375,13 @@ export interface ResourceState<T> {
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
   readonly isLoading: Signal<boolean>;
-  readonly hasValue: () => boolean;
+  /** Guard reads of `value()` with this call: `value()` throws in the error state. */
+  readonly hasValue: () => this is ResolvedResourceState<T>;
   readonly reload: () => boolean;
+}
+
+export interface ResolvedResourceState<T> extends ResourceState<T> {
+  readonly value: Signal<Exclude<T, undefined>>;
 }
 
 /**
@@ -389,7 +394,9 @@ export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
     status: ref.status,
     error: ref.error,
     isLoading: ref.isLoading,
-    hasValue: () => ref.hasValue(),
+    hasValue(this: ResourceState<T>): this is ResolvedResourceState<T> {
+      return ref.hasValue();
+    },
     reload: () => ref.reload(),
   };
 }
