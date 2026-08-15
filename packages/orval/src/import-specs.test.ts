@@ -641,6 +641,69 @@ describe('swagger2FormData', () => {
     expect(body?.model).not.toContain('unknown[]');
   });
 
+  it('keeps shared path-level bodies intact when an operation overrides a parameter (#3857)', async () => {
+    // A reusable path-level formData parameter is promoted to a shared
+    // components.requestBodies entry referenced from the Path Item. When one
+    // operation overrides that parameter, the override lives in the operation's
+    // own request body — it must never be written into the shared body, which
+    // other operations still use.
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Shared path-level override', version: '1.0.0' },
+      parameters: {
+        tagList: {
+          name: 'tags',
+          in: 'formData',
+          required: true,
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      paths: {
+        '/submit': {
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          // The overriding operation is declared first so the repair cannot
+          // hide behind iteration order: the shared body is patched by the
+          // override before the non-overriding operation visits it.
+          put: {
+            operationId: 'replaceForm',
+            consumes: ['multipart/form-data'],
+            parameters: [
+              {
+                name: 'tags',
+                in: 'formData',
+                required: true,
+                type: 'array',
+                items: { type: 'integer', format: 'int64' },
+              },
+            ],
+            responses: { '200': { description: 'Success' } },
+          },
+          post: {
+            operationId: 'submitForm',
+            consumes: ['multipart/form-data'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    // The shared, path-level request body must keep the path-level item type.
+    const shared = result.schemas.find((s) => s.name === 'TagListBody');
+    expect(shared?.model).toContain('tags: string[]');
+    expect(shared?.model).not.toContain('unknown[]');
+    expect(shared?.model).not.toContain('number[]');
+    // The overriding operation gets its own body with the operation-level type.
+    const override = result.schemas.find((s) => s.name === 'ReplaceFormBody');
+    expect(override?.model).toContain('tags: number[]');
+    expect(override?.model).not.toContain('unknown[]');
+  });
+
   it('does not alter OAS 3 formData array parameters (#3857)', async () => {
     // The working OAS 3.0 counterpart from the issue: item types are already
     // preserved by the upgrader, so the repair must be a no-op.

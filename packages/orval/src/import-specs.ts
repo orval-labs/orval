@@ -161,8 +161,31 @@ async function resolveSpec(
  */
 type Swagger2FormDataItems = Map<
   string,
-  Map<string, Map<string, Record<string, unknown>>>
+  Map<
+    string,
+    {
+      byName: Map<string, Record<string, unknown>>;
+      /** Path-level formData parameter names this operation overrides. */
+      overriddenNames: Set<string>;
+    }
+  >
 >;
+
+/**
+ * A stable identity for a parameter: `in` + `name`. Only string values
+ * participate — a non-string `in`/`name` cannot dedupe against anything.
+ */
+function paramKey(
+  param: unknown,
+  resolveParameter: (p: unknown) => Record<string, unknown> | undefined,
+): string | undefined {
+  const resolved = resolveParameter(param);
+  if (!resolved) return undefined;
+  if (!isString(resolved.in) || !isString(resolved.name)) {
+    return undefined;
+  }
+  return `${resolved.in}:${resolved.name}`;
+}
 
 function isSwagger2(document: Record<string, unknown>): boolean {
   return document.swagger === '2.0';
@@ -231,13 +254,34 @@ function collectSwagger2FormDataItems(
         byName.set(String(param.name), param.items);
       }
 
+      // Path-level formData parameters this operation overrides on the same
+      // (name, in) key. Their effective items live in the operation's own
+      // request body — never in the shared path-level body that other
+      // operations may still use.
+      const opKeys = new Set(
+        (operationParams ?? [])
+          .map((p) => paramKey(p, resolveParameter))
+          .filter((k): k is string => k !== undefined),
+      );
+      const overriddenNames = new Set<string>();
+      for (const rawParam of pathLevelParams) {
+        const param = resolveParameter(rawParam);
+        if (!param || param.in !== 'formData' || !isString(param.name)) {
+          continue;
+        }
+        const key = paramKey(rawParam, resolveParameter);
+        if (key !== undefined && opKeys.has(key)) {
+          overriddenNames.add(param.name);
+        }
+      }
+
       if (byName.size > 0) {
         let methods = formDataItems.get(path);
         if (!methods) {
           methods = new Map();
           formDataItems.set(path, methods);
         }
-        methods.set(method, byName);
+        methods.set(method, { byName, overriddenNames });
       }
     }
   }
@@ -256,18 +300,13 @@ function mergePathAndOperationParameters(
   operationLevel: unknown[] | undefined,
   resolveParameter: (p: unknown) => Record<string, unknown> | undefined,
 ): unknown[] {
-  const keyOf = (p: unknown): string | undefined => {
-    const resolved = resolveParameter(p);
-    if (!resolved) return undefined;
-    return `${String(resolved.in ?? '')}:${String(resolved.name ?? '')}`;
-  };
   const opKeys = new Set(
     (operationLevel ?? [])
-      .map(keyOf)
+      .map((p) => paramKey(p, resolveParameter))
       .filter((k): k is string => k !== undefined),
   );
   const kept = pathLevel.filter((p) => {
-    const key = keyOf(p);
+    const key = paramKey(p, resolveParameter);
     return key === undefined || !opKeys.has(key);
   });
   return [...kept, ...(operationLevel ?? [])];
@@ -346,30 +385,44 @@ function restoreSwagger2FormDataItems<T extends Record<string, unknown>>(
     const pathItem = paths[path];
     if (!isObject(pathItem)) continue;
 
-    for (const [method, byName] of methods) {
+    for (const [method, capture] of methods) {
       const operation = pathItem[method];
       if (!isObject(operation)) continue;
 
-      const bodies = new Set<Record<string, unknown>>();
+      const { byName, overriddenNames } = capture;
+      // Bodies owned by the operation (its direct requestBody plus any refs in
+      // its own parameters array) carry the effective, merged parameter set.
+      const effectiveBodies = new Set<Record<string, unknown>>();
       const directBody = resolveRequestBody(operation.requestBody);
       if (directBody) {
-        bodies.add(directBody);
+        effectiveBodies.add(directBody);
       }
-      // The upgrader leaves reusable formData parameters as `$ref` entries in
-      // the operation's `parameters` array pointing at components.requestBodies
-      // — or, for path-level parameters, in the Path Item's `parameters` array.
-      for (const rawParam of [
-        ...(Array.isArray(operation.parameters) ? operation.parameters : []),
-        ...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []),
-      ]) {
+      for (const rawParam of Array.isArray(operation.parameters)
+        ? operation.parameters
+        : []) {
         const body = resolveRequestBody(rawParam);
         if (body) {
-          bodies.add(body);
+          effectiveBodies.add(body);
         }
       }
-
-      for (const body of bodies) {
+      for (const body of effectiveBodies) {
         patchProperties(body, byName);
+      }
+
+      // The Path Item's parameters reference shared request bodies that other
+      // operations may also use. Patch only the names this operation does not
+      // override; an overridden name lives in the operation's own body, and
+      // writing its items here would corrupt the shared body for everyone else.
+      const sharedByNames = new Map(
+        [...byName].filter(([name]) => !overriddenNames.has(name)),
+      );
+      for (const rawParam of Array.isArray(pathItem.parameters)
+        ? pathItem.parameters
+        : []) {
+        const body = resolveRequestBody(rawParam);
+        if (body) {
+          patchProperties(body, sharedByNames);
+        }
       }
     }
   }
