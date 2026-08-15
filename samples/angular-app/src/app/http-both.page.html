@@ -1,0 +1,62 @@
+<app-demo-page-frame
+  eyebrow="One operation, two consumption styles"
+  title="retrievalClient: 'both'"
+  description="This page showcases orval's Angular retrievalClient: 'both' output, where the same listPets operation generates both an HttpClient service method and a signal-based httpResource helper. Both panels below hit the identical /v1/pets endpoint."
+  why="Use this variant when different parts of your app want different ergonomics from the same generated contract: imperative Observable subscriptions in one place, signal-driven resource reads in another, without maintaining two separate API clients."
+  [highlights]="highlights"
+>
+  <div class="demo-grid demo-grid--even">
+    <app-demo-panel
+      title="PetsService.listPets()"
+      description="HttpClient Observable, wrapped with toLoadState and shared via AsyncPipe."
+    >
+      @if (petsState$ | async; as state) {
+      <app-badge panel-badge>Status: {{ state.status }}</app-badge>
+      }
+
+      @if (petsState$ | async; as state) {
+      @if (state.status === 'loading') {
+      <p class="muted">Loading pets…</p>
+      } @else if (state.status === 'error') {
+      <p class="error">Failed to load pets: {{ state.error }}</p>
+      } @else if (state.data.length) {
+      <div
+        class="pet-grid"
+        role="list"
+        aria-label="Pets list from PetsService.listPets()"
+      >
+        @for (pet of state.data; track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      } }
+    </app-demo-panel>
+
+    <app-demo-panel
+      title="listPetsResource()"
+      description="Signal-based httpResource, read with isLoading() / hasValue() / value()."
+    >
+      <app-badge panel-badge>Status: {{ listStatus() }}</app-badge>
+
+      @if (listResource.isLoading()) {
+      <p class="muted">Loading pets…</p>
+      } @else if (listResource.error()) {
+      <p class="error">Failed to load pets: {{ listError() }}</p>
+      } @else if (pets().length) {
+      <div
+        class="pet-grid"
+        role="list"
+        aria-label="Pets list from listPetsResource()"
+      >
+        @for (pet of pets(); track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      }
+    </app-demo-panel>
+  </div>
+</app-demo-page-frame>
