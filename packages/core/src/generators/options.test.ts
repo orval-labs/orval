@@ -634,6 +634,10 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -665,6 +669,20 @@ function filterParams(
       expect(body).not.toBe(PRE_3705_HELPER_BODY);
       expect(body).toContain('objectParamStrategies');
       expect(body).toContain("'flatten' | 'comma' | 'deepObject'");
+    });
+  });
+
+  describe('Date query params survive filterParams (gh #3856)', () => {
+    it('helper body converts Date values to ISO strings', () => {
+      const body = getAngularFilteredParamsHelperBody();
+      expect(body).toContain('filteredParams[key] = value.toISOString();');
+      expect(body).toContain('} else if (value instanceof Date) {');
+    });
+
+    it('inline IIFE converts Date values to ISO strings', () => {
+      const expression = getAngularFilteredParamsExpression('params ?? {}');
+      expect(expression).toContain('value instanceof Date');
+      expect(expression).toContain('value.toISOString()');
     });
   });
 

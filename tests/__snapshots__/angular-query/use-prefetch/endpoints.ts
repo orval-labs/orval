@@ -92,6 +92,10 @@ function filterParams(
       // string so the required key still reaches the wire as `?key=`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
