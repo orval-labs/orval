@@ -1304,7 +1304,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('accept?: GetPetFileAccept');
       expect(impl).toContain('Observable<Pet | string>');
       expect(impl).toContain('this.http.get<Pet>');
-      expect(impl).toContain('as Observable<any>');
+      expect(impl).toContain('as Observable<string>');
       // Content-type dispatch logic
       expect(impl).toContain("responseType: 'json'");
       expect(impl).toContain("responseType: 'text'");

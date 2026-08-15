@@ -270,7 +270,7 @@ export class PetsService {
         responseType: 'text',
         headers,
         params: filteredParams,
-      }) as Observable<any>;
+      }) as Observable<string>;
     }
 
     return this.http.get<Pets>(`${this.baseUrl}/v${version}/pets`, {
@@ -383,7 +383,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<any>;
+      }) as Observable<string>;
     }
 
     return this.http.get<Pet>(`${this.baseUrl}/v${version}/pets/${petId}`, {
@@ -447,7 +447,7 @@ export class PetsService {
           responseType: 'text',
           headers,
         },
-      ) as Observable<any>;
+      ) as Observable<string>;
     }
 
     return this.http.put<Pet>(
@@ -515,7 +515,7 @@ export class PetsService {
           responseType: 'text',
           headers,
         },
-      ) as Observable<any>;
+      ) as Observable<string>;
     }
 
     return this.http.patch<Pet>(
