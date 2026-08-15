@@ -972,6 +972,51 @@ function filterParams(
 
       expect(result).toEqual({ pageNumber: 1, q: 'search' });
     });
+
+    it('serializes Date query params to ISO strings instead of dropping them', () => {
+      // The inline IIFE is what the non-helper emission sites use; the shared
+      // helper covers the hasObjectParams path above, so exercise both at
+      // runtime instead of only asserting on the generated source text.
+      const expression = getAngularFilteredParamsExpression('params ?? {}');
+      const { outputText } = ts.transpileModule(expression, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2020,
+        },
+      });
+      // Strip transpileModule's "use strict"; prologue and trailing semicolon
+      // so the IIFE can be embedded in a return statement.
+      const iife = outputText
+        .replace(/^["']use strict["'];\s*/, '')
+        .replace(/;\s*$/, '');
+      const runInline = (params: Record<string, unknown>) =>
+        new Function('params', `return (${iife});`)(params);
+
+      const inlineResult = runInline({
+        from: new Date('2026-01-02T03:04:05.000Z'),
+        name: 'alice',
+        dropped: undefined,
+      });
+      expect(inlineResult).toEqual({
+        from: '2026-01-02T03:04:05.000Z',
+        name: 'alice',
+      });
+
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+      const helperResult = filterParams(
+        { from: new Date('2026-01-02T03:04:05.000Z'), name: 'alice' },
+        new Set(),
+        false,
+        new Set(),
+        {},
+      );
+      expect(helperResult).toEqual({
+        from: '2026-01-02T03:04:05.000Z',
+        name: 'alice',
+      });
+    });
   });
 });
 
