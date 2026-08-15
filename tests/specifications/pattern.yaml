@@ -19,7 +19,12 @@ components:
       type: object
       required:
         - guid
+        - name
       properties:
         guid:
           type: string
           pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        name:
+          type: string
+          # Unicode property escapes need the `u` flag (#3841).
+          pattern: '^[\p{L}][\p{L}\p{M}''’. -]{0,99}$'

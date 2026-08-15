@@ -173,6 +173,21 @@ const zodMiniCall = (fn: string, args = '') =>
 const zodMiniCoerceCall = (fn: string, args = '') =>
   `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
 
+// Unicode property escapes (`\p{...}`) require the `u` flag; without it they
+// match the literal characters `p{...}`, so the generated validator silently
+// rejects valid input (#3841). Only patterns that use them get the flag,
+// leaving existing outputs unchanged.
+const hasUnicodePropertyEscape = (pattern: string) => /\\[pP]\{/.test(pattern);
+
+const buildRegExpLiteral = (pattern: string) => {
+  const innerPattern = pattern.slice(
+    pattern.startsWith('/') ? 1 : 0,
+    pattern.endsWith('/') ? -1 : undefined,
+  );
+  const unicodeFlag = hasUnicodePropertyEscape(innerPattern) ? ", 'u'" : '';
+  return `new RegExp('${jsStringLiteralEscape(innerPattern)}'${unicodeFlag})`;
+};
+
 /** Escapes string defaults for safe embedding in template literals. */
 function formatDefaultValue(value: unknown): string {
   if (isString(value)) {
@@ -1125,14 +1140,7 @@ export const generateZodValidationSchemaDefinition = (
             if ('const' in schema) {
               functions.push(['literal', JSON.stringify(String(schema.const))]);
             } else if (schema.pattern && schema.format) {
-              const isStartWithSlash = schema.pattern.startsWith('/');
-              const isEndWithSlash = schema.pattern.endsWith('/');
-              const regexp = `new RegExp('${jsStringLiteralEscape(
-                schema.pattern.slice(
-                  isStartWithSlash ? 1 : 0,
-                  isEndWithSlash ? -1 : undefined,
-                ),
-              )}')`;
+              const regexp = buildRegExpLiteral(schema.pattern);
               consts.push(
                 `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
               );
@@ -1384,12 +1392,7 @@ export const generateZodValidationSchemaDefinition = (
     type === 'string' &&
     !stringFormatAlreadyEmitted
   ) {
-    const isStartWithSlash = matches.startsWith('/');
-    const isEndWithSlash = matches.endsWith('/');
-
-    const regexp = `new RegExp('${jsStringLiteralEscape(
-      matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
-    )}')`;
+    const regexp = buildRegExpLiteral(matches);
 
     consts.push(
       `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,

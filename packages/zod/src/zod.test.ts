@@ -4621,6 +4621,88 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(regexpConst).toContain(String.raw`new RegExp('^(0|[1-9]\\d*)$')`);
   });
 
+  it('adds the u flag when a pattern uses a Unicode property escape (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: String.raw`^[\p{L}][\p{L}\p{M}'’. -]{0,99}$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'firstName',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`^[\\p{L}][\\p{L}\\p{M}`);
+    expect(regexpConst).toContain(", 'u'");
+  });
+
+  it('adds the u flag for custom format+pattern with property escapes in v4 (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'name',
+      pattern: String.raw`^[\p{L}]+$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'displayName',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`^[\\p{L}]+$`);
+    expect(regexpConst).toContain(", 'u'");
+  });
+
+  it('leaves patterns without property escapes flagless (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[a-z0-9-]+$',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`new RegExp('^[a-z0-9-]+$')`);
+    expect(regexpConst).not.toContain("'u'");
+  });
+
   it('does not emit stringFormat for custom format+pattern in v3', () => {
     const schemaFormatPattern: OpenApiSchemaObject = {
       type: 'string',
