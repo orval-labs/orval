@@ -795,16 +795,30 @@ export default defineConfig({
 **Type:** `Boolean | String[]`
 **Default:** `false`
 
-Wipe the `target` and `schemas` directories before regenerating. Every file in those folders is removed (`.d.ts` files are preserved) — not only files produced by Orval, but also any other file that happens to live there.
+Remove files left over from previous runs before regenerating. What is removed depends on whether Orval owns the directory.
 
-When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list, applied to both the `target` and `schemas` directories. Use negated globs (prefixed with `!`) to preserve specific files from removal, or positive globs to also remove files that would otherwise be kept.
+**`target` and `schemas` are wiped.** Every file in them is removed (`.d.ts` files are preserved) — not only files produced by Orval, but also any other file that happens to live there. These are the directories Orval asks you to keep hand-written files out of, so it takes them as its own.
+
+**Configured mock directories are pruned.** Set [`mock.path`](#mock), or a mock generator's own `path`, to give mock files their own directory. You frequently keep hand-written code in that directory too — MSW's `browser.ts` and `server.ts`, fixtures, or a barrel. Orval removes only the files that it could have written there. The patterns are `**/*.msw<ext>` and `**/*.faker<ext>`. `<ext>` is your [`fileExtension`](#fileextension), or one of the usual source extensions: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`. Orval matches those extensions as well as your own. Thus a change from `.ts` to `.js` does not strand the mock files of the earlier runs.
+
+The same rule applies when the mock directory is inside `target` or `schemas`. The wipe does not go into a mock directory. Orval prunes that directory instead.
+
+Orval keeps all the files that these patterns do not match. But it also removes every empty directory below each directory that it cleans. This includes your own empty directories.
+
+Without a mock path there is no separate mock directory: mock output lands beside the implementation files and is covered by the `target` rule above.
+
+<Callout type="warn">
+Two limits apply to the prune patterns. A hand-written file with a name such as `handlers.msw.ts` or `fixtures.faker.ts` is removed, because Orval cannot tell it from its own output. And a compound `fileExtension` such as `.gen.ts` is matched only while you keep it configured. After you change it, remove the files of the earlier extension by hand.
+</Callout>
+
+When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list for the `target` and `schemas` directories. They are **not** applied to mock directories — a positive glob there could delete hand-written files Orval never produced. Use negated globs (prefixed with `!`) to preserve specific files from removal.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      // preserve `important.ts`, and also remove `.d.ts` files
-      clean: ['!**/important.ts', '**/*.d.ts'],
+      // preserve `important.ts` when wiping `target` / `schemas`
+      clean: ['!**/important.ts'],
     },
   },
 });
@@ -824,10 +838,14 @@ export default defineConfig({
 ```
 
 <Callout type="warn">
-`clean` removes the entire contents of the configured folders, not just generated files. Do not point `target` or `schemas` directly at a package or library entrypoint root that holds files you need to keep (`package.json`, `ng-package.json`, `public-api.ts`, etc.). Place generated output in a dedicated subdirectory such as `./generated/` so those files are never touched.
+`clean` removes the entire contents of `target` and `schemas`, not just generated files. Do not point either directly at a package or library entrypoint root that holds files you need to keep (`package.json`, `ng-package.json`, `public-api.ts`, etc.). Place generated output in a dedicated subdirectory such as `./generated/` so those files are never touched.
 </Callout>
 
-Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories for the same reason.
+Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories for the same reason. You can share a configured mock directory with hand-written code, because Orval prunes that directory and does not wipe it. This stays true when the mock directory is inside `target` or `schemas`. But keep to the two limits above: do not give a hand-written file a mock file name, and do not rely on Orval to keep your empty directories.
+
+<Callout type="warn">
+A directory configured by more than one project is cleaned by each of them before that project writes, so the last project to run wins and the earlier project's output is gone. This applies to `target`, `schemas`, and mock directories alike. Give each project its own output directories.
+</Callout>
 
 ## formatter
 
