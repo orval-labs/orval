@@ -2598,6 +2598,11 @@ export enum Example { foo = 'foo', bar = 'bar' }
 export type Example = 'foo' | 'bar';
 ```
 
+<Callout type="warn">
+`'enum'` emits a TypeScript `enum` declaration, which type stripping cannot
+remove. If you compile with TypeScript 5.8+ [`erasableSyntaxOnly`](https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly) — for example under Node's native TypeScript support or any type-stripping build step — generated `'enum'` output fails to compile. Use `'const'` (default) or `'union'` instead in that environment.
+</Callout>
+
 ### aliasCombinedTypes
 
 **Type:** `Boolean`

@@ -75,6 +75,14 @@ Orval recognizes the following extensions:
 Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default) or `enum`. They are not applied when using `union`. 
 </Callout>
 
+<Callout type="warn">
+`enumGenerationType: 'enum'` emits a TypeScript `enum` declaration. `enum`
+syntax cannot be erased by type stripping, so generated `'enum'` output does not
+compile under TypeScript 5.8+ `erasableSyntaxOnly` (e.g. Node's native
+TypeScript support). In that environment use `const` (default) or `union` — see
+the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) reference.
+</Callout>
+
 
 ## Zod
 Metadata generates `z.enum({ ... })` for Zod4 and `z.nativeEnum({ ... } as const)` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
