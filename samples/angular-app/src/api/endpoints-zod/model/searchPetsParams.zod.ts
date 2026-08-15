@@ -13,6 +13,7 @@ export const SearchPetsParams = zod.object({
   requirednullableStringTwo: zod.string().nullable(),
   nonRequirednullableString: zod.string().nullish(),
   status: zod.enum(['available', 'pending', 'sold']).optional(),
+  since: zod.date().optional(),
   limit: zod.int().min(1).max(searchPetsParamsLimitMax).optional(),
 });
 

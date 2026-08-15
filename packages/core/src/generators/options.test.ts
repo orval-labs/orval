@@ -679,10 +679,23 @@ function filterParams(
       expect(body).toContain('} else if (value instanceof Date) {');
     });
 
-    it('inline IIFE converts Date values to ISO strings', () => {
-      const expression = getAngularFilteredParamsExpression('params ?? {}');
+    it('inline IIFE converts Date values to ISO strings when date params exist', () => {
+      const expression = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        {},
+        ['since'],
+      );
       expect(expression).toContain('value instanceof Date');
       expect(expression).toContain('value.toISOString()');
+    });
+
+    it('inline IIFE omits the Date branch for primitive-only params', () => {
+      const expression = getAngularFilteredParamsExpression('params ?? {}');
+      expect(expression).not.toContain('instanceof Date');
+      expect(expression).not.toContain('toISOString()');
     });
   });
 
@@ -977,7 +990,14 @@ function filterParams(
       // The inline IIFE is what the non-helper emission sites use; the shared
       // helper covers the hasObjectParams path above, so exercise both at
       // runtime instead of only asserting on the generated source text.
-      const expression = getAngularFilteredParamsExpression('params ?? {}');
+      const expression = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        {},
+        ['from'],
+      );
       const { outputText } = ts.transpileModule(expression, {
         compilerOptions: {
           module: ts.ModuleKind.CommonJS,
@@ -990,6 +1010,7 @@ function filterParams(
         .replace(/^["']use strict["'];\s*/, '')
         .replace(/;\s*$/, '');
       const runInline = (params: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         new Function('params', `return (${iife});`)(params);
 
       const inlineResult = runInline({

@@ -36,6 +36,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         operations: {
           listPets: {
             mutator: 'src/orval/mutator/response-type.ts',
@@ -79,6 +80,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
@@ -125,6 +127,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         angular: {
           runtimeValidation: true,
         },
@@ -170,6 +173,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         angular: {
           retrievalClient: 'httpResource',
         },
@@ -220,6 +224,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         angular: {
           retrievalClient: 'httpResource',
           runtimeValidation: true,
@@ -266,6 +271,7 @@ export default defineConfig({
       formatter: 'prettier',
       clean: true,
       override: {
+        useDates: true,
         angular: {
           retrievalClient: 'both',
         },

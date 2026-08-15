@@ -1960,6 +1960,16 @@ export interface GetterQueryParam {
    */
   nonPrimitiveKeys?: string[];
   /**
+   * Names of query parameters whose declared schema uses `format: date` or
+   * `format: date-time` and the generated client type is `Date`
+   * (`output.override.useDates`). The Angular `filterParams` inline IIFE
+   * only emits the `value instanceof Date` serialization branch when this
+   * list is non-empty: with a primitive-only params type the branch would
+   * not type-check (TS2358), and without `useDates` the params are declared
+   * `string`, so a `Date` value can never legally reach the filter.
+   */
+  dateParamKeys?: string[];
+  /**
    * Per-parameter serialization strategy for query params whose declared
    * schema is a plain object, derived from the OpenAPI parameter's
    * `style`/`explode` (defaulting to `form` + `explode: true` per spec).

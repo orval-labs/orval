@@ -406,6 +406,16 @@ export function getQueryParams({
   const nonPrimitiveKeys = types
     .filter(({ originalSchema }) => isSchemaNonPrimitive(originalSchema))
     .map(({ name }) => name);
+  const dateParamKeys =
+    context.output.override.useDates === true
+      ? types
+          .filter(
+            ({ originalSchema }) =>
+              originalSchema.format === 'date' ||
+              originalSchema.format === 'date-time',
+          )
+          .map(({ name }) => name)
+      : [];
   const objectQueryParams = types
     .filter(
       (
@@ -432,6 +442,7 @@ export function getQueryParams({
     paramNames: types.map(({ name }) => name),
     requiredNullableKeys,
     ...(nonPrimitiveKeys.length > 0 ? { nonPrimitiveKeys } : {}),
+    ...(dateParamKeys.length > 0 ? { dateParamKeys } : {}),
     ...(objectQueryParams.length > 0 ? { objectQueryParams } : {}),
   };
 }

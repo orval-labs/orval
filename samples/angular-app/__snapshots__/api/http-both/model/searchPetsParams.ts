@@ -24,6 +24,10 @@ export type SearchPetsParams = {
    */
   status?: SearchPetsStatus;
   /**
+   * Only return pets adopted on or after this date
+   */
+  since?: Date;
+  /**
    * Maximum number of results to return
    * @minimum 1
    * @maximum 100
