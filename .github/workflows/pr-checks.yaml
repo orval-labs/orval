@@ -5,6 +5,13 @@ on:
     branches:
       - 'master'
       - 'next'
+  # Also run after merge. Without this, drift that lands on master (e.g. a
+  # generator change whose fixtures were only partly regenerated) goes
+  # unnoticed until it fails an unrelated PR days later.
+  push:
+    branches:
+      - 'master'
+      - 'next'
 
 permissions:
   contents: read
@@ -72,6 +79,10 @@ jobs:
 
   publish-preview:
     needs: pr-checks
+    # Pull requests only: this job checks out
+    # `github.event.pull_request.head.sha` and comments the preview back on
+    # the PR, neither of which exists on a push event.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
