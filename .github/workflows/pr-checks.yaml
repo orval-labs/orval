@@ -55,6 +55,18 @@ jobs:
         # this step also runs the generate-api task
         run: vp run -w test:snapshots
 
+      - name: Test samples
+        # Runtime tests for the generated clients (Angular TestBed suites,
+        # vue-query component tests, and the tsc/svelte-check type gates).
+        # The snapshot step above only proves generated code matches the
+        # committed fixtures; this proves it actually runs.
+        #
+        # Must stay after "Verify snapshot": that step regenerates every
+        # sample's client, and several samples gitignore their generated
+        # output, so these tests cannot compile on a fresh checkout until
+        # it has run.
+        run: vp run -w test:samples
+
       - name: Verify generated code can build
         run: vp run -F orval-tests build
 
