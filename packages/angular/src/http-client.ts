@@ -781,7 +781,7 @@ export const generateHttpClientImplementation = (
     if (accept.includes('json') || accept.includes('+json')) {
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<any>;
+      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
     }${
       blobSuccessTypes.length > 0
         ? ` else {

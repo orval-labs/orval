@@ -203,6 +203,8 @@ With `override.angular.baseUrl` set, Orval emits a sibling `<target>.base-url.ts
 file alongside the generated client:
 
 ```ts title="petstore.base-url.ts"
+import { InjectionToken, inject, type Provider } from '@angular/core';
+
 export const PETSTORE_SERVER_URL: string = 'http://petstore.swagger.io/v1';
 
 export function normalizeBaseUrl(baseUrl: string): string {
@@ -332,7 +334,7 @@ import {
   providePetstoreBaseUrl,
   providePetstoreBaseUrlResolver,
 } from './api/petstore.base-url';
-import { PetsService } from './api/petstore.service';
+import { PetsService } from './api/pets/pets.service';
 
 describe('PetsService', () => {
   let httpMock: HttpTestingController;
@@ -373,7 +375,7 @@ inside an injection context, and fall back to `options.injector.get(...)` when
 an explicit `injector` is passed — the same rule that already applies to every
 other injected dependency in generated `httpResource` functions:
 
-```ts title="petstore.resource.ts"
+```ts title="pets/pets.resource.ts"
 export function showPetByIdResource(
   petId: Signal<string>,
   accept?: ShowPetByIdAccept,
