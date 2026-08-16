@@ -1,9 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { glob } from 'tinyglobby';
+import { escapePath, glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
+
+/**
+ * Escapes glob metacharacters (`*?()[]{}!`, a leading `!`, and a literal
+ * backslash) in a path segment so it can be embedded in a glob pattern and
+ * only ever match itself. Re-exported from `tinyglobby`, the glob engine
+ * {@link removeFilesAndEmptyFolders} runs on, so callers that build patterns
+ * around a user-configured directory name (which may contain those
+ * characters) stay in step with whatever engine is in use.
+ */
+export { escapePath };
 
 export function getFileInfo(
   target = '',
@@ -36,10 +46,17 @@ export function getFileInfo(
 export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
+  /**
+   * Set `followSymbolicLinks` to `false` in a directory that Orval shares with
+   * the user. A symlinked subdirectory would otherwise let the glob reach
+   * files outside `dir` and delete them.
+   */
+  { followSymbolicLinks = true }: { followSymbolicLinks?: boolean } = {},
 ) {
   const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
+    followSymbolicLinks,
   });
 
   // Remove files
@@ -50,6 +67,7 @@ export async function removeFilesAndEmptyFolders(
     cwd: dir,
     absolute: true,
     onlyDirectories: true,
+    followSymbolicLinks,
   });
 
   // Sort directories by depth (deepest first) to ensure we can remove nested empty folders

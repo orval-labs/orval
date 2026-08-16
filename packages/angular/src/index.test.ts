@@ -12,12 +12,14 @@ describe('builder', () => {
     expect(result.client).toBeDefined();
     expect(result.header).toBeDefined();
     expect(result.footer).toBeDefined();
-    expect(result).not.toHaveProperty('extraFiles');
+    // extraFiles is always present (wired for the opt-in base-url-token
+    // feature) but is a zero-cost no-op ([]) when the option is unset.
+    expect(result.extraFiles).toBeDefined();
   });
 
   it('returns httpClientBuilder for client "httpClient"', () => {
     const result = builder()({ client: 'httpClient' });
-    expect(result).not.toHaveProperty('extraFiles');
+    expect(result.extraFiles).toBeDefined();
   });
 
   it('returns httpResourceBuilder for client "httpResource"', () => {
@@ -25,7 +27,7 @@ describe('builder', () => {
     expect(result.client).toBeDefined();
     expect(result.header).toBeDefined();
     expect(result.footer).toBeDefined();
-    expect(result).not.toHaveProperty('extraFiles');
+    expect(result.extraFiles).toBeDefined();
   });
 
   it('returns bothClientBuilder for client "both"', () => {

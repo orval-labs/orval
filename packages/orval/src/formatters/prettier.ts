@@ -1,8 +1,44 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { logWarning } from '@orval/core';
+import {
+  type GeneratedFileTransform,
+  logWarning,
+  writeGeneratedFile,
+} from '@orval/core';
 import { execa } from 'execa';
+
+export async function createPrettierFileTransform(
+  projectTitle?: string,
+): Promise<GeneratedFileTransform | undefined> {
+  const prettier = await tryImportPrettier();
+  if (!prettier) {
+    return;
+  }
+
+  return async (filePath, content) => {
+    try {
+      const config = await prettier.resolveConfig(filePath);
+
+      return await prettier.format(content, {
+        ...config,
+        // filepath lets Prettier infer the parser from the file extension.
+        filepath: filePath,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'UndefinedParserError') {
+        return content;
+      }
+
+      const detail =
+        error instanceof Error ? error.toString() : 'unknown error';
+      logWarning(
+        `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: ${detail}`,
+      );
+      return content;
+    }
+  };
+}
 
 /**
  * Format files with prettier.
@@ -13,25 +49,19 @@ export async function formatWithPrettier(
   paths: string[],
   projectTitle?: string,
 ): Promise<void> {
-  const prettier = await tryImportPrettier();
+  const format = await createPrettierFileTransform(projectTitle);
 
-  if (prettier) {
+  if (format) {
     const filePaths = [...new Set(await collectFilePaths(paths))];
     if (filePaths.length === 0) {
       return;
     }
 
-    const config = (await prettier.resolveConfig(filePaths[0])) ?? {};
     await Promise.all(
       filePaths.map(async (filePath) => {
         try {
           const content = await fs.readFile(filePath, 'utf8');
-          const formatted = await prettier.format(content, {
-            ...config,
-            // options.filepath can be specified for Prettier to infer the parser from the file extension
-            filepath: filePath,
-          });
-          await fs.writeFile(filePath, formatted);
+          await writeGeneratedFile(filePath, await format(filePath, content));
         } catch (error) {
           if (isMissingFileError(error)) {
             return;
