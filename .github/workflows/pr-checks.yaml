@@ -40,6 +40,13 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
+      - name: Check generated config reference is up to date
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          bun run gen:config-reference -- --check
+          git diff --exit-code -- docs/src/generated
+          bun run test:config-reference
+
       - name: Check formatting
         run: vp fmt --check
 

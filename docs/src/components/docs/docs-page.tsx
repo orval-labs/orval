@@ -14,6 +14,7 @@ import {
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Suspense } from 'react';
 
+import { ConfigReference, LocaleProvider } from '@/components/config-reference';
 import { getDocsLocale, type Locale } from '@/lib/i18n';
 import { baseOptions } from '@/lib/layout.shared';
 import { source, toClientContentPath } from '@/lib/source';
@@ -74,13 +75,16 @@ const clientLoader = browserCollections.docs.createClientLoader({
           </div>
         ) : null}
         <DocsBody>
-          <MDX
-            components={{
-              ...defaultMdxComponents,
-              Tab,
-              Tabs,
-            }}
-          />
+          <LocaleProvider locale={locale ?? 'en'}>
+            <MDX
+              components={{
+                ...defaultMdxComponents,
+                Tab,
+                Tabs,
+                ConfigReference,
+              }}
+            />
+          </LocaleProvider>
         </DocsBody>
       </DocsPage>
     );

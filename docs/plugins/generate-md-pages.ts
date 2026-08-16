@@ -1,6 +1,8 @@
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, relative, dirname, basename } from 'node:path';
 import type { Plugin } from 'vite';
+import { getEntry } from '../src/generated/config-reference';
+import type { RegistryEntry, ResolvedShape } from '../src/generated/config-reference/types';
 
 const BASE_URL = 'https://orval.dev';
 
@@ -119,6 +121,12 @@ function transformMdx(body: string): string {
       continue;
     }
 
+    const refMatch = trimmed.match(CONFIG_REF_RE);
+    if (refMatch) {
+      out.push(renderEntryMarkdown(refMatch[1]));
+      continue;
+    }
+
     out.push(line);
   }
 
@@ -131,6 +139,54 @@ function mdUrl(rel: string): string {
   const outName = name === 'index' ? 'index.html.md' : `${name}.md`;
   const path = dir === '.' ? outName : `${dir}/${outName}`;
   return `${BASE_URL}/docs/${path}`;
+}
+
+const CONFIG_REF_RE = /^<ConfigReference\s+path="([^"]+)"\s*\/>$/;
+
+function renderShapeMarkdown(resolved: ResolvedShape): string {
+  const lines = [
+    `  - **${resolved.typeName}** — per the OpenAPI specification${
+      resolved.specUrl ? ` ([spec](${resolved.specUrl}))` : ''
+    }`,
+    '    | Field | Type | Optional |',
+    '    | --- | --- | --- |',
+  ];
+  for (const f of resolved.fields) {
+    lines.push(
+      `    | \`${f.name}\` | \`${f.type}\` | ${f.optional ? '✓' : ''} |`,
+    );
+  }
+  return lines.join('\n');
+}
+
+function renderEntryMarkdown(path: string): string {
+  const entry = getEntry(path);
+  if (!entry) return `_(No reference data for \`${path}\`.)_`;
+  if (entry.kind === 'field') {
+    const f = entry;
+    const lines = [`**${f.name}** — \`${f.type}\`${f.optional ? ' _(optional)_' : ''}`];
+    if (f.description) lines.push('', f.description);
+    if (f.default) lines.push('', `Default: \`${f.default}\``);
+    if (f.callback) {
+      lines.push('', 'Callback parameters:');
+      for (const p of f.callback.params) {
+        lines.push(`- \`${p.name}\`: \`${p.type}\``);
+        if (p.resolved) lines.push(renderShapeMarkdown(p.resolved));
+      }
+      lines.push('', `Returns: \`${f.callback.returnType}\``);
+    }
+    return lines.join('\n');
+  }
+  // section table
+  const rows = ['| Field | Type | Default | Description |', '| --- | --- | --- | --- |'];
+  for (const f of entry.fields) {
+    rows.push(
+      `| \`${f.name}\` | \`${f.type}\` | ${f.default ? `\`${f.default}\`` : '—'} | ${
+        f.description ?? ''
+      } |`,
+    );
+  }
+  return rows.join('\n');
 }
 
 async function readMeta(dir: string): Promise<MetaJson | null> {
