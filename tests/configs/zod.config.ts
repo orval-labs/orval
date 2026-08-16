@@ -262,6 +262,26 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  // Mini is Zod 4-only; `variant: 'mini'` renders `zod/enum` from `zod/mini`.
+  // `enums-mini` exists so Mini output is generated and typechecked in CI:
+  // the compile-time fixture in tests/regressions/zod-enums-mini.ts asserts a
+  // Mini enum member keeps its literal type (see #3852).
+  'enums-mini': {
+    output: {
+      target: '../generated/zod/enums-mini/enums-mini.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          variant: 'mini',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
   'nullable-any-of-refs': {
     output: {
       target: '../generated/zod/nullable-any-of-refs/nullable-any-of-refs.ts',

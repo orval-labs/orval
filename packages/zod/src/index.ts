@@ -1726,8 +1726,12 @@ ${Object.entries(objectArgs)
       }
 
       if (fn === 'enumObject') {
+        // Mini's `_enum` has no `const` type parameter, so an object literal
+        // would widen to `Record<string, string | number>` and the generated
+        // schema would lose its member literal types. Classic v3 already
+        // appends `as const` for the same reason; mirror it here.
         current = {
-          expr: zodMiniCall('enum', String(args)),
+          expr: zodMiniCall('enum', `${String(args)} as const`),
           kind: 'enum',
         };
         continue;
