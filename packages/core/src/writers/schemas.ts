@@ -10,7 +10,12 @@ import {
   NamingConvention,
   type Tsconfig,
 } from '../types';
-import { conventionName, getImportExtension, upath } from '../utils';
+import {
+  compareNatural,
+  conventionName,
+  getImportExtension,
+  upath,
+} from '../utils';
 import { writeGeneratedFile } from './file';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
@@ -623,7 +628,7 @@ export async function writeSchemas({
       ].map(([, specifier]) => `export * from '${specifier}';`);
 
       const exports = [...new Set([...existingExports, ...currentExports])]
-        .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+        .toSorted((a, b) => compareNatural(a, b))
         .join('\n');
 
       const fileContent = `${header}\n${exports}\n`;

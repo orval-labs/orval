@@ -1,4 +1,5 @@
 import {
+  compareNatural,
   type ContextSpec,
   type GeneratorImport,
   getKey,
@@ -256,7 +257,7 @@ export function getMockObject({
     const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
-        return a[0].localeCompare(b[0], 'en', { numeric: true });
+        return compareNatural(a[0], b[0]);
       });
     }
     const propertyScalars = entries

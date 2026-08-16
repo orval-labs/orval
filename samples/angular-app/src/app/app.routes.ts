@@ -50,5 +50,17 @@ export const routes: Routes = [
         (module) => module.ZodValidationDemo,
       ),
   },
+  {
+    path: 'http-both',
+    title: 'HttpClient + httpResource · Orval Angular Demo',
+    loadComponent: () =>
+      import('./http-both.page').then((module) => module.HttpBothPage),
+  },
+  {
+    path: 'base-url-token',
+    title: 'DI base URL token · Orval Angular Demo',
+    loadComponent: () =>
+      import('./base-url-token.page').then((module) => module.BaseUrlTokenPage),
+  },
   { path: '**', redirectTo: '' },
 ];

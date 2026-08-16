@@ -36,6 +36,11 @@ import {
 } from '@orval/core';
 
 import {
+  getAngularBaseUrlFilePath,
+  getAngularBaseUrlImportSpecifier,
+  getBaseUrlTokenName,
+} from './base-url';
+import {
   ANGULAR_HTTP_CLIENT_DEPENDENCIES,
   ANGULAR_HTTP_RESOURCE_DEPENDENCIES,
 } from './constants';
@@ -928,9 +933,19 @@ const buildHttpResourceFunction = (
   // to rewrite it to its signal form (e.g. `${param()}`), so encoding first
   // would stop the substitution from matching. Wrapping the already-rewritten
   // form yields `${encodeURIComponent(String(param()))}`, which is correct.
-  const encodedRoute = output.urlEncodeParameters
+  let encodedRoute = output.urlEncodeParameters
     ? makeRouteSafe(signalRoute)
     : signalRoute;
+  // MUST run after the urlEncodeParameters/makeRouteSafe step above (see the
+  // comment on `encodedRoute` for why): prefixing before it would wrap
+  // `baseUrl` in `encodeURIComponent(String(...))`.
+  const baseUrlOption = output.override.angular.baseUrl;
+  if (baseUrlOption) {
+    encodedRoute = '${baseUrl}' + encodedRoute;
+  }
+  const baseUrlDeclaration = baseUrlOption
+    ? `const baseUrl = options?.injector ? options.injector.get(${getBaseUrlTokenName(baseUrlOption.apiId)}) : inject(${getBaseUrlTokenName(baseUrlOption.apiId)});\n  `
+    : '';
 
   const signalProps = buildSignalProps(props, params);
   const args = toObjectString(signalProps, 'implementation');
@@ -1098,13 +1113,13 @@ const buildHttpResourceFunction = (
       : `const normalizedRequest: HttpResourceRequest = request;`;
 
     return `/**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${branchOverloads}
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
-  const buildRequest = (): HttpResourceRequest => {
+  ${baseUrlDeclaration}const buildRequest = (): HttpResourceRequest => {
     ${bodyForm ? `${bodyForm};` : ''}
     const request = ${request};
     ${normalizeRequest}
@@ -1190,11 +1205,11 @@ export function ${resourceName}(
 
   if (isUrlOnly && !isResourceCompatibleMutator) {
     return `/**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
-  return ${resourceFactory}<${parsedDataType}>(() => applyOrvalRequestExtension(${request}, options)${resourceCallOptions});
+  ${baseUrlDeclaration}return ${resourceFactory}<${parsedDataType}>(() => applyOrvalRequestExtension(${request}, options)${resourceCallOptions});
 }
 `;
   }
@@ -1207,11 +1222,11 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
     .join('\n    ');
 
   return `/**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
-  return ${resourceFactory}<${parsedDataType}>(() => {
+  ${baseUrlDeclaration}return ${resourceFactory}<${parsedDataType}>(() => {
     ${factoryPrelude}
     const request = ${request};
     return applyOrvalRequestExtension(${returnExpression}, options);
@@ -1354,8 +1369,13 @@ export interface ResourceState<T> {
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
   readonly isLoading: Signal<boolean>;
-  readonly hasValue: () => boolean;
+  /** Guard reads of \`value()\` with this call: \`value()\` throws in the error state. */
+  readonly hasValue: () => this is ResolvedResourceState<T>;
   readonly reload: () => boolean;
+}
+
+export interface ResolvedResourceState<T> extends ResourceState<T> {
+  readonly value: Signal<Exclude<T, undefined>>;
 }
 
 /**
@@ -1368,7 +1388,9 @@ export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
     status: ref.status,
     error: ref.error,
     isLoading: ref.isLoading,
-    hasValue: () => ref.hasValue(),
+    hasValue(this: ResourceState<T>): this is ResolvedResourceState<T> {
+      return ref.hasValue();
+    },
     reload: () => ref.reload(),
   };
 }
@@ -1472,6 +1494,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     })
     .join('\n');
 
+  const baseUrlOption = output.override.angular.baseUrl;
   const classImplementation = mutationImplementation
     ? `
 ${buildServiceClassOpen({
@@ -1482,6 +1505,9 @@ ${buildServiceClassOpen({
   provideIn,
   hasQueryParams:
     hasMutationBuiltInFilteredQueryParams && !hasBuiltInFilteredQueryParams,
+  baseUrlFieldInitializer: baseUrlOption
+    ? `private readonly baseUrl = inject(${getBaseUrlTokenName(baseUrlOption.apiId)});`
+    : undefined,
   hasObjectParams: mutations.some(hasGatedObjectQueryParamStrategies),
 })}
 ${mutationImplementation}
@@ -1524,10 +1550,21 @@ export const generateHttpResourceClient: ClientBuilder = (
   options,
 ) => {
   routeRegistry.set(verbOptions.operationName, options.route);
-  const imports = getHttpResourceVerbImports(
-    verbOptions,
-    options.context.output,
-  );
+  const baseUrlOption = options.context.output.override.angular.baseUrl;
+  const imports = [
+    ...getHttpResourceVerbImports(verbOptions, options.context.output),
+    ...(baseUrlOption
+      ? [
+          {
+            name: getBaseUrlTokenName(baseUrlOption.apiId),
+            values: true,
+            importPath: getAngularBaseUrlImportSpecifier(
+              options.context.output,
+            ),
+          },
+        ]
+      : []),
+  ];
 
   return { implementation: '\n', imports };
 };
@@ -1728,9 +1765,32 @@ const buildHttpResourceExtraFile = (
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
+  const baseUrlOption = output.override.angular.baseUrl;
+  const baseUrlDependency = baseUrlOption
+    ? [
+        {
+          exports: [
+            { name: getBaseUrlTokenName(baseUrlOption.apiId), values: true },
+          ],
+          // Only include a literal extension for non-`.ts` output (mirrors
+          // `getHttpResourceRelativeSchemasPath` above): TS5097 forbids a
+          // `.ts` import specifier unless `allowImportingTsExtensions` is set.
+          dependency: upath.getRelativeImportPath(
+            outputPath,
+            getAngularBaseUrlFilePath(output),
+            output.fileExtension !== '.ts',
+          ),
+        },
+      ]
+    : [];
   const importImplementation = generateDependencyImports(
     implementation,
-    [...schemaImports, ...externalVerbImports, ...dependencies],
+    [
+      ...schemaImports,
+      ...externalVerbImports,
+      ...dependencies,
+      ...baseUrlDependency,
+    ],
     context.projectName,
     !!output.schemas,
     isSyntheticDefaultImportsAllow(output.tsconfig),

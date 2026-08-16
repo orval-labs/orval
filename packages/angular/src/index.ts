@@ -1,5 +1,6 @@
 import type { AngularOptions, ClientGeneratorsBuilder } from '@orval/core';
 
+import { generateAngularBaseUrlExtraFiles } from './base-url';
 import {
   generateAngular,
   generateAngularFooter,
@@ -15,6 +16,7 @@ import {
   getAngularHttpResourceDependencies,
 } from './http-resource';
 
+export * from './base-url';
 export * from './constants';
 export * from './http-client';
 export * from './http-resource';
@@ -27,6 +29,7 @@ const httpClientBuilder: ClientGeneratorsBuilder = {
   dependencies: getAngularDependencies,
   footer: generateAngularFooter,
   title: generateAngularTitle,
+  extraFiles: generateAngularBaseUrlExtraFiles,
 };
 
 const httpResourceBuilder: ClientGeneratorsBuilder = {
@@ -35,11 +38,15 @@ const httpResourceBuilder: ClientGeneratorsBuilder = {
   dependencies: getAngularHttpResourceDependencies,
   footer: generateHttpResourceFooter,
   title: generateAngularTitle,
+  extraFiles: generateAngularBaseUrlExtraFiles,
 };
 
 const bothClientBuilder: ClientGeneratorsBuilder = {
   ...httpClientBuilder,
-  extraFiles: generateHttpResourceExtraFiles,
+  extraFiles: async (verbOptions, output, context) => [
+    ...(await generateHttpResourceExtraFiles(verbOptions, output, context)),
+    ...(await generateAngularBaseUrlExtraFiles(verbOptions, output, context)),
+  ],
 };
 
 export const builder = () => (options?: AngularOptions) => {

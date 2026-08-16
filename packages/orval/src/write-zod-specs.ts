@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import {
+  compareNatural,
   type ContextSpec,
   conventionName,
   DefaultTag,
@@ -19,6 +20,7 @@ import {
   resolveValue,
   type Tsconfig,
   upath,
+  writeGeneratedFile,
   type ZodCoerceType,
   type ZodVariantOption,
   type ZodVersionOption,
@@ -34,7 +36,6 @@ import {
   resolveIsZodV4,
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
-import fs from 'fs-extra';
 
 import {
   generateReusableSchemaSet,
@@ -479,13 +480,11 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   }
 
   const sortedGroups = [...grouped.values()].map((group) =>
-    [...group].toSorted((a, b) =>
-      a.filePath.localeCompare(b.filePath, 'en', { numeric: true }),
-    ),
+    [...group].toSorted((a, b) => compareNatural(a.filePath, b.filePath)),
   );
 
   return sortedGroups.toSorted((a, b) =>
-    a[0].filePath.localeCompare(b[0].filePath, 'en', { numeric: true }),
+    compareNatural(a[0].filePath, b[0].filePath),
   );
 };
 
@@ -569,7 +568,7 @@ export async function writeZodSchemaTagsSplitBarrel(
 
   const tagDirs = [...allDirs.keys()]
     .filter((dir) => dir !== ROOT_DIR)
-    .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    .toSorted((a, b) => compareNatural(a, b));
 
   const tagExports = tagDirs.map((dir) => {
     const dirPath = indexImportExt
@@ -581,7 +580,7 @@ export async function writeZodSchemaTagsSplitBarrel(
   const allExports = [...rootExports, ...tagExports];
   const rootIndexPath = path.join(schemasPath, 'index.ts');
   const content = `${header}\n${allExports.join('\n')}\n`;
-  await fs.outputFile(rootIndexPath, content);
+  await writeGeneratedFile(rootIndexPath, content);
 }
 
 export function generateZodSchemasInline(
@@ -857,7 +856,7 @@ export async function writeZodSchemas(
       output.override.zod.variant,
     );
 
-    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(
@@ -1004,7 +1003,7 @@ async function writeZodSchemasReusable(
       (imports ? `${imports}\n\n` : '\n') +
       `${rendered.content}\n`;
 
-    await fs.outputFile(filePath, fileContent);
+    await writeGeneratedFile(filePath, fileContent);
   }
 
   if (output.indexFiles && !isSplit && rewritten.length > 0) {
@@ -1365,7 +1364,7 @@ export async function writeZodSchemasFromVerbs(
       output.override.zod.variant,
     );
 
-    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(

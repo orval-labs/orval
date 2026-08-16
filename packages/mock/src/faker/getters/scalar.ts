@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
+  compareNatural,
   type ContextSpec,
   EnumGeneration,
   type GeneratorImport,
@@ -87,7 +88,7 @@ export function getMockScalar({
     properties: {},
   };
   const sortedTags = Object.entries(safeMockOptions.tags ?? {}).toSorted(
-    (a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }),
+    (a, b) => compareNatural(a[0], b[0]),
   );
   for (const [tag, options] of sortedTags) {
     if (!tags.includes(tag)) {

@@ -7,7 +7,8 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { conventionName } from '../utils';
+import { compareNatural, conventionName } from '../utils';
+import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
@@ -57,7 +58,7 @@ export function generateImports({
   );
 
   return Object.entries(grouped)
-    .toSorted(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
+    .toSorted(([a], [b]) => compareNatural(a, b))
     .map(([, group]) => {
       const sample = group[0];
       const canAggregate =

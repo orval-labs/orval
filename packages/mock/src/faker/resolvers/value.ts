@@ -2,6 +2,7 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getRefInfo,
+  getRequiredKeys,
   isFunction,
   isReference,
   type MockOptions,
@@ -273,7 +274,7 @@ export function resolveMockValue({
       isRef: true,
       required: [
         ...((schemaRef?.required as string[] | undefined) ?? []),
-        ...(schemaReference.required ?? []),
+        ...getRequiredKeys(schemaReference, name),
       ],
       ...(schemaReference.nullable === undefined
         ? {}
