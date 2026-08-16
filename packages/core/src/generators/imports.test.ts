@@ -144,6 +144,19 @@ export type MyError = Error;
       expect(dep).toBe("import {\n  schema$Value\n} from '../models';\n");
     });
 
+    it('does not add an import when the name only appears inside another identifier', () => {
+      const dep = addDependency({
+        implementation: 'const value = MySchemaExtra.parse(data);',
+        dependency: '../models',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'MySchema', values: true }],
+      });
+
+      expect(dep).toBeUndefined();
+    });
+
     // Regression for #3695: an aliased import is referenced by its alias only
     // (rendered `name as alias`), so a bare occurrence of the pre-alias name in
     // generated code (e.g. a path param `z` colliding with `z as zod`) must not

@@ -8,7 +8,6 @@ import {
   NamingConvention,
 } from '../types';
 import { conventionName } from '../utils';
-import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
@@ -234,6 +233,13 @@ interface AddDependencyOptions {
   isAllowSyntheticDefaultImports: boolean;
 }
 
+function getReferencedIdentifiers(implementation: string): Set<string> {
+  return new Set(
+    implementation.match(/[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu) ??
+      [],
+  );
+}
+
 export function addDependency({
   implementation,
   exports,
@@ -241,6 +247,7 @@ export function addDependency({
   projectName,
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
+  const referencedIdentifiers = getReferencedIdentifiers(implementation);
   const toAdds = exports.filter((e) => {
     // An aliased import is rendered as `name as alias`, so the alias is the only
     // binding in scope; the pre-alias name never appears as a reference. Match on
@@ -252,12 +259,7 @@ export function addDependency({
       return false;
     }
 
-    const pattern = new RegExp(
-      String.raw`\b(${escapeRegExp(identifier)})\b`,
-      'g',
-    );
-
-    return implementation.match(pattern);
+    return referencedIdentifiers.has(identifier);
   });
 
   if (toAdds.length === 0) {
