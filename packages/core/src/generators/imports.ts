@@ -8,7 +8,6 @@ import {
   NamingConvention,
 } from '../types';
 import { compareNatural, conventionName } from '../utils';
-import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
