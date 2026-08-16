@@ -251,7 +251,10 @@ export const useCreatePetsHook = (): ((
     return customFetcher(getCreatePetsUrl(), {
       ...options,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders(options?.headers),
+      },
       body: JSON.stringify(createPetsBody),
     });
   };

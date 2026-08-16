@@ -33,13 +33,19 @@ export const requestA = async (
   headers?: RequestAHeaders,
   options?: RequestInit,
 ): Promise<requestAResponse> => {
+  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getRequestAUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: JSON.stringify(requestABody),
   });
@@ -72,13 +78,19 @@ export const requestB = async (
   headers?: RequestBHeaders,
   options?: RequestInit,
 ): Promise<requestBResponse> => {
+  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getRequestBUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: JSON.stringify(requestBBody),
   });

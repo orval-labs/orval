@@ -30,10 +30,19 @@ export const getStreamUrl = () => {
 export const stream = async (
   options?: RequestInit,
 ): Promise<streamResponse> => {
+  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const stream = await fetch(getStreamUrl(), {
     ...options,
     method: 'GET',
-    headers: { Accept: 'application/x-ndjson', ...options?.headers },
+    headers: {
+      Accept: 'application/x-ndjson',
+      ...getHeaders(options?.headers),
+    },
   });
 
   return {
