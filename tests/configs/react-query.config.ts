@@ -1700,6 +1700,46 @@ export default defineConfig({
       target: '../specifications/issue-1522.yaml',
     },
   },
+  datesTransform: {
+    output: {
+      target: '../generated/react-query/dates-transform/endpoints.ts',
+      schemas: '../generated/react-query/dates-transform/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        useDatesTransform: true,
+        mutator: {
+          path: '../mutators/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/dates-transform.yaml',
+    },
+  },
+  datesTransform31: {
+    output: {
+      target: '../generated/react-query/dates-transform-3-1/endpoints.ts',
+      schemas: '../generated/react-query/dates-transform-3-1/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        useDatesTransform: true,
+        mutator: {
+          path: '../mutators/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/dates-transform-3-1.yaml',
+    },
+  },
   // `useInfiniteQueryParam` as an array: candidates in priority order, resolved
   // per operation. `listPets` pages on `page`, `listBets` on `cursor.marker`,
   // `listEvents` declares both so the earlier candidate `page` wins, and

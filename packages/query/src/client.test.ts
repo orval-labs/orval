@@ -1,7 +1,17 @@
+import type {
+  ContextSpec,
+  GeneratorMutator,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  OpenApiSchemaObject,
+  ResReqTypesValue,
+} from '@orval/core';
 import { OutputHttpClient } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
+import { createFrameworkAdapter } from './frameworks';
 import {
+  generateAxiosRequestFunction,
   generateRequestOptionsArguments,
   getHookOptions,
   getQueryArgumentsRequestType,
@@ -590,5 +600,222 @@ describe('getQueryOptions - fetcher support', () => {
     expect(result).toBe(
       '{ ...(signal ? { signal } : {}), ...fetchOptions }, fetcherFn',
     );
+  });
+});
+
+describe('generateAxiosRequestFunction with useDatesTransform', () => {
+  const datedSchema: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['createdAt'],
+    properties: { createdAt: { type: 'string', format: 'date-time' } },
+  };
+
+  const createSuccessType = (
+    overrides: Partial<ResReqTypesValue> = {},
+  ): ResReqTypesValue => ({
+    value: 'Pet',
+    contentType: 'application/json',
+    key: '200',
+    type: 'object',
+    isEnum: false,
+    hasReadonlyProps: false,
+    imports: [],
+    schemas: [],
+    isRef: false,
+    dependencies: [],
+    ...overrides,
+  });
+
+  const createResponse = (
+    overrides: Partial<GeneratorVerbOptions['response']> = {},
+  ): GeneratorVerbOptions['response'] =>
+    ({
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      types: {
+        success: [createSuccessType({ originalSchema: datedSchema })],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      isBlob: false,
+      schemas: [],
+      ...overrides,
+    }) as GeneratorVerbOptions['response'];
+
+  const createOverride = (
+    overrides: Partial<GeneratorVerbOptions['override']> = {},
+  ): GeneratorVerbOptions['override'] =>
+    ({
+      requestOptions: true,
+      formData: { disabled: true, arrayHandling: 'serialize' },
+      formUrlEncoded: true,
+      paramsSerializerOptions: undefined,
+      query: {},
+      useDatesTransform: true,
+      ...overrides,
+    }) as GeneratorVerbOptions['override'];
+
+  const mutator: GeneratorMutator = {
+    name: 'customInstance',
+    path: '/path/to/mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook: false,
+  };
+
+  const createVerbOptions = (
+    overrides: Partial<GeneratorVerbOptions> = {},
+  ): GeneratorVerbOptions =>
+    ({
+      operationId: 'getPet',
+      operationName: 'getPet',
+      typeName: 'getPet',
+      verb: 'get',
+      route: '/pets',
+      pathRoute: '/pets',
+      tags: [],
+      summary: '',
+      doc: '',
+      response: createResponse(),
+      body: {
+        implementation: '',
+        definition: '',
+        imports: [],
+        schemas: [],
+        originalSchema: { type: 'object' },
+        contentType: '',
+        formData: '',
+        formUrlEncoded: '',
+        isOptional: true,
+      },
+      headers: undefined,
+      queryParams: undefined,
+      params: [],
+      props: [],
+      mutator,
+      formData: undefined,
+      formUrlEncoded: undefined,
+      paramsSerializer: undefined,
+      fetchReviver: undefined,
+      override: createOverride(),
+      deprecated: false,
+      originalOperation: {} as GeneratorVerbOptions['originalOperation'],
+      ...overrides,
+    }) as GeneratorVerbOptions;
+
+  const createContext = (): ContextSpec =>
+    ({
+      target: 'query-test',
+      workspace: '/tmp',
+      spec: {
+        openapi: '3.0.0',
+        info: { title: 'Pets', version: '1.0.0' },
+        paths: {},
+        components: {},
+      },
+      output: {
+        urlEncodeParameters: false,
+        tsconfig: {},
+        optionsParamRequired: false,
+      },
+    }) as unknown as ContextSpec;
+
+  const createOptions = (
+    overrides: Partial<GeneratorOptions> = {},
+  ): GeneratorOptions =>
+    ({
+      route: '/pets',
+      pathRoute: '/pets',
+      override: createOverride(),
+      context: createContext(),
+      output: '/tmp/pet.ts',
+      ...overrides,
+    }) as GeneratorOptions;
+
+  const verbOptions = createVerbOptions();
+  const options = createOptions();
+  const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+
+  it('appends .then(deserializer) after the mutator call', () => {
+    const result = generateAxiosRequestFunction(verbOptions, options, adapter);
+    expect(result).toContain(
+      'const deserializeGetPetResponse = (data: Pet): Pet =>',
+    );
+    expect(result).toMatch(/\)\.then\(deserializeGetPetResponse\);/);
+    // The deserializer const must come AFTER the operation const so the
+    // writer-prepended doc comment stays attached to the operation.
+    expect(result.indexOf('const getPet')).toBeLessThan(
+      result.indexOf('const deserializeGetPetResponse'),
+    );
+  });
+
+  it('appends .then(deserializer) after the hook-mutator call', () => {
+    const hookVerbOptions = createVerbOptions({
+      mutator: { ...mutator, isHook: true },
+    });
+    const result = generateAxiosRequestFunction(
+      hookVerbOptions,
+      options,
+      adapter,
+    );
+    expect(result).toContain(
+      'const deserializeGetPetResponse = (data: Pet): Pet =>',
+    );
+    expect(result).toMatch(/\)\.then\(deserializeGetPetResponse\);/);
+    expect(result.indexOf('const useGetPetHook')).toBeLessThan(
+      result.indexOf('const deserializeGetPetResponse'),
+    );
+  });
+
+  it('transforms res.data for the plain axios client', () => {
+    const result = generateAxiosRequestFunction(
+      { ...verbOptions, mutator: undefined },
+      options,
+      adapter,
+    );
+    expect(result).toContain(
+      '.then((res) => { res.data = deserializeGetPetResponse(res.data); return res; })',
+    );
+    expect(result.indexOf('const getPet')).toBeLessThan(
+      result.indexOf('const deserializeGetPetResponse'),
+    );
+  });
+
+  it('emits identical output to today when the flag is off or no dates exist', () => {
+    const off = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        override: { ...verbOptions.override, useDatesTransform: false },
+      },
+      options,
+      adapter,
+    );
+    expect(off).not.toContain('deserializeGetPetResponse');
+
+    const dateFree = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        response: createResponse({
+          types: {
+            success: [
+              createSuccessType({
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+              }),
+            ],
+            errors: [],
+          },
+        }),
+      },
+      options,
+      adapter,
+    );
+    expect(dateFree).not.toContain('deserializeGetPetResponse');
+    expect(dateFree).not.toContain('.then(');
   });
 });
