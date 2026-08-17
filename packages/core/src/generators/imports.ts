@@ -233,6 +233,13 @@ interface AddDependencyOptions {
   isAllowSyntheticDefaultImports: boolean;
 }
 
+type AddDependencyFromIdentifiersOptions = Omit<
+  AddDependencyOptions,
+  'implementation'
+> & {
+  referencedIdentifiers: ReadonlySet<string>;
+};
+
 function getReferencedIdentifiers(implementation: string): Set<string> {
   return new Set(
     implementation.match(/[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu) ??
@@ -240,14 +247,13 @@ function getReferencedIdentifiers(implementation: string): Set<string> {
   );
 }
 
-export function addDependency({
-  implementation,
+function addDependencyFromIdentifiers({
+  referencedIdentifiers,
   exports,
   dependency,
   projectName,
   isAllowSyntheticDefaultImports,
-}: AddDependencyOptions) {
-  const referencedIdentifiers = getReferencedIdentifiers(implementation);
+}: AddDependencyFromIdentifiersOptions) {
   const toAdds = exports.filter((e) => {
     // An aliased import is rendered as `name as alias`, so the alias is the only
     // binding in scope; the pre-alias name never appears as a reference. Match on
@@ -331,6 +337,16 @@ export function addDependency({
   );
 }
 
+export function addDependency({
+  implementation,
+  ...options
+}: AddDependencyOptions) {
+  return addDependencyFromIdentifiers({
+    ...options,
+    referencedIdentifiers: getReferencedIdentifiers(implementation),
+  });
+}
+
 function getLibName(code: string) {
   const splitString = code.split(' from ');
   return (splitString.at(-1) ?? '').split(';')[0].trim();
@@ -346,11 +362,16 @@ export function generateDependencyImports(
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
 ): string {
+  if (imports.length === 0) {
+    return '';
+  }
+
+  const referencedIdentifiers = getReferencedIdentifiers(implementation);
   const dependencies = imports
     .map((dep) =>
-      addDependency({
+      addDependencyFromIdentifiers({
         ...dep,
-        implementation,
+        referencedIdentifiers,
         projectName,
         hasSchemaDir,
         isAllowSyntheticDefaultImports,
