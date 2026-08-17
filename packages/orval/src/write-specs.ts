@@ -26,6 +26,7 @@ import {
   splitSchemasByType,
   SupportedFormatter,
   upath,
+  withGeneratedFileTransform,
   writeGeneratedFile,
   writeSchemas,
   writeSchemasTagsSplit,
@@ -43,7 +44,10 @@ import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import type { TypeDocOptions } from 'typedoc';
 
-import { formatWithPrettier } from './formatters/prettier';
+import {
+  createPrettierFileTransform,
+  formatWithPrettier,
+} from './formatters/prettier';
 import {
   executeHook,
   readReExportSpecifiers,
@@ -176,14 +180,21 @@ async function addOperationSchemasReExport(
   );
   const exportLine = `export * from '${esmImportPath}';\n`;
 
-  const indexExists = await fs.pathExists(schemaIndexPath);
-  if (indexExists) {
+  let existingContent: string | undefined;
+  try {
+    existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  if (existingContent !== undefined) {
     // Append the re-export only if it isn't already declared. The presence
     // check reuses the shared barrel specifier reader so quote style can't
     // cause duplicates (#3756).
-    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
     if (!readReExportSpecifiers(existingContent).has(esmImportPath)) {
-      await fs.appendFile(schemaIndexPath, exportLine);
+      await writeGeneratedFile(schemaIndexPath, existingContent + exportLine);
     }
   } else {
     // Create index with header if file doesn't exist (no regular schemas case)
@@ -191,7 +202,7 @@ async function addOperationSchemasReExport(
       header && header.trim().length > 0
         ? `${header}\n${exportLine}`
         : exportLine;
-    await fs.outputFile(schemaIndexPath, content);
+    await writeGeneratedFile(schemaIndexPath, content);
   }
 }
 
@@ -470,7 +481,7 @@ function getImplementationPathsForIndex(
   );
 }
 
-export async function writeSpecs(
+async function writeSpecsInternal(
   builder: WriteSpecBuilder,
   workspace: string,
   options: NormalizedOptions,
@@ -870,7 +881,7 @@ export async function writeSpecs(
   if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(async (file) =>
-        fs.outputFile(file.path, file.content),
+        writeGeneratedFile(file.path, file.content),
       ),
     );
 
@@ -962,6 +973,28 @@ export async function writeSpecs(
   }
 
   createSuccessMessage(projectTitle);
+}
+
+export async function writeSpecs(
+  builder: WriteSpecBuilder,
+  workspace: string,
+  options: NormalizedOptions,
+  projectName?: string,
+): Promise<void> {
+  const shouldFormatBeforeWriting =
+    options.output.formatter === SupportedFormatter.PRETTIER &&
+    !options.hooks.afterAllFilesWrite;
+  const transform = shouldFormatBeforeWriting
+    ? await createPrettierFileTransform(projectName ?? builder.info.title)
+    : undefined;
+
+  if (transform) {
+    return withGeneratedFileTransform(transform, () =>
+      writeSpecsInternal(builder, workspace, options, projectName),
+    );
+  }
+
+  return writeSpecsInternal(builder, workspace, options, projectName);
 }
 
 function getWriteMode(mode: OutputMode) {

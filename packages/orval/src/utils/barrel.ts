@@ -1,4 +1,6 @@
 import path from 'node:path';
+
+import { writeGeneratedFile } from '@orval/core';
 import fs from 'fs-extra';
 
 const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
@@ -65,15 +67,19 @@ export async function reconcileWorkspaceBarrel(
   fileExtension: string,
   importExtension: string,
 ): Promise<void> {
-  if (!(await fs.pathExists(filePath))) {
-    await fs.outputFile(
+  let existingContent: string;
+  try {
+    existingContent = await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+    await writeGeneratedFile(
       filePath,
       specifiers.map((s) => `export * from '${s}';`).join('\n') + '\n',
     );
     return;
   }
-
-  const existingContent = await fs.readFile(filePath, 'utf8');
   const declared = [...readReExportSpecifiers(existingContent)];
   const resolvable = await Promise.all(
     declared.map((s) =>
@@ -105,7 +111,7 @@ export async function reconcileWorkspaceBarrel(
     [retainedContent, appended].filter(Boolean).join(eol) + eol;
 
   if (nextContent !== existingContent) {
-    await fs.outputFile(filePath, nextContent);
+    await writeGeneratedFile(filePath, nextContent);
   }
 }
 
@@ -117,9 +123,14 @@ export async function reconcileZodBarrel(
   header: string,
   mergeExisting: boolean,
 ): Promise<void> {
-  const existingContent = (await fs.pathExists(filePath))
-    ? await fs.readFile(filePath, 'utf8')
-    : '';
+  let existingContent = '';
+  try {
+    existingContent = await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
   const existing = mergeExisting
     ? readReExportSpecifiers(existingContent)
     : new Set<string>();
@@ -129,6 +140,6 @@ export async function reconcileZodBarrel(
     .join('\n');
   const nextContent = `${header}\n${body}\n`;
   if (nextContent !== existingContent) {
-    await fs.outputFile(filePath, nextContent);
+    await writeGeneratedFile(filePath, nextContent);
   }
 }

@@ -144,6 +144,7 @@ export interface NormalizedOverrideOutput {
 
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
+  useDatesTransform?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -265,6 +266,27 @@ export interface BaseUrlRuntime {
   imports?: GeneratorImport[];
   getBaseUrlFromSpecification?: never;
   baseUrl?: never;
+}
+
+/**
+ * Opt-in config for `override.angular.baseUrl`: composes a runtime base URL
+ * for a generated Angular output via Angular DI (an `InjectionToken`) rather
+ * than baking a static prefix into every route at generation time.
+ *
+ * Angular-client only; mutually exclusive with the top-level `output.baseUrl`
+ * (which bakes a prefix into every generated route string for ALL clients).
+ * `apiId` is required and explicit — never derived from the spec — so the
+ * generated identifiers (`<API_ID>_BASE_URL`, `provide<Api>BaseUrl`, ...) are
+ * stable across regenerations and collision-free when multiple outputs are
+ * generated into the same app.
+ */
+export interface AngularBaseUrlOptions {
+  /** Explicit, stable identifier for this API, used to derive all generated DI token/helper names. Must match `/^[A-Za-z][A-Za-z0-9_-]*$/`. */
+  apiId: string;
+  /** Index into the specification's `servers` array to embed as the default fallback URL. Defaults to `0`. */
+  index?: number;
+  /** Values for any `{variable}` placeholders in the selected server URL. */
+  variables?: Record<string, string>;
 }
 
 export const PropertySortOrder = {
@@ -761,6 +783,12 @@ export interface OverrideOutput {
 
   requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
+  /**
+   * Emit per-operation response deserializers that convert schema-declared
+   * `format: date` / `format: date-time` fields to `Date` at runtime.
+   * Implies `useDates`. @default false
+   */
+  useDatesTransform?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -1169,6 +1197,13 @@ export interface AngularOptions {
   runtimeValidation?: boolean;
   httpResource?: AngularHttpResourceOptions;
   /**
+   * Opt-in: compose the runtime base URL for this output via Angular DI
+   * (an `InjectionToken`) instead of baking a static prefix into every
+   * route at generation time. Angular-client only; mutually exclusive with
+   * the top-level `output.baseUrl`.
+   */
+  baseUrl?: AngularBaseUrlOptions;
+  /**
    * Controls how object-typed query parameters are serialized when no
    * `paramsSerializer` is configured.
    *
@@ -1192,6 +1227,7 @@ export interface NormalizedAngularOptions {
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
   httpResource?: AngularHttpResourceOptions;
+  baseUrl?: AngularBaseUrlOptions;
   queryObjectSerialization: 'spec' | 'legacy';
 }
 

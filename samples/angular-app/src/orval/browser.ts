@@ -1,6 +1,7 @@
 import { setupWorker } from 'msw/browser';
 import { http, HttpResponse, RequestHandler } from 'msw';
 
+import * as httpBothMocks from '../api/http-both/index.msw';
 import * as httpClientMocks from '../api/http-client/index.msw';
 import * as httpClientCustomParamsMocks from '../api/http-client-custom-params/index.msw';
 import * as httpResourceMocks from '../api/http-resource/index.msw';
@@ -135,6 +136,7 @@ const allMocks = {
   ...httpClientCustomParamsMocks,
   ...httpResourceMocks,
   ...httpResourceZodMocks,
+  ...httpBothMocks,
 };
 
 const generatedHandlers = Object.entries(allMocks)
