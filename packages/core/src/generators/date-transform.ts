@@ -158,6 +158,42 @@ const buildStatements = ({
     visitedRefs.add(ref);
   }
 
+  // `finally` (rather than a delete on the success path) keeps the shared
+  // visitedRefs set consistent even when a nested resolution throws — a
+  // leaked entry would make a later, non-cyclic branch look cyclic and
+  // silently drop its conversions.
+  try {
+    return buildResolvedStatements({
+      schema,
+      ref,
+      accessor,
+      context,
+      visitedRefs,
+      depth,
+      writeAccessor,
+    });
+  } finally {
+    if (ref) visitedRefs.delete(ref);
+  }
+};
+
+const buildResolvedStatements = ({
+  schema,
+  ref,
+  accessor,
+  context,
+  visitedRefs,
+  depth,
+  writeAccessor,
+}: {
+  schema: OpenApiSchemaObject;
+  ref?: string;
+  accessor: string;
+  context: ContextSpec;
+  visitedRefs: Set<string>;
+  depth: number;
+  writeAccessor?: string;
+}): BuildResult => {
   let result: BuildResult;
   if (isDateSchema(schema)) {
     result = {
@@ -218,7 +254,6 @@ const buildStatements = ({
   }
 
   if (ref) {
-    visitedRefs.delete(ref);
     if (result.cyclicRefs.has(ref)) {
       // Recursive schema. Converting only the levels reached before the cycle
       // closes would leave deeper dates as strings while the generated types

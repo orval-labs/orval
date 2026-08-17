@@ -723,6 +723,85 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     ).toEqual([]);
   });
 
+  it('keeps converting sibling variants when one mapping variant has a broken nested $ref', () => {
+    const context = makeContext({
+      Shared: {
+        type: 'object',
+        required: ['updatedAt'],
+        properties: { updatedAt: { type: 'string', format: 'date-time' } },
+      },
+      TypeA: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: { type: 'string' },
+          shared: { $ref: '#/components/schemas/Shared' },
+          broken: { $ref: '#/components/schemas/DoesNotExist' },
+        },
+      },
+      TypeB: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: { type: 'string' },
+          shared: { $ref: '#/components/schemas/Shared' },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [
+        { $ref: '#/components/schemas/TypeA' },
+        { $ref: '#/components/schemas/TypeB' },
+      ],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { a: 'TypeA', b: 'TypeB' },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.kind) {',
+      '  case "b": {',
+      '    if (data.shared != null) {',
+      '      data.shared.updatedAt = new Date(data.shared.updatedAt);',
+      '    }',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('restores visitedRefs when a mapping target throws mid-walk', () => {
+    // A leaked entry would make a later, non-cyclic branch look cyclic and
+    // silently drop its conversions.
+    const context = makeContext({
+      TypeA: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: { type: 'string' },
+          broken: { $ref: '#/components/schemas/DoesNotExist' },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/TypeA' }],
+      discriminator: { propertyName: 'kind', mapping: { a: 'TypeA' } },
+    } as OpenApiSchemaObject;
+    const visitedRefs = new Set<string>();
+
+    buildDateTransformStatements({
+      schema,
+      accessor: 'data',
+      context,
+      visitedRefs,
+    });
+
+    expect([...visitedRefs]).toEqual([]);
+  });
+
   it('emits nothing for a recursive schema rather than converting only its first level', () => {
     const context = makeContext({
       Node: {
