@@ -27,6 +27,10 @@ import {
   EnumGeneration,
 } from '@orval/core';
 
+import {
+  getAngularBaseUrlImportSpecifier,
+  getBaseUrlTokenName,
+} from './base-url';
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
   HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
@@ -270,7 +274,12 @@ ${acceptHelpers}
 @Injectable(${provideIn ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }` : ''})
 export class ${title} {
   private readonly http = inject(HttpClient);
-`;
+${
+  output.override.angular.baseUrl
+    ? `  private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});
+`
+    : ''
+}`;
 };
 
 /**
@@ -341,6 +350,13 @@ export const generateHttpClientImplementation = (
   let route = _route;
   if (context.output.urlEncodeParameters) {
     route = makeRouteSafe(route);
+  }
+  // MUST run after the urlEncodeParameters/makeRouteSafe step above:
+  // wrapRouteParameters (invoked by makeRouteSafe) rewrites every `${...}`
+  // segment of the route, so prefixing before it would wrap `this.baseUrl`
+  // in `encodeURIComponent(String(...))`.
+  if (context.output.override.angular.baseUrl) {
+    route = '${this.baseUrl}' + route;
   }
 
   const isRequestOptions = override.requestOptions !== false;
@@ -765,7 +781,7 @@ export const generateHttpClientImplementation = (
     if (accept.includes('json') || accept.includes('+json')) {
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<any>;
+      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
     }${
       blobSuccessTypes.length > 0
         ? ` else {
@@ -919,10 +935,23 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     options,
   );
 
+  const baseUrl = options.context.output.override.angular.baseUrl;
+
   const imports = [
     ...generateVerbImports(normalizedVerbOptions),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
+      : []),
+    ...(baseUrl
+      ? [
+          {
+            name: getBaseUrlTokenName(baseUrl.apiId),
+            values: true,
+            importPath: getAngularBaseUrlImportSpecifier(
+              options.context.output,
+            ),
+          },
+        ]
       : []),
   ];
 

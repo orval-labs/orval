@@ -3002,7 +3002,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const expectedZod =
         variant === 'mini'
-          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject} as const))`
           : isZodV4
             ? `zod.enum(${enumObject}).optional()`
             : `zod.nativeEnum(${enumObject} as const).optional()`;
@@ -3062,7 +3062,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const expectedZod =
         variant === 'mini'
-          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject} as const))`
           : isZodV4
             ? `zod.enum(${enumObject}).optional()`
             : `zod.nativeEnum(${enumObject} as const).optional()`;
@@ -3116,7 +3116,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const expectedZod =
         variant === 'mini'
-          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject}))`
+          ? `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.enum(${enumObject} as const))`
           : isZodV4
             ? `zod.enum(${enumObject}).optional()`
             : `zod.nativeEnum(${enumObject} as const).optional()`;

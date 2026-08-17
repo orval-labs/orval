@@ -442,6 +442,15 @@ export default defineConfig({
 });
 ```
 
+<Callout type="info">
+For the `angular` client, prefer
+[`override.angular.baseUrl`](#baseurl-1) when you need the base URL resolved
+through Angular's dependency injection (for example, per-API gateway routing
+or `TestBed` overrides) instead of baked into every generated route string.
+`baseUrl` and `override.angular.baseUrl` are mutually exclusive on the same
+output.
+</Callout>
+
 ### runtime
 
 **Type:** `String`
@@ -786,16 +795,30 @@ export default defineConfig({
 **Type:** `Boolean | String[]`
 **Default:** `false`
 
-Wipe the `target` and `schemas` directories before regenerating. Every file in those folders is removed (`.d.ts` files are preserved) — not only files produced by Orval, but also any other file that happens to live there.
+Remove files left over from previous runs before regenerating. What is removed depends on whether Orval owns the directory.
 
-When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list, applied to both the `target` and `schemas` directories. Use negated globs (prefixed with `!`) to preserve specific files from removal, or positive globs to also remove files that would otherwise be kept.
+**`target` and `schemas` are wiped.** Every file in them is removed (`.d.ts` files are preserved) — not only files produced by Orval, but also any other file that happens to live there. These are the directories Orval asks you to keep hand-written files out of, so it takes them as its own.
+
+**Configured mock directories are pruned.** Set [`mock.path`](#mock), or a mock generator's own `path`, to give mock files their own directory. You frequently keep hand-written code in that directory too — MSW's `browser.ts` and `server.ts`, fixtures, or a barrel. Orval removes only the files that it could have written there. The patterns are `**/*.msw<ext>` and `**/*.faker<ext>`. `<ext>` is your [`fileExtension`](#fileextension), or one of the usual source extensions: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`. Orval matches those extensions as well as your own. Thus a change from `.ts` to `.js` does not strand the mock files of the earlier runs.
+
+The same rule applies when the mock directory is inside `target` or `schemas`. The wipe does not go into a mock directory. Orval prunes that directory instead.
+
+Orval keeps all the files that these patterns do not match. But it also removes every empty directory below each directory that it cleans. This includes your own empty directories.
+
+Without a mock path there is no separate mock directory: mock output lands beside the implementation files and is covered by the `target` rule above.
+
+<Callout type="warn">
+Two limits apply to the prune patterns. A hand-written file with a name such as `handlers.msw.ts` or `fixtures.faker.ts` is removed, because Orval cannot tell it from its own output. And a compound `fileExtension` such as `.gen.ts` is matched only while you keep it configured. After you change it, remove the files of the earlier extension by hand.
+</Callout>
+
+When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list for the `target` and `schemas` directories. They are **not** applied to mock directories — a positive glob there could delete hand-written files Orval never produced. Use negated globs (prefixed with `!`) to preserve specific files from removal.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      // preserve `important.ts`, and also remove `.d.ts` files
-      clean: ['!**/important.ts', '**/*.d.ts'],
+      // preserve `important.ts` when wiping `target` / `schemas`
+      clean: ['!**/important.ts'],
     },
   },
 });
@@ -815,10 +838,14 @@ export default defineConfig({
 ```
 
 <Callout type="warn">
-`clean` removes the entire contents of the configured folders, not just generated files. Do not point `target` or `schemas` directly at a package or library entrypoint root that holds files you need to keep (`package.json`, `ng-package.json`, `public-api.ts`, etc.). Place generated output in a dedicated subdirectory such as `./generated/` so those files are never touched.
+`clean` removes the entire contents of `target` and `schemas`, not just generated files. Do not point either directly at a package or library entrypoint root that holds files you need to keep (`package.json`, `ng-package.json`, `public-api.ts`, etc.). Place generated output in a dedicated subdirectory such as `./generated/` so those files are never touched.
 </Callout>
 
-Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories for the same reason.
+Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories for the same reason. You can share a configured mock directory with hand-written code, because Orval prunes that directory and does not wipe it. This stays true when the mock directory is inside `target` or `schemas`. But keep to the two limits above: do not give a hand-written file a mock file name, and do not rely on Orval to keep your empty directories.
+
+<Callout type="warn">
+A directory configured by more than one project is cleaned by each of them before that project writes, so the last project to run wins and the earlier project's output is gone. This applies to `target`, `schemas`, and mock directories alike. Give each project its own output directories.
+</Callout>
 
 ## formatter
 
@@ -1367,6 +1394,60 @@ export const useCustomMutation = <TData, TError, TVariables, TContext>(
 Because the mutator receives `operationId`, one file can serve every
 operation and branch where the behaviour needs to differ, which is the usual
 alternative to a per-operation configuration option.
+
+#### Controlling the `use` / `get` prefix on query options
+
+By default orval names the exported query options factory
+`use<Operation>QueryOptions` when a `queryOptions` mutator (or a hook
+mutator) is configured, and `get<Operation>QueryOptions` otherwise — the
+`use` prefix is meant to signal a hook. Sometimes the factory is consumed
+outside a React component, for example in a router loader or in
+`prefetchQuery` / `ensureQueryData`, where a `use*` name is misleading and
+can trip rules-of-hooks lint rules. In that case, name the exported function
+yourself via the `queryOptions` mutator and the generated code will use
+your name verbatim:
+
+```ts title="src/mutators/custom-query-options.ts"
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+): T {
+  return options;
+}
+```
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+The generated hook then calls `getPetstoreQueryOptions(...)` (the name of
+the mutator export) instead of an auto-derived `usePetstoreQueryOptions`,
+and it can be used safely with `prefetchQuery` / `ensureQueryData`:
+
+```ts
+export async function loader(queryClient: QueryClient) {
+  return queryClient.ensureQueryData(getPetstoreQueryOptions());
+}
+```
+
+<Callout type="info">
+  The `use`/`get` prefix only affects the *name* of the exported options
+  factory. The hook itself is still exported as `use<Operation>` and must
+  be called from a React component.
+</Callout>
 
 ### shouldExportMutatorHooks
 
@@ -2007,6 +2088,89 @@ Raw expression passed to `HttpResourceOptions.injector`.
 **Type:** `String`
 
 Raw expression passed to `HttpResourceOptions.equal`.
+
+### baseUrl
+
+**Type:** `Object`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          baseUrl: {
+            apiId: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+Opt-in: compose this output's runtime base URL through Angular dependency
+injection (an `InjectionToken`) instead of baking a static prefix into every
+generated route string. See the
+[Angular guide](/docs/guides/angular#di-based-base-url-composition-multiple-apis--gateway-routing)
+for the full precedence chain, the generated artifacts, and a multi-API
+gateway-routing example.
+
+<Callout type="info">
+`angular`-client only. Setting `baseUrl` on any other client logs a warning
+and has no effect.
+</Callout>
+
+#### apiId
+
+**Type:** `String` (required)
+
+Explicit, stable identifier for this API. Must match
+`/^[A-Za-z][A-Za-z0-9_-]*$/`; Orval throws a config-time error otherwise.
+`apiId` is **never** derived from the specification's `info.title` or the
+target file name — it drives every generated identifier, so it needs to stay
+stable across regenerations:
+
+| Generated identifier | Derivation |
+|---|---|
+| `<API_ID>_SERVER_URL` | Embedded fallback URL constant |
+| `<API_ID>_BASE_URL_RESOLVER` | `InjectionToken` for the runtime resolver hook |
+| `<API_ID>_BASE_URL` | `InjectionToken` for the composed, normalized base URL |
+| `<Api>BaseUrlResolverContext` | Resolver context type (`{ apiId, serverUrl }`) |
+| `<Api>BaseUrlResolver` | Resolver function type |
+| `provide<Api>BaseUrl(baseUrl)` | Directly provides the base URL, bypassing the resolver |
+| `provide<Api>BaseUrlResolver(resolver)` | Provides a custom resolver |
+
+`<API_ID>` is `apiId` upper-snake-cased (e.g. `petstore` → `PETSTORE`);
+`<Api>` is `apiId` PascalCased (e.g. `petstore` → `Petstore`).
+
+#### index
+
+**Type:** `Number`
+**Default:** `0`
+
+Which entry of the specification's `servers` array to embed as the default
+fallback URL, same semantics as [`baseUrl.index`](#index) on the top-level
+`baseUrl` option.
+
+#### variables
+
+**Type:** `Record<string, string>`
+
+Values for any `{variable}` placeholders in the selected server URL.
+
+#### Error and warning behavior
+
+- **Missing/invalid `apiId`** — throws
+  `` `override.angular.baseUrl.apiId` must be a non-empty string matching /^[A-Za-z][A-Za-z0-9_-]*$/ `` at config-normalization time.
+- **Combined with `output.baseUrl`** — throws: `` `override.angular.baseUrl` cannot be combined with the top-level `output.baseUrl` ``.
+  Remove `output.baseUrl` from the output; the token's fallback already reads
+  the specification's `servers` field, and a runtime override belongs in a
+  provided resolver.
+- **Set on a non-`angular` client** — logs a warning and is otherwise ignored.
+- **Set under `override.operations[...].angular` or `override.tags[...].angular`**
+  — logs a warning and is ignored. `baseUrl` is an output-level concern
+  configured once via `override.angular.baseUrl`, not per operation or tag.
 
 ---
 
