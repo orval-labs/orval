@@ -1,7 +1,11 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import { SupportedFormatter } from '@orval/core';
+import {
+  type NormalizedOptions,
+  SupportedFormatter,
+  type WriteSpecBuilder,
+} from '@orval/core';
 import fs from 'fs-extra';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +45,7 @@ import {
   getDocsOutputName,
   getDocsTypedocOptions,
   runFormatter,
+  writeSpecs,
 } from './write-specs';
 
 const mockedExeca = vi.mocked(execa);
@@ -256,4 +261,50 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
       await fs.remove(tmpDir);
     }
   }, 30_000);
+});
+
+describe('writeSpecs', () => {
+  it('does not rewrite unchanged extra files', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'orval-extra-file-'));
+    const filePath = path.join(root, 'context.ts');
+    const builder = {
+      operations: {},
+      verbOptions: {},
+      schemas: [],
+      title: vi.fn(),
+      header: vi.fn(),
+      footer: vi.fn(),
+      imports: vi.fn(),
+      importsMock: vi.fn(),
+      extraFiles: [{ path: filePath, content: 'export const context = {};\n' }],
+      info: { title: 'Extra files', version: '1.0.0' },
+      target: '',
+      spec: {},
+    } as WriteSpecBuilder;
+    const options = {
+      output: {
+        target: '',
+        schemas: false,
+        operationSchemas: false,
+        workspace: false,
+        docs: false,
+        formatter: undefined,
+        override: { header: false },
+        mock: { generators: [] },
+      },
+      hooks: {},
+    } as unknown as NormalizedOptions;
+
+    try {
+      await writeSpecs(builder, root, options);
+      const past = new Date('2020-01-01T00:00:00.000Z');
+      await fs.utimes(filePath, past, past);
+
+      await writeSpecs(builder, root, options);
+
+      expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
+    } finally {
+      await fs.remove(root);
+    }
+  });
 });
