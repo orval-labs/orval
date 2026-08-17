@@ -1395,6 +1395,60 @@ Because the mutator receives `operationId`, one file can serve every
 operation and branch where the behaviour needs to differ, which is the usual
 alternative to a per-operation configuration option.
 
+#### Controlling the `use` / `get` prefix on query options
+
+By default orval names the exported query options factory
+`use<Operation>QueryOptions` when a `queryOptions` mutator (or a hook
+mutator) is configured, and `get<Operation>QueryOptions` otherwise — the
+`use` prefix is meant to signal a hook. Sometimes the factory is consumed
+outside a React component, for example in a router loader or in
+`prefetchQuery` / `ensureQueryData`, where a `use*` name is misleading and
+can trip rules-of-hooks lint rules. In that case, name the exported function
+yourself via the `queryOptions` mutator and the generated code will use
+your name verbatim:
+
+```ts title="src/mutators/custom-query-options.ts"
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+): T {
+  return options;
+}
+```
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+The generated hook then calls `getPetstoreQueryOptions(...)` (the name of
+the mutator export) instead of an auto-derived `usePetstoreQueryOptions`,
+and it can be used safely with `prefetchQuery` / `ensureQueryData`:
+
+```ts
+export async function loader(queryClient: QueryClient) {
+  return queryClient.ensureQueryData(getPetstoreQueryOptions());
+}
+```
+
+<Callout type="info">
+  The `use`/`get` prefix only affects the *name* of the exported options
+  factory. The hook itself is still exported as `use<Operation>` and must
+  be called from a React component.
+</Callout>
+
 ### shouldExportMutatorHooks
 
 **Type:** `Boolean`

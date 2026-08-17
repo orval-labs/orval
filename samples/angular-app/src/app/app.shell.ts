@@ -67,6 +67,24 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         >
           <span class="nav-icon">⬡</span> Zod Validation
         </a>
+        <a
+          routerLink="/http-both"
+          #httpBothRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpBothRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⇄</span> Both Clients
+        </a>
+        <a
+          routerLink="/base-url-token"
+          #baseUrlTokenRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="baseUrlTokenRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⚓</span> Base URL Token
+        </a>
       </nav>
     </header>
 

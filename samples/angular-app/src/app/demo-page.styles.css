@@ -5,6 +5,12 @@
   align-items: start;
 }
 
+/* Symmetric variant for pages that compare two peer panels side by side
+   (rather than the default main-content + sidebar split). */
+.demo-grid--even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .panel-stack {
   display: grid;
   gap: 16px;
