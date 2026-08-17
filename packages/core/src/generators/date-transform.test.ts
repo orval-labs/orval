@@ -342,11 +342,11 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'switch (data.petType) {',
-        "  case 'cat': {",
+        '  case "cat": {',
         '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
         '    break;',
         '  }',
-        "  case 'dog': {",
+        '  case "dog": {',
         '    if (data.adoptedAt != null) {',
         '      data.adoptedAt = new Date(data.adoptedAt);',
         '    }',
@@ -379,13 +379,13 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'switch (data.petType) {',
-        "  case 'dog': {",
+        '  case "dog": {',
         '    if (data.adoptedAt != null) {',
         '      data.adoptedAt = new Date(data.adoptedAt);',
         '    }',
         '    break;',
         '  }',
-        "  case 'puppy': {",
+        '  case "puppy": {',
         '    if (data.adoptedAt != null) {',
         '      data.adoptedAt = new Date(data.adoptedAt);',
         '    }',
@@ -433,7 +433,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'switch (data.petType) {',
-        "  case 'cat': {",
+        '  case "cat": {',
         '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
         '    break;',
         '  }',
@@ -517,11 +517,11 @@ describe('buildDateTransformStatements — discriminated unions', () => {
       [
         'if (data.details != null) {',
         '  switch (data.details.petType) {',
-        "    case 'cat': {",
+        '    case "cat": {',
         '      data.details.vaccinatedAt = new Date(data.details.vaccinatedAt);',
         '      break;',
         '    }',
-        "    case 'dog': {",
+        '    case "dog": {',
         '      if (data.details.adoptedAt != null) {',
         '        data.details.adoptedAt = new Date(data.details.adoptedAt);',
         '      }',
@@ -563,11 +563,11 @@ describe('buildDateTransformStatements — discriminated unions', () => {
         'for (let i0 = 0; i0 < data.length; i0++) {',
         '  const item0 = data[i0];',
         '  switch (item0.petType) {',
-        "    case 'cat': {",
+        '    case "cat": {',
         '      item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
         '      break;',
         '    }',
-        "    case 'dog': {",
+        '    case "dog": {',
         '      if (item0.adoptedAt != null) {',
         '        item0.adoptedAt = new Date(item0.adoptedAt);',
         '      }',
@@ -609,6 +609,273 @@ const makeResponse = (
     ...rest,
   } as GetterResponse;
 };
+
+describe('buildDateTransformStatements — schema shapes from real-world specs', () => {
+  it('writes readOnly date properties through a mutable cast', () => {
+    // `readOnly` properties are generated with a `readonly` modifier, so a
+    // plain assignment would not type-check.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['createdAt'],
+      properties: {
+        createdAt: { type: 'string', format: 'date-time', readOnly: true },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      '(data as { -readonly [K in keyof typeof data]: (typeof data)[K] }).createdAt = new Date(data.createdAt);',
+    ]);
+  });
+
+  it('writes readOnly date properties of a hoisted array item through a mutable cast', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['createdAt'],
+        properties: {
+          createdAt: { type: 'string', format: 'date-time', readOnly: true },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.length; i0++) {',
+      '  const item0 = data[i0];',
+      '  (item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }).createdAt = new Date(item0.createdAt);',
+      '}',
+    ]);
+  });
+
+  it('writes allOf-wrapped date elements back through the array slot', () => {
+    // Hoisting the element into a const would make the assignment reassign
+    // a const, which does not compile.
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { allOf: [{ type: 'string', format: 'date-time' }] },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.length; i0++) {',
+      '  data[i0] = new Date(data[i0]);',
+      '}',
+    ]);
+  });
+
+  it('resolves discriminator mappings given as bare component schema names', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: {
+          petType: { type: 'string' },
+          vaccinatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Cat' }],
+      discriminator: { propertyName: 'petType', mapping: { cat: 'Cat' } },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.petType) {',
+      '  case "cat": {',
+      '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('skips an unresolvable discriminator mapping target instead of throwing', () => {
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Missing' }],
+      discriminator: { propertyName: 'petType', mapping: { cat: 'Missing' } },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing for a recursive schema rather than converting only its first level', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        required: ['createdAt', 'children'],
+        properties: {
+          createdAt: { type: 'string', format: 'date-time' },
+          children: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Node' },
+          },
+        },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('keeps converting non-recursive siblings of a recursive property', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        required: ['createdAt', 'children'],
+        properties: {
+          createdAt: { type: 'string', format: 'date-time' },
+          children: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Node' },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['generatedAt', 'tree'],
+      properties: {
+        generatedAt: { type: 'string', format: 'date-time' },
+        tree: { $ref: '#/components/schemas/Node' },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual(['data.generatedAt = new Date(data.generatedAt);']);
+  });
+
+  it('emits nothing for mutually recursive schemas', () => {
+    const context = makeContext({
+      Parent: {
+        type: 'object',
+        required: ['createdAt', 'child'],
+        properties: {
+          createdAt: { type: 'string', format: 'date-time' },
+          child: { $ref: '#/components/schemas/Child' },
+        },
+      },
+      Child: {
+        type: 'object',
+        required: ['parent'],
+        properties: { parent: { $ref: '#/components/schemas/Parent' } },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Parent' },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('converts an OAS 3.1 nullable date spelled as anyOf with a null branch', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['deletedAt'],
+      properties: {
+        deletedAt: {
+          anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+        },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.deletedAt != null) {',
+      '  data.deletedAt = new Date(data.deletedAt);',
+      '}',
+    ]);
+  });
+
+  it('converts an OAS 3.1 nullable $ref spelled as anyOf with a null branch', () => {
+    const context = makeContext({
+      Audit: {
+        type: 'object',
+        required: ['updatedAt'],
+        properties: { updatedAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['audit'],
+      properties: {
+        audit: {
+          anyOf: [{ $ref: '#/components/schemas/Audit' }, { type: 'null' }],
+        },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'if (data.audit != null) {',
+      '  data.audit.updatedAt = new Date(data.audit.updatedAt);',
+      '}',
+    ]);
+  });
+
+  it('still skips a genuine multi-branch union without a discriminator', () => {
+    const schema: OpenApiSchemaObject = {
+      anyOf: [
+        {
+          type: 'object',
+          properties: { at: { type: 'string', format: 'date-time' } },
+        },
+        {
+          type: 'object',
+          properties: { on: { type: 'string', format: 'date' } },
+        },
+        { type: 'null' },
+      ],
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+});
 
 describe('generateResponseDateDeserializer', () => {
   const datedSchema: OpenApiSchemaObject = {
