@@ -236,7 +236,7 @@ function isPackageSpecifierCandidate(
     return true;
   }
 
-  for (let dir = workspace; ; ) {
+  for (let dir = workspace; ;) {
     if (existsSync(nodePath.join(dir, 'node_modules', packageName))) {
       return true;
     }
