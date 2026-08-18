@@ -9,6 +9,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  buildBarrelReExports,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -516,7 +517,27 @@ export async function writeSplitTagsMode({
       })
       .join('');
 
-    const indexContent = namedReExports + tagReExports;
+    // `writeSpecs` writes the client extra files, not this writer. But this
+    // barrel is the only complete entry point. Without these lines you can
+    // reach Angular's `*.resource.ts` API only through a per-tag path, which a
+    // monorepo with enforced module boundaries forbids.
+    //
+    // Only a file that sets `barrelExport` goes in. Other generators put
+    // internal files in `extraFiles`, and some of them run code at module
+    // level.
+    const extraFileReExports = buildBarrelReExports(
+      builder.extraFiles.filter((file) => file.barrelExport),
+      { dirname, extension, importExtension },
+      // Common types already re-exported from the shared-types module must
+      // not preclaim the same name as a value — a name that is also a value
+      // in an extra file still needs its own explicit value re-export.
+      { types: publicSharedTypeNames },
+    );
+
+    const indexContent =
+      namedReExports +
+      tagReExports +
+      extraFileReExports.map((line) => `${line}\n`).join('');
     indexFilePath = path.join(dirname, `index${extension}`);
     await writeGeneratedFile(indexFilePath, indexContent);
   }
