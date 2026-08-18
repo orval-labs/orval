@@ -107,7 +107,7 @@ export const generateRequestFunction = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
-  const GET_HEADERS_HELPER = `  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const GET_HEADERS_HELPER = `  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -691,7 +691,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   `;
   if (mutator?.isHook) {
     fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
-    ${fetchImplementationBody}}
+    ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }
 
