@@ -95,7 +95,7 @@ export const createPets = async (
   formUrlEncoded.append(`name`, createPetsBody.name);
   formUrlEncoded.append(`tag`, createPetsBody.tag);
 
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -159,7 +159,7 @@ export const uploadPetContent = async (
     formUrlEncoded.append(`content`, uploadPetContentBody.content);
   }
 
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -225,7 +225,7 @@ export const uploadPetContentRef = async (
     formUrlEncoded.append(`content`, uploadPetContentRefBody.content);
   }
 
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);

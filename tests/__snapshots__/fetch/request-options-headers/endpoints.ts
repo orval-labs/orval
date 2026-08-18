@@ -96,7 +96,7 @@ export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -161,7 +161,7 @@ export const createPets = async (
   params: CreatePetsParams,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -221,7 +221,7 @@ export const showPetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetByIdResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -279,7 +279,7 @@ export const deletePetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<deletePetByIdResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -338,7 +338,7 @@ export const getHealthCheckUrl = () => {
 export const healthCheck = async (
   options?: RequestInit,
 ): Promise<healthCheckResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -401,7 +401,7 @@ export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetWithOwnerResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);

@@ -147,7 +147,7 @@ export const createPets = async (
   params: CreatePetsParams,
   options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponseSuccess> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);

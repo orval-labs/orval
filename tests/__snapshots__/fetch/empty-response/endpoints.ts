@@ -24,7 +24,7 @@ export const add = async (
   form?: Form,
   options?: RequestInit,
 ): Promise<addResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);

@@ -29,7 +29,7 @@ export const replaceLotteryLogo = async (
   replaceLotteryLogoBody: Blob,
   options?: RequestInit,
 ): Promise<replaceLotteryLogoResponse> => {
-  const getHeaders = (h: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
