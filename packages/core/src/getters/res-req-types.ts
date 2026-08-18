@@ -799,8 +799,7 @@ function resolveSchemaPropertiesToFormData({
       // (and the generated runtime) represent nested objects in url-encoded
       // bodies. See orval issue #3803.
       const isDeepObject =
-        isUrlEncoded &&
-        fieldEncoding?.style === 'deepObject';
+        isUrlEncoded && fieldEncoding?.style === 'deepObject';
 
       if (isDeepObject) {
         // style: deepObject — emit each property as `key[subkey]=value`

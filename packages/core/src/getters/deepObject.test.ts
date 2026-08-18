@@ -147,11 +147,7 @@ describe('deepObject encoding for url-encoded bodies (#3803)', () => {
       ],
     ];
 
-    const result = getResReqTypes(
-      noEncodingBody,
-      'PostAccounts',
-      context,
-    )[0];
+    const result = getResReqTypes(noEncodingBody, 'PostAccounts', context)[0];
 
     const formUrlEncoded = result.formUrlEncoded;
     expect(formUrlEncoded).toBeDefined();
