@@ -344,7 +344,7 @@ const getForbiddenKeys = (
   // common OpenAPI tooling. A bare `not: { required: [X] }` is accepted too.
   const branches = Array.isArray(not.anyOf)
     ? not.anyOf
-    : isObject(not.required)
+    : Array.isArray(not.required)
       ? [not]
       : [];
 
@@ -852,12 +852,23 @@ export const generateZodValidationSchemaDefinition = (
       // sibling properties, forbidden keys must be emitted as `zod.never()`
       // (optional, so absence passes and any value fails). These are injected
       // as pre-generated property overrides into the object schema below. (#3780)
-      let propertyOverrides: Record<string, ZodValidationSchemaDefinition> | undefined;
+      let propertyOverrides:
+        | Record<string, ZodValidationSchemaDefinition>
+        | undefined;
       if (forbidden) {
         propertyOverrides = {};
         for (const key of forbidden) {
+          // A key that is both forbidden and required contradicts itself; emit
+          // the required form (no optional) so the `never` still rejects any
+          // value while the key is expected to be absent.
+          const isForbiddenAndRequired = required.includes(key);
           propertyOverrides[key] = {
-            functions: [['never', undefined], ['optional', undefined]],
+            functions: [
+              ['never', undefined],
+              ...(isForbiddenAndRequired
+                ? []
+                : ([['optional', undefined]] as const)),
+            ],
             consts: [],
           } as ZodValidationSchemaDefinition;
         }
@@ -885,9 +896,11 @@ export const generateZodValidationSchemaDefinition = (
         {
           required: true,
           additionalRequired: allOfRequired,
-          propertyOverrides: (withSiblingProperties(schema) as OpenApiSchemaObject)[
-            'x-orval-property-overrides'
-          ] as Record<string, ZodValidationSchemaDefinition> | undefined,
+          propertyOverrides: (
+            withSiblingProperties(schema) as OpenApiSchemaObject
+          )['x-orval-property-overrides'] as
+            | Record<string, ZodValidationSchemaDefinition>
+            | undefined,
           constNameRegistry,
           useReusableSchemas,
           urlEncoded,
