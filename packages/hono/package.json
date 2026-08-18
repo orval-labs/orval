@@ -33,6 +33,7 @@
     "hono": "catalog:hono",
     "rimraf": "catalog:",
     "typescript": "catalog:",
+    "vite-plus": "catalog:",
     "zod": "catalog:zod4"
   },
   "peerDependencies": {

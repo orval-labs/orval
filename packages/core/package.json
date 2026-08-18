@@ -43,7 +43,8 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@faker-js/faker": ">=10"

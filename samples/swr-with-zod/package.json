@@ -4,7 +4,7 @@
   "version": "8.24.0",
   "type": "module",
   "scripts": {
-    "dev": "vp --host",
+    "dev": "vp dev --host",
     "build": "tsc -b && vp build",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vp preview",

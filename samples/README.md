@@ -24,12 +24,13 @@ Update `<ORVAL OUTPUT DIR>`
   // other props omitted...
   "scripts": {
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "vite-plus": "catalog:"
   },
 }
 ```

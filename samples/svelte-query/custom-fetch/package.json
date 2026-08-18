@@ -4,7 +4,7 @@
   "version": "8.24.0",
   "type": "module",
   "scripts": {
-    "dev": "vp --host",
+    "dev": "vp dev --host",
     "build": "vp build",
     "preview": "vp preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",

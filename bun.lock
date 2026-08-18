@@ -36,6 +36,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/core": {
@@ -63,6 +64,7 @@
         "@types/jsesc": "^3.0.3",
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
       "peerDependencies": {
         "@faker-js/faker": ">=10",
@@ -81,6 +83,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/fetch": {
@@ -92,6 +95,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/hono": {
@@ -108,6 +112,7 @@
         "hono": "catalog:hono",
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
         "zod": "catalog:zod4",
       },
       "peerDependencies": {
@@ -128,6 +133,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/mock": {
@@ -140,6 +146,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/orval": {
@@ -204,6 +211,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/solid-start": {
@@ -215,6 +223,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/swr": {
@@ -227,6 +236,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/zod": {
@@ -241,6 +251,7 @@
         "@types/jsesc": "^3.0.3",
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/angular-app": {

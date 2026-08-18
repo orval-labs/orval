@@ -88,6 +88,6 @@ export default defineConfig({
       'vp fmt --write --no-error-on-unmatched-pattern',
   },
   test: {
-    projects: ['packages/*'],
+    projects: ['packages/*/vite.config.ts'],
   },
 });
