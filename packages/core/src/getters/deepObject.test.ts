@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type {
   ContextSpec,
   OpenApiRequestBodyObject,
-  OpenApiSchemaObject,
   ReadonlyRequestBodiesMode,
 } from '../types';
 import { getResReqTypes } from './res-req-types';
