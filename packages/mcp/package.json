@@ -30,6 +30,6 @@
   "devDependencies": {
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   }
 }

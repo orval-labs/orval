@@ -8,7 +8,7 @@ import {
   type OutputOptions,
 } from '@orval/core';
 import fs from 'fs-extra';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils';

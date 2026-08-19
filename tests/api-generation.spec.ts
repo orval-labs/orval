@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { describeApiGenerationSnapshots } from '../test-utils/snapshot-testing';
 

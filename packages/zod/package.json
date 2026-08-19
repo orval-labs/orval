@@ -31,6 +31,6 @@
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   }
 }

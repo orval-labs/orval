@@ -1,5 +1,5 @@
 import { dehydrate, QueryClient } from '@tanstack/react-query';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { listPets } from './generated/fetch/serialize-response-headers/endpoints';
 import { prefetchListPetsQuery } from './generated/react-query/prefetch-serializable-headers/endpoints';

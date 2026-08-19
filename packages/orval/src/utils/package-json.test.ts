@@ -5,7 +5,14 @@
  */
 
 import { isString as isRemedaString } from 'remeda';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 // Mock modules before imports
 vi.mock('find-up', () => ({

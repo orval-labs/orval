@@ -16,7 +16,7 @@ import {
   isMswMock,
   OutputMockType,
 } from '@orval/core';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
 import { dedupeStrictMockTypeDeclarations } from '../mock-types';

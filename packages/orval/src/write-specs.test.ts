@@ -7,7 +7,7 @@ import {
   type WriteSpecBuilder,
 } from '@orval/core';
 import fs from 'fs-extra';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { MockExecaError } = vi.hoisted(() => ({
   MockExecaError: class MockExecaError extends Error {

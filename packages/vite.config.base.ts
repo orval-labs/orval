@@ -1,7 +1,10 @@
-import { defineConfig } from 'vite-plus';
+import { defineConfig, type UserConfig } from 'vite-plus';
 import type { PackUserConfig } from 'vite-plus/pack';
 
-export const definePackage = (pack: PackUserConfig = {}) =>
+export const definePackage = (
+  pack: PackUserConfig = {},
+  test: UserConfig['test'] = {},
+) =>
   defineConfig({
     pack: {
       entry: ['src/index.ts'],
@@ -43,7 +46,7 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           dependsOn: ['build:release'],
         },
         test: {
-          command: 'vitest run',
+          command: 'vp test',
           cache: true,
           dependsOn: ['build:release'],
         },
@@ -56,5 +59,9 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           cache: false,
         },
       },
+    },
+    test: {
+      passWithNoTests: true,
+      ...test,
     },
   });

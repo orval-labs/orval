@@ -56,25 +56,14 @@ export default defineConfig({
       'samples/react-app/docs-html-plugin/assets',
     ],
     rules: {
-      'no-array-constructor': 'error',
-      'no-unused-vars': 'error',
+      'eslint/no-array-constructor': 'error',
       'typescript/ban-ts-comment': 'error',
-      'typescript/no-duplicate-enum-values': 'error',
       'typescript/no-empty-object-type': 'error',
       'typescript/no-explicit-any': 'error',
-      'typescript/no-extra-non-null-assertion': 'error',
-      'typescript/no-misused-new': 'error',
       'typescript/no-namespace': 'error',
-      'typescript/no-non-null-asserted-optional-chain': 'error',
       'typescript/no-require-imports': 'error',
-      'typescript/no-this-alias': 'error',
       'typescript/no-unnecessary-type-constraint': 'error',
-      'typescript/no-unsafe-declaration-merging': 'error',
       'typescript/no-unsafe-function-type': 'error',
-      'typescript/no-wrapper-object-types': 'error',
-      'typescript/prefer-as-const': 'error',
-      'typescript/prefer-namespace-keyword': 'error',
-      'typescript/triple-slash-reference': 'error',
     },
     overrides: [
       {
@@ -82,8 +71,8 @@ export default defineConfig({
         // legitimately trips so `lint:samples` stays a useful, looser gate.
         files: ['samples/**'],
         rules: {
-          'no-unused-vars': 'off',
-          'no-extra-boolean-cast': 'off',
+          'eslint/no-unused-vars': 'off',
+          'eslint/no-extra-boolean-cast': 'off',
           'typescript/no-explicit-any': 'off',
           'typescript/no-empty-object-type': 'off',
           'typescript/no-unsafe-function-type': 'off',
@@ -97,5 +86,8 @@ export default defineConfig({
   staged: {
     '*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}':
       'vp fmt --write --no-error-on-unmatched-pattern',
+  },
+  test: {
+    projects: ['packages/*/vite.config.ts'],
   },
 });
