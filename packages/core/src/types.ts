@@ -183,6 +183,7 @@ export interface NormalizedOverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  includeZodSchemaInArguments?: boolean;
 }
 
 export interface NormalizedMutator {
@@ -819,6 +820,7 @@ export interface OverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  includeZodSchemaInArguments?: boolean;
 }
 
 export interface JsDocOptions {
