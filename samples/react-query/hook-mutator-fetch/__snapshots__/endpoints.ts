@@ -243,6 +243,13 @@ export const useCreatePetsHook = (): ((
   createPetsBody: CreatePetsBody,
   options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
 ) => Promise<createPetsResponse>) => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+
   const customFetcher = useCustomFetch();
   return (
     createPetsBody: CreatePetsBody,
@@ -251,7 +258,10 @@ export const useCreatePetsHook = (): ((
     return customFetcher(getCreatePetsUrl(), {
       ...options,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders(options?.headers),
+      },
       body: JSON.stringify(createPetsBody),
     });
   };

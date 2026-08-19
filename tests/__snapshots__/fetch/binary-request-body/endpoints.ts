@@ -29,10 +29,16 @@ export const replaceLotteryLogo = async (
   replaceLotteryLogoBody: Blob,
   options?: RequestInit,
 ): Promise<replaceLotteryLogoResponse> => {
+  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getReplaceLotteryLogoUrl(id), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'image/png', ...options?.headers },
+    headers: { 'Content-Type': 'image/png', ...getHeaders(options?.headers) },
     body: replaceLotteryLogoBody,
   });
 

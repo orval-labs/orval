@@ -107,6 +107,14 @@ export const generateRequestFunction = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
+  const GET_HEADERS_HELPER = `  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+`;
+
   const getUrlFnName = camel(`get-${operationName}-url`);
   const getUrlFnProps = toObjectString(
     props.filter(
@@ -512,7 +520,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      ? `headers: { ${headersToAdd.join(',')}, ...getHeaders(options?.headers) }`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
@@ -679,11 +687,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   let fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
-  ${fetchImplementationBody}}
+  ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
     fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
-    ${fetchImplementationBody}}
+    ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }
 
