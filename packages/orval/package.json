@@ -89,7 +89,7 @@
     "@types/js-yaml": "^4.0.9",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "prettier": ">=3.0.0"

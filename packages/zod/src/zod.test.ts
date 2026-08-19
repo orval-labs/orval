@@ -7,7 +7,7 @@ import type {
   OpenApiSchemaObject,
 } from '@orval/core';
 import { PropertySortOrder } from '@orval/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('@orval/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@orval/core')>();

@@ -8,7 +8,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { resetHttpClientReturnTypes } from './http-client';
 import {

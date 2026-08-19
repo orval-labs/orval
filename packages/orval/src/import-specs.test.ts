@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import type { OpenApiDocument } from '@orval/core';
 import * as orvalCore from '@orval/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
   dereferenceExternalRef,

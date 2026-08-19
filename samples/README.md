@@ -24,13 +24,13 @@ Update `<ORVAL OUTPUT DIR>`
   // other props omitted...
   "scripts": {
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
   },
   "devDependencies": {
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "vitest": "catalog:",
+    "vite-plus": "catalog:"
   },
 }
 ```
@@ -65,7 +65,7 @@ export default defineConfig({
 No changes needed.
 
 ```ts
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
