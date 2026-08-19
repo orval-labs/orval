@@ -19,7 +19,7 @@ import {
   isSchema,
   pascal,
 } from '../utils';
-import { getCombinedEnumValue } from './enum';
+import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import type { FormDataContext } from './object';
 import { getRefInfo, isComponentRef } from './ref';
@@ -886,8 +886,13 @@ export function combineSchemas({
         (isEnum && !resolvedData.isRef[index]) ||
         resolvedData.types[index] === 'null',
     );
+
+  const enumMembers = getEnumMembers(schema);
+  const hasAnnotatedEnum = hasEnumMetadata(enumMembers);
+  // Annotated enum compositions need a runtime enum object to preserve member
+  // metadata. Unannotated compositions keep their existing union behavior.
   const isAvailableToGenerateCombinedEnum =
-    isAllEnums &&
+    (isAllEnums || hasAnnotatedEnum) &&
     name &&
     items.length > 1 &&
     context.output.override.enumGenerationType !== EnumGeneration.UNION;
@@ -905,6 +910,7 @@ export function combineSchemas({
         schema: resolvedData.originalSchema[index],
       })),
     );
+
     const newEnum = `export const ${pascal(name)} = ${combinedEnumValue}`;
     const valueImportSet = new Set(valueImports);
     const enumNullSuffix =

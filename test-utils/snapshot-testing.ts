@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { describe, test } from 'vitest';
+import { describe, test } from 'vite-plus/test';
 
 async function getAllGeneratedFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });

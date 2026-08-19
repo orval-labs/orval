@@ -10,7 +10,7 @@ import {
   OutputMockType,
   PropertySortOrder,
 } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import type { MockSchema, MockSchemaObject } from '../../types';
 import { collectAllOfRequired } from './all-of-required';

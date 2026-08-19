@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import type { NormalizedInputOptions, OpenApiDocument } from '../types';
 import { collectReferencedComponents, filteredVerbs } from './input-filters';

@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const FILE_PATH = path.resolve('/tmp/pets.service.ts');
 

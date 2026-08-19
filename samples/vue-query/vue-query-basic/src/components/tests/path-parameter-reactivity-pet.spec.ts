@@ -1,7 +1,7 @@
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, screen, waitFor } from '@testing-library/vue';
 import { http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { server } from '../../mocks/server';
 import Pet from './path-parameter-reactivity-pet.vue';
 
