@@ -111,17 +111,6 @@ async function resolveSpec(
         : applied;
   }
 
-  // Normalize invalid OpenAPI 3.0 nullable references into a valid 3.1 form.
-  // A `$ref` with a sibling `nullable: true` is out of spec: per the Reference
-  // Object rules, sibling properties on a `$ref` are ignored, so `nullable` has
-  // no effect. Many specs still use it to mean `Pet | null`. Rewrite
-  // `{ $ref, nullable: true }` to `{ anyOf: [$ref, { type: 'null' }] }` and warn
-  // so users know their spec was non-conformant (#3714).
-  transformedData = normalizeNullableRefs(transformedData) as Record<
-    string,
-    unknown
-  >;
-
   if (unsafeDisableValidation) {
     logWarning(
       `🚨 OpenAPI spec validation is disabled.\n` +
@@ -151,6 +140,16 @@ async function resolveSpec(
 
   const upgraded = upgrade(transformedData);
   let specification = upgraded.specification;
+
+  // Normalize invalid OpenAPI 3.0 nullable references into a valid 3.1 form.
+  // A `$ref` with a sibling `nullable: true` is out of spec: per the Reference
+  // Object rules, sibling properties on a `$ref` are ignored, so `nullable` has
+  // no effect. Many specs still use it to mean `Pet | null`. Rewrite
+  // `{ $ref, nullable: true }` to `{ anyOf: [$ref, { type: 'null' }] }` and warn
+  // so users know their spec was non-conformant (#3714). Runs after `upgrade()`
+  // so the validator never sees the rewritten node and the warning fires once
+  // per source occurrence, not per dereference site.
+  specification = normalizeNullableRefs(specification) as OpenApiDocument;
 
   // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
   // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
