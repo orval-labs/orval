@@ -117,7 +117,10 @@ async function resolveSpec(
   // no effect. Many specs still use it to mean `Pet | null`. Rewrite
   // `{ $ref, nullable: true }` to `{ anyOf: [$ref, { type: 'null' }] }` and warn
   // so users know their spec was non-conformant (#3714).
-  transformedData = normalizeNullableRefs(transformedData);
+  transformedData = normalizeNullableRefs(transformedData) as Record<
+    string,
+    unknown
+  >;
 
   if (unsafeDisableValidation) {
     logWarning(
@@ -171,9 +174,9 @@ async function resolveSpec(
  * warning fires once per occurrence, not per dereference site.
  */
 export function normalizeNullableRefs(
-  spec: Record<string, unknown> | unknown,
+  spec: unknown,
   path: string[] = [],
-): Record<string, unknown> | unknown {
+): unknown {
   if (Array.isArray(spec)) {
     return spec.map((item, i) =>
       normalizeNullableRefs(item, [...path, String(i)]),
