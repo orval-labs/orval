@@ -149,7 +149,7 @@ async function resolveSpec(
   // so users know their spec was non-conformant (#3714). Runs after `upgrade()`
   // so the validator never sees the rewritten node and the warning fires once
   // per source occurrence, not per dereference site.
-  specification = normalizeNullableRefs(specification) as OpenApiDocument;
+  specification = normalizeNullableRefs(specification) as typeof specification;
 
   // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
   // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
@@ -175,10 +175,11 @@ async function resolveSpec(
 export function normalizeNullableRefs(
   spec: unknown,
   path: string[] = [],
+  inAllOf: boolean = false,
 ): unknown {
   if (Array.isArray(spec)) {
     return spec.map((item, i) =>
-      normalizeNullableRefs(item, [...path, String(i)]),
+      normalizeNullableRefs(item, [...path, String(i)], inAllOf),
     );
   }
 
@@ -189,7 +190,11 @@ export function normalizeNullableRefs(
   const obj = spec as Record<string, unknown>;
 
   // A ReferenceObject with a sibling `nullable: true`.
+  // Only rewrite when NOT inside an allOf array — allOf + $ref + nullable is
+  // the valid OpenAPI 3.0 way to make a reference nullable, and orval already
+  // handles it correctly (#3714).
   if (
+    !inAllOf &&
     '$ref' in obj &&
     isString(obj.$ref) &&
     (obj.nullable as boolean | undefined) === true
@@ -212,7 +217,11 @@ export function normalizeNullableRefs(
   }
 
   for (const [key, value] of Object.entries(obj)) {
-    obj[key] = normalizeNullableRefs(value, [...path, key]);
+    obj[key] = normalizeNullableRefs(
+      value,
+      [...path, key],
+      inAllOf || key === 'allOf',
+    );
   }
 
   return obj;

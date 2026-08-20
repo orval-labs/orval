@@ -346,22 +346,25 @@ export const getShowPetWithOwnerResponseMock = (
   overrideResponse: Partial<Extract<PetWithTag, object>> = {},
 ): PetWithTag => ({
   tag: faker.string.alpha({ length: { min: 10, max: 30 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.string.alpha({ length: { min: 10, max: 30 } }),
-    id: faker.number.int({ min: 0, max: 100 }),
-    name: 'jon',
-    tag: faker.string.alpha({ length: { min: 10, max: 30 } }),
-    email: (() => faker.internet.email())(),
-    callingCode: faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    country: faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-  },
+  pet: faker.helpers.arrayElement([
+    {
+      ...faker.helpers.arrayElement([
+        { ...getShowPetWithOwnerResponseDogMock() },
+        { ...getShowPetWithOwnerResponseCatMock() },
+      ]),
+      '@id': faker.string.alpha({ length: { min: 10, max: 30 } }),
+      id: faker.number.int({ min: 0, max: 100 }),
+      name: 'jon',
+      tag: faker.string.alpha({ length: { min: 10, max: 30 } }),
+      email: (() => faker.internet.email())(),
+      callingCode: faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      country: faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+    },
+    null,
+  ]),
   ...overrideResponse,
 });
 
