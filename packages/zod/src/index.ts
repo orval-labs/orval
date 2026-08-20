@@ -330,6 +330,35 @@ const isConstraintOnlyMember = (
   return Object.keys(schema).every((key) => SHAPELESS_MEMBER_KEYS.has(key));
 };
 
+// Extracts the property names a member forbids via `not`. JSON Schema forbids a
+// key when `not` lists any subschema that `required`s it — i.e.
+// `not: { anyOf: [{ required: [X] }, { required: [Y] }] }` means X and Y must
+// be absent. Returns `undefined` when the member has no such constraint. (#3780)
+const getForbiddenKeys = (
+  member: OpenApiSchemaObject,
+): string[] | undefined => {
+  if (!isObject(member.not)) return undefined;
+  const not = member.not as OpenApiSchemaObject;
+
+  // `not: { anyOf: [ {required:[X]}, {required:[Y]} ] }` is the form emitted by
+  // common OpenAPI tooling. A bare `not: { required: [X] }` is accepted too.
+  const branches = Array.isArray(not.anyOf)
+    ? not.anyOf
+    : Array.isArray(not.required)
+      ? [not]
+      : [];
+
+  const forbidden = new Set<string>();
+  for (const branch of branches) {
+    if (isObject(branch) && Array.isArray(branch.required)) {
+      for (const key of branch.required) {
+        forbidden.add(key as string);
+      }
+    }
+  }
+  return forbidden.size > 0 ? [...forbidden] : undefined;
+};
+
 // The branch must declare the discriminator key as a literal value — a `const`
 // or an `enum`. Both zod v3 (>=3.20) and v4 build their branch lookup by
 // reading discrete literal values off each option, and throw at construction if
@@ -817,12 +846,41 @@ export const generateZodValidationSchemaDefinition = (
         return member as OpenApiSchemaObject;
       }
 
+      const forbidden = getForbiddenKeys(member as OpenApiSchemaObject);
+
+      // A `not` constraint forbids keys. When the member is rendered against the
+      // sibling properties, forbidden keys must be emitted as `zod.never()`
+      // (optional, so absence passes and any value fails). These are injected
+      // as pre-generated property overrides into the object schema below. (#3780)
+      let propertyOverrides:
+        | Record<string, ZodValidationSchemaDefinition>
+        | undefined;
+      if (forbidden) {
+        propertyOverrides = {};
+        for (const key of forbidden) {
+          // A key that is both forbidden and required contradicts itself; emit
+          // the required form (no optional) so the `never` still rejects any
+          // value while the key is expected to be absent.
+          const isForbiddenAndRequired = required.includes(key);
+          propertyOverrides[key] = {
+            functions: [
+              ['never', undefined],
+              ...(isForbiddenAndRequired
+                ? []
+                : ([['optional', undefined]] as const)),
+            ],
+            consts: [],
+          } as ZodValidationSchemaDefinition;
+        }
+      }
+
       return {
         type: 'object',
         properties,
         required,
         // carried over so the branch keeps its `.describe(...)`
         description: (member as OpenApiSchemaObject).description,
+        'x-orval-property-overrides': propertyOverrides,
       } as OpenApiSchemaObject;
     };
 
@@ -838,6 +896,11 @@ export const generateZodValidationSchemaDefinition = (
         {
           required: true,
           additionalRequired: allOfRequired,
+          propertyOverrides: (
+            withSiblingProperties(schema) as OpenApiSchemaObject
+          )['x-orval-property-overrides'] as
+            | Record<string, ZodValidationSchemaDefinition>
+            | undefined,
           constNameRegistry,
           useReusableSchemas,
           urlEncoded,
@@ -1205,6 +1268,16 @@ export const generateZodValidationSchemaDefinition = (
 
         break;
       }
+      case 'never': {
+        // `not`-forbidden keys render as `zod.never()`. Optional, so the key's
+        // absence passes while any supplied value fails validation. (#3780)
+        functions.push(['never', undefined]);
+        if (required) {
+          functions.push(['optional', undefined]);
+        }
+        break;
+      }
+
       default: {
         // Handle const for number, boolean, null, and object types
         if ('const' in schema) {

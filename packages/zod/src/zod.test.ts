@@ -12578,7 +12578,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     expect(zod).not.toContain('zod.unknown()');
     // the `not` branch is still the AB shape, not an all-optional object
     expect(zod).toContain(
-      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),\n  "Y": zod.number().int().optional()\n})',
+      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.never().optional(),\n  "Y": zod.never().optional()\n})',
     );
     expect(zod).toContain(
       'zod.object({\n  "A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),\n  "Y": zod.number().int()\n})',
