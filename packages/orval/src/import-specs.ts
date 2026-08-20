@@ -111,6 +111,14 @@ async function resolveSpec(
         : applied;
   }
 
+  // Normalize invalid OpenAPI 3.0 nullable references into a valid 3.1 form.
+  // A `$ref` with a sibling `nullable: true` is out of spec: per the Reference
+  // Object rules, sibling properties on a `$ref` are ignored, so `nullable` has
+  // no effect. Many specs still use it to mean `Pet | null`. Rewrite
+  // `{ $ref, nullable: true }` to `{ anyOf: [$ref, { type: 'null' }] }` and warn
+  // so users know their spec was non-conformant (#3714).
+  transformedData = normalizeNullableRefs(transformedData);
+
   if (unsafeDisableValidation) {
     logWarning(
       `🚨 OpenAPI spec validation is disabled.\n` +
@@ -148,6 +156,64 @@ async function resolveSpec(
   }
 
   return specification as OpenApiDocument;
+}
+
+// ─── Invalid nullable $ref normalization (#3714) ───────────────────────────
+
+/**
+ * Per the OpenAPI Reference Object rules, sibling properties on a `$ref` are
+ * ignored — so `{ $ref, nullable: true }` does NOT mean `Pet | null`. Many
+ * 3.0 specs still emit it that way. Rewrite such nodes into the valid 3.1 form
+ * `{ anyOf: [$ref, { type: 'null' }] }` and warn with the JSON Pointer path so
+ * users learn their spec was non-conformant.
+ *
+ * Runs before `upgrade()` so the corrected spec is validated as 3.1 and the
+ * warning fires once per occurrence, not per dereference site.
+ */
+export function normalizeNullableRefs(
+  spec: Record<string, unknown> | unknown,
+  path: string[] = [],
+): Record<string, unknown> | unknown {
+  if (Array.isArray(spec)) {
+    return spec.map((item, i) =>
+      normalizeNullableRefs(item, [...path, String(i)]),
+    );
+  }
+
+  if (!isObject(spec)) {
+    return spec;
+  }
+
+  const obj = spec as Record<string, unknown>;
+
+  // A ReferenceObject with a sibling `nullable: true`.
+  if (
+    '$ref' in obj &&
+    isString(obj.$ref) &&
+    (obj.nullable as boolean | undefined) === true
+  ) {
+    const ref = obj.$ref;
+    delete obj.nullable;
+    delete obj.$ref;
+    const jsonPointer = '#/' + path.join('/');
+    logWarning(
+      `Invalid nullable reference found at ${jsonPointer}.\n` +
+        `  A \`$ref\` with a sibling \`nullable: true\` is out of spec (siblings on a reference are ignored).\n` +
+        `  Treating it as \`${ref} | null\` by rewriting to \`anyOf: [\`$ref\`, { type: "null" }]\`.\n` +
+        `  Fix the source spec with \`nullable: true\` + \`allOf: [$ref]\` (OpenAPI 3.0) or\n` +
+        `  \`anyOf: [$ref, { type: "null" }]\` (OpenAPI 3.1).`,
+    );
+    return {
+      anyOf: [{ $ref: ref }, { type: 'null' }],
+      ...obj,
+    };
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    obj[key] = normalizeNullableRefs(value, [...path, key]);
+  }
+
+  return obj;
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────
