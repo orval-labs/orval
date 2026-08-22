@@ -10931,6 +10931,113 @@ describe('generateMeta (.meta())', () => {
   });
 });
 
+describe('oneOf const branch metadata (#3835)', () => {
+  const ctx = {
+    output: { override: { useDates: false } },
+  } as ContextSpec;
+
+  const status = {
+    oneOf: [
+      {
+        const: 'PENDING',
+        title: 'Pending',
+        description: 'Awaiting manual review',
+      },
+      {
+        const: 'LEGACY',
+        title: 'Legacy',
+        description: 'No longer issued',
+        deprecated: true,
+      },
+    ],
+  } as unknown as OpenApiSchemaObject;
+
+  const render = (
+    schema: OpenApiSchemaObject,
+    isZodV4: boolean,
+    variant: ZodVariantOption = 'classic',
+  ) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        ctx,
+        'Status',
+        false,
+        isZodV4,
+        { required: true },
+      ),
+      ctx,
+      false,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+
+  it('puts title and deprecated in .meta() on zod v4', () => {
+    expect(render(status, true)).toBe(
+      `zod.union([zod.literal("PENDING").meta({ title: 'Pending', description: 'Awaiting manual review' }),zod.literal("LEGACY").meta({ title: 'Legacy', description: 'No longer issued', deprecated: true })])`,
+    );
+  });
+
+  it('rides in as a check on zod mini, which has no .meta()', () => {
+    const zod = render(status, true, 'mini');
+
+    expect(zod).toContain(
+      `.check(/*#__PURE__*/ zod.meta({ title: 'Pending', description: 'Awaiting manual review' }))`,
+    );
+    expect(zod).toContain(
+      `.check(/*#__PURE__*/ zod.meta({ title: 'Legacy', description: 'No longer issued', deprecated: true }))`,
+    );
+  });
+
+  it('leaves zod v3 on .describe(), which is all it has', () => {
+    const zod = render(status, false);
+
+    expect(zod).not.toContain('.meta(');
+    expect(zod).toBe(
+      `zod.union([zod.literal("PENDING").describe('Awaiting manual review'),zod.literal("LEGACY").describe('No longer issued')])`,
+    );
+  });
+
+  it('keeps .describe() for a branch carrying no title or deprecated', () => {
+    const plain = {
+      oneOf: [{ const: 'ACTIVE' }, { const: 'LEGACY', description: 'gone' }],
+    } as unknown as OpenApiSchemaObject;
+
+    const expected = `zod.union([zod.literal("ACTIVE"),zod.literal("LEGACY").describe('gone')])`;
+
+    expect(render(plain, true)).toBe(expected);
+    expect(render(plain, false)).toBe(expected);
+  });
+
+  it('emits a deprecated-only branch without an empty description', () => {
+    const schema = {
+      oneOf: [{ const: 'OLD', deprecated: true }],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(render(schema, true)).toBe(
+      `zod.literal("OLD").meta({ deprecated: true })`,
+    );
+  });
+
+  it('still folds the schema name into .meta() when emitMeta is on', () => {
+    const def = generateZodValidationSchemaDefinition(
+      { type: 'string', description: 'A name' } as OpenApiSchemaObject,
+      ctx,
+      'Name',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+
+    expect(
+      parseZodValidationSchemaDefinition(def, ctx, false, false, true).zod,
+    ).toContain(`.meta({ id: 'Name', description: 'A name' })`);
+  });
+});
+
 function makeZodOverride(overrides: Record<string, unknown> = {}) {
   return {
     strict: {
