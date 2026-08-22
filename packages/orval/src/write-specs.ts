@@ -1,7 +1,6 @@
 import path from 'node:path';
 
 import {
-  buildSchemaTagMap,
   type ContextSpec,
   conventionName,
   createSuccessMessage,
@@ -560,23 +559,11 @@ async function writeSpecsInternal(
   const { info, schemas, target } = builder;
   const { output } = options;
 
-  // Compute the schema→tag map once when splitByTags is enabled so every
-  // downstream writer (zod schemas, typescript schemas, the mode writers,
-  // and the consolidated faker factory file) route imports consistently.
-  // Declared at function scope because it is consumed both inside the
-  // schemas-writing branch and by `writeFakerSchemaMocks` / mode dispatch
-  // which live outside that branch.
-  const shouldSplitSchemasByTags =
-    isObject(output.schemas) && output.schemas.splitByTags;
-  const schemaTagMap = shouldSplitSchemasByTags
-    ? buildSchemaTagMap(
-        Object.values(builder.operations).map((op) => ({
-          imports: op.imports,
-          tags: op.tags,
-        })),
-        schemas,
-      )
-    : undefined;
+  // `getApiBuilder` builds the schema→tag map when `schemas.splitByTags` is on,
+  // and leaves it undefined when it is off. The extra files rendered there and
+  // the writers below share that one map, so all their imports agree.
+  const { schemaTagMap } = builder;
+  const shouldSplitSchemasByTags = schemaTagMap !== undefined;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -698,10 +685,7 @@ async function writeSpecsInternal(
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          operations: Object.values(builder.operations).map((op) => ({
-            imports: op.imports,
-            tags: op.tags,
-          })),
+          schemaTagMap,
         });
       } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =

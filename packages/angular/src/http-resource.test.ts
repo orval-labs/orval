@@ -3419,6 +3419,226 @@ describe('angular httpResource generator', () => {
     });
   });
 
+  describe('schema import resolution', () => {
+    // Mirrors the matrix in `packages/core/src/utils/schema-import-path.test.ts`.
+    // Keep the two in step: together they pin that a `*.resource.ts` file
+    // resolves schemas in the same way as its sibling `*.service.ts` file.
+    const createSchemas = (
+      overrides: Partial<{
+        path: string;
+        type: 'typescript' | 'zod';
+        importPath: string;
+        splitByTags: boolean;
+      }> = {},
+      // Matches the shape of `normalizeSchemasOption`: `type` and
+      // `splitByTags` are always set.
+    ): NormalizedOutputOptions['schemas'] =>
+      ({
+        path: '/libs/models/src/lib/generated/schemas',
+        type: 'typescript',
+        splitByTags: false,
+        ...overrides,
+      }) as NormalizedOutputOptions['schemas'];
+
+    const TAG_MAP = new Map([
+      ['Pet', 'pets'],
+      // `'.'` is the shared sentinel: referenced by 0 or 2+ tags, stays at root.
+      ['Error', '.'],
+    ]);
+
+    const generateResource = async (
+      output: NormalizedOutputOptions,
+      schemaTagMap?: Map<string, string>,
+    ) => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: output.target,
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+        schemaTagMap,
+      );
+
+      return extraFiles[0];
+    };
+
+    const CROSS_PACKAGE_TARGET =
+      '/libs/data-access/src/lib/generated/client/pets.ts';
+
+    it('emits the package specifier verbatim instead of a relative path', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          schemas: createSchemas({ importPath: '@acme/models' }),
+        }),
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
+      // The deep relative cross-package import this fix removes: it breaks
+      // module-boundary lint rules in monorepos (e.g. Nx libs).
+      expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\.\//);
+    });
+
+    it('returns the barrel verbatim even when schemas are split by tag', async () => {
+      // `splitByTags` still emits a root index re-exporting each tag dir, so
+      // the barrel covers everything and needs no tag segment.
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          schemas: createSchemas({
+            importPath: '@acme/models',
+            splitByTags: true,
+          }),
+        }),
+        TAG_MAP,
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
+    });
+
+    it('appends no file extension to package sub-paths when indexFiles is false', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          indexFiles: false,
+          schemas: createSchemas({ importPath: '@acme/models' }),
+        }),
+      );
+
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]@acme\/models\/pet['"]/,
+      );
+      expect(resourceFile?.content).not.toMatch(
+        /from\s+['"]@acme\/models\/pet\./,
+      );
+    });
+
+    it('inserts the tag subdirectory when indexFiles is false', async () => {
+      const resourceFile = await generateResource(
+        createOutput({
+          target: CROSS_PACKAGE_TARGET,
+          indexFiles: false,
+          schemas: createSchemas({
+            importPath: '@acme/models',
+            splitByTags: true,
+          }),
+        }),
+        TAG_MAP,
+      );
+
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]@acme\/models\/pets\/pet['"]/,
+      );
+    });
+
+    it('still resolves a relative path when importPath is not set', async () => {
+      const resourceFile = await generateResource(
+        createOutput({ target: '/tmp/pets.ts', schemas: '/tmp/model' }),
+      );
+
+      expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model['"]/);
+      expect(resourceFile?.content).not.toContain('@acme/models');
+    });
+  });
+
+  describe('zod schema import deduplication', () => {
+    // Regression test for a Copilot review finding on #3813: in Zod mode,
+    // `buildSchemaImportDependencies` deduped schema imports *before* forcing
+    // every export to `{ values: true }`. `dedupeSchemaImports` keys on the
+    // `values` field, so a schema name that shows up once as a value import
+    // (`Pet`, auto-detected as the response's runtime-validation schema) and
+    // once as a type-only import (`Pet`, imported for a named path-params
+    // type) survived the pre-force dedupe as two distinct entries, and
+    // forcing `values: true` on both collapsed them into identical entries
+    // that were never deduped again.
+    //
+    // Core's `generateDependency` (used when rendering the final import
+    // statement) happens to `unique()` its named-import specifiers too, so
+    // this duplication was already masked in the emitted file and this test
+    // passes with or without the `dedupeSchemaImports` call below. It is
+    // kept anyway as a guard on `buildSchemaImportDependencies`'s own
+    // output — the function that this dependency list is meant to be
+    // self-consistent, independent of a downstream safety net — and because
+    // it is the reproduction the review comment asked for.
+    it('collapses a schema imported once as a value and once as a type into a single specifier', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          // Auto-detected as the runtime-validation schema (schemas.type is
+          // 'zod' and runtimeValidation is on by default), so this import is
+          // forced to `values: true` by `getHttpResourceVerbImports`.
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+        // A named path-params prop pulls in its schema as a plain,
+        // type-only import (no `values` field set). Reusing the `Pet` name
+        // here reproduces the type-only + value duplicate.
+        props: [
+          {
+            type: GetterPropType.NAMED_PATH_PARAMS,
+            name: 'params',
+            definition: 'params: Pet',
+            implementation: 'params: Pet',
+            default: false,
+            required: true,
+            destructured: '{ petId }',
+            schema: { name: 'Pet', model: '', imports: [] },
+          } as never,
+        ],
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+          splitByTags: false,
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: output.target,
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      // The schema import may be pretty-printed across multiple lines, so
+      // isolate the `import { ... } from './schemas'` block rather than a
+      // single line.
+      const schemaImportBlock = resourceFile?.content.match(
+        /import\s*\{([^}]*)\}\s*from\s*['"]\.\/schemas['"];?/,
+      );
+
+      expect(schemaImportBlock).toBeDefined();
+      const specifiers = schemaImportBlock?.[1]
+        .split(',')
+        .map((specifier) => specifier.trim())
+        .filter(Boolean);
+
+      // Exactly one `Pet` specifier, not `import { Pet, Pet } from '...'`.
+      expect(specifiers?.filter((specifier) => specifier === 'Pet')).toEqual([
+        'Pet',
+      ]);
+    });
+  });
+
   describe('urlEncodeParameters', () => {
     const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {
       const verbOption = createVerbOption();

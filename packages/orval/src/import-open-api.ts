@@ -75,6 +75,7 @@ export async function importOpenApi({
   const api = await getApiBuilder({
     input,
     output,
+    componentSchemas: schemas,
     context: {
       projectName,
       target,

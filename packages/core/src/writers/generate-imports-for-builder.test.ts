@@ -12,6 +12,9 @@ describe('generateImportsForBuilder', () => {
       namingConvention: NamingConvention.CAMEL_CASE,
       indexFiles: false,
       fileExtension: '.ts',
+      // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
+      // output, or to the user's `fileExtension` when they set one.
+      schemaFileExtension: '.ts',
       ...overrides,
     }) as NormalizedOutputOptions;
 
@@ -118,10 +121,13 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
 
+    // A user-set `fileExtension` also becomes `schemaFileExtension`, so the zod
+    // writer emits `user.gen.ts` and not `user.zod.ts`. The import must follow.
     it('should handle zod schemas with custom extension', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.gen.ts',
+        schemaFileExtension: '.gen.ts',
         schemas: { path: './schemas', type: 'zod', splitByTags: false },
       });
       const imports = [createMockImport('User')];
@@ -131,7 +137,7 @@ describe('generateImportsForBuilder', () => {
       expect(result).toEqual([
         {
           exports: [{ name: 'User', schemaName: undefined }],
-          dependency: '../models/user.zod.gen',
+          dependency: '../models/user.gen',
         },
       ]);
     });
@@ -140,6 +146,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.ts',
+        schemaFileExtension: '.zod.ts',
         schemas: { path: './schemas', type: 'zod', splitByTags: false },
       });
       const imports = [
@@ -393,6 +400,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.ts',
+        schemaFileExtension: '.zod.ts',
         schemas: {
           path: '/libs/models',
           type: 'zod',

@@ -18,6 +18,7 @@ export * from './occurrence';
 export * as upath from './path';
 export * from './required';
 export * from './resolve-version';
+export * from './schema-import-path';
 export * from './schemas-options';
 export * from './sort';
 export * from './string';

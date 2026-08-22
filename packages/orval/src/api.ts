@@ -1,5 +1,6 @@
 import {
   asyncReduce,
+  buildSchemaTagMap,
   type ContextSpec,
   generateVerbsOptions,
   type GeneratorApiBuilder,
@@ -8,6 +9,7 @@ import {
   getFullRoute,
   getRoute,
   GetterPropType,
+  isObject,
   isReference,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
@@ -32,10 +34,16 @@ export async function getApiBuilder({
   input,
   output,
   context,
+  componentSchemas,
 }: {
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   context: ContextSpec;
+  /**
+   * Schemas from `components.schemas`. The caller merges them ahead of the
+   * operation-derived ones. The schema→tag map needs the complete list.
+   */
+  componentSchemas: GeneratorSchema[];
 }): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
     Object.entries(context.spec.paths ?? {}),
@@ -139,16 +147,31 @@ export async function getApiBuilder({
     } as GeneratorApiOperations,
   );
 
+  // Built here, and not in `writeSpecs`, because the extra files below need it.
+  // Use the merged schema list: it must match `WriteSpecBuilder.schemas`.
+  const schemaTagMap =
+    isObject(output.schemas) && output.schemas.splitByTags
+      ? buildSchemaTagMap(
+          Object.values(api.operations).map((operation) => ({
+            imports: operation.imports,
+            tags: operation.tags,
+          })),
+          [...componentSchemas, ...api.schemas],
+        )
+      : undefined;
+
   const extraFiles = await generateExtraFiles(
     output.client,
     api.verbOptions,
     output,
     context,
+    schemaTagMap,
   );
 
   return {
     operations: api.operations,
     schemas: api.schemas,
+    schemaTagMap,
     verbOptions: api.verbOptions,
     title: generateClientTitle,
     header: generateClientHeader,
