@@ -21,7 +21,7 @@ export const GetExampleResponse = zod.strictObject({
 export const GetNodeWithRequiredChildResponse = zod.strictObject({
   id: zod.int(),
   name: zod.string(),
-  child: zod.unknown(),
+  child: zod.union([zod.unknown(), zod.null()]),
 });
 
 /**

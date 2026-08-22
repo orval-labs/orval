@@ -8,7 +8,7 @@ import * as zod from 'zod';
 
 export const PetWithTag = zod.object({
   "tag": zod.string(),
-  "pet": zod.union([zod.union([zod.object({
+  "pet": zod.union([zod.union([zod.union([zod.object({
   "cuteness": zod.int(),
   "breed": zod.enum(['Labradoodle'])
 }),zod.object({
@@ -28,7 +28,7 @@ export const PetWithTag = zod.object({
   "email": zod.email().optional(),
   "callingCode": zod.enum(['+33', '+420']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
-})).nullable()
+})),zod.null()])
 })
 
 export type PetWithTag = zod.input<typeof PetWithTag>;

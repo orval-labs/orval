@@ -4,7 +4,6 @@
  * Circular references
  * OpenAPI spec version: 0.0.0
  */
-import type { NodeWithRequiredChild as __NodeWithRequiredChild } from './nodeWithRequiredChild';
 
 export interface NodeWithRequiredChild {
   id: number;

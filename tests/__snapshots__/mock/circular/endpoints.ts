@@ -86,7 +86,7 @@ export const getGetNodeWithRequiredChildResponseMock = (
     {
       id: faker.number.int(),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      child: null,
+      child: faker.helpers.arrayElement([null]),
     },
     null,
   ]),
