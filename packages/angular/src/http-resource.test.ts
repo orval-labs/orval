@@ -458,6 +458,10 @@ describe('angular httpResource generator', () => {
           type: 'zod',
           path: '/tmp/schemas',
         } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', false),
+        },
       });
       const verbOption = createVerbOption({
         response: baseResponse({
@@ -2677,6 +2681,44 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('parse: Pet.parse');
+    });
+
+    it('emits zod.array parse for inline array responses with runtime validation (#3718)', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet[]', errors: 'Error' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // Inline arrays have no generated schema: the resource composes the
+      // element schema with `zod.array(...)` instead of `Schema.parse`.
+      expect(header).toContain('parse: zod.array(Pet).parse');
+      expect(header).not.toContain('parse: Pet[].parse');
     });
 
     it('does not add parse when schemas.type is not zod', () => {
