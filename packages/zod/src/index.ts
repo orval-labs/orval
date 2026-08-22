@@ -685,8 +685,28 @@ export const generateZodValidationSchemaDefinition = (
     const deprecated =
       'deprecated' in schema && schema.deprecated === true ? true : undefined;
 
+    // A `const` branch of a `oneOf` renders as `zod.literal(...)` inside an
+    // array, where a JSDoc comment is not reachable by an editor, so `title`
+    // and `deprecated` have nowhere to go but the registry. Only zod v4 has
+    // one; v3 keeps the plain `.describe(...)` it emits today. Branches that
+    // carry neither also keep `.describe(...)`, so a spec without member
+    // metadata produces the same output as before. (#3835)
+    const title =
+      typeof schema.title === 'string' && schema.title.length > 0
+        ? schema.title
+        : undefined;
+    const isAnnotatedConst =
+      schema.const !== undefined &&
+      (title !== undefined || deprecated === true);
+
     if (rules?.emitMeta && isZodV4) {
-      const meta: Record<string, unknown> = { id: name };
+      const meta: ZodMetaArgs = { id: name };
+      if (description !== undefined) meta.description = description;
+      if (deprecated) meta.deprecated = true;
+      functions.push(['meta', meta]);
+    } else if (isZodV4 && isAnnotatedConst) {
+      const meta: ZodMetaArgs = {};
+      if (title !== undefined) meta.title = title;
       if (description !== undefined) meta.description = description;
       if (deprecated) meta.deprecated = true;
       functions.push(['meta', meta]);
@@ -1594,6 +1614,36 @@ const PARAMS_MERGE_INTO_OPTIONS_VALIDATORS = new Set([
   'iso.time',
 ]);
 
+export interface ZodMetaArgs {
+  id?: string;
+  title?: string;
+  description?: string;
+  deprecated?: boolean;
+}
+
+// The object literal for a `.meta(...)` call, built explicitly rather than via
+// `stringify` so the strings are JS-escaped and the key order is stable: id,
+// title, description, deprecated. Every key is optional. A schema name (`id`)
+// is only available for top-level component schemas, while a `oneOf` const
+// branch carries member metadata and no name. Returns undefined when nothing
+// is left to emit, so the caller can skip the call entirely.
+const buildMetaArgs = (args: ZodMetaArgs): string | undefined => {
+  const parts: string[] = [];
+  if (args.id !== undefined) {
+    parts.push(`id: '${jsStringEscape(args.id)}'`);
+  }
+  if (args.title !== undefined) {
+    parts.push(`title: '${jsStringEscape(args.title)}'`);
+  }
+  if (args.description !== undefined) {
+    parts.push(`description: '${jsStringEscape(args.description)}'`);
+  }
+  if (args.deprecated) {
+    parts.push('deprecated: true');
+  }
+  return parts.length > 0 ? `{ ${parts.join(', ')} }` : undefined;
+};
+
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpec,
@@ -1981,7 +2031,22 @@ ${Object.entries(objectArgs)
         continue;
       }
 
-      if (fn === 'describe' || fn === 'meta') {
+      // Mini has no `.meta()` method, so registry metadata rides in as a
+      // check. The argument goes through the same builder as the classic path,
+      // so both variants emit the same keys in the same order.
+      if (fn === 'meta') {
+        const value = requireCurrent(fn);
+        const metaArgs = buildMetaArgs(args as ZodMetaArgs);
+        if (metaArgs) {
+          current = {
+            expr: `${value.expr}.check(${zodMiniCall(fn, metaArgs)})`,
+            kind: value.kind,
+          };
+        }
+        continue;
+      }
+
+      if (fn === 'describe') {
         const value = requireCurrent(fn);
         current = {
           expr: `${value.expr}.check(${zodMiniCall(fn, combinedArgs)})`,
@@ -2150,24 +2215,12 @@ ${Object.entries(mergedProperties)
         : `.nativeEnum(${enumObjectImplementation} as const)`;
     }
 
-    // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.
-    // Built explicitly (rather than via stringify) so the description is
-    // JS-string-escaped and the field order is stable: id, description,
-    // deprecated.
+    // `.meta({ id?, title?, description?, deprecated? })`, registry metadata
+    // for zod v4. `id` names a top-level component schema; a `oneOf` const
+    // branch has no name and carries only member metadata.
     if (fn === 'meta') {
-      const metaArgs = args as {
-        id: string;
-        description?: string;
-        deprecated?: boolean;
-      };
-      const parts = [`id: '${jsStringEscape(metaArgs.id)}'`];
-      if (metaArgs.description !== undefined) {
-        parts.push(`description: '${jsStringEscape(metaArgs.description)}'`);
-      }
-      if (metaArgs.deprecated) {
-        parts.push('deprecated: true');
-      }
-      return `.meta({ ${parts.join(', ')} })`;
+      const metaArgs = buildMetaArgs(args as ZodMetaArgs);
+      return metaArgs ? `.meta(${metaArgs})` : '';
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
