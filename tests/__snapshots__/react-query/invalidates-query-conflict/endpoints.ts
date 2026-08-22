@@ -716,7 +716,7 @@ export const getDeletePetByIdMutationOptions = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -725,7 +725,7 @@ export const getDeletePetByIdMutationOptions = <
 ): UseMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const mutationKey = ['deletePetById'];
@@ -739,7 +739,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -748,7 +748,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof deletePetById>>,
-    variables: { petId: string },
+    variables: DeletePetByIdMutationVariables,
     context: TContext,
   ) => {
     if (!options?.skipInvalidation) {
@@ -765,6 +765,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -774,7 +775,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -784,7 +785,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const backupQueryClient = useQueryClient();
