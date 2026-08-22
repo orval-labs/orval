@@ -341,14 +341,14 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBodyItem[] },
+    CreatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBodyItem[] },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -362,7 +362,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBodyItem[] }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -377,6 +377,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBodyItem[];
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = { data: CreatePetsBodyItem[] };
 
 /**
  * @summary Create a pet
@@ -386,7 +387,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBodyItem[] },
+      CreatePetsMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
@@ -395,7 +396,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBodyItem[] },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
@@ -456,14 +457,14 @@ export const getUpdatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updatePets>>,
     TError,
-    { data: NonReadonly<Pet> },
+    UpdatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
-  { data: NonReadonly<Pet> },
+  UpdatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['updatePets'];
@@ -477,7 +478,7 @@ export const getUpdatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePets>>,
-    { data: NonReadonly<Pet> }
+    UpdatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -492,6 +493,7 @@ export type UpdatePetsMutationResult = NonNullable<
 >;
 export type UpdatePetsMutationBody = NonReadonly<Pet>;
 export type UpdatePetsMutationError = Error;
+export type UpdatePetsMutationVariables = { data: NonReadonly<Pet> };
 
 /**
  * @summary Update a pet
@@ -501,7 +503,7 @@ export const useUpdatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof updatePets>>,
       TError,
-      { data: NonReadonly<Pet> },
+      UpdatePetsMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
@@ -510,7 +512,7 @@ export const useUpdatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
-  { data: NonReadonly<Pet> },
+  UpdatePetsMutationVariables,
   TContext
 > => {
   return useMutation(getUpdatePetsMutationOptions(options), queryClient);

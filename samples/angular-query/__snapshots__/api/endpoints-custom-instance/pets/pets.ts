@@ -384,7 +384,7 @@ export const getCreatePetsMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody },
+      CreatePetsMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -392,7 +392,7 @@ export const getCreatePetsMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -406,7 +406,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -421,6 +421,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = ErrorType<Error>;
+export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
 /**
  * @summary Create a pet
@@ -432,14 +433,14 @@ export const injectCreatePets = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody },
+    CreatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -564,7 +565,7 @@ export const getDeletePetMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof deletePet>>,
       TError,
-      { petId: string },
+      DeletePetMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -572,7 +573,7 @@ export const getDeletePetMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
-  { petId: string },
+  DeletePetMutationVariables,
   TContext
 > => {
   const mutationKey = ['deletePet'];
@@ -586,7 +587,7 @@ export const getDeletePetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePet>>,
-    { petId: string }
+    DeletePetMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -601,6 +602,7 @@ export type DeletePetMutationResult = NonNullable<
 >;
 
 export type DeletePetMutationError = ErrorType<Error>;
+export type DeletePetMutationVariables = { petId: string };
 
 /**
  * @summary Delete a pet
@@ -612,14 +614,14 @@ export const injectDeletePet = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePet>>,
     TError,
-    { petId: string },
+    DeletePetMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
-  { petId: string },
+  DeletePetMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -654,7 +656,7 @@ export const getUpdatePetMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof updatePet>>,
       TError,
-      { petId: string; data: Pet },
+      UpdatePetMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -662,7 +664,7 @@ export const getUpdatePetMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
-  { petId: string; data: Pet },
+  UpdatePetMutationVariables,
   TContext
 > => {
   const mutationKey = ['updatePet'];
@@ -676,7 +678,7 @@ export const getUpdatePetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePet>>,
-    { petId: string; data: Pet }
+    UpdatePetMutationVariables
   > = (props) => {
     const { petId, data } = props ?? {};
 
@@ -691,6 +693,7 @@ export type UpdatePetMutationResult = NonNullable<
 >;
 export type UpdatePetMutationBody = Pet;
 export type UpdatePetMutationError = ErrorType<Error>;
+export type UpdatePetMutationVariables = { petId: string; data: Pet };
 
 /**
  * @summary Update a pet
@@ -702,14 +705,14 @@ export const injectUpdatePet = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePet>>,
     TError,
-    { petId: string; data: Pet },
+    UpdatePetMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
-  { petId: string; data: Pet },
+  UpdatePetMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -744,7 +747,7 @@ export const getPatchPetMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof patchPet>>,
       TError,
-      { petId: string; data: PatchPetBody },
+      PatchPetMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -752,7 +755,7 @@ export const getPatchPetMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
-  { petId: string; data: PatchPetBody },
+  PatchPetMutationVariables,
   TContext
 > => {
   const mutationKey = ['patchPet'];
@@ -766,7 +769,7 @@ export const getPatchPetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof patchPet>>,
-    { petId: string; data: PatchPetBody }
+    PatchPetMutationVariables
   > = (props) => {
     const { petId, data } = props ?? {};
 
@@ -781,6 +784,7 @@ export type PatchPetMutationResult = NonNullable<
 >;
 export type PatchPetMutationBody = PatchPetBody;
 export type PatchPetMutationError = ErrorType<Error>;
+export type PatchPetMutationVariables = { petId: string; data: PatchPetBody };
 
 /**
  * @summary Partially update a pet
@@ -792,14 +796,14 @@ export const injectPatchPet = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof patchPet>>,
     TError,
-    { petId: string; data: PatchPetBody },
+    PatchPetMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
-  { petId: string; data: PatchPetBody },
+  PatchPetMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -931,7 +935,7 @@ export const getUploadFileMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof uploadFile>>,
       TError,
-      { petId: number; data?: Blob },
+      UploadFileMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -939,7 +943,7 @@ export const getUploadFileMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data?: Blob },
+  UploadFileMutationVariables,
   TContext
 > => {
   const mutationKey = ['uploadFile'];
@@ -953,7 +957,7 @@ export const getUploadFileMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
-    { petId: number; data?: Blob }
+    UploadFileMutationVariables
   > = (props) => {
     const { petId, data } = props ?? {};
 
@@ -968,6 +972,7 @@ export type UploadFileMutationResult = NonNullable<
 >;
 export type UploadFileMutationBody = Blob | undefined;
 export type UploadFileMutationError = ErrorType<void | Error>;
+export type UploadFileMutationVariables = { petId: number; data?: Blob };
 
 /**
  * @summary Uploads an image.
@@ -979,14 +984,14 @@ export const injectUploadFile = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFile>>,
     TError,
-    { petId: number; data?: Blob },
+    UploadFileMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data?: Blob },
+  UploadFileMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -1028,7 +1033,7 @@ export const getUploadFormDataMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof uploadFormData>>,
       TError,
-      { petId: number; data: UploadFormDataBody },
+      UploadFormDataMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof responseType>;
@@ -1036,7 +1041,7 @@ export const getUploadFormDataMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFormData>>,
   TError,
-  { petId: number; data: UploadFormDataBody },
+  UploadFormDataMutationVariables,
   TContext
 > => {
   const mutationKey = ['uploadFormData'];
@@ -1050,7 +1055,7 @@ export const getUploadFormDataMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFormData>>,
-    { petId: number; data: UploadFormDataBody }
+    UploadFormDataMutationVariables
   > = (props) => {
     const { petId, data } = props ?? {};
 
@@ -1065,6 +1070,10 @@ export type UploadFormDataMutationResult = NonNullable<
 >;
 export type UploadFormDataMutationBody = UploadFormDataBody;
 export type UploadFormDataMutationError = ErrorType<void | Error>;
+export type UploadFormDataMutationVariables = {
+  petId: number;
+  data: UploadFormDataBody;
+};
 
 /**
  * @summary Upload a file via multipart form data.
@@ -1076,14 +1085,14 @@ export const injectUploadFormData = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFormData>>,
     TError,
-    { petId: number; data: UploadFormDataBody },
+    UploadFormDataMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFormData>>,
   TError,
-  { petId: number; data: UploadFormDataBody },
+  UploadFormDataMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
