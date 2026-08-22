@@ -1117,6 +1117,38 @@ export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
 }
 
+/**
+ * Strategy controlling how a Zod-backed client reacts to a response that fails
+ * runtime validation.
+ *
+ * - `throw`: call `Schema.parse(data)` and let it throw (identical to the legacy
+ *   boolean `true` behaviour).
+ * - `both`: `safeParse` the payload, `console.error` the raw `ZodError` for
+ *   production visibility, then re-throw so the failure still surfaces through
+ *   the client's native error channel.
+ */
+export type RuntimeValidationStrategy = 'throw' | 'both';
+
+/**
+ * Per-client runtime-validation configuration surface.
+ *
+ * `true` is the canonical form of `{ strategy: 'throw' }`; `false`/omitted
+ * disables validation. Both remain backward compatible with the original
+ * boolean toggle.
+ */
+export type RuntimeValidation =
+  | boolean
+  | { strategy: RuntimeValidationStrategy };
+
+/**
+ * Canonical, normalized runtime-validation configuration consumed by the client
+ * generators.
+ */
+export interface NormalizedRuntimeValidation {
+  enabled: boolean;
+  strategy: RuntimeValidationStrategy;
+}
+
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
@@ -1143,7 +1175,7 @@ export interface NormalizedQueryOptions {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
-  runtimeValidation?: boolean;
+  runtimeValidation?: NormalizedRuntimeValidation;
 }
 
 export interface QueryOptions {
@@ -1172,7 +1204,7 @@ export interface QueryOptions {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
-  runtimeValidation?: boolean;
+  runtimeValidation?: RuntimeValidation;
 }
 
 export interface AngularOptions {
@@ -1194,7 +1226,7 @@ export interface AngularOptions {
    * Kept for compatibility with existing configs.
    */
   client?: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation?: boolean;
+  runtimeValidation?: RuntimeValidation;
   httpResource?: AngularHttpResourceOptions;
   /**
    * Opt-in: compose the runtime base URL for this output via Angular DI
@@ -1225,7 +1257,7 @@ export interface AngularOptions {
 export interface NormalizedAngularOptions {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: boolean;
+  runtimeValidation: NormalizedRuntimeValidation;
   httpResource?: AngularHttpResourceOptions;
   baseUrl?: AngularBaseUrlOptions;
   queryObjectSerialization: 'spec' | 'legacy';
@@ -1269,7 +1301,7 @@ export interface NormalizedFetchOptions {
   forceSuccessResponse: boolean;
   serializeResponseHeaders: boolean;
   jsonReviver?: Mutator;
-  runtimeValidation: boolean;
+  runtimeValidation: NormalizedRuntimeValidation;
   useRuntimeFetcher: boolean;
   /**
    * Serialization format for array query parameters that do not have an explicit
@@ -1295,7 +1327,7 @@ export interface FetchOptions {
    */
   serializeResponseHeaders?: boolean;
   jsonReviver?: Mutator;
-  runtimeValidation?: boolean;
+  runtimeValidation?: RuntimeValidation;
   useRuntimeFetcher?: boolean;
   /**
    * Serialization format for array query parameters that do not have an explicit

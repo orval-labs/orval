@@ -21,7 +21,7 @@ import {
 const angularOverride = {
   provideIn: 'root',
   client: 'httpClient',
-  runtimeValidation: false,
+  runtimeValidation: { enabled: false, strategy: 'throw' },
   queryObjectSerialization: 'spec',
 } as const;
 
@@ -117,7 +117,7 @@ const createOutput = (
       fetch: {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
         serializeResponseHeaders: false,
       },

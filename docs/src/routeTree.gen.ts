@@ -8,81 +8,81 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as ZhRouteImport } from './routes/zh';
-import { Route as PlaygroundRouteImport } from './routes/playground';
-import { Route as IndexRouteImport } from './routes/index';
-import { Route as ZhPlaygroundRouteImport } from './routes/zh_.playground';
-import { Route as DocsSplatRouteImport } from './routes/docs/$';
-import { Route as ApiSearchRouteImport } from './routes/api/search';
-import { Route as LocaleDocsSplatRouteImport } from './routes/$locale/docs/$';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as ZhRouteImport } from './routes/zh'
+import { Route as PlaygroundRouteImport } from './routes/playground'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as ZhPlaygroundRouteImport } from './routes/zh_.playground'
+import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as LocaleDocsSplatRouteImport } from './routes/$locale/docs/$'
 
 const ZhRoute = ZhRouteImport.update({
   id: '/zh',
   path: '/zh',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ZhPlaygroundRoute = ZhPlaygroundRouteImport.update({
   id: '/zh_/playground',
   path: '/zh/playground',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
   id: '/docs/$',
   path: '/docs/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const LocaleDocsSplatRoute = LocaleDocsSplatRouteImport.update({
   id: '/$locale/docs/$',
   path: '/$locale/docs/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '/playground': typeof PlaygroundRoute;
-  '/zh': typeof ZhRoute;
-  '/api/search': typeof ApiSearchRoute;
-  '/docs/$': typeof DocsSplatRoute;
-  '/zh/playground': typeof ZhPlaygroundRoute;
-  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
+  '/': typeof IndexRoute
+  '/playground': typeof PlaygroundRoute
+  '/zh': typeof ZhRoute
+  '/api/search': typeof ApiSearchRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/zh/playground': typeof ZhPlaygroundRoute
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '/playground': typeof PlaygroundRoute;
-  '/zh': typeof ZhRoute;
-  '/api/search': typeof ApiSearchRoute;
-  '/docs/$': typeof DocsSplatRoute;
-  '/zh/playground': typeof ZhPlaygroundRoute;
-  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
+  '/': typeof IndexRoute
+  '/playground': typeof PlaygroundRoute
+  '/zh': typeof ZhRoute
+  '/api/search': typeof ApiSearchRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/zh/playground': typeof ZhPlaygroundRoute
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
-  '/playground': typeof PlaygroundRoute;
-  '/zh': typeof ZhRoute;
-  '/api/search': typeof ApiSearchRoute;
-  '/docs/$': typeof DocsSplatRoute;
-  '/zh_/playground': typeof ZhPlaygroundRoute;
-  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/playground': typeof PlaygroundRoute
+  '/zh': typeof ZhRoute
+  '/api/search': typeof ApiSearchRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/zh_/playground': typeof ZhPlaygroundRoute
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/playground'
@@ -90,8 +90,8 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/docs/$'
     | '/zh/playground'
-    | '/$locale/docs/$';
-  fileRoutesByTo: FileRoutesByTo;
+    | '/$locale/docs/$'
+  fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/playground'
@@ -99,7 +99,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/docs/$'
     | '/zh/playground'
-    | '/$locale/docs/$';
+    | '/$locale/docs/$'
   id:
     | '__root__'
     | '/'
@@ -108,70 +108,70 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/docs/$'
     | '/zh_/playground'
-    | '/$locale/docs/$';
-  fileRoutesById: FileRoutesById;
+    | '/$locale/docs/$'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  PlaygroundRoute: typeof PlaygroundRoute;
-  ZhRoute: typeof ZhRoute;
-  ApiSearchRoute: typeof ApiSearchRoute;
-  DocsSplatRoute: typeof DocsSplatRoute;
-  ZhPlaygroundRoute: typeof ZhPlaygroundRoute;
-  LocaleDocsSplatRoute: typeof LocaleDocsSplatRoute;
+  IndexRoute: typeof IndexRoute
+  PlaygroundRoute: typeof PlaygroundRoute
+  ZhRoute: typeof ZhRoute
+  ApiSearchRoute: typeof ApiSearchRoute
+  DocsSplatRoute: typeof DocsSplatRoute
+  ZhPlaygroundRoute: typeof ZhPlaygroundRoute
+  LocaleDocsSplatRoute: typeof LocaleDocsSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/zh': {
-      id: '/zh';
-      path: '/zh';
-      fullPath: '/zh';
-      preLoaderRoute: typeof ZhRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/zh'
+      path: '/zh'
+      fullPath: '/zh'
+      preLoaderRoute: typeof ZhRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/playground': {
-      id: '/playground';
-      path: '/playground';
-      fullPath: '/playground';
-      preLoaderRoute: typeof PlaygroundRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh_/playground': {
-      id: '/zh_/playground';
-      path: '/zh/playground';
-      fullPath: '/zh/playground';
-      preLoaderRoute: typeof ZhPlaygroundRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/zh_/playground'
+      path: '/zh/playground'
+      fullPath: '/zh/playground'
+      preLoaderRoute: typeof ZhPlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/$': {
-      id: '/docs/$';
-      path: '/docs/$';
-      fullPath: '/docs/$';
-      preLoaderRoute: typeof DocsSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/search': {
-      id: '/api/search';
-      path: '/api/search';
-      fullPath: '/api/search';
-      preLoaderRoute: typeof ApiSearchRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/docs/$': {
-      id: '/$locale/docs/$';
-      path: '/$locale/docs/$';
-      fullPath: '/$locale/docs/$';
-      preLoaderRoute: typeof LocaleDocsSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/$locale/docs/$'
+      path: '/$locale/docs/$'
+      fullPath: '/$locale/docs/$'
+      preLoaderRoute: typeof LocaleDocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,16 +183,16 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSplatRoute: DocsSplatRoute,
   ZhPlaygroundRoute: ZhPlaygroundRoute,
   LocaleDocsSplatRoute: LocaleDocsSplatRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from './router.tsx';
-import type { createStart } from '@tanstack/react-start';
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
 declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }

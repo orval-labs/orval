@@ -4,6 +4,7 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
+  NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
@@ -24,7 +25,7 @@ import { createQueryParams } from './test-helpers';
 interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: boolean;
+  runtimeValidation: NormalizedRuntimeValidation;
   httpResource?: {
     defaultValue?: unknown;
     debugName?: string;
@@ -41,7 +42,7 @@ const angularOverride = (
 ): AngularOverride => ({
   provideIn: 'root',
   client,
-  runtimeValidation,
+  runtimeValidation: { enabled: runtimeValidation, strategy: 'throw' },
   queryObjectSerialization: 'spec',
   ...(httpResource ? { httpResource } : {}),
 });
@@ -141,7 +142,7 @@ const createOutput = (
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         serializeResponseHeaders: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       enumGenerationType: 'const',
@@ -2962,7 +2963,7 @@ describe('angular httpResource generator', () => {
               angular: {
                 provideIn: 'root',
                 client: 'httpResource',
-                runtimeValidation: true,
+                runtimeValidation: { enabled: true, strategy: 'throw' },
                 queryObjectSerialization: 'spec',
                 httpResource: {
                   debugName: 'operation-level',
