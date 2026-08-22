@@ -634,6 +634,10 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -665,6 +669,33 @@ function filterParams(
       expect(body).not.toBe(PRE_3705_HELPER_BODY);
       expect(body).toContain('objectParamStrategies');
       expect(body).toContain("'flatten' | 'comma' | 'deepObject'");
+    });
+  });
+
+  describe('Date query params survive filterParams (gh #3856)', () => {
+    it('helper body converts Date values to ISO strings', () => {
+      const body = getAngularFilteredParamsHelperBody();
+      expect(body).toContain('filteredParams[key] = value.toISOString();');
+      expect(body).toContain('} else if (value instanceof Date) {');
+    });
+
+    it('inline IIFE converts Date values to ISO strings when date params exist', () => {
+      const expression = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        {},
+        ['since'],
+      );
+      expect(expression).toContain('value instanceof Date');
+      expect(expression).toContain('value.toISOString()');
+    });
+
+    it('inline IIFE omits the Date branch for primitive-only params', () => {
+      const expression = getAngularFilteredParamsExpression('params ?? {}');
+      expect(expression).not.toContain('instanceof Date');
+      expect(expression).not.toContain('toISOString()');
     });
   });
 
@@ -953,6 +984,59 @@ function filterParams(
       );
 
       expect(result).toEqual({ pageNumber: 1, q: 'search' });
+    });
+
+    it('serializes Date query params to ISO strings instead of dropping them', () => {
+      // The inline IIFE is what the non-helper emission sites use; the shared
+      // helper covers the hasObjectParams path above, so exercise both at
+      // runtime instead of only asserting on the generated source text.
+      const expression = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        {},
+        ['from'],
+      );
+      const { outputText } = ts.transpileModule(expression, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2020,
+        },
+      });
+      // Strip transpileModule's "use strict"; prologue and trailing semicolon
+      // so the IIFE can be embedded in a return statement.
+      const iife = outputText
+        .replace(/^["']use strict["'];\s*/, '')
+        .replace(/;\s*$/, '');
+      const runInline = (params: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        new Function('params', `return (${iife});`)(params);
+
+      const inlineResult = runInline({
+        from: new Date('2026-01-02T03:04:05.000Z'),
+        name: 'alice',
+        dropped: undefined,
+      });
+      expect(inlineResult).toEqual({
+        from: '2026-01-02T03:04:05.000Z',
+        name: 'alice',
+      });
+
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+      const helperResult = filterParams(
+        { from: new Date('2026-01-02T03:04:05.000Z'), name: 'alice' },
+        new Set(),
+        false,
+        new Set(),
+        {},
+      );
+      expect(helperResult).toEqual({
+        from: '2026-01-02T03:04:05.000Z',
+        name: 'alice',
+      });
     });
   });
 });

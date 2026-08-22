@@ -44,9 +44,11 @@ export const getAngularFilteredParamsExpression = (
   objectParamStrategies: Readonly<
     Record<string, AngularObjectParamStrategy>
   > = {},
+  dateParamKeys: string[] = [],
 ): string => {
   const hasPassthrough = nonPrimitiveKeys.length > 0;
   const hasObjectStrategies = Object.keys(objectParamStrategies).length > 0;
+  const hasDateParams = dateParamKeys.length > 0;
   const filteredParamValueType = hasPassthrough
     ? 'unknown'
     : `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
@@ -142,7 +144,15 @@ export const getAngularFilteredParamsExpression = (
     ? `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`
     : '';
 
-  const scalarBranch = `    } else if (
+  const scalarBranch = `${
+    hasDateParams
+      ? `    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
+`
+      : ''
+  }    } else if (
       value != null &&
       (typeof value === 'string' ||
         typeof value === 'number' ||
@@ -253,6 +263,10 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -380,6 +394,10 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (gh #3856).
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -434,6 +452,7 @@ export const buildAngularParamsFilterExpression = ({
   objectParamStrategies = {},
   paramsFilter,
   useSharedHelper,
+  dateParamKeys = [],
 }: {
   paramsExpression: string;
   requiredNullableParamKeys?: string[];
@@ -442,6 +461,7 @@ export const buildAngularParamsFilterExpression = ({
   objectParamStrategies?: Readonly<Record<string, AngularObjectParamStrategy>>;
   paramsFilter?: GeneratorMutator;
   useSharedHelper: boolean;
+  dateParamKeys?: string[];
 }): string => {
   if (paramsFilter) {
     return `${paramsFilter.name}(${paramsExpression})`;
@@ -461,6 +481,7 @@ export const buildAngularParamsFilterExpression = ({
     preserveRequiredNullables,
     nonPrimitiveKeys,
     objectParamStrategies,
+    dateParamKeys,
   );
 };
 
@@ -535,6 +556,7 @@ interface GenerateAxiosOptions {
   angularParamsRef?: string;
   requiredNullableQueryParamKeys?: string[];
   nonPrimitiveQueryParamKeys?: string[];
+  dateQueryParamKeys?: string[];
   objectQueryParamStrategies?: Readonly<
     Record<string, AngularObjectParamStrategy>
   >;
@@ -556,6 +578,7 @@ export function generateAxiosOptions({
   angularParamsRef,
   requiredNullableQueryParamKeys,
   nonPrimitiveQueryParamKeys,
+  dateQueryParamKeys,
   objectQueryParamStrategies,
   queryParams,
   headers,
@@ -619,6 +642,7 @@ export function generateAxiosOptions({
           objectParamStrategies: angularObjectParamStrategies,
           paramsFilter,
           useSharedHelper: false,
+          dateParamKeys: dateQueryParamKeys,
         });
         value += paramsSerializer
           ? `\n        params: ${paramsSerializer.name}(${iifeExpr}),`
@@ -772,6 +796,7 @@ export function generateOptions({
     angularParamsRef,
     requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
     nonPrimitiveQueryParamKeys: queryParams?.nonPrimitiveKeys,
+    dateQueryParamKeys: queryParams?.dateParamKeys,
     objectQueryParamStrategies,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
@@ -860,6 +885,7 @@ export function generateQueryParamsAxiosConfig(
         nonPrimitiveKeys: queryParams.nonPrimitiveKeys,
         paramsFilter,
         useSharedHelper: false,
+        dateParamKeys: queryParams.dateParamKeys,
       });
       value += `,\n        params: ${paramsExpr}`;
     } else {

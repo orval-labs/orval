@@ -1383,6 +1383,10 @@ export const defaultFilter = (
       if (filtered.length) out[key] = filtered;
     } else if (value === null && requiredNullableKeys.has(key)) {
       out[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      // Date params are objects; convert them to ISO strings so they survive
+      // the primitive-type filter instead of being silently dropped (#3856).
+      out[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||

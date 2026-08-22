@@ -763,6 +763,66 @@ describe('getQueryParams getter', () => {
     });
   });
 
+  describe('dateParamKeys (useDates Angular params)', () => {
+    it('flags date-time formatted query params when useDates is on', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'since',
+              in: 'query',
+              required: false,
+              schema: { type: 'string', format: 'date-time' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'on',
+              in: 'query',
+              required: false,
+              schema: { type: 'string', format: 'date' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'q',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.dateParamKeys).toEqual(['since', 'on']);
+    });
+
+    it('omits the field when no date-formatted params exist', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'q',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.dateParamKeys).toBeUndefined();
+    });
+  });
+
   // Derives the Angular object-serialization strategy (issue #3705) from a
   // query parameter's declared `style`/`explode`, per the OpenAPI spec
   // defaults (style: form, explode: true for form).

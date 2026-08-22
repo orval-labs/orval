@@ -42,6 +42,13 @@ paths:
               - available
               - pending
               - sold
+        - name: since
+          in: query
+          required: false
+          description: Only return pets adopted on or after this date
+          schema:
+            type: string
+            format: date-time
         - name: limit
           in: query
           required: false
