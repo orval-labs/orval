@@ -52,14 +52,14 @@ export const getPetIdMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof petIdRequestFn2>>,
     TError,
-    { petId: number; petIdRequestFn: string },
+    PetIdMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof petIdRequestFn2>>,
   TError,
-  { petId: number; petIdRequestFn: string },
+  PetIdMutationVariables,
   TContext
 > => {
   const mutationKey = ['petId'];
@@ -73,7 +73,7 @@ export const getPetIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof petIdRequestFn2>>,
-    { petId: number; petIdRequestFn: string }
+    PetIdMutationVariables
   > = (props) => {
     const { petId, petIdRequestFn } = props ?? {};
 
@@ -88,13 +88,14 @@ export type PetIdMutationResult = NonNullable<
 >;
 
 export type PetIdMutationError = unknown;
+export type PetIdMutationVariables = { petId: number; petIdRequestFn: string };
 
 export const usePetId = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof petIdRequestFn2>>,
       TError,
-      { petId: number; petIdRequestFn: string },
+      PetIdMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -103,7 +104,7 @@ export const usePetId = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof petIdRequestFn2>>,
   TError,
-  { petId: number; petIdRequestFn: string },
+  PetIdMutationVariables,
   TContext
 > => {
   return useMutation(getPetIdMutationOptions(options), queryClient);
@@ -146,14 +147,14 @@ export const getOptionsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof optionsRequestFn>>,
     TError,
-    { petId: number },
+    OptionsMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof optionsRequestFn>>,
   TError,
-  { petId: number },
+  OptionsMutationVariables,
   TContext
 > => {
   const mutationKey = ['options'];
@@ -167,7 +168,7 @@ export const getOptionsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof optionsRequestFn>>,
-    { petId: number }
+    OptionsMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -182,13 +183,14 @@ export type OptionsMutationResult = NonNullable<
 >;
 
 export type OptionsMutationError = unknown;
+export type OptionsMutationVariables = { petId: number };
 
 export const useOptions = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof optionsRequestFn>>,
       TError,
-      { petId: number },
+      OptionsMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -197,7 +199,7 @@ export const useOptions = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof optionsRequestFn>>,
   TError,
-  { petId: number },
+  OptionsMutationVariables,
   TContext
 > => {
   return useMutation(getOptionsMutationOptions(options), queryClient);

@@ -239,14 +239,14 @@ export const getCreateWidgetMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createWidget>>,
     TError,
-    { data: Widget | null },
+    CreateWidgetMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createWidget>>,
   TError,
-  { data: Widget | null },
+  CreateWidgetMutationVariables,
   TContext
 > => {
   const mutationKey = ['createWidget'];
@@ -260,7 +260,7 @@ export const getCreateWidgetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createWidget>>,
-    { data: Widget | null }
+    CreateWidgetMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -275,13 +275,14 @@ export type CreateWidgetMutationResult = NonNullable<
 >;
 export type CreateWidgetMutationBody = Widget | null;
 export type CreateWidgetMutationError = unknown;
+export type CreateWidgetMutationVariables = { data: Widget | null };
 
 export const useCreateWidget = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createWidget>>,
       TError,
-      { data: Widget | null },
+      CreateWidgetMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -290,7 +291,7 @@ export const useCreateWidget = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createWidget>>,
   TError,
-  { data: Widget | null },
+  CreateWidgetMutationVariables,
   TContext
 > => {
   return useMutation(getCreateWidgetMutationOptions(options), queryClient);

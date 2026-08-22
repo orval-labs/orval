@@ -453,6 +453,16 @@ export const generateMutationHook = async ({
     )
     .join(';');
 
+  // The variables a mutation takes had no name of its own: the object literal
+  // was repeated at every site that mentions it, so a caller wrapping `mutate`
+  // had to infer it back out of the hook. `MutationBody` is not a substitute,
+  // since it covers the body and not the path or query params beside it. A
+  // parameterless mutation still takes `void`, which needs no alias. (#3782)
+  const variablesTypeName = definitions
+    ? `${pascal(typeName)}MutationVariables`
+    : undefined;
+  const mutationVariablesType = variablesTypeName ?? 'void';
+
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
@@ -485,6 +495,7 @@ export const generateMutationHook = async ({
     operationName: operationTypeReferenceName,
     mutator,
     definitions,
+    mutationVariablesType,
     prefix: adapter.getQueryOptionsDefinitionPrefix(),
     hasQueryV5: adapter.hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError:
@@ -513,6 +524,7 @@ export const generateMutationHook = async ({
   const mutationArguments = adapter.generateQueryArguments({
     operationName: operationTypeReferenceName,
     definitions,
+    mutationVariablesType,
     mutator,
     isRequestOptions,
     httpClient,
@@ -524,6 +536,7 @@ export const generateMutationHook = async ({
   const mutationArgumentsForOptions = adapter.generateQueryArguments({
     operationName: operationTypeReferenceName,
     definitions,
+    mutationVariablesType,
     mutator,
     isRequestOptions,
     httpClient,
@@ -565,9 +578,7 @@ ${hooksOptionImplementation}
       }
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-        definitions ? `{${definitions}}` : 'void'
-      }> = (${properties ? 'props' : ''}) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${mutationVariablesType}> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
           return  ${operationReferenceName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
@@ -580,6 +591,7 @@ ${
     ? adapter.generateMutationOnSuccess({
         operationName,
         definitions,
+        mutationVariablesType,
         isRequestOptions,
         generateInvalidateCall: createGenerateInvalidateCall(
           context.spec,
@@ -639,7 +651,7 @@ ${
 
   const mutationReturnType = adapter.getMutationReturnType({
     dataType,
-    variableType: definitions ? `{${definitions}}` : 'void',
+    variableType: mutationVariablesType,
   });
 
   const mutationHookBody = adapter.generateMutationHookBody({
@@ -675,6 +687,11 @@ ${mutationOptionsFn}
         : ''
     }
     export type ${pascal(typeName)}MutationError = ${errorType}
+    ${
+      variablesTypeName
+        ? `export type ${variablesTypeName} = {${definitions}}`
+        : ''
+    }
 
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,

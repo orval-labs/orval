@@ -64,6 +64,8 @@ interface InvalidateTarget {
 export interface MutationOnSuccessContext {
   operationName: string;
   definitions: string;
+  /** Named alias for the mutation variables, when the generator emitted one. */
+  mutationVariablesType?: string;
   isRequestOptions: boolean;
   generateInvalidateCall: (target: InvalidateTarget) => string;
   uniqueInvalidates: InvalidateTarget[];
@@ -268,6 +270,8 @@ export interface FrameworkAdapter {
   generateQueryArguments(args: {
     operationName: string;
     definitions: string;
+    /** Named alias for the mutation variables, when the generator emitted one. */
+    mutationVariablesType?: string;
     mutator?: GeneratorMutator;
     isRequestOptions: boolean;
     type?: (typeof QueryType)[keyof typeof QueryType];

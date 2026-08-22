@@ -267,7 +267,7 @@ export const getCreatePetsMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBodyItem[] },
+      CreatePetsMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -276,7 +276,7 @@ export const getCreatePetsMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBodyItem[] },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -290,7 +290,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBodyItem[] }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -299,7 +299,7 @@ export const getCreatePetsMutationOptions = <
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof createPets>>,
-    variables: { data: CreatePetsBodyItem[] },
+    variables: CreatePetsMutationVariables,
     context: TContext | undefined,
   ) => {
     if (!options?.skipInvalidation) {
@@ -316,6 +316,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBodyItem[];
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = { data: CreatePetsBodyItem[] };
 
 /**
  * @summary Create a pet
@@ -325,7 +326,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBodyItem[] },
+      CreatePetsMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -335,7 +336,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
 ): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBodyItem[] },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const backupQueryClient = useQueryClient();
@@ -399,14 +400,14 @@ export const getUpdatePetsMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePets>>,
     TError,
-    { data: NonReadonly<Pet> },
+    UpdatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
-  { data: NonReadonly<Pet> },
+  UpdatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['updatePets'];
@@ -420,7 +421,7 @@ export const getUpdatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePets>>,
-    { data: NonReadonly<Pet> }
+    UpdatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -435,6 +436,7 @@ export type UpdatePetsMutationResult = NonNullable<
 >;
 export type UpdatePetsMutationBody = NonReadonly<Pet>;
 export type UpdatePetsMutationError = Error;
+export type UpdatePetsMutationVariables = { data: NonReadonly<Pet> };
 
 /**
  * @summary Update a pet
@@ -443,14 +445,14 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePets>>,
     TError,
-    { data: NonReadonly<Pet> },
+    UpdatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
-  { data: NonReadonly<Pet> },
+  UpdatePetsMutationVariables,
   TContext
 > => {
   return createMutation(getUpdatePetsMutationOptions(options));
