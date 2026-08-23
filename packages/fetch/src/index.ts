@@ -107,7 +107,7 @@ export const generateRequestFunction = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
-  const GET_HEADERS_HELPER = `  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
