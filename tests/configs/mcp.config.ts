@@ -1,6 +1,17 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  directoryTarget: {
+    input: '../specifications/empty-response.yaml',
+    output: {
+      target: '../generated/mcp/directory-target',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      fileExtension: '.gen.ts',
+      formatter: 'prettier',
+    },
+  },
   inlineSchemas: {
     input: '../specifications/empty-response.yaml',
     output: {

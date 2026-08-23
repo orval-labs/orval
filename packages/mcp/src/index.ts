@@ -7,6 +7,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
+  conventionName,
   generateMutatorImports,
   type GeneratorVerbOptions,
   getFileInfo,
@@ -81,6 +82,18 @@ const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
     version: '1.0.0',
   };
 
+const getMcpTargetInfo = (
+  output: NormalizedOutputOptions,
+  info: OpenApiInfoObject,
+) =>
+  getFileInfo(output.target, {
+    backupFilename: conventionName(
+      info.title ?? 'filename',
+      output.namingConvention,
+    ),
+    extension: output.fileExtension,
+  });
+
 export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
   const schemasPath = (
@@ -127,7 +140,14 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
 `
     : '';
 
-  const relativeFetchClientPath = './http-client';
+  const httpClientPath = path.join(
+    targetInfo.dirname,
+    `http-client${output.fileExtension}`,
+  );
+  const relativeFetchClientPath = upath.getRelativeImportPath(
+    targetInfo.path,
+    httpClientPath,
+  );
   const importFetchClientNames = new Set(
     Object.values(verbOptions).flatMap(
       (verbOption) => verbOption.operationName,
@@ -249,7 +269,11 @@ export const generateServer = (
   context: ContextSpec,
 ) => {
   const info = getSpecInfo(context);
-  const { extension, dirname } = getFileInfo(output.target);
+  const {
+    path: targetPath,
+    extension,
+    dirname,
+  } = getMcpTargetInfo(output, info);
   const serverPath = path.join(dirname, `server${extension}`);
   const header = getHeader(output.override.header, info);
 
@@ -334,7 +358,12 @@ tools.${verbOption.operationName} = server.registerTool(
       return imports;
     })
     .join(',\n');
-  const importToolSchemasImplementation = `import {\n${importToolSchemas}\n} from './tool-schemas.zod';`;
+  const toolSchemasPath = path.join(dirname, `tool-schemas.zod${extension}`);
+  const relativeToolSchemasPath = upath.getRelativeImportPath(
+    serverPath,
+    toolSchemasPath,
+  );
+  const importToolSchemasImplementation = `import {\n${importToolSchemas}\n} from '${relativeToolSchemasPath}';`;
 
   const importHandlers = Object.values(verbOptions)
     .filter((verbOption) =>
@@ -344,7 +373,7 @@ tools.${verbOption.operationName} = server.registerTool(
     .join(`,\n`);
   const relativeHandlersPath = upath.getRelativeImportPath(
     serverPath,
-    output.target,
+    targetPath,
   );
   const importHandlersImplementation = `import {\n${importHandlers}\n} from '${relativeHandlersPath}';`;
 
@@ -421,9 +450,10 @@ const generateZodFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const { extension, dirname } = getFileInfo(output.target);
+  const info = getSpecInfo(context);
+  const { extension, dirname } = getMcpTargetInfo(output, info);
 
-  const header = getHeader(output.override.header, getSpecInfo(context));
+  const header = getHeader(output.override.header, info);
 
   const zods = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) =>
@@ -470,10 +500,15 @@ const generateHttpClientFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const { path: targetPath, extension, dirname } = getFileInfo(output.target);
+  const info = getSpecInfo(context);
+  const {
+    path: targetPath,
+    extension,
+    dirname,
+  } = getMcpTargetInfo(output, info);
   const outputPath = path.join(dirname, `http-client${extension}`);
 
-  const header = getHeader(output.override.header, getSpecInfo(context));
+  const header = getHeader(output.override.header, info);
 
   const clients = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) => {
