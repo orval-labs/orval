@@ -177,7 +177,8 @@ const zodMiniCoerceCall = (fn: string, args = '') =>
 // match the literal characters `p{...}`, so the generated validator silently
 // rejects valid input (#3841). Only patterns that use them get the flag,
 // leaving existing outputs unchanged.
-const hasUnicodePropertyEscape = (pattern: string) => /\\[pP]\{/.test(pattern);
+const hasUnicodePropertyEscape = (pattern: string) =>
+  /(^|[^\\])(?:\\\\)*\\[pP]\{/.test(pattern);
 
 const buildRegExpLiteral = (pattern: string) => {
   const innerPattern = pattern.slice(
