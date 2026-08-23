@@ -73,6 +73,14 @@ Orval recognizes the following extensions:
 
 ## OpenAPI 3.1 const enums
 
+<Callout type="warn">
+`enumGenerationType: 'enum'` emits a TypeScript `enum` declaration. `enum`
+syntax cannot be erased by type stripping, so generated `'enum'` output does not
+compile under TypeScript 5.8+ `erasableSyntaxOnly` (e.g. Node's native
+TypeScript support). In that environment use `const` (default) or `union` — see
+the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) reference.
+</Callout>
+
 OpenAPI 3.1 enum-like schemas using `oneOf` with `const` branches can use `title`, `description`, and `deprecated` as member metadata.
 
 ```yaml
