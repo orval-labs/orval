@@ -96,7 +96,7 @@ export function getParams({
         name,
         definition: `${name}${required ? '' : '?'}: unknown`,
         implementation: `${name}${required ? '' : '?'}: unknown`,
-        default: false,
+        default: undefined,
         required,
         imports: [],
       };
