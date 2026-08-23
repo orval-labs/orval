@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type { GeneratorVerbOptions } from '@orval/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 const { logWarningSpy } = vi.hoisted(() => ({ logWarningSpy: vi.fn() }));
 

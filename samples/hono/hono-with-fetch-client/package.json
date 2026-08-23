@@ -1,17 +1,16 @@
 {
   "name": "hono-with-fetch-client",
-  "version": "8.24.0",
+  "version": "8.25.0",
   "private": true,
   "type": "module",
   "scripts": {
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update"
   },
   "devDependencies": {
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "prettier": "catalog:",
-    "vitest": "catalog:"
+    "prettier": "catalog:"
   }
 }

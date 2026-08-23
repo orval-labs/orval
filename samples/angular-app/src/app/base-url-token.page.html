@@ -1,0 +1,81 @@
+<app-demo-page-frame
+  eyebrow="override.angular.baseUrl"
+  title="Base URL via DI"
+  description="This page showcases the opt-in override.angular.baseUrl DI token: instead of baking a base URL into every generated route, the generated code injects PETSTORE_BASE_URL and composes each request from it at call time."
+  why="Use this variant when the same generated client needs to target different hosts per environment, per gateway, or per tenant — a single provider redirects the entire generated surface without touching a single route."
+  badge="DI-composed"
+  [highlights]="highlights"
+>
+  <app-demo-panel
+    class="panel--wide"
+    title="Resolved PETSTORE_BASE_URL"
+    description="The generated default is the absolute, cross-origin http://petstore.swagger.io/v1 embedded from the OpenAPI spec. This app calls providePetstoreBaseUrl('/gateway/petstore') once in app.config.ts to override it with a same-origin path, so requests land on the demo's mock handlers."
+  >
+    <pre>{{ resolvedBaseUrl }}</pre>
+    <p>
+      Register it at application root — the generated services are
+      <code>providedIn: 'root'</code>, so a component-level provider would never
+      reach them:
+    </p>
+    <pre>
+// app.config.ts
+providers: [
+  provideHttpClient(),
+  providePetstoreBaseUrl('/gateway/petstore'),
+]</pre
+    >
+  </app-demo-panel>
+
+  <div class="demo-grid demo-grid--even">
+    <app-demo-panel
+      class="panel--wide"
+      title="PetsService.listPets()"
+      description="Generated HttpClient service reading the injected PETSTORE_BASE_URL."
+    >
+      @if (petsState$ | async; as petsState) {
+      <app-badge panel-badge>Status: {{ petsState.status }}</app-badge>
+      } @if (petsState$ | async; as petsState) { @if (petsState.status ===
+      'loading') {
+      <p class="muted">Loading pets…</p>
+      } @else if (petsState.status === 'error') {
+      <p class="error">{{ petsState.error }}</p>
+      } @else if (petsState.data.length) {
+      <div class="pet-grid" role="list" aria-label="Pets list from listPets()">
+        @for (pet of petsState.data; track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      } }
+    </app-demo-panel>
+
+    <app-demo-panel
+      class="panel--wide"
+      title="listPetsResource()"
+      description="Generated httpResource function reading the very same PETSTORE_BASE_URL — one provider, two surfaces."
+    >
+      <app-badge panel-badge>Status: {{ listResource.status() }}</app-badge>
+
+      @if (listResource.isLoading()) {
+      <p class="muted">Loading pets…</p>
+      } @else if (listResource.error()) {
+      <p class="error">
+        Failed to load pets: {{ listResource.error()?.message }}
+      </p>
+      } @else if (listResource.hasValue() && listResource.value().length) {
+      <div
+        class="pet-grid"
+        role="list"
+        aria-label="Pets list from listPetsResource()"
+      >
+        @for (pet of listResource.value(); track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      }
+    </app-demo-panel>
+  </div>
+</app-demo-page-frame>

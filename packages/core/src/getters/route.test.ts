@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test } from 'vite-plus/test';
 
 import type {
   BaseUrlFromConstant,
@@ -130,6 +130,24 @@ describe('getFullRoute getter', () => {
         variables: { environment: 'prod', region: 'eu' },
       },
       'eu.prod.example.com/path',
+    ],
+    [
+      '/path',
+      [
+        {
+          url: '{environment}.example.com',
+          variables: {
+            environment: {
+              default: 'dev',
+            },
+          },
+        },
+      ],
+      {
+        getBaseUrlFromSpecification: true,
+        variables: { environment: '' },
+      },
+      '.example.com/path',
     ],
   ] as [string, OpenApiServerObject[] | undefined, BaseUrlFromSpec, string][]) {
     it(`should make path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} be ${expected}`, () => {

@@ -200,10 +200,21 @@ export const createPets = async (
   params: CreatePetsParams,
   options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   return customFetch<createPetsResponse>(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
     body: JSON.stringify(createPetsBody),
   });
 };
@@ -835,34 +846,37 @@ export const getShowPetWithOwnerResponseMock = (
   overrideResponse: Partial<Extract<PetWithTag, object>> = {},
 ): PetWithTag => ({
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  },
+  pet: faker.helpers.arrayElement([
+    {
+      ...faker.helpers.arrayElement([
+        { ...getShowPetWithOwnerResponseDogMock() },
+        { ...getShowPetWithOwnerResponseCatMock() },
+      ]),
+      '@id': faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      id: faker.number.int(),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      callingCode: faker.helpers.arrayElement([
+        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+        undefined,
+      ]),
+      country: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          "People's Republic of China",
+          'Uruguay',
+        ] as const),
+        undefined,
+      ]),
+    },
+    null,
+  ]),
   ...overrideResponse,
 });
 

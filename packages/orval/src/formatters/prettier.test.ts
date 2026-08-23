@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const FILE_PATH = path.resolve('/tmp/pets.service.ts');
 
@@ -12,17 +12,17 @@ const mocks = vi.hoisted(() => ({
   readdir: vi.fn(),
   resolveConfig: vi.fn(),
   stat: vi.fn(),
-  writeFile: vi.fn(),
+  writeGeneratedFile: vi.fn(),
 }));
 
 vi.mock('@orval/core', () => ({
   logWarning: mocks.logWarning,
+  writeGeneratedFile: mocks.writeGeneratedFile,
 }));
 
 vi.mock('node:fs/promises', () => ({
   default: {
     readFile: mocks.readFile,
-    writeFile: mocks.writeFile,
     stat: mocks.stat,
     readdir: mocks.readdir,
   },
@@ -50,7 +50,7 @@ describe('formatWithPrettier', () => {
     mocks.resolveConfig.mockResolvedValue({ semi: true });
     mocks.readFile.mockResolvedValue('const value=1');
     mocks.format.mockResolvedValue('const value = 1;\n');
-    mocks.writeFile.mockImplementation(async () => {
+    mocks.writeGeneratedFile.mockImplementation(async () => {
       await Promise.resolve();
     });
   });
@@ -60,7 +60,7 @@ describe('formatWithPrettier', () => {
       code: 'ENOENT',
     });
 
-    mocks.writeFile.mockRejectedValueOnce(missingFileError);
+    mocks.writeGeneratedFile.mockRejectedValueOnce(missingFileError);
 
     await expect(
       formatWithPrettier([FILE_PATH], 'petstore'),
@@ -93,9 +93,18 @@ describe('formatWithPrettier', () => {
     expect(mocks.format).toHaveBeenCalledWith('const value=1', {
       filepath: FILE_PATH,
     });
-    expect(mocks.writeFile).toHaveBeenCalledWith(
+    expect(mocks.writeGeneratedFile).toHaveBeenCalledWith(
       FILE_PATH,
       'const value = 1;\n',
     );
+  });
+
+  it('resolves prettier config for each file', async () => {
+    const schemaPath = path.resolve('/tmp/pets.schema.ts');
+
+    await formatWithPrettier([FILE_PATH, schemaPath], 'petstore');
+
+    expect(mocks.resolveConfig).toHaveBeenCalledWith(FILE_PATH);
+    expect(mocks.resolveConfig).toHaveBeenCalledWith(schemaPath);
   });
 });

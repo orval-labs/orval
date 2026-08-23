@@ -1,13 +1,13 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.24.0",
+  "version": "8.25.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts",
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
@@ -18,7 +18,6 @@
     "@cloudflare/workers-types": "^4.20260131.0",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "vitest": "catalog:",
     "wrangler": "^4.79.0"
   }
 }

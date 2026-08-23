@@ -27,3 +27,15 @@ yarn-error.log*
 docs-html/**/*.js
 docs-html-plugin/**/*.js
 docs-markdown/**/*.js
+# ...except the runtime assets the committed HTML pages load at browse time
+# (search index, navigation index, icon sprite loader, page bootstrap).
+# Without these tracked, search and navigation are broken for anyone
+# browsing the committed docs from a fresh clone.
+!docs-html/assets/main.js
+!docs-html/assets/icons.js
+!docs-html/assets/search.js
+!docs-html/assets/navigation.js
+!docs-html-plugin/assets/main.js
+!docs-html-plugin/assets/icons.js
+!docs-html-plugin/assets/search.js
+!docs-html-plugin/assets/navigation.js

@@ -206,10 +206,21 @@ export const createWidget = async (
   widgetNull: Widget | null,
   options?: RequestInit,
 ): Promise<createWidgetResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreateWidgetUrl(), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
     body: JSON.stringify(widgetNull),
   });
 
@@ -230,14 +241,14 @@ export const getCreateWidgetMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createWidget>>,
     TError,
-    { data: Widget | null },
+    CreateWidgetMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createWidget>>,
   TError,
-  { data: Widget | null },
+  CreateWidgetMutationVariables,
   TContext
 > => {
   const mutationKey = ['createWidget'];
@@ -251,7 +262,7 @@ export const getCreateWidgetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createWidget>>,
-    { data: Widget | null }
+    CreateWidgetMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -266,13 +277,14 @@ export type CreateWidgetMutationResult = NonNullable<
 >;
 export type CreateWidgetMutationBody = Widget | null;
 export type CreateWidgetMutationError = unknown;
+export type CreateWidgetMutationVariables = { data: Widget | null };
 
 export const useCreateWidget = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createWidget>>,
       TError,
-      { data: Widget | null },
+      CreateWidgetMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -281,7 +293,7 @@ export const useCreateWidget = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createWidget>>,
   TError,
-  { data: Widget | null },
+  CreateWidgetMutationVariables,
   TContext
 > => {
   return useMutation(getCreateWidgetMutationOptions(options), queryClient);

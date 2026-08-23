@@ -229,10 +229,21 @@ export const createPets = async (
   params: CreatePetsParams,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
     body: JSON.stringify(createPetsBody),
   });
 
@@ -253,14 +264,14 @@ export const getCreatePetsMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    CreatePetsMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -274,7 +285,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data, params } = props ?? {};
 
@@ -289,6 +300,10 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = {
+  data: CreatePetsBody;
+  params: CreatePetsParams;
+};
 
 /**
  * @summary Create a pet
@@ -297,14 +312,14 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    CreatePetsMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return createMutation(getCreatePetsMutationOptions(options));
@@ -485,14 +500,14 @@ export const getDeletePetByIdMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string },
+    DeletePetByIdMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const mutationKey = ['deletePetById'];
@@ -506,7 +521,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -521,6 +536,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -532,14 +548,14 @@ export const createDeletePetById = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string },
+    DeletePetByIdMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   return createMutation(getDeletePetByIdMutationOptions(options));

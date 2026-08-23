@@ -2,7 +2,14 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 const { logWarningSpy } = vi.hoisted(() => ({
   logWarningSpy: vi.fn(),
@@ -591,6 +598,252 @@ describe('normalizeOptions', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('override.angular.baseUrl', () => {
+    it('normalizes a valid apiId through', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: {
+                  baseUrl: { apiId: 'example-api' },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.angular.baseUrl).toEqual({
+          apiId: 'example-api',
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('carries through index and variables', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: {
+                  baseUrl: {
+                    apiId: 'example-api',
+                    index: 1,
+                    variables: { port: '8080' },
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.angular.baseUrl).toEqual({
+          apiId: 'example-api',
+          index: 1,
+          variables: { port: '8080' },
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws for an invalid apiId', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: '1-not-valid' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/apiId/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when combined with the top-level output.baseUrl', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                baseUrl: 'https://example.com',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: 'example-api' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/output\.baseUrl/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when combined with an empty-string output.baseUrl', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                baseUrl: '',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: 'example-api' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/output\.baseUrl/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns when configured for a non-Angular client', async () => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+
+      try {
+        await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'axios',
+              override: {
+                angular: {
+                  baseUrl: { apiId: 'example-api' },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).toHaveBeenCalled();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns and drops a per-operation angular.baseUrl override', async () => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: { baseUrl: { apiId: 'example-api' } },
+                operations: {
+                  searchPets: {
+                    angular: { baseUrl: { apiId: 'other-api' } } as never,
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).toHaveBeenCalled();
+        expect(
+          normalized.output.override.operations.searchPets?.angular,
+        ).not.toHaveProperty('baseUrl');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
   });
 
   it('defaults angular queryObjectSerialization to spec (issue #3705)', async () => {
@@ -2039,5 +2292,57 @@ describe('normalizeOptions', () => {
         await rm(workspace, { recursive: true, force: true });
       }
     });
+  });
+
+  it('useDatesTransform implies useDates', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: 'gen.ts',
+            override: { useDatesTransform: true },
+          },
+        },
+        workspace,
+      );
+
+      expect(options.output.override.useDatesTransform).toBe(true);
+      expect(options.output.override.useDates).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('useDatesTransform defaults to false', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: { target: 'gen.ts' },
+        },
+        workspace,
+      );
+
+      expect(options.output.override.useDatesTransform).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 });

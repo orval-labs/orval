@@ -1,6 +1,6 @@
 {
   "name": "orval",
-  "version": "8.24.0",
+  "version": "8.25.0",
   "description": "A swagger client generator for typescript",
   "keywords": [
     "angular",
@@ -89,7 +89,7 @@
     "@types/js-yaml": "^4.0.9",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "prettier": ">=3.0.0"

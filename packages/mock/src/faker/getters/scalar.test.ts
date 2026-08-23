@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { EnumGeneration } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
 import { getMockScalar } from './scalar';

@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "8.24.0",
+  "version": "8.25.0",
   "homepage": "https://orval.dev",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -44,7 +44,7 @@
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@faker-js/faker": ">=10"

@@ -124,10 +124,18 @@ export const listPets = async (
   headers: ListPetsHeaders,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
-    headers: { ...headers, ...options?.headers },
+    headers: { ...headers, ...getHeaders(options?.headers) },
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -250,13 +258,21 @@ export const createPets = async (
   headers: CreatePetsHeaders,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: JSON.stringify(createPetsBody),
   });
@@ -280,11 +296,7 @@ export const getCreatePetsMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      {
-        data: CreatePetsBody;
-        params: CreatePetsParams;
-        headers: CreatePetsHeaders;
-      },
+      CreatePetsMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -293,11 +305,7 @@ export const getCreatePetsMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  {
-    data: CreatePetsBody;
-    params: CreatePetsParams;
-    headers: CreatePetsHeaders;
-  },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -311,11 +319,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    {
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-      headers: CreatePetsHeaders;
-    }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data, params, headers } = props ?? {};
 
@@ -324,11 +328,7 @@ export const getCreatePetsMutationOptions = <
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof createPets>>,
-    variables: {
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-      headers: CreatePetsHeaders;
-    },
+    variables: CreatePetsMutationVariables,
     context: TContext | undefined,
   ) => {
     if (!options?.skipInvalidation) {
@@ -346,6 +346,11 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = {
+  data: CreatePetsBody;
+  params: CreatePetsParams;
+  headers: CreatePetsHeaders;
+};
 
 /**
  * @summary Create a pet
@@ -355,11 +360,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      {
-        data: CreatePetsBody;
-        params: CreatePetsParams;
-        headers: CreatePetsHeaders;
-      },
+      CreatePetsMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -369,11 +370,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
 ): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  {
-    data: CreatePetsBody;
-    params: CreatePetsParams;
-    headers: CreatePetsHeaders;
-  },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const backupQueryClient = useQueryClient();
@@ -559,7 +556,7 @@ export const getDeletePetByIdMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -568,7 +565,7 @@ export const getDeletePetByIdMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const mutationKey = ['deletePetById'];
@@ -582,7 +579,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -591,7 +588,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof deletePetById>>,
-    variables: { petId: string },
+    variables: DeletePetByIdMutationVariables,
     context: TContext | undefined,
   ) => {
     if (!options?.skipInvalidation) {
@@ -612,6 +609,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -621,7 +619,7 @@ export const createDeletePetById = <TError = Error, TContext = unknown>(
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     skipInvalidation?: boolean;
@@ -631,7 +629,7 @@ export const createDeletePetById = <TError = Error, TContext = unknown>(
 ): CreateMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const backupQueryClient = useQueryClient();
@@ -1030,34 +1028,37 @@ export const getShowPetWithOwnerResponseMock = (
   overrideResponse: Partial<Extract<PetWithTag, object>> = {},
 ): PetWithTag => ({
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  },
+  pet: faker.helpers.arrayElement([
+    {
+      ...faker.helpers.arrayElement([
+        { ...getShowPetWithOwnerResponseDogMock() },
+        { ...getShowPetWithOwnerResponseCatMock() },
+      ]),
+      '@id': faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      id: faker.number.int(),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      callingCode: faker.helpers.arrayElement([
+        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+        undefined,
+      ]),
+      country: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          "People's Republic of China",
+          'Uruguay',
+        ] as const),
+        undefined,
+      ]),
+    },
+    null,
+  ]),
   ...overrideResponse,
 });
 
