@@ -30,7 +30,9 @@ export const createPet = async (
   requiredPetBodyBody?: RequiredPetBodyBody,
   options?: RequestInit,
 ): Promise<createPetResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);

@@ -128,7 +128,9 @@ export const updateProfileWithJson = async (
   updateProfileBody: UpdateProfileBody,
   options?: RequestInit,
 ): Promise<updateProfileWithJsonResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -529,7 +531,9 @@ export const uploadAvatarWithBlob = async (
   uploadAvatarBody: Blob,
   options?: RequestInit,
 ): Promise<uploadAvatarWithBlobResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
