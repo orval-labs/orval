@@ -32,7 +32,9 @@ export const createPets = async (
   requiredPetBodyBody?: RequiredPetBodyBody,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -110,7 +112,9 @@ export const updatePets = async (
   optionalPetBodyBody?: OptionalPetBodyBody,
   options?: RequestInit,
 ): Promise<updatePetsResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -188,7 +192,9 @@ export const createCookies = async (
   cookie?: Cookie,
   options?: RequestInit,
 ): Promise<createCookiesResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
@@ -268,7 +274,9 @@ export const updateCookies = async (
   cookie?: Cookie,
   options?: RequestInit,
 ): Promise<updateCookiesResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
