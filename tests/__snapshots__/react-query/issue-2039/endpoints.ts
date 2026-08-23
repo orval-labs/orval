@@ -35,7 +35,9 @@ export const createEntity = async (
   createEntityBody: CreateEntityBody,
   options?: RequestInit,
 ): Promise<createEntityResponse> => {
-  const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
     if (Array.isArray(h)) return Object.fromEntries(h);
