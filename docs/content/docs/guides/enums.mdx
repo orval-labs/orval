@@ -118,7 +118,7 @@ When a branch has no `title`, its member name is derived from the `const` value 
 Unannotated `oneOf`/`const` branches retain their existing union output.
 
 ## Zod
-Metadata generates `z.enum({ ... })` for Zod4 and `z.nativeEnum({ ... } as const)` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
+Metadata generates `z.enum({ ... })` for Zod 4 and `z.nativeEnum({ ... } as const)` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
 
 When metadata produces an enum **object** (`z.enum({ Cat: 'cat', ... })`), the generator always emits constant-style `key: value` pairs and deliberately ignores the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) setting. The object is inserted as an object-literal argument, where `union` (`'cat' | 'dog'`) and `enum` (`Cat = 'cat'`) output are not valid — either would make the generated code fail to parse. If you need union or enum-style output, apply it to enums **without** metadata instead.
 
