@@ -1514,6 +1514,15 @@ export const generateZodValidationSchemaDefinition = (
       enumValueInfo.isHomogeneous && !enumValueInfo.isBoolean && hasMetadata;
 
     if (canUseEnumObject) {
+      // The enum object is inserted as an object-literal argument to
+      // `zod.enum({ ... })` (or `zod.nativeEnum({ ... } as const)`), so only
+      // CONST generation is valid here: it emits `key: value` pairs. The other
+      // two modes produce output that is not valid in that position — `union`
+      // emits a type union (`'A' | 'B'`), and `enum` emits assignment syntax
+      // (`A = 'A'`) that only parses inside an `enum` declaration. The user's
+      // `enumGenerationType` override is deliberately ignored; wiring it through
+      // would make the generated code fail to parse. See docs/guides/enums.mdx
+      // (Zod section).
       const enumContent = getEnumImplementation(enumMembers, {
         enumNamingConvention: context.output.override.namingConvention.enum,
         enumGenerationType: EnumGeneration.CONST,

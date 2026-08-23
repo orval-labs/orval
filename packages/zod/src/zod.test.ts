@@ -6,7 +6,7 @@ import type {
   ZodVariantOption,
   OpenApiSchemaObject,
 } from '@orval/core';
-import { PropertySortOrder } from '@orval/core';
+import { EnumGeneration, PropertySortOrder } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('@orval/core', async (importOriginal) => {
@@ -3122,6 +3122,53 @@ describe('generateZodValidationSchemaDefinition`', () => {
             : `zod.nativeEnum(${enumObject} as const).optional()`;
 
       expect(parsed.zod).toBe(expectedZod);
+    });
+
+    it('keeps constant enum generation regardless of enumGenerationType (#3854)', () => {
+      // The enum-object path (metadata present) MUST keep emitting `key: value`
+      // pairs via CONST generation even when the user's enumGenerationType is
+      // `enum` or `union` — those modes emit output that is not valid inside the
+      // `zod.enum({ ... })` argument. This test pins the output to the default
+      // and fails if the setting is ever wired through.
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        'x-enumNames': ['Cat', 'Dog'],
+        'x-enumDescriptions': ['Represents a cat', 'Represents a dog'],
+      };
+
+      const withOverride = (enumGenerationType: EnumGeneration) => {
+        const overridden = {
+          ...context,
+          output: {
+            ...context.output,
+            override: {
+              ...context.output.override,
+              enumGenerationType,
+            },
+          },
+        } as ContextSpec;
+        return generateZodValidationSchemaDefinition(
+          schema,
+          overridden,
+          'testEnumString',
+          false,
+          isZodV4,
+          { required: false },
+        );
+      };
+
+      const baseline = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      expect(withOverride(EnumGeneration.ENUM)).toEqual(baseline);
+      expect(withOverride(EnumGeneration.UNION)).toEqual(baseline);
     });
   });
 
