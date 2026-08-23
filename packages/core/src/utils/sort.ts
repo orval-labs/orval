@@ -2,11 +2,13 @@ export const sortByPriority = <T>(
   arr: (T & { default?: unknown; required?: boolean })[],
 ) =>
   arr.toSorted((a, b) => {
-    if (a.default) {
+    // A parameter carrying a default goes last, and `0`, `false` or an empty
+    // string is a default like any other.
+    if (a.default !== undefined) {
       return 1;
     }
 
-    if (b.default) {
+    if (b.default !== undefined) {
       return -1;
     }
 
