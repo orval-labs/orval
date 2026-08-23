@@ -12,7 +12,12 @@ import * as zod from 'zod';
 export const getExampleResponseGuidRegExp = new RegExp(
   '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
 );
+export const getExampleResponseNameRegExp = new RegExp(
+  "^[\\p{L}][\\p{L}\\p{M}'’. -]{0,99}$",
+  'u',
+);
 
 export const GetExampleResponse = zod.object({
   guid: zod.string().regex(getExampleResponseGuidRegExp),
+  name: zod.string().regex(getExampleResponseNameRegExp),
 });

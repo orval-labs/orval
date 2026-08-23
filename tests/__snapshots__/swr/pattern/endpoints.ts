@@ -98,6 +98,7 @@ export const getGetVversionExampleResponseMock = (
   guid: faker.helpers.fromRegExp(
     '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
   ),
+  name: faker.helpers.fromRegExp("^[\\p{L}][\\p{L}\\p{M}'’. -]{0,99}$"),
   ...overrideResponse,
 });
 

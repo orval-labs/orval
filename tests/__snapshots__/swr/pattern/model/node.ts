@@ -8,4 +8,6 @@
 export interface Node {
   /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ */
   guid: string;
+  /** @pattern ^[\p{L}][\p{L}\p{M}'’. -]{0,99}$ */
+  name: string;
 }
