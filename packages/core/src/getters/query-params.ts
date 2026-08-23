@@ -308,7 +308,7 @@ function getQueryParamsTypes(
       return {
         name,
         required,
-        definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
+        definition: `${doc}${key}${!required || schema.default !== undefined ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
@@ -346,7 +346,7 @@ function getQueryParamsTypes(
         name,
         required,
         definition: `${doc}${key}${
-          !required || schema.default ? '?' : ''
+          !required || schema.default !== undefined ? '?' : ''
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
@@ -359,7 +359,7 @@ function getQueryParamsTypes(
     }
 
     const definition = `${doc}${key}${
-      !required || schema.default ? '?' : ''
+      !required || schema.default !== undefined ? '?' : ''
     }: ${resolvedValue.value};`;
 
     return {

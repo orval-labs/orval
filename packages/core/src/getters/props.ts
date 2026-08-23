@@ -29,7 +29,7 @@ export function getProps({
     name: body.implementation,
     definition: `${body.implementation}${body.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${body.definition}`,
     implementation: `${body.implementation}${body.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${body.definition}`,
-    default: false,
+    default: undefined,
     required: !body.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.BODY,
   };
@@ -38,7 +38,7 @@ export function getProps({
     name: 'params',
     definition: getQueryParamDefinition(queryParams, context),
     implementation: getQueryParamDefinition(queryParams, context),
-    default: false,
+    default: undefined,
     required: isNullish(queryParams?.isOptional)
       ? !context.output.allParamsOptional || context.output.optionsParamRequired
       : (!queryParams.isOptional && !context.output.allParamsOptional) ||
@@ -54,7 +54,7 @@ export function getProps({
     implementation: `headers${headers?.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${
       headers?.schema.name
     }`,
-    default: false,
+    default: undefined,
     required: isNullish(headers?.isOptional)
       ? false
       : !headers.isOptional || context.output.optionsParamRequired,
@@ -95,7 +95,7 @@ export function getProps({
         name,
         definition: `${name}: ${parameterTypeName}`,
         implementation,
-        default: false,
+        default: undefined,
         destructured,
         required: true,
         schema: {

@@ -1008,7 +1008,7 @@ describe('optionsParamRequired', () => {
     expect(body?.implementation).toBe(
       'handleResourceBody?: HandleResourceBody',
     );
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(false);
     expect(body?.type).toBe('body');
 
@@ -1022,7 +1022,7 @@ describe('optionsParamRequired', () => {
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params?: HandleResourceParams');
     expect(params?.implementation).toBe('params?: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(false);
     expect(params?.type).toBe('queryParam');
 
@@ -1078,7 +1078,7 @@ export const handleResource = (
     expect(body?.name).toBe('handleResourceBody');
     expect(body?.definition).toBe('handleResourceBody: HandleResourceBody');
     expect(body?.implementation).toBe('handleResourceBody: HandleResourceBody');
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(true);
     expect(body?.type).toBe('body');
 
@@ -1092,7 +1092,7 @@ export const handleResource = (
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params: HandleResourceParams');
     expect(params?.implementation).toBe('params: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(true);
     expect(params?.type).toBe('queryParam');
 
