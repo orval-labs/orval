@@ -1,6 +1,16 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  inlineSchemas: {
+    input: '../specifications/empty-response.yaml',
+    output: {
+      target: '../generated/mcp/inline-schemas/custom-handlers.ts',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   petstoreSingle: {
     input: '../specifications/petstore.yaml',
     output: {

@@ -120,10 +120,12 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     .values()
     .toArray();
 
-  const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
-    ',\n  ',
-  )}\n} from '${relativeSchemaImportPath}';
-`;
+  const importSchemasImplementation = schemasPath
+    ? `import {\n  ${importSchemaNames.join(
+        ',\n  ',
+      )}\n} from '${relativeSchemaImportPath}';
+`
+    : '';
 
   const relativeFetchClientPath = './http-client';
   const importFetchClientNames = new Set(
@@ -340,7 +342,11 @@ tools.${verbOption.operationName} = server.registerTool(
     )
     .map((verbOption) => `  ${verbOption.operationName}Handler`)
     .join(`,\n`);
-  const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
+  const relativeHandlersPath = upath.getRelativeImportPath(
+    serverPath,
+    output.target,
+  );
+  const importHandlersImplementation = `import {\n${importHandlers}\n} from '${relativeHandlersPath}';`;
 
   const createMcpServerImplementation = `
 const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
@@ -464,12 +470,8 @@ const generateHttpClientFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const {
-    path: targetPath,
-    extension,
-    dirname,
-    filename,
-  } = getFileInfo(output.target);
+  const { path: targetPath, extension, dirname } = getFileInfo(output.target);
+  const outputPath = path.join(dirname, `http-client${extension}`);
 
   const header = getHeader(output.override.header, getSpecInfo(context));
 
@@ -511,7 +513,7 @@ const generateHttpClientFiles = async (
     ? isZodSchemaOutput && output.indexFiles
       ? upath.getRelativeImportPath(targetPath, basePath, true)
       : upath.getRelativeImportPath(targetPath, basePath)
-    : './' + filename + '.schemas';
+    : upath.getRelativeImportPath(outputPath, targetPath);
 
   const importNames = clients
     .flatMap((client) => client.imports)
@@ -551,8 +553,6 @@ const generateHttpClientFiles = async (
     fetchHeader,
     clientImplementation,
   ].join('\n');
-  const outputPath = path.join(dirname, `http-client${extension}`);
-
   return [
     {
       content,
