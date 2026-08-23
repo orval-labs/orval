@@ -95,12 +95,20 @@ export const createPets = async (
   formUrlEncoded.append(`name`, createPetsBody.name);
   formUrlEncoded.append(`tag`, createPetsBody.tag);
 
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: formUrlEncoded,
   });
@@ -153,12 +161,20 @@ export const uploadPetContent = async (
     formUrlEncoded.append(`content`, uploadPetContentBody.content);
   }
 
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getUploadPetContentUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: formUrlEncoded,
   });
@@ -213,12 +229,20 @@ export const uploadPetContentRef = async (
     formUrlEncoded.append(`content`, uploadPetContentRefBody.content);
   }
 
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getUploadPetContentRefUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: formUrlEncoded,
   });

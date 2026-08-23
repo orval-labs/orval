@@ -32,7 +32,13 @@ const excludedByFolder = new Map([
   // type systems, causing exponential type inference in server.registerTool() calls.
   // Yarn avoided this by nesting a separate zod@4.x for the SDK.
   // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
-  ['mcp', ['generated/mcp/**/server.ts']],
+  [
+    'mcp',
+    [
+      'generated/mcp/**/server.ts',
+      'generated/mcp/**/server.*.ts',
+    ],
+  ],
 ]);
 
 const results = [];

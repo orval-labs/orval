@@ -9,7 +9,7 @@ import { Pet } from './pet.zod.js';
 
 export const PetWithTag = zod.object({
   tag: zod.string(),
-  pet: Pet.nullable(),
+  pet: zod.union([Pet, zod.null()]),
 });
 
 export type PetWithTag = zod.input<typeof PetWithTag>;

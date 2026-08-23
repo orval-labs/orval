@@ -2,7 +2,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import fs from 'fs-extra';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   buildSiblingImports,
@@ -56,6 +56,46 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
   }) as Parameters<typeof writeZodSchemas>[4];
 
 describe('write-zod-specs regressions', () => {
+  it('does not rewrite unchanged direct zod output', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-mtime-'));
+    const schemasPath = path.join(root, 'schemas');
+    const filePath = path.join(schemasPath, 'RangeSchema.ts');
+    const builder = {
+      spec: {},
+      target: '',
+      schemas: [
+        {
+          name: 'RangeSchema',
+          schema: { type: 'number', minimum: 2, maximum: 10 },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    try {
+      await writeZodSchemas(
+        builder,
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+      );
+      const past = new Date('2020-01-01T00:00:00.000Z');
+      await fs.utimes(filePath, past, past);
+
+      await writeZodSchemas(
+        builder,
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+      );
+
+      expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
+    } finally {
+      await fs.remove(root);
+    }
+  });
+
   it('writes const constraints before schema export', async () => {
     const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');

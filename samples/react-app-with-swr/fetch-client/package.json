@@ -1,15 +1,15 @@
 {
   "name": "swr-with-fetch-client",
   "private": true,
-  "version": "8.24.0",
+  "version": "8.25.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "build": "tsc -b && vite build",
+    "dev": "vp dev --host",
+    "build": "tsc -b && vp build",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
+    "preview": "vp preview",
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
@@ -32,6 +32,6 @@
     "prettier": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   }
 }

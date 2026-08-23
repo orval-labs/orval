@@ -345,7 +345,7 @@ export class AngularMultiContentQueryParamsTestService {
           responseType: 'text',
           headers,
         },
-      ) as Observable<any>;
+      ) as Observable<string>;
     }
 
     return this.http.post<Item>(

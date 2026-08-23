@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { generate } from 'orval';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 const spec = {
   openapi: '3.1.0',

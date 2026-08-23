@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils/context';
 import type { OpenApiSchemaObject } from '../types';

@@ -243,6 +243,13 @@ export const useCreatePetsHook = (): ((
   createPetsBody: CreatePetsBody,
   options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
 ) => Promise<createPetsResponse>) => {
+  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+
   const customFetcher = useCustomFetch();
   return (
     createPetsBody: CreatePetsBody,
@@ -251,7 +258,10 @@ export const useCreatePetsHook = (): ((
     return customFetcher(getCreatePetsUrl(), {
       ...options,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders(options?.headers),
+      },
       body: JSON.stringify(createPetsBody),
     });
   };
@@ -264,14 +274,14 @@ export const useCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
     TError,
-    { data: CreatePetsBody },
+    CreatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<ReturnType<typeof useCustomFetch>>;
 }): UseMutationOptions<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -287,7 +297,7 @@ export const useCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
-    { data: CreatePetsBody }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -302,6 +312,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
 /**
  * @summary Create a pet
@@ -310,14 +321,14 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
     TError,
-    { data: CreatePetsBody },
+    CreatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<ReturnType<typeof useCustomFetch>>;
 }): UseMutationResult<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(useCreatePetsMutationOptions(options));

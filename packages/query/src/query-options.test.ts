@@ -1,5 +1,5 @@
 import type { GetterParams, PackageJson } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './frameworks';
 import {
@@ -235,5 +235,47 @@ describe('getQueryOptionsDefinition — solid-query type names (issue #3365)', (
       isReturnType: false,
     });
     expect(out).toContain('UseMutationOptions<');
+  });
+});
+
+describe('getQueryOptionsDefinition: mutation variables alias (issue #3782)', () => {
+  const buildArgs = (adapter: ReturnType<typeof createFrameworkAdapter>) => ({
+    operationName: 'updatePet',
+    definitions: 'petId: string;data?: UpdatePetBody',
+    prefix: adapter.getQueryOptionsDefinitionPrefix(),
+    hasQueryV5: adapter.hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError:
+      adapter.hasQueryV5WithInfiniteQueryOptionsError,
+    isReturnType: false,
+    adapter,
+  });
+
+  it('uses the alias the caller supplies instead of the inline object', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = getQueryOptionsDefinition({
+      ...buildArgs(adapter),
+      mutationVariablesType: 'UpdatePetMutationVariables',
+    });
+
+    expect(out).toContain('UpdatePetMutationVariables, TContext>');
+    expect(out).not.toContain('{petId: string;data?: UpdatePetBody}');
+  });
+
+  it('falls back to the inline object when no alias is supplied', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = getQueryOptionsDefinition(buildArgs(adapter));
+
+    expect(out).toContain('{petId: string;data?: UpdatePetBody}, TContext>');
+  });
+
+  it('takes void from the caller for a mutation with no variables', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = getQueryOptionsDefinition({
+      ...buildArgs(adapter),
+      definitions: '',
+      mutationVariablesType: 'void',
+    });
+
+    expect(out).toContain('void, TContext>');
   });
 });

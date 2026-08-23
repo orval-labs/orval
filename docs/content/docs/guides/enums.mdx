@@ -1,9 +1,9 @@
 ---
 title: Enum Extensions
-description: Generate enums with custom names and descriptions from OpenAPI extensions
+description: Generate enums with names and descriptions using OpenAPI extensions
 ---
 
-Use OpenAPI extensions to generate enums with meaningful names and descriptions.
+Use OpenAPI extensions and OpenAPI 3.1 enum metadata to generate enums with meaningful names and descriptions.
 
 ## OpenAPI Schema
 
@@ -71,12 +71,54 @@ Orval recognizes the following extensions:
 - `x-enumdescriptions`
 - `x-enum-descriptions`
 
-<Callout type="info">
-Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default) or `enum`. They are not applied when using `union`. 
+## OpenAPI 3.1 const enums
+
+<Callout type="warn">
+`enumGenerationType: 'enum'` emits a TypeScript `enum` declaration. `enum`
+syntax cannot be erased by type stripping, so generated `'enum'` output does not
+compile under TypeScript 5.8+ `erasableSyntaxOnly` (e.g. Node's native
+TypeScript support). In that environment use `const` (default) or `union` — see
+the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) reference.
 </Callout>
 
+OpenAPI 3.1 enum-like schemas using `oneOf` with `const` branches can use `title`, `description`, and `deprecated` as member metadata.
+
+```yaml
+components:
+  schemas:
+    Status:
+      oneOf:
+        - const: PENDING
+          title: Pending
+          description: Awaiting manual review
+        - const: LEGACY
+          title: Legacy
+          description: No longer issued
+          deprecated: true
+```
+
+With const enum generation, Orval preserves the branch metadata:
+
+```ts
+export const Status = {
+  /** Awaiting manual review */
+  Pending: 'PENDING',
+  /**
+   * No longer issued
+   * @deprecated
+   */
+  Legacy: 'LEGACY',
+} as const;
+
+export type Status = typeof Status[keyof typeof Status];
+```
+
+When a branch has no `title`, its member name is derived from the `const` value and respects `output.override.namingConvention.enum`.
+
+Unannotated `oneOf`/`const` branches retain their existing union output.
 
 ## Zod
 Metadata generates `z.enum({ ... })` for Zod4 and `z.nativeEnum({ ... } as const)` for Zod 3, while boolean or mixed-type enums remain literal unions and enums without metadata retain their existing output
 
 When metadata produces an enum **object** (`z.enum({ Cat: 'cat', ... })`), the generator always emits constant-style `key: value` pairs and deliberately ignores the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) setting. The object is inserted as an object-literal argument, where `union` (`'cat' | 'dog'`) and `enum` (`Cat = 'cat'`) output are not valid — either would make the generated code fail to parse. If you need union or enum-style output, apply it to enums **without** metadata instead.
+
