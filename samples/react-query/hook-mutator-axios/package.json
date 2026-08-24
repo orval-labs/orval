@@ -7,7 +7,7 @@
     "generate-api": "vp exec orval",
     "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
-    "test": "tsc --noEmit endpoints.ts"
+    "test": "tsc --noEmit"
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "@types/react": "catalog:react"
   }
 }

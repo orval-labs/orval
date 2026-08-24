@@ -679,6 +679,7 @@
         "react-query": "^3.39.3",
       },
       "devDependencies": {
+        "@types/react": "catalog:react",
         "orval": "workspace:*",
         "prettier": "catalog:",
       },
@@ -692,6 +693,7 @@
         "react-query": "^3.39.3",
       },
       "devDependencies": {
+        "@types/react": "catalog:react",
         "orval": "workspace:*",
         "prettier": "catalog:",
       },
