@@ -63,7 +63,7 @@ src/api/
 
 ```tsx
 import { useListPets, useCreatePets } from './api/endpoints/pets/pets';
-import { createPetsBodyItem } from './api/endpoints/pets/pets.zod';
+import { CreatePetsBodyItem } from './api/endpoints/pets/pets.zod';
 
 function App() {
   const { data } = useListPets();
@@ -74,7 +74,7 @@ function App() {
 
     try {
       // Validate before sending
-      const validatedPet = createPetsBodyItem.parse(pet);
+      const validatedPet = CreatePetsBodyItem.parse(pet);
       await trigger([validatedPet]);
     } catch (error) {
       if (error instanceof ZodError) {
