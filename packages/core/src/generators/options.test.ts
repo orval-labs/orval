@@ -634,6 +634,8 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date) {
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -665,6 +667,24 @@ function filterParams(
       expect(body).not.toBe(PRE_3705_HELPER_BODY);
       expect(body).toContain('objectParamStrategies');
       expect(body).toContain("'flatten' | 'comma' | 'deepObject'");
+    });
+  });
+
+  describe('getAngularFilteredParamsHelperBody date handling (#3856)', () => {
+    it('serializes Date values to ISO strings in both helper variants', () => {
+      for (const hasObjectParams of [false, true]) {
+        const body = getAngularFilteredParamsHelperBody({ hasObjectParams });
+
+        expect(body).toContain('value instanceof Date');
+        expect(body).toContain('value.toISOString()');
+        // The Date branch must run before the primitive check so Date values
+        // are never silently dropped by the typeof filter.
+        const dateBranch = body.indexOf('value instanceof Date');
+        const primitiveBranch = body.indexOf("typeof value === 'string'");
+        expect(dateBranch).toBeGreaterThan(-1);
+        expect(primitiveBranch).toBeGreaterThan(-1);
+        expect(dateBranch).toBeLessThan(primitiveBranch);
+      }
     });
   });
 
