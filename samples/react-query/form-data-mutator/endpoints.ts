@@ -26,48 +26,6 @@ import type {
 } from './models';
 
 import { customInstance } from './custom-instance';
-export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
-export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
-export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
-export type HTTPStatusCode4xx =
-  | 400
-  | 401
-  | 402
-  | 403
-  | 404
-  | 405
-  | 406
-  | 407
-  | 408
-  | 409
-  | 410
-  | 411
-  | 412
-  | 413
-  | 414
-  | 415
-  | 416
-  | 417
-  | 418
-  | 419
-  | 420
-  | 421
-  | 422
-  | 423
-  | 424
-  | 426
-  | 428
-  | 429
-  | 431
-  | 451;
-export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
-export type HTTPStatusCodes =
-  | HTTPStatusCode1xx
-  | HTTPStatusCode2xx
-  | HTTPStatusCode3xx
-  | HTTPStatusCode4xx
-  | HTTPStatusCode5xx;
-
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
@@ -90,49 +48,15 @@ const withQueryKey = <T extends object, K>(
   return result;
 };
 
-export type listPetsResponse200 = {
-  data: PetsArray;
-  status: 200;
-};
-
-export type listPetsResponseDefault = {
-  data: Error;
-  status: Exclude<HTTPStatusCodes, 200>;
-};
-
-export type listPetsResponseSuccess = listPetsResponse200 & {
-  headers: Headers;
-};
-export type listPetsResponseError = listPetsResponseDefault & {
-  headers: Headers;
-};
-
-export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
-
-export const getListPetsUrl = (params?: ListPetsParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
-};
-
 /**
  * @summary List all pets
  */
-export const listPets = async (
-  params?: ListPetsParams,
-  options?: RequestInit,
-): Promise<listPetsResponse> => {
-  return customInstance<listPetsResponse>(getListPetsUrl(params), {
-    ...options,
+export const listPets = (params?: ListPetsParams, signal?: AbortSignal) => {
+  return customInstance<PetsArray>({
+    url: `/pets`,
     method: 'GET',
+    params,
+    signal,
   });
 };
 
@@ -159,7 +83,7 @@ export const getListPetsQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, { signal });
+  }) => listPets(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -199,54 +123,19 @@ export function useListPets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type createPetsResponse201 = {
-  data: void;
-  status: 201;
-};
-
-export type createPetsResponseDefault = {
-  data: Error;
-  status: Exclude<HTTPStatusCodes, 201>;
-};
-
-export type createPetsResponseSuccess = createPetsResponse201 & {
-  headers: Headers;
-};
-export type createPetsResponseError = createPetsResponseDefault & {
-  headers: Headers;
-};
-
-export type createPetsResponse =
-  | createPetsResponseSuccess
-  | createPetsResponseError;
-
-export const getCreatePetsUrl = () => {
-  return `/pets`;
-};
-
 /**
  * @summary Create a pet
  */
-export const createPets = async (
+export const createPets = (
   createPetsBody: CreatePetsBody,
-  options?: RequestInit,
-): Promise<createPetsResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
-    return h;
-  };
-  return customInstance<createPetsResponse>(getCreatePetsUrl(), {
-    ...options,
+  signal?: AbortSignal,
+) => {
+  return customInstance<void>({
+    url: `/pets`,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
-    body: JSON.stringify(createPetsBody),
+    headers: { 'Content-Type': 'application/json' },
+    data: createPetsBody,
+    signal,
   });
 };
 
@@ -313,61 +202,19 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   return useMutation(getCreatePetsMutationOptions(options));
 };
 
-export type listPetsNestedArrayResponse200 = {
-  data: PetsNestedArray;
-  status: 200;
-};
-
-export type listPetsNestedArrayResponseDefault = {
-  data: Error;
-  status: Exclude<HTTPStatusCodes, 200>;
-};
-
-export type listPetsNestedArrayResponseSuccess =
-  listPetsNestedArrayResponse200 & {
-    headers: Headers;
-  };
-export type listPetsNestedArrayResponseError =
-  listPetsNestedArrayResponseDefault & {
-    headers: Headers;
-  };
-
-export type listPetsNestedArrayResponse =
-  | listPetsNestedArrayResponseSuccess
-  | listPetsNestedArrayResponseError;
-
-export const getListPetsNestedArrayUrl = (
-  params?: ListPetsNestedArrayParams,
-) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/pets-nested-array?${stringifiedParams}`
-    : `/pets-nested-array`;
-};
-
 /**
  * @summary List all pets as nested array
  */
-export const listPetsNestedArray = async (
+export const listPetsNestedArray = (
   params?: ListPetsNestedArrayParams,
-  options?: RequestInit,
-): Promise<listPetsNestedArrayResponse> => {
-  return customInstance<listPetsNestedArrayResponse>(
-    getListPetsNestedArrayUrl(params),
-    {
-      ...options,
-      method: 'GET',
-    },
-  );
+  signal?: AbortSignal,
+) => {
+  return customInstance<PetsNestedArray>({
+    url: `/pets-nested-array`,
+    method: 'GET',
+    params,
+    signal,
+  });
 };
 
 export const getListPetsNestedArrayQueryKey = (
@@ -396,7 +243,7 @@ export const getListPetsNestedArrayQueryOptions = <
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPetsNestedArray>>
-  > = ({ signal }) => listPetsNestedArray(params, { signal });
+  > = ({ signal }) => listPetsNestedArray(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPetsNestedArray>>,
@@ -436,42 +283,11 @@ export function useListPetsNestedArray<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type showPetByIdResponse200 = {
-  data: Pet;
-  status: 200;
-};
-
-export type showPetByIdResponseDefault = {
-  data: Error;
-  status: Exclude<HTTPStatusCodes, 200>;
-};
-
-export type showPetByIdResponseSuccess = showPetByIdResponse200 & {
-  headers: Headers;
-};
-export type showPetByIdResponseError = showPetByIdResponseDefault & {
-  headers: Headers;
-};
-
-export type showPetByIdResponse =
-  | showPetByIdResponseSuccess
-  | showPetByIdResponseError;
-
-export const getShowPetByIdUrl = (petId: string) => {
-  return `/pets/${petId}`;
-};
-
 /**
  * @summary Info for a specific pet
  */
-export const showPetById = async (
-  petId: string,
-  options?: RequestInit,
-): Promise<showPetByIdResponse> => {
-  return customInstance<showPetByIdResponse>(getShowPetByIdUrl(petId), {
-    ...options,
-    method: 'GET',
-  });
+export const showPetById = (petId: string, signal?: AbortSignal) => {
+  return customInstance<Pet>({ url: `/pets/${petId}`, method: 'GET', signal });
 };
 
 export const getShowPetByIdQueryKey = (petId: string) => {
@@ -497,7 +313,7 @@ export const getShowPetByIdQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, { signal });
+  }) => showPetById(petId, signal);
 
   return {
     queryKey,
