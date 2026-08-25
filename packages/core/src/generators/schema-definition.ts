@@ -21,6 +21,7 @@ import type {
 import {
   conventionName,
   isBoolean,
+  isSchemaNullable,
   isString,
   jsDoc,
   pascal,
@@ -356,7 +357,7 @@ function generateSchemaDefinitions(
     output += getEnum(
       getEnumMembers(resolvedValue.originalSchema),
       sanitizedSchemaName,
-      !!nullable,
+      !!nullable || isSchemaNullable(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
       context.output.override.namingConvention.enum,
     );
