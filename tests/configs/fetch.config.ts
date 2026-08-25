@@ -1024,4 +1024,15 @@ export default defineConfig({
       target: '../specifications/dotted-path-params.yaml',
     },
   },
+  'path-item-level-query-params': {
+    output: {
+      target: '../generated/fetch/path-item-level-query-params/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/path-item-level-query-params/spec.yaml',
+    },
+  },
 });
