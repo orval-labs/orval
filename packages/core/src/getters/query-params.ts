@@ -8,7 +8,7 @@ import type {
   OpenApiParameterObject,
   OpenApiSchemaObject,
 } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumMembers } from './enum';
 import { getKey } from './keys';
 
@@ -200,36 +200,6 @@ const getObjectQueryParamStrategy = (
   const resolvedExplode = explode ?? resolvedStyle === 'form';
 
   return resolvedExplode ? 'flatten' : 'comma';
-};
-
-const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
-  if (schema.nullable === true) {
-    return true;
-  }
-
-  if (schema.type === 'null') {
-    return true;
-  }
-
-  if (Array.isArray(schema.type) && schema.type.includes('null')) {
-    return true;
-  }
-
-  const oneOfVariants = Array.isArray(schema.oneOf)
-    ? (schema.oneOf as unknown[])
-    : [];
-  const anyOfVariants = Array.isArray(schema.anyOf)
-    ? (schema.anyOf as unknown[])
-    : [];
-  const variants = [...oneOfVariants, ...anyOfVariants];
-
-  return variants.some((variant) => {
-    if (!isOpenApiSchemaObject(variant)) {
-      return false;
-    }
-
-    return isSchemaNullable(variant);
-  });
 };
 
 function getQueryParamsTypes(

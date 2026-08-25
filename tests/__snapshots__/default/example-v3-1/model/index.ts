@@ -8,5 +8,7 @@
 
 export * from './enumConstMetadata';
 export * from './enumConstWithoutMetadata';
+export * from './nullableEnumAnyOf';
 export * from './test';
 export * from './testExampleEnum';
+export * from './testExampleNullableEnum';
