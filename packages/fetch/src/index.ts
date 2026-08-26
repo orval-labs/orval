@@ -257,8 +257,58 @@ export const generateRequestFunction = (
       `
       : '';
 
+  const deepObjectParameters = parameterObjects.filter(
+    (parameterObject) =>
+      parameterObject.in === 'query' && parameterObject.style === 'deepObject',
+  );
+
+  const deepObjectParameterNames = deepObjectParameters.map(
+    (parameter) => parameter.name,
+  );
+
+  const hasDeepObjectDateParams =
+    context.output.override.useDates &&
+    deepObjectParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+
+      if (!schema.properties) {
+        return false;
+      }
+
+      return Object.values(
+        schema.properties as Record<
+          string,
+          OpenApiSchemaObject | OpenApiReferenceObject
+        >,
+      ).some((prop) => {
+        const { schema: propSchema } = resolveSchemaRef(prop, context);
+        return propSchema.format === 'date-time';
+      });
+    });
+
+  const deepObjectImplementation =
+    deepObjectParameters.length > 0
+      ? `const deepObjectParameters = ${JSON.stringify(deepObjectParameterNames)};
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && deepObjectParameters.includes(key)) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        if (subValue !== undefined) {
+          deepObjectEntries.push(encodeURIComponent(key) + '[' + encodeURIComponent(subKey) + ']=' + (subValue === null ? 'null' : encodeURIComponent(${hasDeepObjectDateParams ? 'subValue instanceof Date ? subValue.toISOString() : ' : ''}String(subValue))));
+        }
+      });
+      return;
+    }
+      `
+      : '';
+
   const isExplodeParametersOnly =
-    explodeParameters.length + arrayFormatParameters.length ===
+    explodeParameters.length +
+      arrayFormatParameters.length +
+      deepObjectParameters.length ===
     parameterObjects.filter((p) => p.in === 'query').length;
 
   const hasDateParams =
@@ -294,15 +344,15 @@ ${
 ${
   queryParams
     ? `  const normalizedParams = new URLSearchParams();
-
+${deepObjectParameters.length > 0 ? '  const deepObjectEntries = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}${arrayFormatImplementation}
+    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''
 }
 
-  ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
+  ${queryParams ? (deepObjectParameters.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
 
   ${
     queryParams
