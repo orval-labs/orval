@@ -510,9 +510,15 @@ export function getObject({
       }
 
       if (entries.length - 1 === index) {
+        // OpenAPI 3.1: `unevaluatedProperties` supersedes `additionalProperties`
+        // in composed schemas. Both carry boolean | SchemaObject | ReferenceObject
+        // and both mean "extra keys are allowed with this value type", so they
+        // render identically as an index signature / Record intersection.
+        // See issue #2156.
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
         // but AnyOtherAttribute infects property access
-        const additionalProps = schemaItem.additionalProperties as
+        const additionalProps = (schemaItem.additionalProperties ??
+          schemaItem.unevaluatedProperties) as
           | boolean
           | OpenApiSchemaObject
           | OpenApiReferenceObject
@@ -585,7 +591,9 @@ export function getObject({
   }
 
   // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-  const outerAdditionalProps = schemaItem.additionalProperties as
+  // Unevaluated fallback mirrors the first spot above (see issue #2156).
+  const outerAdditionalProps = (schemaItem.additionalProperties ??
+    schemaItem.unevaluatedProperties) as
     | boolean
     | OpenApiSchemaObject
     | OpenApiReferenceObject
