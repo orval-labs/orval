@@ -167,6 +167,7 @@ function createMockContext(): ContextSpec {
         requestOptions: true,
         splitByContentType: false,
         aliasCombinedTypes: false,
+        includeZodSchemaInArguments: false,
         mcp: {},
       },
     },

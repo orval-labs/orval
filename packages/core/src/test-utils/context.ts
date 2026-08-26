@@ -169,6 +169,7 @@ export function createTestContextSpec({
       requestOptions: true,
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       mcp: {},
     },
   };

@@ -171,6 +171,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       requestOptions: true,
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       mcp: {},
     },
   };

@@ -183,7 +183,17 @@ export interface NormalizedOverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
-  includeZodSchemaInArguments?: boolean;
+  /**
+   * When enabled, the zod schema of the response is passed to the custom
+   * mutator as an extra `schema` option, so the mutator can validate the
+   * response itself.
+   *
+   * Requires `schemas: { type: 'zod' }` and runtime validation enabled for the
+   * client (e.g. `override.fetch.runtimeValidation`).
+   *
+   * @default false
+   */
+  includeZodSchemaInArguments: boolean;
 }
 
 export interface NormalizedMutator {
@@ -820,6 +830,16 @@ export interface OverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, the zod schema of the response is passed to the custom
+   * mutator as an extra `schema` option, so the mutator can validate the
+   * response itself.
+   *
+   * Requires `schemas: { type: 'zod' }` and runtime validation enabled for the
+   * client (e.g. `override.fetch.runtimeValidation`).
+   *
+   * @default false
+   */
   includeZodSchemaInArguments?: boolean;
 }
 
