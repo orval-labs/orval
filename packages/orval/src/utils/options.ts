@@ -614,20 +614,28 @@ export async function normalizeOptions(
         namingConvention: outputOptions.override?.namingConvention ?? {},
         components: {
           schemas: {
+            prefix: outputOptions.override?.components?.schemas?.prefix ?? '',
             suffix: RefComponentSuffix.schemas,
+            itemPrefix:
+              outputOptions.override?.components?.schemas?.itemPrefix ?? '',
             itemSuffix:
               outputOptions.override?.components?.schemas?.itemSuffix ?? 'Item',
             ...outputOptions.override?.components?.schemas,
           },
           responses: {
+            prefix: outputOptions.override?.components?.responses?.prefix ?? '',
             suffix: RefComponentSuffix.responses,
             ...outputOptions.override?.components?.responses,
           },
           parameters: {
+            prefix:
+              outputOptions.override?.components?.parameters?.prefix ?? '',
             suffix: RefComponentSuffix.parameters,
             ...outputOptions.override?.components?.parameters,
           },
           requestBodies: {
+            prefix:
+              outputOptions.override?.components?.requestBodies?.prefix ?? '',
             suffix: RefComponentSuffix.requestBodies,
             ...outputOptions.override?.components?.requestBodies,
           },

@@ -115,16 +115,21 @@ export interface NormalizedOverrideOutput {
   };
   components: {
     schemas: {
+      prefix: string;
       suffix: string;
+      itemPrefix: string;
       itemSuffix: string;
     };
     responses: {
+      prefix: string;
       suffix: string;
     };
     parameters: {
+      prefix: string;
       suffix: string;
     };
     requestBodies: {
+      prefix: string;
       suffix: string;
     };
   };
@@ -767,16 +772,21 @@ export interface OverrideOutput {
   };
   components?: {
     schemas?: {
+      prefix?: string;
       suffix?: string;
+      itemPrefix?: string;
       itemSuffix?: string;
     };
     responses?: {
+      prefix?: string;
       suffix?: string;
     };
     parameters?: {
+      prefix?: string;
       suffix?: string;
     };
     requestBodies?: {
+      prefix?: string;
       suffix?: string;
     };
   };
