@@ -27,6 +27,7 @@ import {
 import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryKeyVerbPrefix } from './query-generator';
 import { getQueryOptionsDefinition } from './query-options';
+import { shouldUseOptionsHook } from './utils';
 
 interface NormalizedTarget {
   query: string;
@@ -546,7 +547,10 @@ export const generateMutationHook = async ({
   });
 
   const mutationOptionsFnName = camel(
-    mutationOptionsMutator || mutator?.isHook
+    shouldUseOptionsHook({
+      optionsMutator: mutationOptionsMutator,
+      mutator,
+    })
       ? `use-${operationName}-mutationOptions`
       : `get-${operationName}-mutationOptions`,
   );

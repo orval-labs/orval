@@ -928,6 +928,7 @@ function normalizeMutator(
       alias: m.alias,
       external: m.external,
       extension: m.extension,
+      useHooks: m.useHooks,
     };
   }
 

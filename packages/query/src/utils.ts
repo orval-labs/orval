@@ -4,6 +4,7 @@ import { styleText } from 'node:util';
 import {
   isObject,
   isString,
+  type GeneratorMutator,
   type Mutator,
   type NormalizedMutator,
   type NormalizedQueryOptions,
@@ -97,6 +98,7 @@ const normalizeMutator = (
       alias: m.alias,
       external: m.external,
       extension: m.extension,
+      useHooks: m.useHooks,
     };
   }
 
@@ -108,6 +110,22 @@ const normalizeMutator = (
   }
 
   return undefined;
+};
+
+export const shouldUseOptionsHook = ({
+  optionsMutator,
+  queryKeyMutator,
+  mutator,
+}: {
+  optionsMutator?: GeneratorMutator;
+  queryKeyMutator?: GeneratorMutator;
+  mutator?: GeneratorMutator;
+}): boolean => {
+  if (optionsMutator) {
+    return optionsMutator.useHooks ?? true;
+  }
+
+  return !!queryKeyMutator || !!mutator?.isHook;
 };
 
 export const getQueryTypeForFramework = (type: string): string => {

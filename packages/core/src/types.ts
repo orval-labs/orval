@@ -193,6 +193,7 @@ export interface NormalizedMutator {
   alias?: Record<string, string>;
   external?: string[];
   extension?: string;
+  useHooks?: boolean;
 }
 
 export interface NormalizedOperationOptions {
@@ -678,6 +679,7 @@ export interface MutatorObject {
   alias?: Record<string, string>;
   external?: string[];
   extension?: string;
+  useHooks?: boolean;
 }
 
 export type Mutator = string | MutatorObject;
@@ -1811,6 +1813,7 @@ export interface GeneratorMutator {
   hasThirdArg: boolean;
   isHook: boolean;
   bodyTypeName?: string;
+  useHooks?: boolean;
 }
 
 export type ClientBuilder = (
