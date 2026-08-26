@@ -76,10 +76,15 @@ const createOutput = (
       requestOptions: true,
       namingConvention: {},
       components: {
-        schemas: { suffix: 'Schema', itemSuffix: 'Item' },
-        responses: { suffix: 'Response' },
-        parameters: { suffix: 'Parameters' },
-        requestBodies: { suffix: 'Body' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: 'Schema',
+          itemSuffix: 'Item',
+        },
+        responses: { prefix: '', suffix: 'Response' },
+        parameters: { prefix: '', suffix: 'Parameters' },
+        requestBodies: { prefix: '', suffix: 'Body' },
       },
       angular: {
         ...angularOverride('httpResource'),
