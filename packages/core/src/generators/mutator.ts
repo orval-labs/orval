@@ -120,6 +120,7 @@ export async function generateMutator({
       : mutatorInfo.numberOfParams > 1,
     hasThirdArg: mutatorInfo.numberOfParams > 2,
     isHook,
+    useHooks: mutator.useHooks,
     ...(hasBodyType ? { bodyTypeName } : {}),
   };
 }

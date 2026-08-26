@@ -1395,17 +1395,14 @@ Because the mutator receives `operationId`, one file can serve every
 operation and branch where the behaviour needs to differ, which is the usual
 alternative to a per-operation configuration option.
 
-#### Controlling the `use` / `get` prefix on query options
+#### Controlling the `use` / `get` prefix on options factories
 
-By default orval names the exported query options factory
-`use<Operation>QueryOptions` when a `queryOptions` mutator (or a hook
-mutator) is configured, and `get<Operation>QueryOptions` otherwise — the
-`use` prefix is meant to signal a hook. Sometimes the factory is consumed
-outside a React component, for example in a router loader or in
-`prefetchQuery` / `ensureQueryData`, where a `use*` name is misleading and
-can trip rules-of-hooks lint rules. In that case, name the exported function
-yourself via the `queryOptions` mutator and the generated code will use
-your name verbatim:
+Set `useHooks: false` on a `queryOptions` or `mutationOptions` mutator to
+generate a `get<Operation>QueryOptions` or `get<Operation>MutationOptions`
+factory instead of the default `use`-prefixed factory. This is useful when the
+mutator does not call hooks and the factory is consumed outside a React
+component, for example in a router loader or with `prefetchQuery` /
+`ensureQueryData`.
 
 ```ts title="src/mutators/custom-query-options.ts"
 export function customQueryOptions<T extends { queryKey: QueryKey }>(
@@ -1425,6 +1422,12 @@ export default defineConfig({
           queryOptions: {
             path: './src/mutators/custom-query-options.ts',
             name: 'customQueryOptions',
+            useHooks: false,
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation-options.ts',
+            name: 'customMutationOptions',
+            useHooks: false,
           },
         },
       },
@@ -1433,9 +1436,10 @@ export default defineConfig({
 });
 ```
 
-The generated hook then calls `getPetstoreQueryOptions(...)` (the name of
-the mutator export) instead of an auto-derived `usePetstoreQueryOptions`,
-and it can be used safely with `prefetchQuery` / `ensureQueryData`:
+With this configuration, Orval generates `getPetstoreQueryOptions(...)` and
+`getPetstoreMutationOptions(...)` instead of their `use`-prefixed variants.
+The query options factory can then be used safely with `prefetchQuery` /
+`ensureQueryData`:
 
 ```ts
 export async function loader(queryClient: QueryClient) {
