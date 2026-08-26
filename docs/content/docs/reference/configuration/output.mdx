@@ -2476,7 +2476,7 @@ export const load = async ({ fetch }) => {
 | `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
 | `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
-| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
+| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeZodSchemaInArguments`](#includezodschemainarguments) passes the schema to the mutator so it can validate the response itself |
 
 ---
 
@@ -2842,6 +2842,60 @@ export interface Pet {
   tag?: string | null;
 }
 ```
+
+### includeZodSchemaInArguments
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Pass the zod schema of the response to the custom `mutator` as an extra
+`schema` option, so the mutator can validate the response itself.
+
+A custom mutator issues the request on its own, so the `Schema.parse()` call
+Orval generates for `runtimeValidation` never runs (see
+[#2858](https://github.com/orval-labs/orval/issues/2858)). Enabling this option
+hands the schema to the mutator instead.
+
+Supported by the `fetch` client. Requires `schemas: { type: 'zod' }` and
+`override.fetch.runtimeValidation: true`. The schema is omitted for operations
+without a validatable response — primitive or `void` responses, and
+`application/x-ndjson` streams.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      schemas: { path: 'src/gen/model', type: 'zod' },
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
+        fetch: { runtimeValidation: true },
+      },
+    },
+  },
+});
+```
+
+```ts title="src/custom-fetch.ts"
+import type { ZodType } from 'zod';
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit & { schema?: ZodType<T> },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const data = await response.json();
+
+  return schema ? schema.parse(data) : (data as T);
+};
+```
+
+<Callout type="info">
+`schema.parse()` throws a `ZodError` on a mismatch. Use `safeParse()` in the
+mutator if you would rather handle validation failures yourself.
+</Callout>
 
 ## factoryMethods
 

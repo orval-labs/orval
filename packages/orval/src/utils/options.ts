@@ -793,6 +793,8 @@ export async function normalizeOptions(
           outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
         splitByContentType: outputOptions.override?.splitByContentType ?? false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
+        includeZodSchemaInArguments:
+          outputOptions.override?.includeZodSchemaInArguments ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,

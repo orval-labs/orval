@@ -548,17 +548,33 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-  const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
+  const schemaValueRef =
+    responseType === 'Error' ? 'ErrorSchema' : responseType;
+  // A custom mutator issues the request itself, so it cannot benefit from the
+  // generated `Schema.parse()` call. Handing it the zod schema lets it validate
+  // the response on its own, but only when the user opted in and the schemas
+  // are actually zod ones — the schema is imported as a value in that case.
+  const includeZodSchema =
+    isValidateResponse &&
+    context.output.override.includeZodSchemaInArguments &&
+    isObject(context.output.schemas) &&
+    context.output.schemas.type === 'zod';
+  const getFetchFnOptions = ({ withSchema = false } = {}) => {
+    const fetchSchemaOption =
+      withSchema && includeZodSchema ? `schema: ${schemaValueRef}` : '';
+
+    return `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
-    ${fetchBodyOption}
+    ${fetchBodyOption}${fetchSchemaOption ? `,\n    ${fetchSchemaOption}` : ''}
   }
 `;
+  };
+  const fetchFnOptions = getFetchFnOptions();
+  const mutatorFetchFnOptions = getFetchFnOptions({ withSchema: true });
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
-  const schemaValueRef =
-    responseType === 'Error' ? 'ErrorSchema' : responseType;
   const fetchResponseType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? successName
@@ -667,7 +683,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : 'return data'
   }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -689,7 +705,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${fetchFnOptions});
+        return ${fetchExportName}(${mutatorFetchFnOptions});
       }
   `;
   }

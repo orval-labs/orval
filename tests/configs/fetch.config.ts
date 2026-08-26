@@ -599,6 +599,34 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // A mutator owns the whole request, so the generated `Schema.parse()` call
+  // never runs — `includeZodSchemaInArguments` passes the schema to the mutator
+  // instead, so it can validate the response itself.
+  zodSchemaResponseMutator: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-mutator/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-mutator/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: {
+          path: '../mutators/custom-fetch-zod.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponseTags: {
     output: {
       target: '../generated/fetch/zod-schema-response-tags/endpoints.ts',
