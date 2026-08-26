@@ -4,16 +4,16 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Dachshund } from './dachshund';
+import type { IDachshund } from './iDachshund';
 import type { IDogType } from './iDogType';
-import type { Labradoodle } from './labradoodle';
+import type { ILabradoodle } from './iLabradoodle';
 
 export type IDog =
-  | (Labradoodle & {
+  | (ILabradoodle & {
       barksPerMinute?: number;
       type: IDogType;
     })
-  | (Dachshund & {
+  | (IDachshund & {
       barksPerMinute?: number;
       type: IDogType;
     });

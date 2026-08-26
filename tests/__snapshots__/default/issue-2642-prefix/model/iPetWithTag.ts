@@ -4,9 +4,9 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Pet } from './pet';
+import type { IPet } from './iPet';
 
 export interface IPetWithTag {
   tag: string;
-  pet: Pet | null;
+  pet: IPet | null;
 }

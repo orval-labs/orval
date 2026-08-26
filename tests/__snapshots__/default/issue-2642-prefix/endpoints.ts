@@ -10,10 +10,10 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import type {
   CreatePetsBody,
   CreatePetsParams,
+  IPet,
+  IPetWithTag,
+  IPets,
   ListPetsParams,
-  Pet,
-  PetWithTag,
-  Pets,
 } from './model';
 
 /**
@@ -22,7 +22,7 @@ import type {
 export const listPets = (
   params: ListPetsParams,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pets>> => {
+): Promise<AxiosResponse<IPets>> => {
   return axios.get(`/pets`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -36,7 +36,7 @@ export const createPets = (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pet>> => {
+): Promise<AxiosResponse<IPet>> => {
   return axios.post(`/pets`, createPetsBody, {
     ...options,
     params: { ...params, ...options?.params },
@@ -49,7 +49,7 @@ export const createPets = (
 export const showPetById = (
   petId: string,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pet>> => {
+): Promise<AxiosResponse<IPet>> => {
   return axios.get(`/pets/${petId}`, options);
 };
 
@@ -81,13 +81,13 @@ export const healthCheck = (
 export const showPetWithOwner = (
   petId: string,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<PetWithTag>> => {
+): Promise<AxiosResponse<IPetWithTag>> => {
   return axios.get(`/pets/${petId}/owner`, options);
 };
 
-export type ListPetsResult = AxiosResponse<Pets>;
-export type CreatePetsResult = AxiosResponse<Pet>;
-export type ShowPetByIdResult = AxiosResponse<Pet>;
+export type ListPetsResult = AxiosResponse<IPets>;
+export type CreatePetsResult = AxiosResponse<IPet>;
+export type ShowPetByIdResult = AxiosResponse<IPet>;
 export type DeletePetByIdResult = AxiosResponse<void>;
 export type HealthCheckResult = AxiosResponse<string>;
-export type ShowPetWithOwnerResult = AxiosResponse<PetWithTag>;
+export type ShowPetWithOwnerResult = AxiosResponse<IPetWithTag>;

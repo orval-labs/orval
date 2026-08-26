@@ -4,13 +4,13 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Cat } from './cat';
-import type { Dog } from './dog';
+import type { ICat } from './iCat';
+import type { IDog } from './iDog';
 import type { IPetCallingCode } from './iPetCallingCode';
 import type { IPetCountry } from './iPetCountry';
 
 export type IPet =
-  | (Dog & {
+  | (IDog & {
       '@id'?: string;
       id: number;
       name: string;
@@ -19,7 +19,7 @@ export type IPet =
       callingCode?: IPetCallingCode;
       country?: IPetCountry;
     })
-  | (Cat & {
+  | (ICat & {
       '@id'?: string;
       id: number;
       name: string;
