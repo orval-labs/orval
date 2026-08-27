@@ -2708,6 +2708,25 @@ export default defineConfig({
 });
 ```
 
+Add prefixes to generated component names (available for `schemas`, `responses`, `parameters`, and `requestBodies`). `prefix` is applied to the component itself; `itemPrefix` is applied to the element type when the component is an array (valid for `components.schemas` only). Prefixes are also applied to `$ref` references, so a `Pet` schema with `prefix: 'I'` is referenced as `IPet` everywhere it appears:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { prefix: 'I', itemPrefix: 'I' },
+          responses: { prefix: 'I' },
+          parameters: { prefix: 'I' },
+          requestBodies: { prefix: 'I' },
+        },
+      },
+    },
+  },
+});
+```
+
 ---
 
 ## Type Generation Options

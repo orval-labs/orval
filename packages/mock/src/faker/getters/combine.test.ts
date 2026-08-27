@@ -66,10 +66,10 @@ function createMockContext(): ContextSpec {
         paramsSerializerOptions: undefined,
         namingConvention: {},
         components: {
-          schemas: { suffix: '', itemSuffix: '' },
-          responses: { suffix: '' },
-          parameters: { suffix: '' },
-          requestBodies: { suffix: '' },
+          schemas: { prefix: '', itemPrefix: '', suffix: '', itemSuffix: '' },
+          responses: { prefix: '', suffix: '' },
+          parameters: { prefix: '', suffix: '' },
+          requestBodies: { prefix: '', suffix: '' },
         },
         hono: {
           handlerGenerationStrategy: 'smart',
