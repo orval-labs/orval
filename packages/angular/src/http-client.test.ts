@@ -506,6 +506,26 @@ describe('angular HttpClient generator', () => {
       expect(header).toContain('function filterParams(');
     });
 
+    it('serializes Date query params to ISO instead of dropping them (#3856)', () => {
+      const verbOptionWithQueryParams = createVerbOption({
+        tags: [],
+        queryParams: createQueryParams({
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+        }),
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getApiProduct: verbOptionWithQueryParams },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).toContain('value instanceof Date');
+      expect(header).toContain('value.toISOString()');
+    });
+
     it('includes both explicit default-tagged and untagged operations in the default bucket', () => {
       const untaggedVerb = createVerbOption({
         operationId: 'getUntaggedProduct',
