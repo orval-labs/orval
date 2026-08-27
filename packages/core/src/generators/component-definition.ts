@@ -14,6 +14,7 @@ export function generateComponentDefinition(
     | OpenApiComponentsObject['requestBodies'] = {},
   context: ContextSpec,
   suffix: string,
+  prefix = '',
 ): GeneratorSchema[] {
   if (isEmptyish(responses)) {
     return [];
@@ -33,7 +34,7 @@ export function generateComponentDefinition(
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-    const modelName = sanitize(`${pascal(name)}${suffix}`, {
+    const modelName = sanitize(`${prefix}${pascal(name)}${suffix}`, {
       underscore: '_',
       whitespace: '_',
       dash: true,

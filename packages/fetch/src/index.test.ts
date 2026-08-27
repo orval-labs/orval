@@ -67,10 +67,10 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       paramsSerializerOptions: undefined,
       namingConvention: {},
       components: {
-        schemas: { suffix: '', itemSuffix: '' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
+        schemas: { prefix: '', suffix: '', itemPrefix: '', itemSuffix: '' },
+        responses: { prefix: '', suffix: '' },
+        parameters: { prefix: '', suffix: '' },
+        requestBodies: { prefix: '', suffix: '' },
       },
       hono: {
         handlerGenerationStrategy: 'smart',

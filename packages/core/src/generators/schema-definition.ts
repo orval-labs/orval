@@ -38,6 +38,7 @@ export function generateSchemasDefinition(
   context: ContextSpec,
   suffix: string,
   filters?: InputFiltersOptions,
+  prefix = '',
 ): GeneratorSchema[] {
   if (isEmptyish(schemas)) {
     return [];
@@ -60,7 +61,7 @@ export function generateSchemasDefinition(
   }
 
   const models = generateSchemas.flatMap(([schemaName, schema]) =>
-    generateSchemaDefinitions(schemaName, schema, context, suffix),
+    generateSchemaDefinitions(schemaName, schema, context, suffix, prefix),
   );
 
   // Deduplicate schemas by normalized name to prevent duplicate exports
@@ -218,14 +219,18 @@ function generateSchemaDefinitions(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
   suffix: string,
+  prefix = '',
 ): GeneratorSchema[] {
-  const sanitizedSchemaName = sanitize(`${pascal(schemaName)}${suffix}`, {
-    underscore: '_',
-    whitespace: '_',
-    dash: true,
-    es5keyword: true,
-    es5IdentifierName: true,
-  });
+  const sanitizedSchemaName = sanitize(
+    `${prefix}${pascal(schemaName)}${suffix}`,
+    {
+      underscore: '_',
+      whitespace: '_',
+      dash: true,
+      es5keyword: true,
+      es5IdentifierName: true,
+    },
+  );
 
   if (isBoolean(schema)) {
     return [

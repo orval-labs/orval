@@ -239,11 +239,14 @@ function getArrayItemFactoryNames({
     };
   }
 
-  const itemSuffix = context.output.override.components.schemas.itemSuffix;
+  const itemPrefix =
+    context.output.override.components.schemas.itemPrefix ?? '';
+  const itemSuffix =
+    context.output.override.components.schemas.itemSuffix ?? '';
 
   let typeName: string;
   if (parentName) {
-    typeName = `${pascal(parentName)}${pascal(propertyName)}${itemSuffix}`;
+    typeName = `${itemPrefix}${pascal(parentName)}${pascal(propertyName)}${itemSuffix}`;
   } else {
     // No `parentName`: the array IS the top-level response schema, and
     // `propertyName` here is the response definition string produced by
@@ -290,7 +293,7 @@ function getArrayItemFactoryNames({
       if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(workingName)) {
         return undefined;
       }
-      typeName = `${pascal(workingName)}${itemSuffix}`;
+      typeName = `${itemPrefix}${pascal(workingName)}${itemSuffix}`;
     }
   }
 
