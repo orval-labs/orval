@@ -9,6 +9,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
 } from './model';
 
 export const getListPetsUrl = (params: ListPetsParams) => {
@@ -31,7 +34,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
-): Promise<PetsSuccess> => {
+): Promise<Pets> => {
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
@@ -39,14 +42,14 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: PetsError; status?: number } =
+    const err: globalThis.Error & { info?: Pets; status?: number } =
       new globalThis.Error();
-    const data: PetsError = body ? JSON.parse(body) : {};
+    const data: Pets = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: PetsSuccess = body ? JSON.parse(body) : {};
+  const data: Pets = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -71,7 +74,7 @@ export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
-): Promise<PetSuccess> => {
+): Promise<Pet> => {
   const getHeaders = (
     h?: NonNullable<RequestInit['headers']>,
   ): Record<string, string | readonly string[]> => {
@@ -92,14 +95,14 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: PetError; status?: number } =
+    const err: globalThis.Error & { info?: Pet; status?: number } =
       new globalThis.Error();
-    const data: PetError = body ? JSON.parse(body) : {};
+    const data: Pet = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: PetSuccess = body ? JSON.parse(body) : {};
+  const data: Pet = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -113,7 +116,7 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-): Promise<PetSuccess> => {
+): Promise<Pet> => {
   const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
@@ -121,14 +124,14 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: PetError; status?: number } =
+    const err: globalThis.Error & { info?: Pet; status?: number } =
       new globalThis.Error();
-    const data: PetError = body ? JSON.parse(body) : {};
+    const data: Pet = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: PetSuccess = body ? JSON.parse(body) : {};
+  const data: Pet = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -142,7 +145,7 @@ export const getDeletePetByIdUrl = (petId: string) => {
 export const deletePetById = async (
   petId: string,
   options?: RequestInit,
-): Promise<voidSuccess> => {
+): Promise<void> => {
   const res = await fetch(getDeletePetByIdUrl(petId), {
     ...options,
     method: 'DELETE',
@@ -150,14 +153,14 @@ export const deletePetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: voidError; status?: number } =
+    const err: globalThis.Error & { info?: void; status?: number } =
       new globalThis.Error();
-    const data: voidError = body ? JSON.parse(body) : {};
+    const data: void = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: voidSuccess = body ? JSON.parse(body) : undefined;
+  const data: void = body ? JSON.parse(body) : undefined;
   return data;
 };
 
@@ -168,9 +171,7 @@ export const getHealthCheckUrl = () => {
 /**
  * @summary health check
  */
-export const healthCheck = async (
-  options?: RequestInit,
-): Promise<stringSuccess> => {
+export const healthCheck = async (options?: RequestInit): Promise<string> => {
   const res = await fetch(getHealthCheckUrl(), {
     ...options,
     method: 'GET',
@@ -178,14 +179,14 @@ export const healthCheck = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: stringError; status?: number } =
+    const err: globalThis.Error & { info?: string; status?: number } =
       new globalThis.Error();
-    const data: stringError = body ? JSON.parse(body) : {};
+    const data: string = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: stringSuccess = body !== null ? body : '';
+  const data: string = body !== null ? body : '';
   return data;
 };
 
@@ -199,7 +200,7 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
-): Promise<PetWithTagSuccess> => {
+): Promise<PetWithTag> => {
   const res = await fetch(getShowPetWithOwnerUrl(petId), {
     ...options,
     method: 'GET',
@@ -207,13 +208,13 @@ export const showPetWithOwner = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
-    const err: globalThis.Error & { info?: PetWithTagError; status?: number } =
+    const err: globalThis.Error & { info?: PetWithTag; status?: number } =
       new globalThis.Error();
-    const data: PetWithTagError = body ? JSON.parse(body) : {};
+    const data: PetWithTag = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: PetWithTagSuccess = body ? JSON.parse(body) : {};
+  const data: PetWithTag = body ? JSON.parse(body) : {};
   return data;
 };
