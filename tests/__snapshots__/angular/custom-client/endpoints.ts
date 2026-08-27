@@ -58,10 +58,13 @@ export class SwaggerPetstoreService {
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
-            } else if (value instanceof Date) {
+            } else if (
+              (value as unknown) instanceof Date &&
+              !Number.isNaN((value as unknown as Date).getTime())
+            ) {
               // useDates produces Date query params; serialize to ISO so they reach
               // the wire instead of being dropped by the primitive check below. See #3856.
-              filteredParams[key] = value.toISOString();
+              filteredParams[key] = (value as unknown as Date).toISOString();
             } else if (
               value != null &&
               (typeof value === 'string' ||
@@ -109,10 +112,13 @@ export class SwaggerPetstoreService {
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
-            } else if (value instanceof Date) {
+            } else if (
+              (value as unknown) instanceof Date &&
+              !Number.isNaN((value as unknown as Date).getTime())
+            ) {
               // useDates produces Date query params; serialize to ISO so they reach
               // the wire instead of being dropped by the primitive check below. See #3856.
-              filteredParams[key] = value.toISOString();
+              filteredParams[key] = (value as unknown as Date).toISOString();
             } else if (
               value != null &&
               (typeof value === 'string' ||

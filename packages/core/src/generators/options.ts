@@ -142,10 +142,13 @@ export const getAngularFilteredParamsExpression = (
     ? `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`
     : '';
 
-  const scalarBranch = `    } else if (value instanceof Date) {
+  const scalarBranch = `    } else if (
+      (value as unknown) instanceof Date &&
+      !Number.isNaN((value as unknown as Date).getTime())
+    ) {
       // useDates produces Date query params; serialize to ISO so they reach
       // the wire instead of being dropped by the primitive check below. See #3856.
-      filteredParams[key] = value.toISOString();
+      filteredParams[key] = (value as unknown as Date).toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -257,7 +260,7 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
-    } else if (value instanceof Date) {
+    } else if (value instanceof Date && !Number.isNaN(value.getTime())) {
       // useDates produces Date query params; serialize to ISO so they reach
       // the wire instead of being dropped by the primitive check below. See #3856.
       filteredParams[key] = value.toISOString();
@@ -388,7 +391,7 @@ function filterParams(
       // string so the required key still reaches the wire as \`?key=\`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
-    } else if (value instanceof Date) {
+    } else if (value instanceof Date && !Number.isNaN(value.getTime())) {
       // useDates produces Date query params; serialize to ISO so they reach
       // the wire instead of being dropped by the primitive check below. See #3856.
       filteredParams[key] = value.toISOString();

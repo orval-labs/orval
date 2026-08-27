@@ -95,7 +95,7 @@ function filterParams(
       // string so the required key still reaches the wire as `?key=`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
-    } else if (value instanceof Date) {
+    } else if (value instanceof Date && !Number.isNaN(value.getTime())) {
       // useDates produces Date query params; serialize to ISO so they reach
       // the wire instead of being dropped by the primitive check below. See #3856.
       filteredParams[key] = value.toISOString();
