@@ -1,0 +1,33 @@
+{
+  "name": "orval",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+  "workspaceFolder": "/app",
+  "init": true,
+  // Host ports are intentionally uncommon to avoid clashing with other
+  // local development (container side keeps the standard ports), and are
+  // bound to localhost so they are not reachable from the local network.
+  "appPort": [
+    "127.0.0.1:43000:3000",
+    "127.0.0.1:45173:5173",
+    "127.0.0.1:48787:8787"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "vp install && vp run prepare",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "VoidZero.vite-plus-extension-pack",
+        "streetsidesoftware.code-spell-checker",
+        "unifiedjs.vscode-mdx",
+        "vitest.explorer",
+        "anthropic.claude-code",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  }
+}
