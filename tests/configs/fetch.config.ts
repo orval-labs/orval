@@ -460,6 +460,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  forceSuccessResponseWithoutHttpResponseReturnType: {
+    output: {
+      target: '../generated/fetch/force-success-response-no-http-response/endpoints.ts',
+      schemas: '../generated/fetch/force-success-response-no-http-response/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+          includeHttpResponseReturnType: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   serializeResponseHeaders: {
     output: {
       target: '../generated/fetch/serialize-response-headers/endpoints.ts',

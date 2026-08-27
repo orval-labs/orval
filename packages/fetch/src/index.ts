@@ -534,7 +534,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : '';
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
   const returnType =
-    override.fetch.forceSuccessResponse && hasSuccess
+    override.fetch.forceSuccessResponse &&
+    hasSuccess &&
+    override.fetch.includeHttpResponseReturnType
       ? `Promise<${successName}>`
       : `Promise<${responseTypeName}>`;
 
@@ -626,7 +628,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const mutatorFetchFnOptions = getFetchFnOptions({ withSchema: true });
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const fetchResponseType =
-    override.fetch.forceSuccessResponse && hasSuccess
+    override.fetch.forceSuccessResponse &&
+    hasSuccess &&
+    override.fetch.includeHttpResponseReturnType
       ? successName
       : responseTypeName;
 
@@ -671,8 +675,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${throwOnErrorInnerDeclarations}
-    const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${throwOnErrorDataExpression}
+    const err: globalThis.Error & {info?: ${hasError ? `${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : 'any'}, status?: number} = new globalThis.Error();
+    const data ${hasError ? `: ${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : ''} = ${throwOnErrorDataExpression}
     err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
