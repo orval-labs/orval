@@ -124,9 +124,6 @@ export function applyOrvalRequestExtension(
   let next: HttpResourceRequest = { ...base };
   const extraHeaders =
     typeof options.headers === 'function' ? options.headers() : options.headers;
-  // Truthiness, not `!== undefined`: `HttpHeaders` and header records are always
-  // truthy, so this is the same guard for every typed value, and it also keeps
-  // an untyped `null` from an untyped caller out of the merge.
   if (extraHeaders) {
     next = { ...next, headers: mergeOrvalResourceHeaders(next.headers, extraHeaders) };
   }

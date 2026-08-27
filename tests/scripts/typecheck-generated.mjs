@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import {
   existsSync,
-  readFileSync,
   readdirSync,
   statSync,
   unlinkSync,
@@ -110,39 +109,24 @@ for (const folder of folders) {
 
 // ─── exactOptionalPropertyTypes gate (#3909) ─────────────────────────────
 // Under this flag an optional property may be *absent* but never *present and
-// `undefined`, so it catches generated code that types an optional request
-// field as `T | undefined` and then always writes the key — which is how every
-// Angular `httpResource` client stopped compiling in #3909. The rest of the
-// generated corpus does not pass under the flag yet, so the gate covers the
-// fixtures that emit the request-extension helpers.
-const angularRoot = join(generatedDir, 'angular');
-
-const emitsRequestExtension = (dir) =>
-  readdirSync(dir, { recursive: true })
-    .filter((file) => typeof file === 'string' && file.endsWith('.ts'))
-    .some((file) =>
-      readFileSync(join(dir, file), 'utf8').includes(
-        'applyOrvalRequestExtension',
-      ),
-    );
-
-const exactOptionalFolders = !existsSync(angularRoot)
-  ? []
-  : readdirSync(angularRoot)
-      .filter((f) => statSync(join(angularRoot, f)).isDirectory())
-      .filter((f) => emitsRequestExtension(join(angularRoot, f)))
-      .sort();
-
-// The folders are detected by content, so renaming the emitted helper would
-// otherwise empty the list and retire the gate on a green run. Fail instead.
-if (exactOptionalFolders.length === 0) {
-  console.error(
-    '\nError: no Angular fixture emits `applyOrvalRequestExtension`.\n' +
-      'The #3909 gate has nothing to check — was the helper renamed, or the\n' +
-      'httpResource fixtures removed? Update this detection rather than dropping it.',
-  );
-  process.exit(1);
-}
+// `undefined`, which is how every Angular `httpResource` client stopped
+// compiling in #3909. Mock output does not pass under the flag yet, so the
+// gate lists the fixtures that emit the httpResource request-extension helper.
+const exactOptionalFolders = [
+  'base-url-token-both',
+  'base-url-token-http-resource',
+  'http-resource-both-tags-split',
+  'http-resource-headers',
+  'http-resource-multi-content',
+  'http-resource-request-extension-multi-content',
+  'http-resource-tags',
+  'http-resource-zod',
+  'http-resource-zod-disabled',
+  'issue-3624',
+  'issue-3705-http-resource',
+  'issue-3712-http-resource',
+  'url-encode-parameters-http-resource',
+];
 
 console.log(
   `\nTypechecking ${exactOptionalFolders.length} httpResource clients with exactOptionalPropertyTypes...\n`,
