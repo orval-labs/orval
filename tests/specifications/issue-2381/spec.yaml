@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: Issue 2381 - property naming convention
+  version: 1.0.0
+paths:
+  /widgets:
+    get:
+      operationId: getWidgets
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - widget_id
+        - display_name
+      properties:
+        widget_id:
+          type: string
+        display_name:
+          type: string
+        nested_data:
+          type: object
+          properties:
+            inner_value:
+              type: number

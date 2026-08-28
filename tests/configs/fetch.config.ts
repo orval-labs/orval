@@ -1081,4 +1081,20 @@ export default defineConfig({
       target: '../specifications/path-item-level-query-params/spec.yaml',
     },
   },
+  'issue-2381': {
+    output: {
+      target: '../generated/fetch/issue-2381/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        namingConvention: {
+          properties: 'camelCase',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-2381/spec.yaml',
+    },
+  },
 });

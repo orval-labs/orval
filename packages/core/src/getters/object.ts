@@ -17,6 +17,7 @@ import {
   jsStringLiteralEscape,
   pascal,
 } from '../utils';
+import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -503,7 +504,14 @@ export function getObject({
         isReadOnly && !context.output.override.suppressReadonlyModifier
           ? '  readonly '
           : '  '
-      }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      }${getKey(
+        context.output.override.namingConvention?.properties
+          ? conventionName(
+              key,
+              context.output.override.namingConvention.properties,
+            )
+          : key,
+      )}${isRequired ? '' : '?'}: ${finalPropValue};`;
       if (usedResolvedValue) {
         acc.schemas.push(...resolvedValue.schemas);
         acc.dependencies.push(...resolvedValue.dependencies);
