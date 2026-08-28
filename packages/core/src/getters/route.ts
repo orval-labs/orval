@@ -22,6 +22,12 @@ function isBaseUrlRuntime(
   );
 }
 
+function isVariableRuntimeValue(
+  value: string | VariableRuntimeValue | undefined,
+): value is VariableRuntimeValue {
+  return isObject(value) && 'runtime' in value;
+}
+
 /**
  * Wraps a runtime expression for generated URL template literals.
  * Pass the expression only (e.g. `process.env.API_BASE_URL`), not a `${...}` fragment.
@@ -136,8 +142,7 @@ export function resolveServerUrl(
     // A `{ runtime: ... }` value is left as a `{key}` placeholder so the
     // caller can splice a `${...}` interpolation into the generated route
     // AFTER jsesc escaping the surrounding static text (#3734).
-    const isRuntime = isObject(raw) && 'runtime' in raw;
-    if (raw !== undefined && !isRuntime) {
+    if (raw !== undefined && !isVariableRuntimeValue(raw)) {
       if (variable.enum && !variable.enum.some((e) => e == raw)) {
         throw new Error(
           `Invalid variable value '${raw}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
@@ -194,7 +199,7 @@ export function getFullRoute(
       // after escaping, so the expression itself is never escaped (#3734).
       if (baseUrl.variables) {
         for (const [key, value] of Object.entries(baseUrl.variables)) {
-          if (isObject(value) && 'runtime' in value) {
+          if (isVariableRuntimeValue(value)) {
             base = base.replaceAll(`{${key}}`, `\${${value.runtime}}`);
           }
         }
