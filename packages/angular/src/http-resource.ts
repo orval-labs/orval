@@ -1253,10 +1253,9 @@ export type ${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<TValue, TRaw = unknown, TOmitPars
 
 function mergeOrvalResourceHeaders(
   base: HttpResourceRequest['headers'],
-  extra: HttpResourceRequest['headers'],
-): HttpResourceRequest['headers'] {
+  extra: NonNullable<HttpResourceRequest['headers']>,
+): NonNullable<HttpResourceRequest['headers']> {
   if (!base) return extra;
-  if (!extra) return base;
   if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
     const toHeaderValue = (
       value: string | readonly string[],
@@ -1301,7 +1300,7 @@ export function applyOrvalRequestExtension(
   let next: HttpResourceRequest = { ...base };
   const extraHeaders =
     typeof options.headers === 'function' ? options.headers() : options.headers;
-  if (extraHeaders !== undefined) {
+  if (extraHeaders) {
     next = { ...next, headers: mergeOrvalResourceHeaders(next.headers, extraHeaders) };
   }
   const context =
