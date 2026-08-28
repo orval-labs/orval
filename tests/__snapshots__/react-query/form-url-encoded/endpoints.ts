@@ -46,6 +46,8 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -62,7 +64,7 @@ export const getCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -134,6 +136,9 @@ export const uploadPetContent = (
   });
 };
 
+export const getUploadPetContentMutationKey = () =>
+  ['uploadPetContent'] as const;
+
 export const getUploadPetContentMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -150,7 +155,7 @@ export const getUploadPetContentMutationOptions = <
   UploadPetContentMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadPetContent'];
+  const mutationKey = getUploadPetContentMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -222,6 +227,9 @@ export const uploadPetContentRef = (
   });
 };
 
+export const getUploadPetContentRefMutationKey = () =>
+  ['uploadPetContentRef'] as const;
+
 export const getUploadPetContentRefMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -238,7 +246,7 @@ export const getUploadPetContentRefMutationOptions = <
   UploadPetContentRefMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadPetContentRef'];
+  const mutationKey = getUploadPetContentRefMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

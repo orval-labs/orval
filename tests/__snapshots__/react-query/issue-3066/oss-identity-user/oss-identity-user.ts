@@ -82,6 +82,9 @@ export const postApiAppOssIdentityUserImportUsersFromFile = async (
   } as postApiAppOssIdentityUserImportUsersFromFileResponse;
 };
 
+export const getPostApiAppOssIdentityUserImportUsersFromFileMutationKey = () =>
+  ['postApiAppOssIdentityUserImportUsersFromFile'] as const;
+
 export const getPostApiAppOssIdentityUserImportUsersFromFileMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -99,7 +102,8 @@ export const getPostApiAppOssIdentityUserImportUsersFromFileMutationOptions = <
   PostApiAppOssIdentityUserImportUsersFromFileMutationVariables,
   TContext
 > => {
-  const mutationKey = ['postApiAppOssIdentityUserImportUsersFromFile'];
+  const mutationKey =
+    getPostApiAppOssIdentityUserImportUsersFromFileMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -222,6 +226,9 @@ export const postApiAppOssIdentityUserSignIn = async (
   } as postApiAppOssIdentityUserSignInResponse;
 };
 
+export const getPostApiAppOssIdentityUserSignInMutationKey = () =>
+  ['postApiAppOssIdentityUserSignIn'] as const;
+
 export const getPostApiAppOssIdentityUserSignInMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -239,7 +246,7 @@ export const getPostApiAppOssIdentityUserSignInMutationOptions = <
   PostApiAppOssIdentityUserSignInMutationVariables,
   TContext
 > => {
-  const mutationKey = ['postApiAppOssIdentityUserSignIn'];
+  const mutationKey = getPostApiAppOssIdentityUserSignInMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

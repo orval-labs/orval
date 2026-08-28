@@ -524,6 +524,8 @@ export const deletePetById = (petId: string, signal?: AbortSignal) => {
   });
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -540,7 +542,7 @@ export const getDeletePetByIdMutationOptions = <
   DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

@@ -1465,7 +1465,11 @@ Export mutator hooks.
 **Type:** `Boolean`
 **Default:** `true`
 
-Export query keys.
+Export query keys. Also applies to mutation keys, which are emitted as a getter next to the mutation options factory:
+
+```ts title="endpoints.ts"
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+```
 
 ### shouldFilterQueryKey
 

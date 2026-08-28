@@ -234,6 +234,8 @@ export const createWidget = async (
   } as createWidgetResponse;
 };
 
+export const getCreateWidgetMutationKey = () => ['createWidget'] as const;
+
 export const getCreateWidgetMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -251,7 +253,7 @@ export const getCreateWidgetMutationOptions = <
   CreateWidgetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createWidget'];
+  const mutationKey = getCreateWidgetMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

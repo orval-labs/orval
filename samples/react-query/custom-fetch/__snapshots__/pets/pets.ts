@@ -336,6 +336,8 @@ export const createPets = async (
   });
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -353,7 +355,7 @@ export const getCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -454,6 +456,8 @@ export const updatePets = async (
   });
 };
 
+export const getUpdatePetsMutationKey = () => ['updatePets'] as const;
+
 export const getUpdatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -471,7 +475,7 @@ export const getUpdatePetsMutationOptions = <
   UpdatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updatePets'];
+  const mutationKey = getUpdatePetsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

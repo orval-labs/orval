@@ -248,6 +248,8 @@ export const useCreatePetsHook = () => {
   );
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const useCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -265,7 +267,7 @@ export const useCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -516,6 +518,8 @@ export const useDeletePetByIdHook = () => {
   );
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const useDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -533,7 +537,7 @@ export const useDeletePetByIdMutationOptions = <
   DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

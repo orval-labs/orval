@@ -145,6 +145,8 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = AxiosError<Error>,
   TContext = unknown,
@@ -162,7 +164,7 @@ export const getCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, axios: axiosOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -313,6 +315,8 @@ export const deletePetById = (
   return axios.delete(`/pets/${petId}`, options);
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = AxiosError<Error>,
   TContext = unknown,
@@ -330,7 +334,7 @@ export const getDeletePetByIdMutationOptions = <
   DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions, axios: axiosOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

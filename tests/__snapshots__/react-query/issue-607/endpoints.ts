@@ -45,6 +45,8 @@ export const petId = async (
 };
 
 const petIdRequestFn2 = petId;
+export const getPetIdMutationKey = () => ['petId'] as const;
+
 export const getPetIdMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -62,7 +64,7 @@ export const getPetIdMutationOptions = <
   PetIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['petId'];
+  const mutationKey = getPetIdMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -140,6 +142,8 @@ export const options = async (
 };
 
 const optionsRequestFn = options;
+export const getOptionsMutationKey = () => ['options'] as const;
+
 export const getOptionsMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -157,7 +161,7 @@ export const getOptionsMutationOptions = <
   OptionsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['options'];
+  const mutationKey = getOptionsMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
