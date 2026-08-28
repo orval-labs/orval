@@ -1092,6 +1092,7 @@ export default defineConfig({
       target: '../specifications/path-item-level-query-params/spec.yaml',
     },
   },
+<<<<<<< HEAD
   'issue-2381': {
     output: {
       target: '../generated/fetch/issue-2381/endpoints.ts',
@@ -1106,6 +1107,24 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-2381/spec.yaml',
+    },
+  },
+  issue3734: {
+    output: {
+      target: '../generated/fetch/issue-3734/endpoints.ts',
+      schemas: '../generated/fetch/issue-3734/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          token: { runtime: 'process.env.TEBEX_TOKEN' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3734/spec.yaml',
     },
   },
 });

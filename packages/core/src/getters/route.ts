@@ -8,6 +8,7 @@ import type {
   GeneratorImport,
   NormalizedOutputOptions,
   OpenApiServerObject,
+  VariableRuntimeValue,
 } from '../types';
 import { camel, isObject, isString, sanitize } from '../utils';
 
@@ -115,7 +116,10 @@ export function getRoute(route: string) {
  */
 export function resolveServerUrl(
   servers: OpenApiServerObject[] | undefined,
-  options: { index?: number; variables?: Record<string, string> },
+  options: {
+    index?: number;
+    variables?: Record<string, string | VariableRuntimeValue>;
+  },
 ): string {
   if (!servers || servers.length === 0) return '';
 
@@ -128,17 +132,19 @@ export function resolveServerUrl(
   const variables = options.variables;
   for (const variableKey of Object.keys(server.variables)) {
     const variable = server.variables[variableKey];
-    if (variables?.[variableKey] !== undefined) {
-      if (
-        variable.enum &&
-        !variable.enum.some((e) => e == variables[variableKey])
-      ) {
+    const raw = variables?.[variableKey];
+    // A `{ runtime: ... }` value is left as a `{key}` placeholder so the
+    // caller can splice a `${...}` interpolation into the generated route
+    // AFTER jsesc escaping the surrounding static text (#3734).
+    const isRuntime = isObject(raw) && 'runtime' in raw;
+    if (raw !== undefined && !isRuntime) {
+      if (variable.enum && !variable.enum.some((e) => e == raw)) {
         throw new Error(
-          `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
+          `Invalid variable value '${raw}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
         );
       }
-      url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
-    } else {
+      url = url.replaceAll(`{${variableKey}}`, raw);
+    } else if (raw === undefined) {
       url = url.replaceAll(`{${variableKey}}`, String(variable.default));
     }
   }
@@ -177,12 +183,23 @@ export function getFullRoute(
       }
       // `resolveServerUrl` returns the raw (unescaped) URL; escape it here
       // for safe embedding in the generated backtick template literal.
-      return esc(
+      let base = esc(
         resolveServerUrl(servers, {
           index: baseUrl.index,
           variables: baseUrl.variables,
         }),
       );
+      // `{ runtime: ... }` variables were left as `{key}` placeholders by
+      // `resolveServerUrl`; splice them in as `${expr}` interpolations now,
+      // after escaping, so the expression itself is never escaped (#3734).
+      if (baseUrl.variables) {
+        for (const [key, value] of Object.entries(baseUrl.variables)) {
+          if (isObject(value) && 'runtime' in value) {
+            base = base.replaceAll(`{${key}}`, `\${${value.runtime}}`);
+          }
+        }
+      }
+      return base;
     }
     return baseUrl.baseUrl;
   };

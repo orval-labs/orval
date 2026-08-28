@@ -149,6 +149,47 @@ describe('getFullRoute getter', () => {
       },
       '.example.com/path',
     ],
+    // #3734: a `{ runtime: ... }` variable value is embedded as a `${...}`
+    // interpolation so the value resolves at request time, not generation time.
+    [
+      '/path',
+      [
+        {
+          url: 'https://headless.tebex.io/api/accounts/{token}',
+          variables: {
+            token: {
+              default: '',
+            },
+          },
+        },
+      ],
+      {
+        getBaseUrlFromSpecification: true,
+        variables: { token: { runtime: 'process.env.TEBEX_TOKEN' } },
+      },
+      'https://headless.tebex.io/api/accounts/${process.env.TEBEX_TOKEN}/path',
+    ],
+    // #3734: runtime variables mix with static string variables.
+    [
+      '/path',
+      [
+        {
+          url: 'https://{region}.example.com/api/{token}',
+          variables: {
+            region: { default: 'us' },
+            token: { default: '' },
+          },
+        },
+      ],
+      {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          region: 'eu',
+          token: { runtime: 'process.env.API_TOKEN' },
+        },
+      },
+      'https://eu.example.com/api/${process.env.API_TOKEN}/path',
+    ],
   ] as [string, OpenApiServerObject[] | undefined, BaseUrlFromSpec, string][]) {
     it(`should make path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} be ${expected}`, () => {
       expect(getFullRoute(path, servers, config)).toBe(expected);
