@@ -1,6 +1,17 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue3826: {
+    output: {
+      target: '../generated/fetch/issue-3826/endpoints.ts',
+      schemas: '../generated/fetch/issue-3826/model',
+      client: 'fetch',
+      clean: true,
+    },
+    input: {
+      target: '../specifications/issue-3826/spec.yaml',
+    },
+  },
   petstore: {
     output: {
       target: '../generated/fetch/petstore/endpoints.ts',

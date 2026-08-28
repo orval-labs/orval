@@ -704,6 +704,69 @@ describe('combineSchemas (allOf required handling)', () => {
     },
   );
 
+  it('does not repeat discriminator parent fields in every oneOf $ref branch (#3826)', () => {
+    const contextWithAnimal = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            AnimalType: { type: 'string', enum: ['DOG', 'CAT'] },
+            Animal: {
+              type: 'object',
+              required: ['id', 'name', 'animalType'],
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                animalType: { $ref: '#/components/schemas/AnimalType' },
+              },
+              discriminator: { propertyName: 'animalType' },
+              oneOf: [
+                { $ref: '#/components/schemas/Dog' },
+                { $ref: '#/components/schemas/Cat' },
+              ],
+            },
+            Dog: {
+              required: ['barkVolume'],
+              allOf: [
+                { $ref: '#/components/schemas/Animal' },
+                {
+                  type: 'object',
+                  properties: { barkVolume: { type: 'number' } },
+                },
+              ],
+            },
+            Cat: {
+              required: ['livesLeft'],
+              allOf: [
+                { $ref: '#/components/schemas/Animal' },
+                {
+                  type: 'object',
+                  properties: { livesLeft: { type: 'integer' } },
+                },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const result = combineSchemas({
+      schema: contextWithAnimal.spec.components!.schemas!
+        .Animal as OpenApiSchemaObject,
+      name: 'Animal',
+      separator: 'oneOf',
+      context: contextWithAnimal,
+      nullable: '',
+    });
+
+    // The parent's own fields (id, name, animalType) are inherited by each
+    // variant through allOf, so they must not be intersected onto every
+    // branch again — the union stays `Dog | Cat`.
+    expect(result.value).toContain('Dog | Cat');
+    expect(result.value).not.toMatch(/&\s*\{\s*id:\s*string/);
+  });
+
   it.each([
     ['anyOf', true],
     ['oneOf', false],
