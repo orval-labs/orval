@@ -23,7 +23,7 @@ import type {
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 
-import { takeUntil } from 'rxjs/operators';
+import { map, takeUntil } from 'rxjs/operators';
 
 import type {
   CreatePetsBody,
@@ -82,13 +82,18 @@ function filterParams(
       continue;
     }
     if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      ) as Array<string | number | boolean>;
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              (item instanceof Date && !Number.isNaN(item.getTime()))),
+        )
+        .map((item) =>
+          item instanceof Date ? item.toISOString() : item,
+        ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }

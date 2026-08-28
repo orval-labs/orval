@@ -90,6 +90,11 @@ export const getAngularFilteredParamsExpression = (
               typeof propValue === 'boolean')
           ) {
             commaParts.push(prop, String(propValue));
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            commaParts.push(prop, propValue.toISOString());
           }
         }
         if (commaParts.length) {
@@ -117,6 +122,11 @@ export const getAngularFilteredParamsExpression = (
               typeof propValue === 'boolean')
           ) {
             filteredParams[targetKey] = propValue;
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            filteredParams[targetKey] = propValue.toISOString();
           }
         }
       }
@@ -170,13 +180,21 @@ ${passthroughDecl}${objectStrategiesDecl}  ${requiredNullableParamKeysBranch}
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
 ${passthroughBranch}${objectStrategyBranch}    if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      ) as Array<string | number | boolean>;
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              ((item as unknown) instanceof Date &&
+                !Number.isNaN((item as unknown as Date).getTime()))),
+        )
+        .map((item) =>
+          (item as unknown) instanceof Date
+            ? (item as unknown as Date).toISOString()
+            : item,
+        ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
@@ -244,13 +262,18 @@ function filterParams(
       continue;
     }
     if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      ) as Array<string | number | boolean>;
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              (item instanceof Date && !Number.isNaN(item.getTime()))),
+        )
+        .map((item) =>
+          item instanceof Date ? item.toISOString() : item,
+        ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
@@ -317,13 +340,18 @@ function filterParams(
   const filterPrimitiveArray = (
     value: unknown[],
   ): Array<string | number | boolean> =>
-    value.filter(
-      (item) =>
-        item != null &&
-        (typeof item === 'string' ||
-          typeof item === 'number' ||
-          typeof item === 'boolean'),
-    ) as Array<string | number | boolean>;
+    value
+      .filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean' ||
+            (item instanceof Date && !Number.isNaN(item.getTime()))),
+      )
+      .map((item) => (item instanceof Date ? item.toISOString() : item)) as Array<
+      string | number | boolean
+    >;
   for (const [key, value] of Object.entries(params)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
@@ -354,6 +382,11 @@ function filterParams(
               typeof propValue === 'boolean')
           ) {
             commaParts.push(prop, String(propValue));
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            commaParts.push(prop, propValue.toISOString());
           }
         }
         if (commaParts.length) {
@@ -375,6 +408,11 @@ function filterParams(
               typeof propValue === 'boolean')
           ) {
             filteredParams[targetKey] = propValue;
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            filteredParams[targetKey] = propValue.toISOString();
           }
         }
       }

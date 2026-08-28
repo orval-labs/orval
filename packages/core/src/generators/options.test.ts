@@ -618,13 +618,18 @@ function filterParams(
       continue;
     }
     if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      ) as Array<string | number | boolean>;
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              (item instanceof Date && !Number.isNaN(item.getTime()))),
+        )
+        .map((item) =>
+          item instanceof Date ? item.toISOString() : item,
+        ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
@@ -925,6 +930,61 @@ function filterParams(
       );
 
       expect(result).toEqual({ arg0: 'itemReferences,a,b,pageNumber,1' });
+    });
+
+    it('serializes Date array elements to ISO instead of dropping them (#3856)', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+      const date = new Date('2026-01-02T03:04:05.000Z');
+
+      const result = filterParams(
+        { dates: [date, 'a', null, { x: 1 }] },
+        new Set(),
+        false,
+        new Set(),
+      );
+
+      expect(result).toEqual({ dates: ['2026-01-02T03:04:05.000Z', 'a'] });
+    });
+
+    it('serializes Date properties in comma object params to ISO (#3856)', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+      const date = new Date('2026-01-02T03:04:05.000Z');
+
+      const result = filterParams(
+        { filter: { since: date, page: 1 } },
+        new Set(),
+        false,
+        new Set(),
+        { filter: 'comma' },
+      );
+
+      expect(result).toEqual({
+        filter: 'since,2026-01-02T03:04:05.000Z,page,1',
+      });
+    });
+
+    it('serializes Date properties in flatten/deepObject params to ISO (#3856)', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+      const date = new Date('2026-01-02T03:04:05.000Z');
+
+      const result = filterParams(
+        { filter: { since: date, page: 1 } },
+        new Set(),
+        false,
+        new Set(),
+        { filter: 'deepObject' },
+      );
+
+      expect(result).toEqual({
+        'filter[since]': '2026-01-02T03:04:05.000Z',
+        'filter[page]': 1,
+      });
     });
 
     it('emits bracketed keys for deepObject, preserving array values', () => {

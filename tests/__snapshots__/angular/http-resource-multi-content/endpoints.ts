@@ -26,6 +26,8 @@ import type {
   ListItemsParams,
 } from './model';
 
+import { map } from 'rxjs';
+
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
   headers?:
@@ -150,13 +152,18 @@ function filterParams(
       continue;
     }
     if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      ) as Array<string | number | boolean>;
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              (item instanceof Date && !Number.isNaN(item.getTime()))),
+        )
+        .map((item) =>
+          item instanceof Date ? item.toISOString() : item,
+        ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }

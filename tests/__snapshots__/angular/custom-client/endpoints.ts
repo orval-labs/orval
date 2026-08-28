@@ -48,13 +48,21 @@ export class SwaggerPetstoreService {
           > = {};
           for (const [key, value] of Object.entries(params ?? {})) {
             if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
+              const filtered = value
+                .filter(
+                  (item) =>
+                    item != null &&
+                    (typeof item === 'string' ||
+                      typeof item === 'number' ||
+                      typeof item === 'boolean' ||
+                      ((item as unknown) instanceof Date &&
+                        !Number.isNaN((item as unknown as Date).getTime()))),
+                )
+                .map((item) =>
+                  (item as unknown) instanceof Date
+                    ? (item as unknown as Date).toISOString()
+                    : item,
+                ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
@@ -102,13 +110,21 @@ export class SwaggerPetstoreService {
           > = {};
           for (const [key, value] of Object.entries(params ?? {})) {
             if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
+              const filtered = value
+                .filter(
+                  (item) =>
+                    item != null &&
+                    (typeof item === 'string' ||
+                      typeof item === 'number' ||
+                      typeof item === 'boolean' ||
+                      ((item as unknown) instanceof Date &&
+                        !Number.isNaN((item as unknown as Date).getTime()))),
+                )
+                .map((item) =>
+                  (item as unknown) instanceof Date
+                    ? (item as unknown as Date).toISOString()
+                    : item,
+                ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
