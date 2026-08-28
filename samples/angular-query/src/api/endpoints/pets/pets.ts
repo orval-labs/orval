@@ -384,6 +384,8 @@ export const createPets = (
   return lastValueFrom(request$);
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -406,7 +408,7 @@ export const getCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -620,6 +622,8 @@ export const deletePet = (
   return lastValueFrom(request$);
 };
 
+export const getDeletePetMutationKey = () => ['deletePet'] as const;
+
 export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
   http: HttpClient,
   queryClient: QueryClient,
@@ -639,7 +643,7 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
   DeletePetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePet'];
+  const mutationKey = getDeletePetMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -727,6 +731,8 @@ export const updatePet = (
   return lastValueFrom(request$);
 };
 
+export const getUpdatePetMutationKey = () => ['updatePet'] as const;
+
 export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
   http: HttpClient,
   queryClient: QueryClient,
@@ -746,7 +752,7 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
   UpdatePetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updatePet'];
+  const mutationKey = getUpdatePetMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -838,6 +844,8 @@ export const patchPet = (
   return lastValueFrom(request$);
 };
 
+export const getPatchPetMutationKey = () => ['patchPet'] as const;
+
 export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
   http: HttpClient,
   queryClient: QueryClient,
@@ -857,7 +865,7 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
   PatchPetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['patchPet'];
+  const mutationKey = getPatchPetMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -1076,6 +1084,8 @@ export const uploadFile = (
   return lastValueFrom(request$);
 };
 
+export const getUploadFileMutationKey = () => ['uploadFile'] as const;
+
 export const getUploadFileMutationOptions = <
   TError = void | Error,
   TContext = unknown,
@@ -1098,7 +1108,7 @@ export const getUploadFileMutationOptions = <
   UploadFileMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadFile'];
+  const mutationKey = getUploadFileMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -1198,6 +1208,8 @@ export const uploadFormData = (
   return lastValueFrom(request$);
 };
 
+export const getUploadFormDataMutationKey = () => ['uploadFormData'] as const;
+
 export const getUploadFormDataMutationOptions = <
   TError = void | Error,
   TContext = unknown,
@@ -1218,7 +1230,7 @@ export const getUploadFormDataMutationOptions = <
   UploadFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadFormData'];
+  const mutationKey = getUploadFormDataMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

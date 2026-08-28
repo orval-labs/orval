@@ -375,6 +375,8 @@ export const createPets = (
   );
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -395,7 +397,7 @@ export const getCreatePetsMutationOptions = <
   CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -556,6 +558,8 @@ export const deletePet = (
   );
 };
 
+export const getDeletePetMutationKey = () => ['deletePet'] as const;
+
 export const getDeletePetMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -576,7 +580,7 @@ export const getDeletePetMutationOptions = <
   DeletePetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePet'];
+  const mutationKey = getDeletePetMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -647,6 +651,8 @@ export const updatePet = (
   );
 };
 
+export const getUpdatePetMutationKey = () => ['updatePet'] as const;
+
 export const getUpdatePetMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -667,7 +673,7 @@ export const getUpdatePetMutationOptions = <
   UpdatePetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updatePet'];
+  const mutationKey = getUpdatePetMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -738,6 +744,8 @@ export const patchPet = (
   );
 };
 
+export const getPatchPetMutationKey = () => ['patchPet'] as const;
+
 export const getPatchPetMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -758,7 +766,7 @@ export const getPatchPetMutationOptions = <
   PatchPetMutationVariables,
   TContext
 > => {
-  const mutationKey = ['patchPet'];
+  const mutationKey = getPatchPetMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -926,6 +934,8 @@ export const uploadFile = (
   );
 };
 
+export const getUploadFileMutationKey = () => ['uploadFile'] as const;
+
 export const getUploadFileMutationOptions = <
   TError = ErrorType<void | Error>,
   TContext = unknown,
@@ -946,7 +956,7 @@ export const getUploadFileMutationOptions = <
   UploadFileMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadFile'];
+  const mutationKey = getUploadFileMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -1024,6 +1034,8 @@ export const uploadFormData = (
   );
 };
 
+export const getUploadFormDataMutationKey = () => ['uploadFormData'] as const;
+
 export const getUploadFormDataMutationOptions = <
   TError = ErrorType<void | Error>,
   TContext = unknown,
@@ -1044,7 +1056,7 @@ export const getUploadFormDataMutationOptions = <
   UploadFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadFormData'];
+  const mutationKey = getUploadFormDataMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

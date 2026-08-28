@@ -709,6 +709,8 @@ export const deletePetById = async (
   } as deletePetByIdResponse;
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -730,7 +732,7 @@ export const getDeletePetByIdMutationOptions = <
   DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

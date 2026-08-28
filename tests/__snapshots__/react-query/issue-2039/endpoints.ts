@@ -63,6 +63,8 @@ export const createEntity = async (
   } as createEntityResponse;
 };
 
+export const getCreateEntityMutationKey = () => ['createEntity'] as const;
+
 export const useCreateEntityMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -80,7 +82,7 @@ export const useCreateEntityMutationOptions = <
   CreateEntityMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createEntity'];
+  const mutationKey = getCreateEntityMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

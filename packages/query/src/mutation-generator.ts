@@ -555,10 +555,20 @@ export const generateMutationHook = async ({
       : `get-${operationName}-mutationOptions`,
   );
 
+  const mutationKeyFnName = camel(`get-${operationName}-mutation-key`);
+
+  // Hoisted out of the options factory so the key can be read without running
+  // it. Mirrors `getXxxQueryKey`, including its `shouldExportQueryKey` gate;
+  // skipped only when it would be both unexported and unused.
+  const mutationKeyFn =
+    query.shouldExportQueryKey || isRequestOptions
+      ? `${query.shouldExportQueryKey ? 'export ' : ''}const ${mutationKeyFnName} = () => ['${camel(operationName)}'] as const;`
+      : '';
+
   const hooksOptionImplementation = getHooksOptionImplementation(
     isRequestOptions,
     httpClient,
-    camel(operationName),
+    mutationKeyFnName,
     mutator,
     useRuntimeFetcher,
   );
@@ -676,6 +686,8 @@ ${
 
   const implementation = `
 ${operationReferenceDeclaration}
+${mutationKeyFn}
+
 ${mutationOptionsFn}
 
     export type ${pascal(

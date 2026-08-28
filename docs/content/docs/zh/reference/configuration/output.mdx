@@ -497,7 +497,7 @@ export default defineConfig({
 
 ### shouldExportQueryKey
 
-控制是否导出 query key helper。
+控制是否导出 query key helper。该选项同样作用于 mutation key，会在 mutation options 工厂函数旁生成 `getXxxMutationKey()` 导出。
 
 ### shouldSplitQueryKey
 

@@ -158,6 +158,9 @@ export const updateProfileWithJson = async (
   } as updateProfileWithJsonResponse;
 };
 
+export const getUpdateProfileWithJsonMutationKey = () =>
+  ['updateProfileWithJson'] as const;
+
 export const getUpdateProfileWithJsonMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -175,7 +178,7 @@ export const getUpdateProfileWithJsonMutationOptions = <
   UpdateProfileWithJsonMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updateProfileWithJson'];
+  const mutationKey = getUpdateProfileWithJsonMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -291,6 +294,9 @@ export const updateProfileWithFormData = async (
   } as updateProfileWithFormDataResponse;
 };
 
+export const getUpdateProfileWithFormDataMutationKey = () =>
+  ['updateProfileWithFormData'] as const;
+
 export const getUpdateProfileWithFormDataMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -308,7 +314,7 @@ export const getUpdateProfileWithFormDataMutationOptions = <
   UpdateProfileWithFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updateProfileWithFormData'];
+  const mutationKey = getUpdateProfileWithFormDataMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -426,6 +432,9 @@ export const uploadAvatarWithFormData = async (
   } as uploadAvatarWithFormDataResponse;
 };
 
+export const getUploadAvatarWithFormDataMutationKey = () =>
+  ['uploadAvatarWithFormData'] as const;
+
 export const getUploadAvatarWithFormDataMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -443,7 +452,7 @@ export const getUploadAvatarWithFormDataMutationOptions = <
   UploadAvatarWithFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadAvatarWithFormData'];
+  const mutationKey = getUploadAvatarWithFormDataMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -561,6 +570,9 @@ export const uploadAvatarWithBlob = async (
   } as uploadAvatarWithBlobResponse;
 };
 
+export const getUploadAvatarWithBlobMutationKey = () =>
+  ['uploadAvatarWithBlob'] as const;
+
 export const getUploadAvatarWithBlobMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -578,7 +590,7 @@ export const getUploadAvatarWithBlobMutationOptions = <
   UploadAvatarWithBlobMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadAvatarWithBlob'];
+  const mutationKey = getUploadAvatarWithBlobMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
