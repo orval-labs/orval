@@ -136,21 +136,41 @@ export function resolveServerUrl(
 
   let url = serverUrl;
   const variables = options.variables;
+
+  // Phase 1: replace ALL `{key}` placeholders with unique sentinels
+  // so later variable substitutions cannot interfere with one another.
+  const sentinels = new Map<
+    string,
+    { isRuntime: boolean; value?: string; runtime?: string }
+  >();
   for (const variableKey of Object.keys(server.variables)) {
     const variable = server.variables[variableKey];
     const raw = variables?.[variableKey];
-    // A `{ runtime: ... }` value is left as a `{key}` placeholder so the
-    // caller can splice a `${...}` interpolation into the generated route
-    // AFTER jsesc escaping the surrounding static text (#3734).
-    if (raw !== undefined && !isVariableRuntimeValue(raw)) {
-      if (variable.enum && !variable.enum.some((e) => e == raw)) {
+    if (isVariableRuntimeValue(raw)) {
+      url = url.replaceAll(`{${variableKey}}`, `__ORVAL_RT_${variableKey}__`);
+      sentinels.set(variableKey, { isRuntime: true, runtime: raw.runtime });
+    } else {
+      if (
+        raw !== undefined &&
+        variable.enum &&
+        !variable.enum.some((e) => e == raw)
+      ) {
         throw new Error(
           `Invalid variable value '${raw}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
         );
       }
-      url = url.replaceAll(`{${variableKey}}`, raw);
-    } else if (raw === undefined) {
-      url = url.replaceAll(`{${variableKey}}`, String(variable.default));
+      const resolved =
+        raw !== undefined ? String(raw) : String(variable.default);
+      url = url.replaceAll(`{${variableKey}}`, `__ORVAL_ST_${variableKey}__`);
+      sentinels.set(variableKey, { isRuntime: false, value: resolved });
+    }
+  }
+
+  // Phase 2: substitute sentinels with actual values. Runtime sentinels
+  // remain in the URL for the caller to splice as `${expr}` after escaping.
+  for (const [key, { isRuntime, value }] of sentinels) {
+    if (!isRuntime) {
+      url = url.replaceAll(`__ORVAL_ST_${key}__`, value!);
     }
   }
   return url;
@@ -194,13 +214,16 @@ export function getFullRoute(
           variables: baseUrl.variables,
         }),
       );
-      // `{ runtime: ... }` variables were left as `{key}` placeholders by
-      // `resolveServerUrl`; splice them in as `${expr}` interpolations now,
-      // after escaping, so the expression itself is never escaped (#3734).
+      // `{ runtime: ... }` variables were replaced with `__ORVAL_RT_<key>__`
+      // sentinels by `resolveServerUrl`; restore them as `${expr}` interpolations
+      // now, after escaping, so the expression itself is never escaped (#3734).
       if (baseUrl.variables) {
         for (const [key, value] of Object.entries(baseUrl.variables)) {
           if (isVariableRuntimeValue(value)) {
-            base = base.replaceAll(`{${key}}`, `\${${value.runtime}}`);
+            base = base.replaceAll(
+              `__ORVAL_RT_${key}__`,
+              `\${${value.runtime}}`,
+            );
           }
         }
       }

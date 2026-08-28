@@ -190,6 +190,29 @@ describe('getFullRoute getter', () => {
       },
       'https://eu.example.com/api/${process.env.API_TOKEN}/path',
     ],
+    // #3734: a static variable value containing `{key}` text must NOT be
+    // converted to a runtime interpolation. Only the actual `{key}` placeholder
+    // in the server URL is replaced with the sentinel.
+    [
+      '/path',
+      [
+        {
+          url: 'https://{host}/api/{token}',
+          variables: {
+            host: { default: 'api.example.com' },
+            token: { default: '' },
+          },
+        },
+      ],
+      {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          host: 'api{token}',
+          token: { runtime: 'process.env.TOKEN' },
+        },
+      },
+      'https://api{token}/api/${process.env.TOKEN}/path',
+    ],
   ] as [string, OpenApiServerObject[] | undefined, BaseUrlFromSpec, string][]) {
     it(`should make path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} be ${expected}`, () => {
       expect(getFullRoute(path, servers, config)).toBe(expected);
