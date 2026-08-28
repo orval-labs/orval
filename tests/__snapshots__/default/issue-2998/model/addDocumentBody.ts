@@ -7,5 +7,5 @@
  */
 
 export type AddDocumentBody = {
-  file: Blob;
+  file: File;
 };

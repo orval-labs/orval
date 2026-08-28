@@ -366,16 +366,16 @@ describe('getResReqTypes (content type handling)', () => {
       expect(bodySchema).toBeDefined();
       expect(bodySchema?.model).toContain('export type BodyRequestBody = {');
 
-      // Binary files → Blob
-      expect(bodySchema?.model).toContain('encBinary: Blob;');
-      expect(bodySchema?.model).toContain('cmtBinary: Blob;');
-      expect(bodySchema?.model).toContain('formatBinary: Blob;');
-      expect(bodySchema?.model).toContain('wildcardFile: Blob | string;');
+      // Binary files → File (filename preserved in multipart, #3662)
+      expect(bodySchema?.model).toContain('encBinary: File;');
+      expect(bodySchema?.model).toContain('cmtBinary: File;');
+      expect(bodySchema?.model).toContain('formatBinary: File;');
+      expect(bodySchema?.model).toContain('wildcardFile: File | string;');
 
-      // Text files → Blob | string
-      expect(bodySchema?.model).toContain('encText: Blob | string;');
-      expect(bodySchema?.model).toContain('cmtText: Blob | string;');
-      expect(bodySchema?.model).toContain('encOverride: Blob | string;'); // encoding precedence
+      // Text files → File | string
+      expect(bodySchema?.model).toContain('encText: File | string;');
+      expect(bodySchema?.model).toContain('cmtText: File | string;');
+      expect(bodySchema?.model).toContain('encOverride: File | string;'); // encoding precedence
 
       // base64 encoded → string (not file)
       expect(bodySchema?.model).toContain('base64Field: string;');
@@ -383,8 +383,8 @@ describe('getResReqTypes (content type handling)', () => {
       // Object field → named type
       expect(bodySchema?.model).toContain('metadata: BodyRequestBodyMetadata;');
 
-      // Array of files → Blob[]
-      expect(bodySchema?.model).toContain('photos: Blob[];');
+      // Array of files → File[]
+      expect(bodySchema?.model).toContain('photos: File[];');
 
       // Nested contentMediaType should be ignored (JSON serialization)
       const metadataSchema = result.schemas.find(
@@ -703,12 +703,12 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // Result references the schema type
       expect(result.value).toBe('UploadRequestBody');
 
-      // File fields → Blob (not string)
-      expect(schema?.model).toContain('avatar?: Blob');
-      expect(schema?.model).toContain('fileOrFiles?: Blob | Blob[]');
-      expect(schema?.model).toContain('mixedFiles?: Blob[]'); // array of oneOf
-      expect(schema?.model).toContain('documents?: Blob[]');
-      expect(schema?.model).toContain('logo?: Blob'); // allOf branch (#2873)
+      // File fields → File (filename preserved in multipart, #3662)
+      expect(schema?.model).toContain('avatar?: File');
+      expect(schema?.model).toContain('fileOrFiles?: File | File[]');
+      expect(schema?.model).toContain('mixedFiles?: File[]'); // array of oneOf
+      expect(schema?.model).toContain('documents?: File[]');
+      expect(schema?.model).toContain('logo?: File'); // allOf branch (#2873)
 
       // allOf with $ref: intersection type (not union)
       expect(schema?.model).toContain('ClientUpdateDto & {');
