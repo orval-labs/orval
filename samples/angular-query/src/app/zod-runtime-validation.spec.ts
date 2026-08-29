@@ -9,6 +9,7 @@ import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
+import { z } from 'zod';
 
 import {
   listPets,
@@ -20,6 +21,7 @@ describe('Angular Query Zod Runtime Validation', () => {
   let queryClient: QueryClient;
   let httpCtrl: HttpTestingController;
   let http: HttpClient;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -39,11 +41,13 @@ describe('Angular Query Zod Runtime Validation', () => {
 
     httpCtrl = TestBed.inject(HttpTestingController);
     http = TestBed.inject(HttpClient);
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     queryClient.clear();
     httpCtrl.verify();
+    consoleErrorSpy.mockRestore();
   });
 
   it('deletePetById (void response) should NOT contain .parse()', () => {
@@ -70,9 +74,10 @@ describe('Angular Query Zod Runtime Validation', () => {
 
     const result = await resultPromise;
     expect(result).toEqual(mockPets);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
-  it('listPets should throw a ZodError when response data is invalid', async () => {
+  it('listPets should log and throw a ZodError when response data is invalid', async () => {
     // id should be a number, name should be a string — sending wrong types
     const invalidData = [{ id: 'not-a-number', name: 123 }];
     const resultPromise = listPets(http, { sort: 'name', limit: '10' });
@@ -80,7 +85,12 @@ describe('Angular Query Zod Runtime Validation', () => {
     const req = httpCtrl.expectOne((r) => r.url === '/pets');
     req.flush(invalidData);
 
-    await expect(resultPromise).rejects.toThrow();
+    await expect(resultPromise).rejects.toBeInstanceOf(z.ZodError);
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[orval] listPets response validation failed',
+      expect.any(z.ZodError),
+    );
   });
 
   it('showPetById should validate response via Zod', async () => {
@@ -100,5 +110,6 @@ describe('Angular Query Zod Runtime Validation', () => {
 
     const result = await resultPromise;
     expect(result).toEqual(mockPet);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 });
