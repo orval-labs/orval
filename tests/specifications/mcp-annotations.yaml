@@ -1,0 +1,62 @@
+openapi: 3.0.1
+info:
+  version: '1'
+  title: annotations
+paths:
+  /things:
+    get:
+      operationId: getThings
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    post:
+      operationId: createThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: created
+    put:
+      operationId: replaceThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: ok
+    patch:
+      operationId: patchThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: ok
+    delete:
+      operationId: deleteThing
+      responses:
+        '204':
+          description: deleted
+    options:
+      operationId: optionsThings
+      responses:
+        '204':
+          description: ok
+    head:
+      operationId: headThings
+      responses:
+        '200':
+          description: ok

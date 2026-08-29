@@ -52,23 +52,23 @@ const getHeader = (
 const getAnnotations = (verb: Verbs): string => {
   switch (verb) {
     case 'get':
-    case 'head': {
-      return '{ readOnlyHint: true, destructiveHint: false }';
+    case 'head':
+    case 'options': {
+      return '{ readOnlyHint: true }';
     }
     case 'query': {
-      return '{ readOnlyHint: true, destructiveHint: false, idempotentHint: true }';
+      return '{ readOnlyHint: true, idempotentHint: true }';
     }
-    case 'post': {
-      return '{ destructiveHint: false }';
-    }
-    case 'put': {
-      return '{ destructiveHint: false, idempotentHint: true }';
-    }
+    case 'post':
     case 'patch': {
-      return '{ destructiveHint: false }';
+      // POST and PATCH mutate state, so they must not claim to be additive-only.
+      // destructiveHint defaults to true, but stating it explicitly keeps the
+      // generated server self-documenting.
+      return '{ destructiveHint: true }';
     }
+    case 'put':
     case 'delete': {
-      return '{ idempotentHint: true }';
+      return '{ destructiveHint: true, idempotentHint: true }';
     }
     default: {
       return '';
