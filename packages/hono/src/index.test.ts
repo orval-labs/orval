@@ -2,11 +2,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type {
-  GeneratorVerbOptions,
-  NormalizedOutputOptions,
-} from '@orval/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { GeneratorVerbOptions } from '@orval/core';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { generateHandlerFile, resolveDefaultSchemaModule } from './index';
 

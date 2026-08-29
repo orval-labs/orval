@@ -116,6 +116,29 @@ describe('applyOrvalRequestExtension (generated runtime helper)', () => {
     expect(result.headers).toEqual({ 'X-Base': 'b', 'X-Extra': 'from-fn' });
   });
 
+  // #3909 tightened the merge helper to a non-nullable `extra`, so the call
+  // site is what keeps `undefined` away from it. Record bases and `HttpHeaders`
+  // bases take different branches inside the helper, so both are pinned here.
+  it('keeps the base headers when the function form returns undefined', () => {
+    const result = applyOrvalRequestExtension(
+      { url: '/pets', headers: { 'X-Base': 'b' } },
+      { headers: () => undefined },
+    );
+
+    expect(result.headers).toEqual({ 'X-Base': 'b' });
+  });
+
+  it('keeps an HttpHeaders base when the extension headers are undefined', () => {
+    const base = new HttpHeaders().set('X-Base', 'b');
+
+    const result = applyOrvalRequestExtension(
+      { url: '/pets', headers: base },
+      { headers: undefined },
+    );
+
+    expect(result.headers).toBe(base);
+  });
+
   it('passes through a static HttpContext', () => {
     const token = new HttpContextToken(() => false);
     const context = new HttpContext().set(token, true);

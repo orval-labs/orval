@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Enum Const Metadata
+  description: oneOf of const branches carrying title/description/deprecated (#3835)
+  version: 1.0.0
+paths:
+  /api/pet-status:
+    get:
+      summary: sample annotated const branches
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetStatus'
+  /api/pet-size:
+    get:
+      summary: sample const branches without member metadata
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetSize'
+components:
+  schemas:
+    PetStatus:
+      oneOf:
+        - const: PENDING
+          title: Pending
+          description: Awaiting manual review
+        - const: APPROVED
+          title: Approved
+          description: Reviewed and approved
+        - const: LEGACY
+          title: Legacy
+          description: No longer issued
+          deprecated: true
+    PetSize:
+      oneOf:
+        - const: SMALL
+        - const: LARGE
+          description: Over 25 kg

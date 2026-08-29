@@ -1,6 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, waitFor } from '@testing-library/vue';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import * as customInstanceModule from '../../api/mutator/custom-instance';
 import Pet from './url-encode.vue';
 

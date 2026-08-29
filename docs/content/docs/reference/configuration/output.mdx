@@ -1395,17 +1395,14 @@ Because the mutator receives `operationId`, one file can serve every
 operation and branch where the behaviour needs to differ, which is the usual
 alternative to a per-operation configuration option.
 
-#### Controlling the `use` / `get` prefix on query options
+#### Controlling the `use` / `get` prefix on options factories
 
-By default orval names the exported query options factory
-`use<Operation>QueryOptions` when a `queryOptions` mutator (or a hook
-mutator) is configured, and `get<Operation>QueryOptions` otherwise — the
-`use` prefix is meant to signal a hook. Sometimes the factory is consumed
-outside a React component, for example in a router loader or in
-`prefetchQuery` / `ensureQueryData`, where a `use*` name is misleading and
-can trip rules-of-hooks lint rules. In that case, name the exported function
-yourself via the `queryOptions` mutator and the generated code will use
-your name verbatim:
+Set `useHooks: false` on a `queryOptions` or `mutationOptions` mutator to
+generate a `get<Operation>QueryOptions` or `get<Operation>MutationOptions`
+factory instead of the default `use`-prefixed factory. This is useful when the
+mutator does not call hooks and the factory is consumed outside a React
+component, for example in a router loader or with `prefetchQuery` /
+`ensureQueryData`.
 
 ```ts title="src/mutators/custom-query-options.ts"
 export function customQueryOptions<T extends { queryKey: QueryKey }>(
@@ -1425,6 +1422,12 @@ export default defineConfig({
           queryOptions: {
             path: './src/mutators/custom-query-options.ts',
             name: 'customQueryOptions',
+            useHooks: false,
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation-options.ts',
+            name: 'customMutationOptions',
+            useHooks: false,
           },
         },
       },
@@ -1433,9 +1436,10 @@ export default defineConfig({
 });
 ```
 
-The generated hook then calls `getPetstoreQueryOptions(...)` (the name of
-the mutator export) instead of an auto-derived `usePetstoreQueryOptions`,
-and it can be used safely with `prefetchQuery` / `ensureQueryData`:
+With this configuration, Orval generates `getPetstoreQueryOptions(...)` and
+`getPetstoreMutationOptions(...)` instead of their `use`-prefixed variants.
+The query options factory can then be used safely with `prefetchQuery` /
+`ensureQueryData`:
 
 ```ts
 export async function loader(queryClient: QueryClient) {
@@ -1461,7 +1465,11 @@ Export mutator hooks.
 **Type:** `Boolean`
 **Default:** `true`
 
-Export query keys.
+Export query keys. Also applies to mutation keys, which are emitted as a getter next to the mutation options factory:
+
+```ts title="endpoints.ts"
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+```
 
 ### shouldFilterQueryKey
 
@@ -2476,7 +2484,7 @@ export const load = async ({ fetch }) => {
 | `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
 | `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
-| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
+| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeZodSchemaInArguments`](#includezodschemainarguments) passes the schema to the mutator so it can validate the response itself |
 
 ---
 
@@ -2704,6 +2712,25 @@ export default defineConfig({
 });
 ```
 
+Add prefixes to generated component names (available for `schemas`, `responses`, `parameters`, and `requestBodies`). `prefix` is applied to the component itself; `itemPrefix` is applied to the element type when the component is an array (valid for `components.schemas` only). Prefixes are also applied to `$ref` references, so a `Pet` schema with `prefix: 'I'` is referenced as `IPet` everywhere it appears:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { prefix: 'I', itemPrefix: 'I' },
+          responses: { prefix: 'I' },
+          parameters: { prefix: 'I' },
+          requestBodies: { prefix: 'I' },
+        },
+      },
+    },
+  },
+});
+```
+
 ---
 
 ## Type Generation Options
@@ -2761,6 +2788,11 @@ export enum Example { foo = 'foo', bar = 'bar' }
 // 'union'
 export type Example = 'foo' | 'bar';
 ```
+
+<Callout type="warn">
+`'enum'` emits a TypeScript `enum` declaration, which type stripping cannot
+remove. If you compile with TypeScript 5.8+ [`erasableSyntaxOnly`](https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly) — for example under Node's native TypeScript support or any type-stripping build step — generated `'enum'` output fails to compile. Use `'const'` (default) or `'union'` instead in that environment.
+</Callout>
 
 ### aliasCombinedTypes
 
@@ -2837,6 +2869,60 @@ export interface Pet {
   tag?: string | null;
 }
 ```
+
+### includeZodSchemaInArguments
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Pass the zod schema of the response to the custom `mutator` as an extra
+`schema` option, so the mutator can validate the response itself.
+
+A custom mutator issues the request on its own, so the `Schema.parse()` call
+Orval generates for `runtimeValidation` never runs (see
+[#2858](https://github.com/orval-labs/orval/issues/2858)). Enabling this option
+hands the schema to the mutator instead.
+
+Supported by the `fetch` client. Requires `schemas: { type: 'zod' }` and
+`override.fetch.runtimeValidation: true`. The schema is omitted for operations
+without a validatable response — primitive or `void` responses, and
+`application/x-ndjson` streams.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      schemas: { path: 'src/gen/model', type: 'zod' },
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
+        fetch: { runtimeValidation: true },
+      },
+    },
+  },
+});
+```
+
+```ts title="src/custom-fetch.ts"
+import type { ZodType } from 'zod';
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit & { schema?: ZodType<T> },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const data = await response.json();
+
+  return schema ? schema.parse(data) : (data as T);
+};
+```
+
+<Callout type="info">
+`schema.parse()` throws a `ZodError` on a mismatch. Use `safeParse()` in the
+mutator if you would rather handle validation failures yourself.
+</Callout>
 
 ## factoryMethods
 
@@ -3366,6 +3452,8 @@ export default defineConfig({
 
 > **Important:** You must provide an Axios converter to convert serialized date strings to `Date` objects. This option only affects the TypeScript definition.
 
+If you also want runtime conversion, prefer `useDatesTransform` below; the interceptor approach traverses every response and can convert date-looking strings that are not schema dates.
+
 ```ts title="axios-instance.ts"
 import axios from 'axios';
 
@@ -3403,6 +3491,42 @@ export function handleDates(body: any) {
 ```
 
 > If using `fetch` client with `useDates: true`, query parameters of type Date are stringified using `toISOString()`.
+
+### useDatesTransform
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use this property to also convert dates at runtime. While `useDates` only
+changes the generated TypeScript types, `useDatesTransform` additionally
+generates a small `deserialize<OperationName>Response` function for every
+operation whose response schema declares `format: date` or
+`format: date-time` fields, and chains it onto the generated call:
+
+```ts
+export const getOrderDetails = (orderId: string) => {
+  return customInstance<OrderDetails>({ url: `/orders/${orderId}`, method: 'GET' }).then(
+    deserializeGetOrderDetailsResponse,
+  );
+};
+```
+
+Only schema-declared date fields are converted — no response-wide traversal,
+no pattern matching on strings — and operations without date fields generate
+no extra code. Setting `useDatesTransform: true` implies `useDates: true`.
+This removes the need for the axios interceptor shown under `useDates`.
+
+Current limitations: a `oneOf`/`anyOf` without an OpenAPI
+[`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
+`mapping` is skipped, since there's no static way to tell which variant a
+given payload matched; a discriminated union with an explicit `mapping` is
+converted, emitting a `switch` on the discriminator property with one `case`
+per mapping key. `additionalProperties` maps are not converted, responses
+with multiple success shapes are skipped, and recursive schemas are left
+untouched entirely — converting only the levels above the cycle would leave
+deeper dates as strings while the generated types claim `Date`. Only the
+axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`,
+and `solid-query` with `httpClient: 'axios'`).
 
 ### useBigInt
 

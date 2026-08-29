@@ -6,5 +6,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './enumConstMetadata';
+export * from './enumConstWithoutMetadata';
+export * from './nullableEnumAnyOf';
 export * from './test';
 export * from './testExampleEnum';
+export * from './testExampleNullableEnum';

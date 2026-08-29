@@ -82,6 +82,9 @@ export const postApiAppOssIdentityUserImportUsersFromFile = async (
   } as postApiAppOssIdentityUserImportUsersFromFileResponse;
 };
 
+export const getPostApiAppOssIdentityUserImportUsersFromFileMutationKey = () =>
+  ['postApiAppOssIdentityUserImportUsersFromFile'] as const;
+
 export const getPostApiAppOssIdentityUserImportUsersFromFileMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -89,23 +92,18 @@ export const getPostApiAppOssIdentityUserImportUsersFromFileMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof postApiAppOssIdentityUserImportUsersFromFile>>,
     TError,
-    {
-      data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
-      params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
-    },
+    PostApiAppOssIdentityUserImportUsersFromFileMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiAppOssIdentityUserImportUsersFromFile>>,
   TError,
-  {
-    data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
-    params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
-  },
+  PostApiAppOssIdentityUserImportUsersFromFileMutationVariables,
   TContext
 > => {
-  const mutationKey = ['postApiAppOssIdentityUserImportUsersFromFile'];
+  const mutationKey =
+    getPostApiAppOssIdentityUserImportUsersFromFileMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -116,10 +114,7 @@ export const getPostApiAppOssIdentityUserImportUsersFromFileMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiAppOssIdentityUserImportUsersFromFile>>,
-    {
-      data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
-      params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
-    }
+    PostApiAppOssIdentityUserImportUsersFromFileMutationVariables
   > = (props) => {
     const { data, params } = props ?? {};
 
@@ -141,6 +136,10 @@ export type PostApiAppOssIdentityUserImportUsersFromFileMutationBody =
   | PostApiAppOssIdentityUserImportUsersFromFileBody
   | undefined;
 export type PostApiAppOssIdentityUserImportUsersFromFileMutationError = unknown;
+export type PostApiAppOssIdentityUserImportUsersFromFileMutationVariables = {
+  data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
+  params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
+};
 
 export const usePostApiAppOssIdentityUserImportUsersFromFile = <
   TError = unknown,
@@ -150,10 +149,7 @@ export const usePostApiAppOssIdentityUserImportUsersFromFile = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof postApiAppOssIdentityUserImportUsersFromFile>>,
       TError,
-      {
-        data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
-        params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
-      },
+      PostApiAppOssIdentityUserImportUsersFromFileMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -162,10 +158,7 @@ export const usePostApiAppOssIdentityUserImportUsersFromFile = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof postApiAppOssIdentityUserImportUsersFromFile>>,
   TError,
-  {
-    data?: PostApiAppOssIdentityUserImportUsersFromFileBody;
-    params?: PostApiAppOssIdentityUserImportUsersFromFileParams;
-  },
+  PostApiAppOssIdentityUserImportUsersFromFileMutationVariables,
   TContext
 > => {
   return useMutation(
@@ -203,12 +196,20 @@ export const postApiAppOssIdentityUserSignIn = async (
     postApiAppOssIdentityUserSignInBody.password,
   );
 
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getPostApiAppOssIdentityUserSignInUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: formUrlEncoded,
   });
@@ -225,6 +226,9 @@ export const postApiAppOssIdentityUserSignIn = async (
   } as postApiAppOssIdentityUserSignInResponse;
 };
 
+export const getPostApiAppOssIdentityUserSignInMutationKey = () =>
+  ['postApiAppOssIdentityUserSignIn'] as const;
+
 export const getPostApiAppOssIdentityUserSignInMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -232,17 +236,17 @@ export const getPostApiAppOssIdentityUserSignInMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof postApiAppOssIdentityUserSignIn>>,
     TError,
-    { data: PostApiAppOssIdentityUserSignInBody },
+    PostApiAppOssIdentityUserSignInMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiAppOssIdentityUserSignIn>>,
   TError,
-  { data: PostApiAppOssIdentityUserSignInBody },
+  PostApiAppOssIdentityUserSignInMutationVariables,
   TContext
 > => {
-  const mutationKey = ['postApiAppOssIdentityUserSignIn'];
+  const mutationKey = getPostApiAppOssIdentityUserSignInMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -253,7 +257,7 @@ export const getPostApiAppOssIdentityUserSignInMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiAppOssIdentityUserSignIn>>,
-    { data: PostApiAppOssIdentityUserSignInBody }
+    PostApiAppOssIdentityUserSignInMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -269,6 +273,9 @@ export type PostApiAppOssIdentityUserSignInMutationResult = NonNullable<
 export type PostApiAppOssIdentityUserSignInMutationBody =
   PostApiAppOssIdentityUserSignInBody;
 export type PostApiAppOssIdentityUserSignInMutationError = unknown;
+export type PostApiAppOssIdentityUserSignInMutationVariables = {
+  data: PostApiAppOssIdentityUserSignInBody;
+};
 
 export const usePostApiAppOssIdentityUserSignIn = <
   TError = unknown,
@@ -278,7 +285,7 @@ export const usePostApiAppOssIdentityUserSignIn = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof postApiAppOssIdentityUserSignIn>>,
       TError,
-      { data: PostApiAppOssIdentityUserSignInBody },
+      PostApiAppOssIdentityUserSignInMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -287,7 +294,7 @@ export const usePostApiAppOssIdentityUserSignIn = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof postApiAppOssIdentityUserSignIn>>,
   TError,
-  { data: PostApiAppOssIdentityUserSignInBody },
+  PostApiAppOssIdentityUserSignInMutationVariables,
   TContext
 > => {
   return useMutation(

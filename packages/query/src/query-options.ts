@@ -141,6 +141,7 @@ export const getQueryOptionsDefinition = ({
   operationName,
   mutator,
   definitions,
+  mutationVariablesType,
   type,
   prefix,
   hasQueryV5,
@@ -155,6 +156,11 @@ export const getQueryOptionsDefinition = ({
   operationName: string;
   mutator?: GeneratorMutator;
   definitions: string;
+  /**
+   * Named alias for the mutation variables, when the caller emitted one.
+   * Falls back to the inline object literal built from `definitions`.
+   */
+  mutationVariablesType?: string;
   type?: QueryType;
   /** 'Use' or 'Create' — from adapter.getQueryOptionsDefinitionPrefix() */
   prefix: string;
@@ -271,15 +277,18 @@ export const getQueryOptionsDefinition = ({
     ? adapter.getOptionsReturnTypeName('mutation')
     : undefined;
 
+  const variablesType =
+    mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
+
   return mutationOptionsTypeName
     ? `${mutationOptionsTypeName}<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`
+      }>>, TError,${variablesType}, TContext>`
     : `${prefix}MutationOptions<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
+      }>>, TError,${variablesType}, TContext>`;
 };

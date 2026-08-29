@@ -1,5 +1,5 @@
 import type { ContextSpec, NormalizedOutputOptions } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   buildAngularBaseUrlFileContent,
@@ -55,10 +55,15 @@ const createOutput = (
       requestOptions: true,
       namingConvention: {},
       components: {
-        schemas: { suffix: 'Schema', itemSuffix: 'Item' },
-        responses: { suffix: 'Response' },
-        parameters: { suffix: 'Parameters' },
-        requestBodies: { suffix: 'Body' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: 'Schema',
+          itemSuffix: 'Item',
+        },
+        responses: { prefix: '', suffix: 'Response' },
+        parameters: { prefix: '', suffix: 'Parameters' },
+        requestBodies: { prefix: '', suffix: 'Body' },
       },
       angular: angularOverride,
       swr: {},
@@ -124,6 +129,7 @@ const createOutput = (
       enumGenerationType: 'const',
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       suppressReadonlyModifier: false,
       mcp: {},
     },

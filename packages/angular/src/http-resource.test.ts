@@ -7,7 +7,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { resetHttpClientReturnTypes } from './http-client';
 import {
@@ -76,10 +76,15 @@ const createOutput = (
       requestOptions: true,
       namingConvention: {},
       components: {
-        schemas: { suffix: 'Schema', itemSuffix: 'Item' },
-        responses: { suffix: 'Response' },
-        parameters: { suffix: 'Parameters' },
-        requestBodies: { suffix: 'Body' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: 'Schema',
+          itemSuffix: 'Item',
+        },
+        responses: { prefix: '', suffix: 'Response' },
+        parameters: { prefix: '', suffix: 'Parameters' },
+        requestBodies: { prefix: '', suffix: 'Body' },
       },
       angular: {
         ...angularOverride('httpResource'),
@@ -147,6 +152,7 @@ const createOutput = (
       enumGenerationType: 'const',
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       suppressReadonlyModifier: false,
       mcp: {},
     },
@@ -2373,6 +2379,37 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('OrvalHttpResourceRequestExtension;');
       expect(header).toContain('function mergeOrvalResourceHeaders(');
       expect(header).toContain('export function applyOrvalRequestExtension(');
+    });
+
+    // Regression for #3909. `HttpResourceRequest['headers']` is an indexed
+    // access on an *optional* property, so the union carries `undefined` and
+    // assigning the merge result as a present `headers:` key made every
+    // generated `.resource.ts` fail TS2375 under `exactOptionalPropertyTypes`.
+    it('types the header merge helper so its result is never undefined (#3909)', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "extra: NonNullable<HttpResourceRequest['headers']>,",
+      );
+      expect(header).toContain(
+        "): NonNullable<HttpResourceRequest['headers']> {",
+      );
+      // `extra` is non-nullable, so the guard returning the possibly-`undefined`
+      // `base` is unreachable and must stay removed.
+      expect(header).not.toContain('if (!extra) return base;');
     });
 
     it('applies the extension inside the reactive factory for request-object GETs', () => {

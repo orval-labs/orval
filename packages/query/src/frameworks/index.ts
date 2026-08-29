@@ -150,6 +150,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
     generateQueryArguments({
       operationName,
       definitions,
+      mutationVariablesType,
       mutator,
       isRequestOptions,
       type,
@@ -166,6 +167,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         operationName,
         mutator,
         definitions,
+        mutationVariablesType,
         type,
         prefix,
         hasQueryV5: composed.hasQueryV5,
@@ -213,6 +215,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
     generateMutationOnSuccess({
       operationName,
       definitions,
+      mutationVariablesType,
       isRequestOptions,
       generateInvalidateCall,
       uniqueInvalidates,
@@ -220,29 +223,31 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       const invalidateCalls = uniqueInvalidates
         .map((t) => generateInvalidateCall(t))
         .join('\n');
+      const variablesType =
+        mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
       if (composed.hasQueryV5WithMutationContextOnSuccess) {
         if (isRequestOptions) {
-          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
       };`;
         }
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
     ${invalidateCalls}
         mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
       };`;
       } else {
         if (isRequestOptions) {
-          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         mutationOptions?.onSuccess?.(data, variables, context);
       };`;
         }
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
     ${invalidateCalls}
         mutationOptions?.onSuccess?.(data, variables, context);
       };`;

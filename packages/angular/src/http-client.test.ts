@@ -6,7 +6,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -68,10 +68,15 @@ const createOutput = (
       requestOptions: true,
       namingConvention: {},
       components: {
-        schemas: { suffix: 'Schema', itemSuffix: 'Item' },
-        responses: { suffix: 'Response' },
-        parameters: { suffix: 'Parameters' },
-        requestBodies: { suffix: 'Body' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: 'Schema',
+          itemSuffix: 'Item',
+        },
+        responses: { prefix: '', suffix: 'Response' },
+        parameters: { prefix: '', suffix: 'Parameters' },
+        requestBodies: { prefix: '', suffix: 'Body' },
       },
       angular: angularOverride,
       swr: {},
@@ -137,6 +142,7 @@ const createOutput = (
       enumGenerationType: 'const',
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       suppressReadonlyModifier: false,
       mcp: {},
     },
@@ -1312,6 +1318,34 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: 'text/plain'");
       // Default accept prefers JSON when available
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+    });
+
+    it('omits text dispatch for JSON and Blob response types', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetImage',
+        operationName: 'getPetImage',
+        typeName: 'getPetImage',
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'image/png'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'image/png'],
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('Observable<Pet | Blob>');
+      expect(impl).toContain("responseType: 'json'");
+      expect(impl).toContain("responseType: 'blob'");
+      expect(impl).not.toContain("responseType: 'text'");
+      expect(impl).not.toContain('as Observable<string>');
     });
 
     it('passes request bodies for PUT operations with multiple response types', () => {

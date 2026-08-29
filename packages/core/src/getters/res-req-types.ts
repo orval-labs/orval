@@ -18,13 +18,14 @@ import {
 } from '../types';
 import { camel, sanitize } from '../utils';
 import { isReference } from '../utils/assertion';
-import { pascal } from '../utils/case';
+import { pascal, conventionName } from '../utils/case';
 import {
   getFormDataFieldFileType,
   isBinaryContentType,
 } from '../utils/content-type';
 import { getNumberWord } from '../utils/string';
 import type { FormDataContext } from './object';
+import { getKey, getPropertyNameCollisionKeys } from './keys';
 
 // Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
 // OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
@@ -749,6 +750,17 @@ function resolveSchemaPropertiesToFormData({
   // fields are appended as plain strings rather than wrapped in a Blob (#1624).
   const isUrlEncoded = variableName === 'formUrlEncoded';
   const schemaProps = getSchemaProperties(schema) ?? {};
+  const propertyConvention =
+    context.output.override.namingConvention?.properties;
+  // Same collision set the type renderer computes: keys that would collide
+  // after conversion keep their original schema key in the TS type, so the
+  // serializer must read those from the original key too (#2381).
+  const collisionKeys = getPropertyNameCollisionKeys(
+    Object.keys(schemaProps),
+    propertyConvention
+      ? (name) => conventionName(name, propertyConvention)
+      : undefined,
+  );
   for (const [key, value] of Object.entries(schemaProps)) {
     const { schema: property } = resolveSchemaRef(value, context);
 
@@ -763,17 +775,28 @@ function resolveSchemaPropertiesToFormData({
     const fieldEncoding = depth === 0 ? encoding?.[key] : undefined;
     const partContentType = fieldEncoding?.contentType;
 
-    const formattedKeyPrefix = isRequestBodyOptional
-      ? keyword.isIdentifierNameES5(key)
+    // The TS type emits the namingConvention-converted property name, so the
+    // runtime serializer must read the same converted name from the body while
+    // still appending the ORIGINAL schema key on the wire (#2381). Colliding
+    // keys (e.g. first_name + firstName) keep the original key in the type,
+    // so read the original key too.
+    const propertyConvention =
+      context.output.override.namingConvention?.properties;
+    const accessorKey =
+      propertyConvention && !collisionKeys.has(key)
+        ? conventionName(key, propertyConvention)
+        : key;
+    const formattedConvertedKeyPrefix = isRequestBodyOptional
+      ? keyword.isIdentifierNameES5(accessorKey)
         ? '?'
         : '?.'
       : '';
-    const formattedKey = keyword.isIdentifierNameES5(key)
-      ? `.${key}`
-      : `['${key}']`;
+    const formattedConvertedKey = keyword.isIdentifierNameES5(accessorKey)
+      ? `.${accessorKey}`
+      : `[${getKey(accessorKey)}]`;
 
-    const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
-    const nonOptionalValueKey = `${propName}${formattedKey}`;
+    const valueKey = `${propName}${formattedConvertedKeyPrefix}${formattedConvertedKey}`;
+    const nonOptionalValueKey = `${propName}${formattedConvertedKey}`;
 
     // Use shared file type detection (same logic as type generation)
     const fileType = getFormDataFieldFileType(property, partContentType);
@@ -793,20 +816,38 @@ function resolveSchemaPropertiesToFormData({
       property.type === 'object' ||
       (Array.isArray(property.type) && property.type.includes('object'))
     ) {
-      formDataValue =
-        context.output.override.formData.arrayHandling ===
-        FormDataArrayHandling.EXPLODE
-          ? resolveSchemaPropertiesToFormData({
-              schema: property,
-              variableName,
-              propName: nonOptionalValueKey,
-              context,
-              isRequestBodyOptional,
-              keyPrefix: `${keyPrefix}${key}.`,
-              depth: depth + 1,
-              encoding,
-            })
-          : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+      // `style: deepObject` + `explode: true` encodes each property as a
+      // bracketed key on the parent, e.g. `metadata[order_id]=6735`. This is
+      // the default for `deepObject` and is how Swagger/OpenAPI serializers
+      // (and the generated runtime) represent nested objects in url-encoded
+      // bodies. See orval issue #3803.
+      const isDeepObject =
+        isUrlEncoded && fieldEncoding?.style === 'deepObject';
+
+      if (isDeepObject) {
+        // style: deepObject — emit each property as `key[subkey]=value`
+        const inner = `${nonOptionalValueKey} && Object.entries(${nonOptionalValueKey}).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) {
+            ${variableName}.append(\`${keyPrefix}${key}[\${k}]\`, typeof v === 'object' ? JSON.stringify(v) : String(v));
+          }
+        });\n`;
+        formDataValue = inner;
+      } else {
+        formDataValue =
+          context.output.override.formData.arrayHandling ===
+          FormDataArrayHandling.EXPLODE
+            ? resolveSchemaPropertiesToFormData({
+                schema: property,
+                variableName,
+                propName: nonOptionalValueKey,
+                context,
+                isRequestBodyOptional,
+                keyPrefix: `${keyPrefix}${key}.`,
+                depth: depth + 1,
+                encoding,
+              })
+            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+      }
     } else if (
       property.type === 'array' ||
       (Array.isArray(property.type) && property.type.includes('array'))

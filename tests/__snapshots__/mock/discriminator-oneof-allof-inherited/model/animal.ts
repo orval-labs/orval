@@ -4,16 +4,7 @@
  * Discriminator with oneOf union where the parent carries inheritable properties
  * OpenAPI spec version: 1.0
  */
-import type { AnimalSpecies } from './animalSpecies';
 import type { Cat } from './cat';
 import type { Dog } from './dog';
 
-export type Animal =
-  | (Cat & {
-      species: AnimalSpecies;
-      name: string;
-    })
-  | (Dog & {
-      species: AnimalSpecies;
-      name: string;
-    });
+export type Animal = Cat | Dog;

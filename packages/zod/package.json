@@ -1,6 +1,6 @@
 {
   "name": "@orval/zod",
-  "version": "8.24.0",
+  "version": "8.27.0",
   "homepage": "https://orval.dev/docs/guides/zod",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -31,6 +31,6 @@
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   }
 }

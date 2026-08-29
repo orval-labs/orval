@@ -1,6 +1,6 @@
 import type { GeneratorMutator, GetterBody, GetterProps } from '@orval/core';
 import { Verbs } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   allowUndefinedParam,

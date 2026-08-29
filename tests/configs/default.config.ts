@@ -887,4 +887,20 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-2642-prefix': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/issue-2642-prefix/endpoints.ts',
+      schemas: '../generated/default/issue-2642-prefix/model',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        components: {
+          schemas: {
+            prefix: 'I',
+          },
+        },
+      },
+    },
+  },
 });

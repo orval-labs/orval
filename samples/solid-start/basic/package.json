@@ -1,6 +1,6 @@
 {
   "name": "solid-start-basic",
-  "version": "8.24.0",
+  "version": "8.27.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,8 +24,9 @@
     "@faker-js/faker": "^10.2.0",
     "orval": "workspace:*",
     "typescript": "~5.9.3",
-    "vite": "^7.2.2",
-    "vite-plugin-solid": "^2.11.10"
+    "vite": "catalog:",
+    "vite-plugin-solid": "^2.11.10",
+    "vite-plus": "catalog:"
   },
   "engines": {
     "node": ">=18"

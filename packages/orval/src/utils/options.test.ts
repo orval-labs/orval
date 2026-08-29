@@ -2,7 +2,14 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 const { logWarningSpy } = vi.hoisted(() => ({
   logWarningSpy: vi.fn(),
@@ -1067,6 +1074,40 @@ describe('normalizeOptions', () => {
       );
       expect(enabled.output.override.zod.exactOptional).toBe(true);
       expect(enabled.output.override.effect.exactOptional).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes includeZodSchemaInArguments (default false, opt-in true)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const input = {
+        target: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        },
+      };
+
+      const defaults = await normalizeOptions(
+        { input, output: { target: './generated.ts' } },
+        workspace,
+      );
+      expect(defaults.output.override.includeZodSchemaInArguments).toBe(false);
+
+      const enabled = await normalizeOptions(
+        {
+          input,
+          output: {
+            target: './generated.ts',
+            override: { includeZodSchemaInArguments: true },
+          },
+        },
+        workspace,
+      );
+      expect(enabled.output.override.includeZodSchemaInArguments).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

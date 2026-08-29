@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { generateMutator } from './mutator';
 
@@ -45,6 +45,7 @@ describe('generateMutator', () => {
           path: '@acme/esm-mutator/fetch',
           name: 'customInstance',
           default: false,
+          useHooks: false,
         },
       });
 
@@ -52,6 +53,7 @@ describe('generateMutator', () => {
         path: '@acme/esm-mutator/fetch',
         name: 'customInstance',
         hasSecondArg: true,
+        useHooks: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });

@@ -13,8 +13,8 @@ import {
   GetterPropType,
   isObject,
   makeRouteSafe,
-  type OpenApiOperationObject,
   type OpenApiParameterObject,
+  type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
@@ -22,7 +22,6 @@ import {
   type SharedTypeDeclaration,
   stringify,
   toObjectString,
-  type Verbs,
 } from '@orval/core';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
@@ -107,6 +106,14 @@ export const generateRequestFunction = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
+  const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+`;
+
   const getUrlFnName = camel(`get-${operationName}-url`);
   const getUrlFnProps = toObjectString(
     props.filter(
@@ -119,13 +126,27 @@ export const generateRequestFunction = (
   );
 
   const spec = context.spec.paths?.[pathRoute] as
-    | Partial<Record<Verbs, OpenApiOperationObject>>
+    | OpenApiPathItemObject
     | undefined;
-  const parameters = spec?.[verb]?.parameters ?? [];
-  const parameterObjects = parameters.map((parameter) => {
-    const { schema } = resolveRef(parameter, context);
-    return schema as OpenApiParameterObject;
-  });
+  // Path-item-level parameters apply to every operation under the path, and an
+  // operation-level parameter with the same name and location overrides them.
+  // Same dedup rule as `getParameters` in core.
+  const parameters = [
+    ...(spec?.parameters ?? []),
+    ...(spec?.[verb]?.parameters ?? []),
+  ];
+  const parameterObjects = [
+    ...new Map(
+      parameters.map((parameter) => {
+        const { schema } = resolveRef(parameter, context);
+        const parameterObject = schema as OpenApiParameterObject;
+        return [
+          `${parameterObject.in}:${parameterObject.in === 'header' ? parameterObject.name?.toLowerCase() : parameterObject.name}`,
+          parameterObject,
+        ] as const;
+      }),
+    ).values(),
+  ];
 
   const arrayFormat = override.fetch.arrayFormat;
 
@@ -236,8 +257,58 @@ export const generateRequestFunction = (
       `
       : '';
 
+  const deepObjectParameters = parameterObjects.filter(
+    (parameterObject) =>
+      parameterObject.in === 'query' && parameterObject.style === 'deepObject',
+  );
+
+  const deepObjectParameterNames = deepObjectParameters.map(
+    (parameter) => parameter.name,
+  );
+
+  const hasDeepObjectDateParams =
+    context.output.override.useDates &&
+    deepObjectParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+
+      if (!schema.properties) {
+        return false;
+      }
+
+      return Object.values(
+        schema.properties as Record<
+          string,
+          OpenApiSchemaObject | OpenApiReferenceObject
+        >,
+      ).some((prop) => {
+        const { schema: propSchema } = resolveSchemaRef(prop, context);
+        return propSchema.format === 'date-time';
+      });
+    });
+
+  const deepObjectImplementation =
+    deepObjectParameters.length > 0
+      ? `const deepObjectParameters = ${JSON.stringify(deepObjectParameterNames)};
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && deepObjectParameters.includes(key)) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        if (subValue !== undefined) {
+          deepObjectEntries.push(encodeURIComponent(key) + '[' + encodeURIComponent(subKey) + ']=' + (subValue === null ? 'null' : encodeURIComponent(${hasDeepObjectDateParams ? 'subValue instanceof Date ? subValue.toISOString() : ' : ''}String(subValue))));
+        }
+      });
+      return;
+    }
+      `
+      : '';
+
   const isExplodeParametersOnly =
-    explodeParameters.length + arrayFormatParameters.length ===
+    explodeParameters.length +
+      arrayFormatParameters.length +
+      deepObjectParameters.length ===
     parameterObjects.filter((p) => p.in === 'query').length;
 
   const hasDateParams =
@@ -273,15 +344,15 @@ ${
 ${
   queryParams
     ? `  const normalizedParams = new URLSearchParams();
-
+${deepObjectParameters.length > 0 ? '  const deepObjectEntries = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}${arrayFormatImplementation}
+    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''
 }
 
-  ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
+  ${queryParams ? (deepObjectParameters.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
 
   ${
     queryParams
@@ -463,7 +534,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : '';
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
   const returnType =
-    override.fetch.forceSuccessResponse && hasSuccess
+    override.fetch.forceSuccessResponse &&
+    hasSuccess &&
+    override.fetch.includeHttpResponseReturnType
       ? `Promise<${successName}>`
       : `Promise<${responseTypeName}>`;
 
@@ -512,7 +585,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      ? `headers: { ${headersToAdd.join(',')}, ...getHeaders(options?.headers) }`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
@@ -527,19 +600,37 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-  const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
+  const schemaValueRef =
+    responseType === 'Error' ? 'ErrorSchema' : responseType;
+  // A custom mutator issues the request itself, so it cannot benefit from the
+  // generated `Schema.parse()` call. Handing it the zod schema lets it validate
+  // the response on its own, but only when the user opted in and the schemas
+  // are actually zod ones — the schema is imported as a value in that case.
+  const includeZodSchema =
+    isValidateResponse &&
+    context.output.override.includeZodSchemaInArguments &&
+    isObject(context.output.schemas) &&
+    context.output.schemas.type === 'zod';
+  const getFetchFnOptions = ({ withSchema = false } = {}) => {
+    const fetchSchemaOption =
+      withSchema && includeZodSchema ? `schema: ${schemaValueRef}` : '';
+
+    return `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
-    ${fetchBodyOption}
+    ${fetchBodyOption}${fetchSchemaOption ? `,\n    ${fetchSchemaOption}` : ''}
   }
 `;
+  };
+  const fetchFnOptions = getFetchFnOptions();
+  const mutatorFetchFnOptions = getFetchFnOptions({ withSchema: true });
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
-  const schemaValueRef =
-    responseType === 'Error' ? 'ErrorSchema' : responseType;
   const fetchResponseType =
-    override.fetch.forceSuccessResponse && hasSuccess
+    override.fetch.forceSuccessResponse &&
+    hasSuccess &&
+    override.fetch.includeHttpResponseReturnType
       ? successName
       : responseTypeName;
 
@@ -584,8 +675,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${throwOnErrorInnerDeclarations}
-    const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${throwOnErrorDataExpression}
+    const err: globalThis.Error & {info?: ${hasError ? `${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : 'any'}, status?: number} = new globalThis.Error();
+    const data ${hasError ? `: ${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : ''} = ${throwOnErrorDataExpression}
     err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
@@ -646,7 +737,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : 'return data'
   }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -668,7 +759,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${fetchFnOptions});
+        return ${fetchExportName}(${mutatorFetchFnOptions});
       }
   `;
   }
@@ -679,11 +770,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   let fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
-  ${fetchImplementationBody}}
+  ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
     fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
-    ${fetchImplementationBody}}
+    ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }
 

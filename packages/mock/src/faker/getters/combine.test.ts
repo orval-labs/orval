@@ -10,7 +10,7 @@ import {
   OutputMockType,
   PropertySortOrder,
 } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import type { MockSchema, MockSchemaObject } from '../../types';
 import { collectAllOfRequired } from './all-of-required';
@@ -66,10 +66,10 @@ function createMockContext(): ContextSpec {
         paramsSerializerOptions: undefined,
         namingConvention: {},
         components: {
-          schemas: { suffix: '', itemSuffix: '' },
-          responses: { suffix: '' },
-          parameters: { suffix: '' },
-          requestBodies: { suffix: '' },
+          schemas: { prefix: '', itemPrefix: '', suffix: '', itemSuffix: '' },
+          responses: { prefix: '', suffix: '' },
+          parameters: { prefix: '', suffix: '' },
+          requestBodies: { prefix: '', suffix: '' },
         },
         hono: {
           handlerGenerationStrategy: 'smart',
@@ -167,6 +167,7 @@ function createMockContext(): ContextSpec {
         requestOptions: true,
         splitByContentType: false,
         aliasCombinedTypes: false,
+        includeZodSchemaInArguments: false,
         mcp: {},
       },
     },
