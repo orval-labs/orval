@@ -145,6 +145,46 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
 }
 
 /**
+ * Whether a schema accepts `null`.
+ *
+ * Nullability can sit on the schema itself (`nullable: true` in OpenAPI 3.0,
+ * `type: 'null'` or `type: ['string', 'null']` in 3.1) or in a separate
+ * `{ type: 'null' }` branch of a `oneOf`/`anyOf`, which is the spelling
+ * pydantic and other 3.1 generators emit for an optional field.
+ *
+ * References are not resolved here, so a `$ref` branch never counts as
+ * nullable on its own.
+ *
+ * @param schema - Schema to test.
+ */
+export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
+  if (schema.nullable === true) {
+    return true;
+  }
+
+  if (schema.type === 'null') {
+    return true;
+  }
+
+  if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    return true;
+  }
+
+  const variants = [
+    ...(Array.isArray(schema.oneOf) ? schema.oneOf : []),
+    ...(Array.isArray(schema.anyOf) ? schema.anyOf : []),
+  ] as unknown[];
+
+  return variants.some((variant) => {
+    if (!isObject(variant) || isReference(variant)) {
+      return false;
+    }
+
+    return isSchemaNullable(variant as OpenApiSchemaObject);
+  });
+}
+
+/**
  * Type guard for HTTP methods defined in {@link Verbs}.
  *
  * @param verb - Method name to test (for example, `"get"`, `"post"`).

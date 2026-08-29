@@ -39,7 +39,11 @@ export const ANGULAR_HTTP_RESOURCE_DEPENDENCIES = [
     dependency: '@angular/common/http',
   },
   {
-    exports: [{ name: 'Signal' }, { name: 'ResourceStatus' }],
+    exports: [
+      { name: 'Signal' },
+      { name: 'ResourceStatus' },
+      { name: 'inject', values: true },
+    ],
     dependency: '@angular/core',
   },
 ] as const satisfies readonly GeneratorDependency[];

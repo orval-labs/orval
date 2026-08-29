@@ -75,7 +75,21 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     return secondLevel?.suffix ?? '';
   };
 
+  const getOverridePrefix = (
+    override: NormalizedOverrideOutput,
+    paths: string[],
+  ) => {
+    const firstLevel = override[paths[0] as keyof NormalizedOverrideOutput];
+    if (!firstLevel) return '';
+
+    const secondLevel = (
+      firstLevel as Record<string, { prefix?: string } | undefined>
+    )[paths[1]];
+    return secondLevel?.prefix ?? '';
+  };
+
   const suffix = getOverrideSuffix(context.output.override, refPaths);
+  const prefix = getOverridePrefix(context.output.override, refPaths);
 
   const originalName = ref
     ? (refPaths.at(-1) ?? '')
@@ -83,7 +97,7 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
 
   if (!pathname) {
     return {
-      name: sanitize(pascal(originalName) + suffix, {
+      name: sanitize(prefix + pascal(originalName) + suffix, {
         es5keyword: true,
         es5IdentifierName: true,
         underscore: true,
@@ -95,7 +109,7 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
   }
 
   return {
-    name: sanitize(pascal(originalName) + suffix, {
+    name: sanitize(prefix + pascal(originalName) + suffix, {
       es5keyword: true,
       es5IdentifierName: true,
       underscore: true,

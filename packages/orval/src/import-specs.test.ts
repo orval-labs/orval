@@ -4,11 +4,12 @@ import path from 'node:path';
 
 import type { OpenApiDocument } from '@orval/core';
 import * as orvalCore from '@orval/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
   dereferenceExternalRef,
   importSpecs,
+  normalizeNullableRefs,
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
@@ -420,6 +421,351 @@ describe('validation', () => {
   });
 });
 
+describe('swagger2FormData', () => {
+  // Regression spec for https://github.com/orval-labs/orval/issues/3857:
+  // @scalar/openapi-parser's upgrade() drops the `items` of Swagger 2.0
+  // formData array parameters when converting them to a requestBody schema,
+  // so generated types would degrade from `string[]` to `unknown[]`.
+  const SWAGGER2_FORM_DATA_SPEC = {
+    swagger: '2.0',
+    info: { title: 'Form Data API (OAS 2.0)', version: '1.0.0' },
+    basePath: '/',
+    parameters: {
+      tagList: {
+        name: 'tags',
+        in: 'formData',
+        required: true,
+        type: 'array',
+        items: { type: 'string' },
+      },
+    },
+    paths: {
+      '/submit': {
+        post: {
+          operationId: 'submitForm',
+          consumes: ['application/x-www-form-urlencoded'],
+          produces: ['application/json'],
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+              collectionFormat: 'csv',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Success',
+              schema: {
+                type: 'object',
+                properties: { ok: { type: 'boolean' } },
+              },
+            },
+          },
+        },
+      },
+      '/upload': {
+        post: {
+          operationId: 'uploadForm',
+          consumes: ['multipart/form-data'],
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          responses: { '200': { description: 'Success' } },
+        },
+      },
+      '/ints': {
+        post: {
+          operationId: 'intListForm',
+          consumes: ['application/x-www-form-urlencoded'],
+          parameters: [
+            {
+              name: 'ids',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'integer', format: 'int64' },
+            },
+          ],
+          responses: { '200': { description: 'Success' } },
+        },
+      },
+    },
+  };
+
+  async function importSwagger2FormData() {
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SWAGGER2_FORM_DATA_SPEC },
+      },
+      'test',
+      {},
+    );
+    return importSpecs('test', normalizedOptions);
+  }
+
+  it('keeps items on inline formData array parameters (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps items on reusable formData parameters referenced via #/parameters (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'TagListBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps non-string item types (integer → number[]) (#3857)', async () => {
+    const spec = await importSwagger2FormData();
+    const body = spec.schemas.find((s) => s.name === 'IntListFormBody');
+    expect(body?.model).toContain('ids: number[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps items on path-level inline formData array parameters (#3857)', async () => {
+    // Swagger 2.0 allows parameters on a Path Item Object; they apply to every
+    // operation under the path. The capture must merge them in.
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level form data', version: '1.0.0' },
+      paths: {
+        '/submit': {
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+            },
+          ],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['application/x-www-form-urlencoded'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    const body = result.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps items on path-level reusable formData parameters (#3857)', async () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level reusable form data', version: '1.0.0' },
+      parameters: {
+        tagList: {
+          name: 'tags',
+          in: 'formData',
+          required: true,
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      paths: {
+        '/submit': {
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['multipart/form-data'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    // Reusable formData parameters are promoted to a requestBody component, so
+    // the generated body type takes its name from the reusable parameter key.
+    const body = result.schemas.find((s) => s.name === 'TagListBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('lets operation-level parameters override path-level ones (#3857)', async () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Path-level override', version: '1.0.0' },
+      paths: {
+        '/submit': {
+          parameters: [
+            {
+              name: 'tags',
+              in: 'formData',
+              required: true,
+              type: 'array',
+              items: { type: 'string' },
+            },
+          ],
+          post: {
+            operationId: 'submitForm',
+            consumes: ['application/x-www-form-urlencoded'],
+            parameters: [
+              {
+                name: 'tags',
+                in: 'formData',
+                required: true,
+                type: 'array',
+                items: { type: 'integer', format: 'int64' },
+              },
+            ],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    const body = result.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: number[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+
+  it('keeps shared path-level bodies intact when an operation overrides a parameter (#3857)', async () => {
+    // A reusable path-level formData parameter is promoted to a shared
+    // components.requestBodies entry referenced from the Path Item. When one
+    // operation overrides that parameter, the override lives in the operation's
+    // own request body — it must never be written into the shared body, which
+    // other operations still use.
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Shared path-level override', version: '1.0.0' },
+      parameters: {
+        tagList: {
+          name: 'tags',
+          in: 'formData',
+          required: true,
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      paths: {
+        '/submit': {
+          parameters: [{ $ref: '#/parameters/tagList' }],
+          // The overriding operation is declared first so the repair cannot
+          // hide behind iteration order: the shared body is patched by the
+          // override before the non-overriding operation visits it.
+          put: {
+            operationId: 'replaceForm',
+            consumes: ['multipart/form-data'],
+            parameters: [
+              {
+                name: 'tags',
+                in: 'formData',
+                required: true,
+                type: 'array',
+                items: { type: 'integer', format: 'int64' },
+              },
+            ],
+            responses: { '200': { description: 'Success' } },
+          },
+          post: {
+            operationId: 'submitForm',
+            consumes: ['multipart/form-data'],
+            responses: { '200': { description: 'Success' } },
+          },
+        },
+      },
+    };
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target: spec } },
+      'test',
+      {},
+    );
+    const result = await importSpecs('test', normalizedOptions);
+    // The shared, path-level request body must keep the path-level item type.
+    const shared = result.schemas.find((s) => s.name === 'TagListBody');
+    expect(shared?.model).toContain('tags: string[]');
+    expect(shared?.model).not.toContain('unknown[]');
+    expect(shared?.model).not.toContain('number[]');
+    // The overriding operation gets its own body with the operation-level type.
+    const override = result.schemas.find((s) => s.name === 'ReplaceFormBody');
+    expect(override?.model).toContain('tags: number[]');
+    expect(override?.model).not.toContain('unknown[]');
+  });
+
+  it('does not alter OAS 3 formData array parameters (#3857)', async () => {
+    // The working OAS 3.0 counterpart from the issue: item types are already
+    // preserved by the upgrader, so the repair must be a no-op.
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.0.3',
+            info: { title: 'Form Data API (OAS 3.0)', version: '1.0.0' },
+            paths: {
+              '/submit': {
+                post: {
+                  operationId: 'submitForm',
+                  requestBody: {
+                    required: true,
+                    content: {
+                      'application/x-www-form-urlencoded': {
+                        schema: {
+                          type: 'object',
+                          required: ['tags'],
+                          properties: {
+                            tags: {
+                              type: 'array',
+                              items: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  responses: {
+                    '200': {
+                      description: 'Success',
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: { ok: { type: 'boolean' } },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'test',
+      {},
+    );
+
+    const spec = await importSpecs('test', normalizedOptions);
+    const body = spec.schemas.find((s) => s.name === 'SubmitFormBody');
+    expect(body?.model).toContain('tags: string[]');
+    expect(body?.model).not.toContain('unknown[]');
+  });
+});
+
 describe('externalRefs', () => {
   async function createExternalRefWorkspace() {
     const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-allow-'));
@@ -662,7 +1008,7 @@ describe('optionsParamRequired', () => {
     expect(body?.implementation).toBe(
       'handleResourceBody?: HandleResourceBody',
     );
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(false);
     expect(body?.type).toBe('body');
 
@@ -676,7 +1022,7 @@ describe('optionsParamRequired', () => {
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params?: HandleResourceParams');
     expect(params?.implementation).toBe('params?: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(false);
     expect(params?.type).toBe('queryParam');
 
@@ -732,7 +1078,7 @@ export const handleResource = (
     expect(body?.name).toBe('handleResourceBody');
     expect(body?.definition).toBe('handleResourceBody: HandleResourceBody');
     expect(body?.implementation).toBe('handleResourceBody: HandleResourceBody');
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(true);
     expect(body?.type).toBe('body');
 
@@ -746,7 +1092,7 @@ export const handleResource = (
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params: HandleResourceParams');
     expect(params?.implementation).toBe('params: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(true);
     expect(params?.type).toBe('queryParam');
 
@@ -1617,5 +1963,74 @@ describe('validateComponentKeys', () => {
     expect(() => {
       validateComponentKeys(data);
     }).not.toThrow();
+  });
+});
+
+describe('normalizeNullableRefs', () => {
+  it('should rewrite a $ref with sibling nullable: true into anyOf', () => {
+    const input = {
+      $ref: '#/components/schemas/Pet',
+      nullable: true,
+    };
+
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    expect(result).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/Pet' }, { type: 'null' }],
+    });
+  });
+
+  it('should not touch a $ref without nullable', () => {
+    const input = { $ref: '#/components/schemas/Pet' };
+    const result = normalizeNullableRefs(input);
+    expect(result).toEqual({ $ref: '#/components/schemas/Pet' });
+  });
+
+  it('should not touch a nullable schema without $ref', () => {
+    const input = { type: 'string', nullable: true };
+    const result = normalizeNullableRefs(input);
+    expect(result).toEqual({ type: 'string', nullable: true });
+  });
+
+  it('should normalize nullable refs nested inside properties', () => {
+    const input = {
+      type: 'object',
+      properties: {
+        owner: {
+          $ref: '#/components/schemas/Owner',
+          nullable: true,
+        },
+        pet: {
+          $ref: '#/components/schemas/Pet',
+        },
+      },
+    };
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    const props = result.properties as Record<string, unknown>;
+
+    expect(props.owner).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/Owner' }, { type: 'null' }],
+    });
+    expect(props.pet).toEqual({ $ref: '#/components/schemas/Pet' });
+  });
+
+  it('should normalize nullable refs inside arrays', () => {
+    const input = {
+      anyOf: [
+        { $ref: '#/components/schemas/A', nullable: true },
+        { type: 'string' },
+      ],
+    };
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    const items = result.anyOf as unknown[];
+    expect(items[0]).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/A' }, { type: 'null' }],
+    });
+  });
+
+  it('should pass through non-object types unchanged', () => {
+    expect(normalizeNullableRefs('string')).toBe('string');
+    expect(normalizeNullableRefs(null)).toBe(null);
+    expect(normalizeNullableRefs(42)).toBe(42);
+    expect(normalizeNullableRefs([1, 2, 3])).toEqual([1, 2, 3]);
   });
 });

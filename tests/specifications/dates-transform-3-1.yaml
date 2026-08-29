@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info:
+  title: Dates transform (OpenAPI 3.1)
+  version: 1.0.0
+paths:
+  /subscriptions/{subscriptionId}:
+    get:
+      operationId: getSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+components:
+  schemas:
+    Subscription:
+      type: object
+      required: [startedAt, cancelledAt, audit]
+      properties:
+        startedAt: { type: string, format: date-time }
+        # 3.1 spells "nullable date" as a union with a null branch
+        cancelledAt:
+          anyOf:
+            - { type: string, format: date-time }
+            - { type: 'null' }
+        # the same spelling around a $ref
+        audit:
+          anyOf:
+            - $ref: '#/components/schemas/Audit'
+            - { type: 'null' }
+    Audit:
+      type: object
+      required: [updatedAt]
+      properties:
+        updatedAt: { type: string, format: date-time }

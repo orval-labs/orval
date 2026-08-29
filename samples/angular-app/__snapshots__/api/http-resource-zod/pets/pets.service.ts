@@ -57,10 +57,9 @@ export type OrvalHttpResourceOptions<
 
 function mergeOrvalResourceHeaders(
   base: HttpResourceRequest['headers'],
-  extra: HttpResourceRequest['headers'],
-): HttpResourceRequest['headers'] {
+  extra: NonNullable<HttpResourceRequest['headers']>,
+): NonNullable<HttpResourceRequest['headers']> {
   if (!base) return extra;
-  if (!extra) return base;
   if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
     const toHeaderValue = (
       value: string | readonly string[],
@@ -106,7 +105,7 @@ export function applyOrvalRequestExtension(
   let next: HttpResourceRequest = { ...base };
   const extraHeaders =
     typeof options.headers === 'function' ? options.headers() : options.headers;
-  if (extraHeaders !== undefined) {
+  if (extraHeaders) {
     next = {
       ...next,
       headers: mergeOrvalResourceHeaders(next.headers, extraHeaders),
@@ -221,7 +220,7 @@ export const PatchPetByIdAccept = {
 } as const;
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchPetsResource(
   params: Signal<SearchPetsParams>,
@@ -262,7 +261,7 @@ export function searchPetsResource(
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listPetsResource(
   accept: 'application/json',
@@ -324,7 +323,7 @@ export function listPetsResource(
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetByIdResource(
   petId: Signal<string>,
@@ -389,7 +388,7 @@ export function showPetByIdResource(
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetTextResource(
   petId: Signal<string>,
@@ -419,7 +418,7 @@ export function showPetTextResource(
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function downloadFileResource(
   petId: Signal<number>,
@@ -578,7 +577,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<any>;
+      }) as Observable<string>;
     }
 
     return this.http
@@ -636,7 +635,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<any>;
+      }) as Observable<string>;
     }
 
     return this.http
@@ -727,8 +726,13 @@ export interface ResourceState<T> {
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
   readonly isLoading: Signal<boolean>;
-  readonly hasValue: () => boolean;
+  /** Guard reads of `value()` with this call: `value()` throws in the error state. */
+  readonly hasValue: () => this is ResolvedResourceState<T>;
   readonly reload: () => boolean;
+}
+
+export interface ResolvedResourceState<T> extends ResourceState<T> {
+  readonly value: Signal<Exclude<T, undefined>>;
 }
 
 /**
@@ -741,7 +745,9 @@ export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
     status: ref.status,
     error: ref.error,
     isLoading: ref.isLoading,
-    hasValue: () => ref.hasValue(),
+    hasValue(this: ResourceState<T>): this is ResolvedResourceState<T> {
+      return ref.hasValue();
+    },
     reload: () => ref.reload(),
   };
 }

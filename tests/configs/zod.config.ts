@@ -262,6 +262,76 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  // Mini is Zod 4-only; `variant: 'mini'` renders `zod/enum` from `zod/mini`.
+  // `enums-mini` exists so Mini output is generated and typechecked in CI:
+  // the compile-time fixture in tests/regressions/zod-enums-mini.ts asserts a
+  // Mini enum member keeps its literal type (see #3852).
+  'enums-mini': {
+    output: {
+      target: '../generated/zod/enums-mini/enums-mini.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          variant: 'mini',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
+  // A `oneOf` of `const` branches renders as a union of literals, where the
+  // only place member metadata can go is the zod v4 registry. The three
+  // configs cover the three renderings: v4 classic `.meta()`, Mini
+  // `.check(zod.meta())`, and v3, which has no registry and keeps
+  // `.describe()`.
+  'enum-const-metadata': {
+    output: {
+      target: '../generated/zod/enum-const-metadata/enum-const-metadata.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/enum-const-metadata.yaml',
+    },
+  },
+  'enum-const-metadata-v3': {
+    output: {
+      target:
+        '../generated/zod/enum-const-metadata-v3/enum-const-metadata-v3.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          version: 3,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/enum-const-metadata.yaml',
+    },
+  },
+  'enum-const-metadata-mini': {
+    output: {
+      target:
+        '../generated/zod/enum-const-metadata-mini/enum-const-metadata-mini.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          variant: 'mini',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/enum-const-metadata.yaml',
+    },
+  },
   'nullable-any-of-refs': {
     output: {
       target: '../generated/zod/nullable-any-of-refs/nullable-any-of-refs.ts',

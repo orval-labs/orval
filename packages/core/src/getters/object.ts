@@ -17,9 +17,10 @@ import {
   jsStringLiteralEscape,
   pascal,
 } from '../utils';
+import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getKey } from './keys';
+import { getKey, getPropertyNameCollisionKeys } from './keys';
 import { getRefInfo } from './ref';
 
 interface PropertyNamesKeyType {
@@ -373,6 +374,17 @@ export function getObject({
         return compareNatural(a[0], b[0]);
       });
     }
+
+    // Phase 1: detect property-name collisions from namingConvention
+    const propertyConvention =
+      context.output.override.namingConvention?.properties;
+    const collisionKeys = getPropertyNameCollisionKeys(
+      entries.map(([key]) => key),
+      propertyConvention
+        ? (name) => conventionName(name, propertyConvention)
+        : undefined,
+    );
+
     const acc: ScalarValue = {
       imports: [],
       schemas: [],
@@ -503,16 +515,28 @@ export function getObject({
         isReadOnly && !context.output.override.suppressReadonlyModifier
           ? '  readonly '
           : '  '
-      }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      }${getKey(
+        propertyConvention
+          ? collisionKeys.has(key)
+            ? key // collision: fall back to the original (unique) schema key
+            : conventionName(key, propertyConvention)
+          : key,
+      )}${isRequired ? '' : '?'}: ${finalPropValue};`;
       if (usedResolvedValue) {
         acc.schemas.push(...resolvedValue.schemas);
         acc.dependencies.push(...resolvedValue.dependencies);
       }
 
       if (entries.length - 1 === index) {
+        // OpenAPI 3.1: `unevaluatedProperties` supersedes `additionalProperties`
+        // in composed schemas. Both carry boolean | SchemaObject | ReferenceObject
+        // and both mean "extra keys are allowed with this value type", so they
+        // render identically as an index signature / Record intersection.
+        // See issue #2156.
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
         // but AnyOtherAttribute infects property access
-        const additionalProps = schemaItem.additionalProperties as
+        const additionalProps = (schemaItem.additionalProperties ??
+          schemaItem.unevaluatedProperties) as
           | boolean
           | OpenApiSchemaObject
           | OpenApiReferenceObject
@@ -585,7 +609,9 @@ export function getObject({
   }
 
   // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-  const outerAdditionalProps = schemaItem.additionalProperties as
+  // Unevaluated fallback mirrors the first spot above (see issue #2156).
+  const outerAdditionalProps = (schemaItem.additionalProperties ??
+    schemaItem.unevaluatedProperties) as
     | boolean
     | OpenApiSchemaObject
     | OpenApiReferenceObject

@@ -8,42 +8,46 @@ import * as zod from 'zod';
 
 export const PetWithTag = zod.object({
   tag: zod.string(),
-  pet: zod
-    .union([
-      zod
-        .union([
-          zod.object({
-            cuteness: zod.int(),
-            breed: zod.enum(['Labradoodle']),
-          }),
-          zod.object({
-            length: zod.int(),
-            breed: zod.enum(['Dachshund']),
-          }),
-        ])
-        .and(
-          zod.object({
-            barksPerMinute: zod.int().optional(),
-            type: zod.enum(['dog']),
-          }),
-        ),
-      zod.object({
-        petsRequested: zod.int().optional(),
-        type: zod.enum(['cat']),
-      }),
-    ])
-    .and(
-      zod.object({
-        '@id': zod.string().optional(),
-        id: zod.int(),
-        name: zod.string(),
-        tag: zod.string().optional(),
-        email: zod.email().optional(),
-        callingCode: zod.enum(['+33', '+420']).optional(),
-        country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
-      }),
-    )
-    .nullable(),
+  pet: zod.union([
+    zod
+      .union([
+        zod
+          .union([
+            zod.object({
+              cuteness: zod.int(),
+              breed: zod.enum(['Labradoodle']),
+            }),
+            zod.object({
+              length: zod.int(),
+              breed: zod.enum(['Dachshund']),
+            }),
+          ])
+          .and(
+            zod.object({
+              barksPerMinute: zod.int().optional(),
+              type: zod.enum(['dog']),
+            }),
+          ),
+        zod.object({
+          petsRequested: zod.int().optional(),
+          type: zod.enum(['cat']),
+        }),
+      ])
+      .and(
+        zod.object({
+          '@id': zod.string().optional(),
+          id: zod.int(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.email().optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
+        }),
+      ),
+    zod.null(),
+  ]),
 });
 
 export type PetWithTag = zod.input<typeof PetWithTag>;

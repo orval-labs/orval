@@ -19,7 +19,7 @@ import {
   isSchema,
   pascal,
 } from '../utils';
-import { getCombinedEnumValue } from './enum';
+import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import type { FormDataContext } from './object';
 import { getRefInfo, isComponentRef } from './ref';
@@ -886,8 +886,13 @@ export function combineSchemas({
         (isEnum && !resolvedData.isRef[index]) ||
         resolvedData.types[index] === 'null',
     );
+
+  const enumMembers = getEnumMembers(schema);
+  const hasAnnotatedEnum = hasEnumMetadata(enumMembers);
+  // Annotated enum compositions need a runtime enum object to preserve member
+  // metadata. Unannotated compositions keep their existing union behavior.
   const isAvailableToGenerateCombinedEnum =
-    isAllEnums &&
+    (isAllEnums || hasAnnotatedEnum) &&
     name &&
     items.length > 1 &&
     context.output.override.enumGenerationType !== EnumGeneration.UNION;
@@ -905,6 +910,7 @@ export function combineSchemas({
         schema: resolvedData.originalSchema[index],
       })),
     );
+
     const newEnum = `export const ${pascal(name)} = ${combinedEnumValue}`;
     const valueImportSet = new Set(valueImports);
     const enumNullSuffix =
@@ -960,7 +966,49 @@ export function combineSchemas({
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
 
-  if (normalizedProperties) {
+  // A discriminator parent whose oneOf/anyOf members inherit the parent via
+  // allOf already carries the parent's own properties in every variant
+  // (resolveDiscriminators pushes them down). Intersecting the parent's
+  // property type onto each variant again just repeats those fields in every
+  // union branch. Detect the cycle by checking whether any resolved allOf
+  // entry in a variant overlaps with the parent's own property keys — the
+  // $ref is already dereferenced at this point so we match on property names.
+  // Plain discriminator unions where variants do NOT inherit the parent still
+  // need the parent fields intersected. See #3826.
+  const unionMembers = ((separator === 'oneOf'
+    ? schemaOneOf
+    : separator === 'anyOf'
+      ? schemaAnyOf
+      : undefined) ?? []) as (OpenApiSchemaObject | OpenApiReferenceObject)[];
+  const parentPropKeys = new Set(Object.keys(normalizedProperties ?? {}));
+  const isDiscriminatedRefCycle =
+    !!schema.discriminator &&
+    unionMembers.length > 0 &&
+    unionMembers.every((member) => '$ref' in member) &&
+    unionMembers.some((member) => {
+      if (!('$ref' in member)) return false;
+      const ref = (member as OpenApiReferenceObject).$ref;
+      if (!ref) return false;
+      const refName = ref.split('/').pop();
+      const refSchema = context.spec?.components?.schemas?.[refName ?? ''] as
+        | OpenApiSchemaObject
+        | undefined;
+      const allOf = (refSchema?.allOf ?? []) as (
+        | OpenApiSchemaObject
+        | OpenApiReferenceObject
+      )[];
+      return allOf.some((entry) => {
+        if ('$ref' in entry) {
+          return !!entry.$ref && entry.$ref.endsWith('/' + name);
+        }
+        const entryProps = Object.keys(
+          (entry as OpenApiSchemaObject).properties ?? {},
+        );
+        return entryProps.some((key) => parentPropKeys.has(key));
+      });
+    });
+
+  if (normalizedProperties && !isDiscriminatedRefCycle) {
     resolvedValue = getScalar({
       item: Object.fromEntries(
         Object.entries(normalizedSchema).filter(([key]) => key !== separator),

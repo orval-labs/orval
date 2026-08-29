@@ -300,44 +300,24 @@ export default defineConfig({
       },
     },
   },
-  petstoreArtifactGroups: {
+  petstoreBaseUrlToken: {
     output: {
       mode: 'tags-split',
-      target: 'src/api/artifact-groups/client/petstore.ts',
+      target: 'src/api/base-url-token/petstore.ts',
+      schemas: 'src/api/base-url-token/model',
       client: 'angular',
-      tagsSplitDeduplication: true,
-      artifacts: {
-        schemas: 'src/api/artifact-groups/schemas',
-        msw: 'src/api/artifact-groups/msw',
-      },
+      // Test-driven output for the `override.angular.baseUrl` DI token
+      // feature (issue #3702, see `src/app/base-url-token.spec.ts`): no MSW
+      // mocks are wired up since the token composes an absolute/gateway
+      // prefix that MSW's relative-route matching doesn't need to see.
+      mock: false,
       tsconfig: './tsconfig.app.json',
       formatter: 'prettier',
       clean: true,
       override: {
         angular: {
           retrievalClient: 'both',
-        },
-        operations: {
-          listPets: {
-            mock: {
-              properties: () => {
-                return {
-                  id: () => faker.number.int({ min: 1, max: 99999 }),
-                };
-              },
-            },
-          },
-          showPetById: {
-            mock: {
-              data: createShowPetMock,
-            },
-          },
-        },
-        mock: {
-          properties: {
-            '/tag|name/': () => faker.person.lastName(),
-            '/phone/': createValidPhone,
-          },
+          baseUrl: { apiId: 'petstore' },
         },
       },
     },

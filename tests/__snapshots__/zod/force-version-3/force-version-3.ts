@@ -221,53 +221,55 @@ export const ShowPetWithOwnerParams = zod.object({
 export const ShowPetWithOwnerResponse = zod
   .object({
     tag: zod.string(),
-    pet: zod
-      .union([
-        zod
-          .union([
-            zod
-              .object({
-                cuteness: zod.number().int(),
-                breed: zod.enum(['Labradoodle']),
-              })
-              .strict(),
-            zod
-              .object({
-                length: zod.number().int(),
-                breed: zod.enum(['Dachshund']),
-              })
-              .strict(),
-          ])
-          .and(
-            zod
-              .object({
-                barksPerMinute: zod.number().int().optional(),
-                type: zod.enum(['dog']),
-              })
-              .strict(),
-          ),
-        zod
-          .object({
-            petsRequested: zod.number().int().optional(),
-            type: zod.enum(['cat']),
-          })
-          .strict(),
-      ])
-      .and(
-        zod
-          .object({
-            '@id': zod.string().optional(),
-            id: zod.number().int(),
-            name: zod.string(),
-            tag: zod.string().optional(),
-            email: zod.string().email().optional(),
-            callingCode: zod.enum(['+33', '+420']).optional(),
-            country: zod
-              .enum(["People's Republic of China", 'Uruguay'])
-              .optional(),
-          })
-          .strict(),
-      )
-      .nullable(),
+    pet: zod.union([
+      zod
+        .union([
+          zod
+            .union([
+              zod
+                .object({
+                  cuteness: zod.number().int(),
+                  breed: zod.enum(['Labradoodle']),
+                })
+                .strict(),
+              zod
+                .object({
+                  length: zod.number().int(),
+                  breed: zod.enum(['Dachshund']),
+                })
+                .strict(),
+            ])
+            .and(
+              zod
+                .object({
+                  barksPerMinute: zod.number().int().optional(),
+                  type: zod.enum(['dog']),
+                })
+                .strict(),
+            ),
+          zod
+            .object({
+              petsRequested: zod.number().int().optional(),
+              type: zod.enum(['cat']),
+            })
+            .strict(),
+        ])
+        .and(
+          zod
+            .object({
+              '@id': zod.string().optional(),
+              id: zod.number().int(),
+              name: zod.string(),
+              tag: zod.string().optional(),
+              email: zod.string().email().optional(),
+              callingCode: zod.enum(['+33', '+420']).optional(),
+              country: zod
+                .enum(["People's Republic of China", 'Uruguay'])
+                .optional(),
+            })
+            .strict(),
+        ),
+      zod.null(),
+    ]),
   })
   .strict();

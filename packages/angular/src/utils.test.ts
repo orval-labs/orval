@@ -4,7 +4,7 @@ import type {
   Verbs,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   createReturnTypesRegistry,

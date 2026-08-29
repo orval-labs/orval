@@ -68,6 +68,8 @@ export const postPets = async (
   return { data, status: res.status, headers: res.headers } as postPetsResponse;
 };
 
+export const getPostPetsMutationKey = () => ['postPets'] as const;
+
 export const getPostPetsMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -85,7 +87,7 @@ export const getPostPetsMutationOptions = <
   void,
   TContext
 > => {
-  const mutationKey = ['postPets'];
+  const mutationKey = getPostPetsMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&

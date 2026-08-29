@@ -6,7 +6,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -68,10 +68,15 @@ const createOutput = (
       requestOptions: true,
       namingConvention: {},
       components: {
-        schemas: { suffix: 'Schema', itemSuffix: 'Item' },
-        responses: { suffix: 'Response' },
-        parameters: { suffix: 'Parameters' },
-        requestBodies: { suffix: 'Body' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: 'Schema',
+          itemSuffix: 'Item',
+        },
+        responses: { prefix: '', suffix: 'Response' },
+        parameters: { prefix: '', suffix: 'Parameters' },
+        requestBodies: { prefix: '', suffix: 'Body' },
       },
       angular: angularOverride,
       swr: {},
@@ -137,6 +142,7 @@ const createOutput = (
       enumGenerationType: 'const',
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       suppressReadonlyModifier: false,
       mcp: {},
     },
@@ -348,15 +354,17 @@ describe('angular HttpClient generator', () => {
 
   describe('generateAngularHeader', () => {
     it('generates @Injectable class with provideIn root', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).toContain("@Injectable({ providedIn: 'root' })");
       expect(header).toContain('export class PetService');
@@ -364,44 +372,50 @@ describe('angular HttpClient generator', () => {
     });
 
     it('generates @Injectable without provideIn when set to false', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: false,
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: false,
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).toContain('@Injectable()');
       expect(header).not.toContain('providedIn');
     });
 
     it('generates @Injectable with custom provideIn value', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'any',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'any',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).toContain("@Injectable({ providedIn: 'any' })");
     });
 
     it('includes HttpClientOptions interface when isRequestOptions is true', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).toContain('interface HttpClientOptions');
       expect(header).toContain('readonly headers?: HttpHeaders');
@@ -410,57 +424,65 @@ describe('angular HttpClient generator', () => {
     });
 
     it('omits HttpClientOptions when isRequestOptions is false', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: false,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: false,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).not.toContain('interface HttpClientOptions');
     });
 
     it('omits HttpClientOptions when isGlobalMutator is true', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: true,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: true,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).not.toContain('interface HttpClientOptions');
     });
 
     it('includes ThirdParameter when isMutator is true', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: true,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: true,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).toContain('type ThirdParameter');
     });
 
     it('omits ThirdParameter when isMutator is false', () => {
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {},
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          verbOptions: {},
+        }),
+      );
 
       expect(header).not.toContain('type ThirdParameter');
     });
@@ -1288,7 +1310,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('accept?: GetPetFileAccept');
       expect(impl).toContain('Observable<Pet | string>');
       expect(impl).toContain('this.http.get<Pet>');
-      expect(impl).toContain('as Observable<any>');
+      expect(impl).toContain('as Observable<string>');
       // Content-type dispatch logic
       expect(impl).toContain("responseType: 'json'");
       expect(impl).toContain("responseType: 'text'");
@@ -1296,6 +1318,34 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: 'text/plain'");
       // Default accept prefers JSON when available
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+    });
+
+    it('omits text dispatch for JSON and Blob response types', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetImage',
+        operationName: 'getPetImage',
+        typeName: 'getPetImage',
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'image/png'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'image/png'],
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('Observable<Pet | Blob>');
+      expect(impl).toContain("responseType: 'json'");
+      expect(impl).toContain("responseType: 'blob'");
+      expect(impl).not.toContain("responseType: 'text'");
+      expect(impl).not.toContain('as Observable<string>');
     });
 
     it('passes request bodies for PUT operations with multiple response types', () => {
@@ -2175,6 +2225,123 @@ describe('angular HttpClient generator', () => {
 
       expect(impl).toContain('/api/pets/${encodeURIComponent(String(petId))}');
       expect(impl).not.toContain('url: `/api/pets/${petId}`');
+    });
+  });
+
+  // ── override.angular.baseUrl (DI base-url token) ─────────────────────
+
+  describe('override.angular.baseUrl', () => {
+    const outputWithBaseUrl = () =>
+      createOutput({
+        override: {
+          ...createOutput().override,
+          angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+        },
+      });
+
+    it('injects a `baseUrl` field in the header when configured', () => {
+      const header = generateAngularHeader(
+        createHeaderParams({ output: outputWithBaseUrl() }),
+      );
+
+      expect(header).toContain(
+        'private readonly baseUrl = inject(EXAMPLE_API_BASE_URL);',
+      );
+    });
+
+    it('omits the `baseUrl` field when the option is unset (byte-identical to today)', () => {
+      const withOption = generateAngularHeader(
+        createHeaderParams({ output: outputWithBaseUrl() }),
+      );
+      const withoutOption = generateAngularHeader(createHeaderParams());
+
+      expect(withoutOption).not.toContain('EXAMPLE_API_BASE_URL');
+      expect(withoutOption).not.toContain('baseUrl');
+      expect(withOption).not.toBe(withoutOption);
+    });
+
+    it('prefixes the route template with `${this.baseUrl}`', () => {
+      const output = outputWithBaseUrl();
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+        override: output.override,
+      });
+      const verbOption = createVerbOption();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('`${this.baseUrl}/api/pets/${petId}`');
+    });
+
+    it('does not wrap the `this.baseUrl` prefix in encodeURIComponent when urlEncodeParameters is also set', () => {
+      const output = createOutput({
+        urlEncodeParameters: true,
+        override: {
+          ...createOutput().override,
+          angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+        },
+      });
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+        override: output.override,
+      });
+      const verbOption = createVerbOption();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        '`${this.baseUrl}/api/pets/${encodeURIComponent(String(petId))}`',
+      );
+      expect(impl).not.toContain('encodeURIComponent(String(this.baseUrl))');
+    });
+
+    it('composes the prefixed route into the mutator config', () => {
+      const output = outputWithBaseUrl();
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customInstance',
+          path: './mutator',
+          default: true,
+          hasThirdArg: false,
+          hasSecondArg: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+        override: output.override,
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('${this.baseUrl}/api/pets/${petId}');
+    });
+
+    it('adds the base-url token import in generateAngular', async () => {
+      const output = outputWithBaseUrl();
+      const verbOption = createVerbOption();
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+        override: output.override,
+      });
+
+      const { imports } = await generateAngular(
+        verbOption,
+        options,
+        'angular',
+        output,
+      );
+
+      expect(imports).toContainEqual(
+        expect.objectContaining({
+          name: 'EXAMPLE_API_BASE_URL',
+          values: true,
+          importPath: './pet.base-url',
+        }),
+      );
     });
   });
 });

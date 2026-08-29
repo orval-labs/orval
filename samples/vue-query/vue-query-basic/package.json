@@ -1,16 +1,16 @@
 {
   "name": "vue-query-basic",
-  "version": "8.24.0",
+  "version": "8.27.0",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview",
+    "dev": "vp dev",
+    "build": "vp build",
+    "serve": "vp preview",
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
-    "test": "vitest --run"
+    "test": "vp test --run"
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
@@ -29,7 +29,7 @@
     "tsd": "^0.33.0",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
+    "vite-plus": "catalog:",
     "vue-tsc": "catalog:vue"
   },
   "dependenciesMeta": {

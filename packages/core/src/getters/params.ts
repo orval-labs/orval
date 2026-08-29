@@ -96,7 +96,7 @@ export function getParams({
         name,
         definition: `${name}${required ? '' : '?'}: unknown`,
         implementation: `${name}${required ? '' : '?'}: unknown`,
-        default: false,
+        default: undefined,
         required,
         imports: [],
       };
@@ -121,12 +121,16 @@ export function getParams({
       paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
     }
 
+    // `0`, `false` and `''` are defaults like any other, so the presence of one
+    // is a check against `undefined` rather than a truthiness test.
+    const hasSchemaDefault = schemaDefault !== undefined;
+
     const definition = `${name}${
-      !required || schemaDefault ? '?' : ''
+      !required || hasSchemaDefault ? '?' : ''
     }: ${paramType}`;
 
-    const implementation = `${name}${!required && !schemaDefault ? '?' : ''}${
-      schemaDefault
+    const implementation = `${name}${!required && !hasSchemaDefault ? '?' : ''}${
+      hasSchemaDefault
         ? `: ${paramType} = ${stringify(schemaDefault)}`
         : `: ${paramType}`
     }`; // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition

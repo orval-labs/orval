@@ -8,7 +8,6 @@ import {
   NamingConvention,
 } from '../types';
 import { compareNatural, conventionName } from '../utils';
-import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
@@ -234,13 +233,27 @@ interface AddDependencyOptions {
   isAllowSyntheticDefaultImports: boolean;
 }
 
-export function addDependency({
-  implementation,
+type AddDependencyFromIdentifiersOptions = Omit<
+  AddDependencyOptions,
+  'implementation'
+> & {
+  referencedIdentifiers: ReadonlySet<string>;
+};
+
+function getReferencedIdentifiers(implementation: string): Set<string> {
+  return new Set(
+    implementation.match(/[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu) ??
+      [],
+  );
+}
+
+function addDependencyFromIdentifiers({
+  referencedIdentifiers,
   exports,
   dependency,
   projectName,
   isAllowSyntheticDefaultImports,
-}: AddDependencyOptions) {
+}: AddDependencyFromIdentifiersOptions) {
   const toAdds = exports.filter((e) => {
     // An aliased import is rendered as `name as alias`, so the alias is the only
     // binding in scope; the pre-alias name never appears as a reference. Match on
@@ -252,12 +265,7 @@ export function addDependency({
       return false;
     }
 
-    const pattern = new RegExp(
-      String.raw`\b(${escapeRegExp(identifier)})\b`,
-      'g',
-    );
-
-    return implementation.match(pattern);
+    return referencedIdentifiers.has(identifier);
   });
 
   if (toAdds.length === 0) {
@@ -329,6 +337,16 @@ export function addDependency({
   );
 }
 
+export function addDependency({
+  implementation,
+  ...options
+}: AddDependencyOptions) {
+  return addDependencyFromIdentifiers({
+    ...options,
+    referencedIdentifiers: getReferencedIdentifiers(implementation),
+  });
+}
+
 function getLibName(code: string) {
   const splitString = code.split(' from ');
   return (splitString.at(-1) ?? '').split(';')[0].trim();
@@ -344,11 +362,16 @@ export function generateDependencyImports(
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
 ): string {
+  if (imports.length === 0) {
+    return '';
+  }
+
+  const referencedIdentifiers = getReferencedIdentifiers(implementation);
   const dependencies = imports
     .map((dep) =>
-      addDependency({
+      addDependencyFromIdentifiers({
         ...dep,
-        implementation,
+        referencedIdentifiers,
         projectName,
         hasSchemaDir,
         isAllowSyntheticDefaultImports,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils/context';
 import type { OpenApiComponentsObject } from '../types';
@@ -8,10 +8,15 @@ describe('generateParameterDefinition', () => {
   const context = createTestContextSpec({
     override: {
       components: {
-        schemas: { suffix: '', itemSuffix: 'Parameter' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: '',
+          itemSuffix: 'Parameter',
+        },
+        responses: { prefix: '', suffix: '' },
+        parameters: { prefix: '', suffix: '' },
+        requestBodies: { prefix: '', suffix: '' },
       },
     },
   });

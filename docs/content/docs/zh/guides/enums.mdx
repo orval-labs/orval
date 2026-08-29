@@ -1,13 +1,13 @@
 ---
-title: Enum Extensions
-description: 使用 OpenAPI 扩展生成带有清晰名称和描述的枚举
+title: 枚举扩展
+description: 使用 OpenAPI 扩展生成带有名称和描述的枚举
 ---
 
-使用 OpenAPI 扩展生成具有清晰名称和描述的枚举。
+使用 OpenAPI 扩展和 OpenAPI 3.1 枚举元数据生成具有明确名称和描述的枚举。
 
 ## OpenAPI Schema
 
-使用 `x-enumNames` 为枚举成员指定有意义的名称，并使用 `x-enumDescriptions` 添加会显示在 IDE 工具提示中的 JSDoc 注释。
+使用 `x-enumNames` 为枚举成员指定有意义的名称，并使用 `x-enumDescriptions` 添加 JSDoc 注释，这些注释会显示在 IDE 的提示信息中。
 
 ```yaml
 openapi: '3.1.0'
@@ -71,6 +71,44 @@ Orval 支持以下扩展：
 - `x-enumdescriptions`
 - `x-enum-descriptions`
 
+## OpenAPI 3.1 const 枚举
+
+在 OpenAPI 3.1 中，使用带有 `const` 分支的 `oneOf` 定义类似枚举的 schema 时，可以使用 `title`、`description` 和 `deprecated` 作为枚举成员的元数据。
+
+```yaml
+components:
+  schemas:
+    Status:
+      oneOf:
+        - const: PENDING
+          title: Pending
+          description: Awaiting manual review
+        - const: LEGACY
+          title: Legacy
+          description: No longer issued
+          deprecated: true
+```
+
+使用 const 枚举生成方式时，Orval 会保留分支中的元数据：
+
+```ts
+export const Status = {
+  /** Awaiting manual review */
+  Pending: 'PENDING',
+  /**
+   * No longer issued
+   * @deprecated
+   */
+  Legacy: 'LEGACY',
+} as const;
+
+export type Status = typeof Status[keyof typeof Status];
+```
+
+如果分支没有 `title`，成员名称将根据 `const` 值生成，并遵循 `output.override.namingConvention.enum` 配置。
+
+没有元数据的 `oneOf`/`const` 分支会保持现有的联合类型输出不变。
+
 ## Zod
 
-当存在枚举元数据时，Zod 4 会生成 `z.enum({ ... })`，Zod 3 会生成 `z.nativeEnum({ ... } as const)`。布尔类型或混合类型的枚举仍然使用字面量联合类型，而没有元数据的枚举则保持现有的生成方式。
+枚举元数据在 Zod 4 中生成 `z.enum({ ... })`，在 Zod 3 中生成 `z.nativeEnum({ ... } as const)`。布尔类型或混合类型的枚举仍然使用字面量联合类型，没有元数据的枚举则保持现有的生成结果不变。

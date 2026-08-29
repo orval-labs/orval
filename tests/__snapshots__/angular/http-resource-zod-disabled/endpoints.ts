@@ -77,10 +77,9 @@ export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends 
 
 function mergeOrvalResourceHeaders(
   base: HttpResourceRequest['headers'],
-  extra: HttpResourceRequest['headers'],
-): HttpResourceRequest['headers'] {
+  extra: NonNullable<HttpResourceRequest['headers']>,
+): NonNullable<HttpResourceRequest['headers']> {
   if (!base) return extra;
-  if (!extra) return base;
   if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
     const toHeaderValue = (
       value: string | readonly string[],
@@ -125,7 +124,7 @@ export function applyOrvalRequestExtension(
   let next: HttpResourceRequest = { ...base };
   const extraHeaders =
     typeof options.headers === 'function' ? options.headers() : options.headers;
-  if (extraHeaders !== undefined) {
+  if (extraHeaders) {
     next = { ...next, headers: mergeOrvalResourceHeaders(next.headers, extraHeaders) };
   }
   const context =
@@ -200,7 +199,7 @@ function filterParams(
   return filteredParams;
 }
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listPetsResource(params: Signal<ListPetsParams>,
   options: OrvalHttpResourceOptions<Pets, unknown, true> & { defaultValue: NoInfer<Pets> }): HttpResourceRef<Pets>;
@@ -219,7 +218,7 @@ export function listPetsResource(params: Signal<ListPetsParams>,
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetByIdResource(petId: Signal<string>,
   options: OrvalHttpResourceOptions<Pet, unknown, true> & { defaultValue: NoInfer<Pet> }): HttpResourceRef<Pet>;
@@ -231,7 +230,7 @@ export function showPetByIdResource(petId: Signal<string>,
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function healthCheckResource(options: OrvalHttpResourceOptions<string, string, true> & { defaultValue: NoInfer<string> }): HttpResourceRef<string>;
 export function healthCheckResource(options?: OrvalHttpResourceOptions<string, string, true>): HttpResourceRef<string | undefined>;
@@ -240,7 +239,7 @@ export function healthCheckResource(options?: OrvalHttpResourceOptions<string, s
 }
 
 /**
- * @experimental httpResource is experimental (Angular v19.2+)
+ * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetWithOwnerResource(petId: Signal<string>,
   options: OrvalHttpResourceOptions<PetWithTag, unknown, true> & { defaultValue: NoInfer<PetWithTag> }): HttpResourceRef<PetWithTag>;
@@ -400,8 +399,13 @@ export interface ResourceState<T> {
   readonly status: Signal<ResourceStatus>;
   readonly error: Signal<globalThis.Error | undefined>;
   readonly isLoading: Signal<boolean>;
-  readonly hasValue: () => boolean;
+  /** Guard reads of `value()` with this call: `value()` throws in the error state. */
+  readonly hasValue: () => this is ResolvedResourceState<T>;
   readonly reload: () => boolean;
+}
+
+export interface ResolvedResourceState<T> extends ResourceState<T> {
+  readonly value: Signal<Exclude<T, undefined>>;
 }
 
 /**
@@ -414,7 +418,9 @@ export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
     status: ref.status,
     error: ref.error,
     isLoading: ref.isLoading,
-    hasValue: () => ref.hasValue(),
+    hasValue(this: ResourceState<T>): this is ResolvedResourceState<T> {
+      return ref.hasValue();
+    },
     reload: () => ref.reload(),
   };
 }
@@ -460,7 +466,7 @@ export const getShowPetWithOwnerResponseDogMock = (overrideResponse: Omit<Partia
 
 export const getShowPetWithOwnerResponseCatMock = (overrideResponse: Partial<Cat> = {}): Cat => ({...{petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]), type: faker.helpers.arrayElement(['cat'] as const)}, ...overrideResponse});
 
-export const getShowPetWithOwnerResponseMock = (overrideResponse: Partial<Extract<PetWithTag, object>> = {}): PetWithTag => ({tag: faker.string.alpha({length: {min: 10, max: 20}}), pet: {...faker.helpers.arrayElement([{...getShowPetWithOwnerResponseDogMock()},{...getShowPetWithOwnerResponseCatMock()},]), '@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int(), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement(['+33','+420','+33'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement(['People\'s Republic of China','Uruguay'] as const), undefined])}, ...overrideResponse})
+export const getShowPetWithOwnerResponseMock = (overrideResponse: Partial<Extract<PetWithTag, object>> = {}): PetWithTag => ({tag: faker.string.alpha({length: {min: 10, max: 20}}), pet: faker.helpers.arrayElement([{...faker.helpers.arrayElement([{...getShowPetWithOwnerResponseDogMock()},{...getShowPetWithOwnerResponseCatMock()},]), '@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int(), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement(['+33','+420','+33'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement(['People\'s Republic of China','Uruguay'] as const), undefined])},null,]), ...overrideResponse})
 
 
 export const getListPetsMockHandler = (overrideResponse?: Pets | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pets> | Pets), options?: RequestHandlerOptions) => {

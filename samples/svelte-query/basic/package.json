@@ -1,18 +1,18 @@
 {
   "name": "svelte-query-basic",
-  "version": "8.24.0",
+  "version": "8.27.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "vp dev",
+    "build": "vp build",
     "prepare": "svelte-kit sync",
-    "preview": "vite preview",
+    "preview": "vp preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
     "generate-api": "svelte-kit sync && vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
     "test": "vp run check"
   },
@@ -36,8 +36,7 @@
     "tslib": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "dependencies": {
     "@tanstack/svelte-query": "catalog:svelte",

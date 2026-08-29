@@ -167,7 +167,7 @@ function generateTargetTags(
 ): Record<string, GeneratorTargetFull> {
   const tag = getOperationTagKey(operation);
 
-  if (!(tag in currentAcc)) {
+  if (!Object.hasOwn(currentAcc, tag)) {
     currentAcc[tag] = {
       imports: operation.imports,
       mockOutputs: initialMockOutputsForOperation(operation),

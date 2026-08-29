@@ -311,8 +311,46 @@ const generateImplementation = (
       return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });
 
+  const deepObjectParameters = parameterObjects.filter((parameterObject) => {
+    return (
+      parameterObject.in === 'query' && parameterObject.style === 'deepObject'
+    );
+  });
+
+  const deepObjectParameterNames = deepObjectParameters.map(
+    (parameter) => parameter.name,
+  );
+
+  const hasDeepObjectDateParams =
+    context.output.override.useDates &&
+    deepObjectParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema: schemaObject } = resolveSchemaRef(
+        parameter.schema,
+        context,
+      );
+
+      if (!schemaObject.properties) {
+        return false;
+      }
+
+      return Object.values(
+        schemaObject.properties as Record<
+          string,
+          OpenApiSchemaObject | OpenApiReferenceObject
+        >,
+      ).some((prop) => {
+        const { schema: propSchema } = resolveSchemaRef(prop, context);
+        return propSchema.format === 'date-time';
+      });
+    });
+
   const isExplodeParametersOnly =
-    explodeParameters.length === parameters.length;
+    explodeParameters.length + deepObjectParameters.length ===
+    parameters.length;
 
   const hasDateParams =
     context.output.override.useDates &&
@@ -346,6 +384,21 @@ const generateImplementation = (
         `
       : '';
 
+  const deepObjectImplementation =
+    deepObjectParameters.length > 0
+      ? `const deepObjectParameters = ${JSON.stringify(deepObjectParameterNames)};
+
+      if (typeof value === 'object' && value !== null && !Array.isArray(value) && deepObjectParameters.includes(key)) {
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          if (subValue !== undefined) {
+            deepObjectEntries.push(encodeURIComponent(key) + '[' + encodeURIComponent(subKey) + ']=' + (subValue === null ? 'null' : encodeURIComponent(${hasDeepObjectDateParams ? 'subValue instanceof Date ? subValue.toISOString() : ' : ''}String(subValue))));
+          }
+        });
+        return;
+      }
+        `
+      : '';
+
   const normalParamsImplementation = `if (value !== undefined) {
         normalizedParams.append(key, Array.isArray(value) ? value.map(v => v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(',') : value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
       }`;
@@ -353,9 +406,9 @@ const generateImplementation = (
   // Build query params string
   const queryParamsCode = queryParams
     ? `const normalizedParams = new URLSearchParams();
-
+${deepObjectParameters.length > 0 ? '    const deepObjectEntries = [];\n' : ''}
     Object.entries(params || {}).forEach(([key, value]) => {
-      ${explodeArrayImplementation}
+      ${explodeArrayImplementation}${deepObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values
         // are a type error at the call site (orval generates array-only types),
@@ -364,7 +417,7 @@ const generateImplementation = (
       }
     });
 
-    const queryString = normalizedParams.toString();
+    const queryString = ${deepObjectParameters.length > 0 ? `[normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&')` : `normalizedParams.toString()`};
     const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
     : `const url = \`${route}\`;`;
 

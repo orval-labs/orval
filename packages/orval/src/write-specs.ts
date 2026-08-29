@@ -27,6 +27,7 @@ import {
   splitSchemasByType,
   SupportedFormatter,
   upath,
+  withGeneratedFileTransform,
   writeGeneratedFile,
   writeSchemas,
   writeSchemasTagsSplit,
@@ -42,10 +43,12 @@ import {
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import { unique } from 'remeda';
-import type { TypeDocOptions } from 'typedoc';
+import type { OptionsReader, TypeDocOptions } from 'typedoc';
 
-import { formatWithPrettier } from './formatters/prettier';
+import {
+  createPrettierFileTransform,
+  formatWithPrettier,
+} from './formatters/prettier';
 import {
   executeHook,
   readReExportSpecifiers,
@@ -104,6 +107,77 @@ export async function runFormatter(
       break;
     }
   }
+}
+
+const DOCS_MARKDOWN_PLUGIN = 'typedoc-plugin-markdown';
+const DOCS_MARKDOWN_THEME = 'markdown';
+
+export function getDocsTypedocOptions(
+  entryPoints: string[],
+  config: Partial<TypeDocOptions>,
+): Partial<TypeDocOptions> {
+  const plugin = config.plugin ?? [];
+
+  return {
+    entryPoints,
+    // Skip TypeScript diagnostics on the consuming project: TypeDoc would
+    // otherwise pick up the user's tsconfig and surface errors from files
+    // unrelated to the generated entry points (e.g. a demo `App.tsx`
+    // with an unused `React` default import under the new JSX transform —
+    // see #3338). User-overridable via the `docs` option below.
+    skipErrorChecking: true,
+    // Set the custom config location if it has been provided.
+    ...config,
+    plugin: plugin.includes(DOCS_MARKDOWN_PLUGIN)
+      ? plugin
+      : [DOCS_MARKDOWN_PLUGIN, ...plugin],
+  };
+}
+
+/**
+ * Gives the TypeDoc output for a theme. The markdown plugin makes markdown the
+ * default output, thus all other themes must use the html output.
+ */
+export function getDocsOutputName(theme: unknown): 'html' | 'markdown' {
+  return theme === DOCS_MARKDOWN_THEME ? 'markdown' : 'html';
+}
+
+/**
+ * Builds a TypeDoc `OptionsReader` that guarantees `typedoc-plugin-markdown`
+ * stays in the resolved `plugin` list, no matter what a user-supplied
+ * `configPath` config file declares.
+ *
+ * TypeDoc's `Application.bootstrapWithPlugins` applies the options we pass
+ * in *before* running its option readers (`Options.read`), and one of those
+ * readers (`TypeDocReader`) unconditionally overwrites the `plugin` option
+ * with whatever the config file specifies. Since plugin loading
+ * (`loadPlugins`) happens right after `Options.read` and before our options
+ * are re-applied, a config file that supplies its own `plugin` array without
+ * `typedoc-plugin-markdown` would otherwise silence the plugin entirely for
+ * the run that matters, even though `getDocsTypedocOptions` re-injects it
+ * into the *final* options object.
+ *
+ * Readers are processed in ascending `order`, and a later reader's
+ * `setValue` call wins outright — there's no merge. Registering this reader
+ * with the highest possible order makes it run after every built-in reader
+ * (`typedoc.json`/`typedoc.js`, `package.json`, `tsconfig.json`), so it has
+ * the final say before `loadPlugins` reads the resolved value.
+ */
+export function createMarkdownPluginReader(): OptionsReader {
+  return {
+    name: 'orval-ensure-markdown-plugin',
+    order: Number.MAX_SAFE_INTEGER,
+    supportsPackages: false,
+    read(container) {
+      const current: string[] = container.isSet('plugin')
+        ? (container.getValue('plugin') as string[])
+        : [];
+
+      if (!current.includes(DOCS_MARKDOWN_PLUGIN)) {
+        container.setValue('plugin', [...current, DOCS_MARKDOWN_PLUGIN]);
+      }
+    },
+  };
 }
 
 function getComparableFilePath(filePath: string): string {
@@ -252,14 +326,21 @@ async function addOperationSchemasReExport(
   );
   const exportLine = `export * from '${esmImportPath}';\n`;
 
-  const indexExists = await fs.pathExists(schemaIndexPath);
-  if (indexExists) {
+  let existingContent: string | undefined;
+  try {
+    existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  if (existingContent !== undefined) {
     // Append the re-export only if it isn't already declared. The presence
     // check reuses the shared barrel specifier reader so quote style can't
     // cause duplicates (#3756).
-    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
     if (!readReExportSpecifiers(existingContent).has(esmImportPath)) {
-      await fs.appendFile(schemaIndexPath, exportLine);
+      await writeGeneratedFile(schemaIndexPath, existingContent + exportLine);
     }
   } else {
     // Create index with header if file doesn't exist (no regular schemas case)
@@ -267,7 +348,7 @@ async function addOperationSchemasReExport(
       header && header.trim().length > 0
         ? `${header}\n${exportLine}`
         : exportLine;
-    await fs.outputFile(schemaIndexPath, content);
+    await writeGeneratedFile(schemaIndexPath, content);
   }
 }
 
@@ -546,134 +627,7 @@ function getImplementationPathsForIndex(
   );
 }
 
-/**
- * Emits `<clientDir>/index.ts`, re-exporting every client file actually
- * written under `output.artifacts.clientDir` — per-tag implementation files
- * plus any `builder.extraFiles` (e.g. Angular `*.resource.ts`). Built only
- * from paths writers actually produced (never guessed from tag names), so a
- * tag without a retrieval operation — and thus no `.resource.ts` — is never
- * re-exported as if it existed.
- *
- * When `tagsSplitDeduplication` is on, `writeSplitTagsMode` may already have
- * written a barrel at this same path (re-exporting `.service.ts` files plus
- * a named `common-types` re-export). `appendOrCreateBarrel` composes with it
- * by appending only the lines it doesn't already declare — e.g. the
- * `.resource.ts` re-exports that barrel never included.
- */
-export async function writeClientGroupBarrel(
-  output: NormalizedOutputOptions,
-  filePaths: string[],
-): Promise<string | undefined> {
-  const { artifacts } = output;
-  if (!artifacts || !output.indexFiles) {
-    return undefined;
-  }
-
-  const { clientDir } = artifacts;
-  const indexFile = path.join(clientDir, `index${output.fileExtension}`);
-  const comparableClientDir = getComparableFilePath(clientDir);
-  const comparableIndexFile = getComparableFilePath(indexFile);
-
-  const mockExtensions = output.mock.generators.map((g) =>
-    getMockFileExtensionByTypeName(g),
-  );
-  // Excluded because it's re-exported with named `export type { ... }`
-  // re-exports by the `tagsSplitDeduplication` barrel already — a second
-  // `export *` for the same path would redeclare those names.
-  const comparableCommonTypesPath = getComparableFilePath(
-    path.join(
-      clientDir,
-      `${output.commonTypesFileName}${output.fileExtension}`,
-    ),
-  );
-
-  const clientFilePaths = unique(filePaths).filter((filePath) => {
-    const comparablePath = getComparableFilePath(filePath);
-    const isUnderClientDir =
-      comparablePath === comparableClientDir ||
-      comparablePath.startsWith(comparableClientDir + path.sep);
-    if (!isUnderClientDir) {
-      return false;
-    }
-    if (comparablePath === comparableIndexFile) {
-      return false;
-    }
-    if (comparablePath === comparableCommonTypesPath) {
-      return false;
-    }
-    if (filePath.endsWith(`.schemas${output.fileExtension}`)) {
-      return false;
-    }
-    if (
-      mockExtensions.some((ext) =>
-        filePath.endsWith(`.${ext}${output.fileExtension}`),
-      )
-    ) {
-      return false;
-    }
-    return true;
-  });
-
-  if (clientFilePaths.length === 0) {
-    return undefined;
-  }
-
-  const importExtension = getImportExtension(
-    output.fileExtension,
-    output.tsconfig,
-  );
-
-  const toImportSpecifier = (filePath: string): string => {
-    const relative = upath.getRelativeImportPath(indexFile, filePath, true);
-    const withoutExt = relative.endsWith(output.fileExtension)
-      ? relative.slice(0, -output.fileExtension.length)
-      : relative.replace(/\.[^/.]+$/, '');
-    return withoutExt + importExtension;
-  };
-
-  const imports = clientFilePaths
-    .map(toImportSpecifier)
-    .toSorted((a, b) => a.localeCompare(b));
-
-  // See `DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT` above: when 2+ files of a
-  // kind known to carry identical generator boilerplate land in this barrel
-  // (e.g. two `.resource.ts` files under Angular's `both`/`resource`
-  // retrieval mode), wildcard-exporting all of them raises TS2308. Re-export
-  // the shared names explicitly from the first (sorted) such file so the
-  // subsequent `export *` statements — which still carry each file's
-  // tag-specific functions — compile cleanly.
-  const boilerplate =
-    typeof output.client === 'string'
-      ? DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT[output.client]
-      : undefined;
-  const namedReExports: string[] = [];
-  if (boilerplate) {
-    const matchingFilePaths = clientFilePaths
-      .filter((filePath) =>
-        filePath.endsWith(`${boilerplate.fileSuffix}${output.fileExtension}`),
-      )
-      .toSorted((a, b) => a.localeCompare(b));
-    if (matchingFilePaths.length > 1) {
-      const canonicalImport = toImportSpecifier(matchingFilePaths[0]);
-      if (boilerplate.typeNames.length > 0) {
-        namedReExports.push(
-          `export type { ${boilerplate.typeNames.join(', ')} } from '${canonicalImport}';`,
-        );
-      }
-      if (boilerplate.valueNames.length > 0) {
-        namedReExports.push(
-          `export { ${boilerplate.valueNames.join(', ')} } from '${canonicalImport}';`,
-        );
-      }
-    }
-  }
-
-  await appendOrCreateBarrel(indexFile, unique(imports), namedReExports);
-
-  return indexFile;
-}
-
-export async function writeSpecs(
+async function writeSpecsInternal(
   builder: WriteSpecBuilder,
   workspace: string,
   options: NormalizedOptions,
@@ -1074,7 +1028,7 @@ export async function writeSpecs(
   if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(async (file) =>
-        fs.outputFile(file.path, file.content),
+        writeGeneratedFile(file.path, file.content),
       ),
     );
 
@@ -1130,26 +1084,27 @@ export async function writeSpecs(
         }
       }
 
-      const getTypedocApplication = async () => {
-        const { Application } = await import('typedoc');
-        return Application;
-      };
-
-      const Application = await getTypedocApplication();
-      const app = await Application.bootstrapWithPlugins({
-        entryPoints: paths.map((x) => upath.toUnix(x)),
-        theme: 'markdown',
-        // Skip TypeScript diagnostics on the consuming project: TypeDoc would
-        // otherwise pick up the user's tsconfig and surface errors from files
-        // unrelated to the generated entry points (e.g. a demo `App.tsx`
-        // with an unused `React` default import under the new JSX transform —
-        // see #3338). User-overridable via the `docs` option below.
-        skipErrorChecking: true,
-        // Set the custom config location if it has been provided.
-        ...config,
-        plugin: ['typedoc-plugin-markdown', ...(config.plugin ?? [])],
-      });
+      const { Application, PackageJsonReader, TSConfigReader, TypeDocReader } =
+        await import('typedoc');
+      const app = await Application.bootstrapWithPlugins(
+        getDocsTypedocOptions(
+          paths.map((x) => upath.toUnix(x)),
+          config,
+        ),
+        [
+          // Mirrors TypeDoc's own DEFAULT_READERS...
+          new TypeDocReader(),
+          new PackageJsonReader(),
+          new TSConfigReader(),
+          // ...plus our own, guaranteeing the markdown plugin survives a
+          // user-supplied configPath (see createMarkdownPluginReader).
+          createMarkdownPluginReader(),
+        ],
+      );
       // Set defaults if the have not been provided by the external config.
+      if (!app.options.isSet('theme')) {
+        app.options.setValue('theme', DOCS_MARKDOWN_THEME);
+      }
       if (!app.options.isSet('readme')) {
         app.options.setValue('readme', 'none');
       }
@@ -1159,6 +1114,9 @@ export async function writeSpecs(
       const project = await app.convert();
       if (project) {
         const outputPath = app.options.getValue('out');
+        app.outputs.setDefaultOutputName(
+          getDocsOutputName(app.options.getValue('theme')),
+        );
         await app.generateOutputs(project);
 
         await runFormatter(output.formatter, [outputPath], projectTitle);
@@ -1176,6 +1134,28 @@ export async function writeSpecs(
   }
 
   createSuccessMessage(projectTitle);
+}
+
+export async function writeSpecs(
+  builder: WriteSpecBuilder,
+  workspace: string,
+  options: NormalizedOptions,
+  projectName?: string,
+): Promise<void> {
+  const shouldFormatBeforeWriting =
+    options.output.formatter === SupportedFormatter.PRETTIER &&
+    !options.hooks.afterAllFilesWrite;
+  const transform = shouldFormatBeforeWriting
+    ? await createPrettierFileTransform(projectName ?? builder.info.title)
+    : undefined;
+
+  if (transform) {
+    return withGeneratedFileTransform(transform, () =>
+      writeSpecsInternal(builder, workspace, options, projectName),
+    );
+  }
+
+  return writeSpecsInternal(builder, workspace, options, projectName);
 }
 
 function getWriteMode(mode: OutputMode) {

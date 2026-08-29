@@ -20,6 +20,7 @@ import {
   resolveValue,
   type Tsconfig,
   upath,
+  writeGeneratedFile,
   type ZodCoerceType,
   type ZodVariantOption,
   type ZodVersionOption,
@@ -35,7 +36,6 @@ import {
   resolveIsZodV4,
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
-import fs from 'fs-extra';
 
 import {
   generateReusableSchemaSet,
@@ -580,7 +580,7 @@ export async function writeZodSchemaTagsSplitBarrel(
   const allExports = [...rootExports, ...tagExports];
   const rootIndexPath = path.join(schemasPath, 'index.ts');
   const content = `${header}\n${allExports.join('\n')}\n`;
-  await fs.outputFile(rootIndexPath, content);
+  await writeGeneratedFile(rootIndexPath, content);
 }
 
 export function generateZodSchemasInline(
@@ -856,7 +856,7 @@ export async function writeZodSchemas(
       output.override.zod.variant,
     );
 
-    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(
@@ -1003,7 +1003,7 @@ async function writeZodSchemasReusable(
       (imports ? `${imports}\n\n` : '\n') +
       `${rendered.content}\n`;
 
-    await fs.outputFile(filePath, fileContent);
+    await writeGeneratedFile(filePath, fileContent);
   }
 
   if (output.indexFiles && !isSplit && rewritten.length > 0) {
@@ -1364,7 +1364,7 @@ export async function writeZodSchemasFromVerbs(
       output.override.zod.variant,
     );
 
-    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(

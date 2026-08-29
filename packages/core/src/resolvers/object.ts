@@ -7,7 +7,7 @@ import type {
   ResolverValue,
   ScalarValue,
 } from '../types';
-import { jsDoc } from '../utils';
+import { isSchemaNullable, jsDoc } from '../utils';
 import { resolveValue } from './value';
 
 interface ResolveOptions {
@@ -110,25 +110,12 @@ function resolveObjectOriginal({
     };
   }
 
-  const isSchemaNullableAtRoot = (schema?: OpenApiSchemaObject) => {
-    if (!schema) {
-      return false;
-    }
-
-    if (schema.nullable === true) {
-      return true;
-    }
-
-    const type = schema.type;
-    return Array.isArray(type) && type.includes('null');
-  };
-
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
     const doc = jsDoc(resolvedValue.originalSchema);
     const enumValue = getEnum(
       getEnumMembers(resolvedValue.originalSchema),
       propName,
-      isSchemaNullableAtRoot(resolvedValue.originalSchema),
+      isSchemaNullable(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
       context.output.override.namingConvention.enum,
     );
