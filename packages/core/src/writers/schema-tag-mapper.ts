@@ -4,9 +4,7 @@ import {
   type GeneratorSchema,
   DefaultTag,
 } from '../types';
-import { kebab } from '../utils';
-
-export const SHARED_DIR = '.';
+import { kebab, SHARED_DIR } from '../utils';
 
 export function buildSchemaTagMap(
   operations: ReadonlyArray<Pick<GeneratorOperation, 'imports' | 'tags'>>,

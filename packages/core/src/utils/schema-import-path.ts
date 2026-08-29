@@ -1,5 +1,3 @@
-import { uniqueBy } from 'remeda';
-
 import type {
   GeneratorDependency,
   GeneratorImport,
@@ -9,6 +7,12 @@ import { conventionName } from './case';
 import * as upath from './path';
 import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
+
+/**
+ * Tag directory for a schema that more than one tag uses. Such schemas stay at
+ * the schemas root rather than being duplicated into each tag directory.
+ */
+export const SHARED_DIR = '.';
 
 export interface ResolveSchemaImportDependenciesOptions {
   /** `true` when schemas are emitted as Zod schemas, not TypeScript types. */
@@ -57,9 +61,12 @@ export function resolveSchemaImportDependencies(
     ? output.schemaFileExtension
     : output.fileExtension;
 
-  // A package specifier resolves through the consumer's module resolution, so
-  // drop the module extension. `@acme/models/pet.js` does not resolve. Passing
-  // no tsconfig removes it without the NodeNext `.ts`→`.js` rewrite.
+  // A package subpath resolves through the consumer's export map, so it keeps
+  // the part of the filename that is not the module extension and drops the
+  // rest: `pet.zod.ts` is imported as `@acme/models/pet.zod`, matching the file
+  // that was written. Passing no tsconfig strips `.ts` without applying the
+  // NodeNext `.ts`→`.js` rewrite, which would name a file that is never
+  // emitted.
   const isPackageImport = !!getSchemasImportPath(output.schemas);
   const importExtension = isPackageImport
     ? getImportExtension(schemaFileExtension)
@@ -78,7 +85,7 @@ export function resolveSchemaImportDependencies(
     // `buildSchemaTagMap` keys on the TS identifier, so look up
     // `schemaImport.name` and not `schemaName`.
     const tagDir = schemaTagMap?.get(schemaImport.name);
-    const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
+    const tagSegment = tagDir && tagDir !== SHARED_DIR ? `${tagDir}/` : '';
 
     const dependency = upath.joinSafe(
       relativeSchemasPath,
@@ -102,17 +109,29 @@ export function resolveSchemaImportDependencies(
 }
 
 /**
- * Collapses imports that emit the same import specifier. The key holds every
- * field that changes the specifier, so one name under two aliases stays twice.
+ * Collapses imports that name the same binding. The key holds every field that
+ * changes the binding, so one schema under two aliases stays twice.
+ *
+ * `values` is merged rather than keyed on. `generateImports` groups by it, so
+ * keeping one entry with `values: false` beside another with `values: true`
+ * emits both `import type { Pet }` and `import { Pet }` from one module, which
+ * is TS2300. A value import covers the type position too, so any entry asking
+ * for the value wins for the whole binding.
  */
 export function dedupeSchemaImports(
   imports: readonly GeneratorImport[],
 ): GeneratorImport[] {
-  return uniqueBy(
-    imports,
-    (entry) =>
-      `${entry.name}|${entry.alias ?? ''}|${String(entry.values)}|${String(
-        entry.default,
-      )}`,
-  );
+  const byBinding = new Map<string, GeneratorImport>();
+
+  for (const entry of imports) {
+    const key = `${entry.name}|${entry.alias ?? ''}|${String(entry.default)}`;
+    const existing = byBinding.get(key);
+    if (!existing) {
+      byBinding.set(key, entry);
+    } else if (entry.values && !existing.values) {
+      byBinding.set(key, { ...existing, values: true });
+    }
+  }
+
+  return [...byBinding.values()];
 }

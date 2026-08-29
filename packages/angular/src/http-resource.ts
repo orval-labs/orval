@@ -1646,18 +1646,13 @@ const buildSchemaImportDependencies = (
     return dependencies;
   }
 
-  // Zod schemas are runtime values, so import them as values and not as
-  // types. `dedupeSchemaImports` keys on the `values` field, so a schema
-  // imported once as a value (e.g. the auto-detected parse schema) and once
-  // as a type (e.g. a named path-params type) survives the earlier dedupe as
-  // two distinct entries. Forcing `values: true` on both then collapses them
-  // to identical entries, so dedupe again here to keep the intermediate
-  // export list free of duplicate specifiers per module.
+  // Zod schemas are runtime values, so import them as values and not as types.
+  // `dedupeSchemaImports` already merged any type-only entry into its value
+  // twin, so one binding is one entry here and forcing the flag cannot
+  // reintroduce a duplicate.
   return dependencies.map((dependency) => ({
     ...dependency,
-    exports: dedupeSchemaImports(
-      dependency.exports.map((imp) => ({ ...imp, values: true })),
-    ),
+    exports: dependency.exports.map((imp) => ({ ...imp, values: true })),
   }));
 };
 

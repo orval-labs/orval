@@ -50,12 +50,7 @@ const bothClientBuilder: ClientGeneratorsBuilder = {
       context,
       schemaTagMap,
     )),
-    ...(await generateAngularBaseUrlExtraFiles(
-      verbOptions,
-      output,
-      context,
-      schemaTagMap,
-    )),
+    ...(await generateAngularBaseUrlExtraFiles(verbOptions, output, context)),
   ],
 };
 

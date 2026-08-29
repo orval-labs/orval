@@ -10,10 +10,10 @@ import {
   compareNatural,
   conventionName,
   getImportExtension,
+  SHARED_DIR,
   upath,
 } from '../utils';
 import { writeGeneratedFile } from './file';
-import { SHARED_DIR } from './schema-tag-mapper';
 import { writeSchemas } from './schemas';
 
 interface WriteSchemasTagsSplitOptions {

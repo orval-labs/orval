@@ -191,6 +191,21 @@ describe('resolveSchemaImportDependencies', () => {
       ]);
     });
 
+    it('keeps a custom fileExtension in a package subpath', () => {
+      // The TypeScript writer emits `pet.gen.ts`, so the subpath must carry
+      // `.gen`. Dropping the whole suffix would name `@acme/models/pet`, which
+      // no export map resolves.
+      const output = createOutput({
+        indexFiles: false,
+        fileExtension: '.gen.ts',
+        schemas: createSchemas({ importPath: '@acme/models' }),
+      });
+
+      expect(resolve(output, '@acme/models', [PET])).toEqual([
+        '@acme/models/petOriginal.gen',
+      ]);
+    });
+
     it('keeps both imports when the same name is aliased differently', () => {
       const output = createOutput({ indexFiles: false });
 
@@ -208,6 +223,26 @@ describe('resolveSchemaImportDependencies', () => {
         'PetModel',
         'PetDto',
       ]);
+    });
+
+    it('merges a type-only and a value import of one binding', () => {
+      // `generateImports` groups by `values`, so keeping both would emit
+      // `import type { Pet }` and `import { Pet }` from the same module —
+      // TS2300. A value import serves the type position too, so it wins.
+      const output = createOutput({ indexFiles: false });
+
+      const [dependency] = resolveSchemaImportDependencies(
+        output,
+        [
+          { name: 'Pet', values: false },
+          { name: 'Pet', values: true },
+        ],
+        '../models',
+        { isZod: false },
+      );
+
+      expect(dependency.exports).toHaveLength(1);
+      expect(dependency.exports[0].values).toBe(true);
     });
 
     it('collapses imports that would emit an identical specifier', () => {

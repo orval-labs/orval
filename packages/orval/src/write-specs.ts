@@ -559,11 +559,14 @@ async function writeSpecsInternal(
   const { info, schemas, target } = builder;
   const { output } = options;
 
-  // `getApiBuilder` builds the schema→tag map when `schemas.splitByTags` is on,
-  // and leaves it undefined when it is off. The extra files rendered there and
-  // the writers below share that one map, so all their imports agree.
+  // `getApiBuilder` builds the schema→tag map when `schemas.splitByTags` is on.
+  // The extra files rendered there and the writers below share that one map, so
+  // all their imports agree. The config stays the source of truth for whether
+  // to split, so a builder that arrives without a map still trips the
+  // `operationSchemas` guard below rather than silently writing a flat layout.
   const { schemaTagMap } = builder;
-  const shouldSplitSchemasByTags = schemaTagMap !== undefined;
+  const shouldSplitSchemasByTags =
+    isObject(output.schemas) && output.schemas.splitByTags === true;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -675,6 +678,14 @@ async function writeSpecsInternal(
 
       // Split schemas by tag into subdirectories
       if (shouldSplitSchemasByTags) {
+        if (!schemaTagMap) {
+          throw new Error(
+            'schemas.splitByTags is enabled but no schema tag map was built. ' +
+              'The map comes from getApiBuilder, so a WriteSpecBuilder assembled ' +
+              'another way has to carry one.',
+          );
+        }
+
         await writeSchemasTagsSplit({
           schemaPath: schemasPath,
           schemas,
