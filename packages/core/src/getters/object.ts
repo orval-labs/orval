@@ -374,6 +374,29 @@ export function getObject({
         return compareNatural(a[0], b[0]);
       });
     }
+
+    // Phase 1: detect property-name collisions from namingConvention
+    const propertyConvention =
+      context.output.override.namingConvention?.properties;
+    const convertedNames = new Map<string, string[]>();
+    if (propertyConvention) {
+      for (const [key] of entries) {
+        const converted = conventionName(key, propertyConvention);
+        if (!convertedNames.has(converted)) {
+          convertedNames.set(converted, []);
+        }
+        convertedNames.get(converted)!.push(key);
+      }
+    }
+    const collisionKeys = new Set<string>();
+    for (const [converted, keys] of convertedNames) {
+      if (keys.length > 1) {
+        for (const k of keys) {
+          collisionKeys.add(k);
+        }
+      }
+    }
+
     const acc: ScalarValue = {
       imports: [],
       schemas: [],
@@ -505,11 +528,10 @@ export function getObject({
           ? '  readonly '
           : '  '
       }${getKey(
-        context.output.override.namingConvention?.properties
-          ? conventionName(
-              key,
-              context.output.override.namingConvention.properties,
-            )
+        propertyConvention
+          ? collisionKeys.has(key)
+            ? key // collision: fall back to the original (unique) schema key
+            : conventionName(key, propertyConvention)
           : key,
       )}${isRequired ? '' : '?'}: ${finalPropValue};`;
       if (usedResolvedValue) {

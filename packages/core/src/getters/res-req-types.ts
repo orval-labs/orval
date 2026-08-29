@@ -18,7 +18,7 @@ import {
 } from '../types';
 import { camel, sanitize } from '../utils';
 import { isReference } from '../utils/assertion';
-import { pascal } from '../utils/case';
+import { pascal, conventionName } from '../utils/case';
 import {
   getFormDataFieldFileType,
   isBinaryContentType,
@@ -772,8 +772,25 @@ function resolveSchemaPropertiesToFormData({
       ? `.${key}`
       : `['${key}']`;
 
-    const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
-    const nonOptionalValueKey = `${propName}${formattedKey}`;
+    // The TS type emits the namingConvention-converted property name, so the
+    // runtime serializer must read the same converted name from the body while
+    // still appending the ORIGINAL schema key on the wire (#2381).
+    const propertyConvention =
+      context.output.override.namingConvention?.properties;
+    const convertedKey = propertyConvention
+      ? conventionName(key, propertyConvention)
+      : key;
+    const formattedConvertedKeyPrefix = isRequestBodyOptional
+      ? keyword.isIdentifierNameES5(convertedKey)
+        ? '?'
+        : '?.'
+      : '';
+    const formattedConvertedKey = keyword.isIdentifierNameES5(convertedKey)
+      ? `.${convertedKey}`
+      : `['${convertedKey}']`;
+
+    const valueKey = `${propName}${formattedConvertedKeyPrefix}${formattedConvertedKey}`;
+    const nonOptionalValueKey = `${propName}${formattedConvertedKey}`;
 
     // Use shared file type detection (same logic as type generation)
     const fileType = getFormDataFieldFileType(property, partContentType);

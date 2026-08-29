@@ -14,6 +14,11 @@ export interface Widget {
   nestedData?: WidgetNestedData;
 }
 
+export interface Collision {
+  first_name?: string;
+  firstName?: string;
+}
+
 export type getWidgetsResponse200 = {
   data: Widget;
   status: 200;
@@ -44,4 +49,36 @@ export const getWidgets = async (
     status: res.status,
     headers: res.headers,
   } as getWidgetsResponse;
+};
+
+export type getCollisionResponse200 = {
+  data: Collision;
+  status: 200;
+};
+
+export type getCollisionResponseSuccess = getCollisionResponse200 & {
+  headers: Headers;
+};
+export type getCollisionResponse = getCollisionResponseSuccess;
+
+export const getGetCollisionUrl = () => {
+  return `/collision`;
+};
+
+export const getCollision = async (
+  options?: RequestInit,
+): Promise<getCollisionResponse> => {
+  const res = await fetch(getGetCollisionUrl(), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getCollisionResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getCollisionResponse;
 };

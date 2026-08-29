@@ -13,6 +13,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Widget'
+  /collision:
+    get:
+      operationId: getCollision
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collision'
 components:
   schemas:
     Widget:
@@ -30,3 +40,10 @@ components:
           properties:
             inner_value:
               type: number
+    Collision:
+      type: object
+      properties:
+        first_name:
+          type: string
+        firstName:
+          type: string
