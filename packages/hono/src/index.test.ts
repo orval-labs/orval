@@ -219,6 +219,23 @@ describe('resolveDefaultSchemaModule', () => {
     ).toBe('/out/client.schemas.ts');
   });
 
+  it('strips the target extension when it differs from fileExtension', () => {
+    // `getFileInfo`'s `filename` only strips the extension it was handed, so a
+    // target that does not carry `fileExtension` kept its own `.ts` and
+    // produced `/out/client.ts.schemas.generated.ts`.
+    expect(
+      resolveDefaultSchemaModule(output({ target: '/out/client.ts' })),
+    ).toBe('/out/client.schemas.generated.ts');
+  });
+
+  it('keeps a dot that belongs to the filename', () => {
+    expect(
+      resolveDefaultSchemaModule(
+        output({ target: '/out/client.v1.ts', fileExtension: '.ts' }),
+      ),
+    ).toBe('/out/client.v1.schemas.ts');
+  });
+
   it('returns the target path itself in single mode', () => {
     expect(resolveDefaultSchemaModule(output({ mode: 'single' }))).toBe(
       '/out/client.generated.ts',

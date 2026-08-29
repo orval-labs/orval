@@ -137,16 +137,15 @@ describe('buildBarrelReExports', () => {
     );
   });
 
-  it('claims a name as both a type and a value when different files declare each', () => {
-    // Regression: claiming `Shared` as a type in one file must not suppress
-    // the explicit value re-export another file still needs — a single
-    // shared `claimed` set across categories left the value wildcard-only,
-    // which TypeScript still reports as TS2308.
+  it('claims a name once when a file declares it as both a type and a value', () => {
+    // `export { Shared }` carries the type meaning too, so one line is both
+    // necessary and sufficient. Emitting a `type` line beside it would be
+    // TS2300 — an export name is one slot, whatever the modifier says.
     const lines = buildBarrelReExports(
       [
         {
           path: '/out/a/a.resource.ts',
-          sharedExports: { types: ['Shared'], values: [] },
+          sharedExports: { types: ['Shared'], values: ['Shared'] },
         },
         {
           path: '/out/b/b.resource.ts',
@@ -156,11 +155,35 @@ describe('buildBarrelReExports', () => {
       options,
     );
 
-    expect(lines).toContain("export type { Shared } from './a/a.resource';");
-    expect(lines).toContain("export { Shared } from './b/b.resource';");
+    expect(lines).toContain("export { Shared } from './a/a.resource';");
+    expect(lines).not.toContain(
+      "export type { Shared } from './a/a.resource';",
+    );
+    expect(lines.filter((line) => line.includes('{ Shared }'))).toHaveLength(1);
   });
 
-  it('preclaiming a name as a type does not preclaim it as a value', () => {
+  it('leaves a name declared as a type in one file and a value in another to fail', () => {
+    // No single line can carry both meanings, and picking one would silently
+    // drop the other. A generator declaring one name as two things is a
+    // defect, so it stays TS2308 rather than becoming TS2300.
+    const lines = buildBarrelReExports(
+      [
+        {
+          path: '/out/a/a.resource.ts',
+          sharedExports: { types: ['Shared'], values: [] },
+        },
+        {
+          path: '/out/b/b.resource.ts',
+          sharedExports: { types: [], values: ['Shared'] },
+        },
+      ],
+      options,
+    );
+
+    expect(lines.every((line) => line.startsWith('export *'))).toBe(true);
+  });
+
+  it('preclaiming a name in either category suppresses every further line', () => {
     const lines = buildBarrelReExports(
       [
         {
@@ -176,7 +199,7 @@ describe('buildBarrelReExports', () => {
       { types: ['Shared'] },
     );
 
-    expect(lines).toContain("export { Shared } from './a/a.resource';");
+    expect(lines.every((line) => line.startsWith('export *'))).toBe(true);
   });
 
   it('ignores files that declare no shared exports', () => {

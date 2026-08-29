@@ -1,5 +1,5 @@
 import type { SharedExports } from '../types';
-import { pathWithoutExtension } from './file';
+import { stripFileExtension } from './file';
 import * as upath from './path';
 
 export interface BarrelReExportFile {
@@ -18,6 +18,9 @@ export interface BarrelReExportOptions {
   importExtension: string;
 }
 
+/** How one file re-exports a shared name. */
+type ExportKind = 'type' | 'value';
+
 /**
  * Barrel lines that re-export a set of sibling files.
  *
@@ -29,16 +32,26 @@ export interface BarrelReExportOptions {
  * not matter to TypeScript. The lines are ordered only to keep the output
  * stable.
  *
+ * An export name is a single slot, whatever the `type` modifier says: emitting
+ * both `export type { X } from './a'` and `export { X } from './b'` is
+ * TS2300, not a resolution. So a name is claimed once, by one file, and the
+ * `type` modifier only records how that file declares it. `export { X }`
+ * carries the type meaning along with the value, so a file that declares a
+ * name in both categories claims it as a value.
+ *
+ * A name that is a type in one file and a value in another cannot be resolved
+ * this way — one line would drop the other meaning. It is left to the
+ * wildcards, where it stays TS2308, because a generator declaring one name as
+ * two different things is a defect that must not be papered over.
+ *
  * Only the names that a generator {@link SharedExports | declares} count. An
  * accidental collision between two tags stays a build error.
  *
  * @param files - Sibling files, in barrel order.
  * @param alreadyExported - Names that the barrel re-exports by name already,
  * split by {@link SharedExports} category. A second line for one of them is a
- * duplicate declaration (TS2323). A name preclaimed as a type does not
- * preclaim it as a value, and vice versa — the two live in the same
- * identifier namespace, but a common name that is a type in one file and a
- * value in another still needs one explicit line per category.
+ * duplicate declaration (TS2323), so a name listed in either category is
+ * claimed and no further line is emitted for it.
  * @returns Barrel lines, named re-exports first. No trailing newlines.
  */
 export function buildBarrelReExports(
@@ -58,47 +71,58 @@ export function buildBarrelReExports(
     .toSorted((a, b) => a.relativePath.localeCompare(b.relativePath))
     .map(({ sharedExports, relativePath }) => ({
       sharedExports,
-      // Strip the full `extension` when present. A multi-part extension
-      // (`.generated.ts`) then goes in one piece and leaves no `.generated`
-      // behind.
-      specifier:
-        (relativePath.endsWith(extension)
-          ? relativePath.slice(0, -extension.length)
-          : pathWithoutExtension(relativePath)) + importExtension,
+      specifier: stripFileExtension(relativePath, extension) + importExtension,
     }));
 
-  const declarationCounts = new Map<string, number>();
+  // `export { X }` re-exports the type meaning too, so a file that declares a
+  // name in both categories is recorded once, as a value.
+  const declarationKind = (
+    { values }: SharedExports,
+    name: string,
+  ): ExportKind => (values.includes(name) ? 'value' : 'type');
+
+  const declarations = new Map<string, ExportKind[]>();
   for (const { sharedExports } of entries) {
     if (!sharedExports) continue;
     for (const name of new Set([
       ...sharedExports.types,
       ...sharedExports.values,
     ])) {
-      declarationCounts.set(name, (declarationCounts.get(name) ?? 0) + 1);
+      const kinds = declarations.get(name) ?? [];
+      kinds.push(declarationKind(sharedExports, name));
+      declarations.set(name, kinds);
     }
   }
 
-  // Kept separate per {@link SharedExports} category: a name can be a type in
-  // one file and a value in another (or both, in the same or different
-  // files). Claiming it in one category must not suppress the explicit
-  // re-export the other category still needs — a value re-export left to
-  // `export *` while its type sibling was already claimed is just as
-  // ambiguous (TS2308) as if neither had been claimed.
-  const claimedTypes = new Set(alreadyExported.types);
-  const claimedValues = new Set(alreadyExported.values);
-  const claim = (names: readonly string[], claimed: Set<string>): string[] => {
-    const owned = names.filter(
-      (name) => !claimed.has(name) && (declarationCounts.get(name) ?? 0) > 1,
-    );
-    for (const name of owned) claimed.add(name);
-    return owned.toSorted();
+  // One slot per name, so one `claimed` set across both categories. A name
+  // preclaimed by the caller in either category is already on a line.
+  const claimed = new Set([
+    ...(alreadyExported.types ?? []),
+    ...(alreadyExported.values ?? []),
+  ]);
+
+  const claim = (
+    sharedExports: SharedExports,
+  ): Record<ExportKind, string[]> => {
+    const owned: Record<ExportKind, string[]> = { type: [], value: [] };
+    const names = new Set([...sharedExports.types, ...sharedExports.values]);
+    for (const name of names) {
+      const kinds = declarations.get(name) ?? [];
+      // Declared once: the wildcard is unambiguous already.
+      if (kinds.length < 2) continue;
+      if (claimed.has(name)) continue;
+      // A name declared as two different things has no single owner.
+      if (kinds.some((kind) => kind !== kinds[0])) continue;
+      claimed.add(name);
+      owned[declarationKind(sharedExports, name)].push(name);
+    }
+    return { type: owned.type.toSorted(), value: owned.value.toSorted() };
   };
 
   const lines: string[] = [];
   for (const { specifier, sharedExports } of entries) {
     if (!sharedExports) continue;
-    const types = claim(sharedExports.types, claimedTypes);
-    const values = claim(sharedExports.values, claimedValues);
+    const { type: types, value: values } = claim(sharedExports);
     if (types.length > 0) {
       lines.push(`export type { ${types.join(', ')} } from '${specifier}';`);
     }

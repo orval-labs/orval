@@ -25,6 +25,7 @@ import {
   pascal,
   splitSchemasByType,
   SupportedFormatter,
+  stripFileExtension,
   upath,
   withGeneratedFileTransform,
   writeGeneratedFile,
@@ -52,7 +53,6 @@ import {
   executeHook,
   readReExportSpecifiers,
   reconcileWorkspaceBarrel,
-  stripFileExtension,
 } from './utils';
 import {
   generateZodSchemasInline,

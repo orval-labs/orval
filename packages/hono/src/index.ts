@@ -28,6 +28,7 @@ import {
   getKey,
   pascal,
   sanitizePathParamName,
+  stripFileExtension,
   getImportExtension,
   type Tsconfig,
   upath,
@@ -1130,7 +1131,7 @@ ${honoAppExport}
 export const resolveDefaultSchemaModule = (
   output: NormalizedOutputOptions,
 ): string => {
-  const { path, dirname, filename, extension } = getFileInfo(output.target, {
+  const { path, extension } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
 
@@ -1145,7 +1146,11 @@ export const resolveDefaultSchemaModule = (
     return upath.toUnix(path);
   }
 
-  return upath.join(dirname, `${filename}.schemas${extension}`);
+  // Strip the configured extension in one piece. `getFileInfo`'s `filename`
+  // only strips it when the target actually carries it, so a target named
+  // `client.ts` under `fileExtension: '.gen.ts'` would otherwise produce
+  // `client.ts.schemas.gen.ts`.
+  return `${upath.toUnix(stripFileExtension(path, extension))}.schemas${extension}`;
 };
 
 export const generateExtraFiles: ClientExtraFilesBuilder = async (

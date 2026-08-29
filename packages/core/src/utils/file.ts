@@ -11,6 +11,21 @@ export function pathWithoutExtension(filePath: string) {
 }
 
 /**
+ * Removes a configured file extension, which may have several parts. Stripping
+ * only the last segment would leave `pets.generated.ts` as `pets.generated`,
+ * and re-adding the extension then gives `pets.generated.generated`. Falls
+ * back to the last segment for a path that does not carry the full extension.
+ */
+export function stripFileExtension(
+  filePath: string,
+  fileExtension: string,
+): string {
+  return filePath.endsWith(fileExtension)
+    ? filePath.slice(0, -fileExtension.length)
+    : pathWithoutExtension(filePath);
+}
+
+/**
  * Escapes glob metacharacters (`*?()[]{}!`, a leading `!`, and a literal
  * backslash) in a path segment so it can be embedded in a glob pattern and
  * only ever match itself. Re-exported from `tinyglobby`, the glob engine

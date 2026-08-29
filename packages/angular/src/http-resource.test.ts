@@ -3452,6 +3452,16 @@ describe('angular httpResource generator', () => {
         ].toSorted(),
       ).toEqual(actuallyShared);
       expect(second.sharedExports).toEqual(first.sharedExports);
+
+      // The barrel gives a name one line, so a name listed under both
+      // categories would be claimed as a value and lose nothing — but a name
+      // that is a type in one file and a value in another has no single
+      // owner, and `buildBarrelReExports` leaves it ambiguous on purpose.
+      // Keeping the two lists disjoint is what makes the barrel resolvable.
+      const types = new Set(first.sharedExports?.types ?? []);
+      expect(
+        (first.sharedExports?.values ?? []).filter((name) => types.has(name)),
+      ).toEqual([]);
     });
   });
 
