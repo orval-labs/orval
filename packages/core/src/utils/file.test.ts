@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { stripFileExtension } from './file';
+import { pathWithoutExtension, stripFileExtension } from './file';
 
 describe('stripFileExtension', () => {
   it('strips a multi-part fileExtension in one piece', () => {
@@ -34,5 +34,28 @@ describe('stripFileExtension', () => {
     expect(stripFileExtension('./v1.0/pets.ts', '.generated.ts')).toBe(
       './v1.0/pets',
     );
+  });
+
+  it('treats a backslash as a separator', () => {
+    // Windows paths reach this helper too. A character class that excludes
+    // only `/` lets the fallback eat back past a `\`, so a segment with no
+    // extension of its own takes the version dot with it.
+    expect(stripFileExtension('.\\v1.0\\pets', '.generated.ts')).toBe(
+      '.\\v1.0\\pets',
+    );
+    expect(stripFileExtension('.\\v1.0\\pets.ts', '.generated.ts')).toBe(
+      '.\\v1.0\\pets',
+    );
+  });
+});
+
+describe('pathWithoutExtension', () => {
+  it('removes the last extension', () => {
+    expect(pathWithoutExtension('./pets.ts')).toBe('./pets');
+  });
+
+  it('keeps a dot that belongs to a directory', () => {
+    expect(pathWithoutExtension('./v1.0/pets')).toBe('./v1.0/pets');
+    expect(pathWithoutExtension('.\\v1.0\\pets')).toBe('.\\v1.0\\pets');
   });
 });
