@@ -528,9 +528,8 @@ export async function writeSplitTagsMode({
     const extraFileReExports = buildBarrelReExports(
       builder.extraFiles.filter((file) => file.barrelExport),
       { dirname, extension, importExtension },
-      // Common types already re-exported from the shared-types module must
-      // not preclaim the same name as a value — a name that is also a value
-      // in an extra file still needs its own explicit value re-export.
+      // These already have a line pointing at the shared-types module, and a
+      // name gets one line.
       { types: publicSharedTypeNames },
     );
 
