@@ -188,40 +188,44 @@ export const ShowPetWithOwnerParams = zod.object({
 
 export const ShowPetWithOwnerResponse = zod.strictObject({
   tag: zod.string(),
-  pet: zod
-    .union([
-      zod
-        .union([
-          zod.strictObject({
-            cuteness: zod.int(),
-            breed: zod.enum(['Labradoodle']),
-          }),
-          zod.strictObject({
-            length: zod.int(),
-            breed: zod.enum(['Dachshund']),
-          }),
-        ])
-        .and(
-          zod.strictObject({
-            barksPerMinute: zod.int().optional(),
-            type: zod.enum(['dog']),
-          }),
-        ),
-      zod.strictObject({
-        petsRequested: zod.int().optional(),
-        type: zod.enum(['cat']),
-      }),
-    ])
-    .and(
-      zod.strictObject({
-        '@id': zod.string().optional(),
-        id: zod.int(),
-        name: zod.string(),
-        tag: zod.string().optional(),
-        email: zod.email().optional(),
-        callingCode: zod.enum(['+33', '+420']).optional(),
-        country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
-      }),
-    )
-    .nullable(),
+  pet: zod.union([
+    zod
+      .union([
+        zod
+          .union([
+            zod.strictObject({
+              cuteness: zod.int(),
+              breed: zod.enum(['Labradoodle']),
+            }),
+            zod.strictObject({
+              length: zod.int(),
+              breed: zod.enum(['Dachshund']),
+            }),
+          ])
+          .and(
+            zod.strictObject({
+              barksPerMinute: zod.int().optional(),
+              type: zod.enum(['dog']),
+            }),
+          ),
+        zod.strictObject({
+          petsRequested: zod.int().optional(),
+          type: zod.enum(['cat']),
+        }),
+      ])
+      .and(
+        zod.strictObject({
+          '@id': zod.string().optional(),
+          id: zod.int(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.email().optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
+        }),
+      ),
+    zod.null(),
+  ]),
 });

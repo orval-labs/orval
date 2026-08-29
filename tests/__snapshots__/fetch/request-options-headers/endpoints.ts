@@ -96,13 +96,21 @@ export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
     headers: {
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
   });
 
@@ -155,6 +163,14 @@ export const createPets = async (
   params: CreatePetsParams,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
@@ -162,7 +178,7 @@ export const createPets = async (
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: JSON.stringify(createPetsBody),
   });
@@ -209,13 +225,21 @@ export const showPetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetByIdResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
     headers: {
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
   });
 
@@ -261,13 +285,21 @@ export const deletePetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<deletePetByIdResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getDeletePetByIdUrl(petId), {
     ...options,
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
   });
 
@@ -314,13 +346,21 @@ export const getHealthCheckUrl = () => {
 export const healthCheck = async (
   options?: RequestInit,
 ): Promise<healthCheckResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getHealthCheckUrl(), {
     ...options,
     method: 'GET',
     headers: {
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
   });
 
@@ -371,13 +411,21 @@ export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetWithOwnerResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getShowPetWithOwnerUrl(petId), {
     ...options,
     method: 'GET',
     headers: {
       Authorization: `Bearer ${process.env.API_TOKEN || ''}`,
       'X-Static-Header': `static-value`,
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
   });
 

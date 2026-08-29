@@ -91,6 +91,8 @@ export const useCreatePetsHook = () => {
   );
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const useCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -98,16 +100,16 @@ export const useCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
     TError,
-    { data: Pet },
+    CreatePetsMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: Pet },
+  CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -120,7 +122,7 @@ export const useCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
-    { data: Pet }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -135,6 +137,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = Pet;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = { data: Pet };
 
 /**
  * @summary Create a pet
@@ -144,7 +147,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
       TError,
-      { data: Pet },
+      CreatePetsMutationVariables,
       TContext
     >;
   },
@@ -152,7 +155,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: Pet },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(useCreatePetsMutationOptions(options), queryClient);

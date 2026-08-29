@@ -123,12 +123,14 @@ function getApiSchemas({
     context,
     output.override.components.schemas.suffix,
     input.filters,
+    output.override.components.schemas.prefix,
   );
 
   const responseDefinition = generateComponentDefinition(
     spec.components?.responses,
     context,
     output.override.components.responses.suffix,
+    output.override.components.responses.prefix,
   );
 
   const swaggerResponseDefinition = generateComponentDefinition(
@@ -143,12 +145,14 @@ function getApiSchemas({
     spec.components?.requestBodies,
     context,
     output.override.components.requestBodies.suffix,
+    output.override.components.requestBodies.prefix,
   );
 
   const parameters = generateParameterDefinition(
     spec.components?.parameters,
     context,
     output.override.components.parameters.suffix,
+    output.override.components.parameters.prefix,
   );
 
   const schemas = [

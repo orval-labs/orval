@@ -14,6 +14,7 @@ import {
   generateAxiosRequestFunction,
   generateRequestOptionsArguments,
   getHookOptions,
+  getHooksOptionImplementation,
   getQueryArgumentsRequestType,
   getQueryHeader,
   getQueryOptions,
@@ -817,5 +818,29 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
     );
     expect(dateFree).not.toContain('deserializeGetPetResponse');
     expect(dateFree).not.toContain('.then(');
+  });
+});
+
+describe('getHooksOptionImplementation', () => {
+  it('reads the mutation key from the hoisted getter', () => {
+    const implementation = getHooksOptionImplementation(
+      true,
+      OutputHttpClient.FETCH,
+      'getCreatePetsMutationKey',
+    );
+
+    expect(implementation).toContain(
+      'const mutationKey = getCreatePetsMutationKey();',
+    );
+  });
+
+  it('emits nothing when request options are disabled', () => {
+    expect(
+      getHooksOptionImplementation(
+        false,
+        OutputHttpClient.FETCH,
+        'getCreatePetsMutationKey',
+      ),
+    ).toBe('');
   });
 });

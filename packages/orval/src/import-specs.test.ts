@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vite-plus/test';
 import {
   dereferenceExternalRef,
   importSpecs,
+  normalizeNullableRefs,
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
@@ -1007,7 +1008,7 @@ describe('optionsParamRequired', () => {
     expect(body?.implementation).toBe(
       'handleResourceBody?: HandleResourceBody',
     );
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(false);
     expect(body?.type).toBe('body');
 
@@ -1021,7 +1022,7 @@ describe('optionsParamRequired', () => {
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params?: HandleResourceParams');
     expect(params?.implementation).toBe('params?: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(false);
     expect(params?.type).toBe('queryParam');
 
@@ -1077,7 +1078,7 @@ export const handleResource = (
     expect(body?.name).toBe('handleResourceBody');
     expect(body?.definition).toBe('handleResourceBody: HandleResourceBody');
     expect(body?.implementation).toBe('handleResourceBody: HandleResourceBody');
-    expect(body?.default).toBe(false);
+    expect(body?.default).toBeUndefined();
     expect(body?.required).toBe(true);
     expect(body?.type).toBe('body');
 
@@ -1091,7 +1092,7 @@ export const handleResource = (
     expect(params?.name).toBe('params');
     expect(params?.definition).toBe('params: HandleResourceParams');
     expect(params?.implementation).toBe('params: HandleResourceParams');
-    expect(params?.default).toBe(false);
+    expect(params?.default).toBeUndefined();
     expect(params?.required).toBe(true);
     expect(params?.type).toBe('queryParam');
 
@@ -1962,5 +1963,74 @@ describe('validateComponentKeys', () => {
     expect(() => {
       validateComponentKeys(data);
     }).not.toThrow();
+  });
+});
+
+describe('normalizeNullableRefs', () => {
+  it('should rewrite a $ref with sibling nullable: true into anyOf', () => {
+    const input = {
+      $ref: '#/components/schemas/Pet',
+      nullable: true,
+    };
+
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    expect(result).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/Pet' }, { type: 'null' }],
+    });
+  });
+
+  it('should not touch a $ref without nullable', () => {
+    const input = { $ref: '#/components/schemas/Pet' };
+    const result = normalizeNullableRefs(input);
+    expect(result).toEqual({ $ref: '#/components/schemas/Pet' });
+  });
+
+  it('should not touch a nullable schema without $ref', () => {
+    const input = { type: 'string', nullable: true };
+    const result = normalizeNullableRefs(input);
+    expect(result).toEqual({ type: 'string', nullable: true });
+  });
+
+  it('should normalize nullable refs nested inside properties', () => {
+    const input = {
+      type: 'object',
+      properties: {
+        owner: {
+          $ref: '#/components/schemas/Owner',
+          nullable: true,
+        },
+        pet: {
+          $ref: '#/components/schemas/Pet',
+        },
+      },
+    };
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    const props = result.properties as Record<string, unknown>;
+
+    expect(props.owner).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/Owner' }, { type: 'null' }],
+    });
+    expect(props.pet).toEqual({ $ref: '#/components/schemas/Pet' });
+  });
+
+  it('should normalize nullable refs inside arrays', () => {
+    const input = {
+      anyOf: [
+        { $ref: '#/components/schemas/A', nullable: true },
+        { type: 'string' },
+      ],
+    };
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    const items = result.anyOf as unknown[];
+    expect(items[0]).toEqual({
+      anyOf: [{ $ref: '#/components/schemas/A' }, { type: 'null' }],
+    });
+  });
+
+  it('should pass through non-object types unchanged', () => {
+    expect(normalizeNullableRefs('string')).toBe('string');
+    expect(normalizeNullableRefs(null)).toBe(null);
+    expect(normalizeNullableRefs(42)).toBe(42);
+    expect(normalizeNullableRefs([1, 2, 3])).toEqual([1, 2, 3]);
   });
 });

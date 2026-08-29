@@ -36,6 +36,13 @@ components:
           enum:
             - enum1
             - enum2
+        example_nullable_enum:
+          anyOf:
+            - type: string
+              enum:
+                - enum1
+                - enum2
+            - type: 'null'
       title: Test
       type: object
     EnumConstWithoutMetadata:      
@@ -51,4 +58,11 @@ components:
           title: Legacy
           description: Legacy status
           deprecated: true
+        - type: 'null'
+    NullableEnumAnyOf:
+      anyOf:
+        - type: string
+          enum:
+            - ACTIVE
+            - LEGACY
         - type: 'null'

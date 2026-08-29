@@ -248,6 +248,8 @@ export const useCreatePetsHook = () => {
   );
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const useCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -255,17 +257,17 @@ export const useCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    CreatePetsMutationVariables,
     TContext
   >;
   request?: SecondParameter<ReturnType<typeof useCustomInstance>>;
 }): UseMutationOptions<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -278,7 +280,7 @@ export const useCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
-    { data: CreatePetsBody; params: CreatePetsParams }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data, params } = props ?? {};
 
@@ -293,6 +295,10 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = {
+  data: CreatePetsBody;
+  params: CreatePetsParams;
+};
 
 /**
  * @summary Create a pet
@@ -302,7 +308,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
       TError,
-      { data: CreatePetsBody; params: CreatePetsParams },
+      CreatePetsMutationVariables,
       TContext
     >;
     request?: SecondParameter<ReturnType<typeof useCustomInstance>>;
@@ -311,7 +317,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(useCreatePetsMutationOptions(options), queryClient);
@@ -512,6 +518,8 @@ export const useDeletePetByIdHook = () => {
   );
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const useDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -519,17 +527,17 @@ export const useDeletePetByIdMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useDeletePetByIdHook>>>,
     TError,
-    { petId: string },
+    DeletePetByIdMutationVariables,
     TContext
   >;
   request?: SecondParameter<ReturnType<typeof useCustomInstance>>;
 }): UseMutationOptions<
   Awaited<ReturnType<ReturnType<typeof useDeletePetByIdHook>>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -542,7 +550,7 @@ export const useDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<ReturnType<typeof useDeletePetByIdHook>>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -557,6 +565,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -566,7 +575,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<ReturnType<typeof useDeletePetByIdHook>>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     request?: SecondParameter<ReturnType<typeof useCustomInstance>>;
@@ -575,7 +584,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<ReturnType<typeof useDeletePetByIdHook>>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   return useMutation(useDeletePetByIdMutationOptions(options), queryClient);

@@ -8,10 +8,15 @@ describe('generateParameterDefinition', () => {
   const context = createTestContextSpec({
     override: {
       components: {
-        schemas: { suffix: '', itemSuffix: 'Parameter' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
+        schemas: {
+          prefix: '',
+          itemPrefix: '',
+          suffix: '',
+          itemSuffix: 'Parameter',
+        },
+        responses: { prefix: '', suffix: '' },
+        parameters: { prefix: '', suffix: '' },
+        requestBodies: { prefix: '', suffix: '' },
       },
     },
   });

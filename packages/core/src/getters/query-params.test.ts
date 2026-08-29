@@ -21,10 +21,15 @@ const context = createTestContextSpec({
   override: {
     useDates: true,
     components: {
-      schemas: { suffix: 'Dto', itemSuffix: 'Item' },
-      responses: { suffix: 'Response' },
-      parameters: { suffix: 'Params' },
-      requestBodies: { suffix: 'Body' },
+      schemas: {
+        prefix: '',
+        itemPrefix: '',
+        suffix: 'Dto',
+        itemSuffix: 'Item',
+      },
+      responses: { prefix: '', suffix: 'Response' },
+      parameters: { prefix: '', suffix: 'Params' },
+      requestBodies: { prefix: '', suffix: 'Body' },
     },
   },
 });

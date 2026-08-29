@@ -2558,7 +2558,9 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
   // it straight through to the link's target, which can sit outside the
   // workspace entirely. The fix lstats each mock root first and skips
   // cleaning it (with a warning) when it is a symbolic link.
-  it('does not touch files in the target of a symlinked mock.path', async () => {
+  it('does not touch files in the target of a symlinked mock.path', async ({
+    skip,
+  }) => {
     const workspace = await createTempWorkspace();
     const outsideTarget = await createTempWorkspace();
 
@@ -2568,7 +2570,19 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
 
       const mockLink = path.join(workspace, 'src/mocks');
       await fs.ensureDir(path.dirname(mockLink));
-      await fs.symlink(outsideTarget, mockLink, 'dir');
+      try {
+        // A junction, not a true symbolic link: Windows grants
+        // `SeCreateSymbolicLinkPrivilege` only to elevated tokens or under
+        // Developer Mode, but a junction needs no privilege. libuv reports any
+        // reparse point as a symlink under lstat, so the guard under test sees
+        // the same thing either way. Ignored on POSIX.
+        await fs.symlink(outsideTarget, mockLink, 'junction');
+      } catch (error: unknown) {
+        // Filesystems without reparse-point support (FAT32, some network mounts).
+        const code = (error as NodeJS.ErrnoException)?.code;
+        if (code === 'EPERM' || code === 'ENOTSUP') skip();
+        else throw error;
+      }
 
       // A stale-looking file already sitting in the symlink target, matching
       // the mock cleanup patterns, so a naive fix (just widening the glob

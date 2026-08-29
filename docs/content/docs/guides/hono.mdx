@@ -61,12 +61,12 @@ Orval generates handler templates with built-in validation:
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../petstore.validator';
 import { ListPetsContext } from '../petstore.context';
-import { listPetsQueryParams, listPetsResponse } from '../petstore.zod';
+import { ListPetsQueryParams, listPetsResponse } from '../petstore.zod';
 
 const factory = createFactory();
 
 export const listPetsHandlers = factory.createHandlers(
-  zValidator('query', listPetsQueryParams),
+  zValidator('query', ListPetsQueryParams),
   zValidator('response', listPetsResponse),
   async (c: ListPetsContext) => {
     // Implement your logic here
@@ -88,7 +88,7 @@ Add your business logic to the generated handlers:
 
 ```ts title="src/handlers/listPets.ts"
 export const listPetsHandlers = factory.createHandlers(
-  zValidator('query', listPetsQueryParams),
+  zValidator('query', ListPetsQueryParams),
   zValidator('response', listPetsResponse),
   async (c: ListPetsContext) => {
     return c.json([

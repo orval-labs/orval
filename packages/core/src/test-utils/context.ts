@@ -67,10 +67,10 @@ export function createTestContextSpec({
       paramsSerializerOptions: undefined,
       namingConvention: {},
       components: {
-        schemas: { suffix: '', itemSuffix: '' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
+        schemas: { prefix: '', suffix: '', itemPrefix: '', itemSuffix: '' },
+        responses: { prefix: '', suffix: '' },
+        parameters: { prefix: '', suffix: '' },
+        requestBodies: { prefix: '', suffix: '' },
       },
       hono: {
         handlerGenerationStrategy: 'smart',
@@ -169,6 +169,7 @@ export function createTestContextSpec({
       requestOptions: true,
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeZodSchemaInArguments: false,
       mcp: {},
     },
   };

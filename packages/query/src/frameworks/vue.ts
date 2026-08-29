@@ -244,6 +244,7 @@ export const createVueAdapter = ({
   generateMutationOnSuccess({
     operationName,
     definitions,
+    mutationVariablesType,
     isRequestOptions,
     generateInvalidateCall,
     uniqueInvalidates,
@@ -254,29 +255,31 @@ export const createVueAdapter = ({
     const invalidateCalls = uniqueInvalidates
       .map((t) => generateInvalidateCall(t))
       .join('\n');
+    const variablesType =
+      mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
     if (hasQueryV5WithMutationContextOnSuccess) {
       if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
       };`;
       }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
     ${invalidateCalls}
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
       };`;
     }
     if (isRequestOptions) {
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, context);
       };`;
     }
-    return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+    return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
     ${invalidateCalls}
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, context);
       };`;

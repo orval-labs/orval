@@ -35,10 +35,21 @@ export const createEntity = async (
   createEntityBody: CreateEntityBody,
   options?: RequestInit,
 ): Promise<createEntityResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getCreateEntityUrl(version, entityId), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
     body: JSON.stringify(createEntityBody),
   });
 
@@ -52,6 +63,8 @@ export const createEntity = async (
   } as createEntityResponse;
 };
 
+export const getCreateEntityMutationKey = () => ['createEntity'] as const;
+
 export const useCreateEntityMutationOptions = <
   TError = unknown,
   TContext = unknown,
@@ -59,17 +72,17 @@ export const useCreateEntityMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createEntity>>,
     TError,
-    { version: number; entityId: string; data: CreateEntityBody },
+    CreateEntityMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createEntity>>,
   TError,
-  { version: number; entityId: string; data: CreateEntityBody },
+  CreateEntityMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createEntity'];
+  const mutationKey = getCreateEntityMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -80,7 +93,7 @@ export const useCreateEntityMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createEntity>>,
-    { version: number; entityId: string; data: CreateEntityBody }
+    CreateEntityMutationVariables
   > = (props) => {
     const { version, entityId, data } = props ?? {};
 
@@ -101,13 +114,18 @@ export type CreateEntityMutationResult = NonNullable<
 >;
 export type CreateEntityMutationBody = CreateEntityBody;
 export type CreateEntityMutationError = unknown;
+export type CreateEntityMutationVariables = {
+  version: number;
+  entityId: string;
+  data: CreateEntityBody;
+};
 
 export const useCreateEntity = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createEntity>>,
       TError,
-      { version: number; entityId: string; data: CreateEntityBody },
+      CreateEntityMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -116,7 +134,7 @@ export const useCreateEntity = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createEntity>>,
   TError,
-  { version: number; entityId: string; data: CreateEntityBody },
+  CreateEntityMutationVariables,
   TContext
 > => {
   return useMutation(useCreateEntityMutationOptions(options), queryClient);

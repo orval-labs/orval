@@ -41,20 +41,27 @@ export function getArray({
     typeof resolveExampleRefs
   >[0];
 
-  const itemSuffix = context.output.override.components.schemas.itemSuffix;
+  const itemPrefix =
+    context.output.override.components.schemas.itemPrefix ?? '';
+  const itemSuffix =
+    context.output.override.components.schemas.itemSuffix ?? '';
   if (schemaPrefixItems) {
     const resolvedObjects: ResolverValue[] = schemaPrefixItems.map(
       (item, index) =>
         resolveObject({
           schema: item,
-          propName: name ? name + itemSuffix + String(index) : undefined,
+          propName: name
+            ? itemPrefix + name + itemSuffix + String(index)
+            : undefined,
           context,
         }),
     );
     if (schemaItems) {
       const additional = resolveObject({
         schema: schemaItems,
-        propName: name ? name + itemSuffix + 'Additional' : undefined,
+        propName: name
+          ? itemPrefix + name + itemSuffix + 'Additional'
+          : undefined,
         context,
       });
       resolvedObjects.push({
@@ -78,7 +85,7 @@ export function getArray({
   if (schemaItems) {
     const resolvedObject = resolveObject({
       schema: schemaItems,
-      propName: name ? name + itemSuffix : undefined,
+      propName: name ? itemPrefix + name + itemSuffix : undefined,
       context,
       formDataContext,
     });

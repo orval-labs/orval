@@ -755,6 +755,8 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -762,16 +764,16 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+    CreatePetsMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+  CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -782,7 +784,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams; version?: number }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data, params, version } = props ?? {};
 
@@ -797,6 +799,11 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = {
+  data: CreatePetsBody;
+  params: CreatePetsParams;
+  version?: number;
+};
 
 /**
  * @summary Create a pet
@@ -806,7 +813,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+      CreatePetsMutationVariables,
       TContext
     >;
   },
@@ -814,7 +821,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
@@ -1119,6 +1126,8 @@ export const deletePetById = (
   });
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -1126,16 +1135,16 @@ export const getDeletePetByIdMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string; version?: number },
+    DeletePetByIdMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string; version?: number },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -1146,7 +1155,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string; version?: number }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId, version } = props ?? {};
 
@@ -1161,6 +1170,10 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = {
+  petId: string;
+  version?: number;
+};
 
 /**
  * @summary Deletes a specific pet
@@ -1170,7 +1183,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string; version?: number },
+      DeletePetByIdMutationVariables,
       TContext
     >;
   },
@@ -1178,7 +1191,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string; version?: number },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
@@ -2024,34 +2037,37 @@ export const getShowPetWithOwnerResponseMock = (
   overrideResponse: Partial<Extract<PetWithTag, object>> = {},
 ): PetWithTag => ({
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  },
+  pet: faker.helpers.arrayElement([
+    {
+      ...faker.helpers.arrayElement([
+        { ...getShowPetWithOwnerResponseDogMock() },
+        { ...getShowPetWithOwnerResponseCatMock() },
+      ]),
+      '@id': faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      id: faker.number.int(),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      callingCode: faker.helpers.arrayElement([
+        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+        undefined,
+      ]),
+      country: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          "People's Republic of China",
+          'Uruguay',
+        ] as const),
+        undefined,
+      ]),
+    },
+    null,
+  ]),
   ...overrideResponse,
 });
 
