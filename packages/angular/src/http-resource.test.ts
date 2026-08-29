@@ -121,6 +121,7 @@ const createOutput = (
         generateMeta: false,
         generateDiscriminatedUnion: false,
         exactOptional: false,
+        generateCompanionTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
       },

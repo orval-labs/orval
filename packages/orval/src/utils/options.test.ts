@@ -2039,6 +2039,52 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('honors generateCompanionTypes as a supported per-operation zod override', async () => {
+    const workspace = await createTempWorkspace();
+    logWarningSpy.mockClear();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              zod: {
+                generateCompanionTypes: false,
+              },
+              operations: {
+                listPets: {
+                  zod: {
+                    generateCompanionTypes: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+      expect(normalized.output.override.zod.generateCompanionTypes).toBe(false);
+      expect(
+        normalized.output.override.operations.listPets?.zod
+          ?.generateCompanionTypes,
+      ).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      logWarningSpy.mockClear();
+    }
+  });
+
   it('resolves global query mutators relative to the output workspace', async () => {
     const workspace = await createTempWorkspace();
 

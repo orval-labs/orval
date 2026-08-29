@@ -133,6 +133,7 @@ function createMockContext(): ContextSpec {
           generateMeta: false,
           generateDiscriminatedUnion: false,
           exactOptional: false,
+          generateCompanionTypes: false,
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
         },

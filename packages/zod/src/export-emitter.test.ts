@@ -151,6 +151,45 @@ describe('renderZodExport', () => {
       );
     });
 
+    it('gives both the Item schema and the wrapper their own companion type pair', () => {
+      expect(
+        renderZodExport({
+          name: 'CreatePetsBody',
+          expression: 'zod.object({ name: zod.string() })',
+          variant: 'classic',
+          companionTypes: true,
+          arrayItem: {},
+        }),
+      ).toBe(
+        'export const CreatePetsBodyItem = zod.object({ name: zod.string() })\n\n' +
+          'export type CreatePetsBodyItem = zod.input<typeof CreatePetsBodyItem>;\n' +
+          'export type CreatePetsBodyItemOutput = zod.output<typeof CreatePetsBodyItem>;\n\n' +
+          'export const CreatePetsBody = zod.array(CreatePetsBodyItem)\n\n' +
+          'export type CreatePetsBody = zod.input<typeof CreatePetsBody>;\n' +
+          'export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;',
+      );
+    });
+
+    it('brands only the wrapper, so its Output companion carries the brand while the Item pair does not', () => {
+      expect(
+        renderZodExport({
+          name: 'CreatePetsBody',
+          expression: 'zod.object({ name: zod.string() })',
+          variant: 'classic',
+          companionTypes: true,
+          brand: { isZodV4: true },
+          arrayItem: {},
+        }),
+      ).toBe(
+        'export const CreatePetsBodyItem = zod.object({ name: zod.string() })\n\n' +
+          'export type CreatePetsBodyItem = zod.input<typeof CreatePetsBodyItem>;\n' +
+          'export type CreatePetsBodyItemOutput = zod.output<typeof CreatePetsBodyItem>;\n\n' +
+          'export const CreatePetsBody = zod.array(CreatePetsBodyItem).brand("CreatePetsBody")\n\n' +
+          'export type CreatePetsBody = zod.input<typeof CreatePetsBody>;\n' +
+          'export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;',
+      );
+    });
+
     it('brands the array wrapper but never the Item schema', () => {
       expect(
         renderZodExport({

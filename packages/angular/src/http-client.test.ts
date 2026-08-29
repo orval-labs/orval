@@ -110,6 +110,7 @@ const createOutput = (
         generateMeta: false,
         generateDiscriminatedUnion: false,
         exactOptional: false,
+        generateCompanionTypes: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},

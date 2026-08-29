@@ -407,6 +407,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  companionTypes: {
+    output: {
+      target: '../generated/zod/companion-types/companion-types.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          generateCompanionTypes: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   'components-only': {
     output: {
       target: '../generated/zod/components-only/components-only.ts',

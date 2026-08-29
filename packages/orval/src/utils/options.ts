@@ -729,6 +729,8 @@ export async function normalizeOptions(
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
+          generateCompanionTypes:
+            outputOptions.override?.zod?.generateCompanionTypes ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -1123,7 +1125,7 @@ function normalizeOperationsAndTags(
             .join(', ');
 
           logWarning(
-            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
           );
         }
 
@@ -1139,7 +1141,8 @@ function normalizeOperationsAndTags(
             zod.coerce !== undefined ||
             zod.preprocess !== undefined ||
             zod.params !== undefined ||
-            zod.useBrandedTypes !== undefined);
+            zod.useBrandedTypes !== undefined ||
+            zod.generateCompanionTypes !== undefined);
 
         if (angular?.baseUrl) {
           logWarning(
@@ -1245,6 +1248,7 @@ function normalizeOperationsAndTags(
                         }
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateCompanionTypes: zod.generateCompanionTypes ?? false,
                   },
                 }
               : {}),

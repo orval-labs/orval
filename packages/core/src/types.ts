@@ -968,6 +968,13 @@ interface BaseZodOptions {
    */
   params?: Mutator;
   useBrandedTypes?: boolean;
+  /**
+   * When true, each generated `export const X = <zod schema>` is followed by
+   * `export type X = zod.input<typeof X>;` and
+   * `export type XOutput = zod.output<typeof X>;`, including the `Item`
+   * schema split out for a bounded/array body or response. Default `false`.
+   */
+  generateCompanionTypes?: boolean;
 }
 
 export interface ZodOptions extends BaseZodOptions {
@@ -1090,13 +1097,20 @@ export interface NormalizedZodOptions {
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
   exactOptional: boolean;
+  generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
 
 export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
-  'strict' | 'generate' | 'coerce' | 'preprocess' | 'params' | 'useBrandedTypes'
+  | 'strict'
+  | 'generate'
+  | 'coerce'
+  | 'preprocess'
+  | 'params'
+  | 'useBrandedTypes'
+  | 'generateCompanionTypes'
 >;
 
 export interface NormalizedEffectOptions {

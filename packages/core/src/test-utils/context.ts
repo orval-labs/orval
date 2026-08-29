@@ -135,6 +135,7 @@ export function createTestContextSpec({
         generateMeta: false,
         generateDiscriminatedUnion: false,
         exactOptional: false,
+        generateCompanionTypes: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
