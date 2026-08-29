@@ -28,6 +28,7 @@ import {
   getKey,
   pascal,
   sanitizePathParamName,
+  stripFileExtension,
   getImportExtension,
   type Tsconfig,
   upath,
@@ -1115,28 +1116,48 @@ ${honoAppExport}
   ];
 };
 
-export const generateExtraFiles: ClientExtraFilesBuilder = async (
-  verbOptions,
-  output,
-  context,
-) => {
-  const { path, pathWithoutExtension, extension } = getFileInfo(output.target, {
+/**
+ * Path (or directory, when `output.schemas` names one explicitly) that the
+ * generated `.context` and `.zod` modules import shared schema types from.
+ *
+ * @remarks
+ * The configured `extension` may have several parts. Stripping only the last
+ * one leaves `.generated` behind for a `.generated.ts` extension and produces
+ * `client.generated.schemas.generated.ts` instead of
+ * `client.schemas.generated.ts`.
+ */
+export const resolveDefaultSchemaModule = (
+  output: NormalizedOutputOptions,
+): string => {
+  const { path, extension } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const validator = generateZvalidator(output, context);
-  let schemaModule: string;
 
   if (output.schemas != undefined) {
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
-    const basePath = getFileInfo(schemasPath).dirname;
-    schemaModule = basePath;
-  } else if (output.mode === 'single') {
-    schemaModule = path;
-  } else {
-    schemaModule = `${pathWithoutExtension}.schemas${extension}`;
+    return upath.toUnix(getFileInfo(schemasPath).dirname);
   }
+
+  if (output.mode === 'single') {
+    return upath.toUnix(path);
+  }
+
+  // Strip the configured extension in one piece. `getFileInfo`'s `filename`
+  // only strips it when the target actually carries it, so a target named
+  // `client.ts` under `fileExtension: '.gen.ts'` would otherwise produce
+  // `client.ts.schemas.gen.ts`.
+  return `${upath.toUnix(stripFileExtension(path, extension))}.schemas${extension}`;
+};
+
+export const generateExtraFiles: ClientExtraFilesBuilder = async (
+  verbOptions,
+  output,
+  context,
+) => {
+  const validator = generateZvalidator(output, context);
+  const schemaModule = resolveDefaultSchemaModule(output);
 
   const contexts = generateContextFiles(
     verbOptions,

@@ -5,6 +5,26 @@ import { escapePath, glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
 
+/** Removes the last extension from a path. A dot in a directory name stays. */
+export function pathWithoutExtension(filePath: string) {
+  return filePath.replace(/\.[^/.]+$/, '');
+}
+
+/**
+ * Removes a configured file extension, which may have several parts. Stripping
+ * only the last segment would leave `pets.generated.ts` as `pets.generated`,
+ * and re-adding the extension then gives `pets.generated.generated`. Falls
+ * back to the last segment for a path that does not carry the full extension.
+ */
+export function stripFileExtension(
+  filePath: string,
+  fileExtension: string,
+): string {
+  return filePath.endsWith(fileExtension)
+    ? filePath.slice(0, -fileExtension.length)
+    : pathWithoutExtension(filePath);
+}
+
 /**
  * Escapes glob metacharacters (`*?()[]{}!`, a leading `!`, and a literal
  * backslash) in a path segment so it can be embedded in a glob pattern and
@@ -26,7 +46,6 @@ export function getFileInfo(
   const filePath = isDir
     ? path.join(target, backupFilename + extension)
     : target;
-  const pathWithoutExtension = filePath.replace(/\.[^/.]+$/, '');
   const dir = path.dirname(filePath);
   const filename = path.basename(
     filePath,
@@ -35,7 +54,7 @@ export function getFileInfo(
 
   return {
     path: filePath,
-    pathWithoutExtension,
+    pathWithoutExtension: pathWithoutExtension(filePath),
     extension,
     isDirectory: isDir,
     dirname: dir,
