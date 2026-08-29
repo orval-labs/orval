@@ -43,6 +43,7 @@ import {
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
+import { unique } from 'remeda';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
 
 import {
@@ -625,6 +626,133 @@ function getImplementationPathsForIndex(
       getComparableFilePath(p) === getComparableFilePath(rootBarrel) ||
       getComparableFilePath(p) === getComparableFilePath(globalSchemas),
   );
+}
+
+/**
+ * Emits `<clientDir>/index.ts`, re-exporting every client file actually
+ * written under `output.artifacts.clientDir` — per-tag implementation files
+ * plus any `builder.extraFiles` (e.g. Angular `*.resource.ts`). Built only
+ * from paths writers actually produced (never guessed from tag names), so a
+ * tag without a retrieval operation — and thus no `.resource.ts` — is never
+ * re-exported as if it existed.
+ *
+ * When `tagsSplitDeduplication` is on, `writeSplitTagsMode` may already have
+ * written a barrel at this same path (re-exporting `.service.ts` files plus
+ * a named `common-types` re-export). `appendOrCreateBarrel` composes with it
+ * by appending only the lines it doesn't already declare — e.g. the
+ * `.resource.ts` re-exports that barrel never included.
+ */
+export async function writeClientGroupBarrel(
+  output: NormalizedOutputOptions,
+  filePaths: string[],
+): Promise<string | undefined> {
+  const { artifacts } = output;
+  if (!artifacts || !output.indexFiles) {
+    return undefined;
+  }
+
+  const { clientDir } = artifacts;
+  const indexFile = path.join(clientDir, `index${output.fileExtension}`);
+  const comparableClientDir = getComparableFilePath(clientDir);
+  const comparableIndexFile = getComparableFilePath(indexFile);
+
+  const mockExtensions = output.mock.generators.map((g) =>
+    getMockFileExtensionByTypeName(g),
+  );
+  // Excluded because it's re-exported with named `export type { ... }`
+  // re-exports by the `tagsSplitDeduplication` barrel already — a second
+  // `export *` for the same path would redeclare those names.
+  const comparableCommonTypesPath = getComparableFilePath(
+    path.join(
+      clientDir,
+      `${output.commonTypesFileName}${output.fileExtension}`,
+    ),
+  );
+
+  const clientFilePaths = unique(filePaths).filter((filePath) => {
+    const comparablePath = getComparableFilePath(filePath);
+    const isUnderClientDir =
+      comparablePath === comparableClientDir ||
+      comparablePath.startsWith(comparableClientDir + path.sep);
+    if (!isUnderClientDir) {
+      return false;
+    }
+    if (comparablePath === comparableIndexFile) {
+      return false;
+    }
+    if (comparablePath === comparableCommonTypesPath) {
+      return false;
+    }
+    if (filePath.endsWith(`.schemas${output.fileExtension}`)) {
+      return false;
+    }
+    if (
+      mockExtensions.some((ext) =>
+        filePath.endsWith(`.${ext}${output.fileExtension}`),
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  if (clientFilePaths.length === 0) {
+    return undefined;
+  }
+
+  const importExtension = getImportExtension(
+    output.fileExtension,
+    output.tsconfig,
+  );
+
+  const toImportSpecifier = (filePath: string): string => {
+    const relative = upath.getRelativeImportPath(indexFile, filePath, true);
+    const withoutExt = relative.endsWith(output.fileExtension)
+      ? relative.slice(0, -output.fileExtension.length)
+      : relative.replace(/\.[^/.]+$/, '');
+    return withoutExt + importExtension;
+  };
+
+  const imports = clientFilePaths
+    .map(toImportSpecifier)
+    .toSorted((a, b) => a.localeCompare(b));
+
+  // See `DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT` above: when 2+ files of a
+  // kind known to carry identical generator boilerplate land in this barrel
+  // (e.g. two `.resource.ts` files under Angular's `both`/`resource`
+  // retrieval mode), wildcard-exporting all of them raises TS2308. Re-export
+  // the shared names explicitly from the first (sorted) such file so the
+  // subsequent `export *` statements — which still carry each file's
+  // tag-specific functions — compile cleanly.
+  const boilerplate =
+    typeof output.client === 'string'
+      ? DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT[output.client]
+      : undefined;
+  const namedReExports: string[] = [];
+  if (boilerplate) {
+    const matchingFilePaths = clientFilePaths
+      .filter((filePath) =>
+        filePath.endsWith(`${boilerplate.fileSuffix}${output.fileExtension}`),
+      )
+      .toSorted((a, b) => a.localeCompare(b));
+    if (matchingFilePaths.length > 1) {
+      const canonicalImport = toImportSpecifier(matchingFilePaths[0]);
+      if (boilerplate.typeNames.length > 0) {
+        namedReExports.push(
+          `export type { ${boilerplate.typeNames.join(', ')} } from '${canonicalImport}';`,
+        );
+      }
+      if (boilerplate.valueNames.length > 0) {
+        namedReExports.push(
+          `export { ${boilerplate.valueNames.join(', ')} } from '${canonicalImport}';`,
+        );
+      }
+    }
+  }
+
+  await appendOrCreateBarrel(indexFile, unique(imports), namedReExports);
+
+  return indexFile;
 }
 
 async function writeSpecsInternal(
