@@ -329,12 +329,13 @@ function collectDuplicateExportNames(
     }
   }
 
-  const sortedFilePaths = [...filePaths].toSorted((a, b) =>
-    a.localeCompare(b),
-  );
+  const sortedFilePaths = [...filePaths].toSorted((a, b) => a.localeCompare(b));
 
-  const duplicates: { name: string; sourceFilePath: string; typeOnly: boolean }[] =
-    [];
+  const duplicates: {
+    name: string;
+    sourceFilePath: string;
+    typeOnly: boolean;
+  }[] = [];
   for (const [name, byFile] of declarationsByName) {
     if (byFile.size < 2) {
       continue;
