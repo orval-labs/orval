@@ -66,6 +66,27 @@ export const getSchemaOutputTypeRef = (typeName: string): string =>
   `${typeName}Output`;
 
 /**
+ * Detects an inline array response definition (`X[]`) whose element `X` is a
+ * non-primitive name present in `imports`.
+ *
+ * Named schemas validate with `Schema.parse(...)`; an inline array has no
+ * generated schema of its own, so it must be composed as `zod.array(X)`. This
+ * helper recognizes exactly that shape and returns the element name (or
+ * `undefined` for primitives, `Array<...>` spellings, and unnamed arrays).
+ */
+export const getInlineArrayElement = (
+  imports: readonly { name: string }[],
+  typeName: string | undefined,
+): string | undefined => {
+  if (typeName == undefined) return undefined;
+  const match = /^(\w+)\[\]$/.exec(typeName);
+  if (!match) return undefined;
+  const element = match[1];
+  if (isPrimitiveType(element)) return undefined;
+  return imports.some((imp) => imp.name === element) ? element : undefined;
+};
+
+/**
  * Converts an operation/tag title into the generated Angular service class name.
  */
 export const generateAngularTitle = (title: string) => {

@@ -39,6 +39,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getInlineArrayElement,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isPrimitiveType,
@@ -374,7 +375,10 @@ export const generateHttpClientImplementation = (
 
   const dataType = response.definition.success || 'unknown';
   const isPrimitive = isPrimitiveType(dataType);
-  const hasSchema = hasSchemaImport(response.imports, dataType);
+  const inlineArrayElement = getInlineArrayElement(response.imports, dataType);
+  const hasSchema =
+    hasSchemaImport(response.imports, dataType) ||
+    inlineArrayElement != undefined;
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
     override.angular.runtimeValidation &&
@@ -382,7 +386,9 @@ export const generateHttpClientImplementation = (
     !isPrimitive &&
     hasSchema;
   const parsedDataType = shouldValidateResponse
-    ? getSchemaOutputTypeRef(dataType)
+    ? inlineArrayElement != undefined
+      ? `${getSchemaOutputTypeRef(inlineArrayElement)}[]`
+      : getSchemaOutputTypeRef(dataType)
     : dataType;
   const getGeneratedResponseType = (
     value: string,
@@ -393,10 +399,15 @@ export const generateHttpClientImplementation = (
       isZodOutput &&
       !!contentType &&
       (contentType.includes('json') || contentType.includes('+json')) &&
-      !isPrimitiveType(value) &&
-      hasSchemaImport(response.imports, value)
+      !isPrimitiveType(value)
     ) {
-      return getSchemaOutputTypeRef(value);
+      const valueArrayElement = getInlineArrayElement(response.imports, value);
+      if (valueArrayElement != undefined) {
+        return `${getSchemaOutputTypeRef(valueArrayElement)}[]`;
+      }
+      if (hasSchemaImport(response.imports, value)) {
+        return getSchemaOutputTypeRef(value);
+      }
     }
 
     return getContentTypeReturnType(contentType, value);
@@ -413,7 +424,9 @@ export const generateHttpClientImplementation = (
           ),
         ].join(' | ') || parsedDataType;
   const schemaValueRef = shouldValidateResponse
-    ? getSchemaValueRef(dataType)
+    ? inlineArrayElement != undefined
+      ? `zod.array(${getSchemaValueRef(inlineArrayElement)})`
+      : getSchemaValueRef(dataType)
     : dataType;
   // When Zod runtime validation is enabled the emitted method signature exposes
   // `parsedDataType` (e.g. `PetsOutput`) directly instead of a caller-overridable
@@ -585,9 +598,19 @@ export const generateHttpClientImplementation = (
     jsonSuccessValues.length === 1 &&
     override.angular.runtimeValidation &&
     isZodOutput &&
-    !isPrimitiveType(jsonSuccessValues[0]) &&
-    hasSchemaImport(response.imports, jsonSuccessValues[0])
-      ? getSchemaOutputTypeRef(jsonSuccessValues[0])
+    !isPrimitiveType(jsonSuccessValues[0])
+      ? (() => {
+          const jsonArrayElement = getInlineArrayElement(
+            response.imports,
+            jsonSuccessValues[0],
+          );
+          if (jsonArrayElement != undefined) {
+            return `${getSchemaOutputTypeRef(jsonArrayElement)}[]`;
+          }
+          return hasSchemaImport(response.imports, jsonSuccessValues[0])
+            ? getSchemaOutputTypeRef(jsonSuccessValues[0])
+            : jsonReturnType;
+        })()
       : jsonReturnType;
 
   let jsonValidationPipe = shouldValidateResponse
@@ -602,9 +625,15 @@ export const generateHttpClientImplementation = (
   ) {
     const jsonType = jsonSuccessValues[0];
     const jsonIsPrimitive = isPrimitiveType(jsonType);
-    const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
+    const jsonArrayElement = getInlineArrayElement(response.imports, jsonType);
+    const jsonHasSchema =
+      hasSchemaImport(response.imports, jsonType) ||
+      jsonArrayElement != undefined;
     if (!jsonIsPrimitive && jsonHasSchema) {
-      const jsonSchemaRef = getSchemaValueRef(jsonType);
+      const jsonSchemaRef =
+        jsonArrayElement != undefined
+          ? `zod.array(${getSchemaValueRef(jsonArrayElement)})`
+          : getSchemaValueRef(jsonType);
       jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
     }
   }
@@ -874,19 +903,37 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       },
     };
 
+    const inlineArrayElement = getInlineArrayElement(
+      result.response.imports,
+      responseType,
+    );
     if (
       !isPrimitiveResponse &&
-      hasSchemaImport(result.response.imports, responseType)
+      (hasSchemaImport(result.response.imports, responseType) ||
+        inlineArrayElement != undefined)
     ) {
+      const schemaName = inlineArrayElement ?? responseType;
       result = {
         ...result,
         response: {
           ...result.response,
           imports: [
             ...result.response.imports.map((imp) =>
-              imp.name === responseType ? { ...imp, values: true } : imp,
+              imp.name === schemaName ? { ...imp, values: true } : imp,
             ),
-            { name: getSchemaOutputTypeRef(responseType) },
+            { name: getSchemaOutputTypeRef(schemaName) },
+            // Inline array responses validate with `zod.array(X).parse(...)`,
+            // which references the `zod` namespace directly in the client file.
+            ...(inlineArrayElement != undefined
+              ? [
+                  {
+                    name: 'zod',
+                    values: true,
+                    namespaceImport: true,
+                    importPath: 'zod',
+                  },
+                ]
+              : []),
           ],
         },
       };
@@ -911,19 +958,35 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       if (jsonSchemaNames.length === 1) {
         const jsonType = jsonSchemaNames[0];
         const jsonIsPrimitive = isPrimitiveType(jsonType);
+        const jsonArrayElement = getInlineArrayElement(
+          result.response.imports,
+          jsonType,
+        );
         if (
           !jsonIsPrimitive &&
-          hasSchemaImport(result.response.imports, jsonType)
+          (hasSchemaImport(result.response.imports, jsonType) ||
+            jsonArrayElement != undefined)
         ) {
+          const jsonSchemaName = jsonArrayElement ?? jsonType;
           result = {
             ...result,
             response: {
               ...result.response,
               imports: [
                 ...result.response.imports.map((imp) =>
-                  imp.name === jsonType ? { ...imp, values: true } : imp,
+                  imp.name === jsonSchemaName ? { ...imp, values: true } : imp,
                 ),
-                { name: getSchemaOutputTypeRef(jsonType) },
+                { name: getSchemaOutputTypeRef(jsonSchemaName) },
+                ...(jsonArrayElement != undefined
+                  ? [
+                      {
+                        name: 'zod',
+                        values: true,
+                        namespaceImport: true,
+                        importPath: 'zod',
+                      },
+                    ]
+                  : []),
               ],
             },
           };

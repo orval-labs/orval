@@ -1840,6 +1840,118 @@ describe('angular HttpClient generator', () => {
       );
     });
 
+    it('validates inline array responses with zod.array composition (#3718)', () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet[]', errors: 'Error' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = {
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      } satisfies GeneratorOptions;
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The inline array has no generated schema, so validation composes the
+      // element schema: `zod.array(Pet).parse(...)` in all observe modes.
+      expect(impl).toContain('.pipe(map(data => zod.array(Pet).parse(data)))');
+      expect(impl).toContain(
+        'response.clone({ body: zod.array(Pet).parse(response.body) })',
+      );
+      expect(impl).toContain(
+        'event instanceof AngularHttpResponse ? event.clone({ body: zod.array(Pet).parse(event.body) }) : event',
+      );
+      // The validated return type is the element zod output type, array-wrapped.
+      expect(impl).toContain('Observable<PetOutput[]>');
+      expect(impl).toContain('this.http.get<PetOutput[]>');
+      expect(impl).not.toContain('Pet[].parse');
+    });
+
+    it('promotes inline array response imports for zod composition (#3718)', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet[]', errors: 'Error' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        context: createContextSpec(output),
+        override: output.override,
+      });
+
+      const generated = await generateAngular(
+        verbOption,
+        options,
+        'angular',
+        output,
+      );
+      const importNames = generated.imports.map((imp) => imp.name);
+
+      // The element schema is promoted to a value import (used by
+      // `zod.array(Pet)`) and the `zod` namespace is imported for composition.
+      const petImport = generated.imports.find((imp) => imp.name === 'Pet');
+      expect(petImport?.values).toBe(true);
+      expect(importNames).toContain('zod');
+      const zodImport = generated.imports.find((imp) => imp.name === 'zod');
+      expect(zodImport?.namespaceImport).toBe(true);
+      expect(importNames).toContain('PetOutput');
+    });
+
     it('uses Zod output types inside multi-content client result aliases', () => {
       const output = createOutput({
         schemas: {
