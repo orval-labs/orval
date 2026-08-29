@@ -20,7 +20,7 @@ import {
 import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getKey } from './keys';
+import { getKey, getPropertyNameCollisionKeys } from './keys';
 import { getRefInfo } from './ref';
 
 interface PropertyNamesKeyType {
@@ -378,24 +378,12 @@ export function getObject({
     // Phase 1: detect property-name collisions from namingConvention
     const propertyConvention =
       context.output.override.namingConvention?.properties;
-    const convertedNames = new Map<string, string[]>();
-    if (propertyConvention) {
-      for (const [key] of entries) {
-        const converted = conventionName(key, propertyConvention);
-        if (!convertedNames.has(converted)) {
-          convertedNames.set(converted, []);
-        }
-        convertedNames.get(converted)!.push(key);
-      }
-    }
-    const collisionKeys = new Set<string>();
-    for (const [converted, keys] of convertedNames) {
-      if (keys.length > 1) {
-        for (const k of keys) {
-          collisionKeys.add(k);
-        }
-      }
-    }
+    const collisionKeys = getPropertyNameCollisionKeys(
+      entries.map(([key]) => key),
+      propertyConvention
+        ? (name) => conventionName(name, propertyConvention)
+        : undefined,
+    );
 
     const acc: ScalarValue = {
       imports: [],

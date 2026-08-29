@@ -25,6 +25,7 @@ import {
 } from '../utils/content-type';
 import { getNumberWord } from '../utils/string';
 import type { FormDataContext } from './object';
+import { getPropertyNameCollisionKeys } from './keys';
 
 // Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
 // OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
@@ -749,6 +750,17 @@ function resolveSchemaPropertiesToFormData({
   // fields are appended as plain strings rather than wrapped in a Blob (#1624).
   const isUrlEncoded = variableName === 'formUrlEncoded';
   const schemaProps = getSchemaProperties(schema) ?? {};
+  const propertyConvention =
+    context.output.override.namingConvention?.properties;
+  // Same collision set the type renderer computes: keys that would collide
+  // after conversion keep their original schema key in the TS type, so the
+  // serializer must read those from the original key too (#2381).
+  const collisionKeys = getPropertyNameCollisionKeys(
+    Object.keys(schemaProps),
+    propertyConvention
+      ? (name) => conventionName(name, propertyConvention)
+      : undefined,
+  );
   for (const [key, value] of Object.entries(schemaProps)) {
     const { schema: property } = resolveSchemaRef(value, context);
 
@@ -763,31 +775,25 @@ function resolveSchemaPropertiesToFormData({
     const fieldEncoding = depth === 0 ? encoding?.[key] : undefined;
     const partContentType = fieldEncoding?.contentType;
 
-    const formattedKeyPrefix = isRequestBodyOptional
-      ? keyword.isIdentifierNameES5(key)
-        ? '?'
-        : '?.'
-      : '';
-    const formattedKey = keyword.isIdentifierNameES5(key)
-      ? `.${key}`
-      : `['${key}']`;
-
     // The TS type emits the namingConvention-converted property name, so the
     // runtime serializer must read the same converted name from the body while
-    // still appending the ORIGINAL schema key on the wire (#2381).
+    // still appending the ORIGINAL schema key on the wire (#2381). Colliding
+    // keys (e.g. first_name + firstName) keep the original key in the type,
+    // so read the original key too.
     const propertyConvention =
       context.output.override.namingConvention?.properties;
-    const convertedKey = propertyConvention
-      ? conventionName(key, propertyConvention)
-      : key;
+    const accessorKey =
+      propertyConvention && !collisionKeys.has(key)
+        ? conventionName(key, propertyConvention)
+        : key;
     const formattedConvertedKeyPrefix = isRequestBodyOptional
-      ? keyword.isIdentifierNameES5(convertedKey)
+      ? keyword.isIdentifierNameES5(accessorKey)
         ? '?'
         : '?.'
       : '';
-    const formattedConvertedKey = keyword.isIdentifierNameES5(convertedKey)
-      ? `.${convertedKey}`
-      : `['${convertedKey}']`;
+    const formattedConvertedKey = keyword.isIdentifierNameES5(accessorKey)
+      ? `.${accessorKey}`
+      : `['${accessorKey}']`;
 
     const valueKey = `${propName}${formattedConvertedKeyPrefix}${formattedConvertedKey}`;
     const nonOptionalValueKey = `${propName}${formattedConvertedKey}`;
