@@ -112,19 +112,25 @@ export interface NormalizedOverrideOutput {
   paramsFilter?: NormalizedMutator;
   namingConvention: {
     enum?: NamingConvention;
+    properties?: NamingConvention;
   };
   components: {
     schemas: {
+      prefix: string;
       suffix: string;
+      itemPrefix: string;
       itemSuffix: string;
     };
     responses: {
+      prefix: string;
       suffix: string;
     };
     parameters: {
+      prefix: string;
       suffix: string;
     };
     requestBodies: {
+      prefix: string;
       suffix: string;
     };
   };
@@ -183,6 +189,17 @@ export interface NormalizedOverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, the zod schema of the response is passed to the custom
+   * mutator as an extra `schema` option, so the mutator can validate the
+   * response itself.
+   *
+   * Requires `schemas: { type: 'zod' }` and runtime validation enabled for the
+   * client (e.g. `override.fetch.runtimeValidation`).
+   *
+   * @default false
+   */
+  includeZodSchemaInArguments: boolean;
 }
 
 export interface NormalizedMutator {
@@ -193,6 +210,7 @@ export interface NormalizedMutator {
   alias?: Record<string, string>;
   external?: string[];
   extension?: string;
+  useHooks?: boolean;
 }
 
 export interface NormalizedOperationOptions {
@@ -678,6 +696,7 @@ export interface MutatorObject {
   alias?: Record<string, string>;
   external?: string[];
   extension?: string;
+  useHooks?: boolean;
 }
 
 export type Mutator = string | MutatorObject;
@@ -751,19 +770,31 @@ export interface OverrideOutput {
   paramsFilter?: Mutator;
   namingConvention?: {
     enum?: NamingConvention;
+    /**
+     * Naming convention applied to schema property names in generated
+     * TypeScript types. The original spec key is still used for `required`
+     * matching and runtime serialization; only the emitted property name
+     * changes. See issue #2381.
+     */
+    properties?: NamingConvention;
   };
   components?: {
     schemas?: {
+      prefix?: string;
       suffix?: string;
+      itemPrefix?: string;
       itemSuffix?: string;
     };
     responses?: {
+      prefix?: string;
       suffix?: string;
     };
     parameters?: {
+      prefix?: string;
       suffix?: string;
     };
     requestBodies?: {
+      prefix?: string;
       suffix?: string;
     };
   };
@@ -819,6 +850,17 @@ export interface OverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, the zod schema of the response is passed to the custom
+   * mutator as an extra `schema` option, so the mutator can validate the
+   * response itself.
+   *
+   * Requires `schemas: { type: 'zod' }` and runtime validation enabled for the
+   * client (e.g. `override.fetch.runtimeValidation`).
+   *
+   * @default false
+   */
+  includeZodSchemaInArguments?: boolean;
 }
 
 export interface JsDocOptions {
@@ -1843,6 +1885,7 @@ export interface GeneratorMutator {
   hasThirdArg: boolean;
   isHook: boolean;
   bodyTypeName?: string;
+  useHooks?: boolean;
 }
 
 export type ClientBuilder = (

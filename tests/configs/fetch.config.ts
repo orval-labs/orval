@@ -1,6 +1,17 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue3826: {
+    output: {
+      target: '../generated/fetch/issue-3826/endpoints.ts',
+      schemas: '../generated/fetch/issue-3826/model',
+      client: 'fetch',
+      clean: true,
+    },
+    input: {
+      target: '../specifications/issue-3826/spec.yaml',
+    },
+  },
   petstore: {
     output: {
       target: '../generated/fetch/petstore/endpoints.ts',
@@ -460,6 +471,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  forceSuccessResponseWithoutHttpResponseReturnType: {
+    output: {
+      target: '../generated/fetch/force-success-response-no-http-response/endpoints.ts',
+      schemas: '../generated/fetch/force-success-response-no-http-response/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+          includeHttpResponseReturnType: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   serializeResponseHeaders: {
     output: {
       target: '../generated/fetch/serialize-response-headers/endpoints.ts',
@@ -588,6 +617,34 @@ export default defineConfig({
       indexFiles: false,
       client: 'fetch',
       override: {
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // A mutator owns the whole request, so the generated `Schema.parse()` call
+  // never runs — `includeZodSchemaInArguments` passes the schema to the mutator
+  // instead, so it can validate the response itself.
+  zodSchemaResponseMutator: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-mutator/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-mutator/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: {
+          path: '../mutators/custom-fetch-zod.ts',
+          name: 'customFetch',
+        },
         fetch: {
           runtimeValidation: true,
         },
@@ -1022,6 +1079,33 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/dotted-path-params.yaml',
+    },
+  },
+  'path-item-level-query-params': {
+    output: {
+      target: '../generated/fetch/path-item-level-query-params/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/path-item-level-query-params/spec.yaml',
+    },
+  },
+  'issue-2381': {
+    output: {
+      target: '../generated/fetch/issue-2381/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        namingConvention: {
+          properties: 'camelCase',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-2381/spec.yaml',
     },
   },
 });

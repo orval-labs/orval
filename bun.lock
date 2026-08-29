@@ -17,7 +17,7 @@
     },
     "packages/angular": {
       "name": "@orval/angular",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -29,7 +29,7 @@
     },
     "packages/axios": {
       "name": "@orval/axios",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -41,7 +41,7 @@
     },
     "packages/core": {
       "name": "@orval/core",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@scalar/openapi-types": "catalog:",
         "acorn": "^8.15.0",
@@ -75,7 +75,7 @@
     },
     "packages/effect": {
       "name": "@orval/effect",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "remeda": "^2.33.6",
@@ -88,7 +88,7 @@
     },
     "packages/fetch": {
       "name": "@orval/fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -100,7 +100,7 @@
     },
     "packages/hono": {
       "name": "@orval/hono",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/zod": "workspace:*",
@@ -124,7 +124,7 @@
     },
     "packages/mcp": {
       "name": "@orval/mcp",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -138,7 +138,7 @@
     },
     "packages/mock": {
       "name": "@orval/mock",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "remeda": "^2.33.6",
@@ -151,7 +151,7 @@
     },
     "packages/orval": {
       "name": "orval",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "bin": {
         "orval": "./dist/bin/orval.mjs",
       },
@@ -202,7 +202,7 @@
     },
     "packages/query": {
       "name": "@orval/query",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -216,7 +216,7 @@
     },
     "packages/solid-start": {
       "name": "@orval/solid-start",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -228,7 +228,7 @@
     },
     "packages/swr": {
       "name": "@orval/swr",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -241,7 +241,7 @@
     },
     "packages/zod": {
       "name": "@orval/zod",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "jsesc": "^3.0.0",
@@ -256,7 +256,7 @@
     },
     "samples/angular-app": {
       "name": "angular-app",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
@@ -289,7 +289,7 @@
     },
     "samples/angular-query": {
       "name": "angular-query",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
@@ -326,7 +326,7 @@
     },
     "samples/basic": {
       "name": "basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -340,7 +340,7 @@
     },
     "samples/dynamic-ref": {
       "name": "dynamic-ref",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -351,7 +351,7 @@
     },
     "samples/hono/composite-routes-with-tags-split": {
       "name": "@hono/composite-routes-with-tags-split",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -365,7 +365,7 @@
     },
     "samples/hono/hono-with-fetch-client": {
       "name": "hono-with-fetch-client",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "devDependencies": {
         "msw": "catalog:tooling",
         "orval": "workspace:*",
@@ -374,7 +374,7 @@
     },
     "samples/hono/hono-with-fetch-client/hono-app": {
       "name": "hono-app",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -386,7 +386,7 @@
     },
     "samples/hono/hono-with-fetch-client/next-app": {
       "name": "next-app",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "next": "^15.5.21",
         "react": "catalog:react",
@@ -398,14 +398,14 @@
         "@types/react": "catalog:react",
         "@types/react-dom": "^18.3.7",
         "msw": "catalog:tooling",
-        "postcss": "8.5.18",
+        "postcss": "8.5.23",
         "tailwindcss": "^3.4.17",
         "typescript": "catalog:",
       },
     },
     "samples/hono/hono-with-zod": {
       "name": "hono-with-zod",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -420,7 +420,7 @@
     },
     "samples/mcp/custom-server": {
       "name": "mcp-custom-server",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@hono/mcp": "^0.2.5",
         "@modelcontextprotocol/sdk": "catalog:mcp",
@@ -436,7 +436,7 @@
     },
     "samples/mcp/petstore": {
       "name": "mcp-petstore",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "catalog:mcp",
         "zod": "catalog:zod4",
@@ -451,7 +451,7 @@
     },
     "samples/next-app-with-fetch": {
       "name": "next-app-with-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "next": "15.5.21",
         "react": "catalog:react",
@@ -474,7 +474,7 @@
     },
     "samples/paginated-response": {
       "name": "paginated-response",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -485,7 +485,7 @@
     },
     "samples/paginated-response-tags-split": {
       "name": "paginated-response-tags-split",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -496,7 +496,7 @@
     },
     "samples/react-app": {
       "name": "react-app",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "axios": "catalog:axios",
         "react": "catalog:react",
@@ -518,7 +518,7 @@
     },
     "samples/react-app-with-swr/basic": {
       "name": "swr-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "axios": "catalog:axios",
         "react": "catalog:react",
@@ -540,7 +540,7 @@
     },
     "samples/react-app-with-swr/fetch-client": {
       "name": "swr-with-fetch-client",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -566,7 +566,7 @@
     },
     "samples/react-query/basic": {
       "name": "react-query-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/react-query": "catalog:react",
         "ajv": "^8.18.0",
@@ -589,7 +589,7 @@
     },
     "samples/react-query/custom-fetch": {
       "name": "react-query-custom-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/react-query": "catalog:react",
         "react": "catalog:react",
@@ -615,7 +615,7 @@
     },
     "samples/react-query/form-data": {
       "name": "react-query-form-data",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -629,7 +629,7 @@
     },
     "samples/react-query/form-data-mutator": {
       "name": "react-query-form-data-mutator",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -643,7 +643,7 @@
     },
     "samples/react-query/form-url-encoded": {
       "name": "react-query-form-url-encoded",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -657,7 +657,7 @@
     },
     "samples/react-query/form-url-encoded-mutator": {
       "name": "react-query-form-url-encoded-mutator",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -671,7 +671,7 @@
     },
     "samples/react-query/hook-mutator-axios": {
       "name": "react-query-hook-mutator-axios",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -679,26 +679,28 @@
         "react-query": "^3.39.3",
       },
       "devDependencies": {
+        "@types/react": "catalog:react",
         "orval": "workspace:*",
         "prettier": "catalog:",
       },
     },
     "samples/react-query/hook-mutator-fetch": {
       "name": "react-query-hook-mutator-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "react": "catalog:react",
         "react-query": "^3.39.3",
       },
       "devDependencies": {
+        "@types/react": "catalog:react",
         "orval": "workspace:*",
         "prettier": "catalog:",
       },
     },
     "samples/solid-query/basic": {
       "name": "solid-query-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "axios": "catalog:axios",
@@ -716,7 +718,7 @@
     },
     "samples/solid-query/custom-fetch": {
       "name": "solid-query-custom-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "msw": "catalog:tooling",
@@ -733,7 +735,7 @@
     },
     "samples/solid-start/basic": {
       "name": "solid-start-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@solidjs/meta": "^0.29.4",
         "@solidjs/router": "^0.15.4",
@@ -755,7 +757,7 @@
     },
     "samples/svelte-query/basic": {
       "name": "svelte-query-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
         "axios": "catalog:axios",
@@ -782,7 +784,7 @@
     },
     "samples/svelte-query/custom-fetch": {
       "name": "svelte-query-custom-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
       },
@@ -803,7 +805,7 @@
     },
     "samples/svelte-query/v6-custom-fetch": {
       "name": "svelte-query-v6-custom-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@sveltestack/svelte-query": "^1.6.0",
         "@tanstack/svelte-query": "^6.0.17",
@@ -825,7 +827,7 @@
     },
     "samples/swr-with-effect": {
       "name": "swr-with-effect",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "effect": "catalog:effect",
         "react": "catalog:react",
@@ -852,7 +854,7 @@
     },
     "samples/swr-with-zod": {
       "name": "swr-with-zod",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -879,7 +881,7 @@
     },
     "samples/vue-query/custom-fetch": {
       "name": "vue-query-custom-fetch",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@tanstack/vue-query": "catalog:vue",
         "vue": "catalog:vue",
@@ -898,7 +900,7 @@
     },
     "samples/vue-query/vue-query-basic": {
       "name": "vue-query-basic",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@tanstack/vue-query": "catalog:vue",
@@ -922,7 +924,7 @@
     },
     "tests": {
       "name": "orval-tests",
-      "version": "8.24.0",
+      "version": "8.27.0",
       "devDependencies": {
         "@angular/common": "catalog:angular",
         "@angular/core": "catalog:angular",
@@ -3485,7 +3487,7 @@
 
     "possible-typed-array-names": ["possible-typed-array-names@1.1.0", "", {}, "sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg=="],
 
-    "postcss": ["postcss@8.5.18", "", { "dependencies": { "nanoid": "^3.3.12", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-xdB1oSLHbz1vRWgCDalrCqEFTWzFlhqFC5tIHLMOSUIjhm3XXQ1qrFy8S/ESr1JYRRXqM3c1QFiMZUJdUTqyMQ=="],
+    "postcss": ["postcss@8.5.23", "", { "dependencies": { "nanoid": "^3.3.16", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg=="],
 
     "postcss-import": ["postcss-import@15.1.0", "", { "dependencies": { "postcss-value-parser": "^4.0.0", "read-cache": "^1.0.0", "resolve": "^1.1.7" }, "peerDependencies": { "postcss": "^8.0.0" } }, "sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew=="],
 
@@ -4333,8 +4335,6 @@
 
     "@vitest/utils/convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
-    "@voidzero-dev/vite-plus-core/postcss": ["postcss@8.5.23", "", { "dependencies": { "nanoid": "^3.3.16", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg=="],
-
     "@vue/compiler-core/@babel/parser": ["@babel/parser@7.29.3", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-b3ctpQwp+PROvU/cttc4OYl4MzfJUWy6FZg+PMXfzmt/+39iHVF0sDfqay8TQM3JA2EUOyKcFZt75jWriQijsA=="],
 
     "@vue/compiler-core/@vue/shared": ["@vue/shared@3.5.33", "", {}, "sha512-5vR2QIlmaLG77Ygd4pMP6+SGQ5yox9VhtnbDWTy9DzMzdmeLxZ1QqxrywEZ9sa1AVubfIJyaCG3ytyWU81ufcQ=="],
@@ -4542,8 +4542,6 @@
     "msw/yargs": ["yargs@17.7.2", "", { "dependencies": { "cliui": "^8.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "require-directory": "^2.1.1", "string-width": "^4.2.3", "y18n": "^5.0.5", "yargs-parser": "^21.1.1" } }, "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w=="],
 
     "next/postcss": ["postcss@8.4.31", "", { "dependencies": { "nanoid": "^3.3.6", "picocolors": "^1.0.0", "source-map-js": "^1.0.2" } }, "sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ=="],
-
-    "next-app-with-fetch/postcss": ["postcss@8.5.23", "", { "dependencies": { "nanoid": "^3.3.16", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg=="],
 
     "nitropack/esbuild": ["esbuild@0.27.3", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.3", "@esbuild/android-arm": "0.27.3", "@esbuild/android-arm64": "0.27.3", "@esbuild/android-x64": "0.27.3", "@esbuild/darwin-arm64": "0.27.3", "@esbuild/darwin-x64": "0.27.3", "@esbuild/freebsd-arm64": "0.27.3", "@esbuild/freebsd-x64": "0.27.3", "@esbuild/linux-arm": "0.27.3", "@esbuild/linux-arm64": "0.27.3", "@esbuild/linux-ia32": "0.27.3", "@esbuild/linux-loong64": "0.27.3", "@esbuild/linux-mips64el": "0.27.3", "@esbuild/linux-ppc64": "0.27.3", "@esbuild/linux-riscv64": "0.27.3", "@esbuild/linux-s390x": "0.27.3", "@esbuild/linux-x64": "0.27.3", "@esbuild/netbsd-arm64": "0.27.3", "@esbuild/netbsd-x64": "0.27.3", "@esbuild/openbsd-arm64": "0.27.3", "@esbuild/openbsd-x64": "0.27.3", "@esbuild/openharmony-arm64": "0.27.3", "@esbuild/sunos-x64": "0.27.3", "@esbuild/win32-arm64": "0.27.3", "@esbuild/win32-ia32": "0.27.3", "@esbuild/win32-x64": "0.27.3" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-8VwMnyGCONIs6cWue2IdpHxHnAjzxnw2Zr7MkVxB2vjmQ2ivqGFb4LEG3SMnv0Gb2F/G/2yA8zUaiL1gywDCCg=="],
 
@@ -4760,8 +4758,6 @@
     "vinxi/vite": ["vite@6.4.1", "", { "dependencies": { "esbuild": "^0.25.0", "fdir": "^6.4.4", "picomatch": "^4.0.2", "postcss": "^8.5.3", "rollup": "^4.34.9", "tinyglobby": "^0.2.13" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^18.0.0 || ^20.0.0 || >=22.0.0", "jiti": ">=1.21.0", "less": "*", "lightningcss": "^1.21.0", "sass": "*", "sass-embedded": "*", "stylus": "*", "sugarss": "*", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g=="],
 
     "vinxi/zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
-
-    "vite/postcss": ["postcss@8.5.23", "", { "dependencies": { "nanoid": "^3.3.16", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg=="],
 
     "vite-plugin-solid/@babel/core": ["@babel/core@7.28.5", "", { "dependencies": { "@babel/code-frame": "^7.27.1", "@babel/generator": "^7.28.5", "@babel/helper-compilation-targets": "^7.27.2", "@babel/helper-module-transforms": "^7.28.3", "@babel/helpers": "^7.28.4", "@babel/parser": "^7.28.5", "@babel/template": "^7.27.2", "@babel/traverse": "^7.28.5", "@babel/types": "^7.28.5", "@jridgewell/remapping": "^2.3.5", "convert-source-map": "^2.0.0", "debug": "^4.1.0", "gensync": "^1.0.0-beta.2", "json5": "^2.2.3", "semver": "^6.3.1" } }, "sha512-e7jT4DxYvIDLk1ZHmU/m/mB19rex9sv0c2ftBtjSBv+kVM/902eh0fINUzD7UwLLNR+jU585GxUJ8/EBfAM5fw=="],
 

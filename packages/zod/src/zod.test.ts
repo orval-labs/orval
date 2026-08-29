@@ -6,7 +6,7 @@ import type {
   ZodVariantOption,
   OpenApiSchemaObject,
 } from '@orval/core';
-import { PropertySortOrder } from '@orval/core';
+import { EnumGeneration, PropertySortOrder } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('@orval/core', async (importOriginal) => {
@@ -3123,6 +3123,53 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(parsed.zod).toBe(expectedZod);
     });
+
+    it('keeps constant enum generation regardless of enumGenerationType (#3854)', () => {
+      // The enum-object path (metadata present) MUST keep emitting `key: value`
+      // pairs via CONST generation even when the user's enumGenerationType is
+      // `enum` or `union` — those modes emit output that is not valid inside the
+      // `zod.enum({ ... })` argument. This test pins the output to the default
+      // and fails if the setting is ever wired through.
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        'x-enumNames': ['Cat', 'Dog'],
+        'x-enumDescriptions': ['Represents a cat', 'Represents a dog'],
+      };
+
+      const withOverride = (enumGenerationType: EnumGeneration) => {
+        const overridden = {
+          ...context,
+          output: {
+            ...context.output,
+            override: {
+              ...context.output.override,
+              enumGenerationType,
+            },
+          },
+        } as ContextSpec;
+        return generateZodValidationSchemaDefinition(
+          schema,
+          overridden,
+          'testEnumString',
+          false,
+          isZodV4,
+          { required: false },
+        );
+      };
+
+      const baseline = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        isZodV4,
+        { required: false },
+      );
+
+      expect(withOverride(EnumGeneration.ENUM)).toEqual(baseline);
+      expect(withOverride(EnumGeneration.UNION)).toEqual(baseline);
+    });
   });
 
   describe('enum handling', () => {
@@ -4619,6 +4666,88 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // The `*` quantifier must stay bare — `\*` would trip `no-useless-escape`.
     expect(regexpConst).not.toContain(String.raw`\*`);
     expect(regexpConst).toContain(String.raw`new RegExp('^(0|[1-9]\\d*)$')`);
+  });
+
+  it('adds the u flag when a pattern uses a Unicode property escape (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: String.raw`^[\p{L}][\p{L}\p{M}'’. -]{0,99}$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'firstName',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`^[\\p{L}][\\p{L}\\p{M}`);
+    expect(regexpConst).toContain(", 'u'");
+  });
+
+  it('adds the u flag for custom format+pattern with property escapes in v4 (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'name',
+      pattern: String.raw`^[\p{L}]+$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'displayName',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`^[\\p{L}]+$`);
+    expect(regexpConst).toContain(", 'u'");
+  });
+
+  it('leaves patterns without property escapes flagless (#3841)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[a-z0-9-]+$',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    expect(regexpConst).toContain(String.raw`new RegExp('^[a-z0-9-]+$')`);
+    expect(regexpConst).not.toContain("'u'");
   });
 
   it('does not emit stringFormat for custom format+pattern in v3', () => {
@@ -10931,6 +11060,113 @@ describe('generateMeta (.meta())', () => {
   });
 });
 
+describe('oneOf const branch metadata (#3835)', () => {
+  const ctx = {
+    output: { override: { useDates: false } },
+  } as ContextSpec;
+
+  const status = {
+    oneOf: [
+      {
+        const: 'PENDING',
+        title: 'Pending',
+        description: 'Awaiting manual review',
+      },
+      {
+        const: 'LEGACY',
+        title: 'Legacy',
+        description: 'No longer issued',
+        deprecated: true,
+      },
+    ],
+  } as unknown as OpenApiSchemaObject;
+
+  const render = (
+    schema: OpenApiSchemaObject,
+    isZodV4: boolean,
+    variant: ZodVariantOption = 'classic',
+  ) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        ctx,
+        'Status',
+        false,
+        isZodV4,
+        { required: true },
+      ),
+      ctx,
+      false,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+
+  it('puts title and deprecated in .meta() on zod v4', () => {
+    expect(render(status, true)).toBe(
+      `zod.union([zod.literal("PENDING").meta({ title: 'Pending', description: 'Awaiting manual review' }),zod.literal("LEGACY").meta({ title: 'Legacy', description: 'No longer issued', deprecated: true })])`,
+    );
+  });
+
+  it('rides in as a check on zod mini, which has no .meta()', () => {
+    const zod = render(status, true, 'mini');
+
+    expect(zod).toContain(
+      `.check(/*#__PURE__*/ zod.meta({ title: 'Pending', description: 'Awaiting manual review' }))`,
+    );
+    expect(zod).toContain(
+      `.check(/*#__PURE__*/ zod.meta({ title: 'Legacy', description: 'No longer issued', deprecated: true }))`,
+    );
+  });
+
+  it('leaves zod v3 on .describe(), which is all it has', () => {
+    const zod = render(status, false);
+
+    expect(zod).not.toContain('.meta(');
+    expect(zod).toBe(
+      `zod.union([zod.literal("PENDING").describe('Awaiting manual review'),zod.literal("LEGACY").describe('No longer issued')])`,
+    );
+  });
+
+  it('keeps .describe() for a branch carrying no title or deprecated', () => {
+    const plain = {
+      oneOf: [{ const: 'ACTIVE' }, { const: 'LEGACY', description: 'gone' }],
+    } as unknown as OpenApiSchemaObject;
+
+    const expected = `zod.union([zod.literal("ACTIVE"),zod.literal("LEGACY").describe('gone')])`;
+
+    expect(render(plain, true)).toBe(expected);
+    expect(render(plain, false)).toBe(expected);
+  });
+
+  it('emits a deprecated-only branch without an empty description', () => {
+    const schema = {
+      oneOf: [{ const: 'OLD', deprecated: true }],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(render(schema, true)).toBe(
+      `zod.literal("OLD").meta({ deprecated: true })`,
+    );
+  });
+
+  it('still folds the schema name into .meta() when emitMeta is on', () => {
+    const def = generateZodValidationSchemaDefinition(
+      { type: 'string', description: 'A name' } as OpenApiSchemaObject,
+      ctx,
+      'Name',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+
+    expect(
+      parseZodValidationSchemaDefinition(def, ctx, false, false, true).zod,
+    ).toContain(`.meta({ id: 'Name', description: 'A name' })`);
+  });
+});
+
 function makeZodOverride(overrides: Record<string, unknown> = {}) {
   return {
     strict: {
@@ -12578,7 +12814,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     expect(zod).not.toContain('zod.unknown()');
     // the `not` branch is still the AB shape, not an all-optional object
     expect(zod).toContain(
-      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.string().optional(),\n  "Y": zod.number().int().optional()\n})',
+      'zod.object({\n  "A": zod.string(),\n  "B": zod.number().int(),\n  "X": zod.never().optional(),\n  "Y": zod.never().optional()\n})',
     );
     expect(zod).toContain(
       'zod.object({\n  "A": zod.string().optional(),\n  "B": zod.number().int().optional(),\n  "X": zod.string(),\n  "Y": zod.number().int()\n})',

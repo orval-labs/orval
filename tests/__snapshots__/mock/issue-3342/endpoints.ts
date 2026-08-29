@@ -128,10 +128,21 @@ export const updateProfileWithJson = async (
   updateProfileBody: UpdateProfileBody,
   options?: RequestInit,
 ): Promise<updateProfileWithJsonResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getUpdateProfileWithJsonUrl(id), {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
     body: JSON.stringify(updateProfileBody),
   });
 
@@ -147,6 +158,9 @@ export const updateProfileWithJson = async (
   } as updateProfileWithJsonResponse;
 };
 
+export const getUpdateProfileWithJsonMutationKey = () =>
+  ['updateProfileWithJson'] as const;
+
 export const getUpdateProfileWithJsonMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -154,17 +168,17 @@ export const getUpdateProfileWithJsonMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateProfileWithJson>>,
     TError,
-    { id: string; data: UpdateProfileBody },
+    UpdateProfileWithJsonMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateProfileWithJson>>,
   TError,
-  { id: string; data: UpdateProfileBody },
+  UpdateProfileWithJsonMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updateProfileWithJson'];
+  const mutationKey = getUpdateProfileWithJsonMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -175,7 +189,7 @@ export const getUpdateProfileWithJsonMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateProfileWithJson>>,
-    { id: string; data: UpdateProfileBody }
+    UpdateProfileWithJsonMutationVariables
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -190,6 +204,10 @@ export type UpdateProfileWithJsonMutationResult = NonNullable<
 >;
 export type UpdateProfileWithJsonMutationBody = UpdateProfileBody;
 export type UpdateProfileWithJsonMutationError = Error;
+export type UpdateProfileWithJsonMutationVariables = {
+  id: string;
+  data: UpdateProfileBody;
+};
 
 /**
  * @summary Update a profile
@@ -199,7 +217,7 @@ export const useUpdateProfileWithJson = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof updateProfileWithJson>>,
       TError,
-      { id: string; data: UpdateProfileBody },
+      UpdateProfileWithJsonMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -208,7 +226,7 @@ export const useUpdateProfileWithJson = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof updateProfileWithJson>>,
   TError,
-  { id: string; data: UpdateProfileBody },
+  UpdateProfileWithJsonMutationVariables,
   TContext
 > => {
   return useMutation(
@@ -276,6 +294,9 @@ export const updateProfileWithFormData = async (
   } as updateProfileWithFormDataResponse;
 };
 
+export const getUpdateProfileWithFormDataMutationKey = () =>
+  ['updateProfileWithFormData'] as const;
+
 export const getUpdateProfileWithFormDataMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -283,17 +304,17 @@ export const getUpdateProfileWithFormDataMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateProfileWithFormData>>,
     TError,
-    { id: string; data: UpdateProfileBody },
+    UpdateProfileWithFormDataMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateProfileWithFormData>>,
   TError,
-  { id: string; data: UpdateProfileBody },
+  UpdateProfileWithFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['updateProfileWithFormData'];
+  const mutationKey = getUpdateProfileWithFormDataMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -304,7 +325,7 @@ export const getUpdateProfileWithFormDataMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateProfileWithFormData>>,
-    { id: string; data: UpdateProfileBody }
+    UpdateProfileWithFormDataMutationVariables
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -319,6 +340,10 @@ export type UpdateProfileWithFormDataMutationResult = NonNullable<
 >;
 export type UpdateProfileWithFormDataMutationBody = UpdateProfileBody;
 export type UpdateProfileWithFormDataMutationError = Error;
+export type UpdateProfileWithFormDataMutationVariables = {
+  id: string;
+  data: UpdateProfileBody;
+};
 
 /**
  * @summary Update a profile
@@ -331,7 +356,7 @@ export const useUpdateProfileWithFormData = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof updateProfileWithFormData>>,
       TError,
-      { id: string; data: UpdateProfileBody },
+      UpdateProfileWithFormDataMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -340,7 +365,7 @@ export const useUpdateProfileWithFormData = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof updateProfileWithFormData>>,
   TError,
-  { id: string; data: UpdateProfileBody },
+  UpdateProfileWithFormDataMutationVariables,
   TContext
 > => {
   return useMutation(
@@ -407,6 +432,9 @@ export const uploadAvatarWithFormData = async (
   } as uploadAvatarWithFormDataResponse;
 };
 
+export const getUploadAvatarWithFormDataMutationKey = () =>
+  ['uploadAvatarWithFormData'] as const;
+
 export const getUploadAvatarWithFormDataMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -414,17 +442,17 @@ export const getUploadAvatarWithFormDataMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof uploadAvatarWithFormData>>,
     TError,
-    { data: AvatarUpload },
+    UploadAvatarWithFormDataMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof uploadAvatarWithFormData>>,
   TError,
-  { data: AvatarUpload },
+  UploadAvatarWithFormDataMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadAvatarWithFormData'];
+  const mutationKey = getUploadAvatarWithFormDataMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -435,7 +463,7 @@ export const getUploadAvatarWithFormDataMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadAvatarWithFormData>>,
-    { data: AvatarUpload }
+    UploadAvatarWithFormDataMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -450,6 +478,7 @@ export type UploadAvatarWithFormDataMutationResult = NonNullable<
 >;
 export type UploadAvatarWithFormDataMutationBody = AvatarUpload;
 export type UploadAvatarWithFormDataMutationError = Error;
+export type UploadAvatarWithFormDataMutationVariables = { data: AvatarUpload };
 
 /**
  * @summary Upload an avatar
@@ -459,7 +488,7 @@ export const useUploadAvatarWithFormData = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof uploadAvatarWithFormData>>,
       TError,
-      { data: AvatarUpload },
+      UploadAvatarWithFormDataMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -468,7 +497,7 @@ export const useUploadAvatarWithFormData = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof uploadAvatarWithFormData>>,
   TError,
-  { data: AvatarUpload },
+  UploadAvatarWithFormDataMutationVariables,
   TContext
 > => {
   return useMutation(
@@ -511,12 +540,20 @@ export const uploadAvatarWithBlob = async (
   uploadAvatarBody: Blob,
   options?: RequestInit,
 ): Promise<uploadAvatarWithBlobResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
   const res = await fetch(getUploadAvatarWithBlobUrl(), {
     ...options,
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
-      ...options?.headers,
+      ...getHeaders(options?.headers),
     },
     body: uploadAvatarBody,
   });
@@ -533,6 +570,9 @@ export const uploadAvatarWithBlob = async (
   } as uploadAvatarWithBlobResponse;
 };
 
+export const getUploadAvatarWithBlobMutationKey = () =>
+  ['uploadAvatarWithBlob'] as const;
+
 export const getUploadAvatarWithBlobMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -540,17 +580,17 @@ export const getUploadAvatarWithBlobMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof uploadAvatarWithBlob>>,
     TError,
-    { data: Blob },
+    UploadAvatarWithBlobMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof uploadAvatarWithBlob>>,
   TError,
-  { data: Blob },
+  UploadAvatarWithBlobMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadAvatarWithBlob'];
+  const mutationKey = getUploadAvatarWithBlobMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -561,7 +601,7 @@ export const getUploadAvatarWithBlobMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadAvatarWithBlob>>,
-    { data: Blob }
+    UploadAvatarWithBlobMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -576,6 +616,7 @@ export type UploadAvatarWithBlobMutationResult = NonNullable<
 >;
 export type UploadAvatarWithBlobMutationBody = Blob;
 export type UploadAvatarWithBlobMutationError = Error;
+export type UploadAvatarWithBlobMutationVariables = { data: Blob };
 
 /**
  * @summary Upload an avatar
@@ -585,7 +626,7 @@ export const useUploadAvatarWithBlob = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof uploadAvatarWithBlob>>,
       TError,
-      { data: Blob },
+      UploadAvatarWithBlobMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -594,7 +635,7 @@ export const useUploadAvatarWithBlob = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof uploadAvatarWithBlob>>,
   TError,
-  { data: Blob },
+  UploadAvatarWithBlobMutationVariables,
   TContext
 > => {
   return useMutation(

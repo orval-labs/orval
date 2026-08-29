@@ -677,10 +677,15 @@ export const getQueryErrorType = (
   return errorsType;
 };
 
+/**
+ * Options destructuring at the top of `get/useXxxMutationOptions`. The mutation
+ * key is read from the hoisted `getXxxMutationKey()` getter emitted by the
+ * mutation generator.
+ */
 export const getHooksOptionImplementation = (
   isRequestOptions: boolean,
   httpClient: OutputHttpClient,
-  operationName: string,
+  mutationKeyFnName: string,
   mutator?: GeneratorMutator,
   useRuntimeFetcher?: boolean,
 ) => {
@@ -694,7 +699,7 @@ export const getHooksOptionImplementation = (
       : `, fetch: fetchOptions${fetcherOption}`;
 
   return isRequestOptions
-    ? `const mutationKey = ['${operationName}'];
+    ? `const mutationKey = ${mutationKeyFnName}();
 const {mutation: mutationOptions${
         mutator
           ? mutator.hasSecondArg

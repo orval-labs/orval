@@ -1,13 +1,13 @@
 {
   "name": "react-query-form-data-mutator",
-  "version": "8.24.0",
+  "version": "8.27.0",
   "private": true,
   "type": "module",
   "scripts": {
     "generate-api": "vp exec orval",
     "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
-    "test": "tsc --noEmit endpoints.ts"
+    "test": "tsc --noEmit"
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",

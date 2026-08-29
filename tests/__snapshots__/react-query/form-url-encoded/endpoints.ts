@@ -46,6 +46,8 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -53,16 +55,16 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody },
+    CreatePetsMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -73,7 +75,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -88,6 +90,7 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
 /**
  * @summary Create a pet
@@ -97,7 +100,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody },
+      CreatePetsMutationVariables,
       TContext
     >;
   },
@@ -105,7 +108,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody },
+  CreatePetsMutationVariables,
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
@@ -133,6 +136,9 @@ export const uploadPetContent = (
   });
 };
 
+export const getUploadPetContentMutationKey = () =>
+  ['uploadPetContent'] as const;
+
 export const getUploadPetContentMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -140,16 +146,16 @@ export const getUploadPetContentMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof uploadPetContent>>,
     TError,
-    { data: UploadPetContentBody },
+    UploadPetContentMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof uploadPetContent>>,
   TError,
-  { data: UploadPetContentBody },
+  UploadPetContentMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadPetContent'];
+  const mutationKey = getUploadPetContentMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -160,7 +166,7 @@ export const getUploadPetContentMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadPetContent>>,
-    { data: UploadPetContentBody }
+    UploadPetContentMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -175,6 +181,7 @@ export type UploadPetContentMutationResult = NonNullable<
 >;
 export type UploadPetContentMutationBody = UploadPetContentBody;
 export type UploadPetContentMutationError = Error;
+export type UploadPetContentMutationVariables = { data: UploadPetContentBody };
 
 /**
  * @summary Upload pet content as url-encoded form
@@ -184,7 +191,7 @@ export const useUploadPetContent = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof uploadPetContent>>,
       TError,
-      { data: UploadPetContentBody },
+      UploadPetContentMutationVariables,
       TContext
     >;
   },
@@ -192,7 +199,7 @@ export const useUploadPetContent = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof uploadPetContent>>,
   TError,
-  { data: UploadPetContentBody },
+  UploadPetContentMutationVariables,
   TContext
 > => {
   return useMutation(getUploadPetContentMutationOptions(options), queryClient);
@@ -220,6 +227,9 @@ export const uploadPetContentRef = (
   });
 };
 
+export const getUploadPetContentRefMutationKey = () =>
+  ['uploadPetContentRef'] as const;
+
 export const getUploadPetContentRefMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -227,16 +237,16 @@ export const getUploadPetContentRefMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof uploadPetContentRef>>,
     TError,
-    { data: UploadPetContentRefBody },
+    UploadPetContentRefMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof uploadPetContentRef>>,
   TError,
-  { data: UploadPetContentRefBody },
+  UploadPetContentRefMutationVariables,
   TContext
 > => {
-  const mutationKey = ['uploadPetContentRef'];
+  const mutationKey = getUploadPetContentRefMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -247,7 +257,7 @@ export const getUploadPetContentRefMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadPetContentRef>>,
-    { data: UploadPetContentRefBody }
+    UploadPetContentRefMutationVariables
   > = (props) => {
     const { data } = props ?? {};
 
@@ -262,6 +272,9 @@ export type UploadPetContentRefMutationResult = NonNullable<
 >;
 export type UploadPetContentRefMutationBody = UploadPetContentRefBody;
 export type UploadPetContentRefMutationError = Error;
+export type UploadPetContentRefMutationVariables = {
+  data: UploadPetContentRefBody;
+};
 
 /**
  * @summary Upload pet content using a $ref to a binary component schema
@@ -271,7 +284,7 @@ export const useUploadPetContentRef = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof uploadPetContentRef>>,
       TError,
-      { data: UploadPetContentRefBody },
+      UploadPetContentRefMutationVariables,
       TContext
     >;
   },
@@ -279,7 +292,7 @@ export const useUploadPetContentRef = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof uploadPetContentRef>>,
   TError,
-  { data: UploadPetContentRefBody },
+  UploadPetContentRefMutationVariables,
   TContext
 > => {
   return useMutation(

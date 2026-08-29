@@ -45,6 +45,7 @@ describe('generateMutator', () => {
           path: '@acme/esm-mutator/fetch',
           name: 'customInstance',
           default: false,
+          useHooks: false,
         },
       });
 
@@ -52,6 +53,7 @@ describe('generateMutator', () => {
         path: '@acme/esm-mutator/fetch',
         name: 'customInstance',
         hasSecondArg: true,
+        useHooks: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });

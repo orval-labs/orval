@@ -1,0 +1,59 @@
+openapi: 3.0.3
+info:
+  title: Discriminator duplication reproduction
+  version: 1.0.0
+
+paths:
+  /animal:
+    get:
+      operationId: getAnimal
+      responses:
+        "200":
+          description: Animal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+
+components:
+  schemas:
+    AnimalType:
+      type: string
+      enum: [DOG, CAT]
+
+    Animal:
+      type: object
+      required: [id, name, animalType]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        animalType:
+          $ref: "#/components/schemas/AnimalType"
+      discriminator:
+        propertyName: animalType
+        mapping:
+          DOG: "#/components/schemas/Dog"
+          CAT: "#/components/schemas/Cat"
+      oneOf:
+        - $ref: "#/components/schemas/Dog"
+        - $ref: "#/components/schemas/Cat"
+
+    Dog:
+      required: [barkVolume]
+      allOf:
+        - $ref: "#/components/schemas/Animal"
+        - type: object
+          properties:
+            barkVolume:
+              type: number
+
+    Cat:
+      required: [livesLeft]
+      allOf:
+        - $ref: "#/components/schemas/Animal"
+        - type: object
+          properties:
+            livesLeft:
+              type: integer

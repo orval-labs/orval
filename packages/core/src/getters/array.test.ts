@@ -8,10 +8,10 @@ describe('getArray', () => {
   const context = createTestContextSpec({
     override: {
       components: {
-        schemas: { suffix: '', itemSuffix: 'Item' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
+        schemas: { prefix: '', itemPrefix: '', suffix: '', itemSuffix: 'Item' },
+        responses: { prefix: '', suffix: '' },
+        parameters: { prefix: '', suffix: '' },
+        requestBodies: { prefix: '', suffix: '' },
       },
     },
   });

@@ -6,7 +6,6 @@
  */
 
 export * from './animal';
-export * from './animalSpecies';
 export * from './cat';
 export * from './catSpecies';
 export * from './dog';

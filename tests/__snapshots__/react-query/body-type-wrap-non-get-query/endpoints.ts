@@ -524,6 +524,8 @@ export const deletePetById = (petId: string, signal?: AbortSignal) => {
   });
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -531,16 +533,16 @@ export const getDeletePetByIdMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string },
+    DeletePetByIdMutationVariables,
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -551,7 +553,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -566,6 +568,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = ErrorType<Error>;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -575,7 +578,7 @@ export const useDeletePetById = <TError = ErrorType<Error>, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
   },
@@ -583,7 +586,7 @@ export const useDeletePetById = <TError = ErrorType<Error>, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   return useMutation(getDeletePetByIdMutationOptions(options), queryClient);

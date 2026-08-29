@@ -13,6 +13,7 @@ import {
   isObject,
   isReference,
   isSchema,
+  isSchemaNullable,
   isString,
   isStringLike,
   isUrl,
@@ -67,6 +68,37 @@ describe('assertion testing', () => {
     expect(isSchema({ type: 'not-a-schema' })).toBeFalsy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isSchema(null)).toBeFalsy();
+  });
+
+  it('checks whether a schema allows null', () => {
+    expect(isSchemaNullable({ type: 'string', nullable: true })).toBeTruthy();
+    expect(isSchemaNullable({ type: 'null' })).toBeTruthy();
+    expect(isSchemaNullable({ type: ['string', 'null'] })).toBeTruthy();
+
+    // OpenAPI 3.1 spells a nullable enum as a separate null branch.
+    expect(
+      isSchemaNullable({
+        anyOf: [{ type: 'string', enum: ['a', 'b'] }, { type: 'null' }],
+      }),
+    ).toBeTruthy();
+    expect(
+      isSchemaNullable({
+        oneOf: [{ const: 'a' }, { type: 'null' }],
+      }),
+    ).toBeTruthy();
+
+    expect(isSchemaNullable({ type: 'string', enum: ['a', 'b'] })).toBeFalsy();
+    expect(
+      isSchemaNullable({
+        anyOf: [{ type: 'string' }, { type: 'number' }],
+      }),
+    ).toBeFalsy();
+    // A reference is not resolved here, so it cannot make the schema nullable.
+    expect(
+      isSchemaNullable({
+        anyOf: [{ $ref: '#/components/schemas/NullEnum' }],
+      }),
+    ).toBeFalsy();
   });
 
   it('checks for verbs', () => {

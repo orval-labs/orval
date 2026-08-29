@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { TestExampleEnum } from './testExampleEnum';
+import type { TestExampleNullableEnum } from './testExampleNullableEnum';
 
 export interface Test {
   /**
@@ -21,4 +22,5 @@ export interface Test {
   example_const?: 'this_is_a_const';
   example_string_const?: 'this_is_a_string_const';
   example_enum?: TestExampleEnum;
+  example_nullable_enum?: TestExampleNullableEnum;
 }

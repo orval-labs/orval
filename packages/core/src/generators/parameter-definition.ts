@@ -16,6 +16,7 @@ export function generateParameterDefinition(
   parameters: OpenApiComponentsObject['parameters'] = {},
   context: ContextSpec,
   suffix: string,
+  prefix = '',
 ): GeneratorSchema[] {
   if (isEmptyish(parameters)) {
     return [];
@@ -23,7 +24,7 @@ export function generateParameterDefinition(
 
   const generatorSchemas: GeneratorSchema[] = [];
   for (const [parameterName, parameter] of entries(parameters)) {
-    const modelName = sanitize(`${pascal(parameterName)}${suffix}`, {
+    const modelName = sanitize(`${prefix}${pascal(parameterName)}${suffix}`, {
       underscore: '_',
       whitespace: '_',
       dash: true,

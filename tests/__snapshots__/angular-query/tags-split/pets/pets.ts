@@ -220,6 +220,8 @@ export const createPets = (
   return lastValueFrom(request$);
 };
 
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -229,7 +231,7 @@ export const getCreatePetsMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody; params: CreatePetsParams },
+      CreatePetsMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -237,10 +239,10 @@ export const getCreatePetsMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
-  const mutationKey = ['createPets'];
+  const mutationKey = getCreatePetsMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -251,7 +253,7 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams }
+    CreatePetsMutationVariables
   > = (props) => {
     const { data, params } = props ?? {};
 
@@ -266,6 +268,10 @@ export type CreatePetsMutationResult = NonNullable<
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
+export type CreatePetsMutationVariables = {
+  data: CreatePetsBody;
+  params: CreatePetsParams;
+};
 
 /**
  * @summary Create a pet
@@ -274,14 +280,14 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    CreatePetsMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  CreatePetsMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);
@@ -405,6 +411,8 @@ export const deletePetById = (
   return lastValueFrom(request$);
 };
 
+export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
+
 export const getDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
@@ -414,7 +422,7 @@ export const getDeletePetByIdMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      DeletePetByIdMutationVariables,
       TContext
     >;
     fetch?: RequestInit;
@@ -422,10 +430,10 @@ export const getDeletePetByIdMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
-  const mutationKey = ['deletePetById'];
+  const mutationKey = getDeletePetByIdMutationKey();
   const { mutation: mutationOptions, fetch: fetchOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
@@ -436,7 +444,7 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    DeletePetByIdMutationVariables
   > = (props) => {
     const { petId } = props ?? {};
 
@@ -451,6 +459,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 >;
 
 export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationVariables = { petId: string };
 
 /**
  * @summary Deletes a specific pet
@@ -462,14 +471,14 @@ export const injectDeletePetById = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string },
+    DeletePetByIdMutationVariables,
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  DeletePetByIdMutationVariables,
   TContext
 > => {
   const http = inject(HttpClient);

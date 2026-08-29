@@ -8,7 +8,7 @@ import type {
   OpenApiParameterObject,
   OpenApiSchemaObject,
 } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumMembers } from './enum';
 import { getKey } from './keys';
 
@@ -202,36 +202,6 @@ const getObjectQueryParamStrategy = (
   return resolvedExplode ? 'flatten' : 'comma';
 };
 
-const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
-  if (schema.nullable === true) {
-    return true;
-  }
-
-  if (schema.type === 'null') {
-    return true;
-  }
-
-  if (Array.isArray(schema.type) && schema.type.includes('null')) {
-    return true;
-  }
-
-  const oneOfVariants = Array.isArray(schema.oneOf)
-    ? (schema.oneOf as unknown[])
-    : [];
-  const anyOfVariants = Array.isArray(schema.anyOf)
-    ? (schema.anyOf as unknown[])
-    : [];
-  const variants = [...oneOfVariants, ...anyOfVariants];
-
-  return variants.some((variant) => {
-    if (!isOpenApiSchemaObject(variant)) {
-      return false;
-    }
-
-    return isSchemaNullable(variant);
-  });
-};
-
 function getQueryParamsTypes(
   queryParams: GetterParameters['query'],
   operationName: string,
@@ -308,7 +278,7 @@ function getQueryParamsTypes(
       return {
         name,
         required,
-        definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
+        definition: `${doc}${key}${!required || schema.default !== undefined ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
@@ -346,7 +316,7 @@ function getQueryParamsTypes(
         name,
         required,
         definition: `${doc}${key}${
-          !required || schema.default ? '?' : ''
+          !required || schema.default !== undefined ? '?' : ''
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
@@ -359,7 +329,7 @@ function getQueryParamsTypes(
     }
 
     const definition = `${doc}${key}${
-      !required || schema.default ? '?' : ''
+      !required || schema.default !== undefined ? '?' : ''
     }: ${resolvedValue.value};`;
 
     return {

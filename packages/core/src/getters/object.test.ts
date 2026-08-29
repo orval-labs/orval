@@ -114,4 +114,46 @@ describe('getObject', () => {
       ]),
     );
   });
+
+  it('renders unevaluatedProperties as an index signature like additionalProperties', () => {
+    const context = createTestContextSpec({ spec: {} });
+
+    const result = getObject({
+      item: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        required: ['id'],
+        unevaluatedProperties: { type: 'string', maxLength: 10 },
+      },
+      name: 'WithExtras',
+      context,
+      nullable: '',
+    });
+
+    // Falls back to unknown because named key types can't be proven equal
+    // to the index value type without propertyNames constraint — same as
+    // additionalProperties. See object.ts line 563–575.
+    expect(result.value).toContain('[key: string]: unknown;');
+  });
+
+  it('renders unevaluatedProperties: true as unknown index signature', () => {
+    const context = createTestContextSpec({ spec: {} });
+
+    const result = getObject({
+      item: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        unevaluatedProperties: true,
+      },
+      name: 'OpenObject',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('[key: string]: unknown;');
+  });
 });

@@ -32,7 +32,7 @@ import {
   QueryType,
   requiresUserSuppliedQueryOptions,
 } from './query-options';
-import { getHasSignal } from './utils';
+import { getHasSignal, shouldUseOptionsHook } from './utils';
 
 /**
  * Decide whether the current operation's configuration conflicts with a
@@ -694,7 +694,11 @@ const generateQueryImplementation = ({
   });
 
   const queryOptionsFnName = camel(
-    queryKeyMutator || queryOptionsMutator || mutator?.isHook
+    shouldUseOptionsHook({
+      optionsMutator: queryOptionsMutator,
+      queryKeyMutator,
+      mutator,
+    })
       ? `use-${name}-queryOptions`
       : `get-${name}-queryOptions`,
   );

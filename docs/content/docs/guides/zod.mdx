@@ -38,7 +38,7 @@ export default defineConfig({
 Orval generates a Zod schema for each model in your OpenAPI specification:
 
 ```ts
-export const createPetsBody = /*#__PURE__*/ zod.object({
+export const CreatePetsBody = /*#__PURE__*/ zod.object({
   id: /*#__PURE__*/ zod.number(),
   name: /*#__PURE__*/ zod.string(),
   tag: /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string()),
@@ -200,10 +200,10 @@ Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`,
 ### Parsing Data
 
 ```ts
-import { createPetsBody } from './src/api/schemas';
+import { CreatePetsBody } from './src/api/schemas';
 
 const pet = { id: 1, name: 'Buddy', tag: 'dog' };
-const parsedPet = createPetsBody.parse(pet);
+const parsedPet = CreatePetsBody.parse(pet);
 // => { id: 1, name: "Buddy", tag: "dog" }
 ```
 
@@ -211,9 +211,9 @@ const parsedPet = createPetsBody.parse(pet);
 
 ```ts
 import type { z } from 'zod/mini';
-import { createPetsBody } from './src/api/schemas';
+import { CreatePetsBody } from './src/api/schemas';
 
-type Pet = z.infer<typeof createPetsBody>;
+type Pet = z.infer<typeof CreatePetsBody>;
 
 const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
 ```
@@ -221,7 +221,7 @@ const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
 ### Safe Parsing
 
 ```ts
-const result = createPetsBody.safeParse(unknownData);
+const result = CreatePetsBody.safeParse(unknownData);
 
 if (result.success) {
   console.log(result.data);

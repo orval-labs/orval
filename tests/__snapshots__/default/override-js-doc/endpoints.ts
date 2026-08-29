@@ -199,9 +199,6 @@ export interface PetWithTag {
    * @type string
    */
   tag: string;
-  /**
-   * @nullable true
-   */
   pet: Pet | null;
 }
 
