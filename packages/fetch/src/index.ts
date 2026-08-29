@@ -603,6 +603,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     : '';
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const responseValidationExpression = emitResponseValidation({
+    schemaRef: schemaValueRef,
+    operationName,
+    strategy: override.fetch.runtimeValidation.strategy,
+    context: 'fetch-assign',
+    inputExpression: 'parsedBody',
+  });
   // A custom mutator issues the request itself, so it cannot benefit from the
   // generated `Schema.parse()` call. Handing it the zod schema lets it validate
   // the response on its own, but only when the user opted in and the schemas
