@@ -31,7 +31,7 @@ const createMcpServer = (
         bodyParams: AddBody.optional(),
       },
       outputSchema: AddResponse,
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true },
     },
     (args) => addHandler(args, options),
   );

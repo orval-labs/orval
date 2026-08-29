@@ -99,7 +99,7 @@ function createMockContext(): ContextSpec {
         angular: {
           provideIn: 'root',
           client: 'httpClient',
-          runtimeValidation: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
           queryObjectSerialization: 'spec',
         },
         swr: {},
@@ -159,7 +159,7 @@ function createMockContext(): ContextSpec {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
           serializeResponseHeaders: false,
-          runtimeValidation: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
           useRuntimeFetcher: false,
         },
         enumGenerationType: EnumGeneration.UNION,

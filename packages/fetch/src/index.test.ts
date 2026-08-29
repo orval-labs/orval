@@ -100,7 +100,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       angular: {
         provideIn: 'root',
         client: 'httpClient',
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         queryObjectSerialization: 'spec',
       },
       swr: {},
@@ -160,7 +160,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
         serializeResponseHeaders: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       useDates,
@@ -238,7 +238,7 @@ function makeVerbOptions(
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
       },
     } as GeneratorVerbOptions['override'],
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
