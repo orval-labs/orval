@@ -120,6 +120,27 @@ export function getRoute(route: string) {
  * must escape it themselves; callers that embed it via `JSON.stringify`
  * (e.g. the Angular DI base-url token file) should use the raw value as-is.
  */
+const VARIABLE_MARKER_PREFIX = '__ORVAL_RT_';
+
+/** Deterministic djb2 hash so markers are opaque yet stable across runs. */
+function hashString(value: string): string {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i++) {
+    hash = ((hash << 5) + hash + value.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * Collision-resistant opaque marker for a runtime server variable. The hash
+ * of the full server URL plus the variable key makes accidental matches with
+ * literal URL text practically impossible, while staying deterministic so
+ * generated output (and snapshots) never churn between runs.
+ */
+function runtimeVariableMarker(serverUrl: string, variableKey: string): string {
+  return `${VARIABLE_MARKER_PREFIX}${hashString(serverUrl + variableKey)}__`;
+}
+
 export function resolveServerUrl(
   servers: OpenApiServerObject[] | undefined,
   options: {
@@ -137,18 +158,16 @@ export function resolveServerUrl(
   let url = serverUrl;
   const variables = options.variables;
 
-  // Phase 1: replace ALL `{key}` placeholders with unique sentinels
-  // so later variable substitutions cannot interfere with one another.
-  const sentinels = new Map<
-    string,
-    { isRuntime: boolean; value?: string; runtime?: string }
-  >();
+  // Phase 1: replace ALL `{key}` placeholders with opaque collision-resistant
+  // markers so later variable substitutions cannot interfere with one another,
+  // and literal marker-like text in static values cannot collide (#3916).
+  const staticMarkers = new Map<string, string>();
   for (const variableKey of Object.keys(server.variables)) {
     const variable = server.variables[variableKey];
     const raw = variables?.[variableKey];
+    const marker = runtimeVariableMarker(serverUrl, variableKey);
     if (isVariableRuntimeValue(raw)) {
-      url = url.replaceAll(`{${variableKey}}`, `__ORVAL_RT_${variableKey}__`);
-      sentinels.set(variableKey, { isRuntime: true, runtime: raw.runtime });
+      url = url.replaceAll(`{${variableKey}}`, marker);
     } else {
       if (
         raw !== undefined &&
@@ -161,18 +180,17 @@ export function resolveServerUrl(
       }
       const resolved =
         raw !== undefined ? String(raw) : String(variable.default);
-      url = url.replaceAll(`{${variableKey}}`, `__ORVAL_ST_${variableKey}__`);
-      sentinels.set(variableKey, { isRuntime: false, value: resolved });
+      url = url.replaceAll(`{${variableKey}}`, marker);
+      staticMarkers.set(marker, resolved);
     }
   }
 
-  // Phase 2: substitute sentinels with actual values. Runtime sentinels
-  // remain in the URL for the caller to splice as `${expr}` after escaping.
-  for (const [key, { isRuntime, value }] of sentinels) {
-    if (!isRuntime) {
-      url = url.replaceAll(`__ORVAL_ST_${key}__`, value!);
-    }
+  // Phase 2: substitute static markers with actual values. Runtime markers
+  // remain in the URL; callers restore them as `${expr}` after escaping.
+  for (const [marker, value] of staticMarkers) {
+    url = url.replaceAll(marker, value);
   }
+
   return url;
 }
 
@@ -206,6 +224,9 @@ export function getFullRoute(
           "Orval is configured to use baseUrl from the specifications 'servers' field, but there exist no servers in the specification.",
         );
       }
+      const selectedServer =
+        servers.at(Math.min(baseUrl.index ?? 0, servers.length - 1)) ??
+        servers[0];
       // `resolveServerUrl` returns the raw (unescaped) URL; escape it here
       // for safe embedding in the generated backtick template literal.
       let base = esc(
@@ -214,14 +235,16 @@ export function getFullRoute(
           variables: baseUrl.variables,
         }),
       );
-      // `{ runtime: ... }` variables were replaced with `__ORVAL_RT_<key>__`
-      // sentinels by `resolveServerUrl`; restore them as `${expr}` interpolations
-      // now, after escaping, so the expression itself is never escaped (#3734).
-      if (baseUrl.variables) {
+      // `{ runtime: ... }` variables were replaced with opaque markers by
+      // `resolveServerUrl`; restore them as `${expr}` interpolations now,
+      // after escaping, so the expression itself is never escaped (#3734).
+      // Markers are deterministic (hash of server URL + key), so recompute
+      // them here to restore only what `resolveServerUrl` actually emitted.
+      if (baseUrl.variables && selectedServer?.url) {
         for (const [key, value] of Object.entries(baseUrl.variables)) {
           if (isVariableRuntimeValue(value)) {
             base = base.replaceAll(
-              `__ORVAL_RT_${key}__`,
+              runtimeVariableMarker(selectedServer.url, key),
               `\${${value.runtime}}`,
             );
           }
