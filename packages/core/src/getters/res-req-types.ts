@@ -25,7 +25,7 @@ import {
 } from '../utils/content-type';
 import { getNumberWord } from '../utils/string';
 import type { FormDataContext } from './object';
-import { getPropertyNameCollisionKeys } from './keys';
+import { getKey, getPropertyNameCollisionKeys } from './keys';
 
 // Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
 // OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
@@ -793,7 +793,7 @@ function resolveSchemaPropertiesToFormData({
       : '';
     const formattedConvertedKey = keyword.isIdentifierNameES5(accessorKey)
       ? `.${accessorKey}`
-      : `['${accessorKey}']`;
+      : `[${getKey(accessorKey)}]`;
 
     const valueKey = `${propName}${formattedConvertedKeyPrefix}${formattedConvertedKey}`;
     const nonOptionalValueKey = `${propName}${formattedConvertedKey}`;

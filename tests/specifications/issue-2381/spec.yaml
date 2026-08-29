@@ -47,3 +47,11 @@ components:
           type: string
         firstName:
           type: string
+        "special-value":
+          type: string
+        "special.value":
+          type: string
+        "item\"name":
+          type: string
+        "item'name":
+          type: string

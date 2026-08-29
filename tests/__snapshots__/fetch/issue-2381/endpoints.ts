@@ -17,6 +17,10 @@ export interface Widget {
 export interface Collision {
   first_name?: string;
   firstName?: string;
+  'special-value'?: string;
+  'special.value'?: string;
+  'item"name'?: string;
+  "item'name"?: string;
 }
 
 export type getWidgetsResponse200 = {
