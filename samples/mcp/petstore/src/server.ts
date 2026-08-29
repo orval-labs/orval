@@ -84,7 +84,7 @@ const createMcpServer = (
         bodyParams: FilterPetsByStatusBody.optional(),
       },
       outputSchema: FilterPetsByStatusResponse,
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true },
     },
     (args) => filterPetsByStatusHandler(args, options),
   );
@@ -99,7 +99,7 @@ const createMcpServer = (
         queryParams: FindPetsByStatusQueryParams,
       },
       outputSchema: FindPetsByStatusResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => findPetsByStatusHandler(args, options),
   );
@@ -114,7 +114,7 @@ const createMcpServer = (
         queryParams: FindPetsByTagsQueryParams,
       },
       outputSchema: FindPetsByTagsResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => findPetsByTagsHandler(args, options),
   );
@@ -128,7 +128,7 @@ const createMcpServer = (
         pathParams: GetPetByIdParams,
       },
       outputSchema: GetPetByIdResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => getPetByIdHandler(args, options),
   );
@@ -143,7 +143,7 @@ const createMcpServer = (
         queryParams: UpdatePetWithFormQueryParams,
       },
       outputSchema: UpdatePetWithFormResponse,
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true },
     },
     (args) => updatePetWithFormHandler(args, options),
   );
@@ -157,7 +157,7 @@ const createMcpServer = (
         pathParams: DeletePetParams,
       },
       outputSchema: DeletePetResponse,
-      annotations: { idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => deletePetHandler(args, options),
   );
@@ -168,7 +168,7 @@ const createMcpServer = (
       title: 'Returns pet inventories by status.',
       description: 'Returns a map of status codes to quantities.',
       outputSchema: GetInventoryResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     () => getInventoryHandler(options),
   );
@@ -183,7 +183,7 @@ const createMcpServer = (
         pathParams: GetOrderByIdParams,
       },
       outputSchema: GetOrderByIdResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => getOrderByIdHandler(args, options),
   );
@@ -198,7 +198,7 @@ const createMcpServer = (
         pathParams: DeleteOrderParams,
       },
       outputSchema: DeleteOrderResponse,
-      annotations: { idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => deleteOrderHandler(args, options),
   );
@@ -212,7 +212,7 @@ const createMcpServer = (
         queryParams: LoginUserQueryParams,
       },
       outputSchema: LoginUserResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => loginUserHandler(args, options),
   );
@@ -223,7 +223,7 @@ const createMcpServer = (
       title: 'Logs out current logged in user session.',
       description: 'Log user out of the system.',
       outputSchema: LogoutUserResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     () => logoutUserHandler(options),
   );
@@ -237,7 +237,7 @@ const createMcpServer = (
         pathParams: GetUserByNameParams,
       },
       outputSchema: GetUserByNameResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => getUserByNameHandler(args, options),
   );
@@ -251,7 +251,7 @@ const createMcpServer = (
         pathParams: DeleteUserParams,
       },
       outputSchema: DeleteUserResponse,
-      annotations: { idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => deleteUserHandler(args, options),
   );

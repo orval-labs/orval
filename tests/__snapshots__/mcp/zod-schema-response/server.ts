@@ -53,7 +53,7 @@ const createMcpServer = (
         queryParams: ListPetsQueryParams,
       },
       outputSchema: ListPetsResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => listPetsHandler(args, options),
   );
@@ -68,7 +68,7 @@ const createMcpServer = (
         bodyParams: CreatePetsBody,
       },
       outputSchema: CreatePetsResponse,
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true },
     },
     (args) => createPetsHandler(args, options),
   );
@@ -82,7 +82,7 @@ const createMcpServer = (
         pathParams: ShowPetByIdParams,
       },
       outputSchema: ShowPetByIdResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => showPetByIdHandler(args, options),
   );
@@ -96,7 +96,7 @@ const createMcpServer = (
         pathParams: DeletePetByIdParams,
       },
       outputSchema: DeletePetByIdResponse,
-      annotations: { idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => deletePetByIdHandler(args, options),
   );
@@ -107,7 +107,7 @@ const createMcpServer = (
       title: 'health check',
       description: 'health check',
       outputSchema: HealthCheckResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     () => healthCheckHandler(options),
   );
@@ -121,7 +121,7 @@ const createMcpServer = (
         pathParams: ShowPetWithOwnerParams,
       },
       outputSchema: ShowPetWithOwnerResponse,
-      annotations: { readOnlyHint: true, destructiveHint: false },
+      annotations: { readOnlyHint: true },
     },
     (args) => showPetWithOwnerHandler(args, options),
   );
