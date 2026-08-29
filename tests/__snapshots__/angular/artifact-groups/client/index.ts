@@ -1,13 +1,10 @@
 export * from './health/health.service';
 export * from './pets/pets.service';
-export type {
-  OrvalHttpResourceOptions,
-  OrvalHttpResourceRequestExtension,
-  ResourceState,
-} from './health/health.resource';
-export {
-  applyOrvalRequestExtension,
-  toResourceState,
-} from './health/health.resource';
+export { applyOrvalRequestExtension } from './health/health.resource';
+export type { OrvalHttpResourceOptions } from './health/health.resource';
+export type { OrvalHttpResourceRequestExtension } from './health/health.resource';
+export type { ResolvedResourceState } from './health/health.resource';
+export type { ResourceState } from './health/health.resource';
+export { toResourceState } from './health/health.resource';
 export * from './health/health.resource';
 export * from './pets/pets.resource';

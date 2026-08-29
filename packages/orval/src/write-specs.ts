@@ -20,7 +20,6 @@ import {
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
-  OutputClient,
   OutputMockType,
   OutputMode,
   pascal,
@@ -267,33 +266,94 @@ export async function appendOrCreateBarrel(
 }
 
 /**
+ * Matches a top-level `export` declaration whose name TypeScript would treat
+ * as ambiguous if redeclared by two `export *`-re-exported files: `export
+ * type X`, `export interface X`, `export enum X`, `export const/let/var X`,
+ * `export function X`, `export class X` (including `export abstract class
+ * X`). Anchored to the start of a line — generated files are always
+ * prettier-formatted with top-level declarations flush against the left
+ * margin, so this never matches a declaration nested inside a function or
+ * class body.
+ *
+ * Capture group 2 records whether the declaration produces a *value*
+ * (something usable at runtime — a const, function, class, or enum) or is
+ * *type*-only (a `type` alias or `interface`), which decides below whether
+ * the barrel re-export needs the `export type { ... }` form: under
+ * `isolatedModules`, TypeScript raises TS1205 for a plain `export { X }`
+ * whose only declaration is type-only.
+ */
+const EXPORTED_NAME_PATTERN =
+  /^export\s+(?:(type|interface)|(?:abstract\s+)?(?:const|let|var|function|class|enum))\s+(\w+)/gm;
+
+/**
  * Some client generators emit identical helper boilerplate verbatim into
  * every per-tag file of a given kind (e.g. Angular's httpResource generator
  * writes the same `OrvalHttpResourceOptions` type, `ResourceState` interface,
  * and `toResourceState` function into every `.resource.ts` file — see
- * `generateHttpResourceExtraFiles` in `packages/angular/src/http-resource.ts`).
- * When `writeClientGroupBarrel` wildcard-re-exports two or more such files,
- * TypeScript raises TS2308 for the redeclared names. This registry lets the
- * barrel writer re-export those names explicitly from one canonical file
- * first, which resolves the ambiguity (see `appendOrCreateBarrel` above)
- * without needing to parse each file's actual export list.
+ * `generateHttpResourceExtraFiles` in `packages/angular/src/http-resource.ts`),
+ * and some emit the same *per-operation* name from more than one generator
+ * for operations both cover (e.g. a `listPets` GET emits a `ListPetsAccept`
+ * enum from both the `.service.ts` and the `.resource.ts` generator). Either
+ * way, `writeClientGroupBarrel` wildcard-re-exporting two or more such files
+ * raises TS2308 for the redeclared names.
+ *
+ * Rather than maintain a registry of known-duplicated names per client (which
+ * can't anticipate per-operation collisions), this scans each candidate
+ * file's actual top-level exports and re-exports whatever names land in two
+ * or more of them explicitly from the first (sorted) file that declares each
+ * — which resolves the ambiguity (see `appendOrCreateBarrel` above)
+ * without dropping any file from the wildcard exports.
  */
-const DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT: Partial<
-  Record<
-    OutputClient,
-    { fileSuffix: string; typeNames: string[]; valueNames: string[] }
-  >
-> = {
-  [OutputClient.ANGULAR]: {
-    fileSuffix: '.resource',
-    typeNames: [
-      'OrvalHttpResourceOptions',
-      'OrvalHttpResourceRequestExtension',
-      'ResourceState',
-    ],
-    valueNames: ['applyOrvalRequestExtension', 'toResourceState'],
-  },
-};
+function collectDuplicateExportNames(
+  filePaths: string[],
+  fileContentsByPath: ReadonlyMap<string, string>,
+): { name: string; sourceFilePath: string; typeOnly: boolean }[] {
+  // name -> (filePath -> typeOnly for that file's declaration)
+  const declarationsByName = new Map<string, Map<string, boolean>>();
+
+  for (const filePath of filePaths) {
+    const content = fileContentsByPath.get(filePath);
+    if (content === undefined) {
+      continue;
+    }
+    for (const match of content.matchAll(EXPORTED_NAME_PATTERN)) {
+      const typeOnly = Boolean(match[1]);
+      const name = match[2];
+      const byFile = declarationsByName.get(name) ?? new Map();
+      // A value declaration for this name in this file always wins over a
+      // type declaration for the same name in the same file (e.g. the
+      // `type Foo = ...` / `const Foo = {...}` pair generators emit for
+      // `<Operation>Accept` enums).
+      byFile.set(filePath, (byFile.get(filePath) ?? true) && typeOnly);
+      declarationsByName.set(name, byFile);
+    }
+  }
+
+  const sortedFilePaths = [...filePaths].toSorted((a, b) =>
+    a.localeCompare(b),
+  );
+
+  const duplicates: { name: string; sourceFilePath: string; typeOnly: boolean }[] =
+    [];
+  for (const [name, byFile] of declarationsByName) {
+    if (byFile.size < 2) {
+      continue;
+    }
+    const sourceFilePath = sortedFilePaths.find((filePath) =>
+      byFile.has(filePath),
+    );
+    if (!sourceFilePath) {
+      continue;
+    }
+    // Type-only only if every file that declares this name declares it as
+    // type-only; a value declaration anywhere makes the merged export a
+    // value re-export, which also carries the type meaning if there is one.
+    const typeOnly = [...byFile.values()].every(Boolean);
+    duplicates.push({ name, sourceFilePath, typeOnly });
+  }
+
+  return duplicates;
+}
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -717,38 +777,33 @@ export async function writeClientGroupBarrel(
     .map(toImportSpecifier)
     .toSorted((a, b) => a.localeCompare(b));
 
-  // See `DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT` above: when 2+ files of a
-  // kind known to carry identical generator boilerplate land in this barrel
-  // (e.g. two `.resource.ts` files under Angular's `both`/`resource`
-  // retrieval mode), wildcard-exporting all of them raises TS2308. Re-export
-  // the shared names explicitly from the first (sorted) such file so the
-  // subsequent `export *` statements — which still carry each file's
-  // tag-specific functions — compile cleanly.
-  const boilerplate =
-    typeof output.client === 'string'
-      ? DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT[output.client]
-      : undefined;
-  const namedReExports: string[] = [];
-  if (boilerplate) {
-    const matchingFilePaths = clientFilePaths
-      .filter((filePath) =>
-        filePath.endsWith(`${boilerplate.fileSuffix}${output.fileExtension}`),
-      )
-      .toSorted((a, b) => a.localeCompare(b));
-    if (matchingFilePaths.length > 1) {
-      const canonicalImport = toImportSpecifier(matchingFilePaths[0]);
-      if (boilerplate.typeNames.length > 0) {
-        namedReExports.push(
-          `export type { ${boilerplate.typeNames.join(', ')} } from '${canonicalImport}';`,
-        );
-      }
-      if (boilerplate.valueNames.length > 0) {
-        namedReExports.push(
-          `export { ${boilerplate.valueNames.join(', ')} } from '${canonicalImport}';`,
-        );
-      }
-    }
-  }
+  // See `collectDuplicateExportNames` above: when a name is exported by 2+
+  // of the files this barrel wildcard-re-exports — whether identical
+  // generator boilerplate repeated per file, or a per-operation name two
+  // generators happen to emit for the same operation — wildcard-exporting
+  // all of them raises TS2308. Re-export each such name explicitly from the
+  // first (sorted) file that declares it so the subsequent `export *`
+  // statements — which still carry each file's own tag-specific exports —
+  // compile cleanly.
+  const fileContentsByPath = new Map<string, string>(
+    await Promise.all(
+      clientFilePaths.map(
+        async (filePath) =>
+          [filePath, await fs.readFile(filePath, 'utf8')] as const,
+      ),
+    ),
+  );
+  const duplicateExportNames = collectDuplicateExportNames(
+    clientFilePaths,
+    fileContentsByPath,
+  ).toSorted((a, b) => a.name.localeCompare(b.name));
+
+  const namedReExports = duplicateExportNames.map(
+    ({ name, sourceFilePath, typeOnly }) =>
+      typeOnly
+        ? `export type { ${name} } from '${toImportSpecifier(sourceFilePath)}';`
+        : `export { ${name} } from '${toImportSpecifier(sourceFilePath)}';`,
+  );
 
   await appendOrCreateBarrel(indexFile, unique(imports), namedReExports);
 
