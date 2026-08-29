@@ -5,9 +5,13 @@ import { escapePath, glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
 
-/** Removes the last extension from a path. A dot in a directory name stays. */
+/**
+ * Removes the last extension from a path. A dot in a directory name stays,
+ * which is why `\` counts as a separator too: without it, `.\v1.0\pets` would
+ * lose everything after the version dot.
+ */
 export function pathWithoutExtension(filePath: string) {
-  return filePath.replace(/\.[^/.]+$/, '');
+  return filePath.replace(/\.[^\\/.]+$/, '');
 }
 
 /**
