@@ -43,9 +43,19 @@ const httpResourceBuilder: ClientGeneratorsBuilder = {
 
 const bothClientBuilder: ClientGeneratorsBuilder = {
   ...httpClientBuilder,
-  extraFiles: async (verbOptions, output, context) => [
-    ...(await generateHttpResourceExtraFiles(verbOptions, output, context)),
-    ...(await generateAngularBaseUrlExtraFiles(verbOptions, output, context)),
+  extraFiles: async (verbOptions, output, context, schemaTagMap) => [
+    ...(await generateHttpResourceExtraFiles(
+      verbOptions,
+      output,
+      context,
+      schemaTagMap,
+    )),
+    ...(await generateAngularBaseUrlExtraFiles(
+      verbOptions,
+      output,
+      context,
+      schemaTagMap,
+    )),
   ],
 };
 
