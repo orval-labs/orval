@@ -22,6 +22,17 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  annotationsCoverage: {
+    input: '../specifications/mcp-annotations.yaml',
+    output: {
+      target: '../generated/mcp/annotations-coverage/handlers.ts',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+
   petstoreSingle: {
     input: '../specifications/petstore.yaml',
     output: {

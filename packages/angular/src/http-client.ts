@@ -5,6 +5,7 @@ import {
   type ClientFooterBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
+  emitResponseValidation,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
@@ -377,7 +378,7 @@ export const generateHttpClientImplementation = (
   const hasSchema = hasSchemaImport(response.imports, dataType);
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
-    override.angular.runtimeValidation &&
+    override.angular.runtimeValidation.enabled &&
     isZodOutput &&
     !isPrimitive &&
     hasSchema;
@@ -389,7 +390,7 @@ export const generateHttpClientImplementation = (
     contentType: string | undefined,
   ): string => {
     if (
-      override.angular.runtimeValidation &&
+      override.angular.runtimeValidation.enabled &&
       isZodOutput &&
       !!contentType &&
       (contentType.includes('json') || contentType.includes('+json')) &&
@@ -421,14 +422,34 @@ export const generateHttpClientImplementation = (
   // `TData` can be widened/narrowed by callers while the runtime value is always
   // `PetsOutput`. We therefore drop the cast on the validation path and let the
   // inferred return type flow naturally.
+  const validationStrategy = override.angular.runtimeValidation.strategy;
   const validationPipe = shouldValidateResponse
-    ? `.pipe(map(data => ${schemaValueRef}.parse(data)))`
+    ? emitResponseValidation({
+        schemaRef: schemaValueRef,
+        operationName,
+        strategy: validationStrategy,
+        context: 'rxjs-map',
+      })
     : '';
   const responseValidationPipe = shouldValidateResponse
-    ? `.pipe(map(response => response.clone({ body: ${schemaValueRef}.parse(response.body) })))`
+    ? `.pipe(map(response => response.clone({ body: ${emitResponseValidation({
+        schemaRef: schemaValueRef,
+        operationName,
+        strategy: validationStrategy,
+        context: 'clone-expression',
+        inputExpression: 'response.body',
+      })} })))`
     : '';
   const eventValidationPipe = shouldValidateResponse
-    ? `.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ${schemaValueRef}.parse(event.body) }) : event))`
+    ? `.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ${emitResponseValidation(
+        {
+          schemaRef: schemaValueRef,
+          operationName,
+          strategy: validationStrategy,
+          context: 'clone-expression',
+          inputExpression: 'event.body',
+        },
+      )} }) : event))`
     : '';
 
   returnTypesRegistry.set(
@@ -583,7 +604,7 @@ export const generateHttpClientImplementation = (
     jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
   const parsedJsonReturnType =
     jsonSuccessValues.length === 1 &&
-    override.angular.runtimeValidation &&
+    override.angular.runtimeValidation.enabled &&
     isZodOutput &&
     !isPrimitiveType(jsonSuccessValues[0]) &&
     hasSchemaImport(response.imports, jsonSuccessValues[0])
@@ -591,12 +612,17 @@ export const generateHttpClientImplementation = (
       : jsonReturnType;
 
   let jsonValidationPipe = shouldValidateResponse
-    ? `.pipe(map(data => ${schemaValueRef}.parse(data)))`
+    ? emitResponseValidation({
+        schemaRef: schemaValueRef,
+        operationName,
+        strategy: validationStrategy,
+        context: 'rxjs-map',
+      })
     : '';
   if (
     hasMultipleContentTypes &&
     !shouldValidateResponse &&
-    override.angular.runtimeValidation &&
+    override.angular.runtimeValidation.enabled &&
     isZodOutput &&
     jsonSuccessValues.length === 1
   ) {
@@ -605,7 +631,12 @@ export const generateHttpClientImplementation = (
     const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
     if (!jsonIsPrimitive && jsonHasSchema) {
       const jsonSchemaRef = getSchemaValueRef(jsonType);
-      jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
+      jsonValidationPipe = emitResponseValidation({
+        schemaRef: jsonSchemaRef,
+        operationName,
+        strategy: validationStrategy,
+        context: 'rxjs-map',
+      });
     }
   }
 
@@ -858,7 +889,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
   const responseType = verbOptions.response.definition.success;
   const isPrimitiveResponse = isPrimitiveType(responseType);
   const shouldUseRuntimeValidation =
-    verbOptions.override.angular.runtimeValidation && isZodOutput;
+    verbOptions.override.angular.runtimeValidation.enabled && isZodOutput;
 
   const normalizedVerbOptions = (() => {
     if (!shouldUseRuntimeValidation) return verbOptions;
