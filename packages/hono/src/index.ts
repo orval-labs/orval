@@ -1121,10 +1121,8 @@ ${honoAppExport}
  * generated `.context` and `.zod` modules import shared schema types from.
  *
  * @remarks
- * `filename` comes from {@link getFileInfo}, which strips the full
- * (possibly multi-part) `extension` via `path.basename(filePath, extension)`.
- * A naive last-extension strip would leave `.generated` behind for a
- * `.generated.ts` extension and produce
+ * The configured `extension` may have several parts. Stripping only the last
+ * one leaves `.generated` behind for a `.generated.ts` extension and produces
  * `client.generated.schemas.generated.ts` instead of
  * `client.schemas.generated.ts`.
  */
