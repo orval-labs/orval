@@ -112,6 +112,7 @@ export interface NormalizedOverrideOutput {
   paramsFilter?: NormalizedMutator;
   namingConvention: {
     enum?: NamingConvention;
+    properties?: NamingConvention;
   };
   components: {
     schemas: {
@@ -769,6 +770,13 @@ export interface OverrideOutput {
   paramsFilter?: Mutator;
   namingConvention?: {
     enum?: NamingConvention;
+    /**
+     * Naming convention applied to schema property names in generated
+     * TypeScript types. The original spec key is still used for `required`
+     * matching and runtime serialization; only the emitted property name
+     * changes. See issue #2381.
+     */
+    properties?: NamingConvention;
   };
   components?: {
     schemas?: {

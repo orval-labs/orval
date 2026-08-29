@@ -17,9 +17,10 @@ import {
   jsStringLiteralEscape,
   pascal,
 } from '../utils';
+import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getKey } from './keys';
+import { getKey, getPropertyNameCollisionKeys } from './keys';
 import { getRefInfo } from './ref';
 
 interface PropertyNamesKeyType {
@@ -373,6 +374,17 @@ export function getObject({
         return compareNatural(a[0], b[0]);
       });
     }
+
+    // Phase 1: detect property-name collisions from namingConvention
+    const propertyConvention =
+      context.output.override.namingConvention?.properties;
+    const collisionKeys = getPropertyNameCollisionKeys(
+      entries.map(([key]) => key),
+      propertyConvention
+        ? (name) => conventionName(name, propertyConvention)
+        : undefined,
+    );
+
     const acc: ScalarValue = {
       imports: [],
       schemas: [],
@@ -503,7 +515,13 @@ export function getObject({
         isReadOnly && !context.output.override.suppressReadonlyModifier
           ? '  readonly '
           : '  '
-      }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      }${getKey(
+        propertyConvention
+          ? collisionKeys.has(key)
+            ? key // collision: fall back to the original (unique) schema key
+            : conventionName(key, propertyConvention)
+          : key,
+      )}${isRequired ? '' : '?'}: ${finalPropValue};`;
       if (usedResolvedValue) {
         acc.schemas.push(...resolvedValue.schemas);
         acc.dependencies.push(...resolvedValue.dependencies);
