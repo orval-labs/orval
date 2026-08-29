@@ -18,11 +18,6 @@ import { unref } from 'vue';
 
 import type { Error } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
@@ -182,33 +177,3 @@ export function useHealthCheck<
 
   return query;
 }
-
-export const getHealthCheckResponseMock = (): string => faker.word.sample();
-
-export const getHealthCheckMockHandler = (
-  overrideResponse?:
-    | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getHealthCheckResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
-    },
-    options,
-  );
-};
-export const getHealthMock = () => [getHealthCheckMockHandler()];

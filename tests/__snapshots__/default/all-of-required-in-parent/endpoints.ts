@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Get200 } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const get = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Get200>> => {
@@ -21,43 +16,3 @@ export const get = (
 };
 
 export type GetResult = AxiosResponse<Get200>;
-
-export const getGetResponseMock = (): Get200 => ({
-  ...{ total_count: faker.number.float({ fractionDigits: 2 }) },
-  ...{
-    data: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      username: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-    })),
-  },
-});
-
-export const getGetMockHandler = (
-  overrideResponse?:
-    | Get200
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Get200> | Get200),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfRequiredInParentMock = () => [getGetMockHandler()];

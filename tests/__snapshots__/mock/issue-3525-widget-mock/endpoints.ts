@@ -6,11 +6,6 @@
  */
 import type { WidgetMock } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getWidgetResponse200 = {
   data: WidgetMock;
   status: 200;
@@ -42,44 +37,3 @@ export const getWidget = async (
     headers: res.headers,
   } as getWidgetResponse;
 };
-
-export const getGetWidgetResponseMock = (
-  overrideResponse: Partial<Extract<WidgetMock, object>> = {},
-): WidgetMock => ({
-  id: faker.number.int(),
-  label: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGetWidgetMockHandler = (
-  overrideResponse?:
-    | WidgetMock
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<WidgetMock> | WidgetMock),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/widget',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetWidgetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3525SchemaNamedWidgetMockMock = () => [
-  getGetWidgetMockHandler(),
-];

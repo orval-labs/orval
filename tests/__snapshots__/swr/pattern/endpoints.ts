@@ -9,11 +9,6 @@ import type { Key, SWRConfiguration } from 'swr';
 
 import type { Node } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getVversionExampleResponse200 = {
   data: Node;
   status: 200;
@@ -91,38 +86,3 @@ export const useGetVversionExample = <TError = Promise<unknown>>(
     ...query,
   };
 };
-
-export const getGetVversionExampleResponseMock = (
-  overrideResponse: Partial<Extract<Node, object>> = {},
-): Node => ({
-  guid: faker.helpers.fromRegExp(
-    '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-  ),
-  name: faker.helpers.fromRegExp("^[\\p{L}][\\p{L}\\p{M}'’. -]{0,99}$"),
-  ...overrideResponse,
-});
-
-export const getGetVversionExampleMockHandler = (
-  overrideResponse?:
-    | Node
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Node> | Node),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/example',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetVversionExampleResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getPatternMock = () => [getGetVversionExampleMockHandler()];

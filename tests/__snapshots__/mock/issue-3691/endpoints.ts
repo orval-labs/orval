@@ -9,11 +9,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Example } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getIssue3691TuplePrefixItemsMock = (
   axiosInstance: AxiosInstance = axios,
 ) => {
@@ -26,64 +21,3 @@ export const getIssue3691TuplePrefixItemsMock = (
   return { getExample };
 };
 export type GetExampleResult = AxiosResponse<Example>;
-
-export const getGetExampleResponseMock = (
-  overrideResponse: Partial<Extract<Example, object>> = {},
-): Example => ({
-  point: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      [
-        faker.number.float({ fractionDigits: 2 }),
-        faker.number.float({ fractionDigits: 2 }),
-      ],
-      null,
-    ]),
-    undefined,
-  ]),
-  plainPoint: [
-    faker.number.float({ fractionDigits: 2 }),
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ],
-  objTuple: [
-    {
-      id: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-    },
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ],
-  restTuple: [
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    faker.number.float({ fractionDigits: 2 }),
-  ],
-  emptyElemTuple: [faker.string.alpha({ length: { min: 10, max: 20 } }), {}],
-  ...overrideResponse,
-});
-
-export const getGetExampleMockHandler = (
-  overrideResponse?:
-    | Example
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Example> | Example),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/example',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetExampleResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3691TuplePrefixItemsMockMock = () => [
-  getGetExampleMockHandler(),
-];

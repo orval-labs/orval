@@ -9,9 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { RequestUser } from './model';
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const createUser = (
   requestUser: RequestUser,
   options?: AxiosRequestConfig,
@@ -20,25 +17,3 @@ export const createUser = (
 };
 
 export type CreateUserResult = AxiosResponse<void>;
-
-export const getCreateUserMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/users',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 201 });
-    },
-    options,
-  );
-};
-export const getOneOfRequiredExampleMock = () => [getCreateUserMockHandler()];

@@ -8,11 +8,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getBinaryMultiContent = (axiosInstance: AxiosInstance = axios) => {
   const getProfilePicture = (
     id: string,
@@ -27,41 +22,3 @@ export const getBinaryMultiContent = (axiosInstance: AxiosInstance = axios) => {
   return { getProfilePicture };
 };
 export type GetProfilePictureResult = AxiosResponse<Blob>;
-
-export const getGetProfilePictureResponseMock = (): ArrayBuffer =>
-  faker.helpers.arrayElement([
-    new ArrayBuffer(faker.number.int({ min: 1, max: 64 })),
-    new ArrayBuffer(faker.number.int({ min: 1, max: 64 })),
-  ]);
-
-export const getGetProfilePictureMockHandler = (
-  overrideResponse?:
-    | ArrayBuffer
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ArrayBuffer> | ArrayBuffer),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/api/account/profile-picture-file/:id',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const binaryBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetProfilePictureResponseMock();
-      return HttpResponse.arrayBuffer(
-        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        },
-      );
-    },
-    options,
-  );
-};
-export const getBinaryMultiContentMock = () => [
-  getGetProfilePictureMockHandler(),
-];

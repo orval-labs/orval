@@ -864,8 +864,9 @@ test('default issue-1775 preserves boolean enum literals across allOf+oneOf', as
   expect(model).toContain('failReason: string;');
   expect(model).toContain('orderId: string;');
 
+  // `mock: true` de-inlines into a sibling `.msw.ts` by default (#3831).
   const endpoints = await readFile(
-    generated('default', 'issue-1775', 'endpoints.ts'),
+    generated('default', 'issue-1775', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -886,8 +887,9 @@ test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factor
   // referenced parent when it is being expanded under an allOf separator,
   // because the current schema is by construction a specific variant — the
   // union side of the parent is descriptive, not additive.
+  // `mock: true` de-inlines into a sibling `.msw.ts` by default (#3831).
   const endpoints = await readFile(
-    generated('mock', 'discriminator-oneof-allof', 'endpoints.ts'),
+    generated('mock', 'discriminator-oneof-allof', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -922,8 +924,10 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
   // generated output for this shape; this test pins the contract so a future
   // refactor cannot regress the base handler back to HttpResponse.text /
   // raw `text/plain` headers.
+  // The msw-only generator de-inlines into a sibling `.msw.ts` by default
+  // (#3831).
   const endpoints = await readFile(
-    generated('mock', 'issue-2327', 'endpoints.ts'),
+    generated('mock', 'issue-2327', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -953,8 +957,10 @@ test('mock problem+json error response preserves the vendor Content-Type (RFC 94
   // responses on the client side could not exercise that path against an Orval
   // mock. The generator now emits an explicit Content-Type header whenever the
   // resolved media type differs from the MSW helper default.
+  // The msw-only generator de-inlines into a sibling `.msw.ts` by default
+  // (#3831).
   const content = await readFile(
-    generated('mock', 'msw-problem-details-content-type', 'endpoints.ts'),
+    generated('mock', 'msw-problem-details-content-type', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -1180,8 +1186,9 @@ test('mock issue-3484 required nullable scalars get a single null branch', async
   // getter and the object property layer each added a null branch, producing
   // `arrayElement([arrayElement([<value>, null]), null])` and skewing null to
   // ~75%.
+  // `mock: true` de-inlines into a sibling `.msw.ts` by default (#3831).
   const content = await readFile(
-    generated('mock', 'issue-3484', 'endpoints.ts'),
+    generated('mock', 'issue-3484', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -1833,10 +1840,12 @@ test('mock issue-3590 tags-split recovers consolidated schema factory imports', 
 });
 
 test('mock issue-3590 binary responses generate when response.imports is absent', async () => {
+  // The faker-only generator de-inlines into a sibling `.faker.ts` by
+  // default (#3831).
   const endpoints = generated(
     'mock',
     'issue-3590-binary-response-imports',
-    'endpoints.ts',
+    'endpoints.faker.ts',
   );
   const content = await readFile(endpoints, 'utf8');
 
@@ -1845,8 +1854,9 @@ test('mock issue-3590 binary responses generate when response.imports is absent'
 });
 
 test('mock issue-3505 enum values with backslashes are JS-escaped', async () => {
+  // `mock: true` de-inlines into a sibling `.msw.ts` by default (#3831).
   const content = await readFile(
-    generated('mock', 'issue-3505', 'endpoints.ts'),
+    generated('mock', 'issue-3505', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -2160,8 +2170,10 @@ test('axios workspace barrel re-exports implementation when target is not index.
 });
 
 test('mock issue-3656 oneOf branch MSW mock imports the enum as a value', async () => {
+  // The msw-only generator de-inlines into a sibling `.msw.ts` by default
+  // (#3831).
   const content = await readFile(
-    generated('mock', 'issue-3656', 'endpoints.ts'),
+    generated('mock', 'issue-3656', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -2174,8 +2186,10 @@ test('mock issue-3656 oneOf branch MSW mock imports the enum as a value', async 
 });
 
 test('mock issue-3691 tuple prefixItems mock values match the generated tuple type', async () => {
+  // The msw-only generator de-inlines into a sibling `.msw.ts` by default
+  // (#3831).
   const content = await readFile(
-    generated('mock', 'issue-3691', 'endpoints.ts'),
+    generated('mock', 'issue-3691', 'endpoints.msw.ts'),
     'utf8',
   );
 

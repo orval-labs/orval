@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getPet = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
@@ -21,36 +16,3 @@ export const getPet = (
 };
 
 export type GetPetResult = AxiosResponse<Pet>;
-
-export const getGetPetResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  detail: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getGetPetMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pet',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetPetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfRefMock = () => [getGetPetMockHandler()];

@@ -4,8 +4,6 @@
  * Issue 3590 - binary response without response.imports
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 export type getPetPhotoResponse200 = {
   data: Blob;
   status: 200;
@@ -37,6 +35,3 @@ export const getPetPhoto = async (
     headers: res.headers,
   } as getPetPhotoResponse;
 };
-
-export const getGetPetPhotoResponseMock = (): ArrayBuffer =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));

@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pets } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getPets = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pets[]>> => {
@@ -21,43 +16,3 @@ export const getPets = (
 };
 
 export type GetPetsResult = AxiosResponse<Pets[]>;
-
-export const getGetPetsResponseMock = (): Pets[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    petId: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-  }));
-
-export const getGetPetsMockHandler = (
-  overrideResponse?:
-    | Pets[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets[]> | Pets[]),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetPetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfPrimitiveMock = () => [getGetPetsMockHandler()];

@@ -571,7 +571,7 @@ export default defineConfig({
 });
 ```
 
-Each entry in `mock.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...). Set `mock: false` (or omit it) to disable mock generation entirely.
+Each entry in `mock.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...), unless `inline: true` keeps the code in the implementation file. Set `mock: false` (or omit it) to disable mock generation entirely.
 
 ### Mocks Options
 
@@ -604,7 +604,8 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `indexMockFiles` | `Boolean` | `false` | In `split` and `tags-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
-| `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. When set in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. Ignored on function-form generators, which always fall back to the shared `path`. |
+| `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. In `single` and `tags` mode this only changes where the de-inlined mock files land; see `inline` to keep mock code in the implementation file instead. Ignored on function-form generators, which always fall back to the shared `path`. |
+| `inline` | `Boolean` | `false` | In `single` and `tags` mode, mock code is written to separate `.msw.ts` / `.faker.ts` files next to the implementation file(s) by default, matching `split` and `tags-split`. Set to `true` to append mock code to the implementation file instead, matching the layout Orval used before this option existed. No effect in `split` or `tags-split`, which always write separate mock files. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
 
 ```ts title="orval.config.ts"
@@ -628,7 +629,7 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | Discriminator for MSW handler generation. |
-| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. In `single` and `tags` mode this only changes where the de-inlined mock file lands; see `mock.inline` to keep mock code in the implementation file instead. |
 | `operationResponses` | `Boolean` | `true` | Emit `get<Op>ResponseMock` factories in the MSW output. Set to `false` to generate handlers only, response fallbacks become `undefined`. No effect when a Faker generator also emits the factories, the handlers then import them from the `.faker` file. Honored in `split` and `tags-split` modes. |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
@@ -647,7 +648,7 @@ In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `ge
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'faker'` | required | Discriminator for Faker-only output. |
-| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. In `single` and `tags` mode this only changes where the de-inlined mock file lands; see `mock.inline` to keep mock code in the implementation file instead. |
 | `schemas` | `Boolean` | `false` | Emit a consolidated mock factory file (`get<SchemaName>Mock`) for every entry under `components/schemas`. |
 | `schemasImportPath` | `String` | `undefined` | Package specifier for importing the schema-level faker factories emitted by `schemas: true` (e.g. `@acme/models/fakers`). When set, used verbatim instead of appending `/index.faker` to `schemas.importPath` — useful when the production barrel can't expose a sub-path export. Requires `schemas: true` and `schemas.importPath`. Only applies when `schemas: true` is set on the same generator. |
 | `operationResponses` | `Boolean` | `true` | Emit per-operation response mock factories (the historical behavior). Set to `false` together with `schemas: true` to get only the consolidated schema factories. |

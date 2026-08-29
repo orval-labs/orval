@@ -5,11 +5,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const testsRoot = path.resolve(__dirname, '..');
 
+// These configs use the msw-only generator, which de-inlines into a
+// sibling `.msw.ts` file by default (#3831).
 const fixturePaths = [
-  'generated/mock/msw-mixed-content-union/endpoints.ts',
-  'generated/mock/msw-mixed-content-union-preferred-json/endpoints.ts',
-  'generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
-  'generated/mock/msw-mixed-content-union-each-status/endpoints.ts',
+  'generated/mock/msw-mixed-content-union/endpoints.msw.ts',
+  'generated/mock/msw-mixed-content-union-preferred-json/endpoints.msw.ts',
+  'generated/mock/msw-mixed-content-union-vendor/endpoints.msw.ts',
+  'generated/mock/msw-mixed-content-union-each-status/endpoints.msw.ts',
 ];
 
 const expectedSignature =

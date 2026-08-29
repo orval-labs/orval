@@ -95,12 +95,19 @@ export async function writeSplitTagsMode({
 
   const collectedSharedTypes: SharedTypeDeclaration[] = [];
   const seenSharedTypeNames = new Set<string>();
-  for (const [, target] of tagEntries) {
+  // Without deduplication, each tag inlines its own copy of any shared type
+  // it needs (e.g. the fetch client's `HTTPStatusCode1xx` union). Recording
+  // the first tag that declares each name lets the root barrel re-export it
+  // by name from that one tag instead of via `export *`, which would be
+  // ambiguous once more than one tag redeclares the same type.
+  const firstTagForSharedType = new Map<string, string>();
+  for (const [tag, target] of tagEntries) {
     if (!target.sharedTypes) continue;
     for (const t of target.sharedTypes) {
       if (!seenSharedTypeNames.has(t.name)) {
         seenSharedTypeNames.add(t.name);
         collectedSharedTypes.push(t);
+        firstTagForSharedType.set(t.name, tag);
       }
     }
   }
@@ -488,7 +495,7 @@ export async function writeSplitTagsMode({
   }
 
   let indexFilePath: string | undefined;
-  if (output.indexFiles && deduplicationEnabled && tagEntries.length > 0) {
+  if (output.indexFiles && tagEntries.length > 0) {
     const importExtension = getImportExtension(
       output.fileExtension,
       output.tsconfig,
@@ -500,10 +507,31 @@ export async function writeSplitTagsMode({
       .filter((t) => t.exported)
       .map((t) => t.name);
 
+    // With deduplication, every shared type lives in one common-types file,
+    // so a single named re-export from there covers all of them. Without
+    // it, each tag redeclares its own copy of any shared type it needs, so
+    // wildcard-exporting more than one such tag would raise a TS2308
+    // ambiguity error. Re-export each name individually, by hand, from
+    // whichever tag first declared it: an explicit named export shadows an
+    // ambiguous `export *` for the same name, so this stays valid even
+    // though every other tag also exports that name via its own `export *`.
     const namedReExports =
-      publicSharedTypeNames.length > 0
-        ? `export type { ${publicSharedTypeNames.join(', ')} } from './${commonTypesBasename}${importExtension}';\n`
-        : '';
+      publicSharedTypeNames.length === 0
+        ? ''
+        : deduplicationEnabled
+          ? `export type { ${publicSharedTypeNames.join(', ')} } from './${commonTypesBasename}${importExtension}';\n`
+          : publicSharedTypeNames
+              .map((name) => {
+                const owningTag = firstTagForSharedType.get(name);
+                if (!owningTag) return '';
+                const ownerFile = upath.joinSafe(
+                  './',
+                  owningTag,
+                  owningTag + serviceSuffix + importExtension,
+                );
+                return `export type { ${name} } from '${ownerFile}';\n`;
+              })
+              .join('');
 
     const tagReExports = tagEntries
       .map(([tag]) => {

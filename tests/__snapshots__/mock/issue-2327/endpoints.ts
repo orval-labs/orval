@@ -9,11 +9,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pets } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getIssue2327BaseMockHandlerContentTypeWithMixedStatusCodes = (
   axiosInstance: AxiosInstance = axios,
 ) => {
@@ -26,38 +21,3 @@ export const getIssue2327BaseMockHandlerContentTypeWithMixedStatusCodes = (
   return { listPets };
 };
 export type ListPetsResult = AxiosResponse<Pets>;
-
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  }));
-
-export const getListPetsMockHandler = (
-  overrideResponse?:
-    | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getListPetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue2327BaseMockHandlerContentTypeWithMixedStatusCodesMock =
-  () => [getListPetsMockHandler()];

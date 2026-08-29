@@ -101,30 +101,3 @@ export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;
 export type HealthCheckResult = AxiosResponse<string>;
 export type ShowPetWithOwnerResult = AxiosResponse<PetWithTag>;
-
-const listPetsMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-const createPetsMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-const showPetByIdMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-const deletePetByIdMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-const healthCheckMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-const showPetWithOwnerMockHandler = () => {
-  return { data: { id: 1, name: 'myName' } };
-};
-export const getSwaggerPetstoreMock = () => [
-  listPetsMockHandler(),
-  createPetsMockHandler(),
-  showPetByIdMockHandler(),
-  deletePetByIdMockHandler(),
-  healthCheckMockHandler(),
-  showPetWithOwnerMockHandler(),
-];

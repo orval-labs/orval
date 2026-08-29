@@ -58,7 +58,7 @@ const createOutput = (
     fileExtension: '.ts',
     schemaFileExtension: '.ts',
     mode: 'single',
-    mock: { indexMockFiles: false, generators: [] },
+    mock: { indexMockFiles: false, inline: false, generators: [] },
     override: {
       operations: {},
       tags: {},

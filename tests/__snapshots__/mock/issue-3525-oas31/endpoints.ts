@@ -6,11 +6,6 @@
  */
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getPetResponse200 = {
   data: Pet;
   status: 200;
@@ -38,65 +33,3 @@ export const getPet = async (
   const data: getPetResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getPetResponse;
 };
-
-export type KeysWithNull<O> = {
-  [K in keyof O]-?: null extends O[K] ? K : never;
-}[keyof O];
-
-export type MockWithNullableOverrides<
-  T,
-  O extends Partial<T>,
-  M extends Record<keyof T, unknown>,
-> = Omit<M, Extract<KeysWithNull<O>, keyof T>> & {
-  [K in Extract<KeysWithNull<O>, keyof T>]: M[K] | null;
-};
-
-export type PetMock = {
-  [K in keyof Required<NonNullable<Pet>>]: NonNullable<
-    Required<NonNullable<Pet>>[K]
-  >;
-};
-
-export const getGetPetResponseMock = <
-  O extends Partial<Extract<Pet, object>> = {},
->(
-  overrideResponse?: O,
-): MockWithNullableOverrides<Pet, O, PetMock> =>
-  ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    birthDate: faker.date.past().toISOString().slice(0, 19) + 'Z',
-    photoUrls: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    ...overrideResponse,
-  }) as MockWithNullableOverrides<Pet, O, PetMock>;
-
-export const getGetPetMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pet',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetPetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3525StrictMockReturnTypesOpenAPI31Mock = () => [
-  getGetPetMockHandler(),
-];

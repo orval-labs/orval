@@ -329,6 +329,7 @@ describe('getMockObject', () => {
       output: {
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [{ type: 'faker', schemas: true }],
         },
       },

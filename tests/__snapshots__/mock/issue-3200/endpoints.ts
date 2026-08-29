@@ -17,10 +17,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { StringToIntegerMap, StringToNumberMap } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { getIntegerLikeMock, getNumberLikeMock } from './model/index.faker';
-
 export const getIssue3200 = (axiosInstance: AxiosInstance = axios) => {
   const getIntegerMap = (
     options?: AxiosRequestConfig,
@@ -38,11 +34,3 @@ export const getIssue3200 = (axiosInstance: AxiosInstance = axios) => {
 };
 export type GetIntegerMapResult = AxiosResponse<StringToIntegerMap>;
 export type GetNumberMapResult = AxiosResponse<StringToNumberMap>;
-
-export const getGetIntegerMapResponseMock = (): StringToIntegerMap => ({
-  [faker.string.alphanumeric(5)]: getIntegerLikeMock(),
-});
-
-export const getGetNumberMapResponseMock = (): StringToNumberMap => ({
-  [faker.string.alphanumeric(5)]: getNumberLikeMock(),
-});

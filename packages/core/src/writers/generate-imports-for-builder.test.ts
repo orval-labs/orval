@@ -449,6 +449,7 @@ describe('generateImportsForBuilder', () => {
         },
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [
             {
               type: 'faker',
@@ -488,6 +489,7 @@ describe('generateImportsForBuilder', () => {
         },
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [{ type: 'faker', schemas: true }],
         },
       });

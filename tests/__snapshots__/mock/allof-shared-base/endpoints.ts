@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Response } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 /**
  * allOf with shared base schema in deeply nested structure.
  */
@@ -24,66 +19,3 @@ export const getAllOfSharedBase = (
 };
 
 export type GetAllOfSharedBaseResult = AxiosResponse<Response>;
-
-export const getGetAllOfSharedBaseResponseMock = (
-  overrideResponse: Partial<Extract<Response, object>> = {},
-): Response => ({
-  dog: faker.helpers.arrayElement([
-    {
-      ...{
-        id: faker.number.int(),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        shelter: faker.helpers.arrayElement([
-          {
-            id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            address: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            cats: faker.helpers.arrayElement([
-              Array.from(
-                { length: faker.number.int({ min: 1, max: 10 }) },
-                (_, i) => i + 1,
-              ).map(() => ({
-                ...{
-                  id: faker.number.int(),
-                  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-                },
-                ...{ meow: faker.datatype.boolean() },
-              })),
-              undefined,
-            ]),
-          },
-          undefined,
-        ]),
-      },
-      ...{ bark: faker.datatype.boolean() },
-    },
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGetAllOfSharedBaseMockHandler = (
-  overrideResponse?:
-    | Response
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Response> | Response),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/allof-shared-base',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetAllOfSharedBaseResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfSharedBaseSchemaMock = () => [
-  getGetAllOfSharedBaseMockHandler(),
-];

@@ -16,10 +16,6 @@ import type {
   Pets,
 } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { getCatMock, getDogMock, getPetMock } from './model/index.faker';
-
 export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
   /**
    * @summary List all pets
@@ -105,71 +101,3 @@ export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;
 export type HealthCheckResult = AxiosResponse<string>;
 export type ShowPetWithOwnerResult = AxiosResponse<PetWithTag>;
-
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({ ...getPetMock() }));
-
-export const getCreatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([{ ...getDogMock() }, { ...getCatMock() }]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getShowPetByIdResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([{ ...getDogMock() }, { ...getCatMock() }]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getHealthCheckResponseMock = (): string => faker.word.sample();
-
-export const getShowPetWithOwnerResponseMock = (
-  overrideResponse: Partial<Extract<PetWithTag, object>> = {},
-): PetWithTag => ({
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: faker.helpers.arrayElement([{ ...getPetMock() }, null]),
-  ...overrideResponse,
-});

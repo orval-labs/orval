@@ -374,6 +374,7 @@ export async function normalizeOptions(
   const mocksOption = outputOptions.mock ?? globalOptions.mock;
   let mocks: NormalizedMocksConfig = {
     indexMockFiles: false,
+    inline: false,
     generators: [],
   };
   if (isBoolean(mocksOption) && mocksOption) {
@@ -381,6 +382,7 @@ export async function normalizeOptions(
     // factory file using default options for each.
     mocks = {
       indexMockFiles: false,
+      inline: false,
       generators: [
         getDefaultMockOptionsForType(OutputMockType.MSW),
         getDefaultMockOptionsForType(OutputMockType.FAKER),
@@ -389,7 +391,7 @@ export async function normalizeOptions(
   } else if (isFunction(mocksOption)) {
     // Function form treats the entire mocks option as a single
     // ClientMockBuilder. Wrap it in the array so writers can still iterate.
-    mocks = { indexMockFiles: false, generators: [mocksOption] };
+    mocks = { indexMockFiles: false, inline: false, generators: [mocksOption] };
   } else if (mocksOption && typeof mocksOption === 'object') {
     if (!Array.isArray(mocksOption.generators)) {
       throw new TypeError(
@@ -403,6 +405,7 @@ export async function normalizeOptions(
     mocks = {
       indexMockFiles: mocksOption.indexMockFiles ?? false,
       path: sharedMockPath,
+      inline: mocksOption.inline ?? false,
       generators: mocksOption.generators.map((m) =>
         isFunction(m)
           ? m

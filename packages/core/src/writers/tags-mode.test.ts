@@ -72,6 +72,7 @@ describe('writeTagsMode — index mock barrel has deterministic tag order', () =
         mode: OutputMode.TAGS,
         mock: {
           indexMockFiles: true,
+          inline: false,
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -193,6 +194,7 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
         schemas: path.join(tmpDir, 'model'),
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [
             { type: OutputMockType.MSW },
             { type: OutputMockType.FAKER, path: fakerDir },
@@ -245,8 +247,10 @@ describe('writeTagsMode — index mock barrel re-exports get<PascalledTag>Mock',
         mode: OutputMode.TAGS,
         mock: {
           indexMockFiles: true,
-          // `path` triggers `shouldDeinlineMocks` so the per-tag mock file
-          // (and the re-exporting index barrel) is actually written.
+          inline: false,
+          // Mocks deinline into sibling files by default; `path` only
+          // controls where the per-tag mock file (and the re-exporting
+          // index barrel) lands.
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -308,7 +312,13 @@ describe('writeTagsMode — inline mocks upgrade schema imports used at runtime'
           return '';
         },
       },
-      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+      // `mock.inline: true` exercises the legacy inlined layout, which is
+      // where this runtime-value marking applies; the default de-inlined
+      // layout carries the mock's own imports instead.
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        mock: { indexMockFiles: false, inline: true, generators: [] },
+      }),
     };
 
     await writeTagsMode({ ...props, needSchema: false });
@@ -478,5 +488,92 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
     );
     expect(defaultBucket).toEqual(['getHealth']);
     expect(operationNamesByBucket).toContainEqual(['listPets']);
+  });
+});
+
+// Regression coverage for https://github.com/orval-labs/orval/issues/3831
+//
+// Mock code used to stay inlined in the per-tag implementation file unless
+// a mock `path` was configured. Importing the generated client then also
+// evaluated `msw` at runtime. Mocks now de-inline into a sibling
+// `<tag>.msw.ts` by default, matching `split`/`tags-split`; the old layout
+// stays reachable through `mock.inline: true`.
+
+const createMswOnlyTagsProps = (target: string, { inline = false } = {}) => {
+  const baseProps = createSplitModeProps(target);
+  return {
+    ...baseProps,
+    builder: {
+      ...baseProps.builder,
+      operations: {
+        listPets: createSplitModeOperation({
+          mockOutputs: [
+            {
+              type: OutputMockType.MSW,
+              implementation: {
+                function: 'export const getListPetsResponseMock = () => ({});',
+                handler:
+                  "export const getListPetsMock = () => http.get('*/pets', () => HttpResponse.json(getListPetsResponseMock()));",
+                handlerName: 'getListPetsMock',
+              },
+              imports: [],
+            },
+          ],
+        }),
+      },
+      importsMock: () => "import { http, HttpResponse } from 'msw';\n",
+    } as typeof baseProps.builder,
+    output: createSplitModeOutput(target, {
+      mode: OutputMode.TAGS,
+      mock: {
+        indexMockFiles: false,
+        inline,
+        generators: [{ type: OutputMockType.MSW }],
+      },
+    }),
+  };
+};
+
+describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('writes msw code to a sibling .msw.ts file, not the per-tag implementation file', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = createMswOnlyTagsProps(target);
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const implementationPath = path.join(tmpDir, 'pets.ts');
+    const implementationContent = await fs.readFile(implementationPath, 'utf8');
+    expect(implementationContent).not.toContain('msw');
+    expect(implementationContent).not.toContain('getListPetsMock');
+
+    const mockPath = path.join(tmpDir, 'pets', 'pets.msw.ts');
+    expect(fs.existsSync(mockPath)).toBe(true);
+    const mockContent = await fs.readFile(mockPath, 'utf8');
+    expect(mockContent).toContain('msw');
+    expect(mockContent).toContain('getListPetsMock');
+  });
+
+  it('keeps msw code inline when mock.inline is true', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = createMswOnlyTagsProps(target, { inline: true });
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const implementationPath = path.join(tmpDir, 'pets.ts');
+    const implementationContent = await fs.readFile(implementationPath, 'utf8');
+    expect(implementationContent).toContain('msw');
+    expect(implementationContent).toContain('getListPetsMock');
+
+    expect(fs.existsSync(path.join(tmpDir, 'pets', 'pets.msw.ts'))).toBe(false);
   });
 });

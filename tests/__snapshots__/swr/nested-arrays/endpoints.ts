@@ -11,11 +11,6 @@ import type { SWRMutationConfiguration } from 'swr/mutation';
 
 import type { ResSampleModel } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type postApiSampleResponse200 = {
   data: ResSampleModel;
   status: 200;
@@ -87,43 +82,3 @@ export const usePostApiSample = <TError = Promise<unknown>>(options?: {
     ...query,
   };
 };
-
-export const getPostApiSampleResponseMock = (
-  overrideResponse: Partial<Extract<ResSampleModel, object>> = {},
-): ResSampleModel => ({
-  items: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() =>
-    Array.from(
-      { length: faker.number.int({ min: 2, max: 5 }) },
-      (_, i) => i + 1,
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-  ),
-  ...overrideResponse,
-});
-
-export const getPostApiSampleMockHandler = (
-  overrideResponse?:
-    | ResSampleModel
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<ResSampleModel> | ResSampleModel),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/api/sample',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getPostApiSampleResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getNestedArraysMock = () => [getPostApiSampleMockHandler()];

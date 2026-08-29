@@ -749,6 +749,7 @@ describe('generateFakerForSchemas recursive reference terminators', () => {
         schemas: 'model',
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [{ type: OutputMockType.FAKER, schemas: true }],
         },
       },
@@ -778,6 +779,7 @@ describe('resolveMockValue returns one factory import per ref-property (#3606)',
       schemas: 'model',
       mock: {
         indexMockFiles: false,
+        inline: false,
         generators: [{ type: OutputMockType.FAKER, schemas: true }],
       },
     },
@@ -890,6 +892,7 @@ describe('schema-scoped overrides are preserved through factory delegation', () 
       schemas: 'model',
       mock: {
         indexMockFiles: false,
+        inline: false,
         generators: [{ type: OutputMockType.FAKER, schemas: true }],
       },
     },

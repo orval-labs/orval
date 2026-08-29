@@ -9,13 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Animal } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dog } from './model';
-
 export const getAnimal = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Animal>> => {
@@ -23,70 +16,3 @@ export const getAnimal = (
 };
 
 export type GetAnimalResult = AxiosResponse<Animal>;
-
-export const getGetAnimalResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    ...{
-      ...{ name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-      ...{
-        livesLeft: faker.helpers.arrayElement([faker.number.int(), undefined]),
-      },
-    },
-    species: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getGetAnimalResponseDogMock = (
-  overrideResponse: Partial<Dog> = {},
-): Dog => ({
-  ...{
-    ...{
-      ...{ name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-      ...{
-        isTrained: faker.helpers.arrayElement([
-          faker.datatype.boolean(),
-          undefined,
-        ]),
-      },
-    },
-    species: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getGetAnimalResponseMock = (): Animal => ({
-  ...faker.helpers.arrayElement([
-    { ...getGetAnimalResponseCatMock() },
-    { ...getGetAnimalResponseDogMock() },
-  ]),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-});
-
-export const getGetAnimalMockHandler = (
-  overrideResponse?:
-    | Animal
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Animal> | Animal),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/animal',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetAnimalResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getDiscriminatorWithOneOfUnionWhereTheParentCarriesInheritablePropertiesMock =
-  () => [getGetAnimalMockHandler()];

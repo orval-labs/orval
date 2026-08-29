@@ -6,14 +6,6 @@
  */
 import type { Event } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { ReasonEnum } from './model';
-import type { CreatedDetails, UpdatedDetails } from './model';
-
 export type listEventsResponse200 = {
   data: Event[];
   status: 200;
@@ -45,61 +37,3 @@ export const listEvents = async (
     headers: res.headers,
   } as listEventsResponse;
 };
-
-export const getListEventsResponseUpdatedDetailsMock = (
-  overrideResponse: Partial<UpdatedDetails> = {},
-): UpdatedDetails => ({
-  ...{
-    event_type: faker.helpers.arrayElement(['updated'] as const),
-    reason: faker.helpers.arrayElement(Object.values(ReasonEnum)),
-  },
-  ...overrideResponse,
-});
-
-export const getListEventsResponseCreatedDetailsMock = (
-  overrideResponse: Partial<CreatedDetails> = {},
-): CreatedDetails => ({
-  ...{
-    event_type: faker.helpers.arrayElement(['created'] as const),
-    title: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  },
-  ...overrideResponse,
-});
-
-export const getListEventsResponseMock = (): Event[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int(),
-    details: faker.helpers.arrayElement([
-      { ...getListEventsResponseUpdatedDetailsMock() },
-      { ...getListEventsResponseCreatedDetailsMock() },
-    ]),
-  }));
-
-export const getListEventsMockHandler = (
-  overrideResponse?:
-    | Event[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Event[]> | Event[]),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/events',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getListEventsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3656MissingEnumValueImportInOneOfBranchMSWMockMock =
-  () => [getListEventsMockHandler()];

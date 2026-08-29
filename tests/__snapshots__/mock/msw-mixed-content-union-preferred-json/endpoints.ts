@@ -9,11 +9,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getMSWMixedContentUnionRegression = (
   axiosInstance: AxiosInstance = axios,
 ) => {
@@ -29,56 +24,3 @@ export const getMSWMixedContentUnionRegression = (
   return { getMixedContent };
 };
 export type GetMixedContentResult = AxiosResponse<string | Pet>;
-
-export const getGetMixedContentResponseMock = (
-  overrideResponse: Partial<Extract<string | Pet, object>> = {},
-): string | Pet =>
-  faker.helpers.arrayElement([
-    faker.word.sample(),
-    {
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      ...overrideResponse,
-    },
-    {
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      ...overrideResponse,
-    },
-  ]);
-
-export const getGetMixedContentMockHandler = (
-  overrideResponse?:
-    | string
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string | Pet> | string | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/mixed-content',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetMixedContentResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getMSWMixedContentUnionRegressionMock = () => [
-  getGetMixedContentMockHandler(),
-];

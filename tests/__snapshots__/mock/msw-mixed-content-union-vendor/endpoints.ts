@@ -9,11 +9,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getMSWMixedVendorMediaRegression = (
   axiosInstance: AxiosInstance = axios,
 ) => {
@@ -29,54 +24,3 @@ export const getMSWMixedVendorMediaRegression = (
   return { getMixedContentVendor };
 };
 export type GetMixedContentVendorResult = AxiosResponse<string | Pet>;
-
-export const getGetMixedContentVendorResponseMock = (
-  overrideResponse: Partial<Extract<string | Pet, object>> = {},
-): string | Pet =>
-  faker.helpers.arrayElement([
-    faker.word.sample(),
-    {
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      ...overrideResponse,
-    },
-  ]);
-
-export const getGetMixedContentVendorMockHandler = (
-  overrideResponse?:
-    | string
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string | Pet> | string | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/mixed-content-vendor',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetMixedContentVendorResponseMock();
-      return typeof resolvedBody === 'string'
-        ? HttpResponse.xml(resolvedBody, {
-            status: 200,
-            headers: { 'Content-Type': 'application/vnd.orval+xml' },
-          })
-        : HttpResponse.json(resolvedBody, {
-            status: 200,
-            headers: { 'Content-Type': 'application/vnd.orval+json' },
-          });
-    },
-    options,
-  );
-};
-export const getMSWMixedVendorMediaRegressionMock = () => [
-  getGetMixedContentVendorMockHandler(),
-];
