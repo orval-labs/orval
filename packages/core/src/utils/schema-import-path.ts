@@ -61,16 +61,15 @@ export function resolveSchemaImportDependencies(
     ? output.schemaFileExtension
     : output.fileExtension;
 
-  // A package subpath resolves through the consumer's export map, so it keeps
-  // the part of the filename that is not the module extension and drops the
-  // rest: `pet.zod.ts` is imported as `@acme/models/pet.zod`, matching the file
-  // that was written. Passing no tsconfig strips `.ts` without applying the
-  // NodeNext `.ts`→`.js` rewrite, which would name a file that is never
-  // emitted.
+  // A package subpath resolves through the consumer's export map, which knows
+  // nothing of our tsconfig: `pet.zod.ts` is imported as
+  // `@acme/models/pet.zod`. Withholding the tsconfig drops `.ts` without the
+  // NodeNext `.ts`→`.js` rewrite, which would name a file nobody emits.
   const isPackageImport = !!getSchemasImportPath(output.schemas);
-  const importExtension = isPackageImport
-    ? getImportExtension(schemaFileExtension)
-    : getImportExtension(schemaFileExtension, output.tsconfig);
+  const importExtension = getImportExtension(
+    schemaFileExtension,
+    isPackageImport ? undefined : output.tsconfig,
+  );
 
   const importsByDependency = new Map<string, GeneratorImport[]>();
 
@@ -112,11 +111,10 @@ export function resolveSchemaImportDependencies(
  * Collapses imports that name the same binding. The key holds every field that
  * changes the binding, so one schema under two aliases stays twice.
  *
- * `values` is merged rather than keyed on. `generateImports` groups by it, so
- * keeping one entry with `values: false` beside another with `values: true`
- * emits both `import type { Pet }` and `import { Pet }` from one module, which
- * is TS2300. A value import covers the type position too, so any entry asking
- * for the value wins for the whole binding.
+ * `values` is merged, not keyed on: `generateImports` groups by it, so keeping
+ * a type-only entry beside its value twin emits `import type { Pet }` and
+ * `import { Pet }` from one module — TS2300. A value import serves the type
+ * position too, so it wins for the whole binding.
  */
 export function dedupeSchemaImports(
   imports: readonly GeneratorImport[],
