@@ -1117,14 +1117,8 @@ ${honoAppExport}
 };
 
 /**
- * Path (or directory, when `output.schemas` names one explicitly) that the
- * generated `.context` and `.zod` modules import shared schema types from.
- *
- * @remarks
- * The configured `extension` may have several parts. Stripping only the last
- * one leaves `.generated` behind for a `.generated.ts` extension and produces
- * `client.generated.schemas.generated.ts` instead of
- * `client.schemas.generated.ts`.
+ * Module (or directory, when `output.schemas` names one) that the generated
+ * `.context` and `.zod` files import shared schema types from.
  */
 export const resolveDefaultSchemaModule = (
   output: NormalizedOutputOptions,
@@ -1144,10 +1138,9 @@ export const resolveDefaultSchemaModule = (
     return upath.toUnix(path);
   }
 
-  // Strip the configured extension in one piece. `getFileInfo`'s `filename`
-  // only strips it when the target actually carries it, so a target named
-  // `client.ts` under `fileExtension: '.gen.ts'` would otherwise produce
-  // `client.ts.schemas.gen.ts`.
+  // The extension comes off in one piece, so `.generated.ts` leaves no
+  // `.generated` behind, and a target that carries a different extension
+  // (`client.ts` under `.gen.ts`) does not keep its own.
   return `${upath.toUnix(stripFileExtension(path, extension))}.schemas${extension}`;
 };
 
