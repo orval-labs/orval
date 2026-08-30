@@ -1219,7 +1219,7 @@ export interface NormalizedQueryOptions {
   mutationOptions?: NormalizedMutator;
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
-  shouldExportQueryKey?: boolean;
+  shouldExportKeys?: boolean;
   shouldFilterQueryKey?: boolean;
   queryKeyFilter?: string;
   shouldSplitQueryKey?: boolean;
@@ -1248,6 +1248,10 @@ export interface QueryOptions {
   mutationOptions?: Mutator;
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
+  shouldExportKeys?: boolean;
+  /**
+   * @deprecated Renamed to `shouldExportKeys`, since it now also exports mutation keys
+   */
   shouldExportQueryKey?: boolean;
   shouldFilterQueryKey?: boolean;
   queryKeyFilter?: string;

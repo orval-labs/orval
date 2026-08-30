@@ -61,8 +61,9 @@ export const normalizeQueryOptions = (
     ...(queryOptions.shouldExportMutatorHooks
       ? { shouldExportMutatorHooks: true }
       : {}),
-    ...(queryOptions.shouldExportQueryKey
-      ? { shouldExportQueryKey: true }
+    // `shouldExportQueryKey` is the deprecated alias of `shouldExportKeys`.
+    ...((queryOptions.shouldExportKeys ?? queryOptions.shouldExportQueryKey)
+      ? { shouldExportKeys: true }
       : {}),
     ...(queryOptions.shouldFilterQueryKey
       ? { shouldFilterQueryKey: true }
