@@ -49,6 +49,7 @@ import {
   buildAcceptHelpers,
   generateHttpClientImplementation,
   getAngularHttpResponseImport,
+  narrowsResponseEvents,
   getAcceptHelperName,
   getHttpClientReturnTypes,
   getUniqueContentTypes,
@@ -1572,10 +1573,7 @@ export const generateHttpResourceClient: ClientBuilder = (
   )
     ? [
         getAngularHttpResponseImport(
-          generateHttpClientImplementation(verbOptions, {
-            route: options.route,
-            context: { output: options.context.output },
-          }),
+          narrowsResponseEvents(verbOptions, options.context.output),
         ),
       ]
     : [];

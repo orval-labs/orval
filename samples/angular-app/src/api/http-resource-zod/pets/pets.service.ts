@@ -708,8 +708,8 @@ export type ShowPetTextResourceResult = NonNullable<string>;
 export type DownloadFileResourceResult = NonNullable<Blob>;
 
 export type CreatePetsClientResult = NonNullable<void>;
-export type UpdatePetByIdClientResult = NonNullable<PetOutput | string>;
-export type PatchPetByIdClientResult = NonNullable<PetOutput | string>;
+export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
+export type PatchPetByIdClientResult = NonNullable<Pet | string>;
 export type UploadFileClientResult = NonNullable<void>;
 
 /**

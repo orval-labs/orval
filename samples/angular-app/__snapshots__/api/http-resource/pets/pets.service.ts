@@ -690,11 +690,6 @@ export type ShowPetByIdResourceResult = NonNullable<string | Pet>;
 export type ShowPetTextResourceResult = NonNullable<string>;
 export type DownloadFileResourceResult = NonNullable<Blob>;
 
-export type CreatePetsClientResult = NonNullable<void>;
-export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
-export type PatchPetByIdClientResult = NonNullable<Pet | string>;
-export type UploadFileClientResult = NonNullable<void>;
-
 /**
  * Utility type for httpResource results with status tracking.
  * Inspired by @angular-architects/ngrx-toolkit withResource pattern.

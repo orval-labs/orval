@@ -10,7 +10,10 @@ import type {
 import { GetterPropType } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { resetHttpClientReturnTypes } from './http-client';
+import {
+  getHttpClientReturnTypes,
+  resetHttpClientReturnTypes,
+} from './http-client';
 import {
   generateHttpResourceClient,
   generateHttpResourceExtraFiles,
@@ -441,6 +444,29 @@ describe('angular httpResource generator', () => {
           importPath: '@angular/common/http',
         }),
       );
+    });
+
+    it('leaves the HttpClient return-type registry untouched: the header registers mutations, in footer order', async () => {
+      const postVerb = createVerbOption({
+        operationId: 'createPet',
+        operationName: 'createPet',
+        typeName: 'createPet',
+        verb: 'post',
+        route: '/pets',
+        pathRoute: '/pets',
+        params: [],
+        props: [],
+      });
+      resetHttpClientReturnTypes();
+
+      await generateHttpResourceClient(
+        postVerb,
+        createGeneratorOptions({ route: '/pets' }),
+        'angular',
+        createOutput(),
+      );
+
+      expect(getHttpClientReturnTypes(['createPet'])).toBe('');
     });
 
     it('does not import HttpResponse for retrieval verbs: resources never reference it', async () => {

@@ -6,6 +6,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   type GeneratorImport,
+  type NormalizedOutputOptions,
   emitResponseValidation,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
@@ -879,48 +880,67 @@ export const generateHttpClientImplementation = (
 const ANGULAR_HTTP_IMPORT_PATH = '@angular/common/http';
 
 /**
- * Builds an `@angular/common/http` import that is a value only when the
- * rendered operation body contains `valueUse`; otherwise it is type-only. A
- * value import of a binding that is only used as a type fails
- * `consistent-type-imports` in a consumer's lint setup (#3932).
+ * Whether the rendered HttpClient method narrows `HttpEvent`s with
+ * `instanceof AngularHttpResponse`. Mirrors `generateHttpClientImplementation`:
+ * the `observe` branches exist only with request options and a single content
+ * type, and the narrowing is part of the runtime-validation pipe. Lets callers
+ * decide the `HttpResponse` import without rendering the method, which would
+ * also register its `ClientResult` alias ahead of the footer.
+ */
+export const narrowsResponseEvents = (
+  { response, override }: Pick<GeneratorVerbOptions, 'response' | 'override'>,
+  output: NormalizedOutputOptions,
+): boolean => {
+  const dataType = response.definition.success || 'unknown';
+  const hasMultipleContentTypes =
+    getUniqueContentTypes(response.types.success).length > 1;
+  return (
+    override.requestOptions !== false &&
+    !hasMultipleContentTypes &&
+    override.angular.runtimeValidation.enabled &&
+    isZodSchemaOutput(output) &&
+    !isPrimitiveType(dataType) &&
+    hasSchemaImport(response.imports, dataType)
+  );
+};
+
+/**
+ * An `@angular/common/http` import that is a value only when `isValue`,
+ * otherwise type-only. A value import of a binding that is only used as a
+ * type fails `consistent-type-imports` in a consumer's lint setup (#3932).
  */
 const angularHttpImport = (
-  implementation: string,
   binding: Pick<GeneratorImport, 'name' | 'alias'>,
-  valueUse: string,
+  isValue: boolean,
 ): GeneratorImport => ({
   ...binding,
   importPath: ANGULAR_HTTP_IMPORT_PATH,
-  ...(implementation.includes(valueUse) ? { values: true } : {}),
+  ...(isValue ? { values: true } : {}),
 });
 
-/**
- * `HttpResponse` (aliased `AngularHttpResponse`) is a value only where the
- * operation narrows events with `instanceof`, which runtime validation does.
- */
+/** `HttpResponse` (aliased `AngularHttpResponse`), a value only where events are narrowed. */
 export const getAngularHttpResponseImport = (
-  implementation: string,
+  narrowsEvents: boolean,
 ): GeneratorImport =>
   angularHttpImport(
-    implementation,
     { name: 'HttpResponse', alias: 'AngularHttpResponse' },
-    'instanceof AngularHttpResponse',
+    narrowsEvents,
   );
 
 /**
  * The `@angular/common/http` bindings whose value-or-type status depends on
- * the operation body: `HttpHeaders` (multi-content `Accept` dispatch narrows
- * on it) and `HttpResponse`.
+ * the operation: `HttpHeaders` (multi-content `Accept` dispatch narrows on it
+ * in the rendered body) and `HttpResponse` (see `narrowsResponseEvents`).
  */
 export const getAngularHttpImports = (
   implementation: string,
+  narrowsEvents: boolean,
 ): GeneratorImport[] => [
   angularHttpImport(
-    implementation,
     { name: 'HttpHeaders' },
-    'instanceof HttpHeaders',
+    implementation.includes('instanceof HttpHeaders'),
   ),
-  getAngularHttpResponseImport(implementation),
+  getAngularHttpResponseImport(narrowsEvents),
 ];
 
 /**
@@ -1022,7 +1042,10 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
 
   const imports = [
     ...generateVerbImports(normalizedVerbOptions),
-    ...getAngularHttpImports(implementation),
+    ...getAngularHttpImports(
+      implementation,
+      narrowsResponseEvents(normalizedVerbOptions, options.context.output),
+    ),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),

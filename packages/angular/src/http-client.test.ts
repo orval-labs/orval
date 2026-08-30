@@ -17,6 +17,7 @@ import {
   generateHttpClientImplementation,
   getAngularDependencies,
   getHttpClientReturnTypes,
+  narrowsResponseEvents,
   resetHttpClientReturnTypes,
 } from './http-client';
 import { createQueryParams } from './test-helpers';
@@ -2274,6 +2275,94 @@ describe('angular HttpClient generator', () => {
           importPath: '@angular/common/http',
         }),
       );
+    });
+  });
+
+  // ── narrowsResponseEvents ──────────────────────────────────────────────
+
+  describe('narrowsResponseEvents', () => {
+    const zodOutput = (requestOptions = true) =>
+      createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          requestOptions,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      });
+    const validatedVerb = (requestOptions = true) =>
+      createVerbOption({
+        response: baseResponse({ imports: [{ name: 'Pet' }] }),
+        override: {
+          ...createVerbOption().override,
+          requestOptions,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+    const optionsFor = (output: NormalizedOutputOptions) =>
+      ({
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      }) satisfies GeneratorOptions;
+
+    const fixtures: {
+      name: string;
+      verb: GeneratorVerbOptions;
+      output: NormalizedOutputOptions;
+    }[] = [
+      { name: 'plain', verb: createVerbOption(), output: createOutput() },
+      {
+        name: 'multi-content',
+        verb: createVerbOption({
+          response: baseResponse({
+            definition: { success: 'Pet | string', errors: 'Error' },
+            types: {
+              success: [
+                createSuccessType('Pet', 'application/json'),
+                createSuccessType('string', 'text/plain'),
+              ],
+              errors: [],
+            },
+            contentTypes: ['application/json', 'text/plain'],
+          }),
+        }),
+        output: createOutput(),
+      },
+      { name: 'validated', verb: validatedVerb(), output: zodOutput() },
+      {
+        name: 'validated, requestOptions: false',
+        verb: validatedVerb(false),
+        output: zodOutput(false),
+      },
+    ];
+
+    it.each(fixtures)(
+      'matches whether the rendered body narrows with instanceof ($name)',
+      ({ verb, output }) => {
+        const rendered = generateHttpClientImplementation(
+          verb,
+          optionsFor(output),
+        );
+        expect(narrowsResponseEvents(verb, output)).toBe(
+          rendered.includes('instanceof AngularHttpResponse'),
+        );
+      },
+    );
+
+    it('is true for a validated single-content operation with request options', () => {
+      expect(narrowsResponseEvents(validatedVerb(), zodOutput())).toBe(true);
     });
   });
 
