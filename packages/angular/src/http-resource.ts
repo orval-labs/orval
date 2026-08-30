@@ -690,7 +690,10 @@ const getHttpResourceVerbImports = (
     ),
     ...parsedZodImports
       .filter((imp) => !isPrimitiveType(imp.name))
-      .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
+      .map((imp) => ({
+        name: getSchemaOutputTypeRef(imp.name),
+        values: false,
+      })),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -1625,6 +1628,11 @@ const buildHttpResourceFile = (
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
+// Output refs are `export type` aliases in the Zod schema file, so they
+// must stay type-only under verbatimModuleSyntax; #3924.
+const withZodValueFlag = (imp: GeneratorImport): GeneratorImport =>
+  imp.values === false ? imp : { ...imp, values: true };
+
 /**
  * Resolves the schema imports of a generated `*.resource.ts` file. Uses core's
  * {@link resolveSchemaImportDependencies} so a resource file and its sibling
@@ -1659,10 +1667,10 @@ const buildSchemaImportDependencies = (
   // Zod schemas are runtime values, so import them as values and not as types.
   // `dedupeSchemaImports` already merged any type-only entry into its value
   // twin, so one binding is one entry here and forcing the flag cannot
-  // reintroduce a duplicate.
+  // reintroduce a duplicate. Output-type refs opt out via `values: false`.
   return dependencies.map((dependency) => ({
     ...dependency,
-    exports: dependency.exports.map((imp) => ({ ...imp, values: true })),
+    exports: dependency.exports.map(withZodValueFlag),
   }));
 };
 

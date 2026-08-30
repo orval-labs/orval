@@ -57,6 +57,7 @@ import {
   assertZodTarget,
   resolveIsZodV4,
 } from './compatible-v4';
+import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -164,11 +165,6 @@ const COERCIBLE_TYPES = new Set([
   'bigint',
   'date',
 ]);
-
-const PURE_COMMENT = '/*#__PURE__*/ ';
-
-const zodMiniCall = (fn: string, args = '') =>
-  `${PURE_COMMENT}zod.${fn}(${args})`;
 
 const zodMiniCoerceCall = (fn: string, args = '') =>
   `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
@@ -3475,32 +3471,18 @@ const generateZodRoute = async (
   }
 
   const useBrandedTypes = override.zod.useBrandedTypes;
-  const brand = (name: string) =>
-    useBrandedTypes
-      ? isZodV4
-        ? `.brand("${name}")`
-        : `.brand<"${name}">()`
-      : '';
-
-  const zodArrayWithBounds = (
-    itemName: string,
-    rules: { min?: number; max?: number } | undefined,
-  ) => {
-    const checks = [
-      ...(rules?.min ? [zodMiniCall('minLength', `${rules.min}`)] : []),
-      ...(rules?.max ? [zodMiniCall('maxLength', `${rules.max}`)] : []),
-    ];
-
-    if (zodVariant === 'mini') {
-      return `${zodMiniCall('array', itemName)}${checks
-        .map((check) => `.check(${check})`)
-        .join('')}`;
-    }
-
-    return `zod.array(${itemName})${rules?.min ? `.min(${rules.min})` : ''}${
-      rules?.max ? `.max(${rules.max})` : ''
-    }`;
-  };
+  const renderExport = (
+    name: string,
+    expression: string,
+    arrayItem?: { rules?: { min?: number; max?: number } },
+  ) =>
+    renderZodExport({
+      name,
+      expression,
+      variant: zodVariant,
+      brand: useBrandedTypes ? { isZodV4 } : undefined,
+      arrayItem,
+    });
 
   // With `generateReusableSchemas`, operations import component schemas by
   // their PascalCase name from a sibling schemas module. When an operation's
@@ -3555,30 +3537,21 @@ const generateZodRoute = async (
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
-      ...(inputParams.zod
-        ? [
-            `export const ${paramsName} = ${inputParams.zod}${brand(paramsName)}`,
-          ]
-        : []),
+      ...(inputParams.zod ? [renderExport(paramsName, inputParams.zod)] : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
-        ? [
-            `export const ${queryParamsName} = ${inputQueryParams.zod}${brand(queryParamsName)}`,
-          ]
+        ? [renderExport(queryParamsName, inputQueryParams.zod)]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
-      ...(inputHeaders.zod
-        ? [
-            `export const ${headerName} = ${inputHeaders.zod}${brand(headerName)}`,
-          ]
-        : []),
+      ...(inputHeaders.zod ? [renderExport(headerName, inputHeaders.zod)] : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
-            parsedBody.isArray
-              ? `export const ${bodyName}Item = ${inputBody.zod}
-export const ${bodyName} = ${zodArrayWithBounds(bodyName + 'Item', parsedBody.rules)}${brand(bodyName)}`
-              : `export const ${bodyName} = ${inputBody.zod}${brand(bodyName)}`,
+            renderExport(
+              bodyName,
+              inputBody.zod,
+              parsedBody.isArray ? { rules: parsedBody.rules } : undefined,
+            ),
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
@@ -3617,17 +3590,18 @@ export const ${bodyName} = ${zodArrayWithBounds(bodyName + 'Item', parsedBody.ru
               ? zodMiniCall('unknown')
               : 'zod.unknown()';
 
-          return [
-            `export const ${operationResponse} = ${noContentSchema}${brand(operationResponse)}`,
-          ];
+          return [renderExport(operationResponse, noContentSchema)];
         }
 
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
-          parsedResponses[index].isArray
-            ? `export const ${operationResponse}Item = ${inputResponse.zod}
-export const ${operationResponse} = ${zodArrayWithBounds(`${operationResponse}Item`, parsedResponses[index].rules)}${brand(operationResponse)}`
-            : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
+          renderExport(
+            operationResponse,
+            inputResponse.zod,
+            parsedResponses[index].isArray
+              ? { rules: parsedResponses[index].rules }
+              : undefined,
+          ),
         ];
       }),
     ].join('\n\n'),
@@ -3687,5 +3661,6 @@ export {
   isZodVersionV4,
   resolveIsZodV4,
 } from './compatible-v4';
+export { renderZodExport, type ZodExportBlock } from './export-emitter';
 
 export default builder;

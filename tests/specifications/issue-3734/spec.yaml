@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Issue 3734 - runtime server variables
+  version: 1.0.0
+servers:
+  - url: https://headless.tebex.io/api/accounts/{token}
+    description: Main API scoped to public token
+    variables:
+      token:
+        default: ''
+        description: The store's public token
+paths:
+  /packages:
+    get:
+      operationId: getPackages
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string

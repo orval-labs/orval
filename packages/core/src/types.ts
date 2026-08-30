@@ -260,9 +260,19 @@ export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
+/**
+ * A server URL variable whose value is a runtime JavaScript expression
+ * (e.g. `process.env.API_TOKEN`) instead of a static string. The expression
+ * is embedded as a `${...}` interpolation in the generated URL template
+ * literal, so the value is resolved at request time (#3734).
+ */
+export interface VariableRuntimeValue {
+  runtime: string;
+}
+
 export interface BaseUrlFromSpec {
   getBaseUrlFromSpecification: true;
-  variables?: Record<string, string>;
+  variables?: Record<string, string | VariableRuntimeValue>;
   index?: number;
   baseUrl?: never;
 }
@@ -304,7 +314,7 @@ export interface AngularBaseUrlOptions {
   /** Index into the specification's `servers` array to embed as the default fallback URL. Defaults to `0`. */
   index?: number;
   /** Values for any `{variable}` placeholders in the selected server URL. */
-  variables?: Record<string, string>;
+  variables?: Record<string, string | VariableRuntimeValue>;
 }
 
 export const PropertySortOrder = {
@@ -1209,7 +1219,7 @@ export interface NormalizedQueryOptions {
   mutationOptions?: NormalizedMutator;
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
-  shouldExportQueryKey?: boolean;
+  shouldExportKeys?: boolean;
   shouldFilterQueryKey?: boolean;
   queryKeyFilter?: string;
   shouldSplitQueryKey?: boolean;
@@ -1238,6 +1248,10 @@ export interface QueryOptions {
   mutationOptions?: Mutator;
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
+  shouldExportKeys?: boolean;
+  /**
+   * @deprecated Renamed to `shouldExportKeys`, since it now also exports mutation keys
+   */
   shouldExportQueryKey?: boolean;
   shouldFilterQueryKey?: boolean;
   queryKeyFilter?: string;
