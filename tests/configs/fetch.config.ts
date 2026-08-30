@@ -1092,7 +1092,6 @@ export default defineConfig({
       target: '../specifications/path-item-level-query-params/spec.yaml',
     },
   },
-<<<<<<< HEAD
   'issue-2381': {
     output: {
       target: '../generated/fetch/issue-2381/endpoints.ts',
