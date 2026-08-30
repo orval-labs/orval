@@ -1238,14 +1238,9 @@ export interface QueryOptions {
   mutationOptions?: Mutator;
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
-  /**
-   * Export the `getXxxQueryKey` and `getXxxMutationKey` getters. Defaults to
-   * `true`.
-   */
   shouldExportKeys?: boolean;
   /**
-   * @deprecated Renamed to `shouldExportKeys`, which is what it always did: it
-   * gates the mutation key getters too, not just the query key ones.
+   * @deprecated Renamed to `shouldExportKeys`, since it now also exports mutation keys
    */
   shouldExportQueryKey?: boolean;
   shouldFilterQueryKey?: boolean;
