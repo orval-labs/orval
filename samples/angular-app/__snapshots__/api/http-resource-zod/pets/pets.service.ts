@@ -4,12 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse,
-  httpResource,
-} from '@angular/common/http';
+import { HttpClient, HttpHeaders, httpResource } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
@@ -19,10 +14,12 @@ import type {
   HttpResourceRequest,
 } from '@angular/common/http';
 
+import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
+
 import { Injectable, inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import { Pet, Pets } from '../model';
 import type {
@@ -711,8 +708,8 @@ export type ShowPetTextResourceResult = NonNullable<string>;
 export type DownloadFileResourceResult = NonNullable<Blob>;
 
 export type CreatePetsClientResult = NonNullable<void>;
-export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
-export type PatchPetByIdClientResult = NonNullable<Pet | string>;
+export type UpdatePetByIdClientResult = NonNullable<PetOutput | string>;
+export type PatchPetByIdClientResult = NonNullable<PetOutput | string>;
 export type UploadFileClientResult = NonNullable<void>;
 
 /**

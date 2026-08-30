@@ -7,7 +7,6 @@
 import {
   HttpClient,
   HttpHeaders,
-  HttpResponse as AngularHttpResponse,
   httpResource
 } from '@angular/common/http';
 import type {
@@ -28,7 +27,7 @@ import type {
   Signal
 } from '@angular/core';
 
-import {
+import type {
   Observable
 } from 'rxjs';
 
@@ -40,6 +39,10 @@ import type {
   PetWithTag,
   Pets
 } from './model';
+
+import type {
+  HttpResponse as AngularHttpResponse
+} from '@angular/common/http';
 
 import {
   faker

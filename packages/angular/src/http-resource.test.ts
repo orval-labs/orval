@@ -415,6 +415,45 @@ describe('angular httpResource generator', () => {
       );
     });
 
+    it('imports HttpResponse for mutation verbs, which render through the HttpClient generator', async () => {
+      const postVerb = createVerbOption({
+        operationId: 'createPet',
+        operationName: 'createPet',
+        typeName: 'createPet',
+        verb: 'post',
+        route: '/pets',
+        pathRoute: '/pets',
+        params: [],
+        props: [],
+      });
+
+      const { imports } = await generateHttpResourceClient(
+        postVerb,
+        createGeneratorOptions({ route: '/pets' }),
+        'angular',
+        createOutput(),
+      );
+
+      expect(imports).toContainEqual(
+        expect.objectContaining({
+          name: 'HttpResponse',
+          alias: 'AngularHttpResponse',
+          importPath: '@angular/common/http',
+        }),
+      );
+    });
+
+    it('does not import HttpResponse for retrieval verbs: resources never reference it', async () => {
+      const { imports } = await generateHttpResourceClient(
+        createVerbOption(),
+        createGeneratorOptions(),
+        'angular',
+        createOutput(),
+      );
+
+      expect(imports.some((i) => i.name === 'HttpResponse')).toBe(false);
+    });
+
     it('returns verb imports', async () => {
       const verbOption = createVerbOption();
       const result = await generateHttpResourceClient(
@@ -3384,6 +3423,72 @@ describe('angular httpResource generator', () => {
       if (mapImportLine) {
         expect(mapImportLine).toContain("from 'rxjs'");
       }
+    });
+  });
+
+  // ─── Zod schema import flags (#3932) ──────────────────────────────
+
+  describe('zod schema import flags', () => {
+    it('keeps a query params schema type-only when nothing parses it', async () => {
+      const verb = createVerbOption({
+        operationId: 'listPets',
+        operationName: 'listPets',
+        typeName: 'listPets',
+        route: '/pets',
+        pathRoute: '/pets',
+        params: [],
+        props: [
+          {
+            name: 'params',
+            definition: 'params: ListPetsParams',
+            implementation: 'params: ListPetsParams',
+            default: false,
+            required: true,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        queryParams: {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          isOptional: false,
+        } as unknown as GeneratorVerbOptions['queryParams'],
+        response: baseResponse({
+          imports: [{ name: 'Pets' }],
+          definition: { success: 'Pets', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Pets', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const [file] = await generateHttpResourceExtraFiles(
+        { listPets: verb },
+        output,
+        context,
+      );
+      const content = file?.content ?? '';
+
+      // `Pets` is parsed at runtime, so it stays a value import.
+      expect(content).toMatch(
+        /import \{[^}]*\bPets\b[^}]*\} from '[^']*schemas/,
+      );
+      // `ListPetsParams` only types the `params` signal.
+      expect(content).toMatch(
+        /import type \{[^}]*\bListPetsParams\b[^}]*\} from '[^']*schemas/,
+      );
     });
   });
 

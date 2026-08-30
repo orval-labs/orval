@@ -48,6 +48,7 @@ import {
 import {
   buildAcceptHelpers,
   generateHttpClientImplementation,
+  getAngularHttpResponseImport,
   getAcceptHelperName,
   getHttpClientReturnTypes,
   getUniqueContentTypes,
@@ -1560,8 +1561,27 @@ export const generateHttpResourceClient: ClientBuilder = (
 ) => {
   routeRegistry.set(verbOptions.operationName, options.route);
   const baseUrlOption = options.context.output.override.angular.baseUrl;
+  // Mutation verbs render through the HttpClient generator (see
+  // `generateHttpResourceHeader`), so they need its `HttpResponse` import;
+  // whether as a value or a type depends on the method body. `HttpHeaders`
+  // is already a value import in `ANGULAR_HTTP_RESOURCE_DEPENDENCIES`.
+  const mutationImports = isMutationVerb(
+    verbOptions.verb,
+    verbOptions.operationName,
+    getClientOverride(verbOptions),
+  )
+    ? [
+        getAngularHttpResponseImport(
+          generateHttpClientImplementation(verbOptions, {
+            route: options.route,
+            context: { output: options.context.output },
+          }),
+        ),
+      ]
+    : [];
   const imports = [
     ...getHttpResourceVerbImports(verbOptions, options.context.output),
+    ...mutationImports,
     ...(baseUrlOption
       ? [
           {
@@ -1630,16 +1650,26 @@ const buildSchemaImportDependencies = (
   relativeSchemasPath: string,
 ) => {
   const isZod = isZodSchemaOutput(output);
+  // Each operation tags the schemas it parses at runtime with `values: true`
+  // (see `getHttpResourceVerbImports`). Everything else — params, headers,
+  // body, `<Name>Output` aliases — is only used in type positions, so it
+  // stays type-only even in Zod mode (#3932). The same schema can arrive
+  // tagged from one operation and untagged from another; a value import
+  // covers both uses, so the tag wins.
   const uniqueImports = [
-    ...new Map(imports.map((imp) => [imp.name, imp])).values(),
+    ...imports
+      .reduce((byName, imp) => {
+        const existing = byName.get(imp.name);
+        byName.set(imp.name, existing?.values && !imp.values ? existing : imp);
+        return byName;
+      }, new Map<string, GeneratorImport>())
+      .values(),
   ];
 
   if (!output.schemas) {
     return [
       {
-        exports: isZod
-          ? uniqueImports.map((imp) => ({ ...imp, values: true }))
-          : uniqueImports,
+        exports: uniqueImports,
         dependency: relativeSchemasPath,
       },
     ];
@@ -1655,22 +1685,13 @@ const buildSchemaImportDependencies = (
         output.tsconfig,
       );
       return {
-        exports: isZod ? [{ ...imp, values: true }] : [imp],
+        exports: [imp],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
         ),
       };
     });
-  }
-
-  if (isZod) {
-    return [
-      {
-        exports: uniqueImports.map((imp) => ({ ...imp, values: true })),
-        dependency: relativeSchemasPath,
-      },
-    ];
   }
 
   return [

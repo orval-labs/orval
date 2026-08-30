@@ -4,16 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse,
-} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type {
   CreatePetsBody,
@@ -23,6 +19,11 @@ import type {
   PetWithTag,
   Pets,
 } from './model';
+
+import type {
+  HttpHeaders,
+  HttpResponse as AngularHttpResponse,
+} from '@angular/common/http';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

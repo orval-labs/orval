@@ -4,12 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse,
-  httpResource,
-} from '@angular/common/http';
+import { HttpClient, HttpHeaders, httpResource } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
@@ -22,7 +17,7 @@ import type {
 import { Injectable, inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type {
   CreatePetsBody,
@@ -31,6 +26,8 @@ import type {
   Pets,
   SearchPetsParams,
 } from '../model';
+
+import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
@@ -692,6 +689,11 @@ export type ListPetsResourceResult = NonNullable<Pets | string>;
 export type ShowPetByIdResourceResult = NonNullable<string | Pet>;
 export type ShowPetTextResourceResult = NonNullable<string>;
 export type DownloadFileResourceResult = NonNullable<Blob>;
+
+export type CreatePetsClientResult = NonNullable<void>;
+export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
+export type PatchPetByIdClientResult = NonNullable<Pet | string>;
+export type UploadFileClientResult = NonNullable<void>;
 
 /**
  * Utility type for httpResource results with status tracking.

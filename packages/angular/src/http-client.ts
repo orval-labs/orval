@@ -5,6 +5,7 @@ import {
   type ClientFooterBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
+  type GeneratorImport,
   emitResponseValidation,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
@@ -875,6 +876,53 @@ export const generateHttpClientImplementation = (
 `;
 };
 
+const ANGULAR_HTTP_IMPORT_PATH = '@angular/common/http';
+
+/**
+ * Builds an `@angular/common/http` import that is a value only when the
+ * rendered operation body contains `valueUse`; otherwise it is type-only. A
+ * value import of a binding that is only used as a type fails
+ * `consistent-type-imports` in a consumer's lint setup (#3932).
+ */
+const angularHttpImport = (
+  implementation: string,
+  binding: Pick<GeneratorImport, 'name' | 'alias'>,
+  valueUse: string,
+): GeneratorImport => ({
+  ...binding,
+  importPath: ANGULAR_HTTP_IMPORT_PATH,
+  ...(implementation.includes(valueUse) ? { values: true } : {}),
+});
+
+/**
+ * `HttpResponse` (aliased `AngularHttpResponse`) is a value only where the
+ * operation narrows events with `instanceof`, which runtime validation does.
+ */
+export const getAngularHttpResponseImport = (
+  implementation: string,
+): GeneratorImport =>
+  angularHttpImport(
+    implementation,
+    { name: 'HttpResponse', alias: 'AngularHttpResponse' },
+    'instanceof AngularHttpResponse',
+  );
+
+/**
+ * The `@angular/common/http` bindings whose value-or-type status depends on
+ * the operation body: `HttpHeaders` (multi-content `Accept` dispatch narrows
+ * on it) and `HttpResponse`.
+ */
+export const getAngularHttpImports = (
+  implementation: string,
+): GeneratorImport[] => [
+  angularHttpImport(
+    implementation,
+    { name: 'HttpHeaders' },
+    'instanceof HttpHeaders',
+  ),
+  getAngularHttpResponseImport(implementation),
+];
+
 /**
  * Orval client builder entry point for Angular `HttpClient` output.
  *
@@ -974,6 +1022,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
 
   const imports = [
     ...generateVerbImports(normalizedVerbOptions),
+    ...getAngularHttpImports(implementation),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),
