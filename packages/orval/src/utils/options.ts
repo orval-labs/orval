@@ -1380,8 +1380,6 @@ function normalizeQueryOptions(
     );
   }
 
-  // `shouldExportQueryKey` always gated the mutation key getters as well, so
-  // the rename is a pure alias.
   const shouldExportKeys =
     queryOptions.shouldExportKeys ?? queryOptions.shouldExportQueryKey;
 
