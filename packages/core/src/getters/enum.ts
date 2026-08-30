@@ -1,10 +1,7 @@
 import { keyword } from 'esutils';
 
-import {
-  EnumGeneration,
-  NamingConvention,
-  type OpenApiSchemaObject,
-} from '../types';
+import type { NamingConvention } from '../types';
+import { EnumGeneration, type OpenApiSchemaObject } from '../types';
 import {
   conventionName,
   isNumeric,
