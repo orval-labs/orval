@@ -179,6 +179,26 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpResourceZodOutputRef: {
+    output: {
+      target: '../generated/angular/http-resource-zod-output-ref/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/http-resource-zod-output-ref/model',
+      },
+      mock: true,
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   httpResourceBothTagsSplit: {
     output: {
       target: '../generated/angular/http-resource-both-tags-split/endpoints.ts',

@@ -717,7 +717,10 @@ const getHttpResourceVerbImports = (
     ),
     ...parsedZodImports
       .filter((imp) => !isPrimitiveType(imp.name))
-      .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
+      .map((imp) => ({
+        name: getSchemaOutputTypeRef(imp.name),
+        values: false,
+      })),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -1652,6 +1655,11 @@ const buildHttpResourceFile = (
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
+// Output refs are `export type` aliases in the Zod schema file, so they
+// must stay type-only under verbatimModuleSyntax; #3924.
+const withZodValueFlag = (imp: GeneratorImport): GeneratorImport =>
+  imp.values === false ? imp : { ...imp, values: true };
+
 const buildSchemaImportDependencies = (
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
@@ -1665,9 +1673,7 @@ const buildSchemaImportDependencies = (
   if (!output.schemas) {
     return [
       {
-        exports: isZod
-          ? uniqueImports.map((imp) => ({ ...imp, values: true }))
-          : uniqueImports,
+        exports: isZod ? uniqueImports.map(withZodValueFlag) : uniqueImports,
         dependency: relativeSchemasPath,
       },
     ];
@@ -1683,7 +1689,7 @@ const buildSchemaImportDependencies = (
         output.tsconfig,
       );
       return {
-        exports: isZod ? [{ ...imp, values: true }] : [imp],
+        exports: isZod ? [withZodValueFlag(imp)] : [imp],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
@@ -1695,7 +1701,7 @@ const buildSchemaImportDependencies = (
   if (isZod) {
     return [
       {
-        exports: uniqueImports.map((imp) => ({ ...imp, values: true })),
+        exports: uniqueImports.map(withZodValueFlag),
         dependency: relativeSchemasPath,
       },
     ];

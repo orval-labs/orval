@@ -1108,4 +1108,22 @@ export default defineConfig({
       target: '../specifications/issue-2381/spec.yaml',
     },
   },
+  issue3734: {
+    output: {
+      target: '../generated/fetch/issue-3734/endpoints.ts',
+      schemas: '../generated/fetch/issue-3734/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          token: { runtime: 'process.env.TEBEX_TOKEN' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3734/spec.yaml',
+    },
+  },
 });

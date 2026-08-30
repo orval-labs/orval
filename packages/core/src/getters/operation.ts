@@ -1,4 +1,4 @@
-import { type OpenApiOperationObject, Verbs } from '../types';
+import type { OpenApiOperationObject, Verbs } from '../types';
 import { isString, pascal, sanitize } from '../utils';
 
 export function getOperationId(

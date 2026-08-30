@@ -3465,6 +3465,70 @@ describe('angular httpResource generator', () => {
     });
   });
 
+  // ─── Zod output-type-ref imports (#3924) ───────────────────────────
+
+  describe('zod output-type-ref imports', () => {
+    it('imports a parsed schema Output type as type-only, not as a value', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const content = extraFiles[0]?.content ?? '';
+
+      // Match whole import blocks; bindings may wrap onto their own lines.
+      const importBlocks = [
+        ...content.matchAll(
+          /import\s+(type\s+)?\{([^}]*)\}\s+from\s+'[^']*';/g,
+        ),
+      ].map(([, typeKeyword, names]) => ({
+        isTypeOnly: !!typeKeyword,
+        names: names
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean),
+      }));
+
+      const petOutputBlocks = importBlocks.filter((block) =>
+        block.names.includes('PetOutput'),
+      );
+
+      // `PetOutput` is a type alias, so it must never be imported as a value.
+      expect(petOutputBlocks.length).toBeGreaterThan(0);
+      for (const block of petOutputBlocks) {
+        expect(block.isTypeOnly).toBe(true);
+      }
+
+      // `Pet` is the actual schema object and must still import as a value.
+      const petValueBlocks = importBlocks.filter(
+        (block) => block.names.includes('Pet') && !block.isTypeOnly,
+      );
+      expect(petValueBlocks.length).toBeGreaterThan(0);
+    });
+  });
+
   // ── urlEncodeParameters ─────────────────────────────────────────────
 
   describe('schema import extension follows tsconfig module', () => {
