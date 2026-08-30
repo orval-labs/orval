@@ -1,6 +1,7 @@
 import { isNullish, prop, unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
+import type { SchemaType } from '../types';
 import {
   type ContextSpec,
   EnumGeneration,
@@ -9,7 +10,6 @@ import {
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ScalarValue,
-  SchemaType,
 } from '../types';
 import {
   dedupeUnionType,
