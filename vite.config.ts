@@ -44,12 +44,18 @@ export default defineConfig({
     },
     ignorePatterns: [
       '**/dist',
-      '**/__snapshots__',
+      'packages/**/__snapshots__',
+      'samples/**/__snapshots__',
       '**/.bun',
       '**/*.timestamp*',
       '**/node_modules',
       'docs',
-      'tests',
+      // Everything under `tests` is ignored except the committed generated
+      // output, which `lint:snapshots` lints. Gitignore semantics: a negation
+      // can only re-include a child of a directory whose *children* are
+      // ignored, hence `tests/*` rather than `tests`.
+      'tests/*',
+      '!tests/__snapshots__',
       'packages/hono/src/zValidator.ts',
       // Committed TypeDoc bundles: minified vendor output, not lintable source.
       'samples/react-app/docs-html/assets',

@@ -27,15 +27,15 @@
     "test:snapshots:update": "vp run -F './packages/*' build:release && vp run -F './samples/**' -F orval-tests generate-api && vp run -F './samples/**' -F orval-tests test:snapshots:update",
     "lint": "vp lint --type-aware --type-check packages",
     "lint:samples": "vp lint samples",
-    "lint:snapshots": "vp lint --no-ignore tests/__snapshots__",
+    "lint:snapshots": "vp lint tests/__snapshots__",
     "lint:all": "vp run -w lint && vp run -w lint:samples && vp run -w lint:snapshots",
     "clean": "vp cache clean",
     "clean:all": "vp run -r clean",
     "nuke:all": "vp run -r nuke && rimraf node_modules"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.1",
-    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@socketsecurity/bun-security-scanner": "^1.1.2",
     "@types/node": "catalog:",
     "pkg-pr-new": "^0.0.86",
