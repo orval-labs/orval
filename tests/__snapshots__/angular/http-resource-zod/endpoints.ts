@@ -7,7 +7,6 @@
 import {
   HttpClient,
   HttpHeaders,
-  HttpResponse as AngularHttpResponse,
   httpResource
 } from '@angular/common/http';
 import type {
@@ -19,6 +18,10 @@ import type {
   HttpResourceRequest
 } from '@angular/common/http';
 
+import type {
+  HttpResponse as AngularHttpResponse
+} from '@angular/common/http';
+
 import {
   Injectable,
   inject
@@ -28,7 +31,7 @@ import type {
   Signal
 } from '@angular/core';
 
-import {
+import type {
   Observable
 } from 'rxjs';
 

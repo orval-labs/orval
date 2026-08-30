@@ -134,23 +134,29 @@ export function generateImportsForBuilder(
     );
   }
 
-  const otherImportsMap = new Map<string, GeneratorImport[]>();
-  for (const imp of uniqueBy(
-    imports.filter(
-      (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
-    ),
-    (x) => `${x.name}|${x.importPath}`,
+  // Operations contribute these independently, so the same binding can
+  // arrive once as a type and once as a value (e.g. `HttpHeaders` from an
+  // operation that only types it and one that narrows with `instanceof`).
+  // A single file needs one import per binding, and a value import satisfies
+  // both uses, so the value flag wins.
+  const otherImportsMap = new Map<string, Map<string, GeneratorImport>>();
+  for (const imp of imports.filter(
+    (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
   )) {
-    const existing = otherImportsMap.get(imp.importPath);
-    if (existing) {
-      existing.push(imp);
-    } else {
-      otherImportsMap.set(imp.importPath, [imp]);
+    const byBinding =
+      otherImportsMap.get(imp.importPath) ?? new Map<string, GeneratorImport>();
+    otherImportsMap.set(imp.importPath, byBinding);
+    const key = `${imp.name}|${imp.alias ?? ''}`;
+    const existing = byBinding.get(key);
+    if (!existing) {
+      byBinding.set(key, imp);
+    } else if (imp.values && !existing.values) {
+      byBinding.set(key, { ...existing, values: true });
     }
   }
   const otherImports = [...otherImportsMap.entries()].map<GeneratorDependency>(
-    ([dependency, exports]) => ({
-      exports,
+    ([dependency, byBinding]) => ({
+      exports: [...byBinding.values()],
       dependency,
     }),
   );

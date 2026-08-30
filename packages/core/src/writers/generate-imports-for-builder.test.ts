@@ -236,6 +236,33 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
 
+    it('merges a type-only and a value import of the same name into one value import', () => {
+      const output = createMockOutput({ indexFiles: false });
+      const imports: GeneratorImport[] = [
+        { name: 'HttpHeaders', importPath: '@angular/common/http' },
+        {
+          name: 'HttpHeaders',
+          values: true,
+          importPath: '@angular/common/http',
+        },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'HttpHeaders',
+              values: true,
+              importPath: '@angular/common/http',
+            },
+          ],
+          dependency: '@angular/common/http',
+        },
+      ]);
+    });
+
     it('should separate imports with different importPaths into different dependencies', () => {
       const output = createMockOutput({ indexFiles: false });
       const imports: GeneratorImport[] = [
