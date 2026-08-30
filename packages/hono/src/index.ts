@@ -28,6 +28,7 @@ import {
   getKey,
   pascal,
   sanitizePathParamName,
+  stripFileExtension,
   getImportExtension,
   type Tsconfig,
   upath,
@@ -1115,28 +1116,41 @@ ${honoAppExport}
   ];
 };
 
-export const generateExtraFiles: ClientExtraFilesBuilder = async (
-  verbOptions,
-  output,
-  context,
-) => {
-  const { path, pathWithoutExtension, extension } = getFileInfo(output.target, {
+/**
+ * Module (or directory, when `output.schemas` names one) that the generated
+ * `.context` and `.zod` files import shared schema types from.
+ */
+export const resolveDefaultSchemaModule = (
+  output: NormalizedOutputOptions,
+): string => {
+  const { path, extension } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
-  const validator = generateZvalidator(output, context);
-  let schemaModule: string;
 
   if (output.schemas != undefined) {
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
-    const basePath = getFileInfo(schemasPath).dirname;
-    schemaModule = basePath;
-  } else if (output.mode === 'single') {
-    schemaModule = path;
-  } else {
-    schemaModule = `${pathWithoutExtension}.schemas${extension}`;
+    return upath.toUnix(getFileInfo(schemasPath).dirname);
   }
+
+  if (output.mode === 'single') {
+    return upath.toUnix(path);
+  }
+
+  // The extension comes off in one piece, so `.generated.ts` leaves no
+  // `.generated` behind, and a target that carries a different extension
+  // (`client.ts` under `.gen.ts`) does not keep its own.
+  return `${upath.toUnix(stripFileExtension(path, extension))}.schemas${extension}`;
+};
+
+export const generateExtraFiles: ClientExtraFilesBuilder = async (
+  verbOptions,
+  output,
+  context,
+) => {
+  const validator = generateZvalidator(output, context);
+  const schemaModule = resolveDefaultSchemaModule(output);
 
   const contexts = generateContextFiles(
     verbOptions,

@@ -90,7 +90,7 @@ function createMockContext(): ContextSpec {
           useGetQueryData: false,
           shouldExportMutatorHooks: false,
           shouldExportHttpClient: false,
-          shouldExportQueryKey: false,
+          shouldExportKeys: false,
           shouldSplitQueryKey: false,
           useOperationIdAsQueryKey: false,
           signal: false,

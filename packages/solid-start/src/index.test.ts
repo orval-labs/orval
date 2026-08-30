@@ -93,7 +93,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         useGetQueryData: false,
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
-        shouldExportQueryKey: false,
+        shouldExportKeys: false,
         shouldSplitQueryKey: false,
         useOperationIdAsQueryKey: false,
         signal: false,

@@ -40,6 +40,22 @@ describe('normalizeQueryOptions', () => {
     const result = normalizeQueryOptions({}, '/workspace');
     expect(result.useOperationIdAsQueryKey).toBeUndefined();
   });
+
+  it('accepts the deprecated shouldExportQueryKey alias', () => {
+    const result = normalizeQueryOptions(
+      { shouldExportQueryKey: true },
+      '/workspace',
+    );
+    expect(result.shouldExportKeys).toBe(true);
+  });
+
+  it('prefers shouldExportKeys over the deprecated alias', () => {
+    const result = normalizeQueryOptions(
+      { shouldExportKeys: true, shouldExportQueryKey: false },
+      '/workspace',
+    );
+    expect(result.shouldExportKeys).toBe(true);
+  });
 });
 
 describe('shouldUseOptionsHook', () => {

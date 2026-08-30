@@ -495,9 +495,9 @@ export default defineConfig({
 
 控制是否导出 mutator 相关 hooks。
 
-### shouldExportQueryKey
+### shouldExportKeys
 
-控制是否导出 query key helper。该选项同样作用于 mutation key，会在 mutation options 工厂函数旁生成 `getXxxMutationKey()` 导出。
+控制是否导出生成的缓存 key helper。该选项同时作用于 query key 和 mutation key，后者会在 mutation options 工厂函数旁生成 `getXxxMutationKey()` 导出。
 
 ### shouldSplitQueryKey
 
