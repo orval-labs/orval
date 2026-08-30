@@ -64,12 +64,19 @@ export default defineConfig({
       'typescript/no-require-imports': 'error',
       'typescript/no-unnecessary-type-constraint': 'error',
       'typescript/no-unsafe-function-type': 'error',
+      // `disallowTypeAnnotations: false` keeps `typeof import('x')` legal; the
+      // test files need it for `vi.importOriginal<typeof import('@orval/core')>()`.
+      'typescript/consistent-type-imports': [
+        'error',
+        { disallowTypeAnnotations: false },
+      ],
     },
     overrides: [
       {
-        // Samples are generated orval output — relax the rules generated code
-        // legitimately trips so `lint:samples` stays a useful, looser gate.
-        files: ['samples/**'],
+        // Samples and snapshots are generated orval output — relax the rules
+        // generated code legitimately trips so `lint:samples` and
+        // `lint:snapshots` stay useful, looser gates.
+        files: ['samples/**', 'tests/__snapshots__/**'],
         rules: {
           'eslint/no-unused-vars': 'off',
           'eslint/no-extra-boolean-cast': 'off',
@@ -79,6 +86,17 @@ export default defineConfig({
           'typescript/no-require-imports': 'off',
           'unicorn/no-useless-spread': 'off',
           'unicorn/no-useless-fallback-in-spread': 'off',
+          // Generators emit empty files on purpose (e.g. a client with no
+          // operations for a tag).
+          'unicorn/no-empty-file': 'off',
+          // Generated output must not trip a consumer's linter. Stays `warn`
+          // until every generator emits `import type` for type-only imports
+          // (tracked per generator from #3931); then it flips to `error`
+          // and this entry goes away.
+          'typescript/consistent-type-imports': [
+            'warn',
+            { disallowTypeAnnotations: false },
+          ],
         },
       },
     ],
