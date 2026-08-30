@@ -153,13 +153,18 @@ function filterParams(
   const filterPrimitiveArray = (
     value: unknown[],
   ): Array<string | number | boolean> =>
-    value.filter(
-      (item) =>
-        item != null &&
-        (typeof item === 'string' ||
-          typeof item === 'number' ||
-          typeof item === 'boolean'),
-    ) as Array<string | number | boolean>;
+    value
+      .filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean' ||
+            (item instanceof Date && !Number.isNaN(item.getTime()))),
+      )
+      .map((item) =>
+        item instanceof Date ? item.toISOString() : item,
+      ) as Array<string | number | boolean>;
   for (const [key, value] of Object.entries(params)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
@@ -190,6 +195,11 @@ function filterParams(
               typeof propValue === 'boolean')
           ) {
             commaParts.push(prop, String(propValue));
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            commaParts.push(prop, propValue.toISOString());
           }
         }
         if (commaParts.length) {
@@ -211,6 +221,11 @@ function filterParams(
               typeof propValue === 'boolean')
           ) {
             filteredParams[targetKey] = propValue;
+          } else if (
+            propValue instanceof Date &&
+            !Number.isNaN(propValue.getTime())
+          ) {
+            filteredParams[targetKey] = propValue.toISOString();
           }
         }
       }
@@ -227,6 +242,10 @@ function filterParams(
       // string so the required key still reaches the wire as `?key=`
       // instead of being silently dropped. See #3712.
       filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      // useDates produces Date query params; serialize to ISO so they reach
+      // the wire instead of being dropped by the primitive check below. See #3856.
+      filteredParams[key] = value.toISOString();
     } else if (
       value != null &&
       (typeof value === 'string' ||

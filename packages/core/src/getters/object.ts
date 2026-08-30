@@ -1,5 +1,6 @@
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
+import type { SchemaType } from '../types';
 import {
   type ContextSpec,
   type GeneratorImport,
@@ -7,7 +8,6 @@ import {
   type OpenApiSchemaObject,
   PropertySortOrder,
   type ScalarValue,
-  SchemaType,
 } from '../types';
 import {
   compareNatural,

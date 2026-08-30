@@ -1258,7 +1258,7 @@ export const generateQueryHook = async (
 
         // Note: do not unref() params in Vue - this will make key lose reactivity
         queryKeyFns += `
-${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
+${override.query.shouldExportKeys ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
     return [
     ${[
       queryOption.type === QueryType.INFINITE ||
@@ -1276,7 +1276,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     }
 `;
       }
-    } else if (override.query.shouldExportQueryKey) {
+    } else if (override.query.shouldExportKeys) {
       // The factories call the mutator the same way the invalidate / set /
       // get helpers do (`{ url }` second arg). Query options keep their own
       // inline call — its second arg also carries `queryOptions` — so the

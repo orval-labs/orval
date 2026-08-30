@@ -1460,14 +1460,18 @@ export async function loader(queryClient: QueryClient) {
 
 Export mutator hooks.
 
-### shouldExportQueryKey
+### shouldExportKeys
 
 **Type:** `Boolean`
 **Default:** `true`
 
-Export query keys. Also applies to mutation keys, which are emitted as a getter next to the mutation options factory:
+Export the generated cache key getters. This covers query keys and mutation keys, the latter emitted next to the mutation options factory:
 
 ```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId] as const;
+};
+
 export const getCreatePetsMutationKey = () => ['createPets'] as const;
 ```
 

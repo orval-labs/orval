@@ -16,7 +16,7 @@ output: {
       usePrefetch: true,
       useInvalidate: true,
       signal: true,
-      shouldExportQueryKey: true,
+      shouldExportKeys: true,
       shouldSplitQueryKey: false,       // Array vs string query keys
       useOperationIdAsQueryKey: false,  // Use operationId instead of route path
       options: { staleTime: 10000 },
