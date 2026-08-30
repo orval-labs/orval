@@ -234,7 +234,7 @@ export const prefetchMusclesControllerFindAllInfiniteQuery = async <
 };
 
 /**
- * @summary Return all muscles
+ * @summary Invalidates the {@link useMusclesControllerFindAllInfinite} query
  */
 export const invalidateMusclesControllerFindAllInfinite = async (
   queryClient: QueryClient,
@@ -411,7 +411,7 @@ export const prefetchMusclesControllerFindAllQuery = async <
 };
 
 /**
- * @summary Return all muscles
+ * @summary Invalidates the {@link useMusclesControllerFindAll} query
  */
 export const invalidateMusclesControllerFindAll = async (
   queryClient: QueryClient,
@@ -640,7 +640,7 @@ export const prefetchMusclesControllerCreateQuery = async <
 };
 
 /**
- * @summary Create muscle
+ * @summary Invalidates the {@link useMusclesControllerCreate} query
  */
 export const invalidateMusclesControllerCreate = async (
   queryClient: QueryClient,
@@ -865,7 +865,7 @@ export const prefetchMusclesControllerFindOneInfiniteQuery = async <
 };
 
 /**
- * @summary Return one muscle
+ * @summary Invalidates the {@link useMusclesControllerFindOneInfinite} query
  */
 export const invalidateMusclesControllerFindOneInfinite = async (
   queryClient: QueryClient,
@@ -1057,7 +1057,7 @@ export const prefetchMusclesControllerFindOneQuery = async <
 };
 
 /**
- * @summary Return one muscle
+ * @summary Invalidates the {@link useMusclesControllerFindOne} query
  */
 export const invalidateMusclesControllerFindOne = async (
   queryClient: QueryClient,

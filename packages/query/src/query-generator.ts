@@ -446,6 +446,7 @@ const generateQueryImplementation = ({
   forceSuccessResponse,
   route,
   doc,
+  deprecated,
   usePrefetch,
   useQuery,
   useInfinite,
@@ -483,6 +484,7 @@ const generateQueryImplementation = ({
   forceSuccessResponse?: boolean;
   route: string;
   doc?: string;
+  deprecated?: boolean;
   usePrefetch?: boolean;
   useQuery?: boolean;
   useInfinite?: boolean;
@@ -803,6 +805,10 @@ ${hookOptions}
   const optionalQueryClientArgument = adapter.getOptionalQueryClientArgument();
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
+  const invalidateDoc = jsDoc({
+    summary: `Invalidates the {@link ${queryHookName}} query`,
+    deprecated,
+  });
 
   const overrideTypes = `
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
@@ -971,7 +977,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${w
 ${prefetch}
 ${
   shouldGenerateInvalidate
-    ? `${doc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
+    ? `${invalidateDoc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
 
   await queryClient.invalidateQueries({ queryKey: ${invalidateQueryKeyExpr} }, options);
 
@@ -1332,6 +1338,7 @@ ${queryKeyFns}`;
         queryKeyMutator,
         route,
         doc,
+        deprecated,
         usePrefetch: query.usePrefetch,
         useQuery: effectiveUseQuery,
         useInfinite: effectiveUseInfinite,

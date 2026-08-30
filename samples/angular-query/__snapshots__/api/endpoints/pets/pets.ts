@@ -236,7 +236,7 @@ export function injectSearchPets<
 }
 
 /**
- * @summary search by query params
+ * @summary Invalidates the {@link injectSearchPets} query
  */
 export const invalidateSearchPets = async (
   queryClient: QueryClient,
@@ -361,7 +361,7 @@ export function injectListPets<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link injectListPets} query
  */
 export const invalidateListPets = async (
   queryClient: QueryClient,
@@ -599,7 +599,7 @@ export function injectShowPetById<
 }
 
 /**
- * @summary Info for a specific pet
+ * @summary Invalidates the {@link injectShowPetById} query
  */
 export const invalidateShowPetById = async (
   queryClient: QueryClient,
@@ -1060,7 +1060,7 @@ export function injectShowPetText<
 }
 
 /**
- * @summary Info for a specific pet
+ * @summary Invalidates the {@link injectShowPetText} query
  */
 export const invalidateShowPetText = async (
   queryClient: QueryClient,
@@ -1414,7 +1414,7 @@ export function injectDownloadFile<
 }
 
 /**
- * @summary Download an image.
+ * @summary Invalidates the {@link injectDownloadFile} query
  */
 export const invalidateDownloadFile = async (
   queryClient: QueryClient,
@@ -1532,7 +1532,7 @@ export function injectHealthCheck<
 }
 
 /**
- * @summary Health check
+ * @summary Invalidates the {@link injectHealthCheck} query
  */
 export const invalidateHealthCheck = async (
   queryClient: QueryClient,
