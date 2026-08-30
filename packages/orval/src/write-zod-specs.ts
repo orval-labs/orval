@@ -31,8 +31,8 @@ import {
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
   getZodImportSource,
-  getZodTypeName,
   parseZodValidationSchemaDefinition,
+  renderZodExport,
   resolveIsZodV4,
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
@@ -239,10 +239,15 @@ function generateZodSchemaFileContent(
     .map(({ schemaName, consts, zodExpression }) => {
       const schemaConsts = consts ? `${consts}\n` : '';
 
-      return `${schemaConsts}export const ${schemaName} = ${zodExpression}
-
-export type ${schemaName} = zod.input<typeof ${schemaName}>;
-export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
+      return (
+        schemaConsts +
+        renderZodExport({
+          name: schemaName,
+          expression: zodExpression,
+          variant: zodVariant,
+          companionTypes: true,
+        })
+      );
     })
     .join('\n\n');
 
@@ -363,18 +368,32 @@ function renderReusableSchemaEntry(
 
     return {
       content:
-        `${consts}${subModelBlock}export type ${entry.name} = ${typeBody};\n\n` +
-        `export const ${entry.name}: zod.${getZodTypeName(zodVariant)}<${entry.name}> = ${entry.zod};\n\n` +
-        `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
+        consts +
+        subModelBlock +
+        renderZodExport({
+          name: entry.name,
+          expression: entry.zod,
+          variant: zodVariant,
+          recursivePin: { tsBody: typeBody },
+        }),
       extraImports,
     };
   }
 
   return {
     content:
-      `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
-      `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
-      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
+      consts +
+      renderZodExport({
+        name: entry.name,
+        // The trailing `;` is folded into the expression (rather than left
+        // for the emitter to add) to preserve this call site's pre-existing
+        // output byte-for-byte; the schema-file entry above passes its
+        // expression bare and emits none. See the module-drift note on
+        // `renderReusableSchemaEntry`.
+        expression: `${entry.zod};`,
+        variant: zodVariant,
+        companionTypes: true,
+      }),
     extraImports: [],
   };
 }
