@@ -484,7 +484,7 @@ export async function normalizeOptions(
     signal: true,
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
-    shouldExportQueryKey: true,
+    shouldExportKeys: true,
     shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, outputWorkspace),
@@ -1374,6 +1374,17 @@ function normalizeQueryOptions(
     );
   }
 
+  if (!isNullish(queryOptions.shouldExportQueryKey)) {
+    logWarning(
+      '⚠️  shouldExportQueryKey is deprecated and will be removed in a future major release. Please use shouldExportKeys instead, which also gates the mutation key getters.',
+    );
+  }
+
+  // `shouldExportQueryKey` always gated the mutation key getters as well, so
+  // the rename is a pure alias.
+  const shouldExportKeys =
+    queryOptions.shouldExportKeys ?? queryOptions.shouldExportQueryKey;
+
   return {
     ...(isNullish(queryOptions.usePrefetch)
       ? {}
@@ -1442,14 +1453,12 @@ function normalizeQueryOptions(
           ),
         }
       : {}),
-    ...(isNullish(globalOptions.shouldExportQueryKey)
+    ...(isNullish(globalOptions.shouldExportKeys)
       ? {}
       : {
-          shouldExportQueryKey: globalOptions.shouldExportQueryKey,
+          shouldExportKeys: globalOptions.shouldExportKeys,
         }),
-    ...(isNullish(queryOptions.shouldExportQueryKey)
-      ? {}
-      : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
+    ...(isNullish(shouldExportKeys) ? {} : { shouldExportKeys }),
     ...(isNullish(globalOptions.shouldFilterQueryKey)
       ? {}
       : {
