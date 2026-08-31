@@ -13,10 +13,13 @@ import type { Error } from './model/error.zod';
 import type { ListPetsParams } from './model/listPetsParams.zod';
 
 import { Pet } from './model/pet.zod';
+import type { PetOutput } from './model/pet.zod';
 
 import { PetWithTag } from './model/petWithTag.zod';
+import type { PetWithTagOutput } from './model/petWithTag.zod';
 
 import { Pets } from './model/pets.zod';
+import type { PetsOutput } from './model/pets.zod';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -61,7 +64,7 @@ export type HTTPStatusCodes =
   | HTTPStatusCode5xx;
 
 export type listPetsResponse200 = {
-  data: Pets;
+  data: PetsOutput;
   status: 200;
 };
 
@@ -120,7 +123,7 @@ export const listPets = async (
 };
 
 export type createPetsResponse200 = {
-  data: Pet;
+  data: PetOutput;
   status: 200;
 };
 
@@ -199,7 +202,7 @@ export const createPets = async (
 };
 
 export type showPetByIdResponse200 = {
-  data: Pet;
+  data: PetOutput;
   status: 200;
 };
 
@@ -354,7 +357,7 @@ export const healthCheck = async (
 };
 
 export type showPetWithOwnerResponse200 = {
-  data: PetWithTag;
+  data: PetWithTagOutput;
   status: 200;
 };
 

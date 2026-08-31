@@ -163,6 +163,30 @@ describe('generateImportsForBuilder', () => {
         },
       ]);
     });
+
+    it('routes an Output type alias to its base schema zod file via zodBaseName', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'Pets', schemaName: 'Pets', values: true },
+        { name: 'PetsOutput', zodBaseName: 'Pets' },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'Pets', schemaName: 'Pets', values: true },
+            { name: 'PetsOutput', zodBaseName: 'Pets' },
+          ],
+          dependency: '../models/pets.zod',
+        },
+      ]);
+    });
   });
 
   describe('with indexFiles', () => {

@@ -90,7 +90,9 @@ export function generateImportsForBuilder(
     const importsByDependency = new Map<string, GeneratorImport[]>();
 
     for (const schemaImport of imports.filter((i) => !i.importPath)) {
-      const baseName = schemaImport.name;
+      // `Output` type aliases live in their base schema's file
+      // (`zodBaseName`); everything else is named after the TS identifier.
+      const baseName = schemaImport.zodBaseName ?? schemaImport.name;
       const normalizedName = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = isPackageImport
@@ -105,7 +107,10 @@ export function generateImportsForBuilder(
       // including the `Response`/`Body`/`Parameter` suffix added for
       // component refs), so `schemaName` (the bare ref name) would produce
       // import paths that point at files that are never written (#2912).
-      const tagDir = schemaTagMap?.get(schemaImport.name);
+      // `Output` aliases again resolve via their base schema's identifier.
+      const tagDir = schemaTagMap?.get(
+        schemaImport.zodBaseName ?? schemaImport.name,
+      );
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       const dependency = upath.joinSafe(
         relativeSchemasPath,

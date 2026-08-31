@@ -8,6 +8,11 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorDependency,
+  getSchemaOutputTypeRef,
+  getSchemaValueRef,
+  hasSchemaImport,
+  isPrimitiveResponseType,
+  rewriteImportsForResponseValidation,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   type GeneratorMutator,
@@ -418,20 +423,22 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries = [];\n' : ''}
   const responseType = response.definition.success;
   const isVoidResponse = responseType === 'void';
 
-  const isPrimitiveType = [
-    'string',
-    'number',
-    'boolean',
-    'void',
-    'unknown',
-  ].includes(responseType);
-  const hasSchema = response.imports.some((imp) => imp.name === responseType);
+  const isPrimitiveType = isPrimitiveResponseType(responseType);
+  const hasSchema = hasSchemaImport(response.imports, responseType);
 
   const isValidateResponse =
     override.fetch.runtimeValidation.enabled &&
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
+  const isZodSchemasOutput =
+    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  // The generated parse returns the schema's zod output type, so the declared
+  // response type must reference the `XOutput` alias. A custom mutator issues
+  // the request itself — the generated parse never runs there — so its
+  // declared types keep the schema (input) name.
+  const useValidatedOutputType =
+    isValidateResponse && isZodSchemasOutput && !mutator;
 
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
@@ -460,11 +467,24 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries = [];\n' : ''}
     )
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
-      const dataType = r.value || 'unknown';
+      const isSuccessEntry = response.types.success.some(
+        (s) => s.key === r.key,
+      );
+      const rawDataType = r.value || 'unknown';
+      // An empty contentType falls back to JSON parsing at runtime, so it is
+      // validated too (matching `successAlwaysJson`).
+      const dataType =
+        useValidatedOutputType &&
+        isSuccessEntry &&
+        rawDataType === responseType &&
+        !isContentTypeNdJson(r.contentType) &&
+        (r.contentType === '' || isContentTypeJson(r.contentType))
+          ? getSchemaOutputTypeRef(responseType)
+          : rawDataType;
 
       return {
         name,
-        success: response.types.success.some((s) => s.key === r.key),
+        success: isSuccessEntry,
         value: `export type ${name} = {
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${dataType}>` : `data: ${dataType}`}
   status: ${
@@ -539,7 +559,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     hasSuccess &&
     override.fetch.includeHttpResponseReturnType
       ? `Promise<${successName}>`
-      : `Promise<${responseTypeName}>`;
+      : `Promise<${
+          useValidatedOutputType &&
+          !override.fetch.includeHttpResponseReturnType
+            ? getSchemaOutputTypeRef(responseType)
+            : responseTypeName
+        }>`;
 
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
@@ -601,8 +626,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-  const schemaValueRef =
-    responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const schemaValueRef = getSchemaValueRef(responseType);
   const responseValidationExpression = emitResponseValidation({
     schemaRef: schemaValueRef,
     operationName,
@@ -814,30 +838,33 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
     typeof options.context.output.schemas === 'object' &&
     options.context.output.schemas.type === 'zod';
   const responseType = verbOptions.response.definition.success;
-  const isPrimitiveResponse = [
-    'string',
-    'number',
-    'boolean',
-    'void',
-    'unknown',
-  ].includes(responseType);
+  const isNdJsonResponse = verbOptions.response.contentTypes.some(
+    (contentType) =>
+      contentType === 'application/nd-json' ||
+      contentType === 'application/x-ndjson',
+  );
   const shouldUseRuntimeValidation =
-    verbOptions.override.fetch.runtimeValidation.enabled && isZodOutput;
+    verbOptions.override.fetch.runtimeValidation.enabled &&
+    isZodOutput &&
+    !isPrimitiveResponseType(responseType) &&
+    hasSchemaImport(verbOptions.response.imports, responseType);
 
-  const normalizedVerbOptions =
-    shouldUseRuntimeValidation &&
-    !isPrimitiveResponse &&
-    verbOptions.response.imports.some((imp) => imp.name === responseType)
-      ? {
-          ...verbOptions,
-          response: {
-            ...verbOptions.response,
-            imports: verbOptions.response.imports.map((imp) =>
-              imp.name === responseType ? { ...imp, values: true } : imp,
-            ),
-          },
-        }
-      : verbOptions;
+  const normalizedVerbOptions = shouldUseRuntimeValidation
+    ? {
+        ...verbOptions,
+        response: {
+          ...verbOptions.response,
+          imports: rewriteImportsForResponseValidation(
+            verbOptions.response.imports,
+            responseType,
+            // A mutator (or an ndjson stream) skips the generated parse, so
+            // the declared types keep the schema (input) name and no Output
+            // alias import is needed.
+            { includeOutputType: !verbOptions.mutator && !isNdJsonResponse },
+          ),
+        },
+      }
+    : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = generateRequestFunction(
