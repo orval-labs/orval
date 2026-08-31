@@ -987,6 +987,13 @@ interface BaseZodOptions {
    */
   params?: Mutator;
   useBrandedTypes?: boolean;
+  /**
+   * When true, each generated `export const X = <zod schema>` is followed by
+   * `export type X = zod.input<typeof X>;` and
+   * `export type XOutput = zod.output<typeof X>;`, including the `Item`
+   * schema split out for a bounded/array body or response. Default `false`.
+   */
+  generateCompanionTypes?: boolean;
 }
 
 export interface ZodOptions extends BaseZodOptions {
@@ -1046,6 +1053,34 @@ export interface ZodOptions extends BaseZodOptions {
  * / `override.tags.*`.
  */
 export type OperationZodOptions = BaseZodOptions;
+
+/**
+ * Runtime source of truth for the `override.zod` keys that may also be set per
+ * operation or tag. `NormalizedOperationZodOptions`, the unsupported-key
+ * warning, and the operation/tag normalization in `orval` are all derived from
+ * this array; the `satisfies` clause plus the `Exclude` assertion below force
+ * it to stay in lockstep with `OperationZodOptions`.
+ */
+export const operationZodOverrideKeys = [
+  'strict',
+  'generate',
+  'coerce',
+  'preprocess',
+  'params',
+  'useBrandedTypes',
+  'generateCompanionTypes',
+] as const satisfies readonly (keyof OperationZodOptions)[];
+
+export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];
+
+// Compile-time exhaustiveness: adding a key to `BaseZodOptions` without adding
+// it to `operationZodOverrideKeys` makes this alias non-`never` and the
+// `satisfies` below fail.
+type MissingOperationZodOverrideKey = Exclude<
+  keyof OperationZodOptions,
+  OperationZodOverrideKey
+>;
+true satisfies MissingOperationZodOverrideKey extends never ? true : never;
 
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
@@ -1109,13 +1144,14 @@ export interface NormalizedZodOptions {
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
   exactOptional: boolean;
+  generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
 
 export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
-  'strict' | 'generate' | 'coerce' | 'preprocess' | 'params' | 'useBrandedTypes'
+  OperationZodOverrideKey
 >;
 
 export interface NormalizedEffectOptions {

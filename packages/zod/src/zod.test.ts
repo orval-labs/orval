@@ -12971,3 +12971,287 @@ describe('misplaced boolean `required` (#3719)', () => {
     ).not.toThrow();
   });
 });
+
+// --- generateCompanionTypes tests ---
+
+describe('generateZod (generateCompanionTypes)', () => {
+  it('emits no companion types when generateCompanionTypes is false', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generateCompanionTypes: false,
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/zod\.(input|output)</);
+  });
+
+  it('emits no companion types when generateCompanionTypes is not specified', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: brandedZodOverrideDisabled,
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/zod\.(input|output)</);
+  });
+
+  it('emits a zod.input/zod.output companion pair after every export const when enabled', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generateCompanionTypes: true,
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    for (const name of [
+      'TestParams',
+      'TestQueryParams',
+      'TestHeader',
+      'TestBody',
+      'TestResponse',
+    ]) {
+      expect(result.implementation).toContain(
+        `export type ${name} = zod.input<typeof ${name}>;`,
+      );
+      expect(result.implementation).toContain(
+        `export type ${name}Output = zod.output<typeof ${name}>;`,
+      );
+    }
+  });
+
+  it('gives both the Item schema and the array wrapper their own companion pair', async () => {
+    const arrayBodyApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: { id: { type: 'number' } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generateCompanionTypes: true,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayBodyApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export type TestBodyItem = zod.input<typeof TestBodyItem>;',
+    );
+    expect(result.implementation).toContain(
+      'export type TestBodyItemOutput = zod.output<typeof TestBodyItem>;',
+    );
+    expect(result.implementation).toContain(
+      'export type TestBody = zod.input<typeof TestBody>;',
+    );
+    expect(result.implementation).toContain(
+      'export type TestBodyOutput = zod.output<typeof TestBody>;',
+    );
+  });
+
+  it('brands only the wrapper Output type when combined with useBrandedTypes', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generateCompanionTypes: true,
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      withOutputZodVersion(basicApiSchema, 4),
+      testOutput,
+    );
+
+    // The clean `zod.input` alias stays unbranded (`.brand()` types only the
+    // output side); the `Output` companion carries the brand because it
+    // reads the type off the already-branded wrapper expression.
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand("TestBody")',
+    );
+    expect(result.implementation).toContain(
+      'export type TestBody = zod.input<typeof TestBody>;',
+    );
+    expect(result.implementation).toContain(
+      'export type TestBodyOutput = zod.output<typeof TestBody>;',
+    );
+  });
+
+  it('does not emit companion types for helper value consts (Max/Min/RegExp/Default)', async () => {
+    const constsApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          name: {
+                            type: 'string',
+                            minLength: 1,
+                            maxLength: 10,
+                            pattern: '^[a-z]+$',
+                            default: 'fluffy',
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generateCompanionTypes: true,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      constsApiSchema,
+      testOutput,
+    );
+
+    // Helper value consts are plain values, not `export const` schemas, so
+    // the emitter never sees them as a ZodExportBlock and they get no
+    // companion type pair.
+    expect(result.implementation).toMatch(/export const testBodyNameMax = 10;/);
+    expect(result.implementation).toMatch(/export const testBodyNameRegExp = /);
+    expect(result.implementation).toMatch(
+      /export const testBodyNameDefault = `fluffy`;/,
+    );
+    expect(result.implementation).not.toContain('testBodyNameMax = zod.input');
+    expect(result.implementation).not.toContain(
+      'testBodyNameRegExp = zod.input',
+    );
+    expect(result.implementation).not.toContain(
+      'testBodyNameDefault = zod.input',
+    );
+    expect(result.implementation).not.toMatch(/export type testBodyName/);
+    // The wrapping Body schema still gets its own companion pair.
+    expect(result.implementation).toContain(
+      'export type TestBody = zod.input<typeof TestBody>;',
+    );
+  });
+});

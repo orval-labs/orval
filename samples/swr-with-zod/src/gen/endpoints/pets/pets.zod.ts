@@ -16,6 +16,9 @@ export const ListPetsQueryParams = zod.object({
     .describe('How many items to return at one time (max 100)'),
 });
 
+export type ListPetsQueryParams = zod.input<typeof ListPetsQueryParams>;
+export type ListPetsQueryParamsOutput = zod.output<typeof ListPetsQueryParams>;
+
 export const ListPetsResponseItem = zod
   .union([
     zod
@@ -51,7 +54,16 @@ export const ListPetsResponseItem = zod
       country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
     }),
   );
+
+export type ListPetsResponseItem = zod.input<typeof ListPetsResponseItem>;
+export type ListPetsResponseItemOutput = zod.output<
+  typeof ListPetsResponseItem
+>;
+
 export const ListPetsResponse = zod.array(ListPetsResponseItem);
+
+export type ListPetsResponse = zod.input<typeof ListPetsResponse>;
+export type ListPetsResponseOutput = zod.output<typeof ListPetsResponse>;
 
 /**
  * @summary Create a pet
@@ -60,7 +72,14 @@ export const CreatePetsBodyItem = zod.object({
   name: zod.string(),
   tag: zod.string(),
 });
+
+export type CreatePetsBodyItem = zod.input<typeof CreatePetsBodyItem>;
+export type CreatePetsBodyItemOutput = zod.output<typeof CreatePetsBodyItem>;
+
 export const CreatePetsBody = zod.array(CreatePetsBodyItem);
+
+export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
 
 export const CreatePetsResponse = zod
   .union([
@@ -97,6 +116,9 @@ export const CreatePetsResponse = zod
       country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
     }),
   );
+
+export type CreatePetsResponse = zod.input<typeof CreatePetsResponse>;
+export type CreatePetsResponseOutput = zod.output<typeof CreatePetsResponse>;
 
 /**
  * @summary Update a pet
@@ -137,6 +159,9 @@ export const UpdatePetsBody = zod
     }),
   );
 
+export type UpdatePetsBody = zod.input<typeof UpdatePetsBody>;
+export type UpdatePetsBodyOutput = zod.output<typeof UpdatePetsBody>;
+
 export const UpdatePetsResponse = zod
   .union([
     zod
@@ -173,12 +198,18 @@ export const UpdatePetsResponse = zod
     }),
   );
 
+export type UpdatePetsResponse = zod.input<typeof UpdatePetsResponse>;
+export type UpdatePetsResponseOutput = zod.output<typeof UpdatePetsResponse>;
+
 /**
  * @summary Info for a specific pet
  */
 export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
 });
+
+export type ShowPetByIdParams = zod.input<typeof ShowPetByIdParams>;
+export type ShowPetByIdParamsOutput = zod.output<typeof ShowPetByIdParams>;
 
 export const ShowPetByIdResponse = zod
   .union([
@@ -215,3 +246,6 @@ export const ShowPetByIdResponse = zod
       country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
     }),
   );
+
+export type ShowPetByIdResponse = zod.input<typeof ShowPetByIdResponse>;
+export type ShowPetByIdResponseOutput = zod.output<typeof ShowPetByIdResponse>;

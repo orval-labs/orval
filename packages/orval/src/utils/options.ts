@@ -48,6 +48,8 @@ import {
   type NormalizedSchemaOptions,
   normalizeRuntimeValidation,
   type OperationOptions,
+  operationZodOverrideKeys,
+  type OperationZodOverrideKey,
   type OptionsExport,
   OutputClient,
   OutputHttpClient,
@@ -59,6 +61,7 @@ import {
   RefComponentSuffix,
   type SchemaOptions,
   upath,
+  type ZodOptions,
 } from '@orval/core';
 import { getDefaultMockOptionsForType } from '@orval/mock';
 
@@ -834,6 +837,8 @@ export async function normalizeOptions(
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
+          generateCompanionTypes:
+            outputOptions.override?.zod?.generateCompanionTypes ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -1178,6 +1183,35 @@ export function normalizePath<T>(path: T, workspace: string) {
   return nodePath.resolve(workspace, path);
 }
 
+// Output-wide `override.zod` keys, rejected with a warning on operation/tag
+// overrides. `operationZodOverrideKeys` (from `@orval/core`) holds the
+// supported complement; the `satisfies` clause plus the assertion below force
+// every `ZodOptions` key onto exactly one of the two lists.
+const unsupportedZodKeys = [
+  'version',
+  'variant',
+  'dateTimeOptions',
+  'timeOptions',
+  'generateEachHttpStatus',
+  'generateReusableSchemas',
+  'generateMeta',
+  'generateDiscriminatedUnion',
+  'exactOptional',
+] as const satisfies readonly Exclude<
+  keyof ZodOptions,
+  OperationZodOverrideKey
+>[];
+
+type UnlistedZodKey = Exclude<
+  keyof ZodOptions,
+  OperationZodOverrideKey | (typeof unsupportedZodKeys)[number]
+>;
+true satisfies UnlistedZodKey extends never ? true : never;
+
+const supportedZodKeysLabel = `${operationZodOverrideKeys
+  .slice(0, -1)
+  .join(', ')}, and ${operationZodOverrideKeys.at(-1)}`;
+
 function normalizeOperationsAndTags(
   operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
@@ -1186,17 +1220,6 @@ function normalizeOperationsAndTags(
   },
   source: 'operations' | 'tags',
 ): Record<string, NormalizedOperationOptions> {
-  const unsupportedZodKeys = [
-    'version',
-    'variant',
-    'dateTimeOptions',
-    'timeOptions',
-    'generateEachHttpStatus',
-    'generateReusableSchemas',
-    'generateMeta',
-    'generateDiscriminatedUnion',
-  ] as const;
-
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -1230,7 +1253,7 @@ function normalizeOperationsAndTags(
             .join(', ');
 
           logWarning(
-            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+            `⚠️  override.${source}.${key}.zod only supports ${supportedZodKeysLabel}. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
           );
         }
 
@@ -1241,12 +1264,9 @@ function normalizeOperationsAndTags(
         // contradicting the "ignored" warning above.
         const hasSupportedOperationZodConfig =
           !!zod &&
-          (zod.strict !== undefined ||
-            zod.generate !== undefined ||
-            zod.coerce !== undefined ||
-            zod.preprocess !== undefined ||
-            zod.params !== undefined ||
-            zod.useBrandedTypes !== undefined);
+          operationZodOverrideKeys.some(
+            (supportedKey) => zod[supportedKey] !== undefined,
+          );
 
         if (angular?.baseUrl) {
           logWarning(
@@ -1352,6 +1372,7 @@ function normalizeOperationsAndTags(
                         }
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateCompanionTypes: zod.generateCompanionTypes ?? false,
                   },
                 }
               : {}),

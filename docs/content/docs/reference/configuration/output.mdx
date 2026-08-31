@@ -1909,6 +1909,32 @@ Behavior:
 - **zod v4 only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted.
 - Applies to optional properties in both the classic and [`mini`](#variant) variants.
 
+### generateCompanionTypes
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Follow every generated per-operation `export const` with a `zod.input`/[`zod.output`](https://zod.dev/basics?id=inferring-types) type alias pair, so consumers can import a TypeScript type instead of writing one by hand.
+
+```ts
+// override: { zod: { generateCompanionTypes: true } }
+export const CreatePetsBody = zod.object({ name: zod.string() });
+
+export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, output is unchanged.
+- Applies to per-operation schemas — `Params`, `QueryParams`, `Header`, `Body`, and `Response` — including the Hono `*.zod.ts` output, which goes through the same generator. Component schemas emitted under [`generateReusableSchemas`](#generatereusableschemas) already carry this pair unconditionally and are unaffected by this flag.
+- For an array request/response body, both the `*Item` schema and the array wrapper get their own pair.
+- Uses `zod.input`, not `z.infer` (an alias of `zod.output`): request-side schemas commonly carry `.default()`, `coerce`, or `.transform()`, where the pre-parse (`input`) and post-parse (`output`) shapes differ.
+- With [`useBrandedTypes`](#usebrandedtypes), the clean `zod.input` alias stays unbranded — `.brand()` only affects the output type — so the brand shows up on the `...Output` alias.
+- Helper value consts (`...Max`, `...Min`, `...RegExp`, `...Default`) are plain values, not schemas, and never get a companion pair.
+- Supported as a per-operation or per-tag override alongside `strict`, `generate`, `coerce`, `preprocess`, `params`, and `useBrandedTypes` (see [Scoping options per operation or tag](/docs/guides/zod#scoping-options-per-operation-or-tag)).
+
 ---
 
 ## override.effect
