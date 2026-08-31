@@ -464,9 +464,7 @@ describe('validation', () => {
 
       const result = await importSpecs(workspace, normalizedOptions);
 
-      const apiVersion = result.schemas.find(
-        (s) => s.name === 'ApiVersion',
-      );
+      const apiVersion = result.schemas.find((s) => s.name === 'ApiVersion');
       expect(apiVersion).toBeDefined();
       expect(apiVersion?.model).toContain("'2026-01-27'");
       expect(apiVersion?.model).not.toContain('GMT');
