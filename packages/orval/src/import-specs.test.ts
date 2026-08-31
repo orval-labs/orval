@@ -428,27 +428,30 @@ describe('validation', () => {
 
     // Write raw YAML (not JSON) so js-yaml actually parses the content.
     // Without JSON_SCHEMA, js-yaml coerces `2026-01-27` into a Date object.
-    const yamlContent = `
-      openapi: "3.0.3"
-      info:
-        title: DateEnumRepro
-        version: "1.0.0"
-      paths:
-        /test:
-          get:
-            operationId: getTest
-            parameters:
-              - name: Accept-Version
-                in: header
-                schema:
-                  type: string
-                  enum:
-                    - latest
-                    - 2026-01-27
-            responses:
-              "200":
-                description: OK
-      `;
+    const yamlContent = [
+      'openapi: "3.0.3"',
+      'info:',
+      '  title: DateEnumRepro',
+      '  version: "1.0.0"',
+      'paths:',
+      '  /test:',
+      '    get:',
+      '      operationId: getTest',
+      '      responses:',
+      '        "200":',
+      '          description: OK',
+      '          content:',
+      '            application/json:',
+      '              schema:',
+      '                $ref: "#/components/schemas/ApiVersion"',
+      'components:',
+      '  schemas:',
+      '    ApiVersion:',
+      '      type: string',
+      '      enum:',
+      '        - latest',
+      '        - 2026-01-27',
+    ].join('\n');
 
     try {
       await writeFile(specPath, yamlContent, 'utf8');
@@ -461,12 +464,12 @@ describe('validation', () => {
 
       const result = await importSpecs(workspace, normalizedOptions);
 
-      const versionParam = result.schemas.find(
-        (s) => s.name === 'GetTestHeaderAcceptVersionParameter',
+      const apiVersion = result.schemas.find(
+        (s) => s.name === 'ApiVersion',
       );
-      expect(versionParam).toBeDefined();
-      expect(versionParam?.model).toContain("'2026-01-27'");
-      expect(versionParam?.model).not.toContain('GMT');
+      expect(apiVersion).toBeDefined();
+      expect(apiVersion?.model).toContain("'2026-01-27'");
+      expect(apiVersion?.model).not.toContain('GMT');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
