@@ -976,7 +976,10 @@ const buildHttpResourceFunction = (
   // would stop the substitution from matching. Wrapping the already-rewritten
   // form yields `${encodeURIComponent(String(param()))}`, which is correct.
   let encodedRoute = output.urlEncodeParameters
-    ? makeRouteSafe(signalRoute)
+    ? makeRouteSafe(
+        signalRoute,
+        new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
+      )
     : signalRoute;
   // MUST run after the urlEncodeParameters/makeRouteSafe step above (see the
   // comment on `encodedRoute` for why): prefixing before it would wrap

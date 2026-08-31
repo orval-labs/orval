@@ -2134,6 +2134,13 @@ export interface GetterParam {
   implementation: string;
   default: unknown;
   required: boolean;
+  /**
+   * True when the spec marks the path parameter `allowReserved: true`.
+   * Generators use this to skip URL-encoding the param at request time
+   * (e.g. wildcard/multi-segment `{path=**}` routes under
+   * `urlEncodeParameters`) (#3910).
+   */
+  allowReserved?: boolean;
   imports: GeneratorImport[];
 }
 

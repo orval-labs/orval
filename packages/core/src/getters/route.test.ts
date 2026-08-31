@@ -528,4 +528,20 @@ describe('makeRouteSafe', () => {
     const result = makeRouteSafe('');
     expect(result).toBe('');
   });
+
+  it('leaves allowReserved params unencoded (#3910)', () => {
+    const skip = new Set(['path']);
+    const result = makeRouteSafe('/things/${name}/files/${path}', skip);
+    expect(result).toBe(
+      '/things/${encodeURIComponent(String(name))}/files/${path}',
+    );
+  });
+
+  it('normalizes signal-form params when matching the skip set', () => {
+    const skip = new Set(['path']);
+    const result = makeRouteSafe('/files/${path()}/x/${name()}', skip);
+    expect(result).toBe(
+      '/files/${path()}/x/${encodeURIComponent(String(name()))}',
+    );
+  });
 });

@@ -439,6 +439,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'issue-3910-allowReserved': {
+    output: {
+      target: '../generated/fetch/issue-3910-allowReserved/endpoints.ts',
+      client: 'fetch',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3910/issue-3910.yaml',
+    },
+  },
   usedatesOnlyDateParams: {
     output: {
       target: '../generated/fetch/usedates-only-date-params/endpoints.ts',

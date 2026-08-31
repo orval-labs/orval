@@ -286,14 +286,27 @@ export function getBaseUrlRuntimeImports(
 
 // Emits a codegen string: wraps each `${param}` segment of a template-literal
 // route so the generated client encodes path parameters at request time.
+// `skip` lists param names to leave unwrapped (e.g. `allowReserved: true`
+// wildcard params that must keep their `/`).
 export const wrapRouteParameters = (
   route: string,
   prepend: string,
   append: string,
-): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
+  skip: Set<string> = new Set(),
+): string =>
+  route.replaceAll(TEMPLATE_TAG_REGEX, (match, name: string) => {
+    // Angular's httpResource rewrites `${param}` to `${param()}` before this
+    // runs; normalize the trailing `()` so the skip set (keyed on the bare
+    // param name) still matches.
+    const key = name.replace(/\(\)$/, '');
+    return skip.has(key) ? `\${${name}}` : `\${${prepend}${name}${append}}`;
+  });
 
-export const makeRouteSafe = (route: string): string =>
-  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
+export const makeRouteSafe = (
+  route: string,
+  skip: Set<string> = new Set(),
+): string =>
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))', skip);
 
 // Creates a mixed use array with path variables and string from template string route
 export function getRouteAsArray(route: string): string {

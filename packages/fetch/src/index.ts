@@ -99,13 +99,17 @@ export const generateRequestFunction = (
     override,
     doc,
     paramsSerializer,
+    params,
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
   let route = _route;
 
   if (context.output.urlEncodeParameters) {
-    route = makeRouteSafe(route);
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip);
   }
 
   const isRequestOptions = override.requestOptions !== false;

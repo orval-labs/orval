@@ -342,6 +342,7 @@ export const generateHttpClientImplementation = (
     formUrlEncoded,
     paramsSerializer,
     paramsFilter,
+    params,
   }: GeneratorVerbOptions,
   { route: _route, context }: HttpClientGeneratorContext,
 ) => {
@@ -352,7 +353,10 @@ export const generateHttpClientImplementation = (
   // exactly once and nowhere downstream.
   let route = _route;
   if (context.output.urlEncodeParameters) {
-    route = makeRouteSafe(route);
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip);
   }
   // MUST run after the urlEncodeParameters/makeRouteSafe step above:
   // wrapRouteParameters (invoked by makeRouteSafe) rewrites every `${...}`

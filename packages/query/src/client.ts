@@ -88,12 +88,16 @@ export const generateAngularHttpRequestFunction = (
     formData,
     formUrlEncoded,
     override,
+    params,
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
 ) => {
   let route = _route;
   if (context.output.urlEncodeParameters) {
-    route = makeRouteSafe(route);
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip);
   }
 
   const isRequestOptions = override.requestOptions !== false;
@@ -294,6 +298,7 @@ export const generateAxiosRequestFunction = (
     formUrlEncoded,
     override,
     paramsSerializer,
+    params,
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
   adapter: FrameworkAdapter,
@@ -302,7 +307,10 @@ export const generateAxiosRequestFunction = (
   let route = _route;
 
   if (context.output.urlEncodeParameters) {
-    route = makeRouteSafe(route);
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip);
   }
 
   const unrefStatements = adapter.getRequestUnrefStatements(props);
