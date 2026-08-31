@@ -59,6 +59,7 @@ export function generateParameterDefinition(
           imports.length > 0 ? imports[0].name : 'unknown'
         };\n`,
         dependencies: imports.length > 0 ? [imports[0].name] : [],
+        kind: 'schema',
       });
 
       continue;
@@ -84,6 +85,7 @@ export function generateParameterDefinition(
         model,
         imports: resolvedObject.imports,
         dependencies: resolvedObject.dependencies,
+        kind: 'schema',
       });
     }
   }

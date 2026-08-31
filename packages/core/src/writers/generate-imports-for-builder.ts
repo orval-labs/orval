@@ -15,7 +15,9 @@ import {
   isObject,
   upath,
 } from '../utils';
+import type { SchemaOutputPlan } from './schema-output-plan';
 
+/** Builds client dependencies using tag routing or the planned schema paths. */
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
@@ -25,7 +27,21 @@ export function generateImportsForBuilder(
   // schema's tag subdirectory into the import path. `'.'` is the sentinel
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] {
+  if (schemaOutputPlan) {
+    imports = imports.map((schemaImport) => {
+      if (!schemaOutputPlan.hasSchema(schemaImport.name)) return schemaImport;
+
+      const canonicalName = schemaOutputPlan.canonicalNameFor(
+        schemaImport.name,
+      );
+      return canonicalName === schemaImport.name
+        ? schemaImport
+        : { ...schemaImport, name: canonicalName };
+    });
+  }
+
   const isPackageImport =
     isObject(output.schemas) && !!output.schemas.importPath;
 
@@ -73,17 +89,21 @@ export function generateImportsForBuilder(
 
   let schemaImports: GeneratorDependency[];
   if (output.indexFiles) {
+    const schemaDependency =
+      typeof output.schemas === 'object' && output.schemas?.importPath
+        ? output.schemas.importPath
+        : relativeSchemasPath;
     schemaImports = isZodSchemaOutput
       ? [
           {
             exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
+            dependency: schemaDependency,
           },
         ]
       : [
           {
             exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
+            dependency: schemaDependency,
           },
         ];
   } else {
@@ -112,10 +132,21 @@ export function generateImportsForBuilder(
         schemaImport.zodBaseName ?? schemaImport.name,
       );
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
-      const dependency = upath.joinSafe(
-        relativeSchemasPath,
-        `${tagSegment}${normalizedName}${suffix}${importExtension}`,
-      );
+      const dependency = schemaOutputPlan
+        ? isPackageImport
+          ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
+            upath.joinSafe(
+              relativeSchemasPath,
+              `${normalizedName}${suffix}${importExtension}`,
+            ))
+          : schemaOutputPlan.clientImportPath(
+              schemaImport.name,
+              relativeSchemasPath,
+            )
+        : upath.joinSafe(
+            relativeSchemasPath,
+            `${tagSegment}${normalizedName}${suffix}${importExtension}`,
+          );
 
       if (!importsByDependency.has(dependency)) {
         importsByDependency.set(dependency, []);

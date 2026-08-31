@@ -239,6 +239,7 @@ function generateSchemaDefinitions(
         model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
         imports: [],
         schema: schema as OpenApiSchemaObject,
+        kind: 'schema',
       },
     ];
   }
@@ -308,6 +309,7 @@ function generateSchemaDefinitions(
           imports: allImports,
           dependencies: allImports.map((i) => i.name),
           schema,
+          kind: 'schema',
         },
       ];
     } else {
@@ -321,6 +323,7 @@ function generateSchemaDefinitions(
         imports: allImports,
         dependencies: allImports.map((i) => i.name),
         schema,
+        kind: 'schema',
       },
     ];
   }
@@ -355,6 +358,8 @@ function generateSchemaDefinitions(
   let output = '';
 
   let imports = resolvedValue.imports;
+  let kind: 'enum' | 'schema' =
+    resolvedValue.isEnum && !resolvedValue.isRef ? 'enum' : 'schema';
 
   output += jsDoc(schema);
 
@@ -399,6 +404,7 @@ function generateSchemaDefinitions(
       output += `${schema.model}\n`;
       imports = [...imports, ...schema.imports];
       resolvedValue.dependencies.push(...(schema.dependencies ?? []));
+      kind = schema.kind ?? kind;
 
       return false;
     });
@@ -417,6 +423,7 @@ function generateSchemaDefinitions(
       imports,
       dependencies: resolvedValue.dependencies,
       schema,
+      kind,
     },
   ];
 }
