@@ -654,6 +654,7 @@ interface WriteRoutedSchemasOptions {
   tsconfig?: Tsconfig;
 }
 
+/** Writes planned schemas and the route barrels that expose them. */
 export async function writeRoutedSchemas({
   plan,
   target,

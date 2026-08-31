@@ -37,26 +37,35 @@ export interface SchemaOutputPlan {
   routeDirectories: string[];
   usesTagRouting: boolean;
   rootIndexPath?: string;
+  /** Registers a schema path that is discovered after the initial plan. */
   registerSchema(
     name: string,
     route: SchemaRouteKey,
     scopePath?: string,
   ): string;
+  /** Returns the canonical generated identifier for a schema alias. */
   canonicalNameFor(name: string): string;
+  /** Computes a relative import from one planned schema to another. */
   importPathFor(importerName: string, targetName: string): string;
+  /** Computes a client import path for a planned schema. */
   clientImportPath(name: string, relativeSchemasPath: string): string;
+  /** Computes a package import path for a planned schema when applicable. */
   packageImportPath(name: string): string | undefined;
+  /** Reports whether a name or alias is present in the plan. */
   hasSchema(name: string): boolean;
 }
 
+/** Normalizes a schema name for grouping names that generate the same file. */
 function schemaNameKey(name: string, namingConvention: NamingConvention) {
   return conventionName(name, namingConvention).toLowerCase();
 }
 
+/** Converts a schema name to the configured output naming convention. */
 function canonicalName(name: string, namingConvention: NamingConvention) {
   return conventionName(name, namingConvention);
 }
 
+/** Merges generated schemas that share the same original name. */
 function mergeSchemas(schemas: GeneratorSchema[]): GeneratorSchema {
   const first = schemas[0];
   const kinds = new Set(schemas.map((schema) => requireSchemaKind(schema)));
@@ -83,6 +92,7 @@ function mergeSchemas(schemas: GeneratorSchema[]): GeneratorSchema {
   };
 }
 
+/** Returns schema kind metadata or fails when route planning lacks it. */
 function requireSchemaKind(schema: GeneratorSchema): GeneratedSchemaKind {
   if (!schema.kind) {
     throw new Error(
@@ -92,6 +102,7 @@ function requireSchemaKind(schema: GeneratorSchema): GeneratedSchemaKind {
   return schema.kind;
 }
 
+/** Serializes schema values with sorted keys for order-independent comparison. */
 function stableSerialize(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
@@ -106,6 +117,7 @@ function stableSerialize(value: unknown): string {
     .join(',')}}`;
 }
 
+/** Checks whether two generated schemas have the same kind and definition. */
 function hasSameSchemaDefinition(
   left: GeneratorSchema,
   right: GeneratorSchema,
@@ -118,6 +130,7 @@ function hasSameSchemaDefinition(
   );
 }
 
+/** Rejects generated-file collisions between incompatible schema definitions. */
 function assertNoConflictingCanonicalSchema(
   schemas: GeneratorSchema[],
   namingConvention: NamingConvention,
@@ -135,12 +148,14 @@ function assertNoConflictingCanonicalSchema(
   }
 }
 
+/** Removes the configured extension from a generated file name. */
 function stripExtension(fileName: string, fileExtension: string) {
   return fileName.endsWith(fileExtension)
     ? fileName.slice(0, -fileExtension.length)
     : fileName;
 }
 
+/** Builds the output plan used to route generated schemas and their imports. */
 export function createSchemaOutputPlan({
   basePath,
   schemas,

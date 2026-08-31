@@ -148,6 +148,7 @@ function normalizeSchemasOption(
   };
 }
 
+/** Normalizes the configured default and enum schema routes. */
 function normalizeSchemaRoutes(
   routes: NonNullable<SchemaOptions['routes']>,
 ): NonNullable<NormalizedSchemaOptions['routes']> {
@@ -182,6 +183,7 @@ function normalizeSchemaRoutes(
   return normalized;
 }
 
+/** Validates and normalizes one schema route relative to `schemas.path`. */
 function validateSchemaRoute(value: string, fieldName: string): string {
   const route = value.trim();
   const portableRoute = route.replaceAll('\\', '/');
@@ -211,6 +213,7 @@ function validateSchemaRoute(value: string, fieldName: string): string {
   return segments.join(nodePath.sep);
 }
 
+/** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
   if (!schemas || isString(schemas) || !schemas.routes) return;

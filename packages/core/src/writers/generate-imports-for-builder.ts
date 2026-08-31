@@ -17,6 +17,7 @@ import {
 } from '../utils';
 import type { SchemaOutputPlan } from './schema-output-plan';
 
+/** Builds client dependencies using tag routing or the planned schema paths. */
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],

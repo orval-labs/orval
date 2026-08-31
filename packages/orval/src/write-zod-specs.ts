@@ -511,6 +511,7 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   );
 };
 
+/** Resolves a Zod schema file path from the route plan or legacy layout. */
 function getZodSchemaFilePath(
   name: string,
   schemasPath: string,
@@ -573,6 +574,7 @@ async function writeZodSchemaIndex(
   );
 }
 
+/** Writes a generated Zod barrel without merging unrelated existing exports. */
 async function writeZodBarrel(
   indexPath: string,
   specifiers: string[],
@@ -581,6 +583,7 @@ async function writeZodBarrel(
   await reconcileZodBarrel(indexPath, specifiers, header, false);
 }
 
+/** Writes Zod schema barrels for each route, tag scope, and the root output. */
 export async function writeZodSchemaRoutesBarrel(
   plan: SchemaOutputPlan,
   fileExtension: string,
@@ -890,6 +893,7 @@ function generateZodSchemasInlineReusable(
   return `${prefix}${body}\n`;
 }
 
+/** Writes reusable or inline Zod component schemas using the selected layout. */
 export async function writeZodSchemas(
   builder: WriteZodSchemasInput,
   schemasPath: string,
@@ -1030,6 +1034,7 @@ export async function writeZodSchemas(
   return new Map([[ROOT_DIR, writtenSchemaNames]]);
 }
 
+/** Writes reusable Zod schemas while preserving their planned route scopes. */
 async function writeZodSchemasReusable(
   builder: WriteZodSchemasInput,
   schemasPath: string,
@@ -1191,6 +1196,7 @@ async function writeZodSchemasReusable(
   return new Map([[ROOT_DIR, rewritten.map((e) => e.name)]]);
 }
 
+/** Writes operation-derived Zod schemas using the selected route layout. */
 export async function writeZodSchemasFromVerbs(
   verbOptions: WriteZodSchemasFromVerbsInput,
   schemasPath: string,

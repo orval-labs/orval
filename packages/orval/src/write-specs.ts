@@ -64,6 +64,7 @@ import {
   writeZodSchemaTagsSplitBarrel,
 } from './write-zod-specs';
 
+/** Detects enum definitions used to select the configured schema route. */
 function isOpenApiEnumSchema(schema: GeneratorSchema['schema']): boolean {
   return (
     !!schema &&
@@ -72,6 +73,7 @@ function isOpenApiEnumSchema(schema: GeneratorSchema['schema']): boolean {
   );
 }
 
+/** Creates the shared route plan used by Zod schema generation. */
 function createZodSchemaOutputPlan(
   schemas: GeneratorSchema[],
   output: NormalizedOutputOptions,
@@ -590,6 +592,7 @@ function getImplementationPathsForIndex(
   );
 }
 
+/** Coordinates schema, operation, mock, and client generation for one spec. */
 async function writeSpecsInternal(
   builder: WriteSpecBuilder,
   workspace: string,
