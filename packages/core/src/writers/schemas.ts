@@ -17,6 +17,7 @@ import {
   upath,
 } from '../utils';
 import { writeGeneratedFile } from './file';
+import type { SchemaOutputPlan, SchemaRouteKey } from './schema-output-plan';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
@@ -640,5 +641,128 @@ export async function writeSchemas({
         { cause: error },
       );
     }
+  }
+}
+
+interface WriteRoutedSchemasOptions {
+  plan: SchemaOutputPlan;
+  target: string;
+  namingConvention: NamingConvention;
+  fileExtension: string;
+  header: string;
+  indexFiles: boolean;
+  tsconfig?: Tsconfig;
+}
+
+export async function writeRoutedSchemas({
+  plan,
+  target,
+  namingConvention,
+  fileExtension,
+  header,
+  indexFiles,
+  tsconfig,
+}: WriteRoutedSchemasOptions) {
+  // Write each planned schema in its route and tag scope.
+  const grouped = new Map<
+    string,
+    { route: SchemaRouteKey; schemas: GeneratorSchema[] }
+  >();
+
+  for (const schema of plan.canonicalSchemas) {
+    const route = plan.routeKeyByName.get(schema.name) ?? 'default';
+    const directory =
+      plan.scopePathByName.get(schema.name) ??
+      plan.routePathByName.get(schema.name);
+    if (!directory) continue;
+    const group = grouped.get(directory);
+    if (group) group.schemas.push(schema);
+    else grouped.set(directory, { route, schemas: [schema] });
+  }
+
+  for (const [schemaPath, { schemas }] of grouped) {
+    await fs.ensureDir(schemaPath);
+
+    for (const schema of schemas) {
+      const imports = schema.imports.map((imp) => ({
+        ...imp,
+        ...(plan.hasSchema(imp.schemaName ?? imp.name)
+          ? {
+              importPath: plan.importPathFor(
+                schema.name,
+                imp.schemaName ?? imp.name,
+              ),
+            }
+          : {}),
+      }));
+      await writeSchema({
+        path: schemaPath,
+        schema: { ...schema, imports },
+        target,
+        namingConvention,
+        fileExtension,
+        header,
+        tsconfig,
+      });
+    }
+
+    if (indexFiles) {
+      const extension = getImportExtension(fileExtension, tsconfig);
+      const exports = schemas
+        .map(
+          (schema) =>
+            `export * from './${conventionName(schema.name, namingConvention)}${extension}';`,
+        )
+        .toSorted((a, b) => compareNatural(a, b));
+      await writeGeneratedFile(
+        nodePath.join(schemaPath, 'index.ts'),
+        `${header}\n${exports.join('\n')}\n`,
+      );
+    }
+  }
+
+  if (indexFiles && plan.rootIndexPath) {
+    const extension = getImportExtension(fileExtension, tsconfig);
+    const indexExtension = getImportExtension('.ts', tsconfig);
+    const routeDirectories = new Map<SchemaRouteKey, Set<string>>();
+
+    for (const [schemaPath, { route }] of grouped) {
+      const directories = routeDirectories.get(route) ?? new Set<string>();
+      directories.add(schemaPath);
+      routeDirectories.set(route, directories);
+    }
+
+    if (plan.usesTagRouting) {
+      for (const [route, directories] of routeDirectories) {
+        const routePath = plan.routePathByKey[route];
+        const exports = [...directories]
+          .map((directory) => {
+            const relative = upath.toUnix(
+              nodePath.relative(routePath, directory),
+            );
+            return `export * from './${relative}/index${indexExtension}';`;
+          })
+          .toSorted((a, b) => compareNatural(a, b));
+        await writeGeneratedFile(
+          nodePath.join(routePath, 'index.ts'),
+          `${header}\n${exports.join('\n')}\n`,
+        );
+      }
+    }
+
+    const routeExports = [...routeDirectories.keys()]
+      .map((route) => {
+        const routePath = upath.toUnix(
+          nodePath.relative(plan.basePath, plan.routePathByKey[route]),
+        );
+        const routeIndex = plan.usesTagRouting ? `/index${indexExtension}` : '';
+        const routeImportExtension = plan.usesTagRouting ? '' : extension;
+        return `export * from './${routePath}${routeIndex}${routeImportExtension}';`;
+      })
+      .toSorted((a, b) => compareNatural(a, b));
+    await writeGeneratedFile(
+      plan.rootIndexPath,
+      `${header}\n${routeExports.join('\n')}\n`,
+    );
   }
 }

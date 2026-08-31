@@ -346,6 +346,8 @@ export type EnumGeneration =
 
 export type SchemaGenerationType = 'typescript' | 'zod';
 
+export type GeneratedSchemaKind = 'enum' | 'schema';
+
 export type FactoryMethodsMode = 'single' | 'split' | 'single-split';
 
 export interface FactoryMethodsOptions {
@@ -366,6 +368,7 @@ export interface SchemaOptions {
   path: string;
   type?: SchemaGenerationType;
   importPath?: string;
+  routes?: SchemaRouteOptions;
   /**
    * When `true`, schemas are organized into per-tag subdirectories instead of
    * a single flat directory. Schemas referenced by multiple tags remain at the
@@ -376,11 +379,17 @@ export interface SchemaOptions {
   splitByTags?: boolean;
 }
 
+export interface SchemaRouteOptions {
+  default: string;
+  enum?: string;
+}
+
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
   splitByTags: boolean;
+  routes?: SchemaRouteOptions;
 }
 
 export interface OutputOptions {
@@ -1682,6 +1691,9 @@ export interface GeneratorSchema {
   imports: GeneratorImport[];
   dependencies?: string[];
   schema?: OpenApiSchemaObject;
+  // Optional for compatibility with callers constructing GeneratorSchema;
+  // production generators set it before route-aware schema writing.
+  kind?: GeneratedSchemaKind;
   factory?: string;
   factoryImports?: GeneratorImport[];
   factoryMode?: FactoryMethodsMode;
@@ -2199,6 +2211,8 @@ export interface WriteModeProps {
   // layout. The `'.'` sentinel marks schemas referenced by 0 or 2+ tags
   // (shared, kept at the schemas root).
   schemaTagMap?: Map<string, string>;
+  /** Route-aware schema paths prepared by the top-level writer. */
+  schemaOutputPlan?: import('./writers/schema-output-plan').SchemaOutputPlan;
 }
 
 export interface GeneratorApiOperations {

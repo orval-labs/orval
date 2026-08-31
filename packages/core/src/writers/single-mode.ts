@@ -41,6 +41,7 @@ export async function writeSingleMode({
   needSchema,
   generateSchemasInline,
   schemaTagMap,
+  schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -149,6 +150,7 @@ export async function writeSingleMode({
           normalizedImports,
           relativeSchemasPath,
           schemaTagMap,
+          schemaOutputPlan,
         )
       : generateImportsForBuilder(
           output,

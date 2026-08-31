@@ -18,6 +18,7 @@ import {
   type OpenApiSchemaObject,
   pascal,
   resolveValue,
+  type SchemaOutputPlan,
   type Tsconfig,
   upath,
   writeGeneratedFile,
@@ -425,6 +426,7 @@ export function buildSiblingImports({
   namingConvention,
   importExt,
   schemaTagMap,
+  schemaOutputPlan,
   currentDir,
   schemasPath,
 }: {
@@ -435,6 +437,7 @@ export function buildSiblingImports({
   namingConvention: NamingConvention;
   importExt: string;
   schemaTagMap?: SchemaTagMap;
+  schemaOutputPlan?: SchemaOutputPlan;
   currentDir?: string;
   schemasPath?: string;
 }): string {
@@ -452,8 +455,9 @@ export function buildSiblingImports({
     .map(({ name, alias }) => {
       const importedFile = conventionName(name, namingConvention);
       const spec = alias ? `${name} as ${alias}` : name;
-      const importPath =
-        schemaTagMap && currentDir && schemasPath
+      const importPath = schemaOutputPlan
+        ? schemaOutputPlan.importPathFor(entryName, name)
+        : schemaTagMap && currentDir && schemasPath
           ? computeCrossDirImportPath(
               schemasPath,
               currentDir,
@@ -507,6 +511,36 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   );
 };
 
+function getZodSchemaFilePath(
+  name: string,
+  schemasPath: string,
+  fileExtension: string,
+  namingConvention: NamingConvention,
+  schemaOutputPlan?: SchemaOutputPlan,
+  schemaTagMap?: SchemaTagMap,
+  scopeTag?: string,
+): string {
+  if (schemaOutputPlan) {
+    const existing = schemaOutputPlan.filePathByName.get(name);
+    if (existing) return existing;
+
+    // Operation schemas use the default route.
+    const tag = scopeTag ?? schemaTagMap?.get(name);
+    const scopePath = tag
+      ? path.join(
+          schemaOutputPlan.routePathByKey.default,
+          tag === '.' ? 'shared' : tag,
+        )
+      : schemaOutputPlan.routePathByKey.default;
+    return schemaOutputPlan.registerSchema(name, 'default', scopePath);
+  }
+
+  return path.join(
+    schemasPath,
+    `${conventionName(name, namingConvention)}${fileExtension}`,
+  );
+}
+
 async function writeZodSchemaIndex(
   schemasPath: string,
   fileExtension: string,
@@ -536,6 +570,84 @@ async function writeZodSchemaIndex(
     newSpecifiers,
     header,
     shouldMergeExisting,
+  );
+}
+
+async function writeZodBarrel(
+  indexPath: string,
+  specifiers: string[],
+  header: string,
+) {
+  await reconcileZodBarrel(indexPath, specifiers, header, false);
+}
+
+export async function writeZodSchemaRoutesBarrel(
+  plan: SchemaOutputPlan,
+  fileExtension: string,
+  header: string,
+  schemaNames: string[],
+  namingConvention: NamingConvention,
+  tsconfig?: Tsconfig,
+) {
+  const namesByScope = new Map<string, string[]>();
+  for (const name of schemaNames) {
+    const scope =
+      plan.scopePathByName.get(name) ?? plan.routePathByName.get(name);
+    if (!scope) continue;
+    const names = namesByScope.get(scope) ?? [];
+    names.push(name);
+    namesByScope.set(scope, names);
+  }
+
+  const indexImportExt = getImportExtension('.ts', tsconfig);
+  for (const [scopePath, names] of namesByScope) {
+    await writeZodSchemaIndex(
+      scopePath,
+      fileExtension,
+      header,
+      names,
+      namingConvention,
+      false,
+      tsconfig,
+    );
+  }
+
+  const scopesByRoute = new Map<'default' | 'enum', string[]>();
+  for (const [scopePath, names] of namesByScope) {
+    const route = plan.routeKeyByName.get(names[0]) ?? 'default';
+    const scopes = scopesByRoute.get(route) ?? [];
+    scopes.push(scopePath);
+    scopesByRoute.set(route, scopes);
+  }
+
+  const routeExports: string[] = [];
+  for (const route of ['default', 'enum'] as const) {
+    const routePath = plan.routePathByKey[route];
+    const scopes = scopesByRoute.get(route) ?? [];
+    if (scopes.length === 0) continue;
+
+    if (plan.usesTagRouting) {
+      const scopeExports = scopes
+        .map((scopePath) => {
+          const relative = upath.toUnix(path.relative(routePath, scopePath));
+          return `./${relative}/index${indexImportExt}`;
+        })
+        .toSorted((a, b) => compareNatural(a, b));
+      await writeZodBarrel(
+        path.join(routePath, 'index.ts'),
+        scopeExports,
+        header,
+      );
+    }
+
+    const routeName = upath.toUnix(path.relative(plan.basePath, routePath));
+    routeExports.push(`./${routeName}/index${indexImportExt}`);
+  }
+
+  await writeZodBarrel(
+    path.join(plan.basePath, 'index.ts'),
+    routeExports,
+    header,
   );
 }
 
@@ -786,6 +898,7 @@ export async function writeZodSchemas(
   output: WriteZodOutputOptions,
   paramsMutator?: GeneratorMutator,
   schemaTagMap?: SchemaTagMap,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): Promise<WrittenSchemaInfo> {
   const useReusableSchemas = output.override.zod.generateReusableSchemas;
 
@@ -798,6 +911,7 @@ export async function writeZodSchemas(
       output,
       paramsMutator,
       schemaTagMap,
+      schemaOutputPlan,
     );
   }
 
@@ -821,9 +935,18 @@ export async function writeZodSchemas(
 
     const fileName = conventionName(name, output.namingConvention);
     const tagDir = getSchemaDir(schemaTagMap, name);
-    const filePath = isSplit
-      ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
-      : path.join(schemasPath, `${fileName}${fileExtension}`);
+    const filePath = schemaOutputPlan
+      ? getZodSchemaFilePath(
+          name,
+          schemasPath,
+          fileExtension,
+          output.namingConvention,
+          schemaOutputPlan,
+          schemaTagMap,
+        )
+      : isSplit
+        ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
+        : path.join(schemasPath, `${fileName}${fileExtension}`);
     const context: ContextSpec = {
       spec: builder.spec,
       target: builder.target,
@@ -882,7 +1005,7 @@ export async function writeZodSchemas(
     (schemaGroup) => schemaGroup[0].schemaName,
   );
 
-  if (output.indexFiles && !isSplit) {
+  if (output.indexFiles && !isSplit && !schemaOutputPlan) {
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,
@@ -915,6 +1038,7 @@ async function writeZodSchemasReusable(
   output: WriteZodOutputOptions,
   paramsMutator?: GeneratorMutator,
   schemaTagMap?: SchemaTagMap,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): Promise<WrittenSchemaInfo> {
   const isSplit = !!schemaTagMap;
   const isZodV4 = resolveIsZodV4(
@@ -980,11 +1104,21 @@ async function writeZodSchemasReusable(
   // entry based on its tag subdirectory.
 
   for (const entry of rewritten) {
-    const fileName = conventionName(entry.name, output.namingConvention);
     const tagDir = getSchemaDir(schemaTagMap, entry.name);
-    const filePath = isSplit
-      ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
-      : path.join(schemasPath, `${fileName}${fileExtension}`);
+    const fileName = conventionName(entry.name, output.namingConvention);
+    const filePath = schemaOutputPlan
+      ? getZodSchemaFilePath(
+          entry.name,
+          schemasPath,
+          fileExtension,
+          output.namingConvention,
+          schemaOutputPlan,
+          isSplit ? schemaTagMap : undefined,
+          isSplit ? tagDir : undefined,
+        )
+      : isSplit
+        ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
+        : path.join(schemasPath, `${fileName}${fileExtension}`);
     const importExt = getImportExtension(fileExtension, output.tsconfig);
     const rendered = renderReusableSchemaEntry(
       entry,
@@ -998,6 +1132,7 @@ async function writeZodSchemasReusable(
       componentNames,
       namingConvention: output.namingConvention,
       importExt,
+      schemaOutputPlan,
       ...(isSplit ? { schemaTagMap, currentDir: tagDir, schemasPath } : {}),
     });
     // Only emit the params mutator import on files that actually reference it
@@ -1025,7 +1160,12 @@ async function writeZodSchemasReusable(
     await writeGeneratedFile(filePath, fileContent);
   }
 
-  if (output.indexFiles && !isSplit && rewritten.length > 0) {
+  if (
+    output.indexFiles &&
+    !isSplit &&
+    rewritten.length > 0 &&
+    !schemaOutputPlan
+  ) {
     const schemaNames = rewritten.map((e) => e.name);
     await writeZodSchemaIndex(
       schemasPath,
@@ -1059,6 +1199,7 @@ export async function writeZodSchemasFromVerbs(
   output: WriteZodOutputOptions,
   context: WriteZodSchemasFromVerbsContext,
   schemaTagMap?: SchemaTagMap,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): Promise<WrittenSchemaInfo> {
   const isSplit = !!schemaTagMap;
   const zodContext = context as unknown as ContextSpec;
@@ -1290,9 +1431,19 @@ export async function writeZodSchemasFromVerbs(
     const { name, schema } = entry;
     const fileName = conventionName(name, output.namingConvention);
     const tagDir = entry.verbTagDir ?? ROOT_DIR;
-    const filePath = isSplit
-      ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
-      : path.join(schemasPath, `${fileName}${fileExtension}`);
+    const filePath = schemaOutputPlan
+      ? getZodSchemaFilePath(
+          name,
+          schemasPath,
+          fileExtension,
+          output.namingConvention,
+          schemaOutputPlan,
+          isSplit ? schemaTagMap : undefined,
+          isSplit ? tagDir : undefined,
+        )
+      : isSplit
+        ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
+        : path.join(schemasPath, `${fileName}${fileExtension}`);
 
     // multipart/form-data bodies need file-aware overrides so binary fields
     // become `z.instanceof(File)` instead of plain strings.
@@ -1352,15 +1503,17 @@ export async function writeZodSchemasFromVerbs(
         .toSorted()
         .map((refName) => {
           const importedFile = conventionName(refName, output.namingConvention);
-          const importPath = isSplit
-            ? computeCrossDirImportPath(
-                schemasPath,
-                tagDir,
-                getSchemaDir(schemaTagMap, refName),
-                importedFile,
-                importExt,
-              )
-            : `./${importedFile}${importExt}`;
+          const importPath = schemaOutputPlan
+            ? schemaOutputPlan.importPathFor(name, refName)
+            : isSplit
+              ? computeCrossDirImportPath(
+                  schemasPath,
+                  tagDir,
+                  getSchemaDir(schemaTagMap, refName),
+                  importedFile,
+                  importExt,
+                )
+              : `./${importedFile}${importExt}`;
           return `import { ${refName} } from '${importPath}';`;
         });
     }
@@ -1390,7 +1543,12 @@ export async function writeZodSchemasFromVerbs(
     (schemaGroup) => schemaGroup[0].schemaName,
   );
 
-  if (output.indexFiles && !isSplit && uniqueVerbsSchemas.length > 0) {
+  if (
+    output.indexFiles &&
+    !isSplit &&
+    uniqueVerbsSchemas.length > 0 &&
+    !schemaOutputPlan
+  ) {
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,

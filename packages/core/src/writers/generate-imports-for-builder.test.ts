@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
 import { NamingConvention } from '../types';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { createSchemaOutputPlan } from './schema-output-plan';
 
 describe('generateImportsForBuilder', () => {
   const createMockOutput = (
@@ -21,6 +22,128 @@ describe('generateImportsForBuilder', () => {
   ): GeneratorImport => ({
     name,
     schemaName,
+  });
+
+  it('routes direct client imports through the schema output plan', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'User',
+          kind: 'schema',
+          model: 'export type User = unknown;',
+          imports: [],
+        },
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export const UserStatus = {};',
+          imports: [],
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    const result = generateImportsForBuilder(
+      output,
+      [createMockImport('User'), createMockImport('UserStatus')],
+      '../schemas',
+      undefined,
+      plan,
+    );
+
+    expect(result).toEqual([
+      { exports: [{ name: 'User' }], dependency: '../schemas/models/user' },
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '../schemas/types/userStatus',
+      },
+    ]);
+  });
+
+  it('uses the package root or routed subpath for importPath', () => {
+    const schemas = [
+      {
+        name: 'UserStatus',
+        kind: 'enum' as const,
+        model: 'export type UserStatus = string;',
+        imports: [],
+      },
+      {
+        name: 'User',
+        kind: 'schema' as const,
+        model: 'export type User = unknown;',
+        imports: [],
+      },
+    ];
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas,
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+      importPath: '@acme/models',
+    });
+    const output = createMockOutput({
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+        importPath: '@acme/models',
+      },
+    });
+
+    expect(
+      generateImportsForBuilder(
+        output,
+        [createMockImport('UserStatus')],
+        '../schemas',
+        undefined,
+        plan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '@acme/models/types/userStatus',
+      },
+    ]);
+    const rootPlan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas,
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      importPath: '@acme/models',
+    });
+    expect(
+      generateImportsForBuilder(
+        { ...output, indexFiles: true },
+        [createMockImport('UserStatus')],
+        '../schemas',
+        undefined,
+        rootPlan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '@acme/models',
+      },
+    ]);
   });
 
   describe('without indexFiles', () => {

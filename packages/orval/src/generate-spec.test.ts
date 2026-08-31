@@ -50,6 +50,231 @@ const PETSTORE_SPEC: OpenApiDocument = {
   },
 };
 
+const ROUTED_SCHEMA_SPEC: OpenApiDocument = {
+  ...PETSTORE_SPEC,
+  components: {
+    schemas: {
+      Pet: {
+        type: 'object',
+        properties: {
+          status: { $ref: '#/components/schemas/PetStatus' },
+        },
+      },
+      PetStatus: {
+        type: 'string',
+        enum: ['available', 'sold'],
+      },
+    },
+  },
+};
+
+const LARGE_ROUTED_SCHEMA_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'Large routed schema fixture', version: '1.0.0' },
+  paths: {
+    '/orders/{orderId}': {
+      get: {
+        operationId: 'getOrder',
+        parameters: [
+          {
+            name: 'orderId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'An order with nested customer and line data',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Order' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      CountryCode: {
+        type: 'string',
+        enum: ['US', 'CA', 'GB', 'DE', 'JP'],
+      },
+      AccountStatus: {
+        type: ['string', 'null'],
+        enum: ['active', 'suspended', 'closed'],
+      },
+      OrderStatus: {
+        type: 'string',
+        enum: ['draft', 'pending', 'paid', 'shipped', 'cancelled'],
+      },
+      PaymentCurrency: {
+        type: 'string',
+        enum: ['USD', 'CAD', 'GBP', 'EUR', 'JPY'],
+      },
+      Address: {
+        type: 'object',
+        required: ['line1', 'city', 'country'],
+        properties: {
+          line1: { type: 'string', minLength: 1 },
+          line2: { type: 'string', nullable: true },
+          city: { type: 'string' },
+          region: { type: 'string' },
+          postalCode: { type: 'string' },
+          country: { $ref: '#/components/schemas/CountryCode' },
+          coordinates: {
+            type: 'object',
+            properties: {
+              latitude: { type: 'number', minimum: -90, maximum: 90 },
+              longitude: { type: 'number', minimum: -180, maximum: 180 },
+            },
+          },
+        },
+      },
+      Account: {
+        type: 'object',
+        required: ['id', 'email', 'status', 'addresses'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          email: { type: 'string', format: 'email' },
+          displayName: { type: 'string' },
+          status: { $ref: '#/components/schemas/AccountStatus' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          addresses: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Address' },
+          },
+          labels: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          metadata: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+          },
+          preferences: {
+            type: 'object',
+            additionalProperties: {
+              oneOf: [{ type: 'string' }, { type: 'boolean' }],
+            },
+          },
+        },
+      },
+      Product: {
+        type: 'object',
+        required: ['sku', 'name', 'price', 'dimensions'],
+        properties: {
+          sku: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string', nullable: true },
+          price: { type: 'number', minimum: 0 },
+          currency: { $ref: '#/components/schemas/PaymentCurrency' },
+          dimensions: {
+            allOf: [
+              {
+                type: 'object',
+                properties: {
+                  width: { type: 'number' },
+                  height: { type: 'number' },
+                  depth: { type: 'number' },
+                },
+              },
+              {
+                type: 'object',
+                required: ['unit'],
+                properties: { unit: { enum: ['cm', 'in'] } },
+              },
+            ],
+          },
+          categories: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          images: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['url', 'kind'],
+              properties: {
+                url: { type: 'string', format: 'uri' },
+                alt: { type: 'string' },
+                kind: { enum: ['thumbnail', 'gallery', 'detail'] },
+              },
+            },
+          },
+        },
+      },
+      Order: {
+        type: 'object',
+        required: ['id', 'number', 'status', 'customer', 'lines', 'totals'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          number: { type: 'string' },
+          status: { $ref: '#/components/schemas/OrderStatus' },
+          customer: { $ref: '#/components/schemas/Account' },
+          shippingAddress: { $ref: '#/components/schemas/Address' },
+          billingAddress: { $ref: '#/components/schemas/Address' },
+          lines: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['lineId', 'product', 'quantity', 'subtotal'],
+              properties: {
+                lineId: { type: 'string' },
+                product: { $ref: '#/components/schemas/Product' },
+                quantity: { type: 'integer', minimum: 1 },
+                unitPrice: { type: 'number', minimum: 0 },
+                subtotal: { type: 'number', minimum: 0 },
+                discount: { type: 'number', minimum: 0 },
+                notes: { type: 'string', nullable: true },
+              },
+            },
+          },
+          totals: {
+            type: 'object',
+            required: ['subtotal', 'tax', 'grandTotal'],
+            properties: {
+              subtotal: { type: 'number' },
+              shipping: { type: 'number' },
+              tax: { type: 'number' },
+              discount: { type: 'number' },
+              grandTotal: { type: 'number' },
+              currency: { $ref: '#/components/schemas/PaymentCurrency' },
+            },
+          },
+          payment: {
+            oneOf: [
+              {
+                type: 'object',
+                required: ['kind', 'last4'],
+                properties: {
+                  kind: { enum: ['card'] },
+                  last4: { type: 'string', minLength: 4, maxLength: 4 },
+                },
+              },
+              {
+                type: 'object',
+                required: ['kind', 'bankName'],
+                properties: {
+                  kind: { enum: ['bank-transfer'] },
+                  bankName: { type: 'string' },
+                },
+              },
+            ],
+          },
+          audit: {
+            type: 'object',
+            additionalProperties: true,
+          },
+        },
+      },
+    },
+  },
+};
+
 const QUERY_METHOD_SPEC = {
   openapi: '3.2.0',
   info: { title: 'Search API', version: '1.0.0' },
@@ -224,6 +449,209 @@ describe('generateSpec - schemas: false', () => {
 
       // The target file should also be generated
       expect(await fs.pathExists(targetFile)).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it.each([true, false])(
+    'routes TypeScript schemas and client imports with indexFiles=%s',
+    async (indexFiles) => {
+      const workspace = await createTempWorkspace();
+      const schemasDir = path.join(workspace, 'schemas');
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: ROUTED_SCHEMA_SPEC },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              indexFiles,
+              schemas: {
+                path: './schemas',
+                type: 'typescript',
+                routes: { default: 'models', enum: 'types' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        expect(
+          await fs.pathExists(path.join(schemasDir, 'models/pet.ts')),
+        ).toBe(true);
+        expect(
+          await fs.pathExists(path.join(schemasDir, 'types/petStatus.ts')),
+        ).toBe(true);
+        expect(
+          await fs.readFile(path.join(schemasDir, 'models/pet.ts'), 'utf8'),
+        ).toContain("from '../types/petStatus'");
+
+        const client = await fs.readFile(
+          path.join(workspace, 'endpoints.ts'),
+          'utf8',
+        );
+        expect(client).toContain(
+          indexFiles ? "from './schemas'" : "from './schemas/models/pet'",
+        );
+        if (indexFiles) {
+          expect(
+            await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+          ).toContain("export * from './models';");
+          expect(
+            await fs.readFile(path.join(schemasDir, 'models/index.ts'), 'utf8'),
+          ).toContain("export * from './pet';");
+        }
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('routes a large mixed schema graph without losing cross-route references', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'schemas');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: LARGE_ROUTED_SCHEMA_SPEC },
+          output: {
+            target: './large-endpoints.ts',
+            client: 'fetch',
+            indexFiles: false,
+            schemas: {
+              path: './schemas',
+              type: 'typescript',
+              routes: { default: 'models', enum: 'types' },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const modelFiles = await fs.readdir(path.join(schemasDir, 'models'));
+      const enumFiles = await fs.readdir(path.join(schemasDir, 'types'));
+      expect(modelFiles).toEqual(
+        expect.arrayContaining([
+          'account.ts',
+          'address.ts',
+          'order.ts',
+          'product.ts',
+        ]),
+      );
+      expect(enumFiles).toEqual(
+        expect.arrayContaining([
+          'accountStatus.ts',
+          'countryCode.ts',
+          'orderStatus.ts',
+          'paymentCurrency.ts',
+        ]),
+      );
+
+      const generatedModels = await Promise.all(
+        modelFiles
+          .filter((file) => file.endsWith('.ts'))
+          .map((file) =>
+            fs.readFile(path.join(schemasDir, 'models', file), 'utf8'),
+          ),
+      );
+      expect(generatedModels.join('\n')).not.toContain('__REF_');
+      expect(generatedModels.join('\n')).toMatch(/from ['"]\.\.\/types\//);
+      expect(
+        await fs.readFile(path.join(workspace, 'large-endpoints.ts'), 'utf8'),
+      ).toContain("from './schemas/models/order'");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('routes reusable Zod schemas and enums into separate directories', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'schemas');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: ROUTED_SCHEMA_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            indexFiles: true,
+            schemas: {
+              path: './schemas',
+              type: 'zod',
+              routes: { default: 'models', enum: 'types' },
+            },
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'models/pet.zod.ts')),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'types/petStatus.zod.ts')),
+      ).toBe(true);
+      expect(
+        await fs.readFile(path.join(schemasDir, 'models/pet.zod.ts'), 'utf8'),
+      ).toContain("from '../types/petStatus.zod'");
+      expect(
+        await fs.readFile(path.join(schemasDir, 'models/index.ts'), 'utf8'),
+      ).toContain("export * from './pet.zod'");
+      expect(
+        await fs.readFile(path.join(schemasDir, 'types/index.ts'), 'utf8'),
+      ).toContain("export * from './petStatus.zod'");
+      expect(
+        await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+      ).toContain("export * from './models/index'");
+      expect(
+        await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+      ).toContain("export * from './types/index'");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('routes Zod client imports directly when indexFiles is disabled', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: ROUTED_SCHEMA_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            indexFiles: false,
+            schemas: {
+              path: './schemas',
+              type: 'zod',
+              routes: { default: 'models', enum: 'types' },
+            },
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const endpoints = await fs.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf8',
+      );
+      expect(endpoints).toContain("from './schemas/models/pet.zod'");
+      expect(endpoints).not.toContain("from './schemas/pet.zod'");
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -1244,6 +1672,77 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     },
   };
 
+  const SPEC_WITH_TAGS_AND_SHARED_SCHEMAS: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Tagged shared schemas', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        get: {
+          operationId: 'listPets',
+          tags: ['pets'],
+          parameters: [
+            {
+              name: 'limit',
+              in: 'query',
+              schema: { type: 'integer' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'List pets',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/stores': {
+        get: {
+          operationId: 'listStores',
+          tags: ['stores'],
+          responses: {
+            '200': {
+              description: 'List stores',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Store' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Pet: {
+          type: 'object',
+          properties: {
+            status: { $ref: '#/components/schemas/PetStatus' },
+            error: { $ref: '#/components/schemas/SharedError' },
+          },
+        },
+        Store: {
+          type: 'object',
+          properties: {
+            status: { $ref: '#/components/schemas/StoreStatus' },
+            error: { $ref: '#/components/schemas/SharedError' },
+          },
+        },
+        PetStatus: { type: 'string', enum: ['available', 'sold'] },
+        StoreStatus: { type: 'string', enum: ['open', 'closed'] },
+        SharedError: {
+          type: 'object',
+          properties: { message: { type: 'string' } },
+          required: ['message'],
+        },
+      },
+    },
+  };
+
   it('works with split mode (not just tags-split)', async () => {
     const workspace = await createTempWorkspace();
     try {
@@ -1372,6 +1871,130 @@ describe('generateSpec - schemas.splitByTags validation', () => {
         await fs.pathExists(path.join(modelDir, 'pets', 'pet.zod.ts')),
       ).toBe(true);
       expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('combines route and tag directories with a shared scope', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'schemas');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS_AND_SHARED_SCHEMAS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            client: 'fetch',
+            indexFiles: true,
+            schemas: {
+              path: './schemas',
+              type: 'typescript',
+              splitByTags: true,
+              routes: { default: 'models', enum: 'types' },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'models/pets/pet.ts')),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'models/stores/store.ts')),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(schemasDir, 'models/shared/sharedError.ts'),
+        ),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'types/pets/petStatus.ts')),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(schemasDir, 'types/stores/storeStatus.ts'),
+        ),
+      ).toBe(true);
+
+      const pet = await fs.readFile(
+        path.join(schemasDir, 'models/pets/pet.ts'),
+        'utf8',
+      );
+      expect(pet).toContain("from '../../types/pets/petStatus'");
+      expect(pet).toContain("from '../shared/sharedError'");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('combines route and tag directories with a shared scope for zod', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasDir = path.join(workspace, 'schemas');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS_AND_SHARED_SCHEMAS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            client: 'fetch',
+            indexFiles: true,
+            schemas: {
+              path: './schemas',
+              type: 'zod',
+              splitByTags: true,
+              routes: { default: 'models', enum: 'types' },
+            },
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      expect(
+        await fs.pathExists(path.join(schemasDir, 'models/pets/pet.zod.ts')),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(schemasDir, 'models/shared/sharedError.zod.ts'),
+        ),
+      ).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(schemasDir, 'types/pets/petStatus.zod.ts'),
+        ),
+      ).toBe(true);
+
+      const pet = await fs.readFile(
+        path.join(schemasDir, 'models/pets/pet.zod.ts'),
+        'utf8',
+      );
+      expect(pet).toContain("from '../../types/pets/petStatus.zod'");
+      expect(pet).toContain("from '../shared/sharedError.zod'");
+
+      const modelsIndex = await fs.readFile(
+        path.join(schemasDir, 'models/index.ts'),
+        'utf8',
+      );
+      expect(modelsIndex).toContain("export * from './pets/index';");
+      expect(modelsIndex).toContain("export * from './shared/index';");
+      expect(modelsIndex).toContain("export * from './stores/index';");
+
+      const rootIndex = await fs.readFile(
+        path.join(schemasDir, 'index.ts'),
+        'utf8',
+      );
+      expect(rootIndex).toContain("export * from './models/index';");
+      expect(rootIndex).toContain("export * from './types/index';");
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

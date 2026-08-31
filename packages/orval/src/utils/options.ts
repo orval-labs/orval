@@ -43,6 +43,7 @@ import {
   type NormalizedOperationOptions,
   type NormalizedOptions,
   type NormalizedOverrideOutput,
+  type NormalizedOutputOptions,
   type NormalizedQueryOptions,
   type NormalizedSchemaOptions,
   normalizeRuntimeValidation,
@@ -134,12 +135,106 @@ function normalizeSchemasOption(
 
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
+  const routes = schemas.routes
+    ? normalizeSchemaRoutes(schemas.routes)
+    : undefined;
+
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
     splitByTags: schemas.splitByTags ?? false,
+    routes,
   };
+}
+
+function normalizeSchemaRoutes(
+  routes: NonNullable<SchemaOptions['routes']>,
+): NonNullable<NormalizedSchemaOptions['routes']> {
+  if (!isString(routes.default)) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes.default` is required when `schemas.routes` is configured.',
+      ),
+    );
+  }
+
+  const normalized = {
+    default: validateSchemaRoute(routes.default, 'schemas.routes.default'),
+    ...(routes.enum !== undefined
+      ? { enum: validateSchemaRoute(routes.enum, 'schemas.routes.enum') }
+      : {}),
+  };
+
+  if (normalized.enum === normalized.default) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes.default` and `schemas.routes.enum` must be different directories.',
+      ),
+    );
+  }
+
+  return normalized;
+}
+
+function validateSchemaRoute(value: string, fieldName: string): string {
+  const route = value.trim();
+  const portableRoute = route.replaceAll('\\', '/');
+  const isWindowsAbsolute = /^[A-Za-z]:\//.test(portableRoute);
+  const isUncAbsolute = portableRoute.startsWith('//');
+  const segments = portableRoute.split('/').filter(Boolean);
+
+  if (
+    route === '' ||
+    nodePath.isAbsolute(route) ||
+    isWindowsAbsolute ||
+    isUncAbsolute ||
+    portableRoute === '.' ||
+    segments.includes('..')
+  ) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`${fieldName}\` must be a relative directory under \`schemas.path\`.`,
+      ),
+    );
+  }
+
+  return segments.join(nodePath.sep);
+}
+
+function validateSchemaRoutes(output: NormalizedOutputOptions): void {
+  const schemas = output.schemas;
+  if (!schemas || isString(schemas) || !schemas.routes) return;
+
+  if (output.operationSchemas) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with `output.operationSchemas` in this release.',
+      ),
+    );
+  }
+
+  if (output.mock.generators.length > 0) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with mock generators in this release.',
+      ),
+    );
+  }
+
+  if (output.factoryMethods) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with `output.factoryMethods` in this release.',
+      ),
+    );
+  }
 }
 
 /**
@@ -825,6 +920,8 @@ export async function normalizeOptions(
       styleText('red', `Config requires an output target or schemas.`),
     );
   }
+
+  validateSchemaRoutes(normalizedOptions.output);
 
   // The faker generator's `schemasImportPath` overrides where schema-level
   // faker factories are imported from. Those factories are only emitted when
