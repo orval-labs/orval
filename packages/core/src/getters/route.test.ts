@@ -544,4 +544,37 @@ describe('makeRouteSafe', () => {
       '/files/${path()}/x/${encodeURIComponent(String(name()))}',
     );
   });
+
+  it('normalizes optional-chaining signal form', () => {
+    const skip = new Set(['petId']);
+    const result = makeRouteSafe(
+      '/pets/${petId?.() ?? "default"}/name/${name}',
+      skip,
+    );
+    expect(result).toBe(
+      '/pets/${petId?.() ?? "default"}/name/${encodeURIComponent(String(name))}',
+    );
+  });
+
+  it('normalizes named-param pathParams form', () => {
+    const skip = new Set(['petId']);
+    const result = makeRouteSafe(
+      '/pets/${pathParams().petId}/name/${name}',
+      skip,
+    );
+    expect(result).toBe(
+      '/pets/${pathParams().petId}/name/${encodeURIComponent(String(name))}',
+    );
+  });
+
+  it('normalizes named-param pathParams with optional chaining', () => {
+    const skip = new Set(['petId']);
+    const result = makeRouteSafe(
+      '/pets/${pathParams()?.petId ?? 42}/x/${x}',
+      skip,
+    );
+    expect(result).toBe(
+      '/pets/${pathParams()?.petId ?? 42}/x/${encodeURIComponent(String(x))}',
+    );
+  });
 });

@@ -295,10 +295,19 @@ export const wrapRouteParameters = (
   skip: Set<string> = new Set(),
 ): string =>
   route.replaceAll(TEMPLATE_TAG_REGEX, (match, name: string) => {
-    // Angular's httpResource rewrites `${param}` to `${param()}` before this
-    // runs; normalize the trailing `()` so the skip set (keyed on the bare
-    // param name) still matches.
-    const key = name.replace(/\(\)$/, '');
+    // Angular's httpResource rewrites `${param}` to `${param()}`,
+    // `${param?.() ?? default}`, `${pathParams().param}` or
+    // `${pathParams()?.param ?? default}` before this runs; normalize the
+    // expression to the bare param name so the skip set (keyed on the bare
+    // name) still matches.
+    const key = name
+      .replace(/^pathParams\(\)\?\./, '')
+      .replace(/^pathParams\(\)\./, '')
+      .replace(/\?\.\(\)\s*\?\?.*$/, '')
+      .replace(/\s*\?\?.*$/, '')
+      .replace(/\(\)$/, '')
+      .replace(/[()?]/g, '')
+      .trim();
     return skip.has(key) ? `\${${name}}` : `\${${prepend}${name}${append}}`;
   });
 
