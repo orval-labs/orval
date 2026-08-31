@@ -123,7 +123,7 @@ describe('generateImportsForBuilder', () => {
     ]);
   });
 
-  it('canonicalizes imports that identify an alias through schemaName', () => {
+  it('uses the generated schema name when schemaName differs', () => {
     const output = createMockOutput({
       indexFiles: false,
       schemas: {
@@ -162,14 +162,14 @@ describe('generateImportsForBuilder', () => {
     expect(
       generateImportsForBuilder(
         output,
-        [createMockImport('UserStatus', 'user_status')],
+        [createMockImport('UserStatus', 'UserStatusSchema')],
         '../schemas',
         undefined,
         plan,
       ),
     ).toEqual([
       {
-        exports: [{ name: 'UserStatus', schemaName: 'user_status' }],
+        exports: [{ name: 'UserStatus', schemaName: 'UserStatusSchema' }],
         dependency: '@acme/models/types/userStatus',
       },
     ]);

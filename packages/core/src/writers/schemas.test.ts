@@ -843,7 +843,7 @@ describe('writeRoutedSchemas', () => {
         name: 'User',
         kind: 'schema',
         model: 'export type User = { status: UserStatus };',
-        imports: [{ name: 'UserStatus' }],
+        imports: [{ name: 'UserStatus', schemaName: 'UserStatusSchema' }],
       },
     ];
     const plan = createSchemaOutputPlan({

@@ -30,8 +30,7 @@ export function generateImportsForBuilder(
 ): GeneratorDependency[] {
   if (schemaOutputPlan) {
     imports = imports.map((schemaImport) => {
-      const targetName = schemaImport.schemaName ?? schemaImport.name;
-      if (!schemaOutputPlan.hasSchema(targetName)) return schemaImport;
+      if (!schemaOutputPlan.hasSchema(schemaImport.name)) return schemaImport;
 
       const canonicalName = schemaOutputPlan.canonicalNameFor(
         schemaImport.name,
@@ -129,12 +128,15 @@ export function generateImportsForBuilder(
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       const dependency = schemaOutputPlan
         ? isPackageImport
-          ? (schemaOutputPlan.packageImportPath(baseName) ??
+          ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
             upath.joinSafe(
               relativeSchemasPath,
               `${normalizedName}${suffix}${importExtension}`,
             ))
-          : schemaOutputPlan.clientImportPath(baseName, relativeSchemasPath)
+          : schemaOutputPlan.clientImportPath(
+              schemaImport.name,
+              relativeSchemasPath,
+            )
         : upath.joinSafe(
             relativeSchemasPath,
             `${tagSegment}${normalizedName}${suffix}${importExtension}`,

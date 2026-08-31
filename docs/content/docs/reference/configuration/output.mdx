@@ -256,21 +256,22 @@ Result:
 
 ```
 api/model/
-├── error.ts               ← schemas used by 2+ tags (or unreferenced)
-├── pagination.ts
+├── shared/                ← schemas used by 2+ tags (or unreferenced)
+│   ├── error.ts
+│   └── pagination.ts
 ├── pets/                  ← schemas only used by "pets" operations
 │   ├── pet.ts
 │   ├── createPetsBody.ts
 │   ├── listPetsParams.ts
 │   └── index.ts
-└── index.ts               ← root barrel re-exporting shared files + tag dirs
+└── index.ts               ← root barrel re-exporting shared/ + tag dirs
 ```
 
 Cross-tag imports from within a tag subdirectory resolve to the parent:
 
 ```ts
 // pets/pet.ts
-import type { Error } from '../error';
+import type { Error } from '../shared/error';
 ```
 
 **Requirements:**

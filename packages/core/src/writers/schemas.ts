@@ -687,12 +687,9 @@ export async function writeRoutedSchemas({
       const imports = schema.imports.map((imp) => ({
         ...imp,
         name: plan.canonicalNameFor(imp.name),
-        ...(plan.hasSchema(imp.schemaName ?? imp.name)
+        ...(plan.hasSchema(imp.name)
           ? {
-              importPath: plan.importPathFor(
-                schema.name,
-                imp.schemaName ?? imp.name,
-              ),
+              importPath: plan.importPathFor(schema.name, imp.name),
             }
           : {}),
       }));
