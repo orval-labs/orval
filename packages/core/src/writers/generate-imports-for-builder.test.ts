@@ -101,7 +101,7 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
 
-    it('should use schemaName when provided', () => {
+    it('should use the TS identifier (name) for the file name, not schemaName (#2912)', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.gen.ts',
@@ -110,10 +110,13 @@ describe('generateImportsForBuilder', () => {
 
       const result = generateImportsForBuilder(output, imports, '../models');
 
+      // The schemas writer emits files named after `schema.name` (the full
+      // TS identifier), so the import path must resolve to `usertype`, not
+      // the bare ref name `user` (whose file is never written).
       expect(result).toEqual([
         {
           exports: [{ name: 'UserType', schemaName: 'User' }],
-          dependency: '../models/user.gen',
+          dependency: '../models/userType.gen',
         },
       ]);
     });
@@ -557,6 +560,9 @@ describe('generateImportsForBuilder', () => {
       // `schemaName: 'PetSchema'` is the original components.schemas key.
       // The tag dir ('pets') must come from looking up `Pet`, not `PetSchema`
       // (which would miss the map and produce no tag segment).
+      // The filename must also come from `name` (the TS identifier), not
+      // `schemaName` (the bare ref name), matching what the schemas writer
+      // emits (#2912).
       const imports = [createMockImport('Pet', 'PetSchema')];
       const schemaTagMap = new Map<string, string>([['Pet', 'pets']]);
 
@@ -567,7 +573,7 @@ describe('generateImportsForBuilder', () => {
         schemaTagMap,
       );
 
-      expect(result).toHaveProperty('0.dependency', '../models/pets/petSchema');
+      expect(result).toHaveProperty('0.dependency', '../models/pets/pet');
     });
 
     it('inserts the tag subdir for matched schemas and leaves unmatched at root', () => {
