@@ -429,26 +429,26 @@ describe('validation', () => {
     // Write raw YAML (not JSON) so js-yaml actually parses the content.
     // Without JSON_SCHEMA, js-yaml coerces `2026-01-27` into a Date object.
     const yamlContent = `
-openapi: "3.0.3"
-info:
-  title: DateEnumRepro
-  version: "1.0.0"
-paths:
-  /test:
-    get:
-      operationId: getTest
-      parameters:
-        - name: Accept-Version
-          in: header
-          schema:
-            type: string
-            enum:
-              - latest
-              - 2026-01-27
-      responses:
-        "200":
-          description: OK
-`;
+      openapi: "3.0.3"
+      info:
+        title: DateEnumRepro
+        version: "1.0.0"
+      paths:
+        /test:
+          get:
+            operationId: getTest
+            parameters:
+              - name: Accept-Version
+                in: header
+                schema:
+                  type: string
+                  enum:
+                    - latest
+                    - 2026-01-27
+            responses:
+              "200":
+                description: OK
+      `;
 
     try {
       await writeFile(specPath, yamlContent, 'utf8');
