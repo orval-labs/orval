@@ -948,6 +948,52 @@ describe('writeRoutedSchemas', () => {
     }
   });
 
+  it('normalizes preserved route barrel exports to Unix separators', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-existing-export-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const routeIndexPath = path.join(schemaPath, 'models/index.ts');
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas: [
+        {
+          name: 'ChildSchema',
+          kind: 'schema',
+          model: 'export type ChildSchema = number;',
+          imports: [],
+        },
+      ],
+      routes: { default: 'models' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      schemaTagMap: new Map([['ChildSchema', 'pets']]),
+    });
+
+    try {
+      await fs.outputFile(
+        routeIndexPath,
+        ['// routed', "export * from '.\\legacy\\index';", ''].join('\n'),
+      );
+
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed',
+        indexFiles: true,
+      });
+
+      expect(await fs.readFile(routeIndexPath, 'utf8')).toBe(
+        "// routed\nexport * from './legacy/index';\nexport * from './pets/index';\n",
+      );
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
   it('keeps NodeNext extensions on cross-route imports', () => {
     const plan = createSchemaOutputPlan({
       basePath: '/tmp/orval-routed-schemas/schemas',

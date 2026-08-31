@@ -742,7 +742,7 @@ export async function writeRoutedSchemas({
           ...existingContent.matchAll(
             /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,
           ),
-        ].map(([, specifier]) => `export * from '${specifier}';`);
+        ].map(([, specifier]) => `export * from '${upath.toUnix(specifier)}';`);
         const childExports = [...directories]
           .map((directory) => {
             const relative = upath.toUnix(
