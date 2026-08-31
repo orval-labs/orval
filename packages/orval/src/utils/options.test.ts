@@ -1156,6 +1156,41 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes dot segments in schema routes', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: {
+                default: './models/./domain',
+                enum: 'types/./enums',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toMatchObject({
+        routes: { default: 'models/domain', enum: 'types/enums' },
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('requires a default schema route', async () => {
     const workspace = await createTempWorkspace();
 
@@ -1190,6 +1225,7 @@ describe('normalizeOptions', () => {
     ['../outside', 'escaping'],
     ['C:/absolute', 'Windows absolute'],
     ['//server/share', 'UNC absolute'],
+    ['.', 'empty after normalization'],
   ])('rejects %s schema route paths (%s)', async (route) => {
     const workspace = await createTempWorkspace();
 
@@ -1236,6 +1272,37 @@ describe('normalizeOptions', () => {
             schemas: {
               path: './schemas',
               routes: { default: 'models', enum: 'models' },
+            },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('must be different directories');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it.each([
+    ['models/.', 'dot segment'],
+    ['Models', 'case-insensitive'],
+  ])('rejects equivalent schema routes (%s: %s)', async (enumRoute) => {
+    const workspace = await createTempWorkspace();
+
+    await expect(
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: { default: 'models', enum: enumRoute },
             },
           },
         },

@@ -159,8 +159,14 @@ describe('createSchemaOutputPlan', () => {
     const plan = createSchemaOutputPlan({
       basePath,
       schemas: [
-        createSchema('UserStatus', 'enum'),
-        createSchema('user_status', 'enum'),
+        {
+          ...createSchema('UserStatus', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          ...createSchema('user_status', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
       ],
       routes: { default: 'models', enum: 'types' },
       namingConvention: NamingConvention.CAMEL_CASE,
@@ -171,6 +177,163 @@ describe('createSchemaOutputPlan', () => {
     expect(plan.canonicalSchemas).toHaveLength(1);
     expect(plan.filePathByName.get('UserStatus')).toBe(
       nodePath.join(basePath, 'types', 'userStatus.ts'),
+    );
+  });
+
+  it('resolves aliases to the canonical schema file', () => {
+    const plan = createSchemaOutputPlan({
+      basePath,
+      schemas: [
+        {
+          ...createSchema('UserStatus', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          ...createSchema('user_status', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
+        createSchema('User', 'schema', [{ name: 'UserStatus' }]),
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    expect(plan.canonicalNameByAlias.get('user_status')).toBe('UserStatus');
+    expect(plan.importPathFor('User', 'user_status')).toBe(
+      '../types/userStatus',
+    );
+    expect(plan.hasSchema('user_status')).toBe(true);
+  });
+
+  it('resolves multiple equivalent aliases from either side of an import', () => {
+    const plan = createSchemaOutputPlan({
+      basePath,
+      schemas: [
+        {
+          ...createSchema('UserStatus', 'enum'),
+          schema: {
+            type: 'string',
+            enum: ['active'],
+            description: 'A user status',
+          },
+        },
+        {
+          ...createSchema('user_status', 'enum'),
+          schema: {
+            description: 'A user status',
+            enum: ['active'],
+            type: 'string',
+          },
+        },
+        {
+          ...createSchema('USER_STATUS', 'enum'),
+          schema: {
+            type: 'string',
+            enum: ['active'],
+            description: 'A user status',
+          },
+        },
+        createSchema('User', 'schema'),
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    expect(plan.canonicalNameByAlias).toEqual(
+      new Map([
+        ['UserStatus', 'UserStatus'],
+        ['user_status', 'UserStatus'],
+        ['USER_STATUS', 'UserStatus'],
+        ['User', 'User'],
+      ]),
+    );
+    expect(plan.importPathFor('user_status', 'User')).toBe('../models/user');
+    expect(plan.importPathFor('User', 'USER_STATUS')).toBe(
+      '../types/userStatus',
+    );
+  });
+
+  it('routes aliases through tag scopes', () => {
+    const plan = createSchemaOutputPlan({
+      basePath,
+      schemas: [
+        {
+          ...createSchema('UserStatus', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          ...createSchema('user_status', 'enum'),
+          schema: { type: 'string', enum: ['active'] },
+        },
+        createSchema('User', 'schema'),
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      schemaTagMap: new Map([
+        ['UserStatus', 'users'],
+        ['User', 'users'],
+      ]),
+    });
+
+    expect(plan.scopePathByName.get('UserStatus')).toBe(
+      nodePath.join(basePath, 'types', 'users'),
+    );
+    expect(plan.importPathFor('User', 'user_status')).toBe(
+      '../../types/users/userStatus',
+    );
+  });
+
+  it('rejects distinct schemas that collide after naming conversion', () => {
+    expect(() =>
+      createSchemaOutputPlan({
+        basePath,
+        schemas: [
+          {
+            ...createSchema('UserStatus', 'enum'),
+            schema: { type: 'string', enum: ['active'] },
+          },
+          {
+            ...createSchema('user_status', 'enum'),
+            schema: { type: 'string', enum: ['pending'] },
+          },
+        ],
+        routes: { default: 'models', enum: 'types' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        indexFiles: false,
+      }),
+    ).toThrow(
+      'Schemas "UserStatus" and "user_status" produce the same generated file',
+    );
+  });
+
+  it('rejects aliases that collide across generated schema kinds', () => {
+    expect(() =>
+      createSchemaOutputPlan({
+        basePath,
+        schemas: [
+          {
+            ...createSchema('UserStatus', 'enum'),
+            schema: { type: 'string', enum: ['active'] },
+          },
+          {
+            ...createSchema('user_status', 'schema'),
+            schema: { type: 'string', enum: ['active'] },
+          },
+        ],
+        routes: { default: 'models', enum: 'types' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        indexFiles: false,
+      }),
+    ).toThrow(
+      'Schemas "UserStatus" and "user_status" produce the same generated file',
     );
   });
 });

@@ -27,6 +27,7 @@ export interface SchemaOutputPlanOptions {
 export interface SchemaOutputPlan {
   basePath: string;
   canonicalSchemas: GeneratorSchema[];
+  canonicalNameByAlias: Map<string, string>;
   routeKeyByName: Map<string, SchemaRouteKey>;
   routePathByName: Map<string, string>;
   scopePathByName: Map<string, string>;
@@ -41,6 +42,7 @@ export interface SchemaOutputPlan {
     route: SchemaRouteKey,
     scopePath?: string,
   ): string;
+  canonicalNameFor(name: string): string;
   importPathFor(importerName: string, targetName: string): string;
   clientImportPath(name: string, relativeSchemasPath: string): string;
   packageImportPath(name: string): string | undefined;
@@ -90,6 +92,49 @@ function requireSchemaKind(schema: GeneratorSchema): GeneratedSchemaKind {
   return schema.kind;
 }
 
+function stableSerialize(value: unknown): string {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`;
+  }
+  if (typeof value !== 'object') return JSON.stringify(value);
+
+  return `{${Object.entries(value as Record<string, unknown>)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`)
+    .join(',')}}`;
+}
+
+function hasSameSchemaDefinition(
+  left: GeneratorSchema,
+  right: GeneratorSchema,
+): boolean {
+  return (
+    left.kind === right.kind &&
+    left.schema !== undefined &&
+    right.schema !== undefined &&
+    stableSerialize(left.schema) === stableSerialize(right.schema)
+  );
+}
+
+function assertNoConflictingCanonicalSchema(
+  schemas: GeneratorSchema[],
+  namingConvention: NamingConvention,
+): void {
+  const canonical = schemas[0];
+  const aliases = schemas.filter((schema) => schema.name !== canonical.name);
+  const conflictingAlias = aliases.find(
+    (schema) => !hasSameSchemaDefinition(canonical, schema),
+  );
+  if (aliases.length > 0 && conflictingAlias) {
+    const generatedName = conventionName(canonical.name, namingConvention);
+    throw new Error(
+      `Schemas "${canonical.name}" and "${conflictingAlias.name}" produce the same generated file "${generatedName}" but have different definitions. Rename one schema or change the naming convention.`,
+    );
+  }
+}
+
 function stripExtension(fileName: string, fileExtension: string) {
   return fileName.endsWith(fileExtension)
     ? fileName.slice(0, -fileExtension.length)
@@ -115,11 +160,21 @@ export function createSchemaOutputPlan({
     else grouped.set(key, [schema]);
   }
 
-  const canonicalSchemas = [...grouped.values()].map((group) =>
-    group.length === 1
-      ? { ...group[0], kind: requireSchemaKind(group[0]) }
-      : mergeSchemas(group),
-  );
+  const canonicalNameByAlias = new Map<string, string>();
+  const canonicalSchemas = [...grouped.values()].map((group) => {
+    assertNoConflictingCanonicalSchema(group, namingConvention);
+
+    const canonical = group[0];
+    for (const schema of group) {
+      canonicalNameByAlias.set(schema.name, canonical.name);
+    }
+
+    // Keep one definition for equivalent aliases and resolve imports to it.
+    return group.length === 1 ||
+      group.some((schema) => schema.name !== canonical.name)
+      ? { ...canonical, kind: requireSchemaKind(canonical) }
+      : mergeSchemas(group);
+  });
   const routeKeyByName = new Map<string, SchemaRouteKey>();
   const routePathByName = new Map<string, string>();
   const scopePathByName = new Map<string, string>();
@@ -162,6 +217,8 @@ export function createSchemaOutputPlan({
   ];
 
   const findKey = (name: string) => {
+    const alias = canonicalNameByAlias.get(name);
+    if (alias && filePathByName.has(alias)) return alias;
     if (filePathByName.has(name)) return name;
     const converted = canonicalName(name, namingConvention);
     if (filePathByName.has(converted)) return converted;
@@ -175,6 +232,7 @@ export function createSchemaOutputPlan({
   return {
     basePath,
     canonicalSchemas,
+    canonicalNameByAlias,
     routeKeyByName,
     routePathByName,
     scopePathByName,
@@ -206,6 +264,9 @@ export function createSchemaOutputPlan({
         routeDirectories.push(scopePath);
       }
       return filePath;
+    },
+    canonicalNameFor(name) {
+      return canonicalNameByAlias.get(name) ?? name;
     },
     importPathFor(importerName, targetName) {
       const importerPath = filePathByName.get(findKey(importerName));

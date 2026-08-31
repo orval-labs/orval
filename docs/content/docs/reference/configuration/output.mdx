@@ -126,10 +126,17 @@ export default defineConfig({
 
 `routes.default` is required and route values are relative directories under
 `schemas.path`. `routes.enum` is optional; without it, enums use the default
-route. Empty, absolute, or parent-escaping route values are rejected. Routes
-are supported for TypeScript and Zod schemas; enums use `routes.enum` and all
-other schemas use `routes.default`. Routes can be combined with `splitByTags`.
-They remain incompatible with `operationSchemas`, mocks, and factory methods.
+route. Empty, absolute, parent-escaping, or equivalent route values are
+rejected. Route comparison is case-insensitive so configurations remain
+portable to case-insensitive file systems. Routes are supported for TypeScript
+and Zod schemas; enums use `routes.enum` and all other schemas use
+`routes.default`. Routes can be combined with `splitByTags`. They remain
+incompatible with `operationSchemas`, mocks, and factory methods.
+
+When different schema names produce the same generated file under the selected
+naming convention, equivalent definitions are emitted once and imports are
+redirected to the canonical schema. Different definitions are rejected with a
+configuration error instead of being silently overwritten.
 
 With `indexFiles: true`, Orval writes a barrel for each route that contains
 schemas and a root `schemas/index.ts` barrel. With `indexFiles: false`,

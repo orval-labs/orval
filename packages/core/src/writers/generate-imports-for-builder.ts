@@ -28,6 +28,20 @@ export function generateImportsForBuilder(
   schemaTagMap?: Map<string, string>,
   schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] {
+  if (schemaOutputPlan) {
+    imports = imports.map((schemaImport) => {
+      const targetName = schemaImport.schemaName ?? schemaImport.name;
+      if (!schemaOutputPlan.hasSchema(targetName)) return schemaImport;
+
+      const canonicalName = schemaOutputPlan.canonicalNameFor(
+        schemaImport.name,
+      );
+      return canonicalName === schemaImport.name
+        ? schemaImport
+        : { ...schemaImport, name: canonicalName };
+    });
+  }
+
   const isPackageImport =
     isObject(output.schemas) && !!output.schemas.importPath;
 

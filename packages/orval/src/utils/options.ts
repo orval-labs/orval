@@ -167,7 +167,10 @@ function normalizeSchemaRoutes(
       : {}),
   };
 
-  if (normalized.enum === normalized.default) {
+  if (
+    normalized.enum &&
+    normalized.enum.toLowerCase() === normalized.default.toLowerCase()
+  ) {
     throw new Error(
       styleText(
         'red',
@@ -184,14 +187,17 @@ function validateSchemaRoute(value: string, fieldName: string): string {
   const portableRoute = route.replaceAll('\\', '/');
   const isWindowsAbsolute = /^[A-Za-z]:\//.test(portableRoute);
   const isUncAbsolute = portableRoute.startsWith('//');
-  const segments = portableRoute.split('/').filter(Boolean);
+  const segments = portableRoute
+    .split('/')
+    .filter(Boolean)
+    .filter((segment) => segment !== '.');
 
   if (
     route === '' ||
     nodePath.isAbsolute(route) ||
     isWindowsAbsolute ||
     isUncAbsolute ||
-    portableRoute === '.' ||
+    segments.length === 0 ||
     segments.includes('..')
   ) {
     throw new Error(

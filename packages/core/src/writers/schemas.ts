@@ -686,6 +686,7 @@ export async function writeRoutedSchemas({
     for (const schema of schemas) {
       const imports = schema.imports.map((imp) => ({
         ...imp,
+        name: plan.canonicalNameFor(imp.name),
         ...(plan.hasSchema(imp.schemaName ?? imp.name)
           ? {
               importPath: plan.importPathFor(
@@ -755,9 +756,9 @@ export async function writeRoutedSchemas({
         const routePath = upath.toUnix(
           nodePath.relative(plan.basePath, plan.routePathByKey[route]),
         );
-        const routeIndex = plan.usesTagRouting ? `/index${indexExtension}` : '';
-        const routeImportExtension = plan.usesTagRouting ? '' : extension;
-        return `export * from './${routePath}${routeIndex}${routeImportExtension}';`;
+        const routeIndex =
+          plan.usesTagRouting || extension ? `/index${indexExtension}` : '';
+        return `export * from './${routePath}${routeIndex}';`;
       })
       .toSorted((a, b) => compareNatural(a, b));
     await writeGeneratedFile(

@@ -73,6 +73,108 @@ describe('generateImportsForBuilder', () => {
     ]);
   });
 
+  it('canonicalizes direct client imports that use a schema alias', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export type UserStatus = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          name: 'user_status',
+          kind: 'enum',
+          model: 'export type user_status = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    const result = generateImportsForBuilder(
+      output,
+      [createMockImport('user_status')],
+      '../schemas',
+      undefined,
+      plan,
+    );
+
+    expect(result).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '../schemas/types/userStatus',
+      },
+    ]);
+  });
+
+  it('canonicalizes imports that identify an alias through schemaName', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+        importPath: '@acme/models',
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export type UserStatus = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          name: 'user_status',
+          kind: 'enum',
+          model: 'export type user_status = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+      importPath: '@acme/models',
+    });
+
+    expect(
+      generateImportsForBuilder(
+        output,
+        [createMockImport('UserStatus', 'user_status')],
+        '../schemas',
+        undefined,
+        plan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus', schemaName: 'user_status' }],
+        dependency: '@acme/models/types/userStatus',
+      },
+    ]);
+  });
+
   it('uses the package root or routed subpath for importPath', () => {
     const schemas = [
       {
