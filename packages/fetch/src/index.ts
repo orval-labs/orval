@@ -843,9 +843,12 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
       contentType === 'application/nd-json' ||
       contentType === 'application/x-ndjson',
   );
+  // ndjson streams skip the generated parse entirely, so their schema import
+  // stays type-only and no Output alias is needed.
   const shouldUseRuntimeValidation =
     verbOptions.override.fetch.runtimeValidation.enabled &&
     isZodOutput &&
+    !isNdJsonResponse &&
     !isPrimitiveResponseType(responseType) &&
     hasSchemaImport(verbOptions.response.imports, responseType);
 
@@ -857,10 +860,11 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
           imports: rewriteImportsForResponseValidation(
             verbOptions.response.imports,
             responseType,
-            // A mutator (or an ndjson stream) skips the generated parse, so
-            // the declared types keep the schema (input) name and no Output
-            // alias import is needed.
-            { includeOutputType: !verbOptions.mutator && !isNdJsonResponse },
+            // A mutator skips the generated parse (it issues the request
+            // itself), so the declared types keep the schema (input) name and
+            // no Output alias import is needed — but the schema value import
+            // stays, for `includeZodSchemaInArguments`.
+            { includeOutputType: !verbOptions.mutator },
           ),
         },
       }
