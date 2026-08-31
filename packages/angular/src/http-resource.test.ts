@@ -3451,6 +3451,84 @@ describe('angular httpResource generator', () => {
         expect(mapImportLine).toContain("from 'rxjs'");
       }
     });
+
+    // A rename cannot desynchronise `sharedExports`, but a new shared
+    // declaration that nobody adds to the list can. This catches that.
+    it('declares exactly the names its per-tag resource files share', async () => {
+      const petsVerb = createVerbOption({ tags: ['Pets'] });
+      const healthVerb = createVerbOption({
+        operationId: 'getHealth',
+        operationName: 'getHealth',
+        route: '/health',
+        pathRoute: '/health',
+        tags: ['Health'],
+        params: [],
+        props: [],
+      });
+
+      const output = createOutput({
+        target: '/tmp/endpoints.ts',
+        mode: 'tags-split',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/endpoints.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: petsVerb, getHealth: healthVerb },
+        output,
+        context,
+      );
+
+      expect(extraFiles).toHaveLength(2);
+
+      const exportedNames = (content: string): Set<string> =>
+        new Set(
+          content
+            .split('\n')
+            .map(
+              (line) =>
+                line.match(
+                  /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:type|interface|const|let|var|function|class|enum)\s+([A-Za-z_$][\w$]*)/,
+                )?.[1],
+            )
+            .filter((name): name is string => name !== undefined),
+        );
+
+      const [first, second] = extraFiles;
+      const secondNames = exportedNames(second.content);
+      const actuallyShared = [...exportedNames(first.content)]
+        .filter((name) => secondNames.has(name))
+        .toSorted();
+
+      expect(actuallyShared.length).toBeGreaterThan(0);
+      expect(
+        [
+          ...(first.sharedExports?.types ?? []),
+          ...(first.sharedExports?.values ?? []),
+        ].toSorted(),
+      ).toEqual(actuallyShared);
+      expect(second.sharedExports).toEqual(first.sharedExports);
+
+      // The barrel gives a name one line, so a name listed under both
+      // categories would be claimed as a value and lose nothing — but a name
+      // that is a type in one file and a value in another has no single
+      // owner, and `buildBarrelReExports` leaves it ambiguous on purpose.
+      // Keeping the two lists disjoint is what makes the barrel resolvable.
+      const types = new Set(first.sharedExports?.types ?? []);
+      expect(
+        (first.sharedExports?.values ?? []).filter((name) => types.has(name)),
+      ).toEqual([]);
+    });
   });
 
   // ─── Zod schema import flags (#3932) ──────────────────────────────

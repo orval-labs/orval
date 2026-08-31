@@ -1962,9 +1962,37 @@ export type ClientBuilder = (
   output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
+/**
+ * Names that a generated file declares and that its sibling files of the same
+ * kind declare identically. The barrel writer uses them to prevent TS2308.
+ * See `buildBarrelReExports` for the rule.
+ */
+export interface SharedExports {
+  /**
+   * Type-only declarations. Re-exported via `export type { ... }` — kept
+   * separate from {@link SharedExports.values} because a type re-exported
+   * without the `type` modifier is an error under `verbatimModuleSyntax`,
+   * which Angular projects enable by default.
+   */
+  readonly types: readonly string[];
+  /** Value declarations, re-exported via `export { ... }`. */
+  readonly values: readonly string[];
+}
+
 export interface ClientFileBuilder {
   path: string;
   content: string;
+  /**
+   * Set this to re-export the file from the `tags-split` barrel. Omit it when
+   * the file is not part of the public client surface, or when the file runs
+   * code at module level and an import must not start that code.
+   */
+  barrelExport?: boolean;
+  /**
+   * Declared by generators whose extra files repeat shared boilerplate. Omit
+   * when a file declares nothing its siblings also declare.
+   */
+  sharedExports?: SharedExports;
 }
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,

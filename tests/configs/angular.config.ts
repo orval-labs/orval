@@ -218,6 +218,32 @@ export default defineConfig({
       target: '../specifications/angular-http-resource-both.yaml',
     },
   },
+  // `tagsSplitDeduplication` is what makes `tags-split` emit a client barrel.
+  // Covers that the per-tag `*.resource.ts` files reach it, and that the
+  // boilerplate each of them duplicates is re-exported from one canonical file
+  // so the barrel does not trip TS2308.
+  httpResourceBothTagsSplitBarrel: {
+    output: {
+      target:
+        '../generated/angular/http-resource-both-tags-split-barrel/endpoints.ts',
+      schemas: '../generated/angular/http-resource-both-tags-split-barrel/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: false,
+      clean: true,
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-both.yaml',
+    },
+  },
   issue3624: {
     output: {
       target: '../generated/angular/issue-3624/petstore.client.ts',

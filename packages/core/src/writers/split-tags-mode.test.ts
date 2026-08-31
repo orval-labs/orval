@@ -599,3 +599,136 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     expect(indexContent).toContain("from './common-types'");
   });
 });
+
+// The barrel is the only complete client entry point in `tags-split`, but it
+// is built from the per-tag implementation files, which do not include the
+// client extra files (Angular's `*.resource.ts` under `retrievalClient:
+// 'both'`). Those are written separately by `writeSpecs`.
+
+describe('writeSplitTagsMode — client extra files in the barrel', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-extra-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  const sharedExports = {
+    types: ['OrvalHttpResourceOptions', 'ResourceState'],
+    values: ['toResourceState'],
+  };
+
+  const buildProps = (
+    extraFiles: {
+      path: string;
+      barrelExport?: boolean;
+      sharedExports?: typeof sharedExports;
+    }[],
+  ) => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    return {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation(),
+          healthCheck: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'healthCheck',
+          }),
+        },
+        extraFiles: extraFiles.map((file) => ({
+          content: '',
+          barrelExport: true,
+          ...file,
+        })),
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    } as unknown as Parameters<typeof writeSplitTagsMode>[0];
+  };
+
+  const readBarrel = () =>
+    fs
+      .readFileSync(path.join(tmpDir, 'index.ts'), 'utf8')
+      .trimEnd()
+      .split('\n');
+
+  it('re-exports extra files, with duplicated names named from one file first', async () => {
+    await writeSplitTagsMode({
+      ...buildProps([
+        { path: path.join(tmpDir, 'pets', 'pets.resource.ts'), sharedExports },
+        {
+          path: path.join(tmpDir, 'health', 'health.resource.ts'),
+          sharedExports,
+        },
+      ]),
+      needSchema: false,
+    });
+
+    expect(readBarrel()).toEqual([
+      "export * from './health/health';",
+      "export * from './pets/pets';",
+      "export type { OrvalHttpResourceOptions, ResourceState } from './health/health.resource';",
+      "export { toResourceState } from './health/health.resource';",
+      "export * from './health/health.resource';",
+      "export * from './pets/pets.resource';",
+    ]);
+  });
+
+  it('only re-exports tags that actually produced an extra file', async () => {
+    // A mutation-only tag gets no resource file, so a barrel derived from tag
+    // names rather than from emitted paths would export a file that is never
+    // written.
+    await writeSplitTagsMode({
+      ...buildProps([
+        { path: path.join(tmpDir, 'pets', 'pets.resource.ts'), sharedExports },
+      ]),
+      needSchema: false,
+    });
+
+    const barrel = readBarrel();
+    expect(barrel).toContain("export * from './pets/pets.resource';");
+    expect(barrel).not.toContain("export * from './health/health.resource';");
+    // A single extra file is unambiguous, so nothing is re-exported by name.
+    expect(barrel.join('\n')).not.toContain('export type {');
+    expect(barrel.join('\n')).not.toContain('export {');
+  });
+
+  it('ignores extra files written outside the client directory', async () => {
+    await writeSplitTagsMode({
+      ...buildProps([
+        {
+          path: path.join(tmpDir, '..', 'somewhere-else.resource.ts'),
+          sharedExports,
+        },
+      ]),
+      needSchema: false,
+    });
+
+    expect(readBarrel().join('\n')).not.toContain('somewhere-else');
+  });
+
+  it('ignores an extra file that does not set barrelExport', async () => {
+    // Other generators put internal files in `extraFiles`. The mcp `server.ts`
+    // even starts a transport at module level, so an import must not reach it.
+    await writeSplitTagsMode({
+      ...buildProps([
+        { path: path.join(tmpDir, 'server.ts'), barrelExport: false },
+        { path: path.join(tmpDir, 'pets', 'pets.resource.ts') },
+      ]),
+      needSchema: false,
+    });
+
+    const barrel = readBarrel().join('\n');
+    expect(barrel).not.toContain('server');
+    expect(barrel).toContain("export * from './pets/pets.resource';");
+  });
+});
