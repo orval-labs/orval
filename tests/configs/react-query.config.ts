@@ -119,6 +119,25 @@ export default defineConfig({
       parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
+  'issue-2912-indexfiles-false-imports': {
+    output: {
+      target:
+        '../generated/react-query/issue-2912-indexfiles-false-imports/endpoints.ts',
+      schemas:
+        '../generated/react-query/issue-2912-indexfiles-false-imports/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      // indexFiles:false forces direct file-path imports, which is where #2912's
+      // bare-ref-name (`notFound` vs `notFoundResponse`) paths used to surface
+      // (the barrel masked it).
+      indexFiles: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2912/issue-2912.yaml',
+    },
+  },
   issue2039: {
     output: {
       target: '../generated/react-query/issue-2039/endpoints.ts',

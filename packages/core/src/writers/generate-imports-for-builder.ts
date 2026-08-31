@@ -90,9 +90,7 @@ export function generateImportsForBuilder(
     const importsByDependency = new Map<string, GeneratorImport[]>();
 
     for (const schemaImport of imports.filter((i) => !i.importPath)) {
-      const baseName = isZodSchemaOutput
-        ? schemaImport.name
-        : (schemaImport.schemaName ?? schemaImport.name);
+      const baseName = schemaImport.name;
       const normalizedName = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = isPackageImport
@@ -101,12 +99,12 @@ export function generateImportsForBuilder(
       // When schemas are split by tag, route each import into its tag
       // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
       // root (sentinel `'.'`); their path is unchanged from the flat layout.
-      // The lookup uses the TS identifier (`schemaImport.name`), not
-      // `schemaName`, because `buildSchemaTagMap` keys on `schema.name`
-      // which is the pascal-cased TS identifier produced by `getRefInfo`.
-      // `baseName` (which prefers `schemaName`) is only correct for the
-      // filename computation below, where `conventionName` happens to be
-      // idempotent on already-pascal-cased input.
+      // The lookup and the filename both use the TS identifier
+      // (`schemaImport.name`), not `schemaName`: the schemas writer emits
+      // each schema file named after `schema.name` (the full identifier,
+      // including the `Response`/`Body`/`Parameter` suffix added for
+      // component refs), so `schemaName` (the bare ref name) would produce
+      // import paths that point at files that are never written (#2912).
       const tagDir = schemaTagMap?.get(schemaImport.name);
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       const dependency = upath.joinSafe(
