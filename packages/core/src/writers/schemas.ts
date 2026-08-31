@@ -734,18 +734,28 @@ export async function writeRoutedSchemas({
     if (plan.usesTagRouting) {
       for (const [route, directories] of routeDirectories) {
         const routePath = plan.routePathByKey[route];
-        const exports = [...directories]
+        const routeIndexPath = nodePath.join(routePath, 'index.ts');
+        const existingContent = (await fs.pathExists(routeIndexPath))
+          ? await fs.readFile(routeIndexPath, 'utf8')
+          : '';
+        const existingExports = [
+          ...existingContent.matchAll(
+            /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,
+          ),
+        ].map(([, specifier]) => `export * from '${specifier}';`);
+        const childExports = [...directories]
           .map((directory) => {
             const relative = upath.toUnix(
               nodePath.relative(routePath, directory),
             );
+            if (!relative) return undefined;
             return `export * from './${relative}/index${indexExtension}';`;
           })
-          .toSorted((a, b) => compareNatural(a, b));
-        await writeGeneratedFile(
-          nodePath.join(routePath, 'index.ts'),
-          `${header}\n${exports.join('\n')}\n`,
-        );
+          .filter((entry): entry is string => !!entry);
+        const exports = [...new Set([...existingExports, ...childExports])]
+          .toSorted((a, b) => compareNatural(a, b))
+          .join('\n');
+        await writeGeneratedFile(routeIndexPath, `${header}\n${exports}\n`);
       }
     }
 

@@ -58,6 +58,7 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
+  upath,
 } from '@orval/core';
 import { getDefaultMockOptionsForType } from '@orval/mock';
 
@@ -210,7 +211,7 @@ function validateSchemaRoute(value: string, fieldName: string): string {
     );
   }
 
-  return segments.join(nodePath.sep);
+  return upath.joinSafe(...segments);
 }
 
 /** Rejects schema-routing combinations that are unsupported by generation. */
