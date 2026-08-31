@@ -48,6 +48,8 @@ import {
 import {
   buildAcceptHelpers,
   generateHttpClientImplementation,
+  getAngularHttpResponseImport,
+  narrowsResponseEvents,
   getAcceptHelperName,
   getHttpClientReturnTypes,
   getUniqueContentTypes,
@@ -689,10 +691,7 @@ const getHttpResourceVerbImports = (
     ),
     ...parsedZodImports
       .filter((imp) => !isPrimitiveType(imp.name))
-      .map((imp) => ({
-        name: getSchemaOutputTypeRef(imp.name),
-        values: false,
-      })),
+      .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -1563,8 +1562,24 @@ export const generateHttpResourceClient: ClientBuilder = (
 ) => {
   routeRegistry.set(verbOptions.operationName, options.route);
   const baseUrlOption = options.context.output.override.angular.baseUrl;
+  // Mutation verbs render through the HttpClient generator (see
+  // `generateHttpResourceHeader`), so they need its `HttpResponse` import;
+  // whether as a value or a type depends on the method body. `HttpHeaders`
+  // is already a value import in `ANGULAR_HTTP_RESOURCE_DEPENDENCIES`.
+  const mutationImports = isMutationVerb(
+    verbOptions.verb,
+    verbOptions.operationName,
+    getClientOverride(verbOptions),
+  )
+    ? [
+        getAngularHttpResponseImport(
+          narrowsResponseEvents(verbOptions, options.context.output),
+        ),
+      ]
+    : [];
   const imports = [
     ...getHttpResourceVerbImports(verbOptions, options.context.output),
+    ...mutationImports,
     ...(baseUrlOption
       ? [
           {
@@ -1627,25 +1642,32 @@ const buildHttpResourceFile = (
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
-// Output refs are `export type` aliases in the Zod schema file, so they
-// must stay type-only under verbatimModuleSyntax; #3924.
-const withZodValueFlag = (imp: GeneratorImport): GeneratorImport =>
-  imp.values === false ? imp : { ...imp, values: true };
-
 const buildSchemaImportDependencies = (
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
 ) => {
   const isZod = isZodSchemaOutput(output);
+  // Each operation tags the schemas it parses at runtime with `values: true`
+  // (see `getHttpResourceVerbImports`). Everything else — params, headers,
+  // body, `<Name>Output` aliases — is only used in type positions, so it
+  // stays type-only even in Zod mode (#3932). The same schema can arrive
+  // tagged from one operation and untagged from another; a value import
+  // covers both uses, so the tag wins.
   const uniqueImports = [
-    ...new Map(imports.map((imp) => [imp.name, imp])).values(),
+    ...imports
+      .reduce((byName, imp) => {
+        const existing = byName.get(imp.name);
+        byName.set(imp.name, existing?.values && !imp.values ? existing : imp);
+        return byName;
+      }, new Map<string, GeneratorImport>())
+      .values(),
   ];
 
   if (!output.schemas) {
     return [
       {
-        exports: isZod ? uniqueImports.map(withZodValueFlag) : uniqueImports,
+        exports: uniqueImports,
         dependency: relativeSchemasPath,
       },
     ];
@@ -1661,22 +1683,13 @@ const buildSchemaImportDependencies = (
         output.tsconfig,
       );
       return {
-        exports: isZod ? [withZodValueFlag(imp)] : [imp],
+        exports: [imp],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
         ),
       };
     });
-  }
-
-  if (isZod) {
-    return [
-      {
-        exports: uniqueImports.map(withZodValueFlag),
-        dependency: relativeSchemasPath,
-      },
-    ];
   }
 
   return [

@@ -31,6 +31,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  PetOutput,
+  PetWithTagOutput,
+  PetsOutput,
 } from './model';
 
 type AngularHttpParamValue =
@@ -113,12 +116,12 @@ export const listPets = (
   http: HttpClient,
   params: ListPetsParams,
   options?: { signal?: AbortSignal | null },
-): Promise<Pets> => {
+): Promise<PetsOutput> => {
   const httpParams = params
     ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
-  const request$ = http.get<Pets>(url, { params: httpParams }).pipe(
+  const request$ = http.get<PetsOutput>(url, { params: httpParams }).pipe(
     map((data) => {
       const result = Pets.safeParse(data);
       if (!result.success) {
@@ -225,13 +228,13 @@ export const createPets = (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: { signal?: AbortSignal | null },
-): Promise<Pet> => {
+): Promise<PetOutput> => {
   const httpParams = params
     ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
   const request$ = http
-    .post<Pet>(url, createPetsBody, { params: httpParams })
+    .post<PetOutput>(url, createPetsBody, { params: httpParams })
     .pipe(
       map((data) => {
         const result = Pet.safeParse(data);
@@ -333,9 +336,9 @@ export const showPetById = (
   http: HttpClient,
   petId: string,
   options?: { signal?: AbortSignal | null },
-): Promise<Pet> => {
+): Promise<PetOutput> => {
   const url = `/pets/${petId}`;
-  const request$ = http.get<Pet>(url).pipe(
+  const request$ = http.get<PetOutput>(url).pipe(
     map((data) => {
       const result = Pet.safeParse(data);
       if (!result.success) {
@@ -631,9 +634,9 @@ export const showPetWithOwner = (
   http: HttpClient,
   petId: string,
   options?: { signal?: AbortSignal | null },
-): Promise<PetWithTag> => {
+): Promise<PetWithTagOutput> => {
   const url = `/pets/${petId}/owner`;
-  const request$ = http.get<PetWithTag>(url).pipe(
+  const request$ = http.get<PetWithTagOutput>(url).pipe(
     map((data) => {
       const result = PetWithTag.safeParse(data);
       if (!result.success) {

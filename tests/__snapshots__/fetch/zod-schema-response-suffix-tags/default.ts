@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import { PortfolioResponseSchema } from './model';
+import type { PortfolioResponseSchemaOutput } from './model';
 
 export type getPortfolioResponse200 = {
-  data: PortfolioResponseSchema;
+  data: PortfolioResponseSchemaOutput;
   status: 200;
 };
 

@@ -46,6 +46,7 @@ export async function writeSplitMode({
   needSchema,
   generateSchemasInline,
   schemaTagMap,
+  schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -130,6 +131,7 @@ export async function writeSplitMode({
       imports,
       relativeSchemasPath,
       schemaTagMap,
+      schemaOutputPlan,
     );
 
     implementationData += builder.imports({

@@ -17,7 +17,7 @@ import type {
 import { Injectable, inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type {
   ConfirmReservationBody,

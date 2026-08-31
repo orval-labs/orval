@@ -4,12 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse,
-  httpResource,
-} from '@angular/common/http';
+import { HttpClient, HttpHeaders, httpResource } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
@@ -19,10 +14,12 @@ import type {
   HttpResourceRequest,
 } from '@angular/common/http';
 
+import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
+
 import { Injectable, inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type {
   CreatePetsBody,
