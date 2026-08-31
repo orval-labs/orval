@@ -419,6 +419,58 @@ describe('validation', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  it('should preserve date-like enum strings from YAML specs', async () => {
+    const workspace = await mkdtemp(
+      path.join(os.tmpdir(), 'orval-yaml-date-enum-'),
+    );
+    const specPath = path.join(workspace, 'spec.yaml');
+
+    // Write raw YAML (not JSON) so js-yaml actually parses the content.
+    // Without JSON_SCHEMA, js-yaml coerces `2026-01-27` into a Date object.
+    const yamlContent = `
+openapi: "3.0.3"
+info:
+  title: DateEnumRepro
+  version: "1.0.0"
+paths:
+  /test:
+    get:
+      operationId: getTest
+      parameters:
+        - name: Accept-Version
+          in: header
+          schema:
+            type: string
+            enum:
+              - latest
+              - 2026-01-27
+      responses:
+        "200":
+          description: OK
+`;
+
+    try {
+      await writeFile(specPath, yamlContent, 'utf8');
+
+      const normalizedOptions = await normalizeOptions(
+        { output: { target: '' }, input: { target: specPath } },
+        workspace,
+        {},
+      );
+
+      const result = await importSpecs(workspace, normalizedOptions);
+
+      const versionParam = result.schemas.find(
+        (s) => s.name === 'GetTestHeaderAcceptVersionParameter',
+      );
+      expect(versionParam).toBeDefined();
+      expect(versionParam?.model).toContain("'2026-01-27'");
+      expect(versionParam?.model).not.toContain('GMT');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('swagger2FormData', () => {
