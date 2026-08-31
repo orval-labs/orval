@@ -3,10 +3,13 @@ import {
   type ClientDependenciesBuilder,
   type ClientHeaderBuilder,
   generateVerbImports,
+  hasSchemaImport,
+  isPrimitiveResponseType,
   mergeDeep,
   type NormalizedOutputOptions,
   OutputHttpClient,
   type QueryOptions,
+  rewriteImportsForResponseValidation,
 } from '@orval/core';
 
 import { getQueryHeader } from './client';
@@ -89,40 +92,41 @@ export const generateQuery: ClientBuilder = async (
   options,
   outputClient,
 ) => {
+  const adapter = createFrameworkAdapter({
+    outputClient,
+    packageJson: options.context.output.packageJson,
+    queryVersion: verbOptions.override.query.version,
+  });
+
   const isZodOutput =
     typeof options.context.output.schemas === 'object' &&
     options.context.output.schemas.type === 'zod';
   const responseType = verbOptions.response.definition.success;
-  const isPrimitiveResponse = [
-    'string',
-    'number',
-    'boolean',
-    'void',
-    'unknown',
-  ].includes(responseType);
+  // A custom mutator skips the generated parse entirely, so its schema
+  // import stays type-only and no rewrite is needed.
   const shouldUseRuntimeValidation =
-    verbOptions.override.query.runtimeValidation?.enabled && isZodOutput;
+    verbOptions.override.query.runtimeValidation?.enabled &&
+    isZodOutput &&
+    !verbOptions.mutator &&
+    !isPrimitiveResponseType(responseType) &&
+    hasSchemaImport(verbOptions.response.imports, responseType);
 
-  const normalizedVerbOptions =
-    shouldUseRuntimeValidation &&
-    !isPrimitiveResponse &&
-    verbOptions.response.imports.some((imp) => imp.name === responseType)
-      ? {
-          ...verbOptions,
-          response: {
-            ...verbOptions.response,
-            imports: verbOptions.response.imports.map((imp) =>
-              imp.name === responseType ? { ...imp, values: true } : imp,
-            ),
-          },
-        }
-      : verbOptions;
-
-  const adapter = createFrameworkAdapter({
-    outputClient,
-    packageJson: options.context.output.packageJson,
-    queryVersion: normalizedVerbOptions.override.query.version,
-  });
+  const normalizedVerbOptions = shouldUseRuntimeValidation
+    ? {
+        ...verbOptions,
+        response: {
+          ...verbOptions.response,
+          imports: rewriteImportsForResponseValidation(
+            verbOptions.response.imports,
+            responseType,
+            // Only the Angular HttpClient request function switches its
+            // declared type to the `XOutput` alias (#3941); other frameworks
+            // delegate to their http-client generator.
+            { includeOutputType: adapter.isAngularHttp },
+          ),
+        },
+      }
+    : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = adapter.generateRequestFunction(
