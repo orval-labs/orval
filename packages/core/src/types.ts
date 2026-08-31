@@ -1702,6 +1702,11 @@ export interface GeneratorImport {
   // (e.g. `getPetMock`). The mock-file writer routes it to
   // `<schemas-dir>/index.faker` instead of `<schemas-dir>/<schemaName>`.
   readonly schemaFactory?: boolean;
+  // Zod-schemas mode: the base schema identifier whose `.zod` file declares
+  // this binding. Set on `${name}Output` type-alias imports so per-file
+  // (`indexFiles: false`) layouts route them to the base schema's file
+  // instead of a nonexistent `<name>.zod` one.
+  readonly zodBaseName?: string;
 }
 
 export interface GeneratorDependency {

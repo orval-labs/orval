@@ -10,6 +10,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  PetOutput,
+  PetWithTagOutput,
+  PetsOutput,
 } from '../model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
@@ -55,7 +58,7 @@ export type HTTPStatusCodes =
   | HTTPStatusCode5xx;
 
 export type listPetsResponse200 = {
-  data: Pets;
+  data: PetsOutput;
   status: 200;
 };
 
@@ -114,7 +117,7 @@ export const listPets = async (
 };
 
 export type createPetsResponse200 = {
-  data: Pet;
+  data: PetOutput;
   status: 200;
 };
 
@@ -193,7 +196,7 @@ export const createPets = async (
 };
 
 export type showPetByIdResponse200 = {
-  data: Pet;
+  data: PetOutput;
   status: 200;
 };
 
@@ -297,7 +300,7 @@ export const deletePetById = async (
 };
 
 export type showPetWithOwnerResponse200 = {
-  data: PetWithTag;
+  data: PetWithTagOutput;
   status: 200;
 };
 

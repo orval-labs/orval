@@ -1,4 +1,5 @@
 import type {
+  GeneratorImport,
   NormalizedRuntimeValidation,
   RuntimeValidation,
   RuntimeValidationStrategy,
@@ -130,3 +131,80 @@ export const normalizeRuntimeValidation = (
   }
   return { enabled: true, strategy: value.strategy ?? 'throw' };
 };
+
+/**
+ * Response types the runtime-validation generators never validate: primitives
+ * and `void`/`unknown` have no generated Zod schema to parse against.
+ */
+const RESPONSE_PRIMITIVE_TYPES = new Set([
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+]);
+
+/**
+ * Indicates whether a response definition names a primitive (non-schema) type,
+ * which runtime validation skips.
+ */
+export const isPrimitiveResponseType = (t: string | undefined): boolean =>
+  t !== undefined && RESPONSE_PRIMITIVE_TYPES.has(t);
+
+/**
+ * Indicates whether the response imports carry a schema for the given type
+ * name — the precondition for emitting a `Schema.parse`/`safeParse` call.
+ */
+export const hasSchemaImport = (
+  imports: readonly { name: string }[],
+  typeName: string | undefined,
+): boolean =>
+  typeName !== undefined && imports.some((imp) => imp.name === typeName);
+
+/**
+ * Maps a response type name to the identifier its Zod schema value is bound to
+ * at the call site. `Error` collides with the global constructor, so validated
+ * call sites reference that schema as `ErrorSchema`.
+ */
+export const getSchemaValueRef = (typeName: string): string =>
+  typeName === 'Error' ? 'ErrorSchema' : typeName;
+
+/**
+ * Maps a schema type name to its Zod output-type alias (`${typeName}Output`),
+ * emitted next to every schema in zod-schemas mode. A validated response
+ * returns `zod.output` at runtime, so its declared type must reference this
+ * alias — the bare schema name aliases `zod.input`, which diverges under
+ * `coerce`, `useDates`, defaults and transforms.
+ */
+export const getSchemaOutputTypeRef = (typeName: string): string =>
+  `${typeName}Output`;
+
+/**
+ * Rewrites a verb's response imports for a runtime-validated response: the
+ * schema import becomes a value import (the generated code calls
+ * `parse`/`safeParse` on it), and the schema's `Output` type alias is imported
+ * for the declared response type. `zodBaseName` routes the alias import to the
+ * base schema's `.zod` file in per-file (`indexFiles: false`) layouts.
+ *
+ * `includeOutputType: false` keeps the value-import flip but skips the alias —
+ * for call sites where validation is delegated (e.g. a custom mutator handed
+ * the schema via `includeZodSchemaInArguments`) and the declared type is
+ * intentionally left as the schema (input) name.
+ */
+export const rewriteImportsForResponseValidation = (
+  imports: readonly GeneratorImport[],
+  responseType: string,
+  { includeOutputType = true }: { includeOutputType?: boolean } = {},
+): GeneratorImport[] => [
+  ...imports.map((imp) =>
+    imp.name === responseType ? { ...imp, values: true } : imp,
+  ),
+  ...(includeOutputType
+    ? [
+        {
+          name: getSchemaOutputTypeRef(responseType),
+          zodBaseName: responseType,
+        },
+      ]
+    : []),
+];

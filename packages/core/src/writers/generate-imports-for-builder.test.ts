@@ -163,6 +163,30 @@ describe('generateImportsForBuilder', () => {
         },
       ]);
     });
+
+    it('routes an Output type alias to its base schema zod file via zodBaseName', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'Pets', schemaName: 'Pets', values: true },
+        { name: 'PetsOutput', zodBaseName: 'Pets' },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'Pets', schemaName: 'Pets', values: true },
+            { name: 'PetsOutput', zodBaseName: 'Pets' },
+          ],
+          dependency: '../models/pets.zod',
+        },
+      ]);
+    });
   });
 
   describe('with indexFiles', () => {
@@ -618,6 +642,35 @@ describe('generateImportsForBuilder', () => {
 
       const deps = result.map((r) => r.dependency).sort();
       expect(deps).toEqual(['../models/error', '../models/pets/pet']);
+    });
+
+    it('routes an Output alias into the same tag subdir as its base schema', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        schemas: { path: './schemas', type: 'zod', splitByTags: true },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'Pets', schemaName: 'Pets', values: true },
+        { name: 'PetsOutput', zodBaseName: 'Pets' },
+      ];
+      const schemaTagMap = new Map<string, string>([['Pets', 'pets']]);
+
+      const result = generateImportsForBuilder(
+        output,
+        imports,
+        '../models',
+        schemaTagMap,
+      );
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'Pets', schemaName: 'Pets', values: true },
+            { name: 'PetsOutput', zodBaseName: 'Pets' },
+          ],
+          dependency: '../models/pets/pets.zod',
+        },
+      ]);
     });
   });
 });
