@@ -1054,6 +1054,34 @@ export interface ZodOptions extends BaseZodOptions {
  */
 export type OperationZodOptions = BaseZodOptions;
 
+/**
+ * Runtime source of truth for the `override.zod` keys that may also be set per
+ * operation or tag. `NormalizedOperationZodOptions`, the unsupported-key
+ * warning, and the operation/tag normalization in `orval` are all derived from
+ * this array; the `satisfies` clause plus the `Exclude` assertion below force
+ * it to stay in lockstep with `OperationZodOptions`.
+ */
+export const operationZodOverrideKeys = [
+  'strict',
+  'generate',
+  'coerce',
+  'preprocess',
+  'params',
+  'useBrandedTypes',
+  'generateCompanionTypes',
+] as const satisfies readonly (keyof OperationZodOptions)[];
+
+export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];
+
+// Compile-time exhaustiveness: adding a key to `BaseZodOptions` without adding
+// it to `operationZodOverrideKeys` makes this alias non-`never` and the
+// `satisfies` below fail.
+type MissingOperationZodOverrideKey = Exclude<
+  keyof OperationZodOptions,
+  OperationZodOverrideKey
+>;
+true satisfies MissingOperationZodOverrideKey extends never ? true : never;
+
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
   generate?: ZodOptions['generate'];
@@ -1123,13 +1151,7 @@ export interface NormalizedZodOptions {
 
 export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
-  | 'strict'
-  | 'generate'
-  | 'coerce'
-  | 'preprocess'
-  | 'params'
-  | 'useBrandedTypes'
-  | 'generateCompanionTypes'
+  OperationZodOverrideKey
 >;
 
 export interface NormalizedEffectOptions {

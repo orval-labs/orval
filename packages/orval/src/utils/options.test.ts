@@ -2253,6 +2253,7 @@ describe('normalizeOptions', () => {
                     strict: { body: true },
                     version: 3,
                     variant: 'mini',
+                    exactOptional: true,
                   } as never,
                 },
               },
@@ -2282,6 +2283,13 @@ describe('normalizeOptions', () => {
       ).toBe(false);
       expect(
         'variant' in
+          (normalized.output.override.operations.listPets?.zod ?? {}),
+      ).toBe(false);
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('zod.exactOptional'),
+      );
+      expect(
+        'exactOptional' in
           (normalized.output.override.operations.listPets?.zod ?? {}),
       ).toBe(false);
       expect(
