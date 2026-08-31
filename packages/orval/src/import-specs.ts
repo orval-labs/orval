@@ -569,7 +569,7 @@ async function bundleAndDereferenceExternalRefs(
  * untrusted.
  */
 function parseSpec(text: string): Record<string, unknown> {
-  const result = jsYaml.load(text);
+  const result = jsYaml.load(text, { schema: jsYaml.JSON_SCHEMA });
   if (!isObject(result)) {
     throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
   }

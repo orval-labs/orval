@@ -10,6 +10,13 @@ import { EnumGeneration, NamingConvention } from '../types';
 import { generateImports } from './imports';
 import { generateInterface } from './interface';
 
+const withoutKinds = (schemas: GeneratorSchema[]) =>
+  schemas.map((schema) => {
+    const copy = { ...schema };
+    delete copy.kind;
+    return copy;
+  });
+
 describe('generateInterface', () => {
   const context = createTestContextSpec();
 
@@ -101,7 +108,7 @@ export type TestSchema = typeof TestSchemaValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   // With enumGenerationType: const - mimic default enum output
@@ -144,7 +151,7 @@ export type ConstEnum = typeof ConstEnumValue;
       },
     ];
 
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   // With enumGenerationType: const - keep referenced enums type-only
@@ -164,7 +171,7 @@ export type ConstEnum = typeof ConstEnumValue;
       schema,
     });
 
-    expect(got).toEqual([
+    expect(withoutKinds(got)).toEqual([
       {
         name: 'Order',
         model: `export interface Order {\n  status?: OrderStatus;\n}\n`,
@@ -202,7 +209,7 @@ export type ConstEnum = typeof ConstEnumValue;
       schema,
     });
 
-    expect(got).toEqual([
+    expect(withoutKinds(got)).toEqual([
       {
         name: 'OrderWithInlineEnumStatus',
         model:
@@ -262,7 +269,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should generate index signature with propertyNames enum (OpenAPI 3.1)', () => {
@@ -291,7 +298,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should handle propertyNames enum with additional properties as boolean', () => {
@@ -318,7 +325,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should handle propertyNames enum with specific type in additionalProperties', () => {
@@ -347,7 +354,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should generate Record type with propertyNames referenced enum (OpenAPI 3.1)', () => {
@@ -394,7 +401,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should use string when propertyNames has no enum', () => {
@@ -423,7 +430,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should generate Record type with propertyNames const (OpenAPI 3.1)', () => {
@@ -452,7 +459,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should generate Record type with propertyNames referenced const (OpenAPI 3.1)', () => {
@@ -492,7 +499,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should handle propertyNames const with additionalProperties as boolean', () => {
@@ -519,7 +526,7 @@ export type ConstEnum = typeof ConstEnumValue;
         schema,
       },
     ];
-    expect(got).toEqual(want);
+    expect(withoutKinds(got)).toEqual(want);
   });
 
   it('should handle propertyNames const with properties already defined', () => {

@@ -51,6 +51,7 @@ export async function writeTagsOperationsSplitMode({
   needSchema,
   generateSchemasInline,
   schemaTagMap,
+  schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   assertClientSupportsTagsOperations(output.client, 'tags-operations-split');
 
@@ -209,6 +210,7 @@ export async function writeTagsOperationsSplitMode({
               adjustedImports,
               schemasPathRelative,
               schemaTagMap,
+              schemaOutputPlan,
             );
 
             let data = header;

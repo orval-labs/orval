@@ -119,6 +119,15 @@ describe('buildSchemaTagMap', () => {
     expect(result.get('Pets')).toBe('default');
   });
 
+  it('uses the first tag when an operation has multiple tags', () => {
+    const operations = [makeOperation('listPets', ['pets', 'admin'], ['Pets'])];
+    const schemas = [makeSchema('Pets')];
+
+    const result = buildSchemaTagMap(operations, schemas);
+
+    expect(result.get('Pets')).toBe('pets');
+  });
+
   it('matches imports by name (TS identifier) not schemaName', () => {
     const operations = [
       {

@@ -17,6 +17,7 @@ import {
   generateHttpClientImplementation,
   getAngularDependencies,
   getHttpClientReturnTypes,
+  narrowsResponseEvents,
   resetHttpClientReturnTypes,
 } from './http-client';
 import { createQueryParams } from './test-helpers';
@@ -342,13 +343,26 @@ describe('angular HttpClient generator', () => {
       const deps = getAngularDependencies(false, false);
       const allExports = deps.flatMap((d) => d.exports.map((e) => e.name));
       expect(allExports).toContain('HttpClient');
-      expect(
-        deps.flatMap((d) => d.exports).find((e) => e.name === 'HttpHeaders')
-          ?.values,
-      ).toBe(true);
       expect(allExports).toContain('Injectable');
       expect(allExports).toContain('inject');
       expect(allExports).toContain('Observable');
+    });
+
+    it('imports Observable as a type: generated code never constructs one', () => {
+      const observable = getAngularDependencies(false, false)
+        .flatMap((d) => d.exports)
+        .find((e) => e.name === 'Observable');
+      expect(observable?.values).toBeUndefined();
+    });
+
+    it('leaves HttpHeaders and HttpResponse to the per-operation imports', () => {
+      // Whether they are values or types depends on the operation body
+      // (`instanceof` narrowing), so `generateAngular` decides per operation.
+      const names = getAngularDependencies(false, false).flatMap((d) =>
+        d.exports.map((e) => e.name),
+      );
+      expect(names).not.toContain('HttpHeaders');
+      expect(names).not.toContain('HttpResponse');
     });
   });
 
@@ -2174,6 +2188,202 @@ describe('angular HttpClient generator', () => {
 
       expect(result.implementation).toContain('this.http.get');
       expect(result.imports).toBeDefined();
+    });
+  });
+
+  // ── @angular/common/http value-vs-type imports (#3932) ───────────────
+
+  describe('generateAngular http import flags', () => {
+    it('imports HttpHeaders and HttpResponse as types when the body never narrows on them', async () => {
+      const { imports } = await generateAngular(
+        createVerbOption(),
+        createGeneratorOptions(),
+        'angular',
+        createOutput(),
+      );
+
+      const headers = imports.find((i) => i.name === 'HttpHeaders');
+      const response = imports.find((i) => i.name === 'HttpResponse');
+      expect(headers).toMatchObject({ importPath: '@angular/common/http' });
+      expect(headers?.values).toBeFalsy();
+      expect(response).toMatchObject({
+        alias: 'AngularHttpResponse',
+        importPath: '@angular/common/http',
+      });
+      expect(response?.values).toBeFalsy();
+    });
+
+    it('imports HttpHeaders as a value when Accept dispatch narrows with instanceof', async () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+
+      const { implementation, imports } = await generateAngular(
+        verbOption,
+        createGeneratorOptions(),
+        'angular',
+        createOutput(),
+      );
+
+      expect(implementation).toContain('instanceof HttpHeaders');
+      expect(imports).toContainEqual(
+        expect.objectContaining({
+          name: 'HttpHeaders',
+          values: true,
+          importPath: '@angular/common/http',
+        }),
+      );
+    });
+
+    it('imports HttpResponse as a value when runtime validation narrows events', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({ imports: [{ name: 'Pet' }] }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = {
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      } satisfies GeneratorOptions;
+
+      const { implementation, imports } = await generateAngular(
+        verbOption,
+        options,
+        'angular',
+        output,
+      );
+
+      expect(implementation).toContain('instanceof AngularHttpResponse');
+      expect(imports).toContainEqual(
+        expect.objectContaining({
+          name: 'HttpResponse',
+          alias: 'AngularHttpResponse',
+          values: true,
+          importPath: '@angular/common/http',
+        }),
+      );
+    });
+  });
+
+  // ── narrowsResponseEvents ──────────────────────────────────────────────
+
+  describe('narrowsResponseEvents', () => {
+    const zodOutput = (requestOptions = true) =>
+      createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          requestOptions,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      });
+    const validatedVerb = (requestOptions = true) =>
+      createVerbOption({
+        response: baseResponse({ imports: [{ name: 'Pet' }] }),
+        override: {
+          ...createVerbOption().override,
+          requestOptions,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+    const optionsFor = (output: NormalizedOutputOptions) =>
+      ({
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      }) satisfies GeneratorOptions;
+
+    const fixtures: {
+      name: string;
+      verb: GeneratorVerbOptions;
+      output: NormalizedOutputOptions;
+    }[] = [
+      { name: 'plain', verb: createVerbOption(), output: createOutput() },
+      {
+        name: 'multi-content',
+        verb: createVerbOption({
+          response: baseResponse({
+            definition: { success: 'Pet | string', errors: 'Error' },
+            types: {
+              success: [
+                createSuccessType('Pet', 'application/json'),
+                createSuccessType('string', 'text/plain'),
+              ],
+              errors: [],
+            },
+            contentTypes: ['application/json', 'text/plain'],
+          }),
+        }),
+        output: createOutput(),
+      },
+      { name: 'validated', verb: validatedVerb(), output: zodOutput() },
+      {
+        name: 'validated, requestOptions: false',
+        verb: validatedVerb(false),
+        output: zodOutput(false),
+      },
+    ];
+
+    it.each(fixtures)(
+      'matches whether the rendered body narrows with instanceof ($name)',
+      ({ verb, output }) => {
+        const rendered = generateHttpClientImplementation(
+          verb,
+          optionsFor(output),
+        );
+        expect(narrowsResponseEvents(verb, output)).toBe(
+          rendered.includes('instanceof AngularHttpResponse'),
+        );
+      },
+    );
+
+    it('is true for a validated single-content operation with request options', () => {
+      expect(narrowsResponseEvents(validatedVerb(), zodOutput())).toBe(true);
     });
   });
 

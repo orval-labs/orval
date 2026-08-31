@@ -15,7 +15,9 @@ import {
   isObject,
   upath,
 } from '../utils';
+import type { SchemaOutputPlan } from './schema-output-plan';
 
+/** Builds client dependencies using tag routing or the planned schema paths. */
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
@@ -25,7 +27,21 @@ export function generateImportsForBuilder(
   // schema's tag subdirectory into the import path. `'.'` is the sentinel
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] {
+  if (schemaOutputPlan) {
+    imports = imports.map((schemaImport) => {
+      if (!schemaOutputPlan.hasSchema(schemaImport.name)) return schemaImport;
+
+      const canonicalName = schemaOutputPlan.canonicalNameFor(
+        schemaImport.name,
+      );
+      return canonicalName === schemaImport.name
+        ? schemaImport
+        : { ...schemaImport, name: canonicalName };
+    });
+  }
+
   const isPackageImport =
     isObject(output.schemas) && !!output.schemas.importPath;
 
@@ -73,26 +89,30 @@ export function generateImportsForBuilder(
 
   let schemaImports: GeneratorDependency[];
   if (output.indexFiles) {
+    const schemaDependency =
+      typeof output.schemas === 'object' && output.schemas?.importPath
+        ? output.schemas.importPath
+        : relativeSchemasPath;
     schemaImports = isZodSchemaOutput
       ? [
           {
             exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
+            dependency: schemaDependency,
           },
         ]
       : [
           {
             exports: imports.filter((i) => !i.importPath),
-            dependency: relativeSchemasPath,
+            dependency: schemaDependency,
           },
         ];
   } else {
     const importsByDependency = new Map<string, GeneratorImport[]>();
 
     for (const schemaImport of imports.filter((i) => !i.importPath)) {
-      const baseName = isZodSchemaOutput
-        ? schemaImport.name
-        : (schemaImport.schemaName ?? schemaImport.name);
+      // `Output` type aliases live in their base schema's file
+      // (`zodBaseName`); everything else is named after the TS identifier.
+      const baseName = schemaImport.zodBaseName ?? schemaImport.name;
       const normalizedName = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = isPackageImport
@@ -101,18 +121,32 @@ export function generateImportsForBuilder(
       // When schemas are split by tag, route each import into its tag
       // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
       // root (sentinel `'.'`); their path is unchanged from the flat layout.
-      // The lookup uses the TS identifier (`schemaImport.name`), not
-      // `schemaName`, because `buildSchemaTagMap` keys on `schema.name`
-      // which is the pascal-cased TS identifier produced by `getRefInfo`.
-      // `baseName` (which prefers `schemaName`) is only correct for the
-      // filename computation below, where `conventionName` happens to be
-      // idempotent on already-pascal-cased input.
-      const tagDir = schemaTagMap?.get(schemaImport.name);
-      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
-      const dependency = upath.joinSafe(
-        relativeSchemasPath,
-        `${tagSegment}${normalizedName}${suffix}${importExtension}`,
+      // The lookup and the filename both use the TS identifier
+      // (`schemaImport.name`), not `schemaName`: the schemas writer emits
+      // each schema file named after `schema.name` (the full identifier,
+      // including the `Response`/`Body`/`Parameter` suffix added for
+      // component refs), so `schemaName` (the bare ref name) would produce
+      // import paths that point at files that are never written (#2912).
+      // `Output` aliases again resolve via their base schema's identifier.
+      const tagDir = schemaTagMap?.get(
+        schemaImport.zodBaseName ?? schemaImport.name,
       );
+      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
+      const dependency = schemaOutputPlan
+        ? isPackageImport
+          ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
+            upath.joinSafe(
+              relativeSchemasPath,
+              `${normalizedName}${suffix}${importExtension}`,
+            ))
+          : schemaOutputPlan.clientImportPath(
+              schemaImport.name,
+              relativeSchemasPath,
+            )
+        : upath.joinSafe(
+            relativeSchemasPath,
+            `${tagSegment}${normalizedName}${suffix}${importExtension}`,
+          );
 
       if (!importsByDependency.has(dependency)) {
         importsByDependency.set(dependency, []);
@@ -134,23 +168,29 @@ export function generateImportsForBuilder(
     );
   }
 
-  const otherImportsMap = new Map<string, GeneratorImport[]>();
-  for (const imp of uniqueBy(
-    imports.filter(
-      (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
-    ),
-    (x) => `${x.name}|${x.importPath}`,
+  // Operations contribute these independently, so the same binding can
+  // arrive once as a type and once as a value (e.g. `HttpHeaders` from an
+  // operation that only types it and one that narrows with `instanceof`).
+  // A single file needs one import per binding, and a value import satisfies
+  // both uses, so the value flag wins.
+  const otherImportsMap = new Map<string, Map<string, GeneratorImport>>();
+  for (const imp of imports.filter(
+    (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
   )) {
-    const existing = otherImportsMap.get(imp.importPath);
-    if (existing) {
-      existing.push(imp);
-    } else {
-      otherImportsMap.set(imp.importPath, [imp]);
+    const byBinding =
+      otherImportsMap.get(imp.importPath) ?? new Map<string, GeneratorImport>();
+    otherImportsMap.set(imp.importPath, byBinding);
+    const key = `${imp.name}|${imp.alias ?? ''}`;
+    const existing = byBinding.get(key);
+    if (!existing) {
+      byBinding.set(key, imp);
+    } else if (imp.values && !existing.values) {
+      byBinding.set(key, { ...existing, values: true });
     }
   }
   const otherImports = [...otherImportsMap.entries()].map<GeneratorDependency>(
-    ([dependency, exports]) => ({
-      exports,
+    ([dependency, byBinding]) => ({
+      exports: [...byBinding.values()],
       dependency,
     }),
   );

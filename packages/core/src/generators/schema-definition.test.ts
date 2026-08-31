@@ -37,6 +37,35 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].name).toBe('TestSchemaSuffix');
   });
 
+  it('should preserve enum and schema kinds on generated entries', () => {
+    const result = generateSchemasDefinition(
+      {
+        User: {
+          type: 'object',
+          properties: {
+            role: {
+              type: 'string',
+              enum: ['active', 'disabled'],
+            },
+          },
+        },
+        UserStatus: {
+          type: 'string',
+          enum: ['active', 'disabled'],
+        },
+      },
+      context,
+      '',
+    );
+
+    expect(result.find((schema) => schema.name === 'User')?.kind).toBe(
+      'schema',
+    );
+    expect(result.find((schema) => schema.name === 'UserStatus')?.kind).toBe(
+      'enum',
+    );
+  });
+
   it('should generate schemas with include filters', () => {
     const schemas: OpenApiSchemasObject = {
       TestSchema: {

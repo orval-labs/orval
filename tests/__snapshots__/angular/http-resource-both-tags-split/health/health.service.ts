@@ -4,16 +4,17 @@
  * Angular httpResource both regression
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
+import { HttpClient } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
+
+import type {
   HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
-import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

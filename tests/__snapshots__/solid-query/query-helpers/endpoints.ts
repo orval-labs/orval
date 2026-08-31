@@ -336,7 +336,7 @@ export function useListPetsInfinite<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link useListPetsInfinite} query
  */
 export const invalidateListPetsInfinite = async (
   queryClient: QueryClient,
@@ -489,7 +489,7 @@ export function useListPets<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link useListPets} query
  */
 export const invalidateListPets = async (
   queryClient: QueryClient,
@@ -734,7 +734,7 @@ export function useCreatePets<
 }
 
 /**
- * @summary Create a pet
+ * @summary Invalidates the {@link useCreatePets} query
  */
 export const invalidateCreatePets = async (
   queryClient: QueryClient,
@@ -965,7 +965,7 @@ export function useShowPetById<
 }
 
 /**
- * @summary Info for a specific pet
+ * @summary Invalidates the {@link useShowPetById} query
  */
 export const invalidateShowPetById = async (
   queryClient: QueryClient,
@@ -1197,7 +1197,7 @@ export function useDeletePetById<
 }
 
 /**
- * @summary Deletes a specific pet
+ * @summary Invalidates the {@link useDeletePetById} query
  */
 export const invalidateDeletePetById = async (
   queryClient: QueryClient,
@@ -1414,7 +1414,7 @@ export function useHealthCheck<
 }
 
 /**
- * @summary health check
+ * @summary Invalidates the {@link useHealthCheck} query
  */
 export const invalidateHealthCheck = async (
   queryClient: QueryClient,
@@ -1643,7 +1643,7 @@ export function useShowPetWithOwner<
 }
 
 /**
- * @summary combinate nullable and $ref
+ * @summary Invalidates the {@link useShowPetWithOwner} query
  */
 export const invalidateShowPetWithOwner = async (
   queryClient: QueryClient,
