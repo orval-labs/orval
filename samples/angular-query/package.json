@@ -44,7 +44,7 @@
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "msw": {
     "workerDirectory": [
