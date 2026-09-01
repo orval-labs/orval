@@ -6761,7 +6761,7 @@ describe('generateFormData', () => {
       testOutput,
     );
     expect(result.implementation).toBe(
-      'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(Blob).optional()\n})\n\n',
     );
   });
 });
@@ -6979,7 +6979,7 @@ describe('generateFormUrlEncoded', () => {
   });
 
   // URLSearchParams serializes every value to a string, so binary/file fields
-  // must stay zod.string() rather than zod.instanceof(File) (#3664 review).
+  // must stay zod.string() rather than zod.instanceof(Blob) (#3664 review).
   it('keeps binary fields as string for application/x-www-form-urlencoded', async () => {
     const result = await generateZod(
       {
@@ -7066,7 +7066,7 @@ describe('generateFormUrlEncoded', () => {
       formUrlEncodedNestedBinarySchema,
       testOutput,
     );
-    expect(result.implementation).not.toContain('zod.instanceof(File)');
+    expect(result.implementation).not.toContain('zod.instanceof(Blob)');
     expect(result.implementation).toContain('"id": zod.string()');
     expect(result.implementation).toContain(
       '"attachment": zod.string().nullish()',
@@ -9287,22 +9287,22 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
       schema,
       testOutput,
     );
-    // encBinary: encoding image/png → File
-    // encText: encoding text/plain → File | string
-    // cmtBinary: contentMediaType image/png → File
-    // cmtText: contentMediaType application/xml → File | string
-    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
-    // formatBinary: format: binary → File (same as instanceof check)
+    // encBinary: encoding image/png → Blob
+    // encText: encoding text/plain → Blob | string
+    // cmtBinary: contentMediaType image/png → Blob
+    // cmtText: contentMediaType application/xml → Blob | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → Blob | string
+    // formatBinary: format: binary → Blob (same as instanceof check)
     // base64Field: contentEncoding base64 → stays string
     // metadata: object → object schema
     expect(result.implementation)
       .toBe(`export const UploadFormBody = zod.object({
-  "encBinary": zod.instanceof(File),
-  "encText": zod.instanceof(File).or(zod.string()),
-  "cmtBinary": zod.instanceof(File),
-  "cmtText": zod.instanceof(File).or(zod.string()),
-  "encOverride": zod.instanceof(File).or(zod.string()),
-  "formatBinary": zod.instanceof(File),
+  "encBinary": zod.instanceof(Blob),
+  "encText": zod.instanceof(Blob).or(zod.string()),
+  "cmtBinary": zod.instanceof(Blob),
+  "cmtText": zod.instanceof(Blob).or(zod.string()),
+  "encOverride": zod.instanceof(Blob).or(zod.string()),
+  "formatBinary": zod.instanceof(Blob),
   "base64Field": zod.string(),
   "metadata": zod.object({
   "name": zod.string().optional()
@@ -9413,22 +9413,22 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
       schema,
       testOutput,
     );
-    // encBinary: encoding image/png → File
-    // encText: encoding text/plain → File | string
-    // cmtBinary: contentMediaType image/png → File
-    // cmtText: contentMediaType application/xml → File | string
-    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
-    // formatBinary: format: binary → File (same as instanceof check)
+    // encBinary: encoding image/png → Blob
+    // encText: encoding text/plain → Blob | string
+    // cmtBinary: contentMediaType image/png → Blob
+    // cmtText: contentMediaType application/xml → Blob | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → Blob | string
+    // formatBinary: format: binary → Blob (same as instanceof check)
     // base64Field: contentEncoding base64 → stays string
     // metadata: object → object schema
     expect(result.implementation)
       .toBe(`export const UploadFormBody = zod.object({
-  "encBinary": zod.instanceof(File),
-  "encText": zod.instanceof(File).or(zod.string()),
-  "cmtBinary": zod.instanceof(File),
-  "cmtText": zod.instanceof(File).or(zod.string()),
-  "encOverride": zod.instanceof(File).or(zod.string()),
-  "formatBinary": zod.instanceof(File),
+  "encBinary": zod.instanceof(Blob),
+  "encText": zod.instanceof(Blob).or(zod.string()),
+  "cmtBinary": zod.instanceof(Blob),
+  "cmtText": zod.instanceof(Blob).or(zod.string()),
+  "encOverride": zod.instanceof(Blob).or(zod.string()),
+  "formatBinary": zod.instanceof(Blob),
   "base64Field": zod.string(),
   "metadata": zod.object({
   "name": zod.string().optional()
@@ -10149,7 +10149,7 @@ describe('zod split mode regressions', () => {
 });
 
 describe('generateZodValidationSchemaDefinition (contentMediaType: application/octet-stream)', () => {
-  it('contentMediaType: application/octet-stream → instanceof File', () => {
+  it('contentMediaType: application/octet-stream → instanceof Blob', () => {
     const schema: OpenApiSchemaObject = {
       type: 'string',
       contentMediaType: 'application/octet-stream',
@@ -10171,7 +10171,7 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
     );
 
     expect(result).toEqual({
-      functions: [['instanceof', 'File']],
+      functions: [['instanceof', 'Blob']],
       consts: [],
     });
   });

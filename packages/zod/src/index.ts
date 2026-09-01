@@ -1198,20 +1198,20 @@ export const generateZodValidationSchemaDefinition = (
         // url-encoded bodies serialize via URLSearchParams (strings only), so
         // binary fields stay `string` rather than becoming `File` (#3664).
         if (!urlEncoded && schema.format === 'binary') {
-          functions.push(['instanceof', 'File']);
+          functions.push(['instanceof', 'Blob']);
           break;
         }
 
         // The @scalar/openapi-parser upgrader converts format: binary to
         // contentMediaType: application/octet-stream when upgrading
         // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
-        // format: binary so $ref-based model types generate File validation.
+        // format: binary so $ref-based model types generate Blob validation.
         if (
           !urlEncoded &&
           schema.contentMediaType === 'application/octet-stream' &&
           !schema.contentEncoding
         ) {
-          functions.push(['instanceof', 'File']);
+          functions.push(['instanceof', 'Blob']);
           break;
         }
 
@@ -1850,7 +1850,7 @@ ${Object.entries(objectArgs)
         current = {
           expr: zodMiniCall(
             'union',
-            `[${zodMiniCall('instanceof', 'File')}, ${zodMiniCall('string')}]`,
+            `[${zodMiniCall('instanceof', 'Blob')}, ${zodMiniCall('string')}]`,
           ),
           kind: 'union',
         };
@@ -2234,7 +2234,7 @@ ${Object.entries(mergedProperties)
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
     if (fn === 'fileOrString') {
-      return 'zod.instanceof(File).or(zod.string())';
+      return 'zod.instanceof(Blob).or(zod.string())';
     }
 
     if (fn === 'allOf') {
@@ -2762,7 +2762,7 @@ export const generateFormDataZodSchema = (
         const isRequired = schema.required?.includes(key);
         const fileFunctions: [string, unknown][] = [
           fileType === 'binary'
-            ? ['instanceof', 'File']
+            ? ['instanceof', 'Blob']
             : ['fileOrString', undefined],
         ];
         if (!isRequired) {
