@@ -7,6 +7,7 @@
 import {
   createMutation,
   createQuery,
+  partialMatchKey,
   useQueryClient,
 } from '@tanstack/svelte-query';
 import type {
@@ -334,8 +335,12 @@ export const getCreatePetsMutationOptions = <
     context: TContext | undefined,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getHealthCheckQueryKey() });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          [getListPetsQueryKey(), getHealthCheckQueryKey()].some((key) =>
+            partialMatchKey(query.queryKey, key),
+          ),
+      });
     }
     mutationOptions?.onSuccess?.(data, variables, context);
   };
@@ -596,10 +601,12 @@ export const getDeletePetByIdMutationOptions = <
     context: TContext | undefined,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.resetQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getHealthCheckQueryKey() });
       queryClient.resetQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (key) => partialMatchKey(query.queryKey, key),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, context);

@@ -4,7 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  partialMatchKey,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -411,14 +416,13 @@ export const getCreatePetsMutationOptions = <
     context: TContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
         predicate: (query) =>
-          typeof query.queryKey[0] === 'string' &&
-          query.queryKey[0].startsWith('/pets/'),
-      });
-      queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey('@me'),
+          [getListPetsQueryKey(), getShowPetByIdQueryKey('@me')].some((key) =>
+            partialMatchKey(query.queryKey, key),
+          ) ||
+          (typeof query.queryKey[0] === 'string' &&
+            query.queryKey[0].startsWith('/pets/')),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, context);
@@ -740,9 +744,11 @@ export const getDeletePetByIdMutationOptions = <
     context: TContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (key) => partialMatchKey(query.queryKey, key),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, context);

@@ -12,6 +12,7 @@ import {
   QueryClient,
   injectMutation,
   injectQuery,
+  partialMatchKey,
 } from '@tanstack/angular-query-experimental';
 import type {
   CreateMutationOptions,
@@ -677,9 +678,11 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (key) => partialMatchKey(query.queryKey, key),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
@@ -786,9 +789,11 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (key) => partialMatchKey(query.queryKey, key),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
@@ -899,9 +904,11 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (key) => partialMatchKey(query.queryKey, key),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);

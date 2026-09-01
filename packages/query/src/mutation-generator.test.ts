@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { GetterPropType } from '@orval/core';
 
 import {
+  createGenerateInvalidateCalls,
   getMutationOptionsPathParamNames,
   getMutationOptionsUrl,
 } from './mutation-generator';
@@ -89,5 +90,54 @@ describe('getMutationOptionsPathParamNames', () => {
         },
       ]),
     ).toEqual(['petId', 'version', 'entityId', 'tenantId']);
+  });
+});
+
+describe('createGenerateInvalidateCalls', () => {
+  // No spec, so every target falls through to the zero-arg query key call.
+  const generate = createGenerateInvalidateCalls(
+    undefined,
+    true,
+    false,
+    undefined,
+    undefined,
+  );
+
+  it('emits a plain query key for a single target', () => {
+    expect(
+      generate([{ query: 'listPets', invalidateMode: 'invalidate' }]),
+    ).toBe(
+      '    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });',
+    );
+  });
+
+  it('folds several targets into one call so they cannot cancel each other', () => {
+    // Keys are derived from the URL path, so targets routinely overlap
+    // (`/pets` partially matches `/pets/{petId}`). One `invalidateQueries` per
+    // target would abort the refetch the previous one just started, because
+    // `cancelRefetch` defaults to true.
+    expect(
+      generate([
+        { query: 'listPets', invalidateMode: 'invalidate' },
+        { query: 'showPetById', invalidateMode: 'invalidate' },
+      ]),
+    ).toBe(
+      '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((key) => partialMatchKey(query.queryKey, key)) });',
+    );
+  });
+
+  it('keeps reset targets in their own call', () => {
+    expect(
+      generate([
+        { query: 'listPets', invalidateMode: 'invalidate' },
+        { query: 'showPetById', invalidateMode: 'invalidate' },
+        { query: 'petStats', invalidateMode: 'reset' },
+      ]),
+    ).toBe(
+      [
+        '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((key) => partialMatchKey(query.queryKey, key)) });',
+        '    queryClient.resetQueries({ queryKey: getPetStatsQueryKey() });',
+      ].join('\n'),
+    );
   });
 });

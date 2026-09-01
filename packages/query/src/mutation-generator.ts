@@ -314,24 +314,36 @@ const toPrefixLiteral = (prefix: string): string =>
   prefix.includes('${') ? `\`${prefix}\`` : `'${prefix}'`;
 
 /**
- * Create a generateInvalidateCall function that has access to the OpenAPI spec
- * for intelligent route-based invalidation when params are not specified.
+ * What one invalidate target resolves to: the `queryClient` method to call and
+ * either a query key expression or the body of a predicate. Kept apart from the
+ * emitted statement so several targets can be folded into a single call.
  */
-const createGenerateInvalidateCall = (
+interface InvalidateFilter {
+  method: 'invalidateQueries' | 'resetQueries';
+  key?: string;
+  predicate?: string;
+}
+
+/**
+ * Create a function resolving one invalidate target to its filter, using the
+ * OpenAPI spec for intelligent route-based invalidation when params are not
+ * specified.
+ */
+const createGenerateInvalidateFilter = (
   spec: Record<string, unknown> | undefined,
   shouldSplitQueryKey: boolean,
   useOperationIdAsQueryKey: boolean,
   baseUrl: NormalizedOutputOptions['baseUrl'],
   servers: OpenApiServerObject[] | undefined,
 ) => {
-  return (target: NormalizedTarget): string => {
+  return (target: NormalizedTarget): InvalidateFilter => {
     const method =
       target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries';
     const queryKeyFn = camel(`get-${target.query}-query-key`);
 
     if (hasNonEmptyParams(target.params)) {
       const args = generateParamArgs(target.params);
-      return `    queryClient.${method}({ queryKey: ${queryKeyFn}(${args}) });`;
+      return { method, key: `${queryKeyFn}(${args})` };
     }
 
     // No params specified – check if the target query has required path params
@@ -378,7 +390,7 @@ const createGenerateInvalidateCall = (
           const keyArr = verbPrefix
             ? `['${verbPrefix}', ${segments}]`
             : `[${segments}]`;
-          return `    queryClient.${method}({ queryKey: ${keyArr} });`;
+          return { method, key: keyArr };
         }
 
         // Default mode: query keys are template strings like
@@ -387,14 +399,81 @@ const createGenerateInvalidateCall = (
         // lives in the tuple.
         const prefixLiteral = toPrefixLiteral(prefixWithBase);
         if (verbPrefix) {
-          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith(${prefixLiteral}) });`;
+          return {
+            method,
+            predicate: `query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith(${prefixLiteral})`,
+          };
         }
-        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith(${prefixLiteral}) });`;
+        return {
+          method,
+          predicate: `typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith(${prefixLiteral})`,
+        };
       }
     }
 
     // No path params or route not found – call query key function without args
-    return `    queryClient.${method}({ queryKey: ${queryKeyFn}() });`;
+    return { method, key: `${queryKeyFn}()` };
+  };
+};
+
+/**
+ * Fold every invalidate target of one mutation into a single `queryClient` call
+ * per method.
+ *
+ * `invalidateQueries` defaults to `cancelRefetch: true`, so one call per target
+ * makes the calls fight each other as soon as two targets cover the same query –
+ * and they routinely do, because keys are derived from the URL path and `/pets`
+ * partially matches `/pets/{petId}`. The later call aborts the refetch the
+ * earlier one has just started, which costs a wasted round trip and surfaces as
+ * an unhandled `AbortError: signal is aborted without reason`.
+ *
+ * One predicate covering the same set keeps `cancelRefetch: true` in force for a
+ * genuinely stale in-flight fetch, while invalidating and refetching each matched
+ * query exactly once. A lone target still emits the plain `queryKey` form, so
+ * single-target output is byte-identical to before.
+ */
+export const createGenerateInvalidateCalls = (
+  spec: Record<string, unknown> | undefined,
+  shouldSplitQueryKey: boolean,
+  useOperationIdAsQueryKey: boolean,
+  baseUrl: NormalizedOutputOptions['baseUrl'],
+  servers: OpenApiServerObject[] | undefined,
+) => {
+  const generateFilter = createGenerateInvalidateFilter(
+    spec,
+    shouldSplitQueryKey,
+    useOperationIdAsQueryKey,
+    baseUrl,
+    servers,
+  );
+
+  return (targets: NormalizedTarget[]): string => {
+    const filters = targets.map((target) => generateFilter(target));
+
+    return (['invalidateQueries', 'resetQueries'] as const)
+      .flatMap((method) => {
+        const group = filters.filter((filter) => filter.method === method);
+        if (group.length === 0) return [];
+
+        const keys = group.flatMap((filter) => filter.key ?? []);
+        const predicates = group.flatMap((filter) => filter.predicate ?? []);
+
+        if (predicates.length === 0 && keys.length === 1) {
+          return `    queryClient.${method}({ queryKey: ${keys[0]} });`;
+        }
+
+        const clauses = [
+          ...(keys.length > 0
+            ? [
+                `[${keys.join(', ')}].some((key) => partialMatchKey(query.queryKey, key))`,
+              ]
+            : []),
+          ...predicates.map((predicate) => `(${predicate})`),
+        ];
+
+        return `    queryClient.${method}({ predicate: (query) => ${clauses.join(' || ')} });`;
+      })
+      .join('\n');
   };
 };
 
@@ -607,7 +686,7 @@ ${
         definitions,
         mutationVariablesType,
         isRequestOptions,
-        generateInvalidateCall: createGenerateInvalidateCall(
+        generateInvalidateCalls: createGenerateInvalidateCalls(
           context.spec,
           !!query.shouldSplitQueryKey,
           !!query.useOperationIdAsQueryKey,
