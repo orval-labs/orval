@@ -6,6 +6,10 @@
  */
 import type { ListPetsParams, Pet, Pets, SearchPetsParams } from '../model';
 
+import { map } from 'rxjs';
+
+import type { ListPetsAccept, ShowPetByIdAccept } from './pets.service';
+
 import { HttpHeaders, httpResource } from '@angular/common/http';
 import type {
   HttpContext,
@@ -16,8 +20,6 @@ import type {
 
 import { inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
-
-import { map } from 'rxjs';
 
 import { PETSTORE_BASE_URL } from '../petstore.base-url';
 
@@ -181,23 +183,6 @@ function filterParams(
   }
   return filteredParams;
 }
-export type ListPetsAccept =
-  (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
-
-export const ListPetsAccept = {
-  application_json: 'application/json',
-  application_xml: 'application/xml',
-} as const;
-
-export type ShowPetByIdAccept =
-  (typeof ShowPetByIdAccept)[keyof typeof ShowPetByIdAccept];
-
-export const ShowPetByIdAccept = {
-  text_plain: 'text/plain',
-  application_xml: 'application/xml',
-  application_json: 'application/json',
-} as const;
-
 /**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
