@@ -11,7 +11,7 @@
     "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
-    "@hono/mcp": "^0.2.5",
+    "@hono/mcp": "^0.3.2",
     "@modelcontextprotocol/sdk": "catalog:mcp",
     "hono": "^4.12.12",
     "zod": "catalog:zod4"
