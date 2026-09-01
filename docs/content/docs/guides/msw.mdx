@@ -95,7 +95,7 @@ export default defineConfig({
 
 `preferredContentType` accepts common MIME literals and any custom string (via a loose `(string & {})` fallback), so vendor-specific types are supported too.
 
-`preferredContentType` only **selects** a declared media type — it does not convert the payload. If the chosen media type is not among the operation's responses, the preference is ignored and spec order is used. When the response schema is a structured object or array, prefer a JSON media type: pairing a non-JSON preference (for example, `text/plain` or `application/octet-stream`) with a structured schema serves a stringified or empty body instead of the structured mock.
+`preferredContentType` only **selects** a declared media type — it does not convert the payload. If the chosen media type is not among the operation's responses, the preference is ignored and spec order is used. When the response schema is a structured object or array, prefer a JSON media type: pairing a non-JSON preference (for example, `text/plain` or `application/xml`) with a structured schema serves a stringified body instead of the structured mock, and `application/octet-stream` falls back to JSON with the selected media type as the `Content-Type`.
 
 ### Array Item Factories
 

@@ -612,6 +612,10 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('new ArrayBuffer(0)');
       // Should use HttpResponse.json since no text-like content type is involved
       expect(result.implementation.handler).toContain('HttpResponse.json');
+      // The selected media type should be preserved on the json fallback header
+      expect(result.implementation.handler).toContain(
+        "headers: { 'Content-Type': 'application/octet-stream' }",
+      );
     });
 
     it('should ignore unmatched preferredContentType and use spec-order content types', () => {

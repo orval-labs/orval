@@ -351,7 +351,12 @@ function generateDefinition(
   const jsonCtHeaderSuffix =
     firstJsonCt && firstJsonCt !== 'application/json'
       ? `, headers: { 'Content-Type': '${firstJsonCt}' }`
-      : '';
+      : // When preferredContentType matched a non-JSON type (e.g. application/octet-stream)
+        // and the structured schema falls through to HttpResponse.json(), emit the
+        // selected media type as the Content-Type so the contract survives.
+        preferredContentTypeMatch && !preferredContentTypeMatch.includes('json')
+        ? `, headers: { 'Content-Type': '${preferredContentTypeMatch}' }`
+        : '';
   const textCtHeaderSuffix =
     firstTextCt && firstTextCt !== textHelperDefaultContentType
       ? `, headers: { 'Content-Type': '${firstTextCt}' }`
