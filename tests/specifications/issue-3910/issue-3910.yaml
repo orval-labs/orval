@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: issue 3910 - allowReserved path params
+  version: 1.0.0
+paths:
+  /products/{path}:
+    get:
+      operationId: getProductByPath
+      tags:
+        - products
+      parameters:
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /products/{path}/details:
+    get:
+      operationId: getProductDetailsByPath
+      tags:
+        - products
+      parameters:
+        - name: path
+          in: path
+          required: true
+          allowReserved: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK

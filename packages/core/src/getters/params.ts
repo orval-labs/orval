@@ -87,6 +87,7 @@ export function getParams({
       name: nameWithoutSanitize,
       required = false,
       schema,
+      allowReserved = false,
     } = pathParam.parameter;
 
     const name = camelPathParamName(nameWithoutSanitize ?? '');
@@ -98,6 +99,7 @@ export function getParams({
         implementation: `${name}${required ? '' : '?'}: unknown`,
         default: undefined,
         required,
+        allowReserved,
         imports: [],
       };
     }
@@ -141,6 +143,7 @@ export function getParams({
       implementation,
       default: schemaDefault,
       required,
+      allowReserved,
       imports: resolvedValue.imports,
       originalSchema,
     };
