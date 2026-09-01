@@ -356,7 +356,7 @@ export function useListHouseCatsInfinite<
 }
 
 /**
- * @summary List all cats of a house
+ * @summary Invalidates the {@link useListHouseCatsInfinite} query
  */
 export const invalidateListHouseCatsInfinite = async (
   queryClient: QueryClient,
@@ -540,7 +540,7 @@ export function useListHouseCats<
 }
 
 /**
- * @summary List all cats of a house
+ * @summary Invalidates the {@link useListHouseCats} query
  */
 export const invalidateListHouseCats = async (
   queryClient: QueryClient,

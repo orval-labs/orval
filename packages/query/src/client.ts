@@ -12,7 +12,11 @@ import {
   type GeneratorVerbOptions,
   getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
+  getSchemaOutputTypeRef,
+  getSchemaValueRef,
   getSuccessResponseType,
+  hasSchemaImport,
+  isPrimitiveResponseType,
   type GetterResponse,
   isObject,
   isOperationInTagBucket,
@@ -156,7 +160,22 @@ export const generateAngularHttpRequestFunction = (
     /,\s*$/,
     '',
   );
-  const dataType = response.definition.success || 'unknown';
+  // Detect if Zod runtime validation should be applied
+  const responseType = response.definition.success || 'unknown';
+  const isZodOutput =
+    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  const shouldValidateResponse =
+    override.query.runtimeValidation?.enabled &&
+    isZodOutput &&
+    !isPrimitiveResponseType(responseType) &&
+    hasSchemaImport(response.imports, responseType);
+  // The generated parse returns the schema's zod output type, so the declared
+  // type (HttpClient generic and Promise return) references the `XOutput`
+  // alias — the bare schema name aliases `zod.input`, which diverges under
+  // `coerce`, `useDates`, defaults and transforms (#3941).
+  const dataType = shouldValidateResponse
+    ? getSchemaOutputTypeRef(responseType)
+    : responseType;
 
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
@@ -224,28 +243,9 @@ export const generateAngularHttpRequestFunction = (
     }
   }
 
-  // Detect if Zod runtime validation should be applied
-  const responseType = response.definition.success;
-  const isPrimitiveType = [
-    'string',
-    'number',
-    'boolean',
-    'void',
-    'unknown',
-  ].includes(responseType);
-  const hasSchema = response.imports.some((imp) => imp.name === responseType);
-  const isZodOutput =
-    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
-  const isValidateResponse =
-    override.query.runtimeValidation?.enabled &&
-    isZodOutput &&
-    !isPrimitiveType &&
-    hasSchema;
-
   // If validation is enabled, pipe through the shared runtime-validation emitter
-  if (isValidateResponse) {
-    const schemaValueRef =
-      responseType === 'Error' ? 'ErrorSchema' : responseType;
+  if (shouldValidateResponse) {
+    const schemaValueRef = getSchemaValueRef(responseType);
     httpCall = `${httpCall}${emitResponseValidation({
       schemaRef: schemaValueRef,
       operationName,

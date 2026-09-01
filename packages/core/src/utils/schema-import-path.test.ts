@@ -102,11 +102,14 @@ describe('resolveSchemaImportDependencies', () => {
   });
 
   describe('indexFiles: false', () => {
+    // The schemas writer names each file after the TS identifier, including
+    // any Response/Body/Parameter suffix, so resolving from `schemaName` (the
+    // bare ref) would import a file that is never written (#2912).
     it('resolves each import to its own file under a relative path', () => {
       const output = createOutput({ indexFiles: false });
 
       expect(resolve(output, '../models')).toEqual([
-        '../models/petOriginal',
+        '../models/pet',
         '../models/error',
       ]);
     });
@@ -125,7 +128,7 @@ describe('resolveSchemaImportDependencies', () => {
       } as Partial<NormalizedOutputOptions>);
 
       expect(resolve(output, '@acme/models')).toEqual([
-        '@acme/models/petOriginal',
+        '@acme/models/pet',
         '@acme/models/error',
       ]);
     });
@@ -141,7 +144,7 @@ describe('resolveSchemaImportDependencies', () => {
       } as Partial<NormalizedOutputOptions>);
 
       expect(resolve(output, '../models')).toEqual([
-        '../models/petOriginal.js',
+        '../models/pet.js',
         '../models/error.js',
       ]);
     });
@@ -159,7 +162,7 @@ describe('resolveSchemaImportDependencies', () => {
         resolve(output, '@acme/models', [PET, ERROR], {
           schemaTagMap: TAG_MAP,
         }),
-      ).toEqual(['@acme/models/pets/petOriginal', '@acme/models/error']);
+      ).toEqual(['@acme/models/pets/pet', '@acme/models/error']);
     });
 
     it('names zod files from the TS identifier, not the schema name', () => {
@@ -202,7 +205,7 @@ describe('resolveSchemaImportDependencies', () => {
       });
 
       expect(resolve(output, '@acme/models', [PET])).toEqual([
-        '@acme/models/petOriginal.gen',
+        '@acme/models/pet.gen',
       ]);
     });
 

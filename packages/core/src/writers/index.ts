@@ -1,6 +1,7 @@
 export * from './file';
 export * from './mock-utils';
 export * from './schema-tag-mapper';
+export * from './schema-output-plan';
 export * from './schemas';
 export * from './schemas-tags-split';
 export * from './single-mode';

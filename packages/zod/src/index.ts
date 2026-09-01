@@ -3471,6 +3471,7 @@ const generateZodRoute = async (
   }
 
   const useBrandedTypes = override.zod.useBrandedTypes;
+  const generateCompanionTypes = override.zod.generateCompanionTypes;
   const renderExport = (
     name: string,
     expression: string,
@@ -3481,6 +3482,7 @@ const generateZodRoute = async (
       expression,
       variant: zodVariant,
       brand: useBrandedTypes ? { isZodV4 } : undefined,
+      companionTypes: generateCompanionTypes,
       arrayItem,
     });
 

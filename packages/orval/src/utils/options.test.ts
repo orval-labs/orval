@@ -1121,6 +1121,311 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes schema routes relative to the schema base path', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: { default: 'models', enum: 'types' },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toEqual({
+        path: path.join(workspace, 'schemas'),
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes dot segments in schema routes', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: {
+                default: './models/./domain',
+                enum: 'types/./enums',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toMatchObject({
+        routes: { default: 'models/domain', enum: 'types/enums' },
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('requires a default schema route', async () => {
+    const workspace = await createTempWorkspace();
+
+    await expect(
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: {} as never,
+            },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('`schemas.routes.default` is required');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it.each([
+    ['', 'empty'],
+    ['/absolute', 'absolute'],
+    ['../outside', 'escaping'],
+    ['C:/absolute', 'Windows absolute'],
+    ['//server/share', 'UNC absolute'],
+    ['.', 'empty after normalization'],
+  ])('rejects %s schema route paths (%s)', async (route) => {
+    const workspace = await createTempWorkspace();
+
+    await expect(
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: { default: route },
+            },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('`schemas.routes.default` must be a relative directory');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it('rejects duplicate default and enum schema routes', async () => {
+    const workspace = await createTempWorkspace();
+
+    await expect(
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: { default: 'models', enum: 'models' },
+            },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('must be different directories');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it.each([
+    ['models/.', 'dot segment'],
+    ['Models', 'case-insensitive'],
+  ])('rejects equivalent schema routes (%s: %s)', async (enumRoute) => {
+    const workspace = await createTempWorkspace();
+
+    await expect(
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './schemas',
+              routes: { default: 'models', enum: enumRoute },
+            },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('must be different directories');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it('rejects unsupported schema route combinations before generation', async () => {
+    const workspace = await createTempWorkspace();
+    const baseInput = {
+      input: {
+        target: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        },
+      },
+      output: {
+        target: './generated.ts',
+        schemas: {
+          path: './schemas',
+          routes: { default: 'models' },
+        },
+      },
+    };
+
+    const zodOptions = await normalizeOptions(
+      {
+        ...baseInput,
+        output: {
+          ...baseInput.output,
+          schemas: {
+            ...baseInput.output.schemas,
+            type: 'zod',
+          },
+        },
+      },
+      workspace,
+    );
+    expect(zodOptions.output.schemas).toMatchObject({
+      type: 'zod',
+      routes: { default: 'models' },
+    });
+
+    const splitByTagsOptions = await normalizeOptions(
+      {
+        ...baseInput,
+        output: {
+          ...baseInput.output,
+          schemas: {
+            ...baseInput.output.schemas,
+            splitByTags: true,
+          },
+        },
+      },
+      workspace,
+    );
+    expect(splitByTagsOptions.output.schemas).toMatchObject({
+      splitByTags: true,
+      routes: { default: 'models' },
+    });
+
+    await expect(
+      normalizeOptions(
+        {
+          ...baseInput,
+          output: {
+            ...baseInput.output,
+            operationSchemas: './operation-schemas',
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('cannot be used with `output.operationSchemas`');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it('rejects route-aware schema imports for mocks and factories', async () => {
+    const workspace = await createTempWorkspace();
+    const baseInput = {
+      input: {
+        target: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        },
+      },
+      output: {
+        target: './generated.ts',
+        schemas: {
+          path: './schemas',
+          routes: { default: 'models' },
+        },
+      },
+    };
+
+    await expect(
+      normalizeOptions(
+        { ...baseInput, output: { ...baseInput.output, mock: true } },
+        workspace,
+      ),
+    ).rejects.toThrow('cannot be used with mock generators');
+
+    await expect(
+      normalizeOptions(
+        {
+          ...baseInput,
+          output: {
+            ...baseInput.output,
+            factoryMethods: { outputDirectory: './factories' },
+          },
+        },
+        workspace,
+      ),
+    ).rejects.toThrow('cannot be used with `output.factoryMethods`');
+
+    await rm(workspace, { recursive: true, force: true });
+  });
+
   it('normalizes zod/effect exactOptional (default false, opt-in true)', async () => {
     const workspace = await createTempWorkspace();
 
@@ -1948,6 +2253,7 @@ describe('normalizeOptions', () => {
                     strict: { body: true },
                     version: 3,
                     variant: 'mini',
+                    exactOptional: true,
                   } as never,
                 },
               },
@@ -1977,6 +2283,13 @@ describe('normalizeOptions', () => {
       ).toBe(false);
       expect(
         'variant' in
+          (normalized.output.override.operations.listPets?.zod ?? {}),
+      ).toBe(false);
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('zod.exactOptional'),
+      );
+      expect(
+        'exactOptional' in
           (normalized.output.override.operations.listPets?.zod ?? {}),
       ).toBe(false);
       expect(
@@ -2033,6 +2346,52 @@ describe('normalizeOptions', () => {
         normalized.output.override.operations.listPets?.zod,
       ).toBeUndefined();
       expect(normalized.output.override.tags.Pets?.zod).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      logWarningSpy.mockClear();
+    }
+  });
+
+  it('honors generateCompanionTypes as a supported per-operation zod override', async () => {
+    const workspace = await createTempWorkspace();
+    logWarningSpy.mockClear();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              zod: {
+                generateCompanionTypes: false,
+              },
+              operations: {
+                listPets: {
+                  zod: {
+                    generateCompanionTypes: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+      expect(normalized.output.override.zod.generateCompanionTypes).toBe(false);
+      expect(
+        normalized.output.override.operations.listPets?.zod
+          ?.generateCompanionTypes,
+      ).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
       logWarningSpy.mockClear();

@@ -76,6 +76,7 @@ export async function writeTagsOperationsMode({
   needSchema,
   generateSchemasInline,
   schemaTagMap,
+  schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   assertClientSupportsTagsOperations(output.client, 'tags-operations');
 
@@ -195,6 +196,7 @@ export async function writeTagsOperationsMode({
               implementationImports,
               schemasPathRelative,
               schemaTagMap,
+              schemaOutputPlan,
             );
 
             let data = header;

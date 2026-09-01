@@ -7,6 +7,7 @@ import { conventionName } from './case';
 import * as upath from './path';
 import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
+import type { SchemaOutputPlan } from '../writers/schema-output-plan';
 
 /**
  * Tag directory for a schema that more than one tag uses. Such schemas stay at
@@ -22,6 +23,11 @@ export interface ResolveSchemaImportDependenciesOptions {
    * `'.'` marks a shared schema, which stays at the schemas root.
    */
   schemaTagMap?: Map<string, string>;
+  /**
+   * Plan built from `schemas.routes`. When present it owns the file layout,
+   * so it supersedes both the flat layout and `schemaTagMap` routing (#3942).
+   */
+  schemaOutputPlan?: SchemaOutputPlan;
 }
 
 /**
@@ -42,14 +48,35 @@ export function resolveSchemaImportDependencies(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
-  { isZod, schemaTagMap }: ResolveSchemaImportDependenciesOptions,
+  {
+    isZod,
+    schemaTagMap,
+    schemaOutputPlan,
+  }: ResolveSchemaImportDependenciesOptions,
 ): GeneratorDependency[] {
+  // A routed plan may fold several spec names onto one emitted schema. Import
+  // the canonical name, or the import names a binding the file never exports.
+  const resolved = schemaOutputPlan
+    ? imports.map((schemaImport) => {
+        if (!schemaOutputPlan.hasSchema(schemaImport.name)) return schemaImport;
+        const canonicalName = schemaOutputPlan.canonicalNameFor(
+          schemaImport.name,
+        );
+        return canonicalName === schemaImport.name
+          ? schemaImport
+          : { ...schemaImport, name: canonicalName };
+      })
+    : imports;
+
+  const schemasImportPath = getSchemasImportPath(output.schemas);
+  const isPackageImport = !!schemasImportPath;
+
   // A root barrel makes every schema available from one module.
   if (output.indexFiles) {
     return [
       {
-        exports: dedupeSchemaImports(imports),
-        dependency: relativeSchemasPath,
+        exports: dedupeSchemaImports(resolved),
+        dependency: schemasImportPath ?? relativeSchemasPath,
       },
     ];
   }
@@ -65,7 +92,6 @@ export function resolveSchemaImportDependencies(
   // nothing of our tsconfig: `pet.zod.ts` is imported as
   // `@acme/models/pet.zod`. Withholding the tsconfig drops `.ts` without the
   // NodeNext `.ts`→`.js` rewrite, which would name a file nobody emits.
-  const isPackageImport = !!getSchemasImportPath(output.schemas);
   const importExtension = getImportExtension(
     schemaFileExtension,
     isPackageImport ? undefined : output.tsconfig,
@@ -73,23 +99,36 @@ export function resolveSchemaImportDependencies(
 
   const importsByDependency = new Map<string, GeneratorImport[]>();
 
-  for (const schemaImport of imports) {
-    // Zod files are named from the TS identifier. TypeScript files prefer the
-    // original spec name when it differs.
-    const baseName = isZod
-      ? schemaImport.name
-      : (schemaImport.schemaName ?? schemaImport.name);
+  for (const schemaImport of resolved) {
+    // `<Name>Output` aliases are emitted into their base schema's file, so
+    // they resolve through `zodBaseName` (#3927). Everything else is named
+    // after the TS identifier: the schemas writer emits each file as
+    // `schema.name` including the Response/Body/Parameter suffix, so
+    // preferring `schemaName` (the bare ref) would point at a file that is
+    // never written (#2912).
+    const baseName = schemaImport.zodBaseName ?? schemaImport.name;
     const normalizedName = conventionName(baseName, output.namingConvention);
 
-    // `buildSchemaTagMap` keys on the TS identifier, so look up
-    // `schemaImport.name` and not `schemaName`.
-    const tagDir = schemaTagMap?.get(schemaImport.name);
+    const tagDir = schemaTagMap?.get(baseName);
     const tagSegment = tagDir && tagDir !== SHARED_DIR ? `${tagDir}/` : '';
 
-    const dependency = upath.joinSafe(
+    const flatDependency = upath.joinSafe(
       relativeSchemasPath,
       `${tagSegment}${normalizedName}${importExtension}`,
     );
+
+    // The plan owns the layout when routes are configured. For a package
+    // import it maps to an export subpath; a schema the plan does not place
+    // falls back to the flat layout.
+    const dependency = schemaOutputPlan
+      ? isPackageImport
+        ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
+          flatDependency)
+        : schemaOutputPlan.clientImportPath(
+            schemaImport.name,
+            relativeSchemasPath,
+          )
+      : flatDependency;
 
     const existing = importsByDependency.get(dependency);
     if (existing) {

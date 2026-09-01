@@ -346,6 +346,8 @@ export type EnumGeneration =
 
 export type SchemaGenerationType = 'typescript' | 'zod';
 
+export type GeneratedSchemaKind = 'enum' | 'schema';
+
 export type FactoryMethodsMode = 'single' | 'split' | 'single-split';
 
 export interface FactoryMethodsOptions {
@@ -366,6 +368,7 @@ export interface SchemaOptions {
   path: string;
   type?: SchemaGenerationType;
   importPath?: string;
+  routes?: SchemaRouteOptions;
   /**
    * When `true`, schemas are organized into per-tag subdirectories instead of
    * a single flat directory. Schemas referenced by multiple tags remain at the
@@ -376,11 +379,17 @@ export interface SchemaOptions {
   splitByTags?: boolean;
 }
 
+export interface SchemaRouteOptions {
+  default: string;
+  enum?: string;
+}
+
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
   splitByTags: boolean;
+  routes?: SchemaRouteOptions;
 }
 
 export interface OutputOptions {
@@ -978,6 +987,13 @@ interface BaseZodOptions {
    */
   params?: Mutator;
   useBrandedTypes?: boolean;
+  /**
+   * When true, each generated `export const X = <zod schema>` is followed by
+   * `export type X = zod.input<typeof X>;` and
+   * `export type XOutput = zod.output<typeof X>;`, including the `Item`
+   * schema split out for a bounded/array body or response. Default `false`.
+   */
+  generateCompanionTypes?: boolean;
 }
 
 export interface ZodOptions extends BaseZodOptions {
@@ -1037,6 +1053,34 @@ export interface ZodOptions extends BaseZodOptions {
  * / `override.tags.*`.
  */
 export type OperationZodOptions = BaseZodOptions;
+
+/**
+ * Runtime source of truth for the `override.zod` keys that may also be set per
+ * operation or tag. `NormalizedOperationZodOptions`, the unsupported-key
+ * warning, and the operation/tag normalization in `orval` are all derived from
+ * this array; the `satisfies` clause plus the `Exclude` assertion below force
+ * it to stay in lockstep with `OperationZodOptions`.
+ */
+export const operationZodOverrideKeys = [
+  'strict',
+  'generate',
+  'coerce',
+  'preprocess',
+  'params',
+  'useBrandedTypes',
+  'generateCompanionTypes',
+] as const satisfies readonly (keyof OperationZodOptions)[];
+
+export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];
+
+// Compile-time exhaustiveness: adding a key to `BaseZodOptions` without adding
+// it to `operationZodOverrideKeys` makes this alias non-`never` and the
+// `satisfies` below fail.
+type MissingOperationZodOverrideKey = Exclude<
+  keyof OperationZodOptions,
+  OperationZodOverrideKey
+>;
+true satisfies MissingOperationZodOverrideKey extends never ? true : never;
 
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
@@ -1100,13 +1144,14 @@ export interface NormalizedZodOptions {
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
   exactOptional: boolean;
+  generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
 
 export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
-  'strict' | 'generate' | 'coerce' | 'preprocess' | 'params' | 'useBrandedTypes'
+  OperationZodOverrideKey
 >;
 
 export interface NormalizedEffectOptions {
@@ -1682,6 +1727,9 @@ export interface GeneratorSchema {
   imports: GeneratorImport[];
   dependencies?: string[];
   schema?: OpenApiSchemaObject;
+  // Optional for compatibility with callers constructing GeneratorSchema;
+  // production generators set it before route-aware schema writing.
+  kind?: GeneratedSchemaKind;
   factory?: string;
   factoryImports?: GeneratorImport[];
   factoryMode?: FactoryMethodsMode;
@@ -1702,6 +1750,11 @@ export interface GeneratorImport {
   // (e.g. `getPetMock`). The mock-file writer routes it to
   // `<schemas-dir>/index.faker` instead of `<schemas-dir>/<schemaName>`.
   readonly schemaFactory?: boolean;
+  // Zod-schemas mode: the base schema identifier whose `.zod` file declares
+  // this binding. Set on `${name}Output` type-alias imports so per-file
+  // (`indexFiles: false`) layouts route them to the base schema's file
+  // instead of a nonexistent `<name>.zod` one.
+  readonly zodBaseName?: string;
 }
 
 export interface GeneratorDependency {
@@ -1909,9 +1962,37 @@ export type ClientBuilder = (
   output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
+/**
+ * Names that a generated file declares and that its sibling files of the same
+ * kind declare identically. The barrel writer uses them to prevent TS2308.
+ * See `buildBarrelReExports` for the rule.
+ */
+export interface SharedExports {
+  /**
+   * Type-only declarations. Re-exported via `export type { ... }` — kept
+   * separate from {@link SharedExports.values} because a type re-exported
+   * without the `type` modifier is an error under `verbatimModuleSyntax`,
+   * which Angular projects enable by default.
+   */
+  readonly types: readonly string[];
+  /** Value declarations, re-exported via `export { ... }`. */
+  readonly values: readonly string[];
+}
+
 export interface ClientFileBuilder {
   path: string;
   content: string;
+  /**
+   * Set this to re-export the file from the `tags-split` barrel. Omit it when
+   * the file is not part of the public client surface, or when the file runs
+   * code at module level and an import must not start that code.
+   */
+  barrelExport?: boolean;
+  /**
+   * Declared by generators whose extra files repeat shared boilerplate. Omit
+   * when a file declares nothing its siblings also declare.
+   */
+  sharedExports?: SharedExports;
 }
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
@@ -2204,6 +2285,8 @@ export interface WriteModeProps {
   // layout. The `'.'` sentinel marks schemas referenced by 0 or 2+ tags
   // (shared, kept at the schemas root).
   schemaTagMap?: Map<string, string>;
+  /** Route-aware schema paths prepared by the top-level writer. */
+  schemaOutputPlan?: import('./writers/schema-output-plan').SchemaOutputPlan;
 }
 
 export interface GeneratorApiOperations {

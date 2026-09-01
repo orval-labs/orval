@@ -5,12 +5,12 @@
  * Test spec for verifying query params are preserved with multiple response content types
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import type { HttpContext, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type {
   ConfirmReservationBody,
@@ -18,6 +18,8 @@ import type {
   Items,
   ListItemsParams,
 } from './model';
+
+import { HttpHeaders } from '@angular/common/http';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

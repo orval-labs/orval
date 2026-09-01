@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import {
   emitResponseValidation,
+  getSchemaOutputTypeRef,
+  getSchemaValueRef,
+  hasSchemaImport,
+  isPrimitiveResponseType,
   normalizeRuntimeValidation,
+  rewriteImportsForResponseValidation,
 } from './runtime-validation';
 
 describe('emitResponseValidation', () => {
@@ -177,5 +182,77 @@ describe('normalizeRuntimeValidation', () => {
     expect(
       normalizeRuntimeValidation({ enabled: true, strategy: 'both' }),
     ).toEqual({ enabled: true, strategy: 'both' });
+  });
+});
+
+describe('isPrimitiveResponseType', () => {
+  it('treats primitives, void and unknown as primitive', () => {
+    for (const t of ['string', 'number', 'boolean', 'void', 'unknown']) {
+      expect(isPrimitiveResponseType(t)).toBe(true);
+    }
+  });
+
+  it('treats schema names and undefined as non-primitive', () => {
+    expect(isPrimitiveResponseType('Pets')).toBe(false);
+    expect(isPrimitiveResponseType(undefined)).toBe(false);
+  });
+});
+
+describe('hasSchemaImport', () => {
+  const imports = [{ name: 'Pets' }, { name: 'Error' }];
+
+  it('finds an import by exact name', () => {
+    expect(hasSchemaImport(imports, 'Pets')).toBe(true);
+  });
+
+  it('misses absent names and undefined', () => {
+    expect(hasSchemaImport(imports, 'Pet')).toBe(false);
+    expect(hasSchemaImport(imports, undefined)).toBe(false);
+  });
+});
+
+describe('getSchemaValueRef', () => {
+  it('renames Error to ErrorSchema, leaves other names untouched', () => {
+    expect(getSchemaValueRef('Error')).toBe('ErrorSchema');
+    expect(getSchemaValueRef('Pets')).toBe('Pets');
+  });
+});
+
+describe('getSchemaOutputTypeRef', () => {
+  it('appends the Output suffix', () => {
+    expect(getSchemaOutputTypeRef('Pets')).toBe('PetsOutput');
+    expect(getSchemaOutputTypeRef('PetsSchema')).toBe('PetsSchemaOutput');
+  });
+});
+
+describe('rewriteImportsForResponseValidation', () => {
+  const imports = [
+    { name: 'Pets', schemaName: 'Pets' },
+    { name: 'Error', schemaName: 'Error' },
+  ];
+
+  it('flips the schema import to a value import and appends the Output alias', () => {
+    expect(rewriteImportsForResponseValidation(imports, 'Pets')).toEqual([
+      { name: 'Pets', schemaName: 'Pets', values: true },
+      { name: 'Error', schemaName: 'Error' },
+      { name: 'PetsOutput', zodBaseName: 'Pets' },
+    ]);
+  });
+
+  it('skips the Output alias when includeOutputType is false', () => {
+    expect(
+      rewriteImportsForResponseValidation(imports, 'Pets', {
+        includeOutputType: false,
+      }),
+    ).toEqual([
+      { name: 'Pets', schemaName: 'Pets', values: true },
+      { name: 'Error', schemaName: 'Error' },
+    ]);
+  });
+
+  it('does not mutate the input array', () => {
+    const before = structuredClone(imports);
+    rewriteImportsForResponseValidation(imports, 'Pets');
+    expect(imports).toEqual(before);
   });
 });

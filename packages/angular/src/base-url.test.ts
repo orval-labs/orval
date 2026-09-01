@@ -97,6 +97,7 @@ const createOutput = (
         generateDiscriminatedUnion: false,
         useBrandedTypes: false,
         exactOptional: false,
+        generateCompanionTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
       },

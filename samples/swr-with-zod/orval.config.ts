@@ -26,6 +26,11 @@ export default defineConfig({
       target: 'src/gen/endpoints',
       fileExtension: '.zod.ts',
       formatter: 'prettier',
+      override: {
+        zod: {
+          generateCompanionTypes: true,
+        },
+      },
     },
   },
   petstoreZodReusable: {

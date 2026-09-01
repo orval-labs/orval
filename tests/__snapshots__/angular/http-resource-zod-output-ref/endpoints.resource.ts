@@ -5,12 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  ListPetsParams,
   Pet,
   PetWithTag,
   Pets
 } from './model';
 import type {
+  ListPetsParams,
   PetOutput,
   PetWithTagOutput,
   PetsOutput

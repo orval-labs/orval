@@ -1,6 +1,7 @@
 import { getScalar } from '../getters';
 import type {
   ContextSpec,
+  GeneratorSchema,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
@@ -25,7 +26,7 @@ export function generateInterface({
   schema,
   context,
   genericParams,
-}: GenerateInterfaceOptions) {
+}: GenerateInterfaceOptions): GeneratorSchema[] {
   const scalar = getScalar({
     item: schema,
     name,
@@ -86,6 +87,7 @@ export function generateInterface({
       imports: externalModulesImportsOnly,
       dependencies: scalar.dependencies,
       schema,
+      kind: 'schema',
     },
   ];
 }

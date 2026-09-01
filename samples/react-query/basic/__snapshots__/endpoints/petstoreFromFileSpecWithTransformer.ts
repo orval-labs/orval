@@ -297,7 +297,7 @@ export function useListPetsInfinite<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link useListPetsInfinite} query
  */
 export const invalidateListPetsInfinite = async (
   queryClient: QueryClient,
@@ -440,7 +440,7 @@ export function useListPets<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link useListPets} query
  */
 export const invalidateListPets = async (
   queryClient: QueryClient,

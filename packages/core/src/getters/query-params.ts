@@ -321,7 +321,12 @@ function getQueryParamsTypes(
         imports: [{ name: enumName }],
         schemas: [
           ...resolvedValue.schemas,
-          { name: enumName, model: enumValue, imports: resolvedValue.imports },
+          {
+            name: enumName,
+            model: enumValue,
+            imports: resolvedValue.imports,
+            kind: 'enum',
+          },
         ],
         originalSchema: resolvedValue.originalSchema,
         objectStrategy,

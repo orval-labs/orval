@@ -51,6 +51,7 @@ export function generateComponentDefinition(
         name: modelName,
         model,
         imports,
+        kind: 'schema',
       });
     }
   }

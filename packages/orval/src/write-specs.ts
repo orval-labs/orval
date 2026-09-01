@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import {
+  createSchemaOutputPlan,
   type ContextSpec,
   conventionName,
   createSuccessMessage,
@@ -19,14 +20,17 @@ import {
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
+  type GeneratorSchema,
   OutputMockType,
   OutputMode,
   pascal,
   splitSchemasByType,
   SupportedFormatter,
+  stripFileExtension,
   upath,
   withGeneratedFileTransform,
   writeGeneratedFile,
+  writeRoutedSchemas,
   writeSchemas,
   writeSchemasTagsSplit,
   writeSingleMode,
@@ -56,8 +60,46 @@ import {
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
+  writeZodSchemaRoutesBarrel,
   writeZodSchemaTagsSplitBarrel,
 } from './write-zod-specs';
+
+/** Detects enum definitions used to select the configured schema route. */
+function isOpenApiEnumSchema(schema: GeneratorSchema['schema']): boolean {
+  return (
+    !!schema &&
+    typeof schema === 'object' &&
+    Array.isArray((schema as { enum?: unknown }).enum)
+  );
+}
+
+/** Creates the shared route plan used by Zod schema generation. */
+function createZodSchemaOutputPlan(
+  schemas: GeneratorSchema[],
+  output: NormalizedOutputOptions,
+  schemasPath: string,
+  fileExtension: string,
+  schemaTagMap?: Map<string, string>,
+) {
+  const schemaOptions = output.schemas;
+  if (isString(schemaOptions) || !schemaOptions?.routes) return undefined;
+
+  return createSchemaOutputPlan({
+    basePath: schemasPath,
+    schemas: schemas.map((schema) => ({
+      ...schema,
+      kind:
+        schema.kind ?? (isOpenApiEnumSchema(schema.schema) ? 'enum' : 'schema'),
+    })),
+    routes: schemaOptions.routes,
+    namingConvention: output.namingConvention,
+    fileExtension,
+    indexFiles: output.indexFiles,
+    importPath: schemaOptions.importPath,
+    tsconfig: output.tsconfig,
+    schemaTagMap,
+  });
+}
 
 async function runExternalFormatter(
   bin: string,
@@ -550,6 +592,7 @@ function getImplementationPathsForIndex(
   );
 }
 
+/** Coordinates schema, operation, mock, and client generation for one spec. */
 async function writeSpecsInternal(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -567,6 +610,7 @@ async function writeSpecsInternal(
   const { schemaTagMap } = builder;
   const shouldSplitSchemasByTags =
     isObject(output.schemas) && output.schemas.splitByTags === true;
+  let schemaOutputPlan: import('@orval/core').SchemaOutputPlan | undefined;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -597,6 +641,13 @@ async function writeSpecsInternal(
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
       const fileExtension = output.schemaFileExtension;
+      schemaOutputPlan = createZodSchemaOutputPlan(
+        schemas,
+        output,
+        schemasPath,
+        fileExtension,
+        schemaTagMap,
+      );
 
       // Reusable component schemas live as separate files under `schemasPath`,
       // so we resolve the user's `override.zod.params` mutator once relative
@@ -621,6 +672,7 @@ async function writeSpecsInternal(
           output,
           schemasParamsMutator,
           schemaTagMap,
+          schemaOutputPlan,
         );
 
         const verbDirs = await writeZodSchemasFromVerbs(
@@ -636,30 +688,44 @@ async function writeSpecsInternal(
             output,
           },
           schemaTagMap,
+          schemaOutputPlan,
         );
 
         if (output.indexFiles) {
-          await writeZodSchemaTagsSplitBarrel(
-            schemasPath,
-            fileExtension,
-            header,
-            componentDirs,
-            verbDirs,
-            output.namingConvention,
-            output.tsconfig,
-          );
+          if (schemaOutputPlan) {
+            await writeZodSchemaRoutesBarrel(
+              schemaOutputPlan,
+              fileExtension,
+              header,
+              [...componentDirs.values(), ...verbDirs.values()].flat(),
+              output.namingConvention,
+              output.tsconfig,
+            );
+          } else {
+            await writeZodSchemaTagsSplitBarrel(
+              schemasPath,
+              fileExtension,
+              header,
+              componentDirs,
+              verbDirs,
+              output.namingConvention,
+              output.tsconfig,
+            );
+          }
         }
       } else {
-        await writeZodSchemas(
+        const componentDirs = await writeZodSchemas(
           builder,
           schemasPath,
           fileExtension,
           header,
           output,
           schemasParamsMutator,
+          undefined,
+          schemaOutputPlan,
         );
 
-        await writeZodSchemasFromVerbs(
+        const verbDirs = await writeZodSchemasFromVerbs(
           builder.verbOptions,
           schemasPath,
           fileExtension,
@@ -671,13 +737,52 @@ async function writeSpecsInternal(
             workspace,
             output,
           },
+          undefined,
+          schemaOutputPlan,
         );
+
+        if (schemaOutputPlan && output.indexFiles) {
+          await writeZodSchemaRoutesBarrel(
+            schemaOutputPlan,
+            fileExtension,
+            header,
+            [...componentDirs.values(), ...verbDirs.values()].flat(),
+            output.namingConvention,
+            output.tsconfig,
+          );
+        }
       }
     } else {
       const fileExtension = output.fileExtension || '.ts';
 
-      // Split schemas by tag into subdirectories
-      if (shouldSplitSchemasByTags) {
+      if (!isString(output.schemas) && output.schemas.routes) {
+        schemaOutputPlan = createSchemaOutputPlan({
+          basePath: schemasPath,
+          schemas: schemas.map((schema) => ({
+            ...schema,
+            kind:
+              schema.kind ??
+              (isOpenApiEnumSchema(schema.schema) ? 'enum' : 'schema'),
+          })),
+          routes: output.schemas.routes,
+          namingConvention: output.namingConvention,
+          fileExtension,
+          indexFiles: output.indexFiles,
+          importPath: output.schemas.importPath,
+          tsconfig: output.tsconfig,
+          schemaTagMap,
+        });
+        await writeRoutedSchemas({
+          plan: schemaOutputPlan,
+          target,
+          namingConvention: output.namingConvention,
+          fileExtension,
+          header,
+          indexFiles: output.indexFiles,
+          tsconfig: output.tsconfig,
+        });
+        // Split schemas by tag into subdirectories
+      } else if (shouldSplitSchemasByTags) {
         if (!schemaTagMap) {
           throw new Error(
             'schemas.splitByTags is enabled but no schema tag map was built. ' +
@@ -685,7 +790,6 @@ async function writeSpecsInternal(
               'another way has to carry one.',
           );
         }
-
         await writeSchemasTagsSplit({
           schemaPath: schemasPath,
           schemas,
@@ -843,6 +947,7 @@ async function writeSpecsInternal(
       header,
       needSchema: shouldGenerateSchemas(output, hasOperations),
       schemaTagMap,
+      schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
         ? () =>
             generateZodSchemasInline(
@@ -889,10 +994,9 @@ async function writeSpecsInternal(
       )
       .map((p) => {
         const relative = upath.getRelativeImportPath(indexFile, p, true);
-        const withoutExt = relative.endsWith(output.fileExtension)
-          ? relative.slice(0, -output.fileExtension.length)
-          : relative.replace(/\.[^/.]+$/, '');
-        return withoutExt + importExtension;
+        return (
+          stripFileExtension(relative, output.fileExtension) + importExtension
+        );
       });
 
     if (output.schemas) {
@@ -900,10 +1004,12 @@ async function writeSpecsInternal(
         ? output.schemas
         : output.schemas.path;
       imports.push(
-        upath.getRelativeImportPath(
-          indexFile,
-          getFileInfo(schemasPath).dirname,
-        ),
+        schemaOutputPlan
+          ? upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath)
+          : upath.getRelativeImportPath(
+              indexFile,
+              getFileInfo(schemasPath).dirname,
+            ),
       );
     }
 
@@ -958,13 +1064,21 @@ async function writeSpecsInternal(
   }
 
   const paths = [
-    ...(output.schemas
+    ...(schemaOutputPlan
       ? [
-          getFileInfo(
-            isString(output.schemas) ? output.schemas : output.schemas.path,
-          ).dirname,
+          schemaOutputPlan.basePath,
+          ...schemaOutputPlan.routeDirectories,
+          ...(schemaOutputPlan.rootIndexPath
+            ? [schemaOutputPlan.rootIndexPath]
+            : []),
         ]
-      : []),
+      : output.schemas
+        ? [
+            getFileInfo(
+              isString(output.schemas) ? output.schemas : output.schemas.path,
+            ).dirname,
+          ]
+        : []),
     ...(fakerSchemaPath ? [fakerSchemaPath] : []),
     ...(output.operationSchemas
       ? [getFileInfo(output.operationSchemas).dirname]

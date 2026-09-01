@@ -376,7 +376,7 @@ export default defineConfig({
 This generates:
 
 ```ts
-const request$ = http.get<Pets>(url, { params: httpParams }).pipe(
+const request$ = http.get<PetsOutput>(url, { params: httpParams }).pipe(
   map((data) => {
     const result = Pets.safeParse(data);
     if (!result.success) {
@@ -391,6 +391,12 @@ const request$ = http.get<Pets>(url, { params: httpParams }).pipe(
 Use `runtimeValidation: true` to keep the existing `Schema.parse()` behavior.
 Validation is automatically skipped for primitive response types (`string`,
 `void`, etc.) and for operations using a custom mutator.
+
+A validated request function is typed with the schema's `zod.output` alias
+(`Promise<PetsOutput>` above), since that is what the parse returns at runtime —
+relevant when the schema transforms values through `coerce`, `useDates`,
+defaults or `.transform()`. Mutator operations keep the schema (input) type,
+as the generated parse never runs there.
 
 ## Full Example
 

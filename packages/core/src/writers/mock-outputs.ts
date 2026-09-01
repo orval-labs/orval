@@ -156,11 +156,13 @@ export function buildCrossFileFakerImports(
   const fakerImportPath =
     upath.getRelativeImportPath(mswFilePath, fakerFilePath) + importExtension;
 
-  return responseMockNames.map((name): GeneratorImport => ({
-    name,
-    values: true,
-    importPath: fakerImportPath,
-  }));
+  return responseMockNames.map(
+    (name): GeneratorImport => ({
+      name,
+      values: true,
+      importPath: fakerImportPath,
+    }),
+  );
 }
 
 /**

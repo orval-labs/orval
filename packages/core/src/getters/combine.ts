@@ -937,6 +937,7 @@ export function combineSchemas({
             })),
           model: newEnum,
           name: name,
+          kind: 'enum',
         },
       ],
       isEnum: false,
