@@ -452,8 +452,7 @@ describe('getQueryParams getter', () => {
             in: 'query',
             required: false,
             schema: {
-              nullable: true,
-              type: 'string',
+              type: ['string', 'null'],
             },
           },
           imports: [],

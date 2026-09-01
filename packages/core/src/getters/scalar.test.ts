@@ -37,7 +37,7 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
     expect(result.value).toBe('string');
   });
 
-  it('plain string without contentMediaType or format: binary → string', () => {
+  it('plain string without contentMediaType → string', () => {
     const schema: OpenApiSchemaObject = {
       type: 'string',
     };
@@ -62,12 +62,6 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
 });
 
 describe('isBinaryScalarSchema', () => {
-  it('returns true for { type: "string", format: "binary" }', () => {
-    expect(isBinaryScalarSchema({ type: 'string', format: 'binary' })).toBe(
-      true,
-    );
-  });
-
   it('returns true for { type: "string", contentMediaType: "application/octet-stream" }', () => {
     expect(
       isBinaryScalarSchema({
@@ -95,24 +89,15 @@ describe('isBinaryScalarSchema', () => {
     expect(
       isBinaryScalarSchema({
         type: 'number',
-        format: 'binary',
+        contentMediaType: 'application/octet-stream',
       } as OpenApiSchemaObject),
     ).toBe(false);
   });
 
-  it('accepts OAS 3.1 nullable union [string, null] + format: binary', () => {
+  it('accepts an OAS 3.1 nullable binary string union', () => {
     // getScalar normalizes ['string','null'] → case 'string' before invoking
     // this predicate, so the predicate must agree to keep the url-encoded
     // $ref short-circuit firing for nullable binary scalars.
-    expect(
-      isBinaryScalarSchema({
-        type: ['string', 'null'],
-        format: 'binary',
-      } as unknown as OpenApiSchemaObject),
-    ).toBe(true);
-  });
-
-  it('accepts OAS 3.1 nullable union [string, null] + contentMediaType: octet-stream', () => {
     expect(
       isBinaryScalarSchema({
         type: ['string', 'null'],
@@ -127,7 +112,7 @@ describe('isBinaryScalarSchema', () => {
     expect(
       isBinaryScalarSchema({
         type: ['string', 'integer'],
-        format: 'binary',
+        contentMediaType: 'application/octet-stream',
       } as unknown as OpenApiSchemaObject),
     ).toBe(false);
   });
@@ -317,10 +302,9 @@ describe('getScalar integer enum + const (#3758)', () => {
 
   it('preserves nullable suffix when const is present', () => {
     const schema: OpenApiSchemaObject = {
-      type: 'integer',
+      type: ['integer', 'null'],
       enum: [1],
       const: 1,
-      nullable: true,
     };
 
     const result = getScalar({ item: schema, name: 'flag', context });

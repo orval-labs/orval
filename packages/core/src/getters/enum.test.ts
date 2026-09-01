@@ -184,15 +184,14 @@ describe('getEnumMembers', () => {
 
   it('should generate a nullable const enum', () => {
     const schema = {
-      nullable: true,
-      type: 'integer',
-      enum: [10, 20, 30],
+      type: ['integer', 'null'],
+      enum: [10, 20, 30, null],
     } as unknown as OpenApiSchemaObject;
 
     const result = getEnum(
       getEnumMembers(schema),
       'IntegerEnumNullable',
-      schema.nullable,
+      true,
       EnumGeneration.CONST,
     );
 
@@ -471,9 +470,8 @@ describe('getEnumMembers', () => {
 
   it('should not add null to enum members for a nullable enum', () => {
     const schema = {
-      nullable: true,
-      type: 'integer',
-      enum: [10, 20, 30],
+      type: ['integer', 'null'],
+      enum: [10, 20, 30, null],
     } as unknown as OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([

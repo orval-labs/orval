@@ -140,7 +140,10 @@ describe('getResponse', () => {
           description: 'Binary file',
           content: {
             [binaryApplicationType]: {
-              schema: { type: 'string', format: 'binary' },
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },
@@ -161,7 +164,10 @@ describe('getResponse', () => {
           description: 'Binary file',
           content: {
             'application/octet-stream': {
-              schema: { type: 'string', format: 'binary' },
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },
@@ -205,13 +211,16 @@ describe('getResponse', () => {
       expect(result.isBlob).toBe(false);
     });
 
-    it('should set isBlob to true for text/csv with format: binary schema', () => {
+    it('should set isBlob to true for text/csv with binary schema', () => {
       const responses: OpenApiResponsesObject = {
         '200': {
           description: 'CSV binary file',
           content: {
             'text/csv': {
-              schema: { type: 'string', format: 'binary' },
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },
@@ -232,7 +241,10 @@ describe('getResponse', () => {
           description: 'Image file',
           content: {
             'image/png': {
-              schema: { type: 'string', format: 'binary' },
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },
@@ -247,13 +259,16 @@ describe('getResponse', () => {
       expect(result.isBlob).toBe(true);
     });
 
-    it('should set isBlob to true for */* with inline format: binary schema', () => {
+    it('should set isBlob to true for */* with inline binary schema', () => {
       const responses: OpenApiResponsesObject = {
         '200': {
           description: 'Binary file',
           content: {
             '*/*': {
-              schema: { type: 'string', format: 'binary' },
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },
@@ -268,13 +283,16 @@ describe('getResponse', () => {
       expect(result.isBlob).toBe(true);
     });
 
-    it('should set isBlob to true for $ref to a format: binary schema', () => {
+    it('should set isBlob to true for $ref to a binary schema', () => {
       const refContext: ContextSpec = createTestContextSpec({
         target: 'spec',
         spec: {
           components: {
             schemas: {
-              TestPdfFile: { type: 'string', format: 'binary' },
+              TestPdfFile: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
             },
           },
         },

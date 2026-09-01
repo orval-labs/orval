@@ -250,14 +250,6 @@ describe('combineSchemas (allOf required handling)', () => {
       },
     },
     {
-      label: 'nullable: true',
-      wrapper: {
-        type: 'object',
-        nullable: true,
-        allOf: [{ type: 'object' }],
-      },
-    },
-    {
       label: "type: 'null'",
       wrapper: {
         type: 'null',
@@ -516,11 +508,10 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<EnumWrapper, 'id'>>");
   });
 
-  // A `$ref` member can carry union-producing siblings (`nullable: true`,
-  // `type: ['object', 'null']`) that the resolver merges into the emission
+  // A nullable `$ref` union can make the resolved emission
   // (`Wrapper = Base | null`), so the ref-site object must pass the same
   // union guard as inline nodes before dereferencing.
-  it('keeps Extract guard when a nested $ref member carries a nullable sibling', () => {
+  it('keeps Extract guard for a nested nullable $ref union', () => {
     const contextWithNullableRefSite = {
       ...context,
       spec: {
@@ -535,7 +526,12 @@ describe('combineSchemas (allOf required handling)', () => {
             },
             RefSiteWrapper: {
               allOf: [
-                { $ref: '#/components/schemas/RefSiteBase', nullable: true },
+                {
+                  anyOf: [
+                    { $ref: '#/components/schemas/RefSiteBase' },
+                    { type: 'null' },
+                  ],
+                },
               ],
             },
           },
@@ -1363,8 +1359,12 @@ describe('combineSchemas (allOf required handling)', () => {
             NullableAllOfMemberWrapper: {
               allOf: [
                 {
-                  $ref: '#/components/schemas/NullableAllOfMemberBase',
-                  nullable: true,
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/NullableAllOfMemberBase',
+                    },
+                    { type: 'null' },
+                  ],
                 },
                 {
                   type: 'object',
@@ -1406,7 +1406,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(wrapper.value).toContain('(NullableAllOfMemberBase | null) & {');
   });
 
-  it('collects nullable member properties when the parent object removes null', () => {
+  it('keeps Extract guard when an object parent contains a nullable $ref union', () => {
     const contextWithObjectParent = {
       ...context,
       spec: {
@@ -1425,8 +1425,10 @@ describe('combineSchemas (allOf required handling)', () => {
               properties: { marker: { type: 'string' } },
               allOf: [
                 {
-                  $ref: '#/components/schemas/NullableParentBase',
-                  nullable: true,
+                  anyOf: [
+                    { $ref: '#/components/schemas/NullableParentBase' },
+                    { type: 'null' },
+                  ],
                 },
               ],
             },
@@ -1604,7 +1606,6 @@ describe('combineSchemas (allOf required handling)', () => {
 
   it('uses Extract guard for required ghost keys missing from all subschema properties', () => {
     const schema: OpenApiSchemaObject = {
-      nullable: true,
       allOf: [{ $ref: '#/components/schemas/TagMetadataItem' }],
     };
 
