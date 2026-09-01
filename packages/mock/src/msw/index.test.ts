@@ -441,6 +441,220 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.json');
     });
 
+    it('should not force binary path when preferredContentType is text/plain for object schema', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'text/plain',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'text/plain' },
+      } as unknown as GeneratorOptions);
+
+      // Should NOT use HttpResponse.arrayBuffer — the schema is an object, not binary
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      // Should use the text path with JSON.stringify for the object payload
+      expect(result.implementation.handler).toContain('JSON.stringify');
+      expect(result.implementation.handler).toContain('HttpResponse.text');
+    });
+
+    it('should not force binary path when preferredContentType is application/xml for object schema', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/xml',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'application/xml'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'application/xml' },
+      } as unknown as GeneratorOptions);
+
+      // Should NOT use HttpResponse.arrayBuffer — the schema is an object, not binary
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      // Should use the xml helper with JSON.stringify
+      expect(result.implementation.handler).toContain('HttpResponse.xml');
+    });
+
+    it('should not discard body when preferredContentType is application/octet-stream for object schema', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/octet-stream',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'application/octet-stream'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'application/octet-stream' },
+      } as unknown as GeneratorOptions);
+
+      // Should NOT force binary path — the object schema is not binary (no format: binary)
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).not.toContain('new ArrayBuffer(0)');
+      // Should use HttpResponse.json since no text-like content type is involved
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+    });
+
+    it('should ignore unmatched preferredContentType and use spec-order content types', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'text/csv' },
+      } as unknown as GeneratorOptions);
+
+      // Unmatched preference should be silently ignored — spec-order (application/json) wins
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+    });
+
     it('should type the info parameter in the handler callback', () => {
       const result = generate({
         mock: { type: OutputMockType.MSW, delay: 100 },
@@ -736,13 +950,21 @@ describe('generateMSW', () => {
                 key: '200',
                 value: 'Blob',
                 contentType: 'application/octet-stream',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
               },
-              { key: '200', value: 'Blob', contentType: 'image/png' },
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'image/png',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
+              },
             ],
           },
           contentTypes: ['application/octet-stream', 'image/png'],
         },
-      } as GeneratorVerbOptions;
+      } as unknown as GeneratorVerbOptions;
 
       const result = generateMSW(blobVerbOptions, {
         ...baseOptions,
