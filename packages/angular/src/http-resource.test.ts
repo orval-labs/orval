@@ -3865,24 +3865,18 @@ describe('angular httpResource generator', () => {
   });
 
   describe('zod schema import deduplication', () => {
-    // Regression test for a Copilot review finding on #3813: in Zod mode,
-    // `buildSchemaImportDependencies` deduped schema imports *before* forcing
-    // every export to `{ values: true }`. `dedupeSchemaImports` keys on the
-    // `values` field, so a schema name that shows up once as a value import
-    // (`Pet`, auto-detected as the response's runtime-validation schema) and
-    // once as a type-only import (`Pet`, imported for a named path-params
-    // type) survived the pre-force dedupe as two distinct entries, and
-    // forcing `values: true` on both collapsed them into identical entries
-    // that were never deduped again.
+    // One schema can reach an operation twice: once as a value (the
+    // response's runtime-validation schema, tagged by
+    // `getHttpResourceVerbImports`) and once as type-only (a named
+    // path-params type). `dedupeSchemaImports` merges the type-only entry
+    // into its value twin, because a value import also serves the type
+    // position.
     //
-    // Core's `generateDependency` (used when rendering the final import
-    // statement) happens to `unique()` its named-import specifiers too, so
-    // this duplication was already masked in the emitted file and this test
-    // passes with or without the `dedupeSchemaImports` call below. It is
-    // kept anyway as a guard on `buildSchemaImportDependencies`'s own
-    // output — the function that this dependency list is meant to be
-    // self-consistent, independent of a downstream safety net — and because
-    // it is the reproduction the review comment asked for.
+    // The merge itself is pinned by core's `schema-import-path.test.ts`
+    // ("merges a type-only and a value import of one binding"). Core's
+    // `generateDependency` also `unique()`s its specifiers, so this case
+    // renders correctly with or without the merge. This test is an
+    // integration guard on the rendered resource file, not the pin.
     it('collapses a schema imported once as a value and once as a type into a single specifier', async () => {
       const verb = createVerbOption({
         response: baseResponse({

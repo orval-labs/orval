@@ -23,7 +23,7 @@ export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
-  // Schema→tag map computed by `writeSpecs` when `schemas.splitByTags` is
+  // Schema→tag map computed by `getApiBuilder` when `schemas.splitByTags` is
   // enabled. Used only in the `indexFiles: false` branch to insert each
   // schema's tag subdirectory into the import path. `'.'` is the sentinel
   // for shared schemas (referenced by 0 or 2+ tags).
