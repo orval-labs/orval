@@ -217,12 +217,10 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       definitions,
       mutationVariablesType,
       isRequestOptions,
-      generateInvalidateCall,
+      generateInvalidateCalls,
       uniqueInvalidates,
     }: MutationOnSuccessContext): string {
-      const invalidateCalls = uniqueInvalidates
-        .map((t) => generateInvalidateCall(t))
-        .join('\n');
+      const invalidateCalls = generateInvalidateCalls(uniqueInvalidates);
       const variablesType =
         mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
       if (composed.hasQueryV5WithMutationContextOnSuccess) {

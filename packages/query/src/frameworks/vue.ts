@@ -246,15 +246,13 @@ export const createVueAdapter = ({
     definitions,
     mutationVariablesType,
     isRequestOptions,
-    generateInvalidateCall,
+    generateInvalidateCalls,
     uniqueInvalidates,
   }: MutationOnSuccessContext): string {
     // The `unref` calls below resolve user-supplied mutation options (a ref,
     // never a getter), so `unref` is correct here and on Vue < 3.3 — unlike the
     // request params, these are not wrapped in `MaybeRefOrGetter`.
-    const invalidateCalls = uniqueInvalidates
-      .map((t) => generateInvalidateCall(t))
-      .join('\n');
+    const invalidateCalls = generateInvalidateCalls(uniqueInvalidates);
     const variablesType =
       mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
     if (hasQueryV5WithMutationContextOnSuccess) {
