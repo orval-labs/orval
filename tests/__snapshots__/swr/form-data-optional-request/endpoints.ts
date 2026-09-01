@@ -11,13 +11,6 @@ import type { SWRMutationConfiguration } from 'swr/mutation';
 
 import type { Error, Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import type { PetBase, PetExtended } from './model';
-
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
@@ -199,78 +192,3 @@ export const useCreatePets = <TError = Promise<Error>>(
     ...query,
   };
 };
-
-export const getCreatePetsResponsePetBaseMock = (
-  overrideResponse: Partial<PetBase> = {},
-): PetBase => ({
-  ...{
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponsePetExtendedMock = (
-  overrideResponse: Partial<PetExtended> = {},
-): PetExtended => ({
-  ...{
-    id: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getCreatePetsResponsePetBaseMock() },
-    { ...getCreatePetsResponsePetExtendedMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/v:version/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreatePetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getSwaggerPetstoreMock = () => [getCreatePetsMockHandler()];

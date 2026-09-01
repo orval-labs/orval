@@ -1667,10 +1667,35 @@ const buildHttpResourceFile = (
     Object.values(verbOptions).map((verbOption) => verbOption.operationName),
   );
   const utilities = buildResourceStateUtilities();
-  const acceptHelpers = buildAcceptHelpers(retrievals, output);
 
-  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
+  // The `Accept` helpers are not declared here: the service sibling already
+  // exports them, and the resource file imports them (see
+  // `buildAcceptHelperImports`).
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
+
+/**
+ * Names of the `Accept` helpers the resource file uses but does not declare.
+ *
+ * @remarks
+ * In `both` mode the service sibling (`HttpClient` output) covers every
+ * operation of the same scope and already exports one `<Op>Accept` helper per
+ * multi-content-type operation. The resource file must not redeclare them:
+ * the `tags-split` barrel does `export *` from both siblings, and two
+ * declarations of one name make that ambiguous (TS2308). One declaration,
+ * one owner — the resource file imports the helper instead.
+ *
+ * @returns The helper names to import from the service sibling.
+ */
+const buildAcceptHelperImports = (
+  retrievals: readonly GeneratorVerbOptions[],
+): GeneratorImport[] =>
+  retrievals
+    .filter(
+      (verbOption) =>
+        getUniqueContentTypes(verbOption.response.types.success).length > 1,
+    )
+    .map((verbOption) => ({ name: getAcceptHelperName(verbOption.typeName) }));
 
 /**
  * Resolves the schema imports of a generated `*.resource.ts` file. Uses core's
@@ -1735,6 +1760,43 @@ const getHttpResourceExtraFilePath = (
   }
 };
 
+/**
+ * Path of the `HttpClient` service file that sits next to the resource file
+ * produced by {@link getHttpResourceExtraFilePath}.
+ *
+ * @remarks
+ * Mirrors the core writers: `split` and `tags-split` add a `.service` suffix
+ * for the Angular client, `single` and `tags` do not.
+ */
+const getHttpResourceServiceFilePath = (
+  output: NormalizedOutputOptions,
+  tag?: string,
+): string => {
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
+
+  switch (output.mode) {
+    case OutputMode.TAGS: {
+      return upath.joinSafe(dirname, `${getTagKey(tag)}${extension}`);
+    }
+    case OutputMode.TAGS_SPLIT: {
+      const normalizedTag = getTagKey(tag);
+      return upath.joinSafe(
+        dirname,
+        normalizedTag,
+        `${normalizedTag}.service${extension}`,
+      );
+    }
+    case OutputMode.SPLIT: {
+      return upath.joinSafe(dirname, `${filename}.service${extension}`);
+    }
+    default: {
+      return upath.joinSafe(dirname, `${filename}${extension}`);
+    }
+  }
+};
+
 const getHttpResourceSchemasModule = (
   output: NormalizedOutputOptions,
   outputPath: string,
@@ -1769,6 +1831,7 @@ const getHttpResourceSchemasModule = (
 const buildHttpResourceExtraFile = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   outputPath: string,
+  servicePath: string,
   output: NormalizedOutputOptions,
   context: ContextSpec,
   header: string,
@@ -1776,15 +1839,32 @@ const buildHttpResourceExtraFile = (
   schemaOutputPlan?: SchemaOutputPlan,
 ) => {
   const implementation = buildHttpResourceFile(verbOptions, output, context);
-  const verbImports = Object.values(verbOptions)
-    .filter((verbOption) =>
-      isRetrievalVerb(
-        verbOption.verb,
-        verbOption.operationName,
-        getClientOverride(verbOption),
-      ),
-    )
-    .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output));
+  const retrievals = Object.values(verbOptions).filter((verbOption) =>
+    isRetrievalVerb(
+      verbOption.verb,
+      verbOption.operationName,
+      getClientOverride(verbOption),
+    ),
+  );
+  const verbImports = retrievals.flatMap((verbOption) =>
+    getHttpResourceVerbImports(verbOption, output),
+  );
+  // Type-only (no `values`): the helpers appear in parameter annotations
+  // only. Extension handling mirrors the base-URL dependency below.
+  const acceptHelperImports = buildAcceptHelperImports(retrievals);
+  const serviceDependency =
+    acceptHelperImports.length > 0
+      ? [
+          {
+            exports: acceptHelperImports,
+            dependency: upath.getRelativeImportPath(
+              outputPath,
+              servicePath,
+              output.fileExtension !== '.ts',
+            ),
+          },
+        ]
+      : [];
 
   // Imports that declare an explicit `importPath` (e.g. rxjs's `map`
   // operator, pulled in by `getHttpResourceVerbImports`) come from an
@@ -1835,6 +1915,7 @@ const buildHttpResourceExtraFile = (
     [
       ...schemaImports,
       ...externalVerbImports,
+      ...serviceDependency,
       ...dependencies,
       ...baseUrlDependency,
     ],
@@ -1935,6 +2016,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
           buildHttpResourceExtraFile(
             tagVerbOptions,
             getHttpResourceExtraFilePath(output, tag),
+            getHttpResourceServiceFilePath(output, tag),
             output,
             context,
             header,
@@ -1949,6 +2031,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
     buildHttpResourceExtraFile(
       getVerbOptionsRecord(getRelevantVerbOptionsForTag(verbOptions)),
       getHttpResourceExtraFilePath(output),
+      getHttpResourceServiceFilePath(output),
       output,
       context,
       header,

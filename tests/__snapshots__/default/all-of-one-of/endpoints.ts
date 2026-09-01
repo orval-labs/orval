@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { PostSomething200 } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const postSomething = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PostSomething200>> => {
@@ -21,66 +16,3 @@ export const postSomething = (
 };
 
 export type PostSomethingResult = AxiosResponse<PostSomething200>;
-
-export const getPostSomethingResponseMock = (
-  overrideResponse: Partial<Extract<PostSomething200, object>> = {},
-): PostSomething200 => ({
-  uploads: faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      ...{
-        file_type: faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          undefined,
-        ]),
-      },
-      ...faker.helpers.arrayElement([
-        {
-          type: faker.helpers.arrayElement([
-            faker.helpers.arrayElement(['a'] as const),
-            undefined,
-          ]),
-        },
-        {
-          type: faker.helpers.arrayElement([
-            faker.helpers.arrayElement(['b'] as const),
-            undefined,
-          ]),
-          other: faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            undefined,
-          ]),
-        },
-      ]),
-    })),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getPostSomethingMockHandler = (
-  overrideResponse?:
-    | PostSomething200
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<PostSomething200> | PostSomething200),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/something',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getPostSomethingResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAnyOfOneOfMock = () => [getPostSomethingMockHandler()];

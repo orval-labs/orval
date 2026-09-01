@@ -6,11 +6,6 @@
  */
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getPetResponse200 = {
   data: Pet;
   status: 200;
@@ -38,46 +33,3 @@ export const getPet = async (
   const data: getPetResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getPetResponse;
 };
-
-export const getGetPetResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    null,
-  ]),
-  count: faker.helpers.arrayElement([faker.number.int(), null]),
-  kind: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['cat', 'dog'] as const),
-    null,
-  ]),
-  flag: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-  ...overrideResponse,
-});
-
-export const getGetPetMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pet',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetPetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3484DoubleWrappedNullBranchInFakerMSWMocksMock = () => [
-  getGetPetMockHandler(),
-];

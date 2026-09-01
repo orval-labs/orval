@@ -25,11 +25,7 @@ import {
   mergeGeneratorImports,
 } from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
-import {
-  getMockDir,
-  hasAnyMockPath,
-  resolveMockSchemasPath,
-} from './mock-utils';
+import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -74,7 +70,10 @@ export async function writeSingleMode({
       output.tsconfig,
     );
 
-    const shouldDeinlineMocks = hasAnyMockPath(output.mock);
+    // Mock code lands in sibling `<target>.msw.ts` / `<target>.faker.ts`
+    // files by default, matching `split`/`tags-split`. `mock.inline: true`
+    // opts back into appending mock code to the implementation file.
+    const shouldDeinlineMocks = !output.mock.inline;
 
     const schemaCustomImportPath = getSchemasImportPath(output.schemas);
     const schemasPath = output.schemas

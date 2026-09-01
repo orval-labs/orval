@@ -8,11 +8,6 @@
 import useSwr from 'swr';
 import type { Key, SWRConfiguration } from 'swr';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getBinaryBlobResponse200 = {
   data: Blob;
   status: 200;
@@ -89,36 +84,3 @@ export const useGetBinaryBlob = <TError = Promise<unknown>>(
     ...query,
   };
 };
-
-export const getGetBinaryBlobResponseMock = (): ArrayBuffer =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
-
-export const getGetBinaryBlobMockHandler = (
-  overrideResponse?:
-    | ArrayBuffer
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ArrayBuffer> | ArrayBuffer),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/binary-blob',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const binaryBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetBinaryBlobResponseMock();
-      return HttpResponse.arrayBuffer(
-        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        },
-      );
-    },
-    options,
-  );
-};
-export const getBlobFileMock = () => [getGetBinaryBlobMockHandler()];

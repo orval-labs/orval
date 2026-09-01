@@ -11,9 +11,6 @@ import type { SWRMutationConfiguration } from 'swr/mutation';
 
 import type { Cookie, OptionalPetBodyBody, RequiredPetBodyBody } from './model';
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type createPetsResponse204 = {
   data: void;
   status: 204;
@@ -337,93 +334,3 @@ export const useUpdateCookies = <TError = Promise<unknown>>(options?: {
     ...query,
   };
 };
-
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-
-export const getUpdatePetsMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.put(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-
-export const getCreateCookiesMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/cookies',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-
-export const getUpdateCookiesMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.put(
-    '*/cookies',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-export const getSwaggerPetstoreMock = () => [
-  getCreatePetsMockHandler(),
-  getUpdatePetsMockHandler(),
-  getCreateCookiesMockHandler(),
-  getUpdateCookiesMockHandler(),
-];

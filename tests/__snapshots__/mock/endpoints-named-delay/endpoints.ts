@@ -9,9 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { DelayInNameParams } from './model';
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 /**
  * If delay in orval config is set to false, do not import delay from msw
  * @summary Delay in name
@@ -27,25 +24,3 @@ export const delayInName = (
 };
 
 export type DelayInNameResult = AxiosResponse<void>;
-
-export const getDelayInNameMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/delay-in-name',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-export const getSwaggerDelayInNameMock = () => [getDelayInNameMockHandler()];

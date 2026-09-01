@@ -6,13 +6,6 @@
  */
 import * as zod from 'zod';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import type { PostFish200 } from './model';
-
 export const PostFishBody = zod.strictObject({
   name: zod.string(),
   swimming: zod.boolean(),
@@ -21,35 +14,3 @@ export const PostFishBody = zod.strictObject({
 export const PostFishResponse = zod.object({
   success: zod.boolean().optional(),
 });
-
-export const getPostFishResponseMock = (
-  overrideResponse: Partial<Extract<PostFish200, object>> = {},
-): PostFish200 => ({
-  success: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  ...overrideResponse,
-});
-
-export const getPostFishMockHandler = (
-  overrideResponse?:
-    | PostFish200
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<PostFish200> | PostFish200),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/fish',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getPostFishResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfStrictModeTestMock = () => [getPostFishMockHandler()];

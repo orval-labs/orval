@@ -11,13 +11,6 @@
  */
 import type { ValidationError } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { getBaseErrorMock } from './model/index.faker';
-
 export type getValidationErrorResponse200 = {
   data: ValidationError;
   status: 200;
@@ -50,50 +43,3 @@ export const getValidationError = async (
     headers: res.headers,
   } as getValidationErrorResponse;
 };
-
-export const getGetValidationErrorResponseMock = (): ValidationError => ({
-  ...{ ...getBaseErrorMock() },
-  ...{
-    errorType: faker.helpers.arrayElement(['VALIDATION_ERROR'] as const),
-    violations: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      field: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      message: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-    })),
-  },
-});
-
-export const getGetValidationErrorMockHandler = (
-  overrideResponse?:
-    | ValidationError
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ValidationError> | ValidationError),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/validation-error',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetValidationErrorResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAllOfNarrowedEnumMock = () => [
-  getGetValidationErrorMockHandler(),
-];

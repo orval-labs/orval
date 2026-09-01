@@ -9,11 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 /**
  * @summary Info for a specific pet
  */
@@ -25,61 +20,3 @@ export const showPetById = (
 };
 
 export type ShowPetByIdResult = AxiosResponse<Pet>;
-
-export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.helpers.arrayElement([faker.number.bigInt(), undefined]),
-  birthDate: new Date(faker.date.past().toISOString().slice(0, 10)),
-  createdAt: new Date(faker.date.past().toISOString().slice(0, 19) + 'Z'),
-  age: faker.helpers.arrayElement([faker.number.int(), undefined]),
-  legCount: faker.helpers.arrayElement([
-    faker.number.float({ fractionDigits: 1 }),
-    undefined,
-  ]),
-  weight: faker.helpers.arrayElement([
-    faker.number.float({ fractionDigits: 1 }),
-    undefined,
-  ]),
-  height: faker.helpers.arrayElement([
-    faker.number.float({ fractionDigits: 1 }),
-    undefined,
-  ]),
-  chipNumbers: faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => faker.number.bigInt()),
-    undefined,
-  ]),
-  feedingTime: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getShowPetByIdMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetByIdResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getFormatTestMock = () => [getShowPetByIdMockHandler()];

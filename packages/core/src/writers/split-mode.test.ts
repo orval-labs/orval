@@ -90,6 +90,7 @@ describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318
         mode: OutputMode.SPLIT,
         mock: {
           indexMockFiles: true,
+          inline: false,
           generators: [{ type: OutputMockType.MSW }],
         },
       }),
@@ -113,6 +114,7 @@ describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318
         mode: OutputMode.SPLIT,
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [{ type: OutputMockType.MSW }],
         },
       }),
@@ -135,6 +137,7 @@ describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318
         fileExtension: '.js',
         mock: {
           indexMockFiles: true,
+          inline: false,
           generators: [{ type: OutputMockType.MSW }],
         },
       }),
@@ -176,6 +179,7 @@ describe('writeSplitMode — function generator is treated as MSW (#3554)', () =
         mode: OutputMode.SPLIT,
         mock: {
           indexMockFiles: false,
+          inline: false,
           // ClientMockBuilder: the function form of a mock generator.
           // `client.ts` maps this to MSW upstream, so the writer must
           // produce a `petstore.msw.ts` file alongside the implementation.
@@ -208,6 +212,7 @@ describe('writeSplitMode — function generator is treated as MSW (#3554)', () =
         mode: OutputMode.SPLIT,
         mock: {
           indexMockFiles: true,
+          inline: false,
           generators: [
             () => ({
               imports: [],
@@ -283,6 +288,7 @@ describe('writeSplitMode — separated mocks honor schemas.importPath', () => {
         },
         mock: {
           indexMockFiles: false,
+          inline: false,
           path: path.join(tmpDir, 'mocks'),
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -484,6 +490,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
       schemas: schemaPath,
       mock: {
         indexMockFiles: false,
+        inline: false,
         generators: [{ type: OutputMockType.MSW }],
       },
     });

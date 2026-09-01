@@ -6,11 +6,6 @@
  */
 import type { WidgetMock } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getWidgetResponse200 = {
   data: WidgetMock;
   status: 200;
@@ -42,59 +37,3 @@ export const getWidget = async (
     headers: res.headers,
   } as getWidgetResponse;
 };
-
-export type KeysWithNull<O> = {
-  [K in keyof O]-?: null extends O[K] ? K : never;
-}[keyof O];
-
-export type MockWithNullableOverrides<
-  T,
-  O extends Partial<T>,
-  M extends Record<keyof T, unknown>,
-> = Omit<M, Extract<KeysWithNull<O>, keyof T>> & {
-  [K in Extract<KeysWithNull<O>, keyof T>]: M[K] | null;
-};
-
-export type WidgetMockMock = {
-  [K in keyof Required<NonNullable<WidgetMock>>]: NonNullable<
-    Required<NonNullable<WidgetMock>>[K]
-  >;
-};
-
-export const getGetWidgetResponseMock = <
-  O extends Partial<Extract<WidgetMock, object>> = {},
->(
-  overrideResponse?: O,
-): MockWithNullableOverrides<WidgetMock, O, WidgetMockMock> =>
-  ({
-    id: faker.number.int(),
-    label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ...overrideResponse,
-  }) as MockWithNullableOverrides<WidgetMock, O, WidgetMockMock>;
-
-export const getGetWidgetMockHandler = (
-  overrideResponse?:
-    | WidgetMock
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<WidgetMock> | WidgetMock),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/widget',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetWidgetResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getIssue3525SchemaNamedWidgetMockMock = () => [
-  getGetWidgetMockHandler(),
-];

@@ -9,13 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Pet } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat } from './model';
-
 /**
  * oneOf with nullable object.
  */
@@ -26,52 +19,3 @@ export const getOneOfWithNullableObject = (
 };
 
 export type GetOneOfWithNullableObjectResult = AxiosResponse<Pet>;
-
-export const getGetOneOfWithNullableObjectResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    id: faker.number.int(),
-    category: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  },
-  ...overrideResponse,
-});
-
-export const getGetOneOfWithNullableObjectResponseMock = (): Pet =>
-  faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      {
-        id: faker.number.int(),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-      null,
-    ]),
-    { ...getGetOneOfWithNullableObjectResponseCatMock() },
-  ]);
-
-export const getGetOneOfWithNullableObjectMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/one-of-with-nullable-object',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetOneOfWithNullableObjectResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getAnyOfSchemaMock = () => [
-  getGetOneOfWithNullableObjectMockHandler(),
-];

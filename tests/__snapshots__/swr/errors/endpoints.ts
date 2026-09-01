@@ -9,11 +9,6 @@ import type { Key, SWRConfiguration } from 'swr';
 
 import type { Item } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
@@ -144,38 +139,3 @@ export const useCreateItems = <TError = Promise<Item>>(options?: {
     ...query,
   };
 };
-
-export const getCreateItemsResponseMock = (
-  overrideResponse: Partial<Extract<Item, object>> = {},
-): Item => ({
-  prop: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getCreateItemsMockHandler = (
-  overrideResponse?:
-    | Item
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Item> | Item),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/error',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreateItemsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getSwaggerErrorsMock = () => [getCreateItemsMockHandler()];

@@ -9,13 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { ColorObject } from './schemas';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { Colors1, Colors2 } from './schemas';
-
 /**
  * @summary sample colors
  */
@@ -26,41 +19,3 @@ export const getApiColors = (
 };
 
 export type GetApiColorsResult = AxiosResponse<ColorObject>;
-
-export const getGetApiColorsResponseMock = (
-  overrideResponse: Partial<Extract<ColorObject, object>> = {},
-): ColorObject => ({
-  color: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(Colors1)),
-      faker.helpers.arrayElement(Object.values(Colors2)),
-    ]),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGetApiColorsMockHandler = (
-  overrideResponse?:
-    | ColorObject
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ColorObject> | ColorObject),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/api/colors',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetApiColorsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getTypelessEnumsMock = () => [getGetApiColorsMockHandler()];

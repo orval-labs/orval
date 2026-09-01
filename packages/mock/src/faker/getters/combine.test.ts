@@ -27,7 +27,7 @@ function createMockContext(): ContextSpec {
       fileExtension: '.ts',
       schemaFileExtension: '.ts',
       mode: OutputMode.SINGLE,
-      mock: { indexMockFiles: false, generators: [] },
+      mock: { indexMockFiles: false, inline: false, generators: [] },
       client: OutputClient.FETCH,
       httpClient: OutputHttpClient.FETCH,
       clean: false,
@@ -996,6 +996,7 @@ describe('combineSchemasMock', () => {
     context.output.schemas = 'model';
     context.output.mock = {
       indexMockFiles: false,
+      inline: false,
       generators: [{ type: OutputMockType.FAKER, schemas: true }],
     };
     context.spec.components = {

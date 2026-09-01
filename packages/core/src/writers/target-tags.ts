@@ -344,7 +344,11 @@ export function generateTargetForTags(
           paramsSerializer: target.paramsSerializer,
           paramsFilter: target.paramsFilter,
           fetchReviver: target.fetchReviver,
-          sharedTypes: deduplicationActive ? sharedTypes : undefined,
+          // Forwarded regardless of deduplication: the writer needs to know
+          // which shared type names each tag declares (even when it inlines
+          // its own copy) so a root barrel can avoid re-export ambiguity
+          // between tags that redeclare the same type.
+          sharedTypes,
         };
       }
       allTargetTags = transformed;

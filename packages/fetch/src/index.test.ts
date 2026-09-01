@@ -28,7 +28,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     fileExtension: '.ts',
     schemaFileExtension: '.ts',
     mode: OutputMode.SINGLE,
-    mock: { indexMockFiles: false, generators: [] },
+    mock: { indexMockFiles: false, inline: false, generators: [] },
     client: OutputClient.FETCH,
     httpClient: OutputHttpClient.FETCH,
     clean: false,

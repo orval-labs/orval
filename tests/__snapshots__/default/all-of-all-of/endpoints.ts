@@ -9,13 +9,6 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { PrivateNote, SharedNote } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { NoteType } from './model';
-
 export const createSharedNote = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<SharedNote>> => {
@@ -33,88 +26,3 @@ export const createPrivateNote = (
 
 export type CreateSharedNoteResult = AxiosResponse<SharedNote>;
 export type CreatePrivateNoteResult = AxiosResponse<PrivateNote>;
-
-export const getCreateSharedNoteResponseMock = (): SharedNote => ({
-  ...{
-    ...{
-      href: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      noteType: faker.helpers.arrayElement(Object.values(NoteType)),
-    },
-  },
-  ...{
-    professions: faker.helpers.arrayElement([
-      Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1,
-      ).map(() => ({
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      })),
-      undefined,
-    ]),
-    visibleForBeneficiary: faker.helpers.arrayElement([
-      faker.datatype.boolean(),
-      undefined,
-    ]),
-  },
-});
-
-export const getCreatePrivateNoteResponseMock = (): PrivateNote => ({
-  ...{
-    ...{
-      href: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      noteType: faker.helpers.arrayElement(Object.values(NoteType)),
-    },
-  },
-});
-
-export const getCreateSharedNoteMockHandler = (
-  overrideResponse?:
-    | SharedNote
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<SharedNote> | SharedNote),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/shared-notes',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreateSharedNoteResponseMock(),
-        { status: 201 },
-      );
-    },
-    options,
-  );
-};
-
-export const getCreatePrivateNoteMockHandler = (
-  overrideResponse?:
-    | PrivateNote
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<PrivateNote> | PrivateNote),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/private-notes',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreatePrivateNoteResponseMock(),
-        { status: 201 },
-      );
-    },
-    options,
-  );
-};
-export const getOpenAPIDefinitionMock = () => [
-  getCreateSharedNoteMockHandler(),
-  getCreatePrivateNoteMockHandler(),
-];

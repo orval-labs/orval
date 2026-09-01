@@ -637,10 +637,17 @@ export interface OutputMocksConfig {
   // models/production barrels never pull them in.
   indexMockFiles?: boolean;
   // Shared output directory for all mock files. Individual generators can
-  // override this with their own `path` property. When provided in `single`
-  // or `tags` modes, mock code is written to separate files instead of being
-  // inlined into the implementation file.
+  // override this with their own `path` property. Only affects where the
+  // deinlined mock files land; see `inline` for whether they get deinlined
+  // at all in `single`/`tags` modes.
   path?: string;
+  // In `single` and `tags` modes, mock code is written to separate
+  // `.msw.ts` / `.faker.ts` files next to the implementation by default, matching
+  // `split` and `tags-split`. Set `inline: true` to opt back into the
+  // layout Orval used before this option existed, where mock code is
+  // appended to the implementation file. Has no effect in
+  // `split`/`tags-split`, which always deinline.
+  inline?: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -655,6 +662,7 @@ export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
 export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
   path?: string;
+  inline: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 

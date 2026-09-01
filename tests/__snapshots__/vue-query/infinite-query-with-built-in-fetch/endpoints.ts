@@ -22,11 +22,6 @@ import type { MaybeRefOrGetter } from 'vue';
 
 import type { GetUsersUserIdOrdersParams } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export type getUsersUserIdOrdersResponse200 = {
   data: string[];
   status: 200;
@@ -303,35 +298,3 @@ export function useGetUsersUserIdOrders<
 
   return query;
 }
-
-export const getGetUsersUserIdOrdersResponseMock = (): string[] =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, () =>
-    faker.word.sample(),
-  );
-
-export const getGetUsersUserIdOrdersMockHandler = (
-  overrideResponse?:
-    | string[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string[]> | string[]),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/users/:userId/orders',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetUsersUserIdOrdersResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getMultiQueryParamsMock = () => [
-  getGetUsersUserIdOrdersMockHandler(),
-];

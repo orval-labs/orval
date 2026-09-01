@@ -16,11 +16,6 @@ import { Injectable, inject } from '@angular/core';
 
 import type { Observable } from 'rxjs';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
   readonly context?: HttpContext;
@@ -106,33 +101,3 @@ export class HealthService {
     }) as Observable<string>;
   }
 }
-
-export const getHealthCheckResponseMock = (): string => faker.word.sample();
-
-export const getHealthCheckMockHandler = (
-  overrideResponse?:
-    | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getHealthCheckResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
-    },
-    options,
-  );
-};
-export const getHealthMock = () => [getHealthCheckMockHandler()];

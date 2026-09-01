@@ -61,7 +61,7 @@ const createOutput = (
     fileExtension: '.ts',
     schemaFileExtension: '.ts',
     mode: 'single',
-    mock: { indexMockFiles: false, generators: [] },
+    mock: { indexMockFiles: false, inline: false, generators: [] },
     override: {
       operations: {},
       tags: {},
@@ -3450,6 +3450,103 @@ describe('angular httpResource generator', () => {
       if (mapImportLine) {
         expect(mapImportLine).toContain("from 'rxjs'");
       }
+    });
+
+    // Both siblings feed the `tags-split` barrel through `export *`. A name
+    // declared in both makes the barrel ambiguous (TS2308), so the resource
+    // file imports the `Accept` helpers the service already exports.
+    it('imports Accept helpers from the service sibling instead of redeclaring them', async () => {
+      const petsVerb = createVerbOption({
+        tags: ['Pets'],
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('string', 'text/plain'),
+              createSuccessType('Pet', 'application/json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/endpoints.ts',
+        mode: 'tags-split',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/endpoints.ts',
+        projectName: 'pets',
+      });
+
+      const [petsFile] = await generateHttpResourceExtraFiles(
+        { getPetById: petsVerb },
+        output,
+        context,
+      );
+
+      expect(petsFile.path).toBe('/tmp/pets/pets.resource.ts');
+      expect(petsFile.content).toMatch(
+        /import type \{\s*GetPetByIdAccept\s*\} from '\.\/pets\.service';/,
+      );
+      expect(petsFile.content).toContain(
+        "accept: GetPetByIdAccept = 'application/json'",
+      );
+      expect(petsFile.content).not.toContain('export type GetPetByIdAccept');
+      expect(petsFile.content).not.toContain('export const GetPetByIdAccept');
+    });
+
+    it('imports Accept helpers from the target file in single mode', async () => {
+      const petsVerb = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('string', 'text/plain'),
+              createSuccessType('Pet', 'application/json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const [petsFile] = await generateHttpResourceExtraFiles(
+        { getPetById: petsVerb },
+        output,
+        context,
+      );
+
+      expect(petsFile.path).toBe('/tmp/pets.resource.ts');
+      expect(petsFile.content).toMatch(
+        /import type \{\s*GetPetByIdAccept\s*\} from '\.\/pets';/,
+      );
+      expect(petsFile.content).not.toContain('export type GetPetByIdAccept');
     });
 
     // A rename cannot desynchronise `sharedExports`, but a new shared

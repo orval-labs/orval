@@ -164,6 +164,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
       schemas: schemaPath,
       mock: {
         indexMockFiles: false,
+        inline: false,
         generators: [{ type: OutputMockType.MSW }],
       },
     });
@@ -213,6 +214,7 @@ describe('writeSplitTagsMode — function generator is treated as MSW (#3554)', 
         mode: OutputMode.TAGS_SPLIT,
         mock: {
           indexMockFiles: false,
+          inline: false,
           generators: [
             () => ({
               imports: [],
@@ -285,6 +287,7 @@ describe('writeSplitTagsMode — index mock barrel has deterministic tag order',
         mode: OutputMode.TAGS_SPLIT,
         mock: {
           indexMockFiles: true,
+          inline: false,
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -421,6 +424,7 @@ describe('writeSplitTagsMode — mock barrel extension follows tsconfig', () => 
         tsconfig: { compilerOptions: { module: 'NodeNext' } },
         mock: {
           indexMockFiles: true,
+          inline: false,
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -468,7 +472,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     expect(content).toContain("export * from './pets/pets'");
   });
 
-  it('does not write index.ts when tagsSplitDeduplication is false', async () => {
+  it('writes index.ts when indexFiles is true even with tagsSplitDeduplication off', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const props = {
       ...createSplitModeProps(target),
@@ -482,8 +486,14 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     const paths = await writeSplitTagsMode({ ...props, needSchema: false });
 
     const indexPath = path.join(tmpDir, 'index.ts');
-    expect(paths).not.toContain(indexPath);
-    expect(fs.existsSync(indexPath)).toBe(false);
+    expect(paths).toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(true);
+
+    const content = fs.readFileSync(indexPath, 'utf8');
+    expect(content).toContain("export * from './pets/pets'");
+    // No common-types file is written without deduplication, so the
+    // barrel must not reference one.
+    expect(content).not.toContain('common-types');
   });
 
   it('does not write index.ts when indexFiles is false', async () => {
@@ -521,7 +531,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     expect(paths).toContain(indexPath);
   });
 
-  it('does not write index.ts when output.workspace is set', async () => {
+  it('writes index.ts when output.workspace is set (deduplication is disabled in workspaces)', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const props = {
       ...createSplitModeProps(target),
@@ -536,8 +546,12 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     const paths = await writeSplitTagsMode({ ...props, needSchema: false });
 
     const indexPath = path.join(tmpDir, 'index.ts');
-    expect(paths).not.toContain(indexPath);
-    expect(fs.existsSync(indexPath)).toBe(false);
+    expect(paths).toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(true);
+
+    const content = fs.readFileSync(indexPath, 'utf8');
+    expect(content).toContain("export * from './pets/pets'");
+    expect(content).not.toContain('common-types');
   });
 
   it('does not write common-types.ts when no shared types are present', async () => {

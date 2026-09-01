@@ -48,6 +48,7 @@ describe('getMockDir', () => {
     };
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       path: '../generated/mock/per-generator/shared',
       generators: [entry, { type: OutputMockType.FAKER }],
     };
@@ -61,6 +62,7 @@ describe('getMockDir', () => {
     const entry = { type: OutputMockType.MSW };
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       path: '../generated/mock/shared/mocks',
       generators: [entry, { type: OutputMockType.FAKER }],
     };
@@ -74,6 +76,7 @@ describe('getMockDir', () => {
     const entry = { type: OutputMockType.FAKER };
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       generators: [
         { type: OutputMockType.MSW, path: '../generated/mock/mixed/msw' },
         entry,
@@ -90,6 +93,7 @@ describe('getMockDir', () => {
     });
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       generators: [entry],
     };
 
@@ -101,6 +105,7 @@ describe('hasAnyMockPath', () => {
   it('returns true when only the shared mockConfig.path is set', () => {
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       path: '../generated/mock/shared/mocks',
       generators: [
         { type: OutputMockType.MSW },
@@ -114,6 +119,7 @@ describe('hasAnyMockPath', () => {
   it('returns true when only a per-generator path is set', () => {
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       generators: [
         { type: OutputMockType.MSW, path: '../generated/mock/per-gen/msw' },
         { type: OutputMockType.FAKER },
@@ -126,6 +132,7 @@ describe('hasAnyMockPath', () => {
   it('returns false when neither shared nor any generator has a path', () => {
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       generators: [
         { type: OutputMockType.MSW },
         { type: OutputMockType.FAKER },
@@ -142,6 +149,7 @@ describe('hasAnyMockPath', () => {
     });
     const mockConfig = {
       indexMockFiles: false,
+      inline: false,
       generators: [
         { type: OutputMockType.MSW, path: '../generated/mock/x/msw' },
         entry,

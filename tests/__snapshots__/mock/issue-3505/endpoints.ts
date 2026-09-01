@@ -9,13 +9,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { Ping200 } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { DirectoryPrefix, Timezone, VisitableType } from './model';
-
 export const getOrvalEnumValueEscapingRepro = (
   axiosInstance: AxiosInstance = axios,
 ) => {
@@ -28,61 +21,3 @@ export const getOrvalEnumValueEscapingRepro = (
   return { ping };
 };
 export type PingResult = AxiosResponse<Ping200>;
-
-export const getPingResponseMock = (
-  overrideResponse: Partial<Extract<Ping200, object>> = {},
-): Ping200 => ({
-  visitableType: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(VisitableType)),
-    undefined,
-  ]),
-  directoryPrefix: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(DirectoryPrefix)),
-    undefined,
-  ]),
-  timezone: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(Timezone)),
-    undefined,
-  ]),
-  inlineVisitableType: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      'App\\Models\\Document',
-      'App\\Models\\Template',
-    ] as const),
-    undefined,
-  ]),
-  inlineDirectoryPrefix: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['C:\\logs\\', 'C:\\tmp\\'] as const),
-    undefined,
-  ]),
-  inlineTimezone: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['Asia/Tokyo', 'America/New_York'] as const),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getPingMockHandler = (
-  overrideResponse?:
-    | Ping200
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Ping200> | Ping200),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/ping',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getPingResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getOrvalEnumValueEscapingReproMock = () => [getPingMockHandler()];

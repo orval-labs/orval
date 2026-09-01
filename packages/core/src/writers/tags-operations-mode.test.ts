@@ -342,6 +342,7 @@ describe('writeTagsOperationsMode', () => {
         client: OutputClient.REACT_QUERY,
         mock: {
           indexMockFiles: false,
+          inline: false,
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },
@@ -383,6 +384,7 @@ describe('writeTagsOperationsMode', () => {
         client: OutputClient.REACT_QUERY,
         mock: {
           indexMockFiles: true,
+          inline: false,
           path: mockDir,
           generators: [{ type: OutputMockType.MSW }],
         },

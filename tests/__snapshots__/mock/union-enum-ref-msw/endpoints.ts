@@ -15,11 +15,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { DisplayValueDto } from './model';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 export const getUnionEnumRefMock = (axiosInstance: AxiosInstance = axios) => {
   const getDisplay = (
     options?: AxiosRequestConfig,
@@ -30,43 +25,3 @@ export const getUnionEnumRefMock = (axiosInstance: AxiosInstance = axios) => {
   return { getDisplay };
 };
 export type GetDisplayResult = AxiosResponse<DisplayValueDto>;
-
-export const getGetDisplayResponseMock = (
-  overrideResponse: Partial<Extract<DisplayValueDto, object>> = {},
-): DisplayValueDto => ({
-  color: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      'TEXT_01',
-      'TEXT_04',
-      'TEXT_CURRENCY_GAIN',
-    ] as const),
-    undefined,
-  ]),
-  value: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getGetDisplayMockHandler = (
-  overrideResponse?:
-    | DisplayValueDto
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<DisplayValueDto> | DisplayValueDto),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/display',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getGetDisplayResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getUnionEnumRefMockMock = () => [getGetDisplayMockHandler()];
