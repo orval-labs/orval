@@ -117,18 +117,21 @@ export function resolveSchemaImportDependencies(
       `${tagSegment}${normalizedName}${importExtension}`,
     );
 
-    // The plan owns the layout when routes are configured. For a package
-    // import it maps to an export subpath; a schema the plan does not place
-    // falls back to the flat layout.
-    const dependency = schemaOutputPlan
-      ? isPackageImport
-        ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
-          flatDependency)
-        : schemaOutputPlan.clientImportPath(
-            schemaImport.name,
-            relativeSchemasPath,
-          )
-      : flatDependency;
+    // The plan owns the layout when routes are configured. A schema it does
+    // not place falls back to the flat layout, which is the only form that
+    // applies the naming convention and the import extension —
+    // `clientImportPath` joins the raw name for an unplanned schema, so it
+    // would name a module that was never emitted.
+    const dependency =
+      schemaOutputPlan?.hasSchema(schemaImport.name) === true
+        ? isPackageImport
+          ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
+            flatDependency)
+          : schemaOutputPlan.clientImportPath(
+              schemaImport.name,
+              relativeSchemasPath,
+            )
+        : flatDependency;
 
     const existing = importsByDependency.get(dependency);
     if (existing) {

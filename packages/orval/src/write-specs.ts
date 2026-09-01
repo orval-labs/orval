@@ -630,6 +630,18 @@ async function writeSpecsInternal(
         output.client === 'zod' &&
         output.override.zod.generateReusableSchemas);
 
+    // Both writers need the map: the TypeScript one passes it to
+    // `writeSchemasTagsSplit`, and the Zod ones read it as the switch itself
+    // (`const isSplit = !!schemaTagMap`). Missing, either would quietly write
+    // a flat layout while the config asked for tag directories.
+    if (shouldSplitSchemasByTags && !schemaTagMap) {
+      throw new Error(
+        'schemas.splitByTags is enabled but no schema tag map was built. ' +
+          'The map comes from getApiBuilder, so a WriteSpecBuilder assembled ' +
+          'another way has to carry one.',
+      );
+    }
+
     if (shouldSplitSchemasByTags && output.operationSchemas) {
       throw new Error(
         'schemas.splitByTags cannot be used with output.operationSchemas. ' +
@@ -783,13 +795,6 @@ async function writeSpecsInternal(
         });
         // Split schemas by tag into subdirectories
       } else if (shouldSplitSchemasByTags) {
-        if (!schemaTagMap) {
-          throw new Error(
-            'schemas.splitByTags is enabled but no schema tag map was built. ' +
-              'The map comes from getApiBuilder, so a WriteSpecBuilder assembled ' +
-              'another way has to carry one.',
-          );
-        }
         await writeSchemasTagsSplit({
           schemaPath: schemasPath,
           schemas,
