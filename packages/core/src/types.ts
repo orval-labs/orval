@@ -2,6 +2,9 @@ import type { allLocales } from '@faker-js/faker';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import type { TypeDocOptions } from 'typedoc';
 
+// Type-only, so it is erased: no runtime `types` -> `writers` dependency.
+import type { SchemaOutputPlan } from './writers/schema-output-plan';
+
 export const SupportedFormatter = {
   PRETTIER: 'prettier',
   BIOME: 'biome',
@@ -2001,6 +2004,9 @@ export type ClientExtraFilesBuilder = (
   // Extra files are rendered before the mode writers run, so they need this
   // map to route schema imports into the same tag subdirectories.
   schemaTagMap?: Map<string, string>,
+  // For the same reason they need the routed plan: without it a file falls
+  // back to the flat layout while its sibling routes, and the two disagree.
+  schemaOutputPlan?: SchemaOutputPlan,
 ) => Promise<ClientFileBuilder[]>;
 
 export interface SharedTypeDeclaration {
@@ -2267,6 +2273,8 @@ export interface WriteSpecBuilder {
   spec: OpenApiDocument;
   /** Schema→tag map built during API building, when `splitByTags` is on. */
   schemaTagMap?: Map<string, string>;
+  /** Routed schema paths built during API building, when `routes` is set. */
+  schemaOutputPlan?: SchemaOutputPlan;
 }
 
 export interface WriteModeProps {
@@ -2286,7 +2294,7 @@ export interface WriteModeProps {
   // (shared, kept at the schemas root).
   schemaTagMap?: Map<string, string>;
   /** Route-aware schema paths prepared by the top-level writer. */
-  schemaOutputPlan?: import('./writers/schema-output-plan').SchemaOutputPlan;
+  schemaOutputPlan?: SchemaOutputPlan;
 }
 
 export interface GeneratorApiOperations {
@@ -2370,6 +2378,8 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   extraFiles: ClientFileBuilder[];
   /** See {@link WriteSpecBuilder.schemaTagMap}. */
   schemaTagMap?: Map<string, string>;
+  /** See {@link WriteSpecBuilder.schemaOutputPlan}. */
+  schemaOutputPlan?: SchemaOutputPlan;
 };
 
 export class ErrorWithTag extends Error {

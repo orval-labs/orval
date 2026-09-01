@@ -33,6 +33,7 @@ import {
   pascal,
   type ResReqTypesValue,
   resolveSchemaImportDependencies,
+  type SchemaOutputPlan,
   type SharedExports,
   toObjectString,
   upath,
@@ -1681,6 +1682,7 @@ const buildSchemaImportDependencies = (
   imports: GeneratorImport[],
   relativeSchemasPath: string,
   schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] => {
   const isZod = isZodSchemaOutput(output);
 
@@ -1696,6 +1698,7 @@ const buildSchemaImportDependencies = (
     ? resolveSchemaImportDependencies(output, imports, relativeSchemasPath, {
         isZod,
         schemaTagMap,
+        schemaOutputPlan,
       })
     : [
         {
@@ -1770,6 +1773,7 @@ const buildHttpResourceExtraFile = (
   context: ContextSpec,
   header: string,
   schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ) => {
   const implementation = buildHttpResourceFile(verbOptions, output, context);
   const verbImports = Object.values(verbOptions)
@@ -1804,6 +1808,7 @@ const buildHttpResourceExtraFile = (
     schemaVerbImports,
     getHttpResourceSchemasModule(output, outputPath),
     schemaTagMap,
+    schemaOutputPlan,
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
@@ -1899,6 +1904,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
   output,
   context,
   schemaTagMap,
+  schemaOutputPlan,
 ) => {
   const header = getHeader(output.override.header, context.spec.info);
 
@@ -1933,6 +1939,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
             context,
             header,
             schemaTagMap,
+            schemaOutputPlan,
           ),
         ),
     );
@@ -1946,6 +1953,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
       context,
       header,
       schemaTagMap,
+      schemaOutputPlan,
     ),
   ]);
 };

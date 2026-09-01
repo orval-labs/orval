@@ -1885,6 +1885,59 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     }
   });
 
+  it('routes Angular resource-file schema imports through schemas.routes (#3964)', async () => {
+    // A routed plan owns the file layout. The resource file is rendered before
+    // the mode writers run, so without the plan it fell back to the flat
+    // layout and imported `../model/pet`, a module that is never written.
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            client: 'angular',
+            mode: 'tags-split',
+            indexFiles: false,
+            schemas: {
+              path: './model',
+              type: 'typescript',
+              routes: { default: 'models', enum: 'enums' },
+            },
+            override: { angular: { retrievalClient: 'both' } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const resourceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.resource.ts'),
+        'utf8',
+      );
+      const serviceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.service.ts'),
+        'utf8',
+      );
+
+      // The route directory is on both sides, and the module they name is a
+      // file that exists.
+      expect(resourceContent).toContain(`from '../model/models/pet'`);
+      expect(serviceContent).toContain(`from '../model/models/pet'`);
+      expect(
+        await fs.pathExists(path.join(workspace, 'model', 'models', 'pet.ts')),
+      ).toBe(true);
+
+      // The flat fallback names a module that was never written.
+      expect(resourceContent).not.toMatch(
+        /from\s+['"]\.\.\/model\/[A-Za-z]+['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('generates zod schemas with splitByTags', async () => {
     const workspace = await createTempWorkspace();
     try {

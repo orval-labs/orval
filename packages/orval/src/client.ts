@@ -17,6 +17,7 @@ import type {
   GeneratorVerbsOptions,
   NormalizedOutputOptions,
   OutputClientFunc,
+  SchemaOutputPlan,
 } from '@orval/core';
 import {
   asyncReduce,
@@ -365,6 +366,7 @@ export const generateExtraFiles = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
   schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ): Promise<ClientFileBuilder[]> => {
   const { extraFiles: generateExtraFiles } = getGeneratorClient(
     outputClient,
@@ -375,5 +377,11 @@ export const generateExtraFiles = (
     return Promise.resolve([]);
   }
 
-  return generateExtraFiles(verbsOptions, output, context, schemaTagMap);
+  return generateExtraFiles(
+    verbsOptions,
+    output,
+    context,
+    schemaTagMap,
+    schemaOutputPlan,
+  );
 };

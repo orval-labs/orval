@@ -1,6 +1,7 @@
 import {
   asyncReduce,
   buildSchemaTagMap,
+  createSchemaOutputPlanForOutput,
   type ContextSpec,
   generateVerbsOptions,
   type GeneratorApiBuilder,
@@ -160,18 +161,29 @@ export async function getApiBuilder({
         )
       : undefined;
 
+  // Built here for the same reason as the tag map: the extra files below are
+  // rendered before any mode writer runs, and `writeSpecs` reads this one plan
+  // off the builder rather than deriving a second.
+  const schemaOutputPlan = createSchemaOutputPlanForOutput(
+    [...componentSchemas, ...api.schemas],
+    output,
+    schemaTagMap,
+  );
+
   const extraFiles = await generateExtraFiles(
     output.client,
     api.verbOptions,
     output,
     context,
     schemaTagMap,
+    schemaOutputPlan,
   );
 
   return {
     operations: api.operations,
     schemas: api.schemas,
     schemaTagMap,
+    schemaOutputPlan,
     verbOptions: api.verbOptions,
     title: generateClientTitle,
     header: generateClientHeader,
