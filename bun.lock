@@ -422,7 +422,7 @@
       "name": "mcp-custom-server",
       "version": "8.27.0",
       "dependencies": {
-        "@hono/mcp": "^0.2.5",
+        "@hono/mcp": "^0.3.2",
         "@modelcontextprotocol/sdk": "catalog:mcp",
         "hono": "^4.12.12",
         "zod": "catalog:zod4",
@@ -1327,7 +1327,7 @@
 
     "@hono/composite-routes-with-tags-split": ["@hono/composite-routes-with-tags-split@workspace:samples/hono/composite-routes-with-tags-split"],
 
-    "@hono/mcp": ["@hono/mcp@0.2.5", "", { "dependencies": { "pkce-challenge": "^5.0.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.1", "hono": "*", "hono-rate-limiter": "^0.4.2", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-JsaJes7VlNvUrUQ9j2b9C13xjFLvyKQY515aWtsdJ9cwhBmWz5od2yUCbDu7cX38GeADmlLmpu4BKNNAV6G27w=="],
+    "@hono/mcp": ["@hono/mcp@0.3.2", "", { "dependencies": { "pkce-challenge": "^5.0.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.29.0", "hono": "*", "hono-rate-limiter": "^0.5.3", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-IJQ4RazhwFLRwcTM95Dj9YfNBYXwOQzd1IfnDy4S3hiaBbtnVY0sWiT83auOOnhaCiE0TTbud4JV9UD30zknXA=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.11", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g=="],
 
