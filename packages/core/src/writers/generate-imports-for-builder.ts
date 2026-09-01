@@ -9,10 +9,11 @@ import {
   type NormalizedOutputOptions,
 } from '../types';
 import {
-  conventionName,
   getImportExtension,
+  getSchemasImportPath,
   isFunction,
   isObject,
+  resolveSchemaImportDependencies,
   upath,
 } from '../utils';
 import type { SchemaOutputPlan } from './schema-output-plan';
@@ -22,28 +23,14 @@ export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
-  // Schema→tag map computed by `writeSpecs` when `schemas.splitByTags` is
+  // Schema→tag map computed by `getApiBuilder` when `schemas.splitByTags` is
   // enabled. Used only in the `indexFiles: false` branch to insert each
   // schema's tag subdirectory into the import path. `'.'` is the sentinel
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
   schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] {
-  if (schemaOutputPlan) {
-    imports = imports.map((schemaImport) => {
-      if (!schemaOutputPlan.hasSchema(schemaImport.name)) return schemaImport;
-
-      const canonicalName = schemaOutputPlan.canonicalNameFor(
-        schemaImport.name,
-      );
-      return canonicalName === schemaImport.name
-        ? schemaImport
-        : { ...schemaImport, name: canonicalName };
-    });
-  }
-
-  const isPackageImport =
-    isObject(output.schemas) && !!output.schemas.importPath;
+  const isPackageImport = !!getSchemasImportPath(output.schemas);
 
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
@@ -87,86 +74,12 @@ export function generateImportsForBuilder(
   // each schema (`Pet`, `PetWithTag`, ...). They're routed below.
   imports = imports.filter((i) => !i.schemaFactory);
 
-  let schemaImports: GeneratorDependency[];
-  if (output.indexFiles) {
-    const schemaDependency =
-      typeof output.schemas === 'object' && output.schemas?.importPath
-        ? output.schemas.importPath
-        : relativeSchemasPath;
-    schemaImports = isZodSchemaOutput
-      ? [
-          {
-            exports: imports.filter((i) => !i.importPath),
-            dependency: schemaDependency,
-          },
-        ]
-      : [
-          {
-            exports: imports.filter((i) => !i.importPath),
-            dependency: schemaDependency,
-          },
-        ];
-  } else {
-    const importsByDependency = new Map<string, GeneratorImport[]>();
-
-    for (const schemaImport of imports.filter((i) => !i.importPath)) {
-      // `Output` type aliases live in their base schema's file
-      // (`zodBaseName`); everything else is named after the TS identifier.
-      const baseName = schemaImport.zodBaseName ?? schemaImport.name;
-      const normalizedName = conventionName(baseName, output.namingConvention);
-      const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = isPackageImport
-        ? ''
-        : getImportExtension(output.fileExtension, output.tsconfig);
-      // When schemas are split by tag, route each import into its tag
-      // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
-      // root (sentinel `'.'`); their path is unchanged from the flat layout.
-      // The lookup and the filename both use the TS identifier
-      // (`schemaImport.name`), not `schemaName`: the schemas writer emits
-      // each schema file named after `schema.name` (the full identifier,
-      // including the `Response`/`Body`/`Parameter` suffix added for
-      // component refs), so `schemaName` (the bare ref name) would produce
-      // import paths that point at files that are never written (#2912).
-      // `Output` aliases again resolve via their base schema's identifier.
-      const tagDir = schemaTagMap?.get(
-        schemaImport.zodBaseName ?? schemaImport.name,
-      );
-      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
-      const dependency = schemaOutputPlan
-        ? isPackageImport
-          ? (schemaOutputPlan.packageImportPath(schemaImport.name) ??
-            upath.joinSafe(
-              relativeSchemasPath,
-              `${normalizedName}${suffix}${importExtension}`,
-            ))
-          : schemaOutputPlan.clientImportPath(
-              schemaImport.name,
-              relativeSchemasPath,
-            )
-        : upath.joinSafe(
-            relativeSchemasPath,
-            `${tagSegment}${normalizedName}${suffix}${importExtension}`,
-          );
-
-      if (!importsByDependency.has(dependency)) {
-        importsByDependency.set(dependency, []);
-      }
-      importsByDependency.get(dependency)?.push(schemaImport);
-    }
-
-    schemaImports = [...importsByDependency.entries()].map(
-      ([dependency, dependencyImports]) => ({
-        dependency,
-        exports: uniqueBy(
-          dependencyImports,
-          (entry) =>
-            `${entry.name}|${entry.alias ?? ''}|${String(entry.values)}|${String(
-              entry.default,
-            )}`,
-        ),
-      }),
-    );
-  }
+  const schemaImports = resolveSchemaImportDependencies(
+    output,
+    imports.filter((i) => !i.importPath),
+    relativeSchemasPath,
+    { isZod: isZodSchemaOutput, schemaTagMap, schemaOutputPlan },
+  );
 
   // Operations contribute these independently, so the same binding can
   // arrive once as a type and once as a value (e.g. `HttpHeaders` from an

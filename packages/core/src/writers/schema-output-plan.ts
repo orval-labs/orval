@@ -3,11 +3,21 @@ import nodePath from 'node:path';
 import type {
   GeneratedSchemaKind,
   GeneratorSchema,
+  NormalizedOutputOptions,
   NormalizedSchemaOptions,
   NamingConvention,
   Tsconfig,
 } from '../types';
-import { conventionName, getImportExtension, upath } from '../utils';
+import { conventionName, getImportExtension, isString, upath } from '../utils';
+
+/** Detects enum definitions used to select the configured schema route. */
+function isOpenApiEnumSchema(schema: GeneratorSchema['schema']): boolean {
+  return (
+    !!schema &&
+    typeof schema === 'object' &&
+    Array.isArray((schema as { enum?: unknown }).enum)
+  );
+}
 
 export type SchemaRouteKey = 'default' | 'enum';
 
@@ -315,4 +325,52 @@ export function createSchemaOutputPlan({
       return filePathByName.has(findKey(name));
     },
   };
+}
+
+/**
+ * The plan for an output, or `undefined` when `schemas.routes` is not set.
+ *
+ * @remarks
+ * Built once during API building and carried on `WriteSpecBuilder`, because
+ * client extra files (Angular's `*.resource.ts`) are rendered before any mode
+ * writer runs. Both sides therefore read one plan instead of deriving the
+ * layout twice — a rule derived twice is a rule that can drift.
+ *
+ * The file extension follows the same split the schema writers use: Zod
+ * schemas are named from `schemaFileExtension`, everything else from
+ * `fileExtension`.
+ */
+export function createSchemaOutputPlanForOutput(
+  schemas: GeneratorSchema[],
+  output: NormalizedOutputOptions,
+  schemaTagMap?: ReadonlyMap<string, string>,
+): SchemaOutputPlan | undefined {
+  const schemaOptions = output.schemas;
+  if (!schemaOptions || isString(schemaOptions) || !schemaOptions.routes) {
+    return undefined;
+  }
+
+  // Mirrors `writeSpecs`: a string `schemas:` is promoted to the Zod writer
+  // when the client is zod and reusable schemas are on, but never when the
+  // user asked for `{ type: 'typescript' }`. A routed plan always has an
+  // object `schemas`, so only the explicit type matters here.
+  const isZodSchemas = schemaOptions.type === 'zod';
+
+  return createSchemaOutputPlan({
+    basePath: schemaOptions.path,
+    schemas: schemas.map((schema) => ({
+      ...schema,
+      kind:
+        schema.kind ?? (isOpenApiEnumSchema(schema.schema) ? 'enum' : 'schema'),
+    })),
+    routes: schemaOptions.routes,
+    namingConvention: output.namingConvention,
+    fileExtension: isZodSchemas
+      ? output.schemaFileExtension
+      : output.fileExtension || '.ts',
+    indexFiles: output.indexFiles,
+    importPath: schemaOptions.importPath,
+    tsconfig: output.tsconfig,
+    schemaTagMap,
+  });
 }

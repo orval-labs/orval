@@ -1839,6 +1839,105 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     }
   });
 
+  it('routes Angular resource-file schema imports through the same tag map', async () => {
+    // The `*.resource.ts` file is rendered during API building, before the mode
+    // writers run. It must use the same schema→tag map as the writers.
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            client: 'angular',
+            mode: 'tags-split',
+            indexFiles: false,
+            schemas: {
+              path: './model',
+              type: 'typescript',
+              splitByTags: true,
+              importPath: '@acme/models',
+            },
+            override: { angular: { retrievalClient: 'both' } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const resourceFile = path.join(workspace, 'pets', 'pets.resource.ts');
+      expect(await fs.pathExists(resourceFile)).toBe(true);
+
+      const resourceContent = await fs.readFile(resourceFile, 'utf8');
+      const serviceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.service.ts'),
+        'utf8',
+      );
+
+      // Both files must name the same module for `Pet`: the package
+      // specifier, with the tag subdirectory, and no local file extension.
+      expect(resourceContent).toContain(`from '@acme/models/pets/pet'`);
+      expect(serviceContent).toContain(`from '@acme/models/pets/pet'`);
+      expect(resourceContent).not.toMatch(/from\s+['"]\.\.?\//);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('routes Angular resource-file schema imports through schemas.routes (#3964)', async () => {
+    // A routed plan owns the file layout. The resource file is rendered before
+    // the mode writers run, so without the plan it fell back to the flat
+    // layout and imported `../model/pet`, a module that is never written.
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            client: 'angular',
+            mode: 'tags-split',
+            indexFiles: false,
+            schemas: {
+              path: './model',
+              type: 'typescript',
+              routes: { default: 'models', enum: 'enums' },
+            },
+            override: { angular: { retrievalClient: 'both' } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const resourceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.resource.ts'),
+        'utf8',
+      );
+      const serviceContent = await fs.readFile(
+        path.join(workspace, 'pets', 'pets.service.ts'),
+        'utf8',
+      );
+
+      // The route directory is on both sides, and the module they name is a
+      // file that exists.
+      expect(resourceContent).toContain(`from '../model/models/pet'`);
+      expect(serviceContent).toContain(`from '../model/models/pet'`);
+      expect(
+        await fs.pathExists(path.join(workspace, 'model', 'models', 'pet.ts')),
+      ).toBe(true);
+
+      // The flat fallback names a module that was never written.
+      expect(resourceContent).not.toMatch(
+        /from\s+['"]\.\.\/model\/[A-Za-z]+['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('generates zod schemas with splitByTags', async () => {
     const workspace = await createTempWorkspace();
     try {
@@ -1995,6 +2094,45 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       );
       expect(rootIndex).toContain("export * from './models/index';");
       expect(rootIndex).toContain("export * from './types/index';");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - zod schemas with a custom fileExtension', () => {
+  // A user-set `fileExtension` also becomes `schemaFileExtension`, so the zod
+  // writer emits `pet.gen.ts` and not `pet.zod.ts`. Imports used to keep a
+  // hardcoded `.zod`, so they named a file that was never written.
+  it('imports the file name that the zod writer emits', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            indexFiles: false,
+            fileExtension: '.gen.ts',
+            schemas: { path: './model', type: 'zod' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      expect(
+        await fs.pathExists(path.join(workspace, 'model', 'pet.gen.ts')),
+      ).toBe(true);
+
+      const endpoints = await fs.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf8',
+      );
+      expect(endpoints).toContain(`from './model/pet.gen'`);
+      expect(endpoints).not.toContain('.zod');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
