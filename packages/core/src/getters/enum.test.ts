@@ -264,6 +264,72 @@ describe('getEnumMembers', () => {
     ]);
   });
 
+  it('should collect enum members from a nested anyOf branch', () => {
+    // Some generators emit a redundant but valid nesting where the inner
+    // composition already carries the null branch. See #3951.
+    const schema = {
+      anyOf: [
+        {
+          anyOf: [
+            {
+              type: 'string',
+              enum: ['a', 'b'],
+            },
+            {
+              type: 'null',
+            },
+          ],
+        },
+        {
+          type: 'null',
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      { value: 'a' },
+      { value: 'b' },
+      { value: null },
+    ]);
+  });
+
+  it('should collect enum members from a nested oneOf branch', () => {
+    const schema = {
+      anyOf: [
+        {
+          oneOf: [
+            {
+              const: 'ACTIVE',
+              title: 'Active',
+            },
+            {
+              const: 'INACTIVE',
+            },
+          ],
+        },
+        {
+          type: 'null',
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      {
+        value: 'ACTIVE',
+        name: 'Active',
+        description: undefined,
+        deprecated: undefined,
+      },
+      {
+        value: 'INACTIVE',
+        name: undefined,
+        description: undefined,
+        deprecated: undefined,
+      },
+      { value: null },
+    ]);
+  });
+
   it('should preserve const null branches', () => {
     const schema = {
       oneOf: [

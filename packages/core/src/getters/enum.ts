@@ -377,10 +377,19 @@ ${getEnumImplementation(members, {
   };
 }
 
+/**
+ * Guards against a self-referential branch (a `oneOf`/`anyOf` member that is
+ * the same object as one of its ancestors) sending the walk into an infinite
+ * loop. Plain specs cannot express such a cycle, but a spec object built or
+ * mutated in memory can.
+ */
+const MAX_ENUM_BRANCH_DEPTH = 32;
+
 function getEnumMembersFromBranches(
   schemaObject: OpenApiSchemaObject | undefined,
+  depth = 0,
 ): EnumMember[] {
-  if (!schemaObject) {
+  if (!schemaObject || depth > MAX_ENUM_BRANCH_DEPTH) {
     return [];
   }
 
@@ -419,6 +428,19 @@ function getEnumMembersFromBranches(
       members.push({
         value: null,
       });
+    }
+
+    // A branch can itself be a composition, e.g. the redundant but valid
+    // `anyOf: [{anyOf: [{enum}, {null}]}, {null}]` emitted by some generators.
+    // Without descending, only the outer `{type: 'null'}` is collected and the
+    // generated const ends up empty. Only walk branches that contribute no
+    // members of their own so an annotated `const`/`enum` branch keeps its own
+    // metadata. See #3951.
+    if (enumValues.length === 0) {
+      const nestedBranch = branch as OpenApiSchemaObject;
+      if (nestedBranch.oneOf || nestedBranch.anyOf) {
+        members.push(...getEnumMembersFromBranches(nestedBranch, depth + 1));
+      }
     }
   }
 
