@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@angular-eslint/builder": "22.0.0",
-    "@angular-eslint/eslint-plugin": "22.0.0",
+    "@angular-eslint/eslint-plugin": "22.1.0",
     "@angular-eslint/eslint-plugin-template": "22.0.0",
     "@angular-eslint/template-parser": "22.0.0",
     "@angular/build": "catalog:angular",
