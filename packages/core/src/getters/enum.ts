@@ -379,10 +379,15 @@ ${getEnumImplementation(members, {
 
 function getEnumMembersFromBranches(
   schemaObject: OpenApiSchemaObject | undefined,
+  seen = new Set<object>(),
 ): EnumMember[] {
-  if (!schemaObject) {
+  // A spec cannot express a branch that contains itself, but a spec object
+  // built or mutated in memory can. Stop on a real cycle rather than at an
+  // arbitrary depth, so deeply nested acyclic compositions stay complete.
+  if (!schemaObject || seen.has(schemaObject)) {
     return [];
   }
+  seen.add(schemaObject);
 
   const branches = [
     ...(schemaObject.oneOf ?? []),
@@ -412,13 +417,36 @@ function getEnumMembersFromBranches(
       })),
     );
 
-    if (
+    const isNullBranch =
       branch.type === 'null' ||
-      (Array.isArray(branch.type) && branch.type.includes('null'))
-    ) {
+      (Array.isArray(branch.type) && branch.type.includes('null'));
+
+    if (isNullBranch) {
       members.push({
         value: null,
       });
+    }
+
+    // `type: 'null'` (or `type: ['null']`) admits no value but `null`, so a
+    // nested composition under it cannot contribute anything else. A branch
+    // that allows other types still can, so keep walking multi-type arrays.
+    const isNullOnlyBranch =
+      branch.type === 'null' ||
+      (Array.isArray(branch.type) &&
+        branch.type.length > 0 &&
+        branch.type.every((type) => type === 'null'));
+
+    // A branch can itself be a composition, e.g. the redundant but valid
+    // `anyOf: [{anyOf: [{enum}, {null}]}, {null}]` emitted by some generators.
+    // Without descending, only the outer `{type: 'null'}` is collected and the
+    // generated const ends up empty. Only walk branches that contributed no
+    // members of their own: an annotated `const`/`enum` branch keeps its own
+    // metadata. See #3951.
+    if (enumValues.length === 0 && !isNullOnlyBranch) {
+      const nestedBranch = branch as OpenApiSchemaObject;
+      if (nestedBranch.oneOf || nestedBranch.anyOf) {
+        members.push(...getEnumMembersFromBranches(nestedBranch, seen));
+      }
     }
   }
 
