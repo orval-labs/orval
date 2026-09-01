@@ -1,8 +1,6 @@
 import path from 'node:path';
 
 import {
-  buildSchemaTagMap,
-  createSchemaOutputPlan,
   type ContextSpec,
   conventionName,
   createSuccessMessage,
@@ -21,7 +19,6 @@ import {
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
-  type GeneratorSchema,
   OutputMockType,
   OutputMode,
   pascal,
@@ -64,43 +61,6 @@ import {
   writeZodSchemaRoutesBarrel,
   writeZodSchemaTagsSplitBarrel,
 } from './write-zod-specs';
-
-/** Detects enum definitions used to select the configured schema route. */
-function isOpenApiEnumSchema(schema: GeneratorSchema['schema']): boolean {
-  return (
-    !!schema &&
-    typeof schema === 'object' &&
-    Array.isArray((schema as { enum?: unknown }).enum)
-  );
-}
-
-/** Creates the shared route plan used by Zod schema generation. */
-function createZodSchemaOutputPlan(
-  schemas: GeneratorSchema[],
-  output: NormalizedOutputOptions,
-  schemasPath: string,
-  fileExtension: string,
-  schemaTagMap?: Map<string, string>,
-) {
-  const schemaOptions = output.schemas;
-  if (isString(schemaOptions) || !schemaOptions?.routes) return undefined;
-
-  return createSchemaOutputPlan({
-    basePath: schemasPath,
-    schemas: schemas.map((schema) => ({
-      ...schema,
-      kind:
-        schema.kind ?? (isOpenApiEnumSchema(schema.schema) ? 'enum' : 'schema'),
-    })),
-    routes: schemaOptions.routes,
-    namingConvention: output.namingConvention,
-    fileExtension,
-    indexFiles: output.indexFiles,
-    importPath: schemaOptions.importPath,
-    tsconfig: output.tsconfig,
-    schemaTagMap,
-  });
-}
 
 async function runExternalFormatter(
   bin: string,
@@ -603,24 +563,14 @@ async function writeSpecsInternal(
   const { info, schemas, target } = builder;
   const { output } = options;
 
-  // Compute the schema→tag map once when splitByTags is enabled so every
-  // downstream writer (zod schemas, typescript schemas, the mode writers,
-  // and the consolidated faker factory file) route imports consistently.
-  // Declared at function scope because it is consumed both inside the
-  // schemas-writing branch and by `writeFakerSchemaMocks` / mode dispatch
-  // which live outside that branch.
+  // `getApiBuilder` builds the schema→tag map when `schemas.splitByTags` is on.
+  // The extra files rendered there and the writers below share that one map, so
+  // all their imports agree. The config stays the source of truth for whether
+  // to split, so a builder that arrives without a map still trips the
+  // `operationSchemas` guard below rather than silently writing a flat layout.
+  const { schemaTagMap, schemaOutputPlan } = builder;
   const shouldSplitSchemasByTags =
-    isObject(output.schemas) && output.schemas.splitByTags;
-  const schemaTagMap = shouldSplitSchemasByTags
-    ? buildSchemaTagMap(
-        Object.values(builder.operations).map((op) => ({
-          imports: op.imports,
-          tags: op.tags,
-        })),
-        schemas,
-      )
-    : undefined;
-  let schemaOutputPlan: import('@orval/core').SchemaOutputPlan | undefined;
+    isObject(output.schemas) && output.schemas.splitByTags === true;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -651,13 +601,6 @@ async function writeSpecsInternal(
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
       const fileExtension = output.schemaFileExtension;
-      schemaOutputPlan = createZodSchemaOutputPlan(
-        schemas,
-        output,
-        schemasPath,
-        fileExtension,
-        schemaTagMap,
-      );
 
       // Reusable component schemas live as separate files under `schemasPath`,
       // so we resolve the user's `override.zod.params` mutator once relative
@@ -765,23 +708,7 @@ async function writeSpecsInternal(
     } else {
       const fileExtension = output.fileExtension || '.ts';
 
-      if (!isString(output.schemas) && output.schemas.routes) {
-        schemaOutputPlan = createSchemaOutputPlan({
-          basePath: schemasPath,
-          schemas: schemas.map((schema) => ({
-            ...schema,
-            kind:
-              schema.kind ??
-              (isOpenApiEnumSchema(schema.schema) ? 'enum' : 'schema'),
-          })),
-          routes: output.schemas.routes,
-          namingConvention: output.namingConvention,
-          fileExtension,
-          indexFiles: output.indexFiles,
-          importPath: output.schemas.importPath,
-          tsconfig: output.tsconfig,
-          schemaTagMap,
-        });
+      if (schemaOutputPlan) {
         await writeRoutedSchemas({
           plan: schemaOutputPlan,
           target,
@@ -793,6 +720,13 @@ async function writeSpecsInternal(
         });
         // Split schemas by tag into subdirectories
       } else if (shouldSplitSchemasByTags) {
+        if (!schemaTagMap) {
+          throw new Error(
+            'schemas.splitByTags is enabled but no schema tag map was built. ' +
+              'The map comes from getApiBuilder, so a WriteSpecBuilder assembled ' +
+              'another way has to carry one.',
+          );
+        }
         await writeSchemasTagsSplit({
           schemaPath: schemasPath,
           schemas,
@@ -803,10 +737,7 @@ async function writeSpecsInternal(
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          operations: Object.values(builder.operations).map((op) => ({
-            imports: op.imports,
-            tags: op.tags,
-          })),
+          schemaTagMap,
         });
       } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =

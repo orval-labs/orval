@@ -6,7 +6,7 @@ import {
   type ClientFooterBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
-  conventionName,
+  dedupeSchemaImports,
   emitResponseValidation,
   escapeRegExp,
   generateDependencyImports,
@@ -21,6 +21,7 @@ import {
   getFullRoute,
   GetterPropType,
   getOperationTagKey,
+  getSchemasImportPath,
   getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
@@ -31,10 +32,11 @@ import {
   OutputMode,
   pascal,
   type ResReqTypesValue,
+  resolveSchemaImportDependencies,
+  type SchemaOutputPlan,
   type SharedExports,
   toObjectString,
   upath,
-  getImportExtension,
 } from '@orval/core';
 
 import {
@@ -1670,62 +1672,40 @@ const buildHttpResourceFile = (
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
+/**
+ * Resolves the schema imports of a generated `*.resource.ts` file. Uses core's
+ * {@link resolveSchemaImportDependencies} so a resource file and its sibling
+ * service file agree on the module that exports each schema.
+ */
 const buildSchemaImportDependencies = (
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
-) => {
+  schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
+): GeneratorDependency[] => {
   const isZod = isZodSchemaOutput(output);
-  // Each operation tags the schemas it parses at runtime with `values: true`
-  // (see `getHttpResourceVerbImports`). Everything else — params, headers,
-  // body, `<Name>Output` aliases — is only used in type positions, so it
-  // stays type-only even in Zod mode (#3932). The same schema can arrive
-  // tagged from one operation and untagged from another; a value import
-  // covers both uses, so the tag wins.
-  const uniqueImports = [
-    ...imports
-      .reduce((byName, imp) => {
-        const existing = byName.get(imp.name);
-        byName.set(imp.name, existing?.values && !imp.values ? existing : imp);
-        return byName;
-      }, new Map<string, GeneratorImport>())
-      .values(),
-  ];
 
-  if (!output.schemas) {
-    return [
-      {
-        exports: uniqueImports,
-        dependency: relativeSchemasPath,
-      },
-    ];
-  }
-
-  if (!output.indexFiles) {
-    return [...uniqueImports].map((imp) => {
-      const baseName = imp.schemaName ?? imp.name;
-      const name = conventionName(baseName, output.namingConvention);
-      const suffix = isZod ? '.zod' : '';
-      const importExtension = getImportExtension(
-        output.fileExtension,
-        output.tsconfig,
-      );
-      return {
-        exports: [imp],
-        dependency: upath.joinSafe(
-          relativeSchemasPath,
-          `${name}${suffix}${importExtension}`,
-        ),
-      };
-    });
-  }
-
-  return [
-    {
-      exports: uniqueImports,
-      dependency: relativeSchemasPath,
-    },
-  ];
+  // Without emitted schemas, `relativeSchemasPath` is the single generated
+  // `*.schemas` file and not a directory, so per-schema routing does not apply.
+  //
+  // Imports arrive already tagged: an operation that parses a schema at runtime
+  // sets `values: true` (see `getHttpResourceVerbImports`); everything else —
+  // params, headers, body, `<Name>Output` aliases — stays type-only even in Zod
+  // mode (#3937). `dedupeSchemaImports` merges a type-only entry into its value
+  // twin, so the tag wins for the whole binding.
+  return output.schemas
+    ? resolveSchemaImportDependencies(output, imports, relativeSchemasPath, {
+        isZod,
+        schemaTagMap,
+        schemaOutputPlan,
+      })
+    : [
+        {
+          exports: dedupeSchemaImports(imports),
+          dependency: relativeSchemasPath,
+        },
+      ];
 };
 
 const getHttpResourceExtraFilePath = (
@@ -1755,10 +1735,17 @@ const getHttpResourceExtraFilePath = (
   }
 };
 
-const getHttpResourceRelativeSchemasPath = (
+const getHttpResourceSchemasModule = (
   output: NormalizedOutputOptions,
   outputPath: string,
 ): string => {
+  // `schemas.importPath` is a package specifier (e.g. `@acme/models`), not a
+  // filesystem path, so emit it as it is. This mirrors the split-mode writers.
+  const customImportPath = getSchemasImportPath(output.schemas);
+  if (customImportPath) {
+    return customImportPath;
+  }
+
   const schemasPath =
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
 
@@ -1785,6 +1772,8 @@ const buildHttpResourceExtraFile = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
   header: string,
+  schemaTagMap?: Map<string, string>,
+  schemaOutputPlan?: SchemaOutputPlan,
 ) => {
   const implementation = buildHttpResourceFile(verbOptions, output, context);
   const verbImports = Object.values(verbOptions)
@@ -1817,7 +1806,9 @@ const buildHttpResourceExtraFile = (
   const schemaImports = buildSchemaImportDependencies(
     output,
     schemaVerbImports,
-    getHttpResourceRelativeSchemasPath(output, outputPath),
+    getHttpResourceSchemasModule(output, outputPath),
+    schemaTagMap,
+    schemaOutputPlan,
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
@@ -1912,6 +1903,8 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
   verbOptions,
   output,
   context,
+  schemaTagMap,
+  schemaOutputPlan,
 ) => {
   const header = getHeader(output.override.header, context.spec.info);
 
@@ -1945,6 +1938,8 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
             output,
             context,
             header,
+            schemaTagMap,
+            schemaOutputPlan,
           ),
         ),
     );
@@ -1957,6 +1952,8 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
       output,
       context,
       header,
+      schemaTagMap,
+      schemaOutputPlan,
     ),
   ]);
 };

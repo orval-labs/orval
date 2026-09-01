@@ -10,10 +10,10 @@ import {
   compareNatural,
   conventionName,
   getImportExtension,
+  SHARED_DIR,
   upath,
 } from '../utils';
 import { writeGeneratedFile } from './file';
-import { buildSchemaTagMap, SHARED_DIR } from './schema-tag-mapper';
 import { writeSchemas } from './schemas';
 
 interface WriteSchemasTagsSplitOptions {
@@ -26,7 +26,11 @@ interface WriteSchemasTagsSplitOptions {
   indexFiles: boolean;
   tsconfig?: Tsconfig;
   factoryOutputDirectory?: string;
-  operations: ReadonlyArray<{ imports: GeneratorImport[]; tags: string[] }>;
+  /**
+   * Schema→tag map from `buildSchemaTagMap`. It sets the directory of each
+   * written file, so the caller supplies the same map that resolves imports.
+   */
+  schemaTagMap: Map<string, string>;
 }
 
 export async function writeSchemasTagsSplit({
@@ -39,9 +43,8 @@ export async function writeSchemasTagsSplit({
   indexFiles,
   tsconfig,
   factoryOutputDirectory,
-  operations,
+  schemaTagMap,
 }: WriteSchemasTagsSplitOptions) {
-  const schemaTagMap = buildSchemaTagMap(operations, schemas);
   const importExtension = getImportExtension(fileExtension, tsconfig);
 
   const groups = new Map<string, GeneratorSchema[]>();
