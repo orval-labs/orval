@@ -122,7 +122,7 @@ describe('createGenerateInvalidateCalls', () => {
         { query: 'showPetById', invalidateMode: 'invalidate' },
       ]),
     ).toBe(
-      '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((key) => partialMatchKey(query.queryKey, key)) });',
+      '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((queryKey) => matchQuery({ queryKey }, query)) });',
     );
   });
 
@@ -135,7 +135,7 @@ describe('createGenerateInvalidateCalls', () => {
       ]),
     ).toBe(
       [
-        '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((key) => partialMatchKey(query.queryKey, key)) });',
+        '    queryClient.invalidateQueries({ predicate: (query) => [getListPetsQueryKey(), getShowPetByIdQueryKey()].some((queryKey) => matchQuery({ queryKey }, query)) });',
         '    queryClient.resetQueries({ queryKey: getPetStatsQueryKey() });',
       ].join('\n'),
     );

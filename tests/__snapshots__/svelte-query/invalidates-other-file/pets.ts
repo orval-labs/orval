@@ -7,7 +7,7 @@
 import {
   createMutation,
   createQuery,
-  partialMatchKey,
+  matchQuery,
   useQueryClient,
 } from '@tanstack/svelte-query';
 import type {
@@ -337,8 +337,8 @@ export const getCreatePetsMutationOptions = <
     if (!options?.skipInvalidation) {
       queryClient.invalidateQueries({
         predicate: (query) =>
-          [getListPetsQueryKey(), getHealthCheckQueryKey()].some((key) =>
-            partialMatchKey(query.queryKey, key),
+          [getListPetsQueryKey(), getHealthCheckQueryKey()].some((queryKey) =>
+            matchQuery({ queryKey }, query),
           ),
       });
     }
@@ -605,7 +605,7 @@ export const getDeletePetByIdMutationOptions = <
       queryClient.resetQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }

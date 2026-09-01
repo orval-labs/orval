@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  partialMatchKey,
+  matchQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -619,7 +619,7 @@ export const getDeletePetByIdMutationOptions = <
       queryClient.resetQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }

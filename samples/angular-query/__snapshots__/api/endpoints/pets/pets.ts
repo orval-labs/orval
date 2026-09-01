@@ -12,7 +12,7 @@ import {
   QueryClient,
   injectMutation,
   injectQuery,
-  partialMatchKey,
+  matchQuery,
 } from '@tanstack/angular-query-experimental';
 import type {
   CreateMutationOptions,
@@ -681,7 +681,7 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
       queryClient.invalidateQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }
@@ -792,7 +792,7 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
       queryClient.invalidateQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }
@@ -907,7 +907,7 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
       queryClient.invalidateQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }

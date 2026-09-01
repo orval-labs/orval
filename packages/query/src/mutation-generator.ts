@@ -431,6 +431,10 @@ const createGenerateInvalidateFilter = (
  * genuinely stale in-flight fetch, while invalidating and refetching each matched
  * query exactly once. A lone target still emits the plain `queryKey` form, so
  * single-target output is byte-identical to before.
+ *
+ * `matchQuery` is what `invalidateQueries({ queryKey })` resolves a key filter
+ * with internally, and unlike `partialMatchKey` it is exported by every
+ * supported adapter package, back to `@tanstack/svelte-query` v4.
  */
 export const createGenerateInvalidateCalls = (
   spec: Record<string, unknown> | undefined,
@@ -465,7 +469,7 @@ export const createGenerateInvalidateCalls = (
         const clauses = [
           ...(keys.length > 0
             ? [
-                `[${keys.join(', ')}].some((key) => partialMatchKey(query.queryKey, key))`,
+                `[${keys.join(', ')}].some((queryKey) => matchQuery({ queryKey }, query))`,
               ]
             : []),
           ...predicates.map((predicate) => `(${predicate})`),

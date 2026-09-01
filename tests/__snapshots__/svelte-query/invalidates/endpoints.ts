@@ -7,7 +7,7 @@
 import {
   createMutation,
   createQuery,
-  partialMatchKey,
+  matchQuery,
   useQueryClient,
 } from '@tanstack/svelte-query';
 import type {
@@ -598,7 +598,7 @@ export const getDeletePetByIdMutationOptions = <
       queryClient.resetQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }

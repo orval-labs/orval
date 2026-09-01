@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  partialMatchKey,
+  matchQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -418,8 +418,8 @@ export const getCreatePetsMutationOptions = <
     if (!options?.skipInvalidation) {
       queryClient.invalidateQueries({
         predicate: (query) =>
-          [getListPetsQueryKey(), getShowPetByIdQueryKey('@me')].some((key) =>
-            partialMatchKey(query.queryKey, key),
+          [getListPetsQueryKey(), getShowPetByIdQueryKey('@me')].some(
+            (queryKey) => matchQuery({ queryKey }, query),
           ) ||
           (typeof query.queryKey[0] === 'string' &&
             query.queryKey[0].startsWith('/pets/')),
@@ -747,7 +747,7 @@ export const getDeletePetByIdMutationOptions = <
       queryClient.invalidateQueries({
         predicate: (query) =>
           [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
-            (key) => partialMatchKey(query.queryKey, key),
+            (queryKey) => matchQuery({ queryKey }, query),
           ),
       });
     }
