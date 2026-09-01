@@ -330,6 +330,71 @@ describe('getEnumMembers', () => {
     ]);
   });
 
+  it('should not widen a null-only branch with its nested composition', () => {
+    // `type: 'null'` admits no value but `null`, so a nested composition under
+    // it cannot contribute additional values to the enum.
+    const schema = {
+      anyOf: [
+        {
+          type: 'null',
+          anyOf: [
+            {
+              type: 'string',
+              enum: ['a', 'b'],
+            },
+          ],
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([{ value: null }]);
+  });
+
+  it('should still walk a branch that allows a type besides null', () => {
+    const schema = {
+      anyOf: [
+        {
+          type: ['string', 'null'],
+          anyOf: [
+            {
+              const: 'ACTIVE',
+            },
+          ],
+        },
+      ],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      { value: null },
+      {
+        value: 'ACTIVE',
+        name: undefined,
+        description: undefined,
+        deprecated: undefined,
+      },
+    ]);
+  });
+
+  it('should collect members from a deeply nested acyclic composition', () => {
+    // Traversal stops on real cycles, not at a fixed depth, so an innermost
+    // enum stays reachable however many redundant wrappers precede it.
+    let schema = { enum: ['deep'] } as unknown as OpenApiSchemaObject;
+    for (let i = 0; i < 64; i++) {
+      schema = { anyOf: [schema] } as unknown as OpenApiSchemaObject;
+    }
+
+    expect(getEnumMembers(schema)).toEqual([{ value: 'deep' }]);
+  });
+
+  it('should stop on a self-referential branch', () => {
+    const schema = {
+      anyOf: [{ enum: ['a'] }],
+    } as unknown as OpenApiSchemaObject;
+    (schema.anyOf as unknown[]).push(schema);
+
+    expect(getEnumMembers(schema)).toEqual([{ value: 'a' }]);
+  });
+
   it('should preserve const null branches', () => {
     const schema = {
       oneOf: [

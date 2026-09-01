@@ -377,21 +377,17 @@ ${getEnumImplementation(members, {
   };
 }
 
-/**
- * Guards against a self-referential branch (a `oneOf`/`anyOf` member that is
- * the same object as one of its ancestors) sending the walk into an infinite
- * loop. Plain specs cannot express such a cycle, but a spec object built or
- * mutated in memory can.
- */
-const MAX_ENUM_BRANCH_DEPTH = 32;
-
 function getEnumMembersFromBranches(
   schemaObject: OpenApiSchemaObject | undefined,
-  depth = 0,
+  seen = new Set<object>(),
 ): EnumMember[] {
-  if (!schemaObject || depth > MAX_ENUM_BRANCH_DEPTH) {
+  // A spec cannot express a branch that contains itself, but a spec object
+  // built or mutated in memory can. Stop on a real cycle rather than at an
+  // arbitrary depth, so deeply nested acyclic compositions stay complete.
+  if (!schemaObject || seen.has(schemaObject)) {
     return [];
   }
+  seen.add(schemaObject);
 
   const branches = [
     ...(schemaObject.oneOf ?? []),
@@ -421,25 +417,35 @@ function getEnumMembersFromBranches(
       })),
     );
 
-    if (
+    const isNullBranch =
       branch.type === 'null' ||
-      (Array.isArray(branch.type) && branch.type.includes('null'))
-    ) {
+      (Array.isArray(branch.type) && branch.type.includes('null'));
+
+    if (isNullBranch) {
       members.push({
         value: null,
       });
     }
 
+    // `type: 'null'` (or `type: ['null']`) admits no value but `null`, so a
+    // nested composition under it cannot contribute anything else. A branch
+    // that allows other types still can, so keep walking multi-type arrays.
+    const isNullOnlyBranch =
+      branch.type === 'null' ||
+      (Array.isArray(branch.type) &&
+        branch.type.length > 0 &&
+        branch.type.every((type) => type === 'null'));
+
     // A branch can itself be a composition, e.g. the redundant but valid
     // `anyOf: [{anyOf: [{enum}, {null}]}, {null}]` emitted by some generators.
     // Without descending, only the outer `{type: 'null'}` is collected and the
-    // generated const ends up empty. Only walk branches that contribute no
-    // members of their own so an annotated `const`/`enum` branch keeps its own
+    // generated const ends up empty. Only walk branches that contributed no
+    // members of their own: an annotated `const`/`enum` branch keeps its own
     // metadata. See #3951.
-    if (enumValues.length === 0) {
+    if (enumValues.length === 0 && !isNullOnlyBranch) {
       const nestedBranch = branch as OpenApiSchemaObject;
       if (nestedBranch.oneOf || nestedBranch.anyOf) {
-        members.push(...getEnumMembersFromBranches(nestedBranch, depth + 1));
+        members.push(...getEnumMembersFromBranches(nestedBranch, seen));
       }
     }
   }
