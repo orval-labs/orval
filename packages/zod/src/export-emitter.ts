@@ -88,22 +88,37 @@ export const renderZodExport = (block: ZodExportBlock): string => {
     );
   }
 
-  const constLine = block.arrayItem
-    ? `export const ${block.name}Item = ${block.expression}\n` +
-      `export const ${block.name} = ${renderArrayWithBounds(
-        `${block.name}Item`,
-        block.variant,
-        block.arrayItem.rules,
-      )}${renderBrand(block)}`
-    : `export const ${block.name} = ${block.expression}${renderBrand(block)}`;
+  const companionLines = (name: string) =>
+    `export type ${name} = zod.input<typeof ${name}>;\n` +
+    `export type ${name}Output = zod.output<typeof ${name}>;`;
+
+  if (block.arrayItem) {
+    const itemName = `${block.name}Item`;
+    const itemConst = `export const ${itemName} = ${block.expression}`;
+    const wrapperConst = `export const ${block.name} = ${renderArrayWithBounds(
+      itemName,
+      block.variant,
+      block.arrayItem.rules,
+    )}${renderBrand(block)}`;
+
+    if (!block.companionTypes) {
+      return `${itemConst}\n${wrapperConst}`;
+    }
+
+    // Item and wrapper are independently type-inferable `export const`s, so
+    // each gets its own companion pair (matching the schema-file convention),
+    // separated by a blank line the way two unrelated export blocks are.
+    return (
+      `${itemConst}\n\n${companionLines(itemName)}\n\n` +
+      `${wrapperConst}\n\n${companionLines(block.name)}`
+    );
+  }
+
+  const constLine = `export const ${block.name} = ${block.expression}${renderBrand(block)}`;
 
   if (!block.companionTypes) {
     return constLine;
   }
 
-  return (
-    `${constLine}\n\n` +
-    `export type ${block.name} = zod.input<typeof ${block.name}>;\n` +
-    `export type ${block.name}Output = zod.output<typeof ${block.name}>;`
-  );
+  return `${constLine}\n\n${companionLines(block.name)}`;
 };

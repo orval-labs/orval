@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
 import { NamingConvention } from '../types';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { createSchemaOutputPlan } from './schema-output-plan';
 
 describe('generateImportsForBuilder', () => {
   const createMockOutput = (
@@ -21,6 +22,230 @@ describe('generateImportsForBuilder', () => {
   ): GeneratorImport => ({
     name,
     schemaName,
+  });
+
+  it('routes direct client imports through the schema output plan', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'User',
+          kind: 'schema',
+          model: 'export type User = unknown;',
+          imports: [],
+        },
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export const UserStatus = {};',
+          imports: [],
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    const result = generateImportsForBuilder(
+      output,
+      [createMockImport('User'), createMockImport('UserStatus')],
+      '../schemas',
+      undefined,
+      plan,
+    );
+
+    expect(result).toEqual([
+      { exports: [{ name: 'User' }], dependency: '../schemas/models/user' },
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '../schemas/types/userStatus',
+      },
+    ]);
+  });
+
+  it('canonicalizes direct client imports that use a schema alias', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export type UserStatus = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          name: 'user_status',
+          kind: 'enum',
+          model: 'export type user_status = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+    });
+
+    const result = generateImportsForBuilder(
+      output,
+      [createMockImport('user_status')],
+      '../schemas',
+      undefined,
+      plan,
+    );
+
+    expect(result).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '../schemas/types/userStatus',
+      },
+    ]);
+  });
+
+  it('uses the generated schema name when schemaName differs', () => {
+    const output = createMockOutput({
+      indexFiles: false,
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+        importPath: '@acme/models',
+      },
+    });
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas: [
+        {
+          name: 'UserStatus',
+          kind: 'enum',
+          model: 'export type UserStatus = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+        {
+          name: 'user_status',
+          kind: 'enum',
+          model: 'export type user_status = string;',
+          imports: [],
+          schema: { type: 'string', enum: ['active'] },
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+      importPath: '@acme/models',
+    });
+
+    expect(
+      generateImportsForBuilder(
+        output,
+        [createMockImport('UserStatus', 'UserStatusSchema')],
+        '../schemas',
+        undefined,
+        plan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus', schemaName: 'UserStatusSchema' }],
+        dependency: '@acme/models/types/userStatus',
+      },
+    ]);
+  });
+
+  it('uses the package root or routed subpath for importPath', () => {
+    const schemas = [
+      {
+        name: 'UserStatus',
+        kind: 'enum' as const,
+        model: 'export type UserStatus = string;',
+        imports: [],
+      },
+      {
+        name: 'User',
+        kind: 'schema' as const,
+        model: 'export type User = unknown;',
+        imports: [],
+      },
+    ];
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas,
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+      importPath: '@acme/models',
+    });
+    const output = createMockOutput({
+      schemas: {
+        path: './schemas',
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'types' },
+        importPath: '@acme/models',
+      },
+    });
+
+    expect(
+      generateImportsForBuilder(
+        output,
+        [createMockImport('UserStatus')],
+        '../schemas',
+        undefined,
+        plan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '@acme/models/types/userStatus',
+      },
+    ]);
+    const rootPlan = createSchemaOutputPlan({
+      basePath: '/tmp/schemas',
+      schemas,
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      importPath: '@acme/models',
+    });
+    expect(
+      generateImportsForBuilder(
+        { ...output, indexFiles: true },
+        [createMockImport('UserStatus')],
+        '../schemas',
+        undefined,
+        rootPlan,
+      ),
+    ).toEqual([
+      {
+        exports: [{ name: 'UserStatus' }],
+        dependency: '@acme/models',
+      },
+    ]);
   });
 
   describe('without indexFiles', () => {
@@ -101,7 +326,7 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
 
-    it('should use schemaName when provided', () => {
+    it('should use the TS identifier (name) for the file name, not schemaName (#2912)', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.gen.ts',
@@ -110,10 +335,13 @@ describe('generateImportsForBuilder', () => {
 
       const result = generateImportsForBuilder(output, imports, '../models');
 
+      // The schemas writer emits files named after `schema.name` (the full
+      // TS identifier), so the import path must resolve to `usertype`, not
+      // the bare ref name `user` (whose file is never written).
       expect(result).toEqual([
         {
           exports: [{ name: 'UserType', schemaName: 'User' }],
-          dependency: '../models/user.gen',
+          dependency: '../models/userType.gen',
         },
       ]);
     });
@@ -157,6 +385,30 @@ describe('generateImportsForBuilder', () => {
             },
           ],
           dependency: '../models/portfolioResponseSchema.zod',
+        },
+      ]);
+    });
+
+    it('routes an Output type alias to its base schema zod file via zodBaseName', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'Pets', schemaName: 'Pets', values: true },
+        { name: 'PetsOutput', zodBaseName: 'Pets' },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'Pets', schemaName: 'Pets', values: true },
+            { name: 'PetsOutput', zodBaseName: 'Pets' },
+          ],
+          dependency: '../models/pets.zod',
         },
       ]);
     });
@@ -232,6 +484,33 @@ describe('generateImportsForBuilder', () => {
             },
           ],
           dependency: './pets.faker',
+        },
+      ]);
+    });
+
+    it('merges a type-only and a value import of the same name into one value import', () => {
+      const output = createMockOutput({ indexFiles: false });
+      const imports: GeneratorImport[] = [
+        { name: 'HttpHeaders', importPath: '@angular/common/http' },
+        {
+          name: 'HttpHeaders',
+          values: true,
+          importPath: '@angular/common/http',
+        },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'HttpHeaders',
+              values: true,
+              importPath: '@angular/common/http',
+            },
+          ],
+          dependency: '@angular/common/http',
         },
       ]);
     });
@@ -559,6 +838,9 @@ describe('generateImportsForBuilder', () => {
       // `schemaName: 'PetSchema'` is the original components.schemas key.
       // The tag dir ('pets') must come from looking up `Pet`, not `PetSchema`
       // (which would miss the map and produce no tag segment).
+      // The filename must also come from `name` (the TS identifier), not
+      // `schemaName` (the bare ref name), matching what the schemas writer
+      // emits (#2912).
       const imports = [createMockImport('Pet', 'PetSchema')];
       const schemaTagMap = new Map<string, string>([['Pet', 'pets']]);
 
@@ -569,7 +851,7 @@ describe('generateImportsForBuilder', () => {
         schemaTagMap,
       );
 
-      expect(result).toHaveProperty('0.dependency', '../models/pets/petSchema');
+      expect(result).toHaveProperty('0.dependency', '../models/pets/pet');
     });
 
     it('inserts the tag subdir for matched schemas and leaves unmatched at root', () => {
@@ -587,6 +869,35 @@ describe('generateImportsForBuilder', () => {
 
       const deps = result.map((r) => r.dependency).sort();
       expect(deps).toEqual(['../models/error', '../models/pets/pet']);
+    });
+
+    it('routes an Output alias into the same tag subdir as its base schema', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        schemas: { path: './schemas', type: 'zod', splitByTags: true },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'Pets', schemaName: 'Pets', values: true },
+        { name: 'PetsOutput', zodBaseName: 'Pets' },
+      ];
+      const schemaTagMap = new Map<string, string>([['Pets', 'pets']]);
+
+      const result = generateImportsForBuilder(
+        output,
+        imports,
+        '../models',
+        schemaTagMap,
+      );
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'Pets', schemaName: 'Pets', values: true },
+            { name: 'PetsOutput', zodBaseName: 'Pets' },
+          ],
+          dependency: '../models/pets/pets.zod',
+        },
+      ]);
     });
   });
 });

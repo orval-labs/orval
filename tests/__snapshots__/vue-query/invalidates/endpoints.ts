@@ -4,7 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import {
+  matchQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/vue-query';
 import type {
   DataTag,
   MutationFunction,
@@ -604,9 +609,11 @@ export const getDeletePetByIdMutationOptions = <
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.resetQueries({ queryKey: getListPetsQueryKey() });
       queryClient.resetQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (queryKey) => matchQuery({ queryKey }, query),
+          ),
       });
     }
     unref(

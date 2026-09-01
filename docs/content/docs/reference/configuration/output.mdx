@@ -106,6 +106,10 @@ export default defineConfig({
       schemas: {
         path: './api/model',
         type: 'typescript', // 'typescript' | 'zod'
+        routes: {
+          default: 'models',
+          enum: 'types',
+        },
       },
     },
   },
@@ -118,6 +122,43 @@ export default defineConfig({
 | `type`        | `string`  | `'typescript'` (default) or `'zod'` — optional |
 | `importPath`  | `string`  | Optional package import specifier (see below)   |
 | `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
+| `routes`      | `object`  | Route enums separately from other schemas |
+
+`routes.default` is required and route values are relative directories under
+`schemas.path`. `routes.enum` is optional; without it, enums use the default
+route. Empty, absolute, parent-escaping, or equivalent route values are
+rejected. Route comparison is case-insensitive so configurations remain
+portable to case-insensitive file systems. Routes are supported for TypeScript
+and Zod schemas; enums use `routes.enum` and all other schemas use
+`routes.default`. Routes can be combined with `splitByTags`. They remain
+incompatible with `operationSchemas`, mocks, and factory methods.
+
+When different schema names produce the same generated file under the selected
+naming convention, equivalent definitions are emitted once and imports are
+redirected to the canonical schema. Different definitions are rejected with a
+configuration error instead of being silently overwritten.
+
+With `indexFiles: true`, Orval writes a barrel for each route that contains
+schemas and a root `schemas/index.ts` barrel. With `indexFiles: false`,
+generated imports point directly to the routed schema files.
+
+For example, with `routes: { default: 'models', enum: 'types' }`:
+
+```
+schemas/
+├── models/
+│   ├── index.ts
+│   └── pet.ts
+├── types/
+│   ├── index.ts
+│   └── petStatus.ts
+└── index.ts
+```
+
+When `splitByTags` is also enabled, tag directories are nested under their
+route. Schemas used by multiple tags (or by no operation) are placed under
+`<route>/shared`, for example `schemas/models/pets`,
+`schemas/models/shared`, and `schemas/types/pets`.
 
 ### importPath
 
@@ -193,8 +234,9 @@ with a clear error message before generation runs:
 When `splitByTags` is `true`, schemas are organized into per-tag
 subdirectories instead of a single flat directory. Schemas referenced by
 only one tag go in that tag's directory; schemas referenced by multiple
-tags (or not referenced by any operation) remain at the root of the schema
-directory. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+tags (or not referenced by any operation) go in `shared`. If an operation has
+multiple tags, Orval uses its first tag, matching the existing Orval routing
+behavior. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -214,26 +256,29 @@ Result:
 
 ```
 api/model/
-├── error.ts               ← schemas used by 2+ tags (or unreferenced)
-├── pagination.ts
+├── shared/                ← schemas used by 2+ tags (or unreferenced)
+│   ├── error.ts
+│   └── pagination.ts
 ├── pets/                  ← schemas only used by "pets" operations
 │   ├── pet.ts
 │   ├── createPetsBody.ts
 │   ├── listPetsParams.ts
 │   └── index.ts
-└── index.ts               ← root barrel re-exporting shared files + tag dirs
+└── index.ts               ← root barrel re-exporting shared/ + tag dirs
 ```
 
 Cross-tag imports from within a tag subdirectory resolve to the parent:
 
 ```ts
 // pets/pet.ts
-import type { Error } from '../error';
+import type { Error } from '../shared/error';
 ```
 
 **Requirements:**
 
 - Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+- Can be combined with `schemas.routes`; tag directories are nested under the
+  selected route, while shared schemas are nested under `<route>/shared`.
 - Incompatible with `operationSchemas` — operation-derived types are placed
   within their tag directories automatically.
 - Schema-to-tag mapping is transitive: if `Pet` imports `Dog` which imports
@@ -1212,7 +1257,7 @@ Generate type-safe getQueryData helpers.
 
 **Type:** `Array`
 
-Automatically invalidate or reset queries on mutation success (Angular Query, React Query & Svelte Query):
+Automatically invalidate or reset queries on mutation success (Angular Query, React Query, Svelte Query & Vue Query v5):
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1548,6 +1593,8 @@ Force a specific version for generated hooks.
 
 Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
 
+A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
+
 The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown — so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
 
 ---
@@ -1862,6 +1909,32 @@ Behavior:
 - **Opt-in.** Left `false`, optional properties emit `.optional()` as before, so existing output is unchanged.
 - **zod v4 only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted.
 - Applies to optional properties in both the classic and [`mini`](#variant) variants.
+
+### generateCompanionTypes
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Follow every generated per-operation `export const` with a `zod.input`/[`zod.output`](https://zod.dev/basics?id=inferring-types) type alias pair, so consumers can import a TypeScript type instead of writing one by hand.
+
+```ts
+// override: { zod: { generateCompanionTypes: true } }
+export const CreatePetsBody = zod.object({ name: zod.string() });
+
+export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, output is unchanged.
+- Applies to per-operation schemas — `Params`, `QueryParams`, `Header`, `Body`, and `Response` — including the Hono `*.zod.ts` output, which goes through the same generator. Component schemas emitted under [`generateReusableSchemas`](#generatereusableschemas) already carry this pair unconditionally and are unaffected by this flag.
+- For an array request/response body, both the `*Item` schema and the array wrapper get their own pair.
+- Uses `zod.input`, not `z.infer` (an alias of `zod.output`): request-side schemas commonly carry `.default()`, `coerce`, or `.transform()`, where the pre-parse (`input`) and post-parse (`output`) shapes differ.
+- With [`useBrandedTypes`](#usebrandedtypes), the clean `zod.input` alias stays unbranded — `.brand()` only affects the output type — so the brand shows up on the `...Output` alias.
+- Helper value consts (`...Max`, `...Min`, `...RegExp`, `...Default`) are plain values, not schemas, and never get a companion pair.
+- Supported as a per-operation or per-tag override alongside `strict`, `generate`, `coerce`, `preprocess`, `params`, and `useBrandedTypes` (see [Scoping options per operation or tag](/docs/guides/zod#scoping-options-per-operation-or-tag)).
 
 ---
 
@@ -2404,6 +2477,8 @@ Enable Zod runtime validation for fetch client responses. Requires `schemas: { t
 
 The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 
+A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
+
 ### arrayFormat
 
 **Type:** `'repeat' | 'brackets' | 'comma'`
@@ -2503,8 +2578,8 @@ export const load = async ({ fetch }) => {
 | Client | Config key | Status | Notes |
 |--------|------------|--------|-------|
 | `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
-| `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
-| `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
+| `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; types them as the schema's `zod.output` alias; skips primitive/`void` and custom mutator paths |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()`; types them as the schema's `zod.output` alias; skips primitive/`void`, ndjson and custom mutator paths |
 | any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeZodSchemaInArguments`](#includezodschemainarguments) passes the schema to the mutator so it can validate the response itself |
 
 Runtime validation is **disabled by default** (`false`). When enabled, all three supporting clients accept the object form `{ strategy: 'throw' | 'both' }`, and `true` is shorthand for `{ strategy: 'throw' }`. The `throw` strategy parses and throws; `both` additionally `console.error`s the raw `ZodError` before re-throwing, for production observability without giving up fail-fast behaviour.

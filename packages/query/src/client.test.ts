@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './frameworks';
 import {
+  generateAngularHttpRequestFunction,
   generateAxiosRequestFunction,
   generateRequestOptionsArguments,
   getHookOptions,
@@ -842,5 +843,139 @@ describe('getHooksOptionImplementation', () => {
         'getCreatePetsMutationKey',
       ),
     ).toBe('');
+  });
+});
+
+describe('generateAngularHttpRequestFunction — zod runtimeValidation response typing (#3941)', () => {
+  const makeResponse = (successName = 'Pets') =>
+    ({
+      definition: { success: successName, errors: 'Error' },
+      imports: [{ name: successName, schemaName: successName, values: true }],
+      types: {
+        success: [
+          {
+            key: '200',
+            contentType: 'application/json',
+            value: successName,
+            hasReadonlyProps: false,
+            imports: [],
+            isEnum: false,
+            isRef: true,
+            schemas: [],
+            type: 'object',
+            dependencies: [],
+          },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    }) as unknown as GeneratorVerbOptions['response'];
+
+  const makeVerbOptions = (
+    overrides: Partial<GeneratorVerbOptions> = {},
+  ): GeneratorVerbOptions =>
+    ({
+      verb: 'get',
+      route: '/pets',
+      pathRoute: '/pets',
+      operationId: 'listPets',
+      operationName: 'listPets',
+      doc: '',
+      tags: [],
+      response: makeResponse(),
+      body: {
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: '',
+        isOptional: true,
+        originalSchema: {},
+        isBlob: false,
+      },
+      params: [],
+      props: [],
+      override: {
+        formData: { disabled: false, arrayHandling: 'serialize' },
+        formUrlEncoded: false,
+        requestOptions: false,
+        query: {
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+          shouldExportHttpClient: true,
+          signal: false,
+          version: 5,
+        },
+      },
+      ...overrides,
+    }) as unknown as GeneratorVerbOptions;
+
+  const makeAngularOptions = (
+    schemas: unknown = { path: './model', type: 'zod' },
+  ) =>
+    ({
+      route: '/pets',
+      pathRoute: '/pets',
+      override: {},
+      output: '',
+      context: {
+        target: '',
+        workspace: '',
+        spec: {},
+        output: { schemas, httpClient: 'angular' },
+      },
+    }) as unknown as GeneratorOptions;
+
+  it('declares the validated response as the zod output alias', () => {
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions(),
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain('): Promise<PetsOutput> =>');
+    expect(implementation).toContain('http.get<PetsOutput>(url)');
+    expect(implementation).toContain('Pets.parse(data)');
+    expect(implementation).not.toContain('Promise<Pets>');
+  });
+
+  it('references the ErrorSchema value alias for an `Error` response schema', () => {
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions({ response: makeResponse('Error') }),
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain('): Promise<ErrorOutput> =>');
+    expect(implementation).toContain('http.get<ErrorOutput>(url)');
+    expect(implementation).toContain('ErrorSchema.parse(data)');
+  });
+
+  it('keeps the schema (input) type when the schemas output is not zod', () => {
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions(),
+      makeAngularOptions('./model'),
+    );
+
+    expect(implementation).toContain('): Promise<Pets> =>');
+    expect(implementation).not.toContain('PetsOutput');
+    expect(implementation).not.toContain('.parse(');
+  });
+
+  it('keeps the schema (input) type when validation is disabled', () => {
+    const verbOptions = makeVerbOptions();
+    verbOptions.override.query.runtimeValidation = {
+      enabled: false,
+      strategy: 'throw',
+    };
+
+    const implementation = generateAngularHttpRequestFunction(
+      verbOptions,
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain('): Promise<Pets> =>');
+    expect(implementation).not.toContain('PetsOutput');
   });
 });

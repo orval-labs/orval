@@ -39,6 +39,7 @@ export async function writeTagsMode({
   needSchema,
   generateSchemasInline,
   schemaTagMap,
+  schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   const {
     path: targetPath,
@@ -169,6 +170,7 @@ export async function writeTagsMode({
           normalizedImports,
           schemasPathRelative,
           schemaTagMap,
+          schemaOutputPlan,
         );
 
         data += builder.imports({

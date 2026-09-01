@@ -66,6 +66,21 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  petstoreSingleWithCompanionTypes: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/hono/petstore-single-with-companion-types/endpoints.ts',
+      mode: 'single',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          generateCompanionTypes: true,
+        },
+      },
+    },
+  },
   petstoreSplitWithHandlers: {
     input: '../specifications/petstore.yaml',
     output: {

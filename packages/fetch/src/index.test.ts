@@ -134,6 +134,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         generateMeta: false,
         generateDiscriminatedUnion: false,
         exactOptional: false,
+        generateCompanionTypes: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
@@ -511,5 +512,114 @@ describe('generateRequestFunction — deepObject query parameters', () => {
     expect(implementation).toContain('"scope"');
     expect(implementation).toContain('"filter"');
     expect(implementation).toContain('deepObjectEntries.push(');
+  });
+});
+
+describe('generateRequestFunction — zod runtimeValidation response typing (#3938)', () => {
+  const ZOD_RESPONSE = {
+    definition: { success: 'Pets', errors: 'Error' },
+    imports: [{ name: 'Pets', schemaName: 'Pets', values: true }],
+    types: {
+      success: [
+        {
+          key: '200',
+          contentType: 'application/json',
+          value: 'Pets',
+          hasReadonlyProps: false,
+          imports: [],
+          isEnum: false,
+          isRef: true,
+          schemas: [],
+          type: 'object',
+          dependencies: [],
+        },
+      ],
+      errors: [],
+    },
+    contentTypes: ['application/json'],
+    schemas: [],
+    isBlob: false,
+  } as unknown as GeneratorVerbOptions['response'];
+
+  function makeZodValidationVerbOptions(
+    overrides: Partial<GeneratorVerbOptions> = {},
+  ): GeneratorVerbOptions {
+    const base = makeVerbOptions({ response: ZOD_RESPONSE });
+    return {
+      ...base,
+      typeName: 'listPets',
+      override: {
+        ...base.override,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+      } as GeneratorVerbOptions['override'],
+      ...overrides,
+    } as GeneratorVerbOptions;
+  }
+
+  function makeZodContext(): ContextSpec {
+    const context = makeContext();
+    (context.output as { schemas: unknown }).schemas = {
+      path: './model',
+      type: 'zod',
+    };
+    return context;
+  }
+
+  it('declares the parsed response as the zod output alias', () => {
+    const implementation = generateRequestFunction(
+      makeZodValidationVerbOptions(),
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain('): Promise<PetsOutput> =>');
+    expect(implementation).toContain('Pets.parse(parsedBody)');
+    expect(implementation).not.toContain('Promise<Pets>');
+  });
+
+  it('uses the output alias for the data field with includeHttpResponseReturnType', () => {
+    const verbOptions = makeZodValidationVerbOptions();
+    (
+      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
+    ).includeHttpResponseReturnType = true;
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain('data: PetsOutput');
+    expect(implementation).toContain('): Promise<listPetsResponse> =>');
+  });
+
+  it('keeps the schema (input) type when a custom mutator owns the request', () => {
+    const verbOptions = makeZodValidationVerbOptions({
+      mutator: {
+        name: 'customFetch',
+        path: './mutator.ts',
+        default: false,
+      } as GeneratorVerbOptions['mutator'],
+    });
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain('): Promise<Pets> =>');
+    expect(implementation).not.toContain('PetsOutput');
+  });
+
+  it('keeps the schema (input) type when the schemas output is not zod', () => {
+    const implementation = generateRequestFunction(
+      makeZodValidationVerbOptions(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain('): Promise<Pets> =>');
+    expect(implementation).not.toContain('PetsOutput');
   });
 });

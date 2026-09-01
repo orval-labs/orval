@@ -166,9 +166,16 @@ function generateDefinition(
     r.originalSchema?.format === 'binary' ||
     (r.originalSchema?.contentMediaType === 'application/octet-stream' &&
       !r.originalSchema.contentEncoding);
-  const isBinaryResponse =
-    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
-    responsesByPreference.some((r) => isSchemaBinary(r));
+  // When preferredContentType matched, only use schema-binary metadata to decide
+  // the binary path — don't let the content-type name alone force it (issue #2962).
+  // A structured schema (e.g. Pet) paired with application/octet-stream via
+  // preference should not discard the body as new ArrayBuffer(0).
+  // When no preference matched, keep the content-type heuristic so binary-like
+  // types with no schema metadata still get the correct helper.
+  const isBinaryResponse = preferredContentTypeMatch
+    ? responsesByPreference.some((r) => isSchemaBinary(r))
+    : contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
+      responsesByPreference.some((r) => isSchemaBinary(r));
   // Bare ref names of schema-binary responses (include alias for collision-renamed imports).
   const binaryRefNames = responsesByPreference
     .filter((r) => isSchemaBinary(r))
@@ -344,7 +351,12 @@ function generateDefinition(
   const jsonCtHeaderSuffix =
     firstJsonCt && firstJsonCt !== 'application/json'
       ? `, headers: { 'Content-Type': '${firstJsonCt}' }`
-      : '';
+      : // When preferredContentType matched a non-JSON type (e.g. application/octet-stream)
+        // and the structured schema falls through to HttpResponse.json(), emit the
+        // selected media type as the Content-Type so the contract survives.
+        preferredContentTypeMatch && !preferredContentTypeMatch.includes('json')
+        ? `, headers: { 'Content-Type': '${preferredContentTypeMatch}' }`
+        : '';
   const textCtHeaderSuffix =
     firstTextCt && firstTextCt !== textHelperDefaultContentType
       ? `, headers: { 'Content-Type': '${firstTextCt}' }`

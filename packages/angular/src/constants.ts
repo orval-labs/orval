@@ -2,12 +2,13 @@ import type { GeneratorDependency } from '@orval/core';
 
 export const ANGULAR_HTTP_CLIENT_DEPENDENCIES = [
   {
+    // `HttpHeaders` and `HttpResponse` are not listed here: whether an
+    // operation needs them as values (`instanceof` narrowing) or only as
+    // types is decided per operation in `generateAngular`.
     exports: [
       { name: 'HttpClient', values: true },
-      { name: 'HttpHeaders', values: true },
       { name: 'HttpParams' },
       { name: 'HttpContext' },
-      { name: 'HttpResponse', alias: 'AngularHttpResponse', values: true }, // alias to prevent naming conflict with msw
       { name: 'HttpEvent' },
     ],
     dependency: '@angular/common/http',
@@ -20,7 +21,8 @@ export const ANGULAR_HTTP_CLIENT_DEPENDENCIES = [
     dependency: '@angular/core',
   },
   {
-    exports: [{ name: 'Observable', values: true }],
+    // Only ever a return type; generated code never constructs one.
+    exports: [{ name: 'Observable' }],
     dependency: 'rxjs',
   },
 ] as const satisfies readonly GeneratorDependency[];

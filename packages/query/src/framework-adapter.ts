@@ -67,7 +67,8 @@ export interface MutationOnSuccessContext {
   /** Named alias for the mutation variables, when the generator emitted one. */
   mutationVariablesType?: string;
   isRequestOptions: boolean;
-  generateInvalidateCall: (target: InvalidateTarget) => string;
+  /** Folds every target into one `queryClient` call per method. */
+  generateInvalidateCalls: (targets: InvalidateTarget[]) => string;
   uniqueInvalidates: InvalidateTarget[];
 }
 

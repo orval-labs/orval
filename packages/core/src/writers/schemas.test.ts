@@ -9,8 +9,10 @@ import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   splitSchemasByType,
+  writeRoutedSchemas,
   writeSchemas,
 } from './schemas';
+import { createSchemaOutputPlan } from './schema-output-plan';
 
 const createMockSchema = (name: string): GeneratorSchema => ({
   name,
@@ -818,6 +820,307 @@ describe('writeSchemas indexFiles', () => {
 
       expect(content).toContain("from './notFoundResponse';");
       expect(content).not.toContain("from './notFound';");
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+});
+
+describe('writeRoutedSchemas', () => {
+  it('writes route files, route barrels, root barrel, and cross-route imports', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-schemas-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const schemas: GeneratorSchema[] = [
+      {
+        name: 'UserStatus',
+        kind: 'enum',
+        model: "export const UserStatus = { Active: 'active' } as const;",
+        imports: [],
+      },
+      {
+        name: 'User',
+        kind: 'schema',
+        model: 'export type User = { status: UserStatus };',
+        imports: [{ name: 'UserStatus', schemaName: 'UserStatusSchema' }],
+      },
+    ];
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas,
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+    });
+
+    try {
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed',
+        indexFiles: true,
+      });
+
+      expect(await fs.pathExists(path.join(schemaPath, 'models/user.ts'))).toBe(
+        true,
+      );
+      expect(
+        await fs.pathExists(path.join(schemaPath, 'types/userStatus.ts')),
+      ).toBe(true);
+      expect(
+        await fs.readFile(path.join(schemaPath, 'models/user.ts'), 'utf8'),
+      ).toContain("from '../types/userStatus';");
+      expect(
+        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+      ).toContain("export * from './user';");
+      expect(
+        await fs.readFile(path.join(schemaPath, 'types/index.ts'), 'utf8'),
+      ).toContain("export * from './userStatus';");
+      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+        "// routed\nexport * from './models';\nexport * from './types';\n",
+      );
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('preserves direct route-root schemas alongside child scope barrels', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-root-schema-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas: [
+        {
+          name: 'DirectSchema',
+          kind: 'schema',
+          model: 'export type DirectSchema = string;',
+          imports: [],
+        },
+        {
+          name: 'ChildSchema',
+          kind: 'schema',
+          model: 'export type ChildSchema = number;',
+          imports: [],
+        },
+      ],
+      routes: { default: 'models' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      schemaTagMap: new Map([
+        ['DirectSchema', ''],
+        ['ChildSchema', 'pets'],
+      ]),
+    });
+
+    try {
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed root schema',
+        indexFiles: true,
+      });
+
+      expect(
+        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+      ).toBe(
+        "// routed root schema\nexport * from './directSchema';\nexport * from './pets/index';\n",
+      );
+      expect(
+        await fs.readFile(
+          path.join(schemaPath, 'models/pets/index.ts'),
+          'utf8',
+        ),
+      ).toContain("export * from './childSchema';");
+      expect(
+        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+      ).not.toContain('.//index');
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('normalizes preserved route barrel exports to Unix separators', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-existing-export-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const routeIndexPath = path.join(schemaPath, 'models/index.ts');
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas: [
+        {
+          name: 'ChildSchema',
+          kind: 'schema',
+          model: 'export type ChildSchema = number;',
+          imports: [],
+        },
+      ],
+      routes: { default: 'models' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      schemaTagMap: new Map([['ChildSchema', 'pets']]),
+    });
+
+    try {
+      await fs.outputFile(
+        routeIndexPath,
+        ['// routed', "export * from '.\\legacy\\index';", ''].join('\n'),
+      );
+
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed',
+        indexFiles: true,
+      });
+
+      expect(await fs.readFile(routeIndexPath, 'utf8')).toBe(
+        "// routed\nexport * from './legacy/index';\nexport * from './pets/index';\n",
+      );
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('keeps NodeNext extensions on cross-route imports', () => {
+    const plan = createSchemaOutputPlan({
+      basePath: '/tmp/orval-routed-schemas/schemas',
+      schemas: [
+        {
+          name: 'Status',
+          kind: 'enum',
+          model: 'export type Status = string;',
+          imports: [],
+        },
+        {
+          name: 'Pet',
+          kind: 'schema',
+          model: 'export type Pet = { status: Status };',
+          imports: [{ name: 'Status' }],
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: false,
+      tsconfig: { compilerOptions: { moduleResolution: 'NodeNext' } },
+    });
+
+    expect(plan.importPathFor('Pet', 'Status')).toBe('../types/status.js');
+  });
+
+  it('writes NodeNext extensions for routed indexFiles barrels', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-schemas-nodenext-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas: [
+        {
+          name: 'Status',
+          kind: 'enum',
+          model: 'export type Status = string;',
+          imports: [],
+        },
+        {
+          name: 'Pet',
+          kind: 'schema',
+          model: 'export type Pet = { status: Status };',
+          imports: [{ name: 'Status' }],
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      tsconfig: { compilerOptions: { module: 'NodeNext' } },
+    });
+
+    try {
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed nodenext',
+        indexFiles: true,
+        tsconfig: { compilerOptions: { module: 'NodeNext' } },
+      });
+
+      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+        "// routed nodenext\nexport * from './models/index.js';\nexport * from './types/index.js';\n",
+      );
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('writes NodeNext extensions for tag-routed indexFiles barrels', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-routed-tag-schemas-nodenext-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+    const tsconfig = { compilerOptions: { module: 'NodeNext' as const } };
+    const plan = createSchemaOutputPlan({
+      basePath: schemaPath,
+      schemas: [
+        {
+          name: 'Status',
+          kind: 'enum',
+          model: 'export type Status = string;',
+          imports: [],
+        },
+        {
+          name: 'Pet',
+          kind: 'schema',
+          model: 'export type Pet = { status: Status };',
+          imports: [{ name: 'Status' }],
+        },
+      ],
+      routes: { default: 'models', enum: 'types' },
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      indexFiles: true,
+      tsconfig,
+      schemaTagMap: new Map([
+        ['Status', 'pets'],
+        ['Pet', 'pets'],
+      ]),
+    });
+
+    try {
+      await writeRoutedSchemas({
+        plan,
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// routed tag nodenext',
+        indexFiles: true,
+        tsconfig,
+      });
+
+      expect(
+        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+      ).toBe("// routed tag nodenext\nexport * from './pets/index.js';\n");
+      expect(
+        await fs.readFile(path.join(schemaPath, 'types/index.ts'), 'utf8'),
+      ).toBe("// routed tag nodenext\nexport * from './pets/index.js';\n");
+      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+        "// routed tag nodenext\nexport * from './models/index.js';\nexport * from './types/index.js';\n",
+      );
     } finally {
       await fs.remove(tempDir);
     }

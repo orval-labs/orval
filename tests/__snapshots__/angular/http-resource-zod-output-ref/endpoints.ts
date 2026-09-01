@@ -5,9 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  HttpClient,
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse
+  HttpClient
 } from '@angular/common/http';
 import type {
   HttpContext,
@@ -20,7 +18,7 @@ import {
   inject
 } from '@angular/core';
 
-import {
+import type {
   Observable
 } from 'rxjs';
 
@@ -37,6 +35,13 @@ import type {
   PetWithTagOutput,
   PetsOutput
 } from './model';
+
+import {
+  HttpResponse as AngularHttpResponse
+} from '@angular/common/http';
+import type {
+  HttpHeaders
+} from '@angular/common/http';
 
 import {
   map

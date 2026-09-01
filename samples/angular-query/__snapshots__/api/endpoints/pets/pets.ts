@@ -12,6 +12,7 @@ import {
   QueryClient,
   injectMutation,
   injectQuery,
+  matchQuery,
 } from '@tanstack/angular-query-experimental';
 import type {
   CreateMutationOptions,
@@ -236,7 +237,7 @@ export function injectSearchPets<
 }
 
 /**
- * @summary search by query params
+ * @summary Invalidates the {@link injectSearchPets} query
  */
 export const invalidateSearchPets = async (
   queryClient: QueryClient,
@@ -361,7 +362,7 @@ export function injectListPets<
 }
 
 /**
- * @summary List all pets
+ * @summary Invalidates the {@link injectListPets} query
  */
 export const invalidateListPets = async (
   queryClient: QueryClient,
@@ -599,7 +600,7 @@ export function injectShowPetById<
 }
 
 /**
- * @summary Info for a specific pet
+ * @summary Invalidates the {@link injectShowPetById} query
  */
 export const invalidateShowPetById = async (
   queryClient: QueryClient,
@@ -677,9 +678,11 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (queryKey) => matchQuery({ queryKey }, query),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
@@ -786,9 +789,11 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (queryKey) => matchQuery({ queryKey }, query),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
@@ -899,9 +904,11 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
     context: MutationFunctionContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
       queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
+        predicate: (query) =>
+          [getListPetsQueryKey(), getShowPetByIdQueryKey(variables.petId)].some(
+            (queryKey) => matchQuery({ queryKey }, query),
+          ),
       });
     }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
@@ -1060,7 +1067,7 @@ export function injectShowPetText<
 }
 
 /**
- * @summary Info for a specific pet
+ * @summary Invalidates the {@link injectShowPetText} query
  */
 export const invalidateShowPetText = async (
   queryClient: QueryClient,
@@ -1414,7 +1421,7 @@ export function injectDownloadFile<
 }
 
 /**
- * @summary Download an image.
+ * @summary Invalidates the {@link injectDownloadFile} query
  */
 export const invalidateDownloadFile = async (
   queryClient: QueryClient,
@@ -1532,7 +1539,7 @@ export function injectHealthCheck<
 }
 
 /**
- * @summary Health check
+ * @summary Invalidates the {@link injectHealthCheck} query
  */
 export const invalidateHealthCheck = async (
   queryClient: QueryClient,

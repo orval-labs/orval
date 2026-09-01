@@ -43,10 +43,13 @@ import {
   type NormalizedOperationOptions,
   type NormalizedOptions,
   type NormalizedOverrideOutput,
+  type NormalizedOutputOptions,
   type NormalizedQueryOptions,
   type NormalizedSchemaOptions,
   normalizeRuntimeValidation,
   type OperationOptions,
+  operationZodOverrideKeys,
+  type OperationZodOverrideKey,
   type OptionsExport,
   OutputClient,
   OutputHttpClient,
@@ -57,6 +60,8 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
+  upath,
+  type ZodOptions,
 } from '@orval/core';
 import { getDefaultMockOptionsForType } from '@orval/mock';
 
@@ -134,12 +139,115 @@ function normalizeSchemasOption(
 
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
+  const routes = schemas.routes
+    ? normalizeSchemaRoutes(schemas.routes)
+    : undefined;
+
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
     splitByTags: schemas.splitByTags ?? false,
+    routes,
   };
+}
+
+/** Normalizes the configured default and enum schema routes. */
+function normalizeSchemaRoutes(
+  routes: NonNullable<SchemaOptions['routes']>,
+): NonNullable<NormalizedSchemaOptions['routes']> {
+  if (!isString(routes.default)) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes.default` is required when `schemas.routes` is configured.',
+      ),
+    );
+  }
+
+  const normalized = {
+    default: validateSchemaRoute(routes.default, 'schemas.routes.default'),
+    ...(routes.enum !== undefined
+      ? { enum: validateSchemaRoute(routes.enum, 'schemas.routes.enum') }
+      : {}),
+  };
+
+  if (
+    normalized.enum &&
+    normalized.enum.toLowerCase() === normalized.default.toLowerCase()
+  ) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes.default` and `schemas.routes.enum` must be different directories.',
+      ),
+    );
+  }
+
+  return normalized;
+}
+
+/** Validates and normalizes one schema route relative to `schemas.path`. */
+function validateSchemaRoute(value: string, fieldName: string): string {
+  const route = value.trim();
+  const portableRoute = route.replaceAll('\\', '/');
+  const isWindowsAbsolute = /^[A-Za-z]:\//.test(portableRoute);
+  const isUncAbsolute = portableRoute.startsWith('//');
+  const segments = portableRoute
+    .split('/')
+    .filter(Boolean)
+    .filter((segment) => segment !== '.');
+
+  if (
+    route === '' ||
+    nodePath.isAbsolute(route) ||
+    isWindowsAbsolute ||
+    isUncAbsolute ||
+    segments.length === 0 ||
+    segments.includes('..')
+  ) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`${fieldName}\` must be a relative directory under \`schemas.path\`.`,
+      ),
+    );
+  }
+
+  return upath.joinSafe(...segments);
+}
+
+/** Rejects schema-routing combinations that are unsupported by generation. */
+function validateSchemaRoutes(output: NormalizedOutputOptions): void {
+  const schemas = output.schemas;
+  if (!schemas || isString(schemas) || !schemas.routes) return;
+
+  if (output.operationSchemas) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with `output.operationSchemas` in this release.',
+      ),
+    );
+  }
+
+  if (output.mock.generators.length > 0) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with mock generators in this release.',
+      ),
+    );
+  }
+
+  if (output.factoryMethods) {
+    throw new Error(
+      styleText(
+        'red',
+        '`schemas.routes` cannot be used with `output.factoryMethods` in this release.',
+      ),
+    );
+  }
 }
 
 /**
@@ -732,6 +840,8 @@ export async function normalizeOptions(
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
+          generateCompanionTypes:
+            outputOptions.override?.zod?.generateCompanionTypes ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -828,6 +938,8 @@ export async function normalizeOptions(
       styleText('red', `Config requires an output target or schemas.`),
     );
   }
+
+  validateSchemaRoutes(normalizedOptions.output);
 
   // The faker generator's `schemasImportPath` overrides where schema-level
   // faker factories are imported from. Those factories are only emitted when
@@ -1074,6 +1186,35 @@ export function normalizePath<T>(path: T, workspace: string) {
   return nodePath.resolve(workspace, path);
 }
 
+// Output-wide `override.zod` keys, rejected with a warning on operation/tag
+// overrides. `operationZodOverrideKeys` (from `@orval/core`) holds the
+// supported complement; the `satisfies` clause plus the assertion below force
+// every `ZodOptions` key onto exactly one of the two lists.
+const unsupportedZodKeys = [
+  'version',
+  'variant',
+  'dateTimeOptions',
+  'timeOptions',
+  'generateEachHttpStatus',
+  'generateReusableSchemas',
+  'generateMeta',
+  'generateDiscriminatedUnion',
+  'exactOptional',
+] as const satisfies readonly Exclude<
+  keyof ZodOptions,
+  OperationZodOverrideKey
+>[];
+
+type UnlistedZodKey = Exclude<
+  keyof ZodOptions,
+  OperationZodOverrideKey | (typeof unsupportedZodKeys)[number]
+>;
+true satisfies UnlistedZodKey extends never ? true : never;
+
+const supportedZodKeysLabel = `${operationZodOverrideKeys
+  .slice(0, -1)
+  .join(', ')}, and ${operationZodOverrideKeys.at(-1)}`;
+
 function normalizeOperationsAndTags(
   operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
@@ -1082,17 +1223,6 @@ function normalizeOperationsAndTags(
   },
   source: 'operations' | 'tags',
 ): Record<string, NormalizedOperationOptions> {
-  const unsupportedZodKeys = [
-    'version',
-    'variant',
-    'dateTimeOptions',
-    'timeOptions',
-    'generateEachHttpStatus',
-    'generateReusableSchemas',
-    'generateMeta',
-    'generateDiscriminatedUnion',
-  ] as const;
-
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -1126,7 +1256,7 @@ function normalizeOperationsAndTags(
             .join(', ');
 
           logWarning(
-            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+            `⚠️  override.${source}.${key}.zod only supports ${supportedZodKeysLabel}. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
           );
         }
 
@@ -1137,12 +1267,9 @@ function normalizeOperationsAndTags(
         // contradicting the "ignored" warning above.
         const hasSupportedOperationZodConfig =
           !!zod &&
-          (zod.strict !== undefined ||
-            zod.generate !== undefined ||
-            zod.coerce !== undefined ||
-            zod.preprocess !== undefined ||
-            zod.params !== undefined ||
-            zod.useBrandedTypes !== undefined);
+          operationZodOverrideKeys.some(
+            (supportedKey) => zod[supportedKey] !== undefined,
+          );
 
         if (angular?.baseUrl) {
           logWarning(
@@ -1248,6 +1375,7 @@ function normalizeOperationsAndTags(
                         }
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateCompanionTypes: zod.generateCompanionTypes ?? false,
                   },
                 }
               : {}),
