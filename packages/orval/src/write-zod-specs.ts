@@ -9,6 +9,7 @@ import {
   getImportExtension,
   getRefInfo,
   isComponentRef,
+  isReference,
   kebab,
   type NamingConvention,
   type NormalizedOutputOptions,
@@ -17,6 +18,7 @@ import {
   type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
+  resolveRef,
   resolveValue,
   type SchemaOutputPlan,
   type Tsconfig,
@@ -1275,7 +1277,13 @@ export async function writeZodSchemasFromVerbs(
 
     const parameters = operation.parameters;
 
-    const pathParams = parameters?.filter(
+    const resolvedParameters = parameters?.map((p) =>
+      isReference(p) && typeof p.$ref === 'string'
+        ? resolveRef<OpenApiParameterObject>(p, zodContext).schema
+        : p,
+    );
+
+    const pathParams = resolvedParameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'path',
     );
 
@@ -1314,7 +1322,7 @@ export async function writeZodSchemasFromVerbs(
           ]
         : [];
 
-    const queryParams = parameters?.filter(
+    const queryParams = resolvedParameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
     );
 
@@ -1347,7 +1355,7 @@ export async function writeZodSchemasFromVerbs(
           ]
         : [];
 
-    const headerParams = parameters?.filter(
+    const headerParams = resolvedParameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'header',
     );
 

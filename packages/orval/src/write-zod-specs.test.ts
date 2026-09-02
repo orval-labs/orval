@@ -992,6 +992,74 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
   });
 });
 
+describe('writeZodSchemasFromVerbs $ref parameter resolution', () => {
+  it('includes $ref parameters in generated query param schemas', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-ref-param-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const verbOptions = {
+      listPets: {
+        operationName: 'listPets',
+        typeName: 'listPets',
+        originalOperation: {
+          parameters: [
+            { $ref: '#/components/parameters/pageQuery' },
+            {
+              name: 'status',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+            },
+          ],
+        },
+        response: { types: { success: [], errors: [] } },
+      },
+    } as never;
+
+    const ctx = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: {
+        components: {
+          parameters: {
+            pageQuery: {
+              name: 'page',
+              in: 'query',
+              required: false,
+              schema: { type: 'number', minimum: 1, default: 1 },
+            },
+          },
+        },
+      } as never,
+      target: '',
+      workspace: '',
+    } satisfies MinimalVerbsContext;
+
+    await writeZodSchemasFromVerbs(
+      verbOptions,
+      schemasPath,
+      '.ts',
+      '',
+      createOutputOptions(),
+      ctx,
+    );
+
+    const content = await fs.readFile(
+      path.join(schemasPath, 'ListPetsParams.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain('"page"');
+    expect(content).toContain('"status"');
+
+    await fs.remove(root);
+  });
+});
+
 describe('generateZodSchemasInline with generateReusableSchemas', () => {
   it('emits one named schema per reachable component ref', () => {
     const builder = {
