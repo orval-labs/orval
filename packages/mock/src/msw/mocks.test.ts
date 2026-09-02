@@ -97,6 +97,60 @@ describe('getResponsesMockDefinition (useExamples + transformer)', () => {
   });
 });
 
+describe('getResponsesMockDefinition (generator useExamples for property examples)', () => {
+  const propertyExampleResponse = {
+    key: '200',
+    value: 'Patient',
+    contentType: 'application/json',
+    originalSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'abc-123' },
+        category: { type: 'string', example: 'cardiology' },
+      },
+      required: ['id', 'category'],
+    },
+    imports: [],
+    schemas: [],
+    type: 'object',
+    isEnum: false,
+    isRef: false,
+    hasReadonlyProps: false,
+    dependencies: [],
+  } satisfies ResReqTypesValue;
+
+  const baseOptions = {
+    operationId: 'getPatient',
+    tags: [],
+    returnType: 'Patient',
+    responses: [propertyExampleResponse],
+    mockOptionsWithoutFunc: {},
+    context: createTestContextSpec(),
+    splitMockImplementations: [],
+  };
+
+  it('uses property-level schema examples when generator useExamples is true', () => {
+    const { definitions } = getResponsesMockDefinition({
+      ...baseOptions,
+      mockOptions: { type: 'msw', useExamples: true },
+    });
+
+    expect(definitions[0]).toContain('id: "abc-123"');
+    expect(definitions[0]).toContain('category: "cardiology"');
+  });
+
+  it('keeps faker-generated values when generator useExamples is false', () => {
+    const { definitions } = getResponsesMockDefinition({
+      ...baseOptions,
+      mockOptions: { type: 'msw', useExamples: false },
+    });
+
+    expect(definitions[0]).not.toContain('id: "abc-123"');
+    expect(definitions[0]).not.toContain('category: "cardiology"');
+    expect(definitions[0]).toContain('faker.string.alpha()');
+  });
+});
+
 describe('getMockWithoutFunc (override.mock.schemas)', () => {
   const spec = {} as OpenApiDocument;
 

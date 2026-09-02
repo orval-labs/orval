@@ -226,6 +226,13 @@ export function getResponsesMockDefinition({
     definitions: [] as string[],
     imports: [] as GeneratorImport[],
   };
+  const scalarMockOptions =
+    mockOptions?.useExamples === undefined
+      ? mockOptionsWithoutFunc
+      : {
+          ...mockOptionsWithoutFunc,
+          useExamples: mockOptions.useExamples,
+        };
 
   for (const response of responses) {
     const { value: definition, example, examples, imports, isRef } = response;
@@ -280,7 +287,7 @@ export function getResponsesMockDefinition({
           : {}),
       },
       imports: responseImports,
-      mockOptions: mockOptionsWithoutFunc,
+      mockOptions: scalarMockOptions,
       operationId,
       tags,
       context,
