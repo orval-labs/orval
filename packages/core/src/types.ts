@@ -589,9 +589,9 @@ export interface MswMockOptions extends CommonMockOptions {
   // Execute the `delay` function at runtime rather than build time
   delayFunctionLazyExecute?: boolean;
   // Custom output directory for MSW mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
-  // modes, mock code is written to separate files instead of being inlined
-  // into the implementation file.
+  // `OutputMocksConfig.path` when set. Only picks where deinlined mock files
+  // land; `OutputMocksConfig.inline: true` keeps mocks in the implementation
+  // file in `single`/`tags` modes even when this path is set.
   path?: string;
 }
 
@@ -613,9 +613,9 @@ export interface FakerMockOptions extends CommonMockOptions {
   // only the consolidated schema factories.
   operationResponses?: boolean;
   // Custom output directory for faker mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
-  // modes, mock code is written to separate files instead of being inlined
-  // into the implementation file.
+  // `OutputMocksConfig.path` when set. Only picks where deinlined mock files
+  // land; `OutputMocksConfig.inline: true` keeps mocks in the implementation
+  // file in `single`/`tags` modes even when this path is set.
   path?: string;
 }
 
