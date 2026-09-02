@@ -1,0 +1,32 @@
+{
+  "name": "orval",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+  "workspaceFolder": "/app",
+  "init": true,
+  "remoteUser": "node",
+  "forwardPorts": [3000, 5173, 8787],
+  "portsAttributes": {
+    "3000": { "label": "docs (vite dev)" },
+    "5173": { "label": "vite / vp dev" },
+    "8787": { "label": "wrangler dev" }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "vp install && vp run prepare",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "VoidZero.vite-plus-extension-pack",
+        "streetsidesoftware.code-spell-checker",
+        "unifiedjs.vscode-mdx",
+        "vitest.explorer",
+        "anthropic.claude-code",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  }
+}

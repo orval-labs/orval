@@ -44,6 +44,12 @@ Install dependencies and set up Git hooks:
 vp install && vp run prepare
 ```
 
+### Develop in a Dev Container (optional)
+
+If you use VS Code, you can skip the manual toolchain setup by reopening the repository in the provided [Dev Container](https://containers.dev/) ("Dev Containers: Reopen in Container"). The image (`.devcontainer/Dockerfile`) ships Node.js, Bun, Vite+ (`vp`) and the GitHub CLI at the versions the repository expects, and `vp install && vp run prepare` runs automatically on creation.
+
+The container runs as the non-root `node` user. Ports 3000 (docs), 5173 (Vite) and 8787 (wrangler) are forwarded to your machine through VS Code, so dev servers work without `--host`; if a port is already in use locally, VS Code assigns another one and shows it in the **Ports** panel.
+
 ### Implement your changes
 
 When making commits, make sure to follow the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) guidelines, i.e. prepending the message with `feat:`, `fix:`, `chore:`, `docs:`, etc... You can use `git status` to double check which files have not yet been staged for commit:
