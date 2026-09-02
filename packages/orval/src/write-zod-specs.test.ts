@@ -1178,4 +1178,71 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     expect(result).toMatch(/export const Owner\b/);
     expect(result).toContain(".meta({ id: 'Owner' })");
   });
+
+  it('always includes the zod import when includeZodImport is true (#3963)', () => {
+    // #3963: when client: 'zod' + generateReusableSchemas + a split mode,
+    // the schemas block is written to a standalone `.schemas.ts` file. Even
+    // though operations emit `zod.void()` (so operationsUseZod is true), the
+    // schemas file never shares the operation file's import — it must carry
+    // its own. This verifies `generateZodSchemasInline` includes the zod
+    // import when `includeZodImport: true` (the value split modes pass).
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Widget: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Widget', schema: { $ref: '#/components/schemas/Widget' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(builder, output, true);
+    expect(result).toMatch(/import \* as zod from ['"]zod['"]/);
+    expect(result).toContain('export const Widget =');
+  });
+
+  it('omits the zod import in single mode when operations use zod (#3963)', () => {
+    // The gate: `includeZodImport = isSchemasInSeparateFile || !operationsUseZod`.
+    // In single mode (`isSchemasInSeparateFile = false`), when operations already
+    // emit zod, the inline schemas concatenate into the same file and must not
+    // duplicate the import. This verifies the `!operationsUseZod` side of the gate.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Widget: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Widget', schema: { $ref: '#/components/schemas/Widget' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(builder, output, false);
+
+    expect(result).not.toMatch(/import \* as zod from ['"]zod['"]/);
+    expect(result).toContain('export const Widget =');
+  });
 });
