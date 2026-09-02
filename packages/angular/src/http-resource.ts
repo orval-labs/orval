@@ -721,7 +721,10 @@ const getHttpResourceVerbImports = (
     ),
     ...parsedZodImports
       .filter((imp) => !isPrimitiveType(imp.name))
-      .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
+      .map((imp) => ({
+        name: getSchemaOutputTypeRef(imp.name),
+        zodBaseName: imp.name,
+      })),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
