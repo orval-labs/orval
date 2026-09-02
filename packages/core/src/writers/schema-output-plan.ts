@@ -317,9 +317,12 @@ export function createSchemaOutputPlan({
       if (!importPath || indexFiles) return importPath;
       const key = findKey(name);
       const routeImportPath = key ? importPathByName.get(key) : undefined;
-      return routeImportPath
-        ? upath.joinSafe(importPath, routeImportPath.slice(2))
-        : undefined;
+      if (!routeImportPath) return undefined;
+      // A package subpath resolves through the consumer's export map, which
+      // knows nothing of our tsconfig: keep the custom part of the extension
+      // the way the flat rule does (getImportExtension with no tsconfig, #3966).
+      const importExtension = getImportExtension(fileExtension, undefined);
+      return `${upath.joinSafe(importPath, routeImportPath.slice(2))}${importExtension}`;
     },
     hasSchema(name) {
       return filePathByName.has(findKey(name));

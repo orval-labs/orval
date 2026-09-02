@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type { GeneratorImport, NormalizedOutputOptions } from '../types';
+import {
+  NamingConvention,
+  type GeneratorImport,
+  type NormalizedOutputOptions,
+} from '../types';
+import { createSchemaOutputPlan } from '../writers/schema-output-plan';
 import { resolveSchemaImportDependencies } from './schema-import-path';
 
 /**
@@ -207,6 +212,47 @@ describe('resolveSchemaImportDependencies', () => {
       expect(resolve(output, '@acme/models', [PET])).toEqual([
         '@acme/models/pet.gen',
       ]);
+    });
+
+    it('routed package import keeps the custom fileExtension like the flat rule', () => {
+      // #3966: with `schemas.routes`, `packageImportPath` must keep the custom
+      // part of `fileExtension` the same way the flat rule does — a package
+      // subpath resolves through the consumer's export map, which knows nothing
+      // of the tsconfig.
+      const output = createOutput({
+        indexFiles: false,
+        fileExtension: '.gen.ts',
+        schemas: {
+          path: '/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+          routes: { default: 'models', enum: 'enums' },
+        } as unknown as NormalizedOutputOptions['schemas'],
+      });
+
+      const plan = createSchemaOutputPlan({
+        basePath: '/models',
+        schemas: [
+          {
+            name: 'Pet',
+            kind: 'schema',
+            model: 'export type Pet = unknown;',
+            imports: [],
+          },
+        ],
+        routes: { default: 'models', enum: 'enums' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        indexFiles: false,
+        importPath: '@acme/models',
+      });
+
+      expect(
+        resolveSchemaImportDependencies(output, [PET], '@acme/models', {
+          isZod: false,
+          schemaOutputPlan: plan,
+        }).map((dependency) => dependency.dependency),
+      ).toEqual(['@acme/models/models/pet.gen']);
     });
 
     it('keeps both imports when the same name is aliased differently', () => {
