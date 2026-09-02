@@ -6,6 +6,6 @@
  */
 
 export type UploadFormDataBody = {
-  file?: Blob;
+  file?: Blob | File;
   label?: string;
 };

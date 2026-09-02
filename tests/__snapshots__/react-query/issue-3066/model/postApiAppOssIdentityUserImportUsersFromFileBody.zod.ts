@@ -7,7 +7,7 @@
 import * as zod from 'zod';
 
 export const PostApiAppOssIdentityUserImportUsersFromFileBody = zod.object({
-  File: zod.instanceof(File).optional(),
+  File: zod.instanceof(Blob).optional(),
 });
 
 export type PostApiAppOssIdentityUserImportUsersFromFileBody = zod.input<

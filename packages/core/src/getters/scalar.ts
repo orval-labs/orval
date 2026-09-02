@@ -221,21 +221,27 @@ export function getScalar({
       // fields stay `string`; enum unions computed above are left intact (#1624).
       if (!formDataContext?.urlEncoded) {
         if (schemaFormat === 'binary') {
-          value = 'Blob';
+          // In multipart/form-data context, accept both Blob and File so the
+          // filename is preserved in the Content-Disposition header (#3662).
+          // Blob | File is wider than the original Blob, so existing callers
+          // keep compiling (#3915).
+          value = formDataContext ? 'Blob | File' : 'Blob';
         } else if (formDataContext?.atPart) {
           const fileType = getFormDataFieldFileType(
             item,
             formDataContext.partContentType,
           );
           if (fileType) {
-            value = fileType === 'binary' ? 'Blob' : 'Blob | string';
+            value =
+              fileType === 'binary' ? 'Blob | File' : 'Blob | File | string';
           }
         } else if (isBinaryScalarSchema(item)) {
           // The previous arm caught format: binary directly; this matches the
           // OAS 3.1 contentMediaType: application/octet-stream variant via the
           // shared predicate so any future binary shapes added there flow
-          // through here too (#2410).
-          value = 'Blob';
+          // through here too (#2410). In multipart context accept both Blob and
+          // File so existing callers keep compiling (#3915).
+          value = formDataContext ? 'Blob | File' : 'Blob';
         }
       }
 
