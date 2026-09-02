@@ -16,8 +16,14 @@ import {
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
+import {
+  type GeneratorDependency,
+  type GeneratorSchema,
+  OutputMockType,
+  OutputMode,
+} from '../types';
 import { writeTagsMode } from './tags-mode';
+import { createSchemaOutputPlanForOutput } from './schema-output-plan';
 
 // Regression: the index mock barrel must emit tags in locale-sorted order
 // regardless of I/O completion order inside Promise.all. Without an
@@ -268,6 +274,96 @@ describe('writeTagsMode — index mock barrel re-exports get<PascalledTag>Mock',
     expect(content).toMatch(
       /export \{ getPetsMock \} from '\.\/pets\/pets\.msw'/,
     );
+  });
+
+  it('routes mock schema imports through schemaOutputPlan (#3967)', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =
+      [];
+    const baseProps = createSplitModeProps(target);
+    const petSchemaLocal: GeneratorSchema = {
+      name: 'Pet',
+      model: 'export type Pet = { id: number };',
+      imports: [],
+      schema: { type: 'object', properties: { id: { type: 'integer' } } },
+    };
+    const petTypeSchemaLocal: GeneratorSchema = {
+      name: 'PetType',
+      model: "export type PetType = 'dog' | 'cat' | 'bird';",
+      imports: [],
+      schema: { type: 'string', enum: ['dog', 'cat', 'bird'] },
+    };
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        schemas: [petSchemaLocal, petTypeSchemaLocal],
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [{ name: 'Pet' }, { name: 'PetType' }],
+              },
+            ],
+          }),
+        },
+        importsMock: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsMockCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        indexFiles: false,
+        schemas: {
+          path: path.join(tmpDir, 'model'),
+          type: 'typescript',
+          splitByTags: false,
+          routes: { default: 'models', enum: 'enums' },
+        },
+        mock: {
+          indexMockFiles: false,
+          inline: false,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeTagsMode({
+      ...props,
+      needSchema: true,
+      schemaOutputPlan: createSchemaOutputPlanForOutput(
+        [petSchemaLocal, petTypeSchemaLocal],
+        props.output,
+        undefined,
+      ),
+    });
+
+    const petImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'Pet'));
+    expect(petImports.length).toBeGreaterThan(0);
+    for (const dep of petImports) {
+      expect(dep.dependency).toContain('models/pet');
+    }
+    const petTypeImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'PetType'));
+    expect(petTypeImports.length).toBeGreaterThan(0);
+    for (const dep of petTypeImports) {
+      expect(dep.dependency).toContain('enums/petType');
+    }
   });
 });
 

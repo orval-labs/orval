@@ -206,6 +206,7 @@ export async function writeTagsMode({
               ),
               schemasPathRelative,
               schemaTagMap,
+              schemaOutputPlan,
             );
 
             data += builder.importsMock({
@@ -364,6 +365,7 @@ export async function writeTagsMode({
               ),
               mockRelativeSchemasPath,
               schemaTagMap,
+              schemaOutputPlan,
             );
 
             let mockData = header;

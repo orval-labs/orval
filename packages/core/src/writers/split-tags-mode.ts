@@ -421,6 +421,7 @@ export async function writeSplitTagsMode({
             ),
             mockRelativeSchemasPath,
             schemaTagMap,
+            schemaOutputPlan,
           );
 
           let mockData = header;

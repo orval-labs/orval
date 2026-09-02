@@ -220,6 +220,7 @@ export async function writeSingleMode({
               filteredMockImports,
               relativeSchemasPath,
               schemaTagMap,
+              schemaOutputPlan,
             )
           : generateImportsForBuilder(
               output,
@@ -369,6 +370,7 @@ export async function writeSingleMode({
                 ),
                 mockRelativeSchemasPath,
                 schemaTagMap,
+                schemaOutputPlan,
               )
             : generateImportsForBuilder(
                 output,

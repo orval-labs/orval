@@ -24,6 +24,7 @@ import {
   OutputMode,
 } from '../types';
 import { writeSingleMode } from './single-mode';
+import { createSchemaOutputPlanForOutput } from './schema-output-plan';
 
 describe('writeSingleMode — separated mocks import inline schemas from the target file', () => {
   let tmpDir: string;
@@ -94,6 +95,84 @@ describe('writeSingleMode — separated mocks import inline schemas from the tar
       ]),
     );
   });
+
+  it('routes mock schema imports through schemaOutputPlan (#3967)', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =
+      [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        schemas: [petSchema, petTypeSchema],
+        operations: {
+          listPets: createSplitModeOperation({
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [{ name: 'Pet' }, { name: 'PetType' }],
+              },
+            ],
+          }),
+        },
+        importsMock: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsMockCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SINGLE,
+        indexFiles: false,
+        schemas: {
+          path: path.join(tmpDir, 'model'),
+          type: 'typescript',
+          splitByTags: false,
+          routes: { default: 'models', enum: 'enums' },
+        },
+        mock: {
+          indexMockFiles: false,
+          inline: false,
+          path: path.join(tmpDir, 'mocks'),
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeSingleMode({
+      ...props,
+      needSchema: true,
+      schemaTagMap: undefined,
+      schemaOutputPlan: createSchemaOutputPlanForOutput(
+        [petSchema, petTypeSchema],
+        props.output,
+        undefined,
+      ),
+    });
+
+    // The mock file's Pet import must use the routed subpath (`models/pet`),
+    // same as the client file — not the flat `../model/pet`. PetType is an
+    // enum schema, so it must route through the `enums` route dir instead.
+    const petImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'Pet'));
+    expect(petImports.length).toBeGreaterThan(0);
+    for (const dep of petImports) {
+      expect(dep.dependency).toContain('models/pet');
+    }
+    const petTypeImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'PetType'));
+    expect(petTypeImports.length).toBeGreaterThan(0);
+    for (const dep of petTypeImports) {
+      expect(dep.dependency).toContain('enums/petType');
+    }
+  });
 });
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/3627
@@ -103,6 +182,13 @@ describe('writeSingleMode — separated mocks import inline schemas from the tar
 // split-mode, tags-mode, and split-tags-mode all recover these by scanning
 // the finalized mock implementation. single-mode was the only writer missing
 // this recovery — both the inline branch and the de-inlined branch.
+
+const petTypeSchema: GeneratorSchema = {
+  name: 'PetType',
+  model: "export type PetType = 'dog' | 'cat' | 'bird';",
+  imports: [],
+  schema: { type: 'string', enum: ['dog', 'cat', 'bird'] },
+};
 
 const petSchema: GeneratorSchema = {
   name: 'Pet',
