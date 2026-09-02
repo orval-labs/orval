@@ -3756,6 +3756,50 @@ describe('angular httpResource generator', () => {
       );
       expect(petValueBlocks.length).toBeGreaterThan(0);
     });
+
+    it('resolves the Output alias through the base schema file, not a missing *-output module', async () => {
+      // #3968: with indexFiles false and a zod schemas output, the `PetOutput`
+      // alias must import from `pet.zod` (where the alias is declared), not
+      // `pet-output.zod` (a file nobody emits). The import needs `zodBaseName`
+      // so `resolveSchemaImportDependencies` routes it by the base schema.
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/model',
+        } as NormalizedOutputOptions['schemas'],
+        schemaFileExtension: '.zod.ts',
+        indexFiles: false,
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const content = extraFiles[0]?.content ?? '';
+
+      // The alias resolves through the base schema file.
+      expect(content).toMatch(
+        /import\s+type\s+\{[^}]*PetOutput[^}]*\}\s+from\s+'[^']*\/pet\.zod'/,
+      );
+      // Not through a missing `pet-output.zod` module.
+      expect(content).not.toMatch(/pet-output\.zod/);
+    });
   });
 
   // ── urlEncodeParameters ─────────────────────────────────────────────
