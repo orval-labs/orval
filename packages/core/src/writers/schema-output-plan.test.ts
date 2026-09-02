@@ -336,4 +336,101 @@ describe('createSchemaOutputPlan', () => {
       'Schemas "UserStatus" and "user_status" produce the same generated file',
     );
   });
+
+  describe('packageImportPath', () => {
+    it('includes custom fileExtension in package subpath', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [createSchema('Pet', 'schema')],
+        routes: { default: 'models' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        indexFiles: false,
+        importPath: '@acme/models',
+      });
+
+      expect(plan.packageImportPath('Pet')).toBe('@acme/models/models/pet.gen');
+    });
+
+    it('strips the full custom fileExtension from the tail', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [createSchema('Dog', 'schema')],
+        routes: { default: 'models' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.model.ts',
+        indexFiles: false,
+        importPath: '@acme/models',
+      });
+
+      expect(plan.packageImportPath('Dog')).toBe(
+        '@acme/models/models/dog.model',
+      );
+    });
+
+    it('returns undefined when no importPath is set', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [createSchema('Pet', 'schema')],
+        routes: { default: 'models' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        indexFiles: false,
+      });
+
+      expect(plan.packageImportPath('Pet')).toBeUndefined();
+    });
+
+    it('returns the barrel specifier when indexFiles is true', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [createSchema('Pet', 'schema')],
+        routes: { default: 'models' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        indexFiles: true,
+        importPath: '@acme/models',
+      });
+
+      // indexFiles routes every import through the root barrel
+      expect(plan.packageImportPath('Pet')).toBe('@acme/models');
+    });
+
+    it('preserves default .ts extension as empty suffix', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [createSchema('User', 'schema')],
+        routes: { default: 'models' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        indexFiles: false,
+        importPath: '@acme/models',
+      });
+
+      // .ts stripped by getImportExtension with no tsconfig → empty string
+      expect(plan.packageImportPath('User')).toBe('@acme/models/models/user');
+    });
+
+    it('routes enum schemas through enum route for package import', () => {
+      const plan = createSchemaOutputPlan({
+        basePath,
+        schemas: [
+          createSchema('Status', 'enum'),
+          createSchema('User', 'schema'),
+        ],
+        routes: { default: 'models', enum: 'enums' },
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        indexFiles: false,
+        importPath: '@acme/models',
+      });
+
+      expect(plan.packageImportPath('Status')).toBe(
+        '@acme/models/enums/status.gen',
+      );
+      expect(plan.packageImportPath('User')).toBe(
+        '@acme/models/models/user.gen',
+      );
+    });
+  });
 });
