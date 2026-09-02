@@ -322,6 +322,7 @@ export async function writeSplitMode({
         ),
         mockRelativeSchemasPath,
         schemaTagMap,
+        schemaOutputPlan,
       );
       let mockData = header;
       mockData += builder.importsMock({

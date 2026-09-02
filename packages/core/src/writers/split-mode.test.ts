@@ -17,6 +17,7 @@ import {
   OutputMode,
 } from '../types';
 import { writeSplitMode } from './split-mode';
+import { createSchemaOutputPlanForOutput } from './schema-output-plan';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
 //
@@ -509,5 +510,105 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
 
     expect(mockContent).toContain("from './petstore.schemas'");
     expect(mockContent).not.toContain("from '..");
+  });
+});
+
+describe('writeSplitMode — routes mock schema imports through schemaOutputPlan (#3967)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('mock file schema imports match the routed client imports', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =
+      [];
+    const builder = createSplitModeBuilder(target);
+    builder.schemas = [
+      {
+        name: 'Pet',
+        model: 'export type Pet = { id: number };',
+        imports: [],
+        schema: { type: 'object', properties: { id: { type: 'integer' } } },
+      },
+      {
+        name: 'PetType',
+        model: "export type PetType = 'dog' | 'cat' | 'bird';",
+        imports: [],
+        schema: { type: 'string', enum: ['dog', 'cat', 'bird'] },
+      },
+    ];
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        mockOutputs: [
+          {
+            type: OutputMockType.MSW,
+            implementation: {
+              function: '',
+              handler: '',
+              handlerName: 'mockHandler',
+            },
+            imports: [{ name: 'Pet' }, { name: 'PetType' }],
+          },
+        ],
+      }),
+    };
+    builder.importsMock = (args: {
+      imports: readonly GeneratorDependency[];
+    }) => {
+      importsMockCalls.push(args);
+      return '';
+    };
+
+    const output = createSplitModeOutput(target, {
+      mode: OutputMode.SPLIT,
+      indexFiles: false,
+      schemas: {
+        path: path.join(tmpDir, 'model'),
+        type: 'typescript',
+        splitByTags: false,
+        routes: { default: 'models', enum: 'enums' },
+      },
+      mock: {
+        indexMockFiles: false,
+        inline: false,
+        generators: [{ type: OutputMockType.MSW }],
+      },
+    });
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output,
+    };
+
+    await writeSplitMode({
+      ...props,
+      needSchema: true,
+      schemaOutputPlan: createSchemaOutputPlanForOutput(
+        builder.schemas,
+        output,
+        undefined,
+      ),
+    });
+
+    const petImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'Pet'));
+    expect(petImports.length).toBeGreaterThan(0);
+    for (const dep of petImports) {
+      expect(dep.dependency).toContain('models/pet');
+    }
+    const petTypeImports = importsMockCalls
+      .flatMap((call) => call.imports)
+      .filter((dep) => dep.exports.some((entry) => entry.name === 'PetType'));
+    expect(petTypeImports.length).toBeGreaterThan(0);
+    for (const dep of petTypeImports) {
+      expect(dep.dependency).toContain('enums/petType');
+    }
   });
 });
