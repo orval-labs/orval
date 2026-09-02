@@ -6,14 +6,13 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
   "workspaceFolder": "/app",
   "init": true,
-  // Host ports are intentionally uncommon to avoid clashing with other
-  // local development (container side keeps the standard ports), and are
-  // bound to localhost so they are not reachable from the local network.
-  "appPort": [
-    "127.0.0.1:43000:3000",
-    "127.0.0.1:45173:5173",
-    "127.0.0.1:48787:8787"
-  ],
+  "remoteUser": "node",
+  "forwardPorts": [3000, 5173, 8787],
+  "portsAttributes": {
+    "3000": { "label": "docs (vite dev)" },
+    "5173": { "label": "vite / vp dev" },
+    "8787": { "label": "wrangler dev" }
+  },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },

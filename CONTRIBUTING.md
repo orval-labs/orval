@@ -48,7 +48,7 @@ vp install && vp run prepare
 
 If you use VS Code, you can skip the manual toolchain setup by reopening the repository in the provided [Dev Container](https://containers.dev/) ("Dev Containers: Reopen in Container"). The image (`.devcontainer/Dockerfile`) ships Node.js, Bun, Vite+ (`vp`) and the GitHub CLI at the versions the repository expects, and `vp install && vp run prepare` runs automatically on creation.
 
-Container ports are published to uncommon host ports to avoid clashing with other local development: 3000 → 43000, 5173 → 45173, 8787 → 48787.
+The container runs as the non-root `node` user. Ports 3000 (docs), 5173 (Vite) and 8787 (wrangler) are forwarded to your machine through VS Code, so dev servers work without `--host`; if a port is already in use locally, VS Code assigns another one and shows it in the **Ports** panel.
 
 ### Implement your changes
 
