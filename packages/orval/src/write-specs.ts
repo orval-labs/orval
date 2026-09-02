@@ -845,10 +845,15 @@ async function writeSpecsInternal(
     // so the inline schema block (which always uses zod) must supply it itself.
     // When an operation does use zod the client already imports it, and a second
     // import would redeclare the `zod` binding — so the inline block omits it.
+    // This only applies to `single` mode where schemas concatenate into the
+    // operation file. In split/tags/tags-split modes the schemas are written to
+    // a separate `.schemas.ts` file that never sees the operation's imports, so
+    // the zod import must always be emitted there.
+    const isSchemasInSeparateFile = output.mode !== OutputMode.SINGLE;
     const operationsUseZod = Object.values(builder.operations).some(
       (operation) => /\bzod\b/.test(operation.implementation),
     );
-    const includeZodImport = !operationsUseZod;
+    const includeZodImport = isSchemasInSeparateFile || !operationsUseZod;
 
     // Inline component schemas (when `generateReusableSchemas` is on without a
     // dedicated `output.schemas` dir) need their own `paramsMutator` resolved
@@ -873,7 +878,6 @@ async function writeSpecsInternal(
     // emitting from inline would produce a duplicate `import` line there.
     // With no operations at all, even in `single` mode the file builder has
     // no operation mutators to lean on, so we still emit.
-    const isSchemasInSeparateFile = output.mode !== OutputMode.SINGLE;
     const includeParamsImport = !hasOperations || isSchemasInSeparateFile;
 
     implementationPaths = await writeMode({
