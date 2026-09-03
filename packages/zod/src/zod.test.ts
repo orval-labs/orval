@@ -2705,6 +2705,67 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(secondParsed.consts).not.toContain('petAgeMaxOne');
       expect(secondParsed.consts).toBe(firstParsed.consts);
     });
+
+    it('serializes nested objects in object defaults (#3972)', () => {
+      // A $ref property whose default holds an array of objects used to
+      // stringify each non-string array item via template interpolation,
+      // emitting `[object Object]`.
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          default: { entries: [{ value: 1 }] },
+        },
+        context,
+        'parentChildren',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const parentChildrenDefault = { "entries": [{ "value": 1 }] };',
+      ]);
+    });
+
+    it('adds as const to strings inside array-of-object defaults', () => {
+      // Object items inside arrays recurse so nested strings keep `as const`,
+      // keeping zod.enum([...]) defaults assignable (#3982 CodeRabbit).
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          default: { entries: [{ value: 'active' }] },
+        },
+        context,
+        'parentEnumEntries',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const parentEnumEntriesDefault = { "entries": [{ "value": "active" as const }] };',
+      ]);
+    });
+
+    it('keeps nested object entries in parent defaults (#3974)', () => {
+      // Nested objects used to fall through the per-entry type checks, so the
+      // parent default emitted a literal with holes: { , , }.
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          default: { val1: { enabled: false }, val2: { enabled: true } },
+        },
+        context,
+        'parentState',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const parentStateDefault = { "val1": { "enabled": false }, "val2": { "enabled": true } };',
+      ]);
+    });
   });
 
   describe('default value template-literal injection', () => {
