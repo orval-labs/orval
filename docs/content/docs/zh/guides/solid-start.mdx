@@ -1,19 +1,28 @@
 ---
 title: SolidStart
-description: 从 OpenAPI 生成类型安全的 SolidStart primitives
+description: 从 OpenAPI 生成类型安全的 SolidStart Primitives（原语）
 ---
 
-SolidStart 输出会生成适合 SolidStart 路由和 action 的请求 primitives。它适合希望把 API 调用接入 SolidStart 数据加载和缓存模型的项目。
+根据你的 OpenAPI 规范，使用 `@solidjs/router` 中的 `query()` 和 `action()` 生成完整类型化的 SolidStart Primitives（原语）。
 
 ## 配置
 
+将 `client` 选项设置为 `solid-start`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'solid-start',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,64 +30,256 @@ export default defineConfig({
 
 ## 生成结果
 
-生成代码通常包含请求函数、query/action primitives、类型和缓存辅助函数。
+Orval 会使用原生的 SolidStart Primitives（原语）生成代码。导出的对象名称取自 spec title（规范标题），或者在 `tags` 与 `tags-split` 模式下取自 tag 名称。
 
-导出对象以 spec 标题命名；在 `tags` / `tags-split` 模式下则以 tag 命名。若该名称与同一文件导入的 schema 重名，orval 会为导出名加上 `Api` 后缀（`Pets` 变为 `PetsApi`）并输出警告，因为 TypeScript 不允许同一文件既导入又导出同名标识符。
+如果该名称与同一文件中导入的某个 schema 冲突，orval 会给导出名追加 `Api` 后缀（例如 `Pets` 会变成 `PetsApi`），并输出一条同时指出这两个名称的警告，因为 TypeScript 不允许同一文件既导入又导出同名标识符。如果你更希望保留原始名称，可以重命名该 schema。
+
+```ts
+import { query, action, revalidate } from '@solidjs/router';
+
+export const SwaggerPetstore = {
+  listPets: query(async (params: ListPetsParams) => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const url = queryString ? `/pets?${queryString}` : `/pets`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pets>;
+  }, 'listPets'),
+
+  createPets: action(async (createPetsBody: CreatePetsBody) => {
+    const response = await fetch('/pets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createPetsBody),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pet>;
+  }, 'createPets'),
+
+  showPetById: query(async (petId: string) => {
+    const response = await fetch(`/pets/${petId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pet>;
+  }, 'showPetById'),
+};
+```
 
 ## 基础用法
 
-在路由组件中调用生成的 primitive，让 SolidStart 负责数据加载和缓存。
+```tsx
+import { createAsync } from '@solidjs/router';
+import { Suspense } from 'solid-js';
+import { SwaggerPetstore } from './petstore';
+
+function PetDetails(props: { petId: string }) {
+  const pet = createAsync(() => SwaggerPetstore.showPetById(props.petId));
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <div>
+        <h1>{pet()?.name}</h1>
+        <p>ID: {pet()?.id}</p>
+      </div>
+    </Suspense>
+  );
+}
+```
 
 ## 缓存失效
 
-mutation 完成后可以失效或刷新相关数据，确保页面状态与服务端同步。
+SolidStart 的 `query()` 函数会自动生成缓存 key：
 
-### 实用示例：刷新按钮
+```tsx
+import { revalidate } from '@solidjs/router';
+import { SwaggerPetstore } from './petstore';
 
-刷新按钮可以调用生成的重新验证或失效 helper，避免手写请求细节。
+// 使某个特定 pet 失效
+revalidate(SwaggerPetstore.showPetById.keyFor('pet-123'));
+
+// 使所有 pets 失效
+revalidate(SwaggerPetstore.listPets.key);
+```
+
+### 实际示例：刷新按钮
+
+```tsx
+import { createAsync, revalidate } from '@solidjs/router';
+import { Suspense } from 'solid-js';
+import { SwaggerPetstore } from './petstore';
+
+function PetDetails(props: { petId: string }) {
+  const pet = createAsync(() => SwaggerPetstore.showPetById(props.petId));
+
+  const handleRefresh = () => {
+    // 使当前 pet 的缓存失效，从而触发重新获取
+    revalidate(SwaggerPetstore.showPetById.keyFor(props.petId));
+  };
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <div>
+        <h1>{pet()?.name}</h1>
+        <p>ID: {pet()?.id}</p>
+        <button onClick={handleRefresh}>Refresh Pet Data</button>
+      </div>
+    </Suspense>
+  );
+}
+```
 
 ## 使用 Actions
 
-### 表单
+Actions 用于 mutations（POST、PUT、PATCH、DELETE）。你既可以直接配合表单使用，也可以通过 `useAction()` 以编程方式调用：
 
-表单提交可以绑定生成的 action，并保持请求体类型安全。
+### 配合表单
 
-### 使用 useAction 编程式调用
+```tsx
+import { SwaggerPetstore } from './petstore';
 
-需要在事件处理器中触发写操作时，可以使用 `useAction` 组合生成 action。
+function CreatePetForm() {
+  return (
+    <form action={SwaggerPetstore.createPets} method="post">
+      <input name="name" required />
+      <input name="tag" />
+      <button type="submit">Create Pet</button>
+    </form>
+  );
+}
+```
+
+> **Note:** 当通过表单使用 actions 时，你可能需要调整生成的 actions，使其接收 `FormData`，而不是类型化参数。
+
+### 使用 useAction 进行编程式调用
+
+```tsx
+import { useAction } from '@solidjs/router';
+import { SwaggerPetstore } from './petstore';
+
+function DeletePetButton(props: { petId: string }) {
+  const deletePet = useAction(SwaggerPetstore.deletePetById);
+
+  const handleDelete = async () => {
+    await deletePet(props.petId);
+    // Actions 会自动重新验证当前页面上所有活跃的 queries
+  };
+
+  return <button onClick={handleDelete}>Delete Pet</button>;
+}
+```
 
 ## 关键特性
 
 ### 原生 Fetch API
 
-SolidStart 输出优先使用标准 fetch 模型。
+SolidStart Client 使用原生 Fetch API，不依赖任何 HTTP client（HTTP 客户端）：
+
+- 通过 `URLSearchParams` 自动序列化 query parameters（查询参数）
+- 自动处理 JSON 请求/响应
+- 使用 `response.ok` 做正确的错误处理
+- 完整的 TypeScript 类型安全
 
 ### 自动缓存管理
 
-生成代码会贴合 SolidStart 的缓存语义。
+- **Queries**（`query()`）会根据函数名和参数自动缓存
+- **Actions**（`action()`）不会缓存，并且每次都会重新执行
+- 使用 `.key` 获取某个 query 共享的基础缓存 key（缓存键）
+- 使用 `.keyFor(...args)` 获取某组特定参数对应的缓存 key（缓存键）
 
-### SolidStart Primitives
+### SolidStart Primitives（SolidStart 原语）
 
-输出不是 React hooks，而是 SolidStart 生态中的 primitives。
+- `query()`：用于 GET 请求，自动缓存并具备响应式
+- `action()`：用于 mutations（POST、PUT、PATCH、DELETE）
+- `cache()`：高级缓存能力（可通过 import 使用）
+- `revalidate()`：手动使缓存失效
 
-## 自定义 HTTP Client（Mutator）
+## Custom HTTP Client（自定义 HTTP 客户端，Mutator）
 
-可以通过 mutator 统一鉴权、base URL 和错误格式。
-
-## SolidStart vs Solid Query
-
-SolidStart 输出偏路由和服务端数据流；Solid Query 输出偏客户端远程状态。按应用架构选择即可。
-
-## 完整示例
+你可以通过 `mutator` 配置使用自定义 HTTP client（HTTP 客户端）：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      target: 'src/petstore.ts',
       client: 'solid-start',
+      override: {
+        mutator: {
+          path: './custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
+
+这样会生成使用你自定义实例的代码：
+
+```ts
+export const SwaggerPetstore = {
+  showPetById: query(async (petId: string) => {
+    const url = `/pets/${petId}`;
+    return customInstance<Pet>(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }, 'showPetById'),
+};
+```
+
+你的自定义实例应遵循 Fetch API 的签名：
+
+```ts title="custom-instance.ts"
+export const customInstance = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+```
+
+## SolidStart vs Solid Query
+
+**SolidStart** 是一个面向 SolidJS 的元框架，对应用架构有较强约定。它底层使用的是 **Solid Router**，而后者内置了用于 queries 和 actions 的数据 primitives。
+
+**如果你正在使用 SolidStart，强烈建议使用它的内置 Primitives**（`@solidjs/router` 中的 `query()` 和 `action()`），而不是 Solid Query。这些 Primitives 被设计为与 SolidStart 的服务端渲染、路由和缓存系统无缝配合。
+
+| Feature | Solid Query | SolidStart |
+| --- | --- | --- |
+| Package | `@tanstack/solid-query` | `@solidjs/router`（通过 SolidStart） |
+| Use Case | 独立的 Solid 应用 | SolidStart 应用 |
+| Query Hook | `createQuery` | `query()` |
+| Mutation Hook | `createMutation` | `action()` |
+| Cache Keys | 手动定义 query key 函数 | 通过 `.key` 和 `.keyFor()` 自动生成 |
+| HTTP Client | 可配置（axios、fetch 等） | 原生 fetch API |
+| Query Options | 完整的 TanStack Query 选项 | 更简洁、带约定的选项 |
+| SSR Integration | 需要手动配置 | 内建且自动 |
+
+当你在构建 SolidStart 应用时，请选择 **SolidStart client**。只有在你构建的是不依赖 SolidStart 框架的独立 SolidJS 应用，并且需要乐观更新、后台重新获取、复杂缓存策略等高级 TanStack Query 能力时，才选择 **Solid Query client**。
+
+## 完整示例
+
+请查看 GitHub 上的 [complete SolidStart example](https://github.com/orval-labs/orval/tree/master/samples/solid-start)。

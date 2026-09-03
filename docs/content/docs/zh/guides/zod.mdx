@@ -1,19 +1,33 @@
 ---
 title: Zod
-description: 从 OpenAPI 生成 Zod schemas
+description: 从 OpenAPI 生成 Zod schema
 ---
 
-Zod 生成器会把 OpenAPI schema 转换为 Zod schema。这样你既可以使用 TypeScript 类型，也可以在运行时校验外部数据。
+从 OpenAPI 规范生成 [Zod](https://zod.dev/) schema，以便进行运行时校验。
 
 ## 配置
 
+将 `client` 选项设为 `zod`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
       client: 'zod',
+      mode: 'single',
+      target: './src/api/schemas',
+      override: {
+        zod: {
+          // 优先使用 Mini，以获得更好的 tree-shaking 效果。
+          variant: 'mini',
+          version: 4,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,28 +35,201 @@ export default defineConfig({
 
 ## 生成结果
 
-Orval 会为 schema、请求体和响应生成 Zod 对象。命名会保持可预测，便于在业务代码中导入。
+Orval 会为 OpenAPI 规范中的每个模型生成一个 Zod schema：
+
+```ts
+export const CreatePetsBody = /*#__PURE__*/ zod.object({
+  id: /*#__PURE__*/ zod.number(),
+  name: /*#__PURE__*/ zod.string(),
+  tag: /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string()),
+});
+```
+
+## Tree Shaking
+
+当启动时间、内存占用或 bundle 大小很重要时，优先使用 `variant: 'mini'`。Zod Mini 使用顶层辅助函数，因此在导出的校验器未被使用时，更容易被可靠地 tree-shake 掉：
+
+```ts
+// 常规 Zod
+export const User = zod.object({
+  email: zod.email().min(5).max(255),
+});
+
+// Zod Mini
+export const User = /*#__PURE__*/ zod.object({
+  email: /*#__PURE__*/ zod
+    .email()
+    .check(/*#__PURE__*/ zod.minLength(5))
+    .check(/*#__PURE__*/ zod.maxLength(255)),
+});
+```
+
+当 `User` 未被使用时，打包后的常规 Zod 输出仍可能把 schema 初始化保留为顶层执行代码，即使没有任何地方使用它：
+
+```js
+// 可能的常规 Zod 打包输出（没有 export const User，但 zod 调用仍然存在）
+object({
+  email: email().min(userEmailMin).max(userEmailMax),
+});
+```
+
+使用带有 pure 注解的 Zod Mini 后，未使用的 schema 则可能被完全移除：
+
+```js
+// 可能的 Zod Mini 打包输出
+// 完全没有生成 User schema 代码
+```
+
+在大型生成客户端中，这可以从最终 bundle 中移除未使用的 schema 初始化代码。在真实构建里，这可能意味着启动时少加载数百 KB 的验证代码。
+
+## Zod version
+
+Orval 以 **Zod 4** 作为输出基线（`z.strictObject`、`z.looseObject`、`z.iso.datetime()`、`.meta()` 等），但也完全支持仍在使用 Zod 3 的项目。最终输出的语法会跟随你的项目实际解析到的 `zod` 主版本。
+
+使用默认值（`'auto'`）时，Orval 会根据你项目 `package.json` 中解析到的 `zod` 版本来推断目标版本。如果检测不到 `zod` 包，例如在一个全新或依赖尚未完整安装的工作区中，它会回退到 **Zod 4**。
+
+若要让生成结果保持确定性，可通过 `override.zod.version` 显式固定目标版本：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      target: './src/api/schemas',
+      override: {
+        zod: {
+          variant: 'mini',
+          version: 4, // 3 | 4 | 'auto'
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+| 值 | 输出 |
+| --- | --- |
+| `4` | 无论安装的 `zod` 版本是什么，都始终生成 Zod 4 语法。 |
+| `3` | 无论安装的 `zod` 版本是什么，都始终生成兼容 Zod 3 的语法。 |
+| `'auto'` | 默认值。根据解析到的 `zod` 版本自动推断；如果未检测到，则回退到 Zod 4。 |
+
+固定版本可以保持输出稳定：同一份规范在每台机器和 CI 中都会生成相同的 schema，而不会受本地恰好安装了哪个 `zod` 版本影响。
+
+## Zod Mini
+
+将 `override.zod.variant` 设为 `'mini'`，即可针对 [Zod Mini](https://zod.dev/packages/mini) 生成 schema：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      override: {
+        zod: {
+          variant: 'mini',
+          version: 4,
+        },
+      },
+    },
+  },
+});
+```
+
+Mini 输出会从 `zod/mini` 导入，并使用 Zod Mini 的函数式 / check 风格 API。它要求使用 Zod 4；如果 `version: 3`，或 `version: 'auto'` 最终解析为 Zod 3，则会被拒绝。
+
+当生成的 schema 会被打包进前端应用、Cloudflare Workers 或其他对启动成本敏感的运行时中时，优先考虑 Zod Mini，因为它更利于 tree-shaking，也更节省 bundle 体积。如果这些约束并不重要，则可以使用常规 Zod，它的链式 API 更熟悉，自动补全体验也更好。
+
+一个行为差异是：Zod Mini 默认不会加载英文 locale。如果你想要常规 Zod 那样的默认英文报错信息，需要手动配置一次：
+
+```ts
+import * as zod from 'zod/mini';
+
+zod.config(zod.locales.en());
+```
+
+## 按 operation 或 tag 作用域化配置
+
+大多数 `override.zod` 选项都可以只应用到 API 的一部分，而不是全局生效。可通过 `override.operations[operationId].zod` 为单个 operation 配置，或通过 `override.tags[tagName].zod` 为共享同一 tag 的所有 operation 配置：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      override: {
+        zod: {
+          variant: 'mini',
+          version: 4,
+          strict: { response: true }, // 全局生效
+        },
+        operations: {
+          listPets: {
+            zod: {
+              coerce: { query: ['number'] }, // 仅此 operation
+            },
+          },
+        },
+        tags: {
+          admin: {
+            zod: {
+              strict: { body: true }, // 所有带有 "admin" tag 的 operation
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+按 operation 和按 tag 的 override 仅接受那些能作用于单个 schema 的选项：`strict`、`generate`、`coerce`、`preprocess`、`params`、`useBrandedTypes` 和 `generateCompanionTypes`。
+
+而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion` 和 `exactOptional`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
+
+```
+⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
+```
 
 ## 用法
 
 ### 解析数据
 
 ```ts
-const pet = petSchema.parse(data);
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = { id: 1, name: 'Buddy', tag: 'dog' };
+const parsedPet = CreatePetsBody.parse(pet);
+// => { id: 1, name: "Buddy", tag: "dog" }
 ```
 
 ### 类型推导
 
 ```ts
-type Pet = z.infer<typeof petSchema>;
+import type { z } from 'zod/mini';
+import { CreatePetsBody } from './src/api/schemas';
+
+type Pet = z.infer<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
 ```
 
 ### 安全解析
 
 ```ts
-const result = petSchema.safeParse(data);
+const result = CreatePetsBody.safeParse(unknownData);
+
+if (result.success) {
+  console.log(result.data);
+} else {
+  console.error(result.error);
+}
 ```
 
-## 与 HTTP 客户端组合
+## 与 HTTP 客户端结合
 
-可以将 Zod schema 和 React Query、Fetch、Axios 等客户端组合，在响应进入 UI 前进行运行时校验。
+有关如何将 Zod schema 与 React Query、SWR 或其他 HTTP 客户端结合使用，请参阅 [Client with Zod](/zh/docs/guides/client-with-zod) 指南。

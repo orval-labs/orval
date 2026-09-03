@@ -1,19 +1,28 @@
 ---
 title: Solid Query
-description: 从 OpenAPI 生成类型安全的 Solid Query primitives
+description: 从 OpenAPI 生成类型安全的 Solid Query Primitives（原语）
 ---
 
-Solid Query 客户端会生成适配 TanStack Query for Solid 的查询和 mutation primitives。它适合 Solid 应用中管理远程数据。
+根据你的 OpenAPI 规范生成完整类型化的 [TanStack Query for Solid](https://tanstack.com/query/latest/docs/solid/overview) Primitives（原语）。
 
 ## 配置
 
+将 `client` 选项设置为 `solid-query`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'solid-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,42 +30,160 @@ export default defineConfig({
 
 ## 生成结果
 
-生成内容包括 query options、mutation options、请求函数、query key helper 和响应类型。
+Orval 会为每个 path 生成一个基于 `@tanstack/solid-query` 的 Primitive（原语）。例如：
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const createShowPetById = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = createQuery<Awaited<ReturnType<typeof queryFn>>, TError, TData>(
+    () => ({
+      queryKey,
+      queryFn,
+      enabled: petId !== null && petId !== undefined,
+      ...queryOptions,
+    }),
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
 
 ## 与 React Query 的关键差异
 
-Solid 使用 signals 和 accessor 模型。生成代码会遵循 Solid Query 的调用方式，而不是 React hooks 规则。
+Solid Query 使用 `create` 前缀，而不是 `use`：
 
-## Infinite Queries
+- `createQuery` 而不是 `useQuery`
+- `createMutation` 而不是 `useMutation`
+- `createInfiniteQuery` 而不是 `useInfiniteQuery`
 
-需要分页加载时可以启用 infinite query，并配置分页参数。
+生成的 Primitives（原语）遵循 SolidJS 约定，并可与 Solid 的响应式系统无缝协作。
 
-## SolidStart vs Solid Query
+## Infinite Queries（无限查询）
 
-Solid Query 面向客户端远程状态；SolidStart 输出更贴近路由 loader、action 和缓存机制。
-
-## Set Query Data
-
-启用后生成缓存写入 helper，用于在 mutation 后同步更新页面数据。
-
-## Get Query Data
-
-启用后生成缓存读取 helper，避免在业务代码中手写 query key。
-
-## 完整示例
+生成 Infinite Query Primitives（无限查询原语）：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
       client: 'solid-query',
       override: {
         query: {
-          useSetQueryData: true,
-          useGetQueryData: true,
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
         },
       },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
+
+TanStack Query 要求每个 Infinite Query 都提供 `initialPageParam` 和 `getNextPageParam`，而 orval 无法自动推断这两个值。Solid Query 的生成结果不会像其他框架那样使用 `as` 断言来掩盖这个缺口，因此生成的 Primitive（原语）会要求调用方显式传入它们：
+
+```ts
+const pets = createListPetsInfinite(params, {
+  query: {
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextId,
+  },
+});
+```
+
+你也可以改为在 `override.query.options` 中统一提供它们，这样它们会被固化到生成的 Primitive（原语）里，`options` 参数也会重新变回可选：
+
+```ts
+options: {
+  initialPageParam: undefined,
+  getNextPageParam: (lastPage) => lastPage.nextId,
+},
+```
+
+`initialData` 不能放在 `query` 对象中。请通过生成的 Primitive（原语）自身的重载来传入它，这样才能保留 `data` 是一定存在还是可能为 `undefined` 的区分。
+
+## SolidStart vs Solid Query
+
+如果你使用的是 SolidStart，建议优先考虑 [SolidStart client](/zh/docs/guides/solid-start)。它使用原生的 Solid Router primitives（`query()` 和 `action()`），因此对 SSR 集成更友好。
+
+## Set Query Data（设置查询数据）
+
+当设置 `useSetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来更新缓存中的 query data（查询数据）：
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams | undefined,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+    { queryKey: getListPetsQueryKey(params) },
+    updater,
+  );
+};
+```
+
+这个辅助函数使用的是 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata)，因此 query key（查询键）会按前缀匹配。对 query params（查询参数）或 body 传入 `undefined` 时，会更新所有共享同一路径的缓存条目；`updater` 会对每个命中的条目各调用一次。
+
+<Callout type="warn">
+  在这次变更之前，该辅助函数调用的是 `setQueryData`，它只会写入（并创建）单个精确 key 对应的条目。`setQueriesData` 只会更新已经存在的条目，并按前缀匹配，因此当你传入完整指定的 key 时，行为可能会有所不同。升级时请检查现有调用点。
+</Callout>
+
+## Get Query Data（获取查询数据）
+
+当设置 `useGetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来读取缓存中的 query data（查询数据）：
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
+## 完整示例
+
+请查看 GitHub 上的 [complete Solid Query example（完整 Solid Query 示例）](https://github.com/orval-labs/orval/tree/master/samples/solid-query)。

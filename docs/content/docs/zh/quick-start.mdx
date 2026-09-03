@@ -3,17 +3,17 @@ title: 快速开始
 description: 快速生成第一个类型安全的 API 客户端
 ---
 
-只需要几分钟就可以用 Orval 生成第一个客户端。
+只需几分钟即可开始使用 Orval。
 
 ## 不使用配置文件
 
-最简单的方式是直接从命令行传入 OpenAPI 规范和输出路径：
+使用 Orval 最简单的方式是直接通过命令行：
 
 ```bash
 orval --input ./petstore.yaml --output ./src/petstore.ts
 ```
 
-- `--input` 接收 YAML 或 JSON 格式的 OpenAPI 规范
+- `--input` 接收任意 YAML 或 JSON 格式的 OpenAPI 规范
 - `--output` 指定生成文件的目标路径
 
 ## 使用配置文件
@@ -39,9 +39,9 @@ export default defineConfig({
 });
 ```
 
-## 生成 React Query Hooks
+## 生成 React Query Hooks（钩子）
 
-如果要生成 React Query hooks，只需要设置 `client` 选项：
+想要改为生成 React Query Hooks（钩子）？只需要设置 `client` 选项：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -61,8 +61,8 @@ export default defineConfig({
 ## 下一步
 
 <Cards>
-  <Card title="基础配置" href="/zh/docs/guides/basics" description="学习 Orval 的基础配置" />
-  <Card title="React Query" href="/zh/docs/guides/react-query" description="生成 React Query hooks" />
-  <Card title="MSW Mock" href="/zh/docs/guides/msw" description="生成 API mock" />
-  <Card title="完整配置" href="/zh/docs/reference/configuration/full-example" description="查看所有配置选项" />
+  <Card title="基础配置" href="/zh/docs/guides/basics" description="了解基础知识" />
+  <Card title="React Query" href="/zh/docs/guides/react-query" description="生成 React Query Hooks（钩子）" />
+  <Card title="MSW Mocking（MSW 模拟）" href="/zh/docs/guides/msw" description="生成 API Mock" />
+  <Card title="完整配置" href="/zh/docs/reference/configuration/full-example" description="查看所有选项" />
 </Cards>

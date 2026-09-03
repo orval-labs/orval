@@ -1,59 +1,99 @@
 ---
-title: Client with Zod
-description: 将 Zod 校验与 HTTP 客户端组合使用
+title: Client with Zod（结合 Zod 的客户端）
+description: 将 Zod 校验与 HTTP 客户端结合使用
 ---
 
-`client-with-zod` 让生成的 HTTP 客户端和 Zod schema 一起工作。它适合希望请求响应既有 TypeScript 类型，也能在运行时被校验的项目。
+将 Zod schema 与 SWR 或 TanStack Query client 搭配使用，以进行运行时校验。
 
 ## 配置
+
+同时生成 HTTP client 和 Zod schema：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  // HTTP client generation
   petstore: {
-    input: './petstore.yaml',
+    input: {
+      target: './petstore.yaml',
+    },
     output: {
-      target: './src/petstore.ts',
-      schemas: './src/model',
-      client: 'react-query',
-      override: {
-        zod: {
-          strict: true,
-        },
-      },
+      mode: 'tags-split',
+      client: 'swr',
+      target: 'src/api/endpoints',
+      schemas: 'src/api/models',
+      mock: true,
+    },
+  },
+  // Zod schema generation
+  petstoreZod: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'zod',
+      target: 'src/api/endpoints',
+      fileExtension: '.zod.ts',
     },
   },
 });
 ```
 
+<Callout type="info">
+使用 `fileExtension: '.zod.ts'` 可以避免与 HTTP client 文件发生文件名冲突。
+</Callout>
+
 ## 生成文件
 
-Orval 会生成：
-
-- HTTP 客户端或 hooks
-- 请求和响应 TypeScript 类型
-- 对应的 Zod schema
-- 可选的运行时 parse 逻辑
+```
+src/api/
+├── endpoints/
+│   └── pets/
+│       ├── pets.ts       # SWR hooks
+│       ├── pets.msw.ts   # MSW mocks
+│       ├── pets.faker.ts # Faker mocks
+│       └── pets.zod.ts   # Zod schemas
+└── models/
+    └── ...
+```
 
 ## 用法
 
-在数据进入 UI 状态前使用 schema 校验：
+```tsx
+import { useListPets, useCreatePets } from './api/endpoints/pets/pets';
+import { CreatePetsBodyItem } from './api/endpoints/pets/pets.zod';
 
-```ts
-const parsed = getPetResponse.parse(data);
+function App() {
+  const { data } = useListPets();
+  const { trigger } = useCreatePets();
+
+  const createPet = async () => {
+    const pet = { name: 'Buddy', tag: 'dog' };
+
+    try {
+      // 发送前先做校验
+      const validatedPet = CreatePetsBodyItem.parse(pet);
+      await trigger([validatedPet]);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        console.error('Validation failed:', error.errors);
+      }
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={createPet}>Create Pet</button>
+      {data?.map((pet) => (
+        <div key={pet.id}>{pet.name}</div>
+      ))}
+    </div>
+  );
+}
 ```
-
-也可以使用 `safeParse` 在不抛异常的情况下处理错误。
 
 ## 完整示例
 
-```ts
-const result = getPetResponse.safeParse(response);
-
-if (!result.success) {
-  console.error(result.error);
-} else {
-  renderPet(result.data);
-}
-```
+请参阅 GitHub 上的[完整 SWR + Zod 示例](https://github.com/orval-labs/orval/tree/master/samples/swr-with-zod)。

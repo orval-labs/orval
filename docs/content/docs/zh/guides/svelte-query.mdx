@@ -1,19 +1,28 @@
 ---
 title: Svelte Query
-description: 从 OpenAPI 生成类型安全的 Svelte Query stores
+description: 从 OpenAPI 生成类型安全的 Svelte Query Stores（存储）
 ---
 
-Svelte Query 客户端会生成适配 TanStack Query for Svelte 的查询和 mutation stores。它适合 Svelte 应用中管理远程数据。
+根据你的 OpenAPI 规范生成完整类型化的 [TanStack Query for Svelte](https://tanstack.com/query/latest/docs/svelte/overview) Stores（存储）。
 
 ## 配置
 
+将 `client` 选项设置为 `svelte-query`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'svelte-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,34 +30,120 @@ export default defineConfig({
 
 ## 生成结果
 
-生成内容包括查询 store、mutation store、请求函数、query key helper 和类型。
+Orval 会为你的 OpenAPI 规范中的每个 path 生成一个自定义 Store（存储）。例如，[这个规范](https://github.com/orval-labs/orval/blob/master/samples/svelte-query/petstore.yaml)会生成：
 
-## Infinite Queries
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
 
-启用 infinite query 后，可以按页加载数据，并由 TanStack Query 管理分页缓存。
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
 
-## Set Query Data
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
 
-启用后生成缓存写入 helper，常用于 mutation 成功后更新列表或详情缓存。
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
 
-## Get Query Data
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
+    queryKey,
+    queryFn,
+    {
+      enabled: petId !== null && petId !== undefined,
+      ...queryOptions,
+    },
+  );
 
-启用后生成读取缓存的 helper，避免在业务代码里重复拼 query key。
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
 
-## 完整示例
+## Infinite Queries（无限查询）
+
+生成 Infinite Query Stores（无限查询存储）：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
       client: 'svelte-query',
       override: {
         query: {
-          useSetQueryData: true,
-          useGetQueryData: true,
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
         },
       },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
+
+## Set Query Data（设置查询数据）
+
+当设置 `useSetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来更新缓存中的 query data（查询数据）：
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams | undefined,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+    { queryKey: getListPetsQueryKey(params) },
+    updater,
+  );
+};
+```
+
+这个辅助函数使用的是 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata)，因此 query key（查询键）会按前缀匹配。对 query params（查询参数）或 body 传入 `undefined` 时，会更新所有共享同一路径的缓存条目；`updater` 会对每个命中的条目各调用一次。
+
+<Callout type="warn">
+  在这次变更之前，该辅助函数调用的是 `setQueryData`，它只会写入（并创建）单个精确 key 对应的条目。`setQueriesData` 只会更新已经存在的条目，并按前缀匹配，因此当你传入完整指定的 key 时，行为可能会有所不同。升级时请检查现有调用点。
+</Callout>
+
+## Get Query Data（获取查询数据）
+
+当设置 `useGetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来读取缓存中的 query data（查询数据）：
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
+## 完整示例
+
+请查看 GitHub 上的 [complete Svelte Query example（完整 Svelte Query 示例）](https://github.com/orval-labs/orval/tree/master/samples/svelte-query)。

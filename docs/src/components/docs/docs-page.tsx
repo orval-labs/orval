@@ -70,7 +70,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
         <DocsDescription>{frontmatter.description}</DocsDescription>
         {isTranslation ? (
           <div className="rounded-lg border border-fd-border bg-fd-muted/50 px-4 py-3 text-sm text-fd-muted-foreground">
-            此页面为社区翻译版本。如与英文文档存在差异，请以英文文档为准。
+            此页面为社区翻译版本，译于 2026 年 9 月 2 日。如与英文文档存在差异或内容更新，请以英文文档为准。
           </div>
         ) : null}
         <DocsBody>

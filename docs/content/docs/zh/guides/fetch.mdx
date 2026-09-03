@@ -3,19 +3,27 @@ title: Fetch
 description: 从 OpenAPI 生成 Fetch API 客户端
 ---
 
-Fetch 客户端使用标准 `fetch` API 生成请求函数。它不需要 axios 等额外依赖，适合浏览器、Edge Runtime 和现代 Node.js 环境。
+Fetch API 是浏览器原生 API，不需要任何额外依赖。它同样适用于服务端框架，以及 Cloudflare Workers、Vercel Edge 和 Deno 等 edge runtime（边缘运行时）。
 
 ## 配置
+
+将 `client` 选项设置为 `fetch`：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'app/gen/petstore.ts',
+      schemas: 'app/gen/models',
       client: 'fetch',
+      baseUrl: 'http://localhost:3000',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -23,48 +31,101 @@ export default defineConfig({
 
 ## 运行时 base URL
 
-可以通过 `baseUrl`、自定义 fetch mutator 或环境变量设置运行时地址。多环境部署时推荐使用 mutator 读取运行时配置。
+如果 host（主机）只会在运行时才知道（例如 Node 中的 `process.env.API_BASE_URL`，或 Vite 中的 `import.meta.env.VITE_*`），请使用 `baseUrl.runtime`，而不是固定字符串。内置 Fetch 客户端会把这个表达式嵌入生成后的 URL 模板字面量中，因此你仍然可以继续使用 `override.fetch` 选项，比如 `runtimeValidation` 和 `includeHttpResponseReturnType`，而不需要自定义 mutator。
+
+```ts title="orval.config.ts"
+baseUrl: {
+  runtime: 'process.env.API_BASE_URL',
+},
+```
+
+关于 `imports` 以及来自共享模块的表达式（例如 `import { env } from '../../env'` 中的 `env.API_BASE_URL`），请参见 [output `baseUrl` reference（output `baseUrl` 参考）](/zh/docs/reference/configuration/output#runtime)。MSW Mock 的 host（主机）过滤则使用单独的 [`mock.baseUrl`](/zh/docs/reference/configuration/output#mock-options) 选项。
 
 ## 生成结果
 
+Orval 会为每个 endpoint 生成三部分内容：
+
 ### 1. 响应类型
 
-每个操作会生成对应的 TypeScript 响应类型。
+```ts
+export type listPetsResponse = {
+  data: Pets;
+  status: number;
+};
+```
 
 ### 2. URL 生成器
 
-路径参数和 query 参数会被编码到请求 URL 中。
+```ts
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === null) {
+      normalizedParams.append(key, 'null');
+    } else if (value !== undefined) {
+      normalizedParams.append(key, value.toString());
+    }
+  });
+
+  return `http://localhost:3000/pets?${normalizedParams.toString()}`;
+};
+```
 
 ### 3. Fetch 函数
 
-生成函数会调用 `fetch` 并解析响应。
+```ts
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  const data = await res.json();
+
+  return { status: res.status, data };
+};
+```
 
 ## 自定义 Fetch 函数
 
-```ts title="src/api/custom-fetch.ts"
-export const customFetch = async <T>(url: string, options: RequestInit) => {
-  const response = await fetch(url, options);
-  if (!response.ok) throw new Error('Request failed');
-  return response.json() as Promise<T>;
+通过 mutator 添加自定义 fetch 实现：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        mutator: {
+          path: './custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    // ...
+  },
+});
+```
+
+生成后的函数会使用你的自定义实现：
+
+```ts
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  return customFetch<Promise<listPetsResponse>>(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
 };
 ```
 
 ## 完整示例
 
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    input: './petstore.yaml',
-    output: {
-      target: './src/petstore.ts',
-      client: 'fetch',
-      override: {
-        mutator: {
-          path: './src/api/custom-fetch.ts',
-          name: 'customFetch',
-        },
-      },
-    },
-  },
-});
-```
+请查看 GitHub 上的 [Next.js with Fetch example（Next.js + Fetch 示例）](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)。

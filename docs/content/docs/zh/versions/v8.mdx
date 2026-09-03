@@ -3,96 +3,365 @@ title: 升级到 v8
 description: Orval v8 迁移指南
 ---
 
-Orval v8 带来了新的默认行为、框架支持和类型生成能力。升级前建议先在独立分支运行生成、类型检查和测试，再逐步调整配置。
+v8 带来了多项重要改进，重点聚焦于现代 JavaScript 生态支持，以及更完善的 Zod schema 集成。
 
 ## 新功能
 
 ### ESM（ECMAScript Modules）
 
-v8 更加明确地面向 ESM。项目需要确保配置文件、构建脚本和运行环境支持 ESM。
+整个项目都已从 CommonJS 迁移到 ESM。
+
+**关键变化：**
+- 所有 package 都在 `package.json` 中使用 `"type": "module"`
+- 使用 `import`/`export` 语法，而不是 `require()`
+- **要求 Node.js 22.18 或更高版本**
+
+```bash
+# 将配置文件重命名为 .mjs
+mv orval.config.js orval.config.mjs
+
+# 或者在 package.json 中添加
+# "type": "module"
+```
 
 ### 默认 HTTP Client：Fetch
 
-默认 HTTP client 变为 `fetch`。如果项目依赖 axios 行为，请显式设置 `httpClient: 'axios'` 或配置自定义 mutator。
+默认 HTTP client 已从 `axios` 改为 `fetch`，以获得更小的 bundle 体积。
+
+如果你想继续使用 axios：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      httpClient: 'axios',
+      target: './src/api',
+    },
+  },
+});
+```
 
 ### 新框架支持
 
-v8 增强了 Angular、Angular Query、SolidStart、Hono、MCP 等输出能力，让同一份 OpenAPI 契约覆盖更多运行时和框架。
+**Angular Query：**
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      target: './src/api',
+    },
+  },
+});
+```
+
+**Solid Query / SolidStart：**
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'solid-query',
+      target: './src/api',
+    },
+  },
+});
+```
 
 ### 增强的 Zod 集成
 
-Zod 输出支持更完整的 schema 生成和运行时校验组合。
+**Schema 类型选择：**
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: {
+        path: './model',
+        type: 'zod', // 'typescript' | 'zod'
+      },
+    },
+  },
+});
+```
+
+**运行时校验：**
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: { type: 'zod' },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: { strategy: 'both' },
+        },
+      },
+    },
+  },
+});
+```
+
+`runtimeValidation: true` 仍然受支持，它是 `{ strategy: 'throw' }` 的简写形式。
 
 ### React Compiler 支持
 
-生成的 React Query 代码更适合现代 React 工具链。
+TanStack Query（React Query）现已更新，可正确配合 React Compiler 使用。
 
-### Combined Types Inlining
+### Combined Types Inlining（联合类型内联）
 
-组合类型可以更好地内联，减少不必要的中间类型。
+`anyOf`、`oneOf` 和 `allOf` 现在默认会被内联：
+
+```ts
+// Before
+export type Response401OneOf = { defined: true; ... };
+export type Response401OneOfTwo = { defined: false; ... };
+export type Response401 = Response401OneOf | Response401OneOfTwo;
+
+// After
+export type Response401 = { defined: true; ... } | { defined: false; ... };
+```
+
+如果你想保持之前的行为：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        aliasCombinedTypes: true,
+      },
+    },
+  },
+});
+```
 
 ## 破坏性变更
 
 ### 1. ESM 迁移
 
-如果配置或自定义脚本仍使用 CommonJS，需要迁移到 ESM 语法，或确保运行时能正确加载。
+项目现已完全从 CommonJS 转换为 ESM。
+
+**关键变化：**
+- 要求 Node.js 22.18+
+- 所有 package 现在都在 `package.json` 中使用 `"type": "module"`
+- 使用 `import`/`export` 语法，而不是 `require()`
+
+**迁移方式：**
+
+```bash
+# 检查 Node.js 版本
+node --version  # 应该 >= 22.18.0
+```
+
+更新配置文件（重命名或添加 type 均可）：
+
+```bash
+mv orval.config.js orval.config.mjs
+```
+
+或者在 `package.json` 中添加：
+
+```json
+{
+  "type": "module"
+}
+```
+
+如果你以编程方式使用 Orval，还需要更新导入方式：
+
+```diff
+- const { generate } = require('orval');
++ import { generate } from 'orval';
+```
+
+更新动态导入：
+
+```diff
+- const config = require('./orval.config.js');
++ const config = await import('./orval.config.js');
+```
+
+> 如果 `.ts` 文件本来就是按 ESM 风格编写，则无需修改。
+
+**好处：**
+- 更好的 tree-shaking（消除未使用代码）
+- 原生浏览器支持
+- 异步模块加载
+- 更严格的模块边界
 
 ### 2. 默认 httpClient 改为 `fetch`
 
-依赖 axios 拦截器或 axios 响应格式的项目必须显式配置。
+如有需要，请显式设置 `httpClient: 'axios'`。
 
 ### 3. 移除 `override.fetch.explode`
 
-相关行为需要改用新的参数处理配置。
+请直接在你的 OpenAPI 规范中指定 `explode`。
 
 ### 4. Mock delay 默认值改为 `false`
 
-mock 默认不再延迟响应。需要模拟网络延迟时显式配置 delay。
+如果需要，请显式设置 `delay: 1000`。
 
 ### 5. 移除 `override.coerceTypes`
 
-类型强制转换相关配置已移除，应在 schema 或业务边界处理。
+请改用 `override.zod.coerce`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          coerce: {
+            param: true,
+            query: true,
+            header: true,
+            body: true,
+            response: true,
+          },
+        },
+      },
+    },
+  },
+});
+```
 
 ### 6. 移除 `override.useNativeEnums`
 
-枚举生成方式需要按新的配置调整。
+请改用 `enumGenerationType: 'enum'`。
 
 ### 7. Zod Schema 命名改为 PascalCase
 
-引用生成 schema 的代码可能需要更新导入名称。
+```diff
+- export const createPetsBody = zod.object({ ... })
++ export const CreatePetsBody = zod.object({ ... })
+```
 
 ### 8. 移除 `input.validation`
 
-输入校验配置发生变化。需要关闭规范校验时，使用当前支持的配置项。
+`input.validation` 选项已不存在。现在会始终校验规范，并且校验器 `@scalar/openapi-parser` 相比 v7 使用的 IBM 校验器更严格，过去只是 warning 的问题现在会直接变成 hard error。
+
+如果你的规范文件有问题并且你可以修复它，请使用 `input.override.transformer`。
+它现在会在校验**之前**运行，因此你可以原地修复问题。作为最后手段，如果你确实要完全关闭校验，可以使用 `input.unsafeDisableValidation`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+      unsafeDisableValidation: true,
+    },
+  },
+});
+```
+
+详情请参考 [`input.unsafeDisableValidation`](/zh/docs/reference/configuration/input#unsafedisablevalidation)
+和 [`input.override.transformer`](/zh/docs/reference/configuration/input#transformer)。
+
+<Callout type="info">
+  如果你的规范是 OpenAPI 2.0（Swagger），`override.transformer` 现在接收到的是 2.0 文档本身；之前它运行在升级后的 3.1 形式上。请相应调整那些假定输入为 3.x 结构的 transformer。
+</Callout>
 
 ### 9. SWR 默认不生成错误类型
 
-如果依赖生成的错误类型，需要显式配置或在业务层定义错误类型。
+自定义错误类型别名（例如 `ListPetsQueryError`、`CreatePetsMutationError`）默认不再生成。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          generateErrorTypes: true,
+        },
+      },
+    },
+  },
+});
+```
 
 ### 10. `output.mock` 改为使用 `generators` 数组
 
-新的 mock 配置可以同时启用 MSW 和 Faker：
+此前，`output.mock` 可以接受 `true`，也可以接受扁平的配置对象（例如 `{ type: 'msw', delay: 1000, locale: 'fr', ... }`）。所有选项都放在一个对象里，而且 `type: 'msw'` 是唯一支持的类型。
+
+现在，`output.mock` 会把 generator 条目放进 `generators` 数组中。每个条目都会生成自己的输出文件（例如 `.msw.ts`、`.faker.ts`）。这样一来，同一份配置就可以生成多个彼此独立的 mock 输出。
+
+#### `mock: true` 的行为变化
+
+`mock: true` 以前只会生成 MSW handlers。现在它会同时生成 **MSW handlers**（`.msw.ts`）和 **Faker 数据工厂**（`.faker.ts`）。如果你想保持旧行为（只生成 MSW），请使用显式写法：
 
 ```ts
-mock: {
-  generators: [{ type: 'msw' }, { type: 'faker' }],
+output: {
+  mock: { generators: [{ type: 'msw' }] },
+}
+```
+
+#### 迁移扁平配置对象
+
+所有 generator 级别的选项（`delay`、`useExamples`、`locale`、`baseUrl` 等）都需要移动到 generator 条目内部：
+
+```diff
+output: {
+- mock: { type: 'msw', delay: 1000, useExamples: true, locale: 'fr' },
++ mock: {
++   generators: [{ type: 'msw', delay: 1000, useExamples: true, locale: 'fr' }],
++ },
+}
+```
+
+#### `indexMockFiles` 移到外层包装对象
+
+`indexMockFiles` 现在是 collection 级别选项，而不是 generator 级别选项：
+
+```diff
+output: {
+- mock: { type: 'msw', indexMockFiles: true },
++ mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+}
+```
+
+#### 新增：仅生成 Faker 输出
+
+如果你只想生成 Faker 数据工厂，而不生成 MSW handlers：
+
+```ts
+output: {
+  mock: { generators: [{ type: 'faker' }] },
 }
 ```
 
 ## 其他改进
 
-### Fetch Client Headers 变量展开
+### Fetch Client Headers（Fetch 客户端请求头）变量展开
 
-Fetch client 对 headers 的变量处理更灵活。
+现在 `override.requestOptions.headers` 已支持变量展开。
 
 ### Bug 修复
 
-v8 包含多个生成稳定性、类型推导和框架适配修复。
+- Zod `nullable` + `$ref` 支持（符合 OpenAPI 3.1）
+- 支持 `oneOf`/`anyOf` 的公共属性
+- 日期参数修复
+- Svelte 5 响应式支持
+
+---
 
 ## 发布时间线
 
-升级时建议先阅读 changelog，确认当前项目使用的 client、mock、zod 和 framework 输出是否涉及破坏性变更。
+| 版本 | 发布日期 | 主要变化 |
+| --- | --- | --- |
+| v8.0.0-rc.0 | 2025-10-27 | ESM 迁移、基础 Breaking Changes |
+| v8.0.0-rc.1 | 2025-10-30 | ESM 模块导入支持（jiti） |
+| v8.0.0-rc.2 | 2025-11-14 | Bug 修复 |
+| v8.0.0-rc.3 | 2025-12-06 | Bug 修复 |
+| v8.0.0-rc.4 | 2025-12-14 | Zod schema 功能增强 |
+| v8.0.0-rc.5 | 2025-12-23 | Angular Query、Zod 修复 |
+
+---
 
 ## 致谢
 
-感谢所有贡献者、维护者和社区用户对 v8 的反馈、测试和改进。
+我们衷心感谢所有贡献者、关注者和用户的支持。你们的鼓励推动我们持续改进。🙏
+
+如果你愿意支持 Orval 的持续开发，欢迎通过 [Open Collective](https://opencollective.com/orval) 成为赞助者。

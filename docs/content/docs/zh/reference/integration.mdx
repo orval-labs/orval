@@ -1,58 +1,182 @@
 ---
-title: Programmatic API
+title: Programmatic API（编程 API）
 description: 在构建脚本中以编程方式使用 Orval
 ---
 
-除了 CLI，Orval 也可以在 Node/Bun 脚本中以编程方式调用。适合需要把生成流程嵌入自定义构建、工作流或内部工具的项目。
+将 Orval 的代码生成功能集成到你的构建流程、脚本或工具中。
 
 ## 基础用法
 
 ```ts
+import orval from 'orval';
+
+// 使用配置文件路径生成
+await orval('./orval.config.js');
+
+// 使用当前目录下的 orval 配置生成
+await orval();
+```
+
+或者使用具名导出：
+
+```ts
 import { generate } from 'orval';
 
-await generate('./orval.config.ts');
+await generate('./orval.config.js');
 ```
 
 ## 直接配置
 
-也可以直接传入配置对象，而不是读取配置文件。
+直接传入配置对象：
 
 ```ts
-await generate({
-  petstore: {
-    input: './petstore.yaml',
-    output: './src/petstore.ts',
+import { generate, type Options } from 'orval';
+
+const config: Options = {
+  input: {
+    target: './api-spec.yaml',
   },
-});
+  output: {
+    target: './src/api.ts',
+    client: 'axios',
+  },
+};
+
+await generate(config);
 ```
 
 ## 全局选项覆盖
 
-调用 API 时可以传入全局选项覆盖配置文件中的部分行为，例如输出目录、formatter 或 mock 开关。
+使用全局选项覆盖配置中的设置。全部可用选项请参考 [GlobalOptions interface](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L718)。
 
-## 自定义 Workspace
+```ts
+import { generate, type GlobalOptions } from 'orval';
 
-多包仓库中可以指定 workspace，让相对路径按预期解析。
+const globalOptions: GlobalOptions = {
+  // 文件监听
+  watch: true, // 启用 watch 模式（boolean）
+  // watch: './specs/**/*.yaml',        // 监听特定文件模式（string）
+  // watch: ['./specs/*.yaml'],         // 监听多个模式（string[]）
+
+  // 输出控制
+  clean: true, // 清理所有输出目录（boolean）
+  // clean: ['./src/api', './types'],   // 清理特定目录（string[]）
+  output: './src/generated', // 覆盖输出目录
+
+  // 代码格式化（同一时间只能使用一种 formatter）
+  formatter: 'prettier', // 'prettier' | 'biome' | 'oxfmt'
+
+  // HTTP Client（HTTP 客户端）配置
+  client: 'fetch', // 覆盖 Client
+  httpClient: 'fetch', // HTTP 实现：'axios' | 'fetch'
+
+  // 生成模式
+  mode: 'split', // 输出模式：'single' | 'split' | 'tags' | 'tags-split'
+
+  // Mock 数据生成
+  mock: true, // 启用 mock 数据生成
+  // mock: { generators: [{ type: 'msw', delay: 1000 }] },  // 配置 mock 选项
+
+  // TypeScript 配置
+  tsconfig: './tsconfig.json', // 自定义 tsconfig 路径
+  // tsconfig: { compilerOptions: {...} },  // 内联 tsconfig
+
+  // Package 配置
+  packageJson: './package.json',
+  input: './api-spec.yaml',
+
+  // 错误处理
+  throwOnError: true, // 首次生成出错时直接抛出，而不只是记录日志
+};
+
+await generate('./orval.config.js', process.cwd(), globalOptions);
+```
+
+## 自定义 Workspace（工作区）
+
+指定自定义 Workspace（工作区）目录：
+
+```ts
+import { generate } from 'orval';
+
+const workspace = '/path/to/your/project';
+await generate('./orval.config.js', workspace);
+```
 
 ## 函数签名
 
-编程 API 返回 Promise。调用方应捕获错误并让 CI 或脚本正确失败。
+```ts
+function generate(
+  optionsExport?: string | OptionsExport,
+  workspace?: string,
+  options?: GlobalOptions,
+): Promise<void>;
+```
 
-## Watch Mode
+**参数：**
+- `optionsExport`：配置文件路径或配置对象
+- `workspace`：工作目录（默认为 `process.cwd()`）
+- `options`：用于覆盖配置设置的全局选项
 
-需要持续监听文件变化时，可以在脚本中启用 watch 相关能力，或者直接使用 CLI 的 `--watch`。
+## 错误处理
+
+默认情况下，`generate()` 会记录首次生成时的错误，并在处理完已配置的一个或多个项目后完成。如果脚本需要捕获首次生成失败并自行决定如何处理，请设置 `throwOnError`：
+
+```ts
+import { generate, logError } from 'orval';
+
+try {
+  await generate('./orval.config.js', process.cwd(), {
+    throwOnError: true,
+  });
+} catch (error) {
+  logError(error);
+  process.exit(1);
+}
+```
+
+当配置文件包含多个项目时，`throwOnError` 会在首次运行遇到第一个生成错误时立即停止，而不是继续执行后续项目。watch 模式中的生成错误则会在 watcher 启动后继续以日志形式输出。
+
+## Watch Mode（监听模式）
+
+```ts
+import { generate } from 'orval';
+
+// 启用 watch 模式
+await generate('./orval.config.js', process.cwd(), {
+  watch: true,
+});
+
+// 监听特定文件或目录
+await generate('./orval.config.js', process.cwd(), {
+  watch: ['./specs/*.yaml', './src/custom-types.ts'],
+});
+```
 
 ## 构建脚本集成
 
-常见做法是在 `package.json` 中添加脚本：
-
-```json
+```json title="package.json"
 {
   "scripts": {
-    "generate-api": "orval",
-    "build": "bun run generate-api && vite build"
+    "generate": "node scripts/generate-api.js",
+    "dev": "npm run generate && next dev",
+    "build": "npm run generate && next build"
   }
 }
 ```
 
-在 CI 中建议先生成 API，再运行类型检查和测试，确保接口契约变化能被及时发现。
+```js title="scripts/generate-api.js"
+const { generate } = require('orval');
+
+async function main() {
+  try {
+    await generate();
+    console.log('API client generated successfully');
+  } catch (error) {
+    console.error('Failed to generate API client:', error);
+    process.exit(1);
+  }
+}
+
+main();
+```

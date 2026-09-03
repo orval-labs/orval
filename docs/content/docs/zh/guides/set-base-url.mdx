@@ -1,40 +1,139 @@
 ---
-title: Custom Base URL
-description: 为 API 客户端配置 base URL
+title: Custom Base URL（自定义 Base URL）
+description: 为你的 API 客户端配置 base URL
 ---
 
-base URL 决定生成客户端请求哪个 API 主机。不同运行环境通常需要不同地址，因此建议把环境差异放在运行时配置或自定义客户端中。
+为每个 OpenAPI 规范设置自定义 base URL，或者使用规范中的 `servers` 字段。
 
 ## 配置
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
-      baseUrl: 'https://api.example.com',
+      target: 'src/petstore.ts',
+      baseUrl: '/api/v2',
+      // 或完整 URL：
+      // baseUrl: 'https://petstore.swagger.io/v2',
     },
   },
 });
 ```
 
-## 从 OpenAPI 规范读取
+## 从 OpenAPI 规范中读取
 
-OpenAPI `servers` 字段可以作为默认 base URL 来源。需要与规范保持一致时可以使用这种方式。
+使用 OpenAPI 规范中的 `servers` 字段：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+  },
+});
+```
 
 ## 运行时 base URL
 
-前端项目常常需要按环境切换地址。此时推荐在 mutator 中读取环境变量或运行时配置。
+如果你想在应用运行时才解析 API base URL（例如从环境变量读取），同时继续使用 Orval 生成的 fetch client 和内置的 `override.fetch` 特性，请在 output 配置中设置 [`baseUrl.runtime`](/zh/docs/reference/configuration/output#runtime)。它与 [`mock.baseUrl`](/zh/docs/reference/configuration/output#mock-options) 是分开的，后者只影响生成的 MSW handlers。
 
-## HTTP Client 配置
+## HTTP Client（HTTP 客户端）配置
 
 ### Axios
 
-在 Axios 实例中设置 `baseURL`。
+设置默认 `baseURL`：
 
-### Fetch Client
+```ts
+axios.defaults.baseURL = '<BACKEND URL>';
+```
 
-在自定义 fetch mutator 中拼接 base URL。
+或者使用 interceptor：
 
-### Angular HTTP Client
+```ts
+axios.interceptors.request.use((config) => ({
+  ...config,
+  baseURL: '<BACKEND URL>',
+}));
+```
 
-在 Angular 中可以通过 provider、environment 或 service 注入 base URL。
+或者创建一个[自定义 Axios 实例](/zh/docs/guides/custom-axios)：
+
+```ts
+const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' });
+```
+
+### Fetch Client（Fetch 客户端）
+
+创建一个自定义 fetch wrapper：
+
+```ts
+const getUrl = (contextUrl: string): string => {
+  const url = new URL(contextUrl);
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'productionBaseUrl'
+      : 'http://localhost:3000';
+
+  return new URL(`${baseUrl}${url.pathname}${url.search}`).toString();
+};
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const response = await fetch(getUrl(url), options);
+  const data = await response.json();
+  return { status: response.status, data } as T;
+};
+```
+
+请参见[完整示例](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)。
+
+### Angular HTTP Client（Angular HTTP 客户端）
+
+使用 interceptor：
+
+```ts
+import { Injectable } from '@angular/core';
+import {
+  HttpEvent,
+  HttpInterceptor,
+  HttpHandler,
+  HttpRequest,
+} from '@angular/common/http';
+import { Observable } from 'rxjs/Observable';
+
+@Injectable()
+export class APIInterceptor implements HttpInterceptor {
+  intercept(
+    req: HttpRequest<any>,
+    next: HttpHandler,
+  ): Observable<HttpEvent<any>> {
+    const apiReq = req.clone({ url: `<BACKEND URL>/${req.url}` });
+    return next.handle(apiReq);
+  }
+}
+```
+
+在你的 module 中注册：
+
+```ts
+providers: [
+  {
+    provide: HTTP_INTERCEPTORS,
+    useClass: APIInterceptor,
+    multi: true,
+  },
+];
+```

@@ -67,10 +67,8 @@ const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
 ### 安全解码
 
 ```ts
-import { Either } from 'effect';
 import { Schema as S } from 'effect';
-
-const unknownData: unknown = { id: 1, name: 'Buddy', tag: 'dog' };
+import { Either } from 'effect';
 
 const result = S.decodeUnknownEither(CreatePetsBody)(unknownData);
 if (Either.isRight(result)) {
@@ -82,4 +80,4 @@ if (Either.isRight(result)) {
 
 ## 与 HTTP 客户端组合
 
-查看 [Client with Effect](/zh/docs/guides/client-with-effect) 指南，了解如何将 Effect schema 与 React Query、SWR 或其他 HTTP 客户端一起使用。
+参见 [Client with Effect](/zh/docs/guides/client-with-effect) 指南，了解如何将 Effect schema 与 React Query、SWR 或其他 HTTP 客户端配合使用。
