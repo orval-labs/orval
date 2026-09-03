@@ -1,6 +1,6 @@
 {
   "name": "orval",
-  "version": "8.27.0",
+  "version": "8.28.0",
   "description": "A swagger client generator for typescript",
   "keywords": [
     "angular",
