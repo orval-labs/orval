@@ -1,7 +1,7 @@
 {
   "name": "swr-with-zod",
   "private": true,
-  "version": "8.28.0",
+  "version": "8.28.1",
   "type": "module",
   "scripts": {
     "dev": "vp dev --host",
