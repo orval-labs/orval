@@ -1,9 +1,9 @@
 ---
-title: Custom Axios Instance
+title: Custom Axios Instance（自定义 Axios 实例）
 description: 配置自定义 Axios 实例
 ---
 
-自定义 Axios 实例适合需要统一 base URL、鉴权 header、重试、日志或错误处理的项目。Orval 通过 mutator 调用你的实例，而不是直接创建默认 axios 请求。
+配置带有 interceptor、base URL 以及其他设置的自定义 Axios 实例。
 
 ## 配置
 
@@ -12,13 +12,12 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
-      client: 'axios',
+      // ...
+	  httpClient: 'axios',
       override: {
         mutator: {
-          path: './src/api/custom-instance.ts',
+          path: './api/mutator/custom-instance.ts',
           name: 'customInstance',
         },
       },
@@ -29,25 +28,79 @@ export default defineConfig({
 
 ## 自定义实例实现
 
-```ts title="src/api/custom-instance.ts"
-import Axios, { type AxiosRequestConfig } from 'axios';
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig, AxiosError } from 'axios';
 
 export const AXIOS_INSTANCE = Axios.create({
-  baseURL: 'https://api.example.com',
+  baseURL: '<BACKEND URL>', // 使用你自己的 URL 或环境变量
 });
 
-export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
-  return AXIOS_INSTANCE(config).then(({ data }) => data);
+// 添加第二个 `options` 参数，以便为每个 query 传递额外选项
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> => {
+  const promise = AXIOS_INSTANCE({
+    ...config,
+    ...options,
+  }).then(({ data }) => data);
+
+  return promise;
 };
+
+// 为 react-query 和 swr 覆盖返回错误类型
+export type ErrorType<Error> = AxiosError<Error>;
+
+// 标准 body 类型
+export type BodyType<BodyData> = BodyData;
+
+// 或者在发送前处理数据时包装 body 类型
+// export type BodyType<BodyData> = CamelCase<BodyData>;
 ```
 
 ## 添加拦截器
 
-```ts
-AXIOS_INSTANCE.interceptors.request.use((config) => {
-  config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-```
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig, AxiosError } from 'axios';
 
-响应拦截器适合统一转换错误、刷新 token 或记录请求日志。保持 mutator 返回类型稳定，生成代码就不需要了解这些细节。
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: process.env.API_URL,
+});
+
+// 用于鉴权的请求拦截器
+AXIOS_INSTANCE.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+// 用于错误处理的响应拦截器
+AXIOS_INSTANCE.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 处理未授权
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
+
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> => {
+  return AXIOS_INSTANCE({
+    ...config,
+    ...options,
+  }).then(({ data }) => data);
+};
+
+export type ErrorType<Error> = AxiosError<Error>;
+export type BodyType<BodyData> = BodyData;
+```

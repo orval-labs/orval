@@ -1,5 +1,5 @@
 ---
-title: Output
+title: Output（输出配置）
 description: Output 配置选项
 ---
 
@@ -11,27 +11,75 @@ description: Output 配置选项
 
 生成代码的目标文件或目录。
 
-```ts
-output: {
-  target: './src/api/petstore.ts',
-}
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+    },
+  },
+});
 ```
 
 ## client
 
 **类型：** `String | Function`
+**默认值：** `'axios-functions'`
+**可选值：** `angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`swr`、`zod`、`effect`、`hono`、`fetch`、`mcp`
 
-指定生成客户端类型，例如 `fetch`、`axios`、`react-query`、`vue-query`、`svelte-query`、`solid-query`、`angular`、`angular-query`、`swr`、`zod`、`hono`、`mcp`。
+指定生成客户端类型。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+    },
+  },
+});
+```
+
+你也可以传入一个函数，自定义 client generator。
 
 ### axios client
 
-使用 axios 生成请求函数。需要统一实例时，推荐配合 `override.mutator`。
+`axios` client 会生成一个工厂函数，并提供可选的 axios 实例参数，用于依赖注入：
+
+```typescript
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+export const getPetsApi = (axiosInstance: AxiosInstance = axios) => ({
+  listPets: (params?: ListPetsParams) =>
+    axiosInstance.get<Pet[]>('/pets', { params }),
+});
+```
+
+你可以注入自己的 axios 实例，用于测试或自定义配置：
+
+```typescript
+const customAxios = axios.create({ baseURL: 'https://api.example.com' });
+const api = getPetsApi(customAxios);
+```
 
 ## httpClient
 
-**类型：** `String`
+**类型：** `'fetch' | 'axios' | 'angular'`
+**默认值：** `'fetch'`
 
-指定底层 HTTP 实现。部分 client 可以选择 `fetch`、`axios` 或 Angular `HttpClient`。
+为兼容的生成 client 指定底层 HTTP 传输层。查询类 client 可使用 `fetch` 或 `axios`，而 `angular` 与 `angular-query` 输出应使用 `angular`。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'swr',
+      httpClient: 'axios',
+    },
+  },
+});
+```
 
 ## schemas
 
@@ -61,18 +109,44 @@ export default defineConfig({
       schemas: {
         path: './api/model',
         type: 'typescript', // 'typescript' | 'zod'
+        routes: {
+          default: 'models',
+          enum: 'types',
+        },
       },
     },
   },
 });
 ```
 
-| 属性          | 类型      | 描述                                           |
-| ------------- | --------- | ---------------------------------------------- |
-| `path`        | `string`  | schema 输出的文件系统路径                       |
-| `type`        | `string`  | `'typescript'`（默认）或 `'zod'` — 可选        |
-| `importPath`  | `string`  | 可选的包导入说明符（见下文）                    |
-| `splitByTags` | `boolean` | 按 tag 将 schema 组织到子目录中（默认 `false`，见下文） |
+| 属性          | 类型      | 描述                                                      |
+| ------------- | --------- | --------------------------------------------------------- |
+| `path`        | `string`  | schema 输出的文件系统路径                                 |
+| `type`        | `string`  | `'typescript'`（默认）或 `'zod'`，可选                    |
+| `importPath`  | `string`  | 可选的包导入说明符（见下文）                              |
+| `splitByTags` | `boolean` | 按 tag 将 schema 组织到子目录中（默认 `false`，见下文）   |
+| `routes`      | `object`  | 将枚举和其他 schema 分别输出到不同路由目录                |
+
+`routes.default` 为必填项，其值是相对于 `schemas.path` 的目录。`routes.enum` 为可选项；未设置时，枚举会使用默认路由。空值、绝对路径、逃逸到父目录的路径或等价写法都会被拒绝。路由比较不区分大小写，以保证在大小写不敏感的文件系统上也能保持可移植性。`routes` 同时支持 TypeScript 与 Zod schema；枚举使用 `routes.enum`，其他 schema 使用 `routes.default`。它可以与 `splitByTags` 组合使用，但仍然与 `operationSchemas`、mock 和 factory methods 不兼容。
+
+当不同的 schema 名称在当前命名规则下生成到同一个文件时，若定义等价，则只输出一次并将 import 重定向到规范 schema；若定义不同，则会抛出配置错误，而不是静默覆盖。
+
+开启 `indexFiles: true` 时，Orval 会为每个包含 schema 的路由写入一个 barrel 文件，并额外生成根级 `schemas/index.ts` barrel。关闭 `indexFiles` 时，生成的 import 会直接指向路由后的 schema 文件。
+
+例如，配置 `routes: { default: 'models', enum: 'types' }` 时：
+
+```
+schemas/
+├── models/
+│   ├── index.ts
+│   └── pet.ts
+├── types/
+│   ├── index.ts
+│   └── petStatus.ts
+└── index.ts
+```
+
+当同时开启 `splitByTags` 时，tag 目录会嵌套在对应的路由目录下。被多个 tag 共用的 schema（或未被任何 operation 使用的 schema）会放到 `<route>/shared`，例如 `schemas/models/pets`、`schemas/models/shared` 和 `schemas/types/pets`。
 
 ### importPath
 
@@ -169,61 +243,367 @@ import type { Error } from '../error';
 
 ## operationSchemas
 
-指定 operation 级别 schema 的输出位置，常用于运行时校验或更细粒度导出。
+**类型：** `String`
+
+为 operation 派生的类型（params、bodies、responses）指定单独的路径。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+      operationSchemas: './api/model/params',
+    },
+  },
+});
+```
 
 ## fileExtension
 
-设置生成文件扩展名，例如 `.ts`、`.tsx`、`.mts`。
+**类型：** `String`
+**默认值：** `.ts`
+
+自定义生成文件的扩展名：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'split',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.gen.ts',
+    },
+  },
+});
+```
+
+结果：
+
+```
+src/gen/
+├── endpoints
+│   └── swaggerPetstore.gen.ts
+└── model
+    ├── listPetsParams.ts
+    └── pets.ts
+```
+
+## schemaFileExtension
+
+**类型：** `String`
+**默认值：** 当生成 Zod schemas（`schemas: { type: 'zod' }` 或 `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)）时为 `'.zod.ts'`，否则与 [`fileExtension`](#fileextension) 相同。
+
+仅覆盖 schema 产物的文件扩展名，而不影响全局 `fileExtension`（后者仍控制 client 输出、mock 文件等）。当你希望 client 文件使用一种扩展名，而 schema 文件使用另一种扩展名时，这会很有用：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'split',
+      client: 'zod',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.ts',
+      // 保持 client 文件为 .ts，但将可复用 Zod schema 输出为 .zod.ts：
+      schemaFileExtension: '.zod.ts',
+      override: { zod: { generateReusableSchemas: true } },
+    },
+  },
+});
+```
 
 ## namingConvention
 
-控制生成名称的大小写约定。默认通常适合 TypeScript 项目，只有团队有明确规范时才需要改。
+**类型：** `'camelCase' | 'PascalCase' | 'snake_case' | 'kebab-case'`
+**默认值：** `'camelCase'`
+
+生成**文件**的命名约定：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      namingConvention: 'PascalCase',
+      mode: 'split',
+      target: './gen/endpoints',
+    },
+  },
+});
+```
 
 ## workspace
 
-设置输出工作目录。多包仓库中可以让相对路径更清晰。
+**类型：** `String`
+
+所有生成文件的基础目录。会创建一个包含导出的 `index.ts`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      workspace: 'src/',
+      target: './petstore.ts',
+    },
+  },
+});
+```
 
 ## mode
 
-控制生成文件组织方式。
+**类型：** `'single' | 'split' | 'tags' | 'tags-split'`
+**默认值：** `'single'`
 
 ### single
 
-所有内容写入一个文件，适合小型 API。
+所有内容都放在一个文件中。
 
 ### split
 
-按用途拆分文件，例如请求、模型和 mock。
+为实现、schemas 和 mocks 分别生成文件：
+
+```
+my-app/src/
+├── petstore.schemas.ts
+├── petstore.msw.ts
+└── petstore.ts
+```
 
 ### tags
 
-按 OpenAPI tag 组织生成内容。
+每个 OpenAPI tag 生成一个文件：
+
+```
+my-app/src/
+├── pets.ts
+└── petstore.schemas.ts
+```
 
 ### tags-split
 
-按 tag 拆分为多个文件，适合大型 API 和团队协作。
+每个 tag 一个目录，并按用途拆分文件：
+
+```
+my-app/src/
+├── petstore.schemas.ts
+└── pets/
+    ├── petstore.msw.ts
+    └── petstore.ts
+```
+
+当配置了 [`schemas`](#schemas) 时，models 会输出到专用目录，并按文件拆分。启用 [`indexFiles`](#indexfiles)（默认）时，会生成一个 barrel `index.ts` 来重新导出所有 schemas，这样 service 文件就可以从单一路径导入。设置 `indexFiles: false` 时，每个 schema 都会单独导入（例如 `../models/pet`）。所有 schemas，包括领域类型、通用包装类型和绑定后的别名，都会放在这一个共享目录里，不会按 tag 重复生成：
+
+```
+my-app/src/
+├── models/
+│   ├── index.ts
+│   ├── pet.ts
+│   ├── listResponse.ts
+│   ├── pagination.ts
+│   └── userListResponse.ts
+├── pets/
+│   └── pets.ts              ← 从 ../models 导入
+└── users/
+    └── users.ts             ← 从 ../models 导入
+```
+
+如果你希望 schemas 按 tag 拆分到子目录，而不是使用扁平目录，请使用 [`splitByTags`](#splitbytags)：
+
+```
+my-app/src/
+├── models/
+│   ├── pagination.ts          ← 根目录中的共享 schema
+│   ├── error.ts
+│   ├── pets/
+│   │   ├── pet.ts
+│   │   ├── listPetsParams.ts
+│   │   └── index.ts
+│   ├── users/
+│   │   ├── user.ts
+│   │   ├── listUsersParams.ts
+│   │   └── index.ts
+│   └── index.ts               ← 根 barrel
+├── pets/
+│   └── pets.ts
+└── users/
+    └── users.ts
+```
 
 ## baseUrl
 
-配置请求 base URL。
+**类型：** `String | Object`
+**默认值：** `''`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: 'https://api.example.com',
+    },
+  },
+});
+```
+
+<Callout type="info">
+对于 `angular` client，当你需要通过 Angular 的依赖注入来解析 base URL 时，优先使用 [`override.angular.baseUrl`](#baseurl-1)。例如按 API gateway 路由，或在 `TestBed` 中进行 override，而不是把 base URL 固化进每一条生成的 route 字符串。`baseUrl` 和 `override.angular.baseUrl` 在同一个 output 中不能同时使用。
+</Callout>
 
 ### runtime
 
-运行时 base URL 适合多环境部署，让请求地址从环境变量或应用配置读取。
+**类型：** `String`
+
+把一个 JavaScript 表达式嵌入到生成的请求 URL 中，这样同一个构建产物就可以在运行时访问不同的主机（例如结合 Docker 镜像和环境变量）。这个值会以模板字符串的形式输出到生成的 client 中，因此只能使用来自你配置中的可信表达式。
+它是在生成的模板字符串中用于请求 base URL 的 JavaScript 表达式。这里只传表达式本身即可（例如 `process.env.API_BASE_URL`），不要包含 `` `${...}` ``；Orval 会帮你包上。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'process.env.API_BASE_URL',
+      },
+    },
+  },
+});
+```
+
+#### imports
+
+**类型：** `GeneratorImport[]`
+
+可选。当 `runtime` 引用了另一个模块中的 symbol 时，在这里列出 Orval 需要写入生成 client 的 imports。路径相对于生成文件解析，概念上与 mutator imports 相同。`runtime` 表达式必须在生成代码运行的位置有效，并且这些 imports 注入后也要有效。
+
+使用默认导入：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'apiBase',
+        imports: [{ name: 'apiBase', importPath: '../config/api' }],
+      },
+    },
+  },
+});
+```
+
+也可以把具名导出当作对象来使用。例如应用代码中有 `import { env } from '../../env'`，并使用 `env.API_BASE_URL`，这时把 `runtime` 设为该属性访问表达式，并在 `name` 中导入这个对象：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'env.API_BASE_URL',
+        imports: [{ name: 'env', importPath: '../../env' }],
+      },
+    },
+  },
+});
+```
+
+请调整 `importPath`，确保它是从生成的 client 文件到你模块的正确路径（上面的例子假设 client 所在目录比 `env.ts` 更深）。
 
 ### getBaseUrlFromSpecification
 
-从 OpenAPI `servers` 字段读取 base URL。适合规范中已经维护服务地址的项目。
+**类型：** `Boolean`
+
+从 OpenAPI 的 `servers` 字段读取 base URL，而不是使用固定字符串。当设为 `true` 时，Orval 会从 spec 的 `servers` 条目中解析它（并可选配合下面的 `variables` 和 `index`）。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+  },
+});
+```
+
+#### variables
+
+**类型：** `Record<string, string>`
+
+用于 OpenAPI `servers` 字段中 server URL 模板变量的取值。
+
+#### index
+
+**类型：** `Number`
+
+当定义了多个 URL 时，使用哪一个 `servers` 条目（从 0 开始）：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        index: 1, // 使用第二个 server URL
+      },
+    },
+  },
+});
+```
 
 ## mock
 
-启用 mock 生成。可以使用 `true` 快速开启，也可以用对象配置多个 generator。
+**类型：** `Boolean | Object | Function`
+**默认值：** `false`
 
-| 选项 | 类型 | 默认值 | 描述 |
+配置一个或多个 mock generator。简写形式 `mock: true` 会使用默认选项同时启用 MSW 和 Faker mock 文件：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: true,
+    },
+  },
+});
+```
+
+`mock.generators` 中的每个条目都会生成自己的文件（`<filename>.msw.ts`、`<filename>.faker.ts` 等），除非设置 `inline: true` 让代码保留在实现文件中。设置 `mock: false`（或直接省略）即可完全禁用 mock 生成。
+
+### Mocks Options
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            delay: 1000,
+            useExamples: false,
+            generateEachHttpStatus: false,
+            baseUrl: '/api',
+            locale: 'en',
+          },
+          {
+            type: 'faker',
+            useExamples: false,
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+| Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `indexMockFiles` | `Boolean` | `false` | 在 `split` 和 `tags-split` 模式下，为每个 generator 额外输出一个根级 `index.<ext>.ts`（例如 `index.msw.ts`、`index.faker.ts`）来统一 re-export mock。`tags-split` 下 re-export 每个 tag 的 mock，`split` 下 re-export 单一 mock 文件。适合把 mock（如 MSW）放到独立的 barrel 中，避免被 models/生产代码 barrel 引用。 |
-| `path` | `String` | `undefined` | 所有 mock 文件的共享输出目录。generator 自身的 `path` 会覆盖该值。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。函数式 generator 会忽略自身 `path`，始终回退到共享 `path`。 |
-| `generators` | `Array<MockOptions \| Function>` | `[]` | 每个条目对应一份 mock 输出文件。可以是 `MockOptions` 对象，也可以是自定义的 `ClientMockBuilder` 函数。 |
+| `indexMockFiles` | `Boolean` | `false` | 在 `split` 和 `tags-split` 模式下，为每个 generator 条目额外输出一个根级 `index.<ext>.ts` 文件来 re-export mocks（例如 `index.msw.ts`、`index.faker.ts`）。在 `tags-split` 中会 re-export 每个 tag 的 mocks；在 `split` 中会 re-export 单个 mock 文件。适合将 mocks（如 MSW）放在独立的 barrel 中，避免被生产代码或 model 的 barrel 导入。 |
+| `path` | `String` | `undefined` | 所有 mock 文件共享的输出目录。单个 generator 的 `path` 会覆盖该值。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `inline`。函数形式的 generator 会忽略自身的 `path`，始终回退到共享的 `path`。 |
+| `inline` | `Boolean` | `false` | 在 `single` 和 `tags` 模式下，默认会像 `split` 和 `tags-split` 一样，把 mock 代码写到实现文件旁边的独立 `.msw.ts` / `.faker.ts` 文件中。设为 `true` 后，会把 mock 代码追加到实现文件中，恢复到该选项出现之前 Orval 的布局方式。在 `split` 或 `tags-split` 中无效，因为这两种模式始终生成独立 mock 文件。 |
+| `generators` | `Array<MockOptions \| Function>` | `[]` | 每个条目对应一个 mock 输出文件。每个条目可以是对象（`MockOptions`），也可以是自定义 `ClientMockBuilder` 函数。 |
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -241,46 +621,43 @@ export default defineConfig({
 });
 ```
 
-### Mocks Options
-
-常见选项包括数组长度、字符串长度、数字范围、是否按 HTTP 状态码生成响应。
-
 ### MSW generator (`type: 'msw'`)
 
-生成 MSW request handlers，用于浏览器、Node 测试和 Storybook。
-
-| 选项 | 类型 | 默认值 | 描述 |
+| Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `type` | `'msw'` | required | MSW handler 生成的判别字段。 |
-| `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
-| `delay` | `Number \| Function \| false` | `false` | 响应延迟（毫秒）。 |
-| `delayFunctionLazyExecute` | `Boolean` | `false` | 在运行时而非构建时执行延迟函数。 |
-| `baseUrl` | `String` | `''` | 生成的 MSW handler 的 base URL。 |
-| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 来填充响应值。 |
-| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中记录的每个状态码生成响应工厂。 |
-| `locale` | `String` | `'en'` | Faker.js 语言环境。 |
-| `preferredContentType` | `String` | `undefined` | 当 operation 列出多个内容类型时的首选内容类型。 |
+| `type` | `'msw'` | required | 用于 MSW handler 生成的判别字段。 |
+| `path` | `String` | `undefined` | 当前 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `mock.inline`。 |
+| `operationResponses` | `Boolean` | `true` | 在 MSW 输出中生成 `get<Op>ResponseMock` 工厂。设为 `false` 时只生成 handlers，response fallback 会变成 `undefined`。如果同时配置了会生成这些工厂的 Faker generator，则该选项不会重复生效，handlers 会从 `.faker` 文件中导入这些工厂。在 `split` 和 `tags-split` 模式下有效。 |
+| `delay` | `Number \| Function \| false` | `false` | 以毫秒为单位的响应延迟。 |
+| `delayFunctionLazyExecute` | `Boolean` | `false` | 在运行时而不是构建时执行延迟函数。 |
+| `baseUrl` | `String` | `''` | 生成的 MSW handlers 的 base URL。 |
+| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 为响应值提供种子。 |
+| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中声明的每个状态码都生成响应工厂。 |
+| `locale` | `String` | `'en'` | Faker.js locale。 |
+| `preferredContentType` | `String` | `undefined` | 当一个 operation 列出多个内容类型时，指定首选内容类型。 |
 
 ### Faker generator (`type: 'faker'`)
 
-生成不依赖网络 mock 的数据工厂，适合单元测试和 seed 数据。
+Faker generator 会生成与 MSW 相同的 `get<Op>ResponseMock` 工厂，但不包含任何 `msw` 依赖或 HTTP handler 代码。适合只需要伪造响应数据的测试或 story。
 
-| 选项 | 类型 | 默认值 | 描述 |
+在 `split` 和 `tags-split` 模式下，如果同时配置 Faker 和 MSW，则 `get<Op>ResponseMock` 工厂会被移动到 `.faker` 文件中。`.msw` 文件只保留 handlers，并通过导入（和再导出）来复用这些工厂，而不会重复生成。如果 Faker generator 配置了 `operationResponses: false`，它就不会生成这些工厂，因此也就没有可移动的内容，此时 `.msw` 文件会继续内联这些工厂。
+
+| Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `type` | `'faker'` | required | Faker-only 输出的判别字段。 |
-| `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
-| `schemas` | `Boolean` | `false` | 为 `components/schemas` 下的每个条目生成一个合并的 mock 工厂文件（`get<SchemaName>Mock`）。 |
-| `schemasImportPath` | `String` | `undefined` | 导入 `schemas: true` 生成的 schema 级 faker 工厂的包说明符（如 `@acme/models/fakers`）。设置后将直接使用该值，而不是在 `schemas.importPath` 后追加 `/index.faker`——适用于生产 barrel 无法暴露子路径导出的情况。需要同时设置 `schemas: true` 和 `schemas.importPath`。仅在同一个 generator 上设置了 `schemas: true` 时生效。 |
-| `operationResponses` | `Boolean` | `true` | 生成每个 operation 的响应 mock 工厂（历史默认行为）。与 `schemas: true` 一起设为 `false` 可只获取合并的 schema 工厂。 |
-| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 来填充响应值。 |
-| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中记录的每个状态码生成响应工厂。 |
-| `locale` | `String` | `'en'` | Faker.js 语言环境。 |
-| `preferredContentType` | `String` | `undefined` | 当 operation 列出多个内容类型时的首选内容类型。 |
-| `arrayItems` | `Boolean` | `false` | 为 operation 响应中类对象数组项 schema 生成可复用的 mock 工厂。 |
+| `type` | `'faker'` | required | 用于 Faker-only 输出的判别字段。 |
+| `path` | `String` | `undefined` | 当前 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `mock.inline`。 |
+| `schemas` | `Boolean` | `false` | 为 `components/schemas` 下的每个条目都输出一个合并的 mock 工厂文件（`get<SchemaName>Mock`）。 |
+| `schemasImportPath` | `String` | `undefined` | 用于导入由 `schemas: true` 生成的 schema 级 faker 工厂的 package specifier（如 `@acme/models/fakers`）。设置后会原样使用它，而不是在 `schemas.importPath` 后拼接 `/index.faker`。这在生产 barrel 无法暴露子路径导出时很有用。需要同时设置 `schemas: true` 和 `schemas.importPath`。只有当同一个 generator 上设置了 `schemas: true` 时才会生效。 |
+| `operationResponses` | `Boolean` | `true` | 为每个 operation 生成响应 mock 工厂（历史默认行为）。与 `schemas: true` 一起设为 `false` 时，只会生成合并后的 schema 工厂。 |
+| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 为响应值提供种子。 |
+| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中声明的每个状态码都生成响应工厂。 |
+| `locale` | `String` | `'en'` | Faker.js locale。 |
+| `preferredContentType` | `String` | `undefined` | 当一个 operation 列出多个内容类型时，指定首选内容类型。 |
+| `arrayItems` | `Boolean` | `false` | 为 operation 响应中类似对象数组项的 schema 生成可复用 mock 工厂。 |
 
 #### schemasImportPath
 
-仅在同一个 faker generator 上设置了 `schemas: true` 时生效（需要同时设置 `schemas: true` 和 `schemas.importPath`）。当 `schemas.importPath` 解析到单个 barrel 文件时（例如通过 tsconfig path mapping），追加 `/index.faker` 会产生无法解析的子路径。`schemasImportPath` 可以将 faker 工厂指向单独的导入路径，从而通过专用 barrel 暴露它们：
+仅在同一个 faker generator 上设置了 `schemas: true` 时生效（需要同时设置 `schemas: true` 和 `schemas.importPath`）。当 `schemas.importPath` 解析到单个 barrel 文件时（例如通过 tsconfig path mappings），追加 `/index.faker` 会得到一个无法解析的子路径。`schemasImportPath` 允许你把 faker 工厂指向单独的导入路径，这样就可以通过专用 barrel 暴露它们：
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -307,7 +684,7 @@ export default defineConfig({
 ```
 
 ```ts
-// 不设 schemasImportPath（默认 —— 在 importPath 后拼接 /index.faker）：
+// 不设置 schemasImportPath（默认 —— 在 importPath 后拼接 /index.faker）：
 import { getPetMock } from '@acme/data-layer/sdk/index.faker'; // 可能无法解析
 
 // 设置 schemasImportPath: '@acme/data-layer/sdk/fakers'：
@@ -316,63 +693,131 @@ import { getPetMock } from '@acme/data-layer/sdk/fakers';
 
 ## indexFiles
 
-控制是否生成 index 文件。拆分模式下通常保持开启，便于统一导入。
+**类型：** `Boolean`
+**默认值：** `true`
+
+为 schemas 生成 `index.ts` 文件。
 
 ## tagsSplitDeduplication
 
 **类型：** `Boolean`
 **默认值：** `false`
 
-在 `tags-split` 模式下，将共享的基础设施类型（如 fetch 客户端的 `HTTPStatusCode*`）提取到单独的 `common-types.ts` 文件中，并在目标根目录生成 barrel `index.ts`。需要同时开启 `indexFiles: true`。
+在 `tags-split` 模式下，将共享的基础设施类型（例如 fetch client 生成的 `HTTPStatusCode*`）提取到单独的 `common-types.ts` 文件中，并在 target 根目录生成一个 barrel `index.ts`。
 
-> 当设置了 [`workspace`](#workspace) 时，此选项会被自动禁用（workspace barrel 会处理聚合）。
+当它与 [`indexFiles: true`](#indexfiles) 一起启用时：
+
+- 原本会在每个 tag 文件中重复出现的共享类型，会被统一收集并写入一次 `[commonTypesFileName].ts`
+- 每个 tag 文件都会从该公共文件导入共享类型，而不是内联声明
+- 会生成一个 barrel `index.ts`，其中包含对公共共享类型的具名 re-export，以及对每个 tag 实现文件的 `export *` re-export
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      client: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+    },
+  },
+});
+```
+
+结果结构：
+
+```
+src/api/
+├── common-types.ts           ← 共享类型只提取一次
+├── index.ts                  ← 包含具名 + 通配 re-export 的 barrel
+├── pets/
+│   └── pets.ts               ← import type { ... } from '../common-types'
+└── health/
+    └── health.ts             ← import type { ... } from '../common-types'
+```
+
+禁用时（默认），共享类型会继续按 tag 内联，也不会生成该 barrel，这与旧行为完全一致。
+
+当设置了 [`workspace`](#workspace) 时，此选项会被抑制（workspace 自己的 barrel 会处理聚合）。
 
 ## commonTypesFileName
 
 **类型：** `String`
 **默认值：** `'common-types'`
 
-当 `tagsSplitDeduplication` 开启时，共享类型文件的文件名（不含扩展名）。
-
-## docs
-
-生成接口文档相关输出。只有需要把生成产物和文档系统集成时再开启。
-
-## clean
-
-**类型：** `Boolean | String[]`
-**默认：** `false`
-
-在重新生成前删除上一次运行遗留的文件。删除范围取决于该目录是否归 Orval 所有。
-
-**`target` 和 `schemas` 会被清空。** 这两个目录中的**所有**文件都会被删除（`.d.ts` 文件会被保留）——不仅仅是 Orval 生成的文件，还包括其中存放的任何其他文件。Orval 要求你把手写文件放在这两个目录之外，因此把它们视为自己的目录。
-
-**已配置的 mock 目录只会被清理。** 设置 [`mock.path`](#mock) 或某个 mock 生成器自己的 `path`，即可让 mock 文件拥有独立目录。那个目录里往往也放着你的手写代码——MSW 的 `browser.ts` 和 `server.ts`、fixtures 或 barrel 文件。Orval 只删除它自己可能写入的文件。匹配模式为 `**/*.msw<ext>` 和 `**/*.faker<ext>`。`<ext>` 是你配置的 [`fileExtension`](#fileextension)，也可以是常见的源码扩展名：`.ts`、`.tsx`、`.mts`、`.cts`、`.js`、`.jsx`、`.mjs`、`.cjs`。Orval 同时匹配这些扩展名和你配置的扩展名。因此把 `.ts` 改成 `.js` 不会遗留先前运行生成的 mock 文件。
-
-mock 目录位于 `target` 或 `schemas` 内部时，同样适用该规则。清空操作不会进入 mock 目录，Orval 只会清理该目录。
-
-Orval 会保留所有不匹配这些模式的文件。但它同时会删除所清理目录下的每一个空目录，其中也包括你自己的空目录。
-
-未配置 mock 路径时不存在独立的 mock 目录：mock 产物会写在实现文件旁边，由上面的 `target` 规则覆盖。
-
-<Callout type="warn">
-清理模式有两个限制。名为 `handlers.msw.ts` 或 `fixtures.faker.ts` 之类的手写文件会被删除，因为 Orval 无法把它与自己的产物区分开。另外，像 `.gen.ts` 这样的复合 `fileExtension` 只在保持该配置时才会被匹配；改动之后，请手动删除使用旧扩展名的文件。
-</Callout>
-
-设为 `String[]` 时，数组项是追加到 `target` 和 `schemas` 删除列表的额外 glob 模式。它们**不会**作用于 mock 目录——在那里使用正向 glob 可能删除并非 Orval 生成的手写文件。用取反 glob（以 `!` 开头）来保留特定文件不被删除。
+当启用 [`tagsSplitDeduplication`](#tagssplitdeduplication) 时，用于共享类型文件的文件名（不含扩展名）。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      // 清空 `target` / `schemas` 时保留 `important.ts`
+      mode: 'tags-split',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      commonTypesFileName: 'shared',  // 生成 shared.ts
+    },
+  },
+});
+```
+
+## docs
+
+**类型：** `Boolean | Object`
+**默认值：** `false`
+
+使用 [TypeDoc](https://typedoc.org/) 生成 API 文档：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      docs: true,
+      // 或使用配置
+      docs: {
+        configPath: './typedoc.config.mjs',
+      },
+    },
+  },
+});
+```
+
+## clean
+
+**类型：** `Boolean | String[]`
+**默认值：** `false`
+
+在重新生成之前移除上一次运行遗留的文件。删除范围取决于该目录是否由 Orval 控制。
+
+**`target` 和 `schemas` 会被清空。** 其中的每个文件都会被删除（`.d.ts` 文件会被保留）; 不只是 Orval 生成的文件，任何恰好放在里面的其他文件也一样。Orval 明确要求你不要把手写文件放在这两个目录里，因此它会把它们当作自己的目录来处理。
+
+**已配置的 mock 目录会被 prune。** 设置 [`mock.path`](#mock) 或某个 mock generator 自己的 `path`，就可以给 mock 文件单独分配一个目录。这个目录里通常也会有你的手写代码，比如 MSW 的 `browser.ts` 和 `server.ts`、fixtures 或 barrel。Orval 只会删除它自己有可能写进去的文件。匹配模式是 `**/*.msw<ext>` 和 `**/*.faker<ext>`。`<ext>` 是你配置的 [`fileExtension`](#fileextension)，或者常见源码扩展名之一：`.ts`、`.tsx`、`.mts`、`.cts`、`.js`、`.jsx`、`.mjs`、`.cjs`。Orval 会同时匹配这些常见扩展名和你自己的配置扩展名。因此从 `.ts` 改成 `.js` 也不会把旧一轮生成的 mock 文件遗留在那里。
+
+当 mock 目录位于 `target` 或 `schemas` 内部时，也适用同样的规则。清空操作不会深入 mock 目录；Orval 会对该目录执行 prune，而不是 wipe。
+
+Orval 会保留所有不匹配这些模式的文件。但它也会删除每个被清理目录下的所有空目录，包括你自己创建的空目录。
+
+如果没有配置 mock 路径，就不存在独立的 mock 目录：mock 输出会直接写在实现文件旁边，并适用上面的 `target` 规则。
+
+<Callout type="warn">
+Prune 模式有两个限制。名为 `handlers.msw.ts` 或 `fixtures.faker.ts` 这类名字的手写文件会被删除，因为 Orval 无法将其与自己的输出区分开。另一个限制是像 `.gen.ts` 这样的复合 `fileExtension`，只有在你继续保持该配置时才会被匹配。配置改动后，请手动删除使用旧扩展名生成的文件。
+</Callout>
+
+当它被设为 `String[]` 时，数组中的条目会作为额外 glob 模式追加到 `target` 和 `schemas` 的删除列表中。它们**不会**应用到 mock 目录，因为在 mock 目录里使用正向 glob 可能会删掉并非 Orval 生成的手写文件。使用取反 glob（以 `!` 开头）可以保留特定文件，不让它们被删除。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      // 在清空 `target` / `schemas` 时保留 `important.ts`
       clean: ['!**/important.ts'],
     },
   },
 });
 ```
 
-例如，要在生成产物旁保留已提交的 `swagger.json`：
+例如，要在生成产物旁边保留已提交的 `swagger.json`：
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -386,153 +831,2630 @@ export default defineConfig({
 ```
 
 <Callout type="warn">
-`clean` 会删除 `target` 和 `schemas` 中的全部内容，而不只是生成文件。不要把这两者直接指向包含你需要保留文件的包或库入口根目录（如 `package.json`、`ng-package.json`、`public-api.ts` 等）。请把生成产物放在专用子目录（例如 `./generated/`）中，以免这些文件被误删。
+`clean` 删除的是 `target` 和 `schemas` 的全部内容，而不只是生成文件。不要把其中任何一个直接指向包或库的入口根目录，如果那里还有你需要保留的文件（例如 `package.json`、`ng-package.json`、`public-api.ts` 等）。请把生成产物放在专用子目录中，例如 `./generated/`，这样这些文件就不会被触碰。
 </Callout>
 
-出于同样的原因，请将手写文件（mutator、transformer、应用代码）放在 `target` 和 `schemas` 目录之外。已配置的 mock 目录可以与手写代码共存，因为 Orval 只清理该目录，不会清空它。mock 目录位于 `target` 或 `schemas` 内部时也是如此。但请注意上面的两个限制：不要给手写文件取 mock 文件的名字，也不要指望 Orval 保留你的空目录。
+出于同样的原因，请把手写文件（mutators、transformers、应用代码）放在 `target` 和 `schemas` 目录之外。已配置的 mock 目录可以与手写代码共存，因为 Orval 对它执行的是 prune，而不是 wipe。即使 mock 目录位于 `target` 或 `schemas` 内部，这一点也成立。但仍然要遵守上面的两个限制：不要把手写文件命名成 mock 文件名，也不要依赖 Orval 保留你的空目录。
 
 <Callout type="warn">
-被多个 project 同时配置的目录，会在每个 project 写入前分别被清理，因此最后运行的 project 会覆盖结果，先运行的 project 产物将不复存在。这一点对 `target`、`schemas` 和 mock 目录同样适用。请为每个 project 配置各自独立的输出目录。
+如果一个目录被多个 project 同时配置，那么每个 project 在写入前都会清理它，所以最后运行的 project 会覆盖结果，先运行的 project 产物会消失。这个规则同样适用于 `target`、`schemas` 和 mock 目录。请为每个 project 分配独立的输出目录。
 </Callout>
 
 ## formatter
 
-指定生成后格式化器。常见值为 `prettier`，也可以结合 hooks 执行项目自己的格式化命令。
+**类型：** `'prettier' | 'biome' | 'oxfmt' | undefined`
+**默认值：** `undefined`
+
+使用指定的 formatter 格式化生成文件。同一时间只能使用一个 formatter。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      formatter: 'prettier',
+    },
+  },
+});
+```
 
 ## headers
 
-启用生成 headers 相关类型或配置。
+**类型：** `Boolean`
+**默认值：** `false`
+
+为规范中某个 operation 声明的 HTTP 请求 headers 生成带类型的参数。关闭时，header 参数不会出现在生成函数的签名中。
+
+这与 [`override.header`](#header) 无关，后者控制的是每个生成文件顶部写入的注释块。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      headers: true,
+    },
+  },
+});
+```
 
 ## tsconfig
 
-指定 TypeScript 配置路径或内联配置，帮助 Orval 解析路径别名和编译选项。
+**类型：** `String | Object`
+
+自定义 TypeScript 配置路径或内联配置：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      tsconfig: './tsconfig.json',
+      // 或内联
+      tsconfig: {
+        compilerOptions: {
+          target: 'ES2020',
+        },
+      },
+    },
+  },
+});
+```
 
 ## packageJson
 
-指定 `package.json` 路径。通常可以自动检测。
+**类型：** `String`
+
+你的 `package.json` 的路径（通常会自动检测）。
+
+---
 
 ## override
 
-`override` 用于覆盖默认生成行为。
-
 ### transformer
 
-在生成前转换 OpenAPI 文档。可用于修复不规范字段或追加公共参数。
+**类型：** `String | Function`
+
+转换生成输出：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        transformer: 'src/yourfunction.js',
+      },
+    },
+  },
+});
+```
 
 ### mutator
 
-指定自定义请求函数。适合统一处理鉴权、base URL、错误和重试。
+**类型：** `String | Object`
+
+自定义 HTTP client 实现：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+  },
+});
+```
+
+实现示例：
+
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  return AXIOS_INSTANCE({ ...config }).then(({ data }) => data);
+};
+
+export type ErrorType<Error> = AxiosError<Error>;
+export type BodyType<BodyData> = BodyData;
+```
 
 ### title
 
-覆盖生成模块或文档标题。
+**类型：** `String | Function`
+
+自定义 API service 标题（仅适用于 `axios` 和 `angular` clients）：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        title: (title) => `${title}Api`,
+      },
+    },
+  },
+});
+```
 
 ### namingConvention (property keys)
 
-控制属性名转换。涉及后端字段名时要谨慎，避免破坏运行时数据结构。
+**类型：** `Object`
+
+更改**属性键**的命名约定（不是文件名）：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        namingConvention: {
+          enum: 'PascalCase', // camelCase, PascalCase, snake_case, kebab-case
+        },
+      },
+    },
+  },
+});
+```
 
 ### header
 
-为生成文件添加文件头，例如版权说明或禁用 lint 的注释。
+**类型：** `Boolean | Function`
+**默认值：** 内置 header 函数
+
+自定义或禁用每个生成文件顶部写入的注释块。这与 [`output.headers`](#headers) 无关，后者控制的是 HTTP 请求 header 参数。
+
+传入 `false` 可以省略该注释块，传入函数则可替换它。传入 `true` 的效果与省略该选项相同，因为只要值既不是 `false` 也不是函数，就会回退到内置 header。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        header: (info) => [
+          `Generated by Orval`,
+          `Do not edit manually.`,
+          ...(info.title ? [info.title] : []),
+        ],
+      },
+    },
+  },
+});
+```
 
 ## override.query
 
-控制 TanStack Query 相关输出。
+TanStack Query 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useQuery: true,
+          useSuspenseQuery: true,
+          useMutation: true,
+          useInfinite: true,
+          useSuspenseInfiniteQuery: true,
+          useInfiniteQueryParam: 'nextId',
+          usePrefetch: true,
+          useInvalidate: true,
+          useSetQueryData: true,
+          useGetQueryData: true,
+          signal: true,
+          runtimeValidation: true,
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+  },
+});
+```
 
 ### useQuery
 
-为读取操作生成 query hook 或 query options。
+**类型：** `Boolean`
+
+**默认值：** 对 `GET` 操作为 `true`；其他情况为 `false`。
+
+生成 `useQuery` hooks。显式设置后，它会应用到**所有 operation，而不区分 HTTP verb**；也就是说，设置 `useQuery: true` 后，`POST`、`PUT`、`PATCH` 和 `DELETE` 也会被路由成 `useQuery` hooks。这适用于某些把 `POST` 用作读取型 endpoint 的 API，例如复杂搜索 body，或类似 GraphQL 的单 endpoint API。
+
+对于非 `GET` operation，cache key 会自动按 HTTP verb 加命名空间，以避免与同一路径上的 `GET` operation 冲突（例如 `['POST', '/pets', body]`）。
+
+设置为 `false` 可禁止生成 `useQuery` hook；如果你想把请求改为 Mutation 形式，请配合 `useMutation: true`（非 `GET` 的默认行为）。
 
 ### useSuspenseQuery
 
-生成 Suspense query 变体。
+**类型：** `Boolean`
+
+**默认值：** 未设置，需要显式开启。
+
+生成 `useSuspenseQuery` hooks。全局设置时，它只对 `GET` operations 生效；单个 operation 的 override（`override.operations.<id>.query.useSuspenseQuery`）可以绕过这个限制。
 
 ### useMutation
 
-为写操作生成 mutation hook 或 mutation options。
+**类型：** `Boolean`
+
+**默认值：** 对非 `GET` 操作为 `true`；其他情况为 `false`。
+
+生成 `useMutation` hooks。显式设置后，它会应用到**所有 operation，而不区分 HTTP verb**；也就是说，无论是全局配置，还是 `override.operations.<id>.query.useMutation`，只要设置 `useMutation: true`，`GET` operation 也会生成 `useMutation` hook。这适用于那些你希望通过命令式方式触发，而不是在渲染时自动触发的 `GET` endpoint。
+
+设置为 `false` 可禁止生成 Mutation hook；如果你希望把非 `GET` operation 改为 Query hooks，请配合 `useQuery: true`。当同一个 operation 的 `useQuery` 和 `useMutation` 最终都为 `true` 时，`GET` 会优先生成 Mutation hook，非 `GET` 会优先生成 Query hook。
 
 ### useInfinite
 
-生成 infinite query 支持。
+**类型：** `Boolean`
+
+**默认值：** 未设置，需要显式开启。
+
+生成 `useInfiniteQuery` hooks。全局设置时，它只对 `GET` operations 生效；单个 operation 的 override（`override.operations.<id>.query.useInfinite`）可以绕过这个限制。
 
 ### useSuspenseInfiniteQuery
 
-生成 Suspense infinite query 变体。
+**类型：** `Boolean`
+
+**默认值：** 未设置，需要显式开启。
+
+生成 `useSuspenseInfiniteQuery` hooks。全局设置时，它只对 `GET` operations 生效；单个 operation 的 override（`override.operations.<id>.query.useSuspenseInfiniteQuery`）可以绕过这个限制。
 
 ### useInfiniteQueryParam
 
-指定分页参数名，用于构造下一页请求。
+**类型：** `String | String[]`
+
+用于 infinite query 的查询参数名。只有当某个 operation 声明了配置的参数时，它才会生成 infinite hook。
+
+如果同一份 spec 里存在多种分页方式，可以传入一个数组。这些名称会按优先级顺序作为候选项，并针对每个 operation 单独解析：它实际声明的第一个命中项会成为它的分页参数；如果一个 operation 一个都不匹配，就不会为它生成 infinite hook。
+
+`override.operations` 中的配置会完全替换全局值，因此单个 operation 可以切换到不同的候选参数列表。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: ['page', 'cursor'],
+        },
+        operations: {
+          listBets: {
+            useInfinite: true,
+            useInfiniteQueryParam: 'cursor.marker',
+          }
+        }
+      },
+    },
+  },
+});
+```
 
 ### usePrefetch
 
-生成预取 helper。
+**类型：** `Boolean`
+
+为 SSR 生成 prefetch 函数。
 
 ### useInvalidate
 
-生成 query 失效 helper。
+**类型：** `Boolean`
+
+生成 query invalidation helpers。
 
 ### useSetQueryData
 
-生成类型安全的缓存写入 helper。
+**类型：** `Boolean`
+
+生成类型安全的 helper，用于通过 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) 更新缓存中的 query data。
+
+Query keys 通过前缀匹配，因此 query params 和 body 参数会被放宽为可接受 `undefined`。传入 `undefined` 时，会更新所有共享同一路径的缓存条目。
 
 ### useGetQueryData
 
-生成类型安全的缓存读取 helper。
+**类型：** `Boolean`
+
+生成类型安全的 `getQueryData` helpers。
 
 ### mutationInvalidates
 
-让 mutation 成功后自动失效相关 query。
+**类型：** `Array`
+
+在 mutation 成功后自动失效或重置相关 queries（Angular Query、React Query、Svelte Query 与 Vue Query v5）：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'], invalidationMode: 'reset' },
+                { query: 'adminPets', file: './admin' },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+`params` 中的每个条目要么是**变量引用**（`string`），要么是**字面量值**（`{ literal: string }`）：
+
+| Syntax | Generated code |
+|---|---|
+| `params: ['petId']` | `getShowPetByIdQueryKey(variables.petId)` |
+| `params: [{ literal: '@me' }]` | `getShowPetByIdQueryKey('@me')` |
+
+对于像 `"@me"` 这种并非来自 mutation variables 的固定值，请使用 `{ literal: "..." }`：
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['updateProfile'],
+    invalidates: [
+      { query: 'getProfile', params: [{ literal: '@me' }] },
+    ],
+  },
+],
+```
+
+当用户自己传入 `onSuccess` 回调时，自动失效逻辑和用户回调都会执行，生成的 `onSuccess` 会把它们组合起来。如果你想在运行时禁用自动失效，请传入 `skipInvalidation: true`：
+
+```ts
+// 默认：自动失效 + 用户回调都会执行
+const deletePet = injectDeletePet({
+  mutation: { onSuccess: () => showToast('Deleted!') },
+});
+
+// 跳过自动失效，改为手动处理
+const deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    },
+  },
+  skipInvalidation: true,
+});
+```
 
 ### signal
 
-控制是否把 AbortSignal 传给请求函数。
+**类型：** `Boolean`
+
+在 queries 中包含 abort signal。
 
 ### queryKey / queryOptions / mutationOptions
 
-自定义 query key、query options 或 mutation options 的生成方式。
+**类型：** `String | Object`
+
+自定义 query/mutation key 或 options 函数。
+
+当 `queryOptions` 或 `mutationOptions` 的 mutator 声明了第三个参数时，orval 会把 operation 身份信息传进去，这样 mutator 就可以基于它做分支（例如附加按 operation 区分的 metadata，或按 `operationId` 进行 invalidation）。两者的具体形状略有不同：
+
+- `queryOptions` mutator：`{ url, operationId, operationName }`
+- `mutationOptions` mutator：`{ operationId, operationName }`（`url` 会作为第二个参数提供）
+
+每个选项都接收一个 mutator，因此你需要把它指向一个文件和其中导出的名称：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryKey: {
+            path: './src/mutators/custom-query-key.ts',
+            name: 'customQueryKey',
+          },
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+`queryKey` 会替换自动生成的 key factory。它会收到 operation 的 query properties，以及一个包含 `url` 的 context：
+
+```ts title="src/mutators/custom-query-key.ts"
+export function customQueryKey(
+  // properties 字典会因 operation 不同而变化（params、petId 等），
+  // 如果一个 mutator 服务所有 endpoint，建议广义地标注类型。
+  properties: Record<string, unknown>,
+  context: { url: string },
+) {
+  return ['tenant-abc', context.url, properties] as const;
+}
+```
+
+`queryOptions` 会包裹传给生成 hook 的 options 对象。第三个参数就是上面提到的 operation 身份信息：
+
+```ts title="src/mutators/custom-query-options.ts"
+import type { QueryKey } from '@tanstack/react-query';
+
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+  _queryProperties: Record<string, unknown>,
+  operation: { url: string; operationId: string; operationName: string },
+): T & { queryKey: QueryKey } {
+  return {
+    ...options,
+    queryKey: ['operation', operation.operationId, ...options.queryKey],
+  };
+}
+```
+
+`mutationOptions` 对 mutation 也遵循同样的工作方式；这里往往最适合根据 `operationId` 做分支。
+
+mutator 运行在构造 options 对象的位置，也就是 hook 函数体内部，因此副作用应放在 callback 中，而不是直接写在 mutator 里。比如直接调用 `invalidateQueries()` 会在每次渲染时触发，而不是等 mutation 成功后再触发：
+
+```ts title="src/mutators/custom-mutation.ts"
+import { type UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+
+export const useCustomMutation = <TData, TError, TVariables, TContext>(
+  options: UseMutationOptions<TData, TError, TVariables, TContext>,
+  _: { url: string },
+  operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId !== 'deletePetById') return options;
+
+  return {
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options.onSuccess>>) => {
+      queryClient.invalidateQueries({ queryKey: ['/pets'] });
+      // 保留调用方原本传入的回调。
+      return options.onSuccess?.(...args);
+    },
+  };
+};
+```
+
+由于 mutator 会收到 `operationId`，因此同一个文件就可以服务所有 operation，只在需要不同逻辑时再做分支，这通常是逐个 operation 单独配置之外的常见替代方案。
+
+#### Controlling the `use` / `get` prefix on options factories
+
+在 `queryOptions` 或 `mutationOptions` 的 mutator 上设置 `useHooks: false`，即可生成 `get<Operation>QueryOptions` 或 `get<Operation>MutationOptions` factory，而不是默认带 `use` 前缀的 factory。当 mutator 自身不调用 hooks，并且该 factory 会在 React 组件之外被消费时，这很有用，例如在 router loader 中，或者配合 `prefetchQuery` / `ensureQueryData` 使用时。
+
+```ts title="src/mutators/custom-query-options.ts"
+export function customQueryOptions<T extends { queryKey: QueryKey }>(
+  options: T,
+): T {
+  return options;
+}
+```
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          queryOptions: {
+            path: './src/mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+            useHooks: false,
+          },
+          mutationOptions: {
+            path: './src/mutators/custom-mutation-options.ts',
+            name: 'customMutationOptions',
+            useHooks: false,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+采用这份配置后，Orval 会生成 `getPetstoreQueryOptions(...)` 和 `getPetstoreMutationOptions(...)`，而不是默认带 `use` 前缀的变体。这样 query options factory 就可以安全地配合 `prefetchQuery` / `ensureQueryData` 使用：
+
+```ts
+export async function loader(queryClient: QueryClient) {
+  return queryClient.ensureQueryData(getPetstoreQueryOptions());
+}
+```
+
+<Callout type="info">
+  `use`/`get` 前缀只影响导出的 options factory 的*名称*。hook 本身仍然会以 `use<Operation>` 的形式导出，并且必须在 React 组件中调用。
+</Callout>
 
 ### shouldExportMutatorHooks
 
-控制是否导出 mutator 相关 hooks。
+**类型：** `Boolean`
+**默认值：** `true`
+
+导出 mutator hooks。
 
 ### shouldExportKeys
 
-控制是否导出生成的缓存 key helper。该选项同时作用于 query key 和 mutation key，后者会在 mutation options 工厂函数旁生成 `getXxxMutationKey()` 导出。
+**类型：** `Boolean`
+**默认值：** `true`
+
+导出自动生成的 cache key getter。这个选项同时覆盖 query keys 和 mutation keys，后者会在 mutation options factory 旁一起输出：
+
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId] as const;
+};
+
+export const getCreatePetsMutationKey = () => ['createPets'] as const;
+```
+
+### shouldFilterQueryKey
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+为 query key 添加 `.filter(q => q !== undefined)`。如果为 `false`，则会添加 `as const`。
+过滤逻辑还可以通过 `queryKeyFilter` 选项进行调整。
+
+当 `shouldFilterQueryKey` 为 `true` 时：
+
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId].filter(q => q !== undefined);
+};
+```
+
+当 `shouldFilterQueryKey` 为 `false` 时：
+
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId] as const;
+};
+```
+
+### queryKeyFilter
+
+**类型：** `String`
+**默认值：** `'q => q !== undefined'`
+
+当 `shouldFilterQueryKey` 为 `true` 时，用于调整 queryKey 的过滤方式。默认值是 `'q => q !== undefined'`，最终会生成：
+
+```ts title="endpoints.ts"
+.filter(q => q !== undefined)
+```
+
+一个可选方案是仅过滤掉所有 falsy key：
+
+```ts title="orval.config.ts"
+shouldFilterQueryKey: true,
+queryKeyFilter: 'Boolean'
+```
+
+最终生成的代码将变成：
+
+```ts title="endpoints.ts"
+.filter(Boolean)
+```
 
 ### shouldSplitQueryKey
 
-控制 query key 是否拆分为更细粒度结构。
+**类型：** `Boolean`
+**默认值：** `false`
+
+把 query keys 生成成数组，而不是字符串。
 
 ### useOperationIdAsQueryKey
 
-使用 operationId 作为 query key 的一部分。
+**类型：** `Boolean`
+**默认值：** `false`
+
+使用 operation ID，而不是 route path，作为 query key。
 
 ### version
 
-指定 TanStack Query 版本相关输出差异。
+**类型：** `Number`
+**默认值：** 从 package.json 自动检测
+
+强制使用指定版本来生成 hooks。
 
 ### runtimeValidation
 
-配合 schema 在运行时校验响应。支持布尔值或对象形式：
-`true` 等价于 `{ strategy: 'throw' }`；`{ strategy: 'both' }`
-会先 `console.error` 输出原始 `ZodError`，再抛出错误。
+**类型：** `boolean | { strategy: 'throw' | 'both' }`
+**默认值：** `false`
+
+为 Angular query 响应启用 Zod 运行时校验。需要 `schemas: { type: 'zod' }`。启用后，响应会在 RxJS pipeline 中按配置策略完成校验（默认 `throw` 时使用 `Schema.parse()`）。对于 primitive types 和 custom mutators 会跳过。
+
+校验后的响应类型会使用 schema 的 `zod.output` 别名（例如 `PetsOutput`），而不是输入型的 schema 名称，因为运行时 `parse` 返回的就是这个类型。当 schema 通过 `coerce`、`useDates`、默认值或 `.transform()` 转换值时，这一点尤其重要。使用 custom mutator 的 operation 会继续保留 schema（输入）类型，因为请求是由 mutator 自己发出的，生成的 parse 在那里不会执行。
+
+保留了布尔写法以兼容旧用法：`true` ≡ `{ strategy: 'throw' }`。当使用 `{ strategy: 'both' }` 时，遇到无效响应会先通过 `console.error('[orval] <operation> response validation failed', error)` 输出原始 `ZodError`，然后再重新抛出，这样既能通过 client 原本的错误通道暴露失败，也能在生产环境中看到契约漂移。
 
 ## override.swr
 
-控制 SWR 输出。
+SWR 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          useInfinite: true,
+          useSuspense: true,
+          generateErrorTypes: false,
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+          swrMutationOptions: {
+            revalidate: true,
+          },
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
+        },
+      },
+    },
+  },
+});
+```
 
 ### useInfinite
 
-生成 SWR infinite 支持。
+**类型：** `Boolean`
+
+生成 `useSWRInfinite` hooks。
 
 ### useSWRMutationForGet
 
-控制 GET 操作是否生成 SWR mutation。
+**类型：** `Boolean`
+
+为 GET 请求生成 `useSWRMutation`。
 
 ### useSuspense
 
-生成 Suspense 相关 SWR 输出。
+**类型：** `Boolean`
+**默认值：** `false`
 
-## 建议
+生成兼容 Suspense 的 hooks。
 
-从最小配置开始，只启用当前项目需要的输出。生成目录应只放生成文件，避免 `clean` 或重新生成覆盖手写代码。
+### generateErrorTypes
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+生成自定义错误类型别名。
+
+### swrOptions / swrMutationOptions / swrInfiniteOptions
+
+**类型：** `Object`
+
+覆盖 SWR hook 选项。
+
+---
+
+## override.zod
+
+Zod schema 生成选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          variant: 'mini',
+          version: 4,
+          strict: {
+            response: true,
+            query: true,
+            param: true,
+            header: true,
+            body: true,
+          },
+          coerce: {
+            query: ['string', 'number', 'boolean'],
+          },
+          generate: {
+            param: true,
+            body: true,
+            response: true,
+            query: true,
+            header: true,
+          },
+          generateEachHttpStatus: true,
+          useBrandedTypes: true,
+          generateReusableSchemas: true,
+          generateDiscriminatedUnion: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### variant
+
+**类型：** `'classic' | 'mini'`
+**默认值：** `'classic'`
+
+选择生成的 Zod API 风格。
+
+| Value | Output |
+| --- | --- |
+| `'mini'` | 从 `zod/mini` 导入，并生成 Zod Mini 的函数式 / 基于 check 的 API。 |
+| `'classic'` | 从 `zod` 导入，并生成常规的可链式 Zod API。 |
+
+`'classic'` 是默认值，以避免影响现有项目。当启动时间、内存占用或 bundle 体积更重要时，优先考虑 `'mini'`。
+
+Zod Mini 需要 Zod 4 输出。如果 `variant: 'mini'` 与 `version: 3` 一起使用，或者与最终解析为 Zod 3 的 `version: 'auto'` 一起使用，Orval 会直接抛错，而不是生成无效输出。
+
+### version
+
+**类型：** `3 | 4 | 'auto'`
+**默认值：** `'auto'`
+
+固定生成输出面向的 Zod 主版本，这样生成结果是确定性的，而不是从已安装的 `zod` 包中推断。
+
+| Value | Output |
+| --- | --- |
+| `4` | 始终生成 Zod 4 语法（`z.strictObject`、`z.iso.datetime()`、`.meta()` 等）。 |
+| `3` | 始终生成兼容 Zod 3 的语法（`.strict()`、`z.string().datetime()` 等）。 |
+| `'auto'` | 根据解析到的 `zod` 版本推断；如果检测不到，则回退为 Zod 4。 |
+
+与大多数 `override.zod` 选项不同，`version` 是 output 级别的，不能按 operation 或 tag 单独设置。详见 [Zod guide](/docs/guides/zod#zod-version)。
+
+### strict
+
+**类型：** `Object`
+
+为 schemas 启用 strict 模式。
+
+### coerce
+
+**类型：** `Object`
+
+为指定类型启用 [coercion](https://zod.dev/api?id=coercion)。
+
+### generate
+
+**类型：** `Object`
+
+控制生成哪些 schemas。
+
+### preprocess
+
+**类型：** `Object`
+
+为 schemas 添加 preprocess 函数。
+
+### params
+
+**类型：** [`Mutator`](#mutator)
+
+向每个生成的 validator 注入一个 Zod `params` 参数（例如 `{ error: ... }`）。引用的函数会在 schema 构建时为每个 validator 调用一次，并收到 codegen 时的上下文（operation、location、schema name、field path、validator name）。它返回的内容会作为调用的末尾参数传入。
+
+这适用于 i18n 错误 key、带品牌语义的错误消息，或任何需要基于字段做定制的场景，因为仅靠 Zod 的全局 error map 无法区分这些上下文（`issue.path` 不包含 operation/schema 身份）。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          params: { path: './zod-params.ts', name: 'zodParams' },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="zod-params.ts"
+import type { ZodParamsContext } from 'orval';
+import { i18n } from './i18n';
+
+export const zodParams = (ctx: ZodParamsContext) => ({
+  error: (issue: { input: unknown; path: PropertyKey[] }) =>
+    i18n.t(
+      `errors.${ctx.schemaName}.${ctx.fieldPath.join('.')}.${ctx.validator}`,
+      { value: issue.input },
+    ),
+});
+```
+
+对于在 [`generateReusableSchemas`](#generatereusableschemas) 下输出的共享 component schemas，会使用 `'schema'` 这个 location。component schema 没有单一所属的 operation，因此此时 `operationId` 会是空字符串。如果你的错误 key 需要回退到 schema 级命名空间，请按 `ctx.location === 'schema'` 分支。
+
+生成结果（节选）：
+
+```ts
+import { zodParams } from './zod-params';
+
+export const CreateUserBody = zod.object({
+  email: zod
+    .string(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'string' }))
+    .email(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'email' })),
+});
+```
+
+注入范围：
+
+- 适用于基础类型（`string`、`number`、`boolean`、`bigint`、`date`、`integer`）、约束（`min`、`max`、`gt`、`lt`、`multipleOf`、`regex`、`length`）、格式（`email`、`url`、`uuid`、`hostname`、`datetime`、`time`），以及 `literal`、`enum`、`instanceof`、`stringFormat`。
+- 不适用于修饰器（`optional`、`nullable`、`nullish`、`default`、`describe`）和结构性调用（`object`、`array`、`tuple`、`union`、`rest`、`passthrough`、`strict`）。
+- `fieldPath` 只包含对象属性名，这与 Zod 自身的 `issue.path` 一致。数组索引和 tuple 位置不会附加进去，因此 `{ tags: array<string> }` 中的内层元素和顶层的 `tags: string` 都只会看到 `fieldPath: ['tags']`。如果需要区分容器（`'array'`、`'tuple'`）和元素（`'string'`、`'number'`），请使用 `validator` 字段。
+
+对于静态消息，可以返回带字符串 `error` 的对象：`return { error: 'My message' }`。函数也可以返回 `undefined`，让特定调用退回到 Zod 默认行为。
+
+> `{ error }` 这种写法仅适用于 Zod v4；在 v3 中会被静默忽略，并使用默认消息。如果你的项目同时支持 Zod v3 和 v4，请改为返回 `{ message: 'My message' }`，这样两个版本都能工作。
+
+### dateTimeOptions / timeOptions
+
+**类型：** `Object`
+
+**默认值（dateTimeOptions）：** `{ offset: true }`
+
+配置 Zod datetime/time 校验选项。`dateTimeOptions` 默认是 `{ offset: true }`，因此生成的 schemas 会接受带时区偏移的 RFC3339 时间戳（例如 `2026-03-27T12:00:00+01:00`），这与 OpenAPI 的 `format: date-time` 约定一致。你可以显式传入对象进行覆盖（例如 `{ offset: false }` 或 `{ offset: true, precision: 3 }`）。
+
+### useBrandedTypes
+
+**类型：** `boolean`
+**默认值：** `false`
+
+为生成的 Zod schemas 追加 [`.brand()`](https://zod.dev/api?id=branded-types)，并使用 schema 名称作为 brand 标识符。对于数组请求/响应 body，只会给最外层数组包装 schema 添加 brand；导出的 `*Item` 辅助 schema 不会带 brand。
+
+### generateReusableSchemas
+
+**类型：** `boolean`
+**默认值：** `false`
+
+为 OpenAPI `#/components/schemas/*` 下的每个 `$ref` 生成一个可复用的 Zod schema，而不是内联展开。导出的名称是最后一个 `$ref` 片段，并应用 `namingConvention`。其他 schemas 和 operation 文件会通过名称引用这个导出；只有在闭合循环引用的边上，才会用 `zod.lazy(() => Name)` 包裹。
+
+行为：
+
+- 当配置了 `schemas:`（字符串或 `{ type: 'zod' }`）且设置了 `client: 'zod'` 时，schemas 目录中输出的是可复用的 Zod schemas，而不是 TypeScript types。schema 文件默认使用 `.zod.ts` 扩展名；如果你想让它和全局 [`fileExtension`](#fileextension) 分开控制，请使用 [`schemaFileExtension`](#schemafileextension)。
+- Operation 文件会导入这些具名导出；纯 `$ref` 的 body/response 包装器（例如 `PetCreateBody`）会被跳过，这样消费者可以直接导入 component schema。
+- `$ref` 的同级字段中，`nullable`、`default`、`description` 会继续链到命名后的 ref 上（例如 `Pet.nullable().describe(...)`）。`properties`、`example` 以及其他不能链式表达的同级字段，则会在该处退回为内联。
+- `namingConvention` 必须能生成合法的 JavaScript 标识符（`camelCase`、`PascalCase` 或 `snake_case`）。`kebab-case` 会被明确拒绝，因为它会产生带连字符的导出名。
+- **权衡点：共享 component schema 上的 `readOnly`。** 不启用此选项时，由 `$ref` schema 生成的 request bodies 会去掉 `readOnly: true` 的属性，因此它们不会出现在输入 validator 中。启用后，请求与响应 endpoint 会共享同一个导出 schema，因此 `readOnly` 属性也会出现在 body validator 中。要么避免在共享于请求和响应的 component schema 上使用 `readOnly`，要么在 OpenAPI 源中拆分为独立的 request/response schema。
+
+### generateMeta
+
+**类型：** `boolean`
+**默认值：** `false`
+
+通过 [`.meta()`](https://zod.dev/metadata)（仅 zod v4）为生成的 **component** schemas 附加 registry metadata：`id` 为 schema 名称，另外在 OpenAPI schema 提供了 `description` 或 `deprecated` 时，也会一起附上。
+
+```ts
+// override: { zod: { generateMeta: true } }
+export const Pet = zod
+  .object({ name: zod.string() })
+  .meta({ id: 'Pet', description: 'A pet in the store', deprecated: true });
+```
+
+行为：
+
+- 仅作用于作为具名导出输出的 **component** schemas（`schemas: { type: 'zod' }`，或 `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)）。operation wrapper schemas 不受影响，这样 registry `id` 才能保持唯一。
+- `id` 一定会输出；`description` / `deprecated` 仅在存在时输出。属性级描述仍使用 `.describe()`。
+- **zod v3** 不支持 `.meta()`，因此这个选项在 v3 下是 no-op，描述信息仍会通过 `.describe()` 输出。
+- Registry `id` 会让 [`z.toJSONSchema()`](https://zod.dev/json-schema) 以 `#/$defs/<id>` 的形式引用该 schema，从而回到 component 结构。
+
+### generateDiscriminatedUnion
+
+**类型：** `boolean`
+**默认值：** `false`
+
+当 `oneOf` / `anyOf` 带有 OpenAPI [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object) 时，将其输出为 [`zod.discriminatedUnion(key, [...])`](https://zod.dev/api?id=discriminated-unions)，而不是普通的 `zod.union([...])`。discriminated union 会先根据 discriminator 值选择分支，因此校验错误会落在具体字段（例如 `type.name`）上，而不是在 union 根部收敛成一个“没有任何成员匹配”的错误。
+
+```ts
+// override: { zod: { generateDiscriminatedUnion: true } }
+export const Pet = zod.discriminatedUnion('petType', [
+  zod.object({ petType: zod.literal('cat'), meows: zod.boolean() }),
+  zod.object({ petType: zod.literal('dog'), barks: zod.boolean() }),
+]);
+```
+
+行为：
+
+- **显式开启。** 保持为 `false` 时，union 输出行为完全不变。
+- **安全回退。** 只有当每个分支都能表示为带有字面量（`const` / `enum`）discriminator 的对象时，才会生成 discriminated union。只要有任一分支是非对象、嵌套 union，或缺少字面量 discriminator，生成就会回退为普通 `zod.union([...])`，而不是输出一段在构造时会报错的代码。
+- **继承（`allOf`）。** 通过 `allOf` 组合的分支会被扁平化为单个对象，这样它们仍能作为合法的 discriminated-union 选项。此前这个场景曾导致该功能被回退（[#2085](https://github.com/orval-labs/orval/issues/2085)）。如果启用了 [`generateReusableSchemas`](#generatereusableschemas)，引用了 `allOf` schema 的分支会继续使用普通 union，因为仅从引用本身无法保证目标一定是对象。
+- 同时支持 Zod v3（>= 3.20）和 v4，也支持 [`mini`](#variant) 变体。
+
+### exactOptional
+
+**类型：** `boolean`
+**默认值：** `false`
+
+对可选对象属性使用 `.exactOptional()`（classic）或 `zod.exactOptional()`（mini），而不是 `.optional()`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
+
+```ts
+// override: { zod: { exactOptional: true } }
+export const Pet = zod.object({ name: zod.string().exactOptional() });
+```
+
+行为：
+
+- **显式开启。** 保持为 `false` 时，仍和以前一样输出 `.optional()`。
+- **仅 zod v4。** zod v3 没有 `.exactOptional()`，因此在 v3 下该选项为 no-op，仍输出 `.optional()`。
+- 同时适用于 classic 和 [`mini`](#variant) 变体中的可选属性。
+
+### generateCompanionTypes
+
+**类型：** `boolean`
+**默认值：** `false`
+
+在每个按 operation 生成的 `export const` 后面，附加一对 `zod.input` / [`zod.output`](https://zod.dev/basics?id=inferring-types) 类型别名，这样消费者就可以直接导入 TypeScript 类型，而不必手写。
+
+```ts
+// override: { zod: { generateCompanionTypes: true } }
+export const CreatePetsBody = zod.object({ name: zod.string() });
+
+export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
+```
+
+行为：
+
+- **显式开启。** 保持为 `false` 时，输出不变。
+- 作用于按 operation 生成的 schemas，如 `Params`、`QueryParams`、`Header`、`Body` 和 `Response`，也包括走同一生成器的 Hono `*.zod.ts` 输出。通过 [`generateReusableSchemas`](#generatereusableschemas) 输出的 component schemas 本身已经无条件带有这对类型，因此不受此开关影响。
+- 对于数组 request/response body，`*Item` schema 和数组包装 schema 都会各自得到一对类型。
+- 使用的是 `zod.input`，而不是 `z.infer`（它本质上是 `zod.output` 的别名），因为请求侧 schema 经常带有 `.default()`、`coerce` 或 `.transform()`，在这些场景下，parse 前后的类型会不同。
+- 如果启用了 [`useBrandedTypes`](#usebrandedtypes)，干净的 `zod.input` 别名本身不会带 brand，`.brand()` 只会影响输出类型，因此 brand 会出现在 `...Output` 别名上。
+- 辅助值常量（如 `...Max`、`...Min`、`...RegExp`、`...Default`）只是普通值，不是 schema，因此不会生成 companion pair。
+- 可作为按 operation 或按 tag 的 override，与 `strict`、`generate`、`coerce`、`preprocess`、`params` 和 `useBrandedTypes` 一起使用。详见 [Scoping options per operation or tag](/docs/guides/zod#scoping-options-per-operation-or-tag)。
+
+---
+
+## override.effect
+
+Effect schema 生成选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        effect: {
+          strict: {
+            response: true,
+            query: true,
+            param: true,
+            header: true,
+            body: true,
+          },
+          generate: {
+            param: true,
+            body: true,
+            response: true,
+            query: true,
+            header: true,
+          },
+          generateEachHttpStatus: true,
+          useBrandedTypes: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### strict
+
+**类型：** `Object`
+
+为 schemas 启用 strict 模式。
+
+### generate
+
+**类型：** `Object`
+
+控制生成哪些 schemas。
+
+### useBrandedTypes
+
+**类型：** `boolean`
+**默认值：** `false`
+
+为生成的 Effect schemas 追加 `S.brand()`，并使用 schema 名称作为 brand 标识符。对于数组请求/响应 body，只会给最外层数组包装 schema 添加 brand。
+
+### exactOptional
+
+**类型：** `boolean`
+**默认值：** `false`
+
+对可选的 Struct 属性使用 `S.optionalWith(schema, { exact: true })`，而不是 `S.optional(schema)`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
+
+---
+
+## override.angular
+
+Angular client 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          provideIn: 'root', // 'root' | 'any' | '' | false
+          retrievalClient: 'httpClient',
+          runtimeValidation: true,
+          httpResource: {
+            debugName: 'getPetByIdResource',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+<Callout type="info">
+`override.angular` 只保留给 Angular generator 自身的设置，例如 retrieval 模式、DI 作用域和 runtime validation。像 [`override.paramsFilter`](#paramsfilter) 这类只适用于 Angular 请求管线的 override，仍然放在 `override` 顶层。这样它们既能通过 `override.operations[...]` 和 `override.tags[...]` 一致地应用，也能和 `mutator`、`paramsSerializer` 等选项自由组合。
+</Callout>
+
+### provideIn
+
+**类型：** `'root' | 'any' | boolean`
+**默认值：** `'root'`
+
+控制生成的 Angular service class 上 `@Injectable({ providedIn })` 的作用域。
+
+<Callout type="info">
+`provideIn` 只影响生成的 service class。`httpResource` 函数是普通导出，不是 injectable。
+</Callout>
+
+### retrievalClient
+
+**类型：** `'httpClient' | 'httpResource' | 'both'`
+**默认值：** `'httpClient'`
+
+控制 **retrieval-style** Angular operations（检索型操作）的生成方式。
+
+- `httpClient`：保留为基于 Angular `HttpClient` 的 injectable services（可注入服务）
+- `httpResource`：生成以 signal 为优先的 Angular `httpResource` retrieval functions（检索函数）
+- `both`：既保留 `HttpClient` service methods，也在旁边的 `*.resource.ts` 文件中输出 retrieval resources（检索资源）
+
+Mutation-style operations（变更型操作）默认仍使用生成的 `HttpClient` service methods，除非某个按 operation 细分的 override 改变了分类。
+
+### client
+
+**类型：** `'httpClient' | 'httpResource' | 'both'`
+
+`retrievalClient` 的向后兼容别名。新配置中优先使用 `override.angular.retrievalClient`，这样 retrieval-only 的语义更明确。
+
+### runtimeValidation
+
+**类型：** `boolean | { strategy: 'throw' | 'both' }`
+**默认值：** `false`
+
+为 Angular 输出启用 Zod 运行时校验。需要 `schemas: { type: 'zod' }`。这个选项默认关闭，用来保持向后兼容。
+
+- 对于生成的 `HttpClient` services，符合条件的 JSON body responses 会在 RxJS pipeline 中按 schema 校验。
+- 对于生成的 `httpResource` functions，符合条件的 JSON resources 会通过 Resource 的 `parse` 选项按 schema 校验。
+
+具体行为取决于 `strategy`：`throw` 会直接 parse（例如 `Schema.parse()`），而 `both` 会通过 safe-parse 包装，先记录日志，再重新抛出错误。
+
+保留布尔写法是为了兼容旧用法：`true` ≡ `{ strategy: 'throw' }`。当使用 `{ strategy: 'both' }` 时，遇到无效响应会先通过 `console.error('[orval] <operation> response validation failed', error)` 输出原始 `ZodError`，然后再重新抛出。这样既能通过 Client 原生的错误通道（RxJS error / `resource.error()` signal）暴露失败，也能在生产环境里更早发现契约漂移。
+
+对于 primitive types、非 JSON responses，以及绕过生成校验流程的 custom mutator 路径，会直接跳过校验。对于 Angular `HttpClient`，`observe: 'events' | 'response'` 形式的响应，仍会通过克隆响应并校验其中的 JSON body 来完成校验。
+
+### queryObjectSerialization
+
+**类型：** `'spec' | 'legacy'`
+**默认值：** `'spec'`
+
+当 operation 没有配置 `paramsSerializer` / `paramsFilter`，并且它声明的 query parameter schema 是普通对象时，这个选项用来控制该对象应如何序列化。完整说明和示例见 [Object query parameters guide](/docs/guides/angular#object-query-parameters-style--explode)。
+
+- `spec`（默认）：遵循 OpenAPI parameter 的 `style` / `explode`。例如 `form` + `explode: true`（OpenAPI 默认值）会把对象属性平铺为顶层 query params；`form` + `explode: false` 会把它们拼成一个逗号分隔值；`deepObject` 会生成带括号的 `name[prop]` key。
+- `legacy`：恢复 #3705 之前的行为，静默丢弃生成请求中的对象型 query params。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          queryObjectSerialization: 'legacy',
+        },
+      },
+    },
+  },
+});
+```
+
+与 `retrievalClient` / `runtimeValidation` 一样，它既可以全局设置，也可以按 tag（`override.tags[...].angular`）或按 operation（`override.operations[...].angular`）设置。当配置了 `paramsSerializer` 或 `paramsFilter` 时，它不会生效，因为这两者会完全接管原始值。另见 [issue #3705](https://github.com/orval-labs/orval/issues/3705)。
+
+### httpResource
+
+**类型：** `Object`
+
+传递给生成的 `httpResource` 调用的选项。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          httpResource: {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+            injector: 'inject(Injector)',
+            equal: '(a, b) => a?.id === b?.id',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+#### defaultValue
+
+**类型：** `unknown`
+
+当 resource 处于 idle / loading 状态时暴露的初始值。配置后，生成的 overloads 会返回 `HttpResourceRef<T>`，而不是 `HttpResourceRef<T | undefined>`。
+
+#### debugName
+
+**类型：** `String`
+
+显示在 Angular DevTools 中的名称。
+
+#### injector
+
+**类型：** `String`
+
+原样传给 `HttpResourceOptions.injector` 的表达式。
+
+#### equal
+
+**类型：** `String`
+
+原样传给 `HttpResourceOptions.equal` 的表达式。
+
+### baseUrl
+
+**类型：** `Object`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          baseUrl: {
+            apiId: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+显式开启：通过 Angular 依赖注入（`InjectionToken`）来组合该 output 在运行时的 base URL，而不是把静态前缀固化进每一个生成的 route 字符串。完整优先级链、生成产物以及多 API gateway 路由示例见 [Angular guide](/docs/guides/angular#di-based-base-url-composition-multiple-apis--gateway-routing)。
+
+<Callout type="info">
+仅适用于 `angular` client。在其他 client 上设置 `baseUrl` 时，只会记录 warning，不会生效。
+</Callout>
+
+#### apiId
+
+**类型：** `String`（必填）
+
+该 API 的显式且稳定的标识符。必须匹配 `/^[A-Za-z][A-Za-z0-9_-]*$/`，否则 Orval 会在配置阶段抛错。`apiId` **绝不会**从规范的 `info.title` 或 target 文件名推导出来，因为它会驱动所有生成标识符，必须在多次重新生成之间保持稳定：
+
+| Generated identifier | Derivation |
+|---|---|
+| `<API_ID>_SERVER_URL` | 内嵌的回退 URL 常量 |
+| `<API_ID>_BASE_URL_RESOLVER` | 运行时 resolver hook 的 `InjectionToken` |
+| `<API_ID>_BASE_URL` | 组合后并完成规范化的 base URL 的 `InjectionToken` |
+| `<Api>BaseUrlResolverContext` | resolver context 类型（`{ apiId, serverUrl }`） |
+| `<Api>BaseUrlResolver` | resolver 函数类型 |
+| `provide<Api>BaseUrl(baseUrl)` | 直接提供 base URL，绕过 resolver |
+| `provide<Api>BaseUrlResolver(resolver)` | 提供自定义 resolver |
+
+`<API_ID>` 是 `apiId` 的 upper-snake-case 形式（例如 `petstore` -> `PETSTORE`）；`<Api>` 是 `apiId` 的 PascalCase 形式（例如 `petstore` -> `Petstore`）。
+
+#### index
+
+**类型：** `Number`
+**默认值：** `0`
+
+规范中 `servers` 数组里哪一个条目会被嵌入为默认回退 URL。语义与顶层 [`baseUrl.index`](#index) 相同。
+
+#### variables
+
+**类型：** `Record<string, string>`
+
+为所选 server URL 中的 `{variable}` 占位符提供取值。
+
+#### Error and warning behavior
+
+- **缺失或无效的 `apiId`**：会在配置标准化阶段抛出错误
+  `` `override.angular.baseUrl.apiId` must be a non-empty string matching /^[A-Za-z][A-Za-z0-9_-]*$/ ``。
+- **与 `output.baseUrl` 同时使用**：会抛错
+  `` `override.angular.baseUrl` cannot be combined with the top-level `output.baseUrl` ``。
+  请从该 output 中移除 `output.baseUrl`；token 的回退值本来就会读取规范中的 `servers` 字段，而运行时 override 应该通过提供 resolver 来完成。
+- **设置在非 `angular` client 上**：会记录 warning，其余行为被忽略。
+- **设置在 `override.operations[...].angular` 或 `override.tags[...].angular` 下**：会记录 warning 并被忽略。`baseUrl` 是 output 级别的关注点，应通过 `override.angular.baseUrl` 统一配置一次，而不是按 operation 或 tag 单独设置。
+
+---
+
+## override.hono
+
+Hono server 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+          handlerGenerationStrategy: 'smart',
+          validatorOutputPath: 'src/validator.ts',
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+});
+```
+
+### handlers
+
+**类型：** `String`
+
+修改 Hono handlers 的输出路径。
+
+### handlerGenerationStrategy
+
+**类型：** `'smart' | 'skip' | 'full'`
+**默认值：** `'smart'`
+
+控制你重新运行 orval 时，如何处理**已经存在**的 handler 文件。不存在的文件始终会直接全新生成。
+
+- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要可选的 `typescript` peer dependency；如果不存在，会带 warning 回退到 `skip`。
+- `skip`：对已存在的 handler 文件保持逐字节不变。新增 operation 仍然会生成新文件（在 `split` 模式下）。
+- `full`：根据 spec 重建文件头、imports 和 validator chain，只把每个 handler body 再拼接回去。**这是破坏性的。** 自定义 imports、middleware 和顶层 helpers 都会丢失。只有当你刻意保持 handlers 很轻，并希望它们和 spec 最大程度同步时才建议使用。
+
+<Callout type="info">
+  `smart` 和 `full` 会使用 TypeScript compiler API 来解析现有 handler 文件。`typescript` 是一个可选 peer dependency，而几乎所有 orval 项目本来就已经有它，因此通常不需要额外安装。
+</Callout>
+
+<Callout type="warn">
+  如果启用了 `output.clean`，且 handlers 目录位于 output target 目录内部，那么在生成开始前 handler 文件就会被删除，这会让 `smart` / `skip` 的保留机制失效。依赖 handler 保留时，请关闭 `clean`，或者把它限制在更小范围内。
+</Callout>
+
+### validatorOutputPath
+
+**类型：** `String`
+
+修改 validator 的输出路径。
+
+### compositeRoute
+
+**类型：** `String`
+
+生成组合后的 routes 文件。
+
+---
+
+## override.mcp
+
+MCP server 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          server: {
+            path: './custom-server.ts',
+            name: 'customServer',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### server
+
+**类型：** `String | Object`
+
+使用自定义 server 函数来替代默认的 `StdioServerTransport`。设置后，生成的 `server.ts` 会用 `createMcpServer` 作为参数调用该函数。
+
+使用 `@hono/mcp` 的实现示例：
+
+```ts title="custom-server.ts"
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPTransport } from '@hono/mcp';
+import { Hono } from 'hono';
+
+export const customServer = (createMcpServer: () => McpServer) => {
+  const app = new Hono();
+  const server = createMcpServer();
+  const transport = new StreamableHTTPTransport();
+
+  app.all('/mcp', async (c) => {
+    if (!server.isConnected()) {
+      await server.connect(transport);
+    }
+    return transport.handleRequest(c);
+  });
+
+  Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+};
+```
+
+---
+
+## override.fetch
+
+Fetch client 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### includeHttpResponseReturnType
+
+**类型：** `Boolean`
+**默认值：** `true`
+
+在返回类型中包含 HTTP 状态。设为 `false` 时，直接返回数据。
+
+### forceSuccessResponse
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+遇到错误响应时直接抛出，而不是把它作为返回值返回。
+
+### serializeResponseHeaders
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将响应中的 `headers` 作为普通的 `Record<string, string>` 返回，而不是 `Headers` 实例。当响应需要跨序列化边界缓存时，请启用它；例如在 Next.js Server Component 中，`dehydrate()` 状态里如果带有 `Headers` 实例，就会触发 `Only plain objects can be passed to Client Components from Server Components` 这类错误。该选项依赖 `includeHttpResponseReturnType`（默认开启）。
+
+Header 名称会被转成小写，重复 header 会用 `, ` 连接。`set-cookie` 会被丢弃，因为 dehydrated cache 会嵌入到 RSC payload（载荷）中，而上游 session cookies 不应该随之传递。只有 `headers` 会被转换：`blob` 响应仍返回 `Blob`，`application/x-ndjson` 响应仍会在 `stream` 下返回原始 `Response`。
+
+如果使用了自定义 `mutator`，该选项只会改变生成的类型，不会改变运行时值，因为请求本来就是由 mutator 自己发出的。也就是说，mutator 本身必须返回已经符合声明形状的 headers；这与当前 `includeHttpResponseReturnType` 的要求一致。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          serializeResponseHeaders: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### jsonReviver
+
+**类型：** `String | Object`
+
+自定义 JSON reviver 函数（适合做日期解析）。
+
+### runtimeValidation
+
+**类型：** `boolean | { strategy: 'throw' | 'both' }`
+**默认值：** `false`
+
+为 fetch Client 的响应启用 Zod 运行时校验。需要 `schemas: { type: 'zod' }`。启用后，JSON 响应会在返回前按照配置的策略完成校验（默认 `throw` 时使用 `Schema.parse()`）。
+
+保留布尔写法是为了兼容旧用法：`true` ≡ `{ strategy: 'throw' }`。当使用 `{ strategy: 'both' }` 时，遇到无效响应会先通过 `console.error('[orval] <operation> response validation failed', error)` 输出原始 `ZodError`，然后再重新抛出（也就是 reject 返回的 Promise）。这样既能在生产环境里观察到契约漂移，也依然保持 fail-fast。
+
+校验后的响应类型会使用 schema 的 `zod.output` 别名（例如 `PetsOutput`），而不是输入型的 schema 名称，因为运行时 parse 返回的本来就是这个类型。当 schema 通过 `coerce`、`useDates`、默认值或 `.transform()` 对值做转换时，这一点尤其重要。使用 custom mutator 的 operation 会继续保留 schema（输入）类型，因为请求是由 mutator 自己发出的，生成的 parse 不会在那条路径上执行。
+
+### arrayFormat
+
+**类型：** `'repeat' | 'brackets' | 'comma'`
+
+当 OpenAPI spec 没有在 parameter 上显式设置 `explode` 时，控制数组 query 参数的序列化方式。spec 自己的 `explode` 属性始终优先。
+
+| Value | Output |
+| --- | --- |
+| `repeat` | `?tags=a&tags=b` |
+| `brackets` | `?tags[]=a&tags[]=b` |
+| `comma` | `?tags=a%2Cb` |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        fetch: {
+          arrayFormat: 'repeat',
+        },
+      },
+    },
+  },
+});
+```
+
+如果你需要完全控制序列化行为（包括自定义编码、嵌套对象等），请改用 [`override.paramsSerializer`](#paramsserializer)。
+
+### useRuntimeFetcher
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+允许在运行时注入自定义 `fetch` 函数。启用后，生成的请求函数会接受一个可选的 `fetchFn` 参数，并调用 `(fetchFn ?? fetch)(...)`，而不是直接使用全局 `fetch(...)`。对于 Query Client Hooks（钩子），`options` 类型中还会额外加入一个 `fetcher` 字段。对使用 custom mutator 的 operations 不生效。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query', // 也适用于 'fetch', 'vue-query', 'svelte-query'
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          useRuntimeFetcher: true,
+        },
+      },
+    },
+  },
+});
+```
+
+**生成结果示例**
+
+```ts
+// Request function —— 新增 fetchFn 参数
+export const listPets = async (
+  params: ListPetsParams,
+  options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
+): Promise<listPetsResponse> => {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  // ...
+};
+
+// Query hook —— options 中新增 fetcher 字段
+export const useListPets = (
+  params: ListPetsParams,
+  options?: {
+    query?: UseQueryOptions<...>;
+    fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
+  },
+) => { ... };
+```
+
+**用法示例：在 SSR 中使用 request-scoped fetch**
+
+```ts
+// SvelteKit — +page.ts
+export const load = async ({ fetch }) => {
+  const queryClient = new QueryClient();
+  await prefetchListPetsQuery(queryClient, params, { fetcher: fetch });
+  return { queryClient };
+};
+```
+
+---
+
+## Runtime validation support matrix
+
+`runtimeValidation` 的支持情况会因 Client 家族以及是否使用 mutator 而有所不同：
+
+| Client | Config key | Status | Notes |
+|---|---|---|---|
+| `angular` | `override.angular.runtimeValidation` | ✅ | 通过 `Schema.parse()` 校验 JSON body responses；跳过 primitive / `void`、`observe: 'events'/'response'` 以及 custom mutator 路径 |
+| `angular-query` | `override.query.runtimeValidation` | ✅ | 在 RxJS pipeline 中通过 `Schema.parse()` 校验符合条件的响应；响应类型会变成 schema 的 `zod.output` 别名；跳过 primitive / `void` 和 custom mutator 路径 |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ | 通过 `Schema.parse()` 校验 JSON 响应；响应类型会变成 schema 的 `zod.output` 别名；跳过 primitive / `void`、ndjson 和 custom mutator 路径 |
+| 任意使用 custom mutator 的 client | varies | ⚠️ | 运行时校验可能会因 mutator 路径和签名而被绕过（见 [#2858](https://github.com/orval-labs/orval/issues/2858)）。对于 `fetch` client，可以通过 [`override.includeZodSchemaInArguments`](#includezodschemainarguments) 把 schema 传给 mutator，让它自行完成响应校验 |
+
+运行时校验默认**关闭**（`false`）。启用后，这三个受支持的 Client 都接受对象形式 `{ strategy: 'throw' | 'both' }`，而 `true` 则是 `{ strategy: 'throw' }` 的简写。`throw` 会直接 parse 并抛错；`both` 除了抛错外，还会在重新抛出前通过 `console.error` 输出原始 `ZodError`，从而在不放弃 fail-fast 行为的前提下，提高生产环境中的可观测性。
+
+---
+
+## override.mock
+
+Mock 生成 override：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          properties: {
+            '/tag|name/': 'jon',
+            email: () => faker.internet.email(),
+          },
+          schemas: {
+            Apple: {
+              properties: {
+                color: () => faker.helpers.arrayElement(['red', 'green']),
+              },
+            },
+          },
+          format: {
+            email: () => faker.internet.email(),
+            iban: () => faker.finance.iban(),
+          },
+          required: true,
+          nonNullable: true,
+          delay: 500,
+          arrayMin: 1,
+          arrayMax: 10,
+          stringMin: 10,
+          stringMax: 20,
+          numberMin: 0,
+          numberMax: 100,
+        },
+      },
+    },
+  },
+});
+```
+
+### properties
+
+按属性路径或正则覆盖 mock 值。适用于所有带有匹配属性的 schema。
+
+### schemas
+
+将属性覆盖限定到具名 schema，这样同一个属性名就可以在不同 schema 中使用不同的 mock（例如 `Apple` 上的 `color` 与 `Car` 上的 `color`）。按 schema 名作为 key；每个条目都包含一个 `properties` map，匹配规则与 `properties` 相同（裸名、`/regex/`、精确 `#.path`）。它的优先级高于全局 `properties` 覆盖。完整示例见 [Faker guide](/docs/guides/faker#per-schema-overrides)。
+
+### format
+
+为 OpenAPI 的 `format` 值提供自定义 generator。
+
+### required
+
+**类型：** `Boolean`
+
+让 mock 中的所有属性都变成必填。
+
+### nonNullable
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+当设为 `true` 时，可空属性不会再通过 `faker.helpers.arrayElement([value, null])` 来生成。对于 OpenAPI 3.1 中的 null-union 数组项（`type: ['string', 'null']`），这也会跳过 `.map()` 回调里的 `null`。可选属性仍然可能通过 `arrayElement([value, undefined])` 被省略，除非同时把 `required` 也设为 `true`。运行时你仍然可以通过工厂函数的 `overrideResponse` 参数传入 `null`。
+
+### delay
+
+**类型：** `Number | Function | false`
+**默认值：** `false`
+
+以毫秒为单位的响应延迟。设为 `false` 可移除延迟。
+
+### fractionDigits
+
+**类型：** `Number`
+**默认值：** `2`
+
+浮点数的小数位数。
+
+### Array/String/Number Min/Max
+
+控制生成数据的边界（`arrayMin`、`arrayMax`、`stringMin`、`stringMax`、`numberMin`、`numberMax`）。
+
+### useExamples
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+在 mock 生成中使用 OpenAPI 规范里的 `example` 属性。
+
+### baseUrl
+
+**类型：** `String`
+
+mock handlers 的 base URL。
+
+---
+
+## override.operations
+
+按 operation ID 覆盖：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operations: {
+          listPets: {
+            mutator: 'src/response-type.js',
+            query: {
+              useQuery: true,
+              useInfinite: false,
+            },
+            mock: {
+              data: () => ({ id: 1, name: 'Buddy' }),
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## override.tags
+
+按 OpenAPI tag 覆盖（可用选项与 `operations` 相同）。
+
+---
+
+## override.operationName
+
+**类型：** `Function`
+
+用于覆盖生成的 operation 名称的自定义函数。
+
+**返回 `string`** 时，会同时控制方法名和类型名基底：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operationName: (operation, route, verb) => {
+          return `custom_${operation.operationId}`;
+        },
+      },
+    },
+  },
+});
+```
+
+**返回 `[methodName, typeNameBase]`** 时，可以把方法名和类型标识符名解耦。这对 gateway 聚合后的 specs 很有用，因为多个服务可能共享同样的 REST 模式（`GET /products`、`GET /orders`）; 裸方法名按 tag 隔离后通常是安全的，但类型名（`*Params`、`*Body`、`*Error`、`*Result`）在 `tags-split` + `splitByTags` + `indexFiles` 组合下需要全局唯一，以避免 barrel 级别的冲突：
+
+```ts title="orval.config.ts"
+import { pascal } from '@orval/core';
+
+export default defineConfig({
+  api: {
+    output: {
+      mode: 'tags-split',
+      schemas: { path: './model', splitByTags: true },
+      override: {
+        operationName: (_operation, route, verb) => {
+          const segments = route.split('/').filter(Boolean);
+          return [
+            `${verb}${pascal(segments.slice(2).join('-'))}`,  // getProducts
+            `${verb}${pascal(segments.slice(1).join('-'))}`,  // getCatalogProducts
+          ];
+        },
+      },
+    },
+  },
+});
+```
+
+结果：
+
+```ts
+// catalog/catalog.service.ts
+class CatalogService {
+  getProducts = (params: GetCatalogProductsParams) => ...;
+}
+
+// inventory/inventory.service.ts
+class InventoryService {
+  getProducts = (params: GetInventoryProductsParams) => ...;
+}
+```
+
+第一个元素控制函数 / hook 名称。第二个元素控制所有 operation 特定的 TypeScript 类型标识符基底（`*Params`、`*Body`、`*Error`、`*Result`、`*Accept`，以及 zod / hono / effect 的 schema 名）。
+
+---
+
+## override.components
+
+为生成的 model 名称添加后缀：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { suffix: 'DTO' },
+          responses: { suffix: 'Response' },
+          parameters: { suffix: 'Params' },
+          requestBodies: { suffix: 'Bodies' },
+        },
+      },
+    },
+  },
+});
+```
+
+也可以为生成的 component 名称添加前缀（适用于 `schemas`、`responses`、`parameters` 和 `requestBodies`）。`prefix` 作用于 component 本身；当 component 是数组时，`itemPrefix` 作用于其元素类型（仅对 `components.schemas` 有效）。前缀同样会应用到 `$ref` 引用上，因此如果 `Pet` schema 配置了 `prefix: 'I'`，那么它在任何地方都会以 `IPet` 的形式被引用：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { prefix: 'I', itemPrefix: 'I' },
+          responses: { prefix: 'I' },
+          parameters: { prefix: 'I' },
+          requestBodies: { prefix: 'I' },
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## Type Generation Options
+
+### useDates
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将 `date` / `datetime` 转换为 JavaScript `Date` 对象。
+
+### useBigInt
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将 `int64` / `uint64` 转换为 `BigInt`。
+
+### useTypeOverInterfaces
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+使用 TypeScript `type` 而不是 `interface`。
+
+### useNamedParameters
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+使用具名参数对象，而不是位置参数。
+
+### useDeprecatedOperations
+
+**类型：** `Boolean`
+**默认值：** `true`
+
+包含已弃用的 operations。
+
+### enumGenerationType
+
+**类型：** `'const' | 'enum' | 'union'`
+**默认值：** `'const'`
+
+控制 enum 的生成方式：
+
+```ts
+// 'const'（默认）
+export const Example = { foo: 'foo', bar: 'bar' } as const;
+export type Example = (typeof Example)[keyof typeof Example];
+
+// 'enum'
+export enum Example { foo = 'foo', bar = 'bar' }
+
+// 'union'
+export type Example = 'foo' | 'bar';
+```
+
+<Callout type="warn">
+`'enum'` 会生成 TypeScript 的 `enum` 声明，而类型擦除无法移除它。如果你使用 TypeScript 5.8+ 的 [`erasableSyntaxOnly`](https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly) 来编译，例如在 Node 原生 TypeScript 支持下，或任何做类型擦除的构建步骤中，那么生成的 `'enum'` 输出会编译失败。在这种环境中请改用 `'const'`（默认）或 `'union'`。
+</Callout>
+
+### aliasCombinedTypes
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+为 `anyOf` / `oneOf` / `allOf` 创建中间类型别名。
+
+### suppressReadonlyModifier
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+抑制属性上的 `readonly` 修饰符。
+
+### preserveReadonlyRequestBodies
+
+**类型：** `'strip' | 'preserve'`
+**默认值：** `'strip'`
+
+控制当一个 schema 被复用为 request body 时，Orval 如何处理其中的 `readonly` 属性。
+
+- `strip`（推荐）：通过 `NonReadonly<T>` 去掉生成的 request-body types 上的 readonly 修饰符。这是大多数 OpenAPI 规范下更安全的默认行为，因为 `readOnly` 属性通常更偏向响应语义。
+- `preserve`：在生成的 request-body types 上保留 readonly 修饰符。只有当你的 request DTO 本来就是有意设计为不可变，并且你希望这种不可变性反映在 TypeScript 类型中时，才建议使用。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        preserveReadonlyRequestBodies: 'strip',
+      },
+    },
+  },
+});
+```
+
+<Callout title="Tip" type="info">
+当前后请求与响应语义不同的时候，优先拆分为独立的 request schema 和 response schema。这个选项主要适用于同一个 schema 被同时复用于请求和响应载荷的场景。
+</Callout>
+
+<Callout type="info">
+这个设置适用于 request bodies，而不取决于生成的 Angular 风格是 `HttpClient` 还是 `httpResource`。`httpResource` 一样会发送请求载荷，因此这里的 request-body 指导原则同样成立。
+</Callout>
+
+### useNullForOptional
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将可选属性生成为 `T | null`，而不是仅仅 `T`。适合 JSON:API 这类把 `null` 明确表示为“无值”的兼容场景。
+
+```ts
+// 默认（false）
+export interface Pet {
+  id: number;
+  name?: string;
+  tag?: string;
+}
+
+// 当 useNullForOptional: true
+export interface Pet {
+  id: number;
+  name?: string | null;
+  tag?: string | null;
+}
+```
+
+### includeZodSchemaInArguments
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+把响应对应的 Zod schema 作为额外的 `schema` 选项传给自定义 `mutator`，这样 mutator 就可以自己完成响应校验。
+
+自定义 mutator 会自己发出请求，因此 Orval 为 `runtimeValidation` 生成的 `Schema.parse()` 调用不会运行。启用这个选项后，schema 会改为直接交给 mutator 处理。
+
+适用于 `fetch` Client。需要 `schemas: { type: 'zod' }` 和 `override.fetch.runtimeValidation: true`。对于没有可校验响应的 operation，不会传入 schema，比如 primitive 或 `void` 响应，以及 `application/x-ndjson` stream（流）。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      schemas: { path: 'src/gen/model', type: 'zod' },
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
+        fetch: { runtimeValidation: true },
+      },
+    },
+  },
+});
+```
+
+```ts title="src/custom-fetch.ts"
+import type { ZodType } from 'zod';
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit & { schema?: ZodType<T> },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const data = await response.json();
+
+  return schema ? schema.parse(data) : (data as T);
+};
+```
+
+<Callout type="info">
+`schema.parse()` 在不匹配时会抛出 `ZodError`。如果你希望自己处理校验失败，请在 mutator 中改用 `safeParse()`。
+</Callout>
+
+## factoryMethods
+
+**类型：** `Object`
+**默认值：** `{ generate: false }`
+
+为 DTO（Data Transfer Objects，数据传输对象）生成带有安全默认值的工厂方法，适合测试和初始化空状态。
+这一功能会处理 OpenAPI 的 `readOnly` 和 `writeOnly` 标记，从而生成更合适的 payload（载荷）结构：
+- **必填属性：** 无论可见性标记如何，始终会出现在工厂输出中。
+- **可选的 `readOnly` 属性：** 始终从工厂输出中省略，因为服务端通常会忽略它们。
+- **可选的 `writeOnly` 属性：** 即使 `includeOptionalProperty` 设为 `false`，也始终会包含在工厂输出中。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      factoryMethods: {
+        functionNamePrefix: 'create',
+        mode: 'split',
+        includeOptionalProperty: true,
+        outputDirectory: `#output.workspace.schemas`,
+      },
+    },
+  },
+});
+```
+
+### functionNamePrefix
+
+**类型：** `String`
+**默认值：** `'create'`
+
+生成的工厂函数名前缀。
+
+### mode
+
+**类型：** `'single' | 'split' | 'single-split'`
+**默认值：** `'split'`
+
+控制工厂方法的生成位置：
+- `single`：把工厂函数追加到 schema 文件中。
+- `split`：生成一个带工厂方法的 `{schema}.factory.ts` 文件，默认放在 schema 文件旁边。
+- `single-split`：将所有工厂方法汇总到单个 `factoryMethods.ts` 文件中。
+
+### includeOptionalProperty
+
+**类型：** `boolean`
+**默认值：** `true`
+
+决定默认工厂输出中是否包含可选 schema 属性。
+
+### outputDirectory
+
+**类型：** `String`
+**默认值：** `#output.workspace.schemas`
+
+默认使用 `#output.workspace.schemas` 中配置的值。
+它决定工厂方法会生成到哪里（可用于把生成方法放到 schema 目录之外）。
+仅当 `mode` 为 `split` 或 `single-split` 时生效。
+
+---
+
+## Other Options
+
+### allParamsOptional
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+除路径参数外，让所有参数都变为可选。
+
+### urlEncodeParameters
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+在生成的 URL helper 中，用 `encodeURIComponent(String(...))` 包裹每个路径参数。这个选项只影响路径参数；查询参数通常仍由底层 client（`URLSearchParams`、`axios` 等）负责编码。
+
+路径参数会先通过 `String(value)` 字符串化，再进行编码，因此数组（`style: simple|matrix|label`）和对象形式的路径参数不会按 OpenAPI `style` 规则序列化，而是退回为默认的 `String(value)` 表示。
+
+### optionsParamRequired
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+让 `options` 参数变为必填。由于 `options` 参数位于参数列表最后，因此它前面的参数也都会随之变为必填。
+
+### propertySortOrder
+
+**类型：** `'Alphabetical' | 'Specification'`
+**默认值：** `'Specification'`
+
+控制生成类型中属性的排序方式。
+
+### `$dynamicRef` / `$dynamicAnchor` support
+
+Orval 会在 OpenAPI 3.1 specs 中自动解析 JSON Schema 2020-12 的 `$dynamicRef` / `$dynamicAnchor` 关键字，不需要额外配置。
+
+#### Supported patterns
+
+| Pattern | Description |
+|---------|-------------|
+| Generic template emission | 对于带有 `$dynamicAnchor` 但没有 `$ref` 的 `$defs` 项，会生成为 TypeScript 泛型接口（例如 `interface PaginatedResponse<itemType>`）。 |
+| Type alias binding | 对于通过 `$ref` 引用泛型模板，并在 `$defs` 中使用 `$dynamicAnchor` + `$ref` 进行绑定的 schema，会生成为类型别名（例如 `type UserListResponse = PaginatedResponse<User>`）。 |
+| Self-referential `$dynamicAnchor` | `$dynamicRef` 解析回声明 schema 自身的递归 schema（例如树节点）。 |
+| `allOf` bound aliases | 通过 `allOf` 将泛型模板引用与额外属性组合的 schema，会生成交叉类型（例如 `type X = Template<Args> & { extra }`）。 |
+
+#### Generic template example
+
+在 `$defs` 中定义一个带未绑定 `$dynamicAnchor` 的可复用泛型 schema：
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    PaginatedResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          not: {}
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $dynamicRef: '#itemType'
+        total:
+          type: integer
+```
+
+然后将它绑定到具体类型：
+
+```yaml
+    UserListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/User'
+      $ref: '#/components/schemas/PaginatedResponse'
+
+    OrderListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/Order'
+      $ref: '#/components/schemas/PaginatedResponse'
+```
+
+生成的 TypeScript：
+
+```ts
+export interface PaginatedResponse<itemType> {
+  items: itemType[];
+  total: number;
+}
+
+export type UserListResponse = PaginatedResponse<User>;
+export type OrderListResponse = PaginatedResponse<Order>;
+```
+
+泛型参数名（`itemType`）来自 `$dynamicAnchor` 的值。类型别名名（`UserListResponse`）来自 `components.schemas` 中的 schema key。引用这些绑定别名的 endpoint 会直接使用别名名称（例如 `Promise<AxiosResponse<UserListResponse>>`）。
+
+#### Self-referential `$dynamicAnchor` example
+
+当一个 schema 声明了 `$dynamicAnchor`，并用同一个 anchor 的 `$dynamicRef` 引用自身时，该类型会解析为它自己：
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    BaseCategory:
+      $dynamicAnchor: category
+      type: object
+      properties:
+        id:
+          type: string
+        children:
+          type: array
+          items:
+            $dynamicRef: '#category'
+
+    LocalizedCategory:
+      $dynamicAnchor: category
+      allOf:
+        - $ref: '#/components/schemas/BaseCategory'
+        - type: object
+          properties:
+            displayName:
+              type: string
+```
+
+生成的 TypeScript：
+
+```ts
+export interface BaseCategory {
+  id?: string;
+  children?: BaseCategory[];
+}
+
+export interface LocalizedCategory {
+  id?: string;
+  children?: LocalizedCategory[];
+  displayName?: string;
+}
+```
+
+每个 schema 中的 `$dynamicRef: '#category'` 都会解析到它自己的类型，因为它自己就声明了 `$dynamicAnchor: category`。
+
+#### Output layout with `$dynamicRef` generics
+
+泛型模板、绑定后的别名以及它们的类型参数，都会作为单独的 model 文件输出在同一个共享位置中，不会按 tag 重复生成。在 `tags` 和 `tags-split` 模式下，每个 tag 的 service 文件都会从同一个共享 schema 来源导入。
+
+当配置了 [`schemas`](#schemas) 并使用 `tags-split` 模式时（[`indexFiles`](#indexfiles) 保持默认值 `true`）：
+
+```
+models/
+├── index.ts                      ← barrel 重新导出所有内容（indexFiles: true）
+├── apiEnvelopeTemplate.ts        ← 泛型模板（ApiEnvelopeTemplate<T>）
+├── paginatedTemplate.ts          ← 泛型模板（PaginatedTemplate<T>）
+├── pet.ts                        ← 领域类型
+├── owner.ts                      ← 领域类型
+├── paginatedPetItems.ts          ← 绑定别名（PaginatedTemplate<Pet>）
+└── paginatedOwnerItems.ts        ← 绑定别名（PaginatedTemplate<Owner>）
+pets/
+└── pets.ts                       ← import { ... } from '../models'
+owners/
+└── owners.ts                     ← import { ... } from '../models'
+```
+
+当 [`indexFiles: false`](#indexfiles) 时，不会生成 barrel，service 文件会分别按 schema 单独导入（例如 `import type { Pet } from '../models/pet'`）。
+
+如果没有单独的 `schemas` 目录，那么所有 schemas 都会进入输出根目录下的单个 `petstore.schemas.ts` 文件。
+
+当使用 [`input.filters.tags`](/docs/reference/configuration/input#tags) 来过滤 endpoint 时，那些只通过内联 response `$defs` 中的 `$dynamicAnchor` + `$ref` 绑定被引用到的 schemas，也会被自动发现并加入输出，无需手动配置 [`filters.schemas`](/docs/reference/configuration/input#schemas)。
+
+#### Limitations
+
+- `components.schemas` 中的每个 schema 只会在单一 dynamic scope 下生成一次。如果同一个具名 component 被多个 endpoint 引用，而这些 endpoint 又分别提供了不同的 `$defs` 绑定，那么最终只会应用其中一个绑定。最常见且正确的模式，是把 `$defs` 绑定放在内联 response schemas 上。
+- 指向外部文档的 `$dynamicRef`（例如 `other.json#anchor`）会退回为 `unknown`。
+- 不带 `$ref`、但带有 `$dynamicAnchor` 的内联 `$defs` 条目，会被当作泛型类型参数，而不是具体绑定。
+
+### contentType
+
+过滤内容类型：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        contentType: {
+          include: ['application/json'],
+          exclude: ['application/xml'],
+        },
+      },
+    },
+  },
+});
+```
+
+### splitByContentType
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+当某个 endpoint 的 `requestBody` 支持多种内容类型时（例如 `application/json` 和 `multipart/form-data`），为每种内容类型分别生成一个函数，而不是把它们合并进一个使用联合类型参数的函数中。
+
+每个生成函数都会带上内容类型后缀（例如 `WithJson`、`WithFormData`）。
+
+```ts
+// 默认（false）—— 一个函数接收 union body
+updateProfile(body: FormDataType | JsonType) => { ... }
+
+// 开启 splitByContentType: true —— 每种内容类型一个函数
+updateProfileWithFormData(body: FormDataType) => { ... }
+updateProfileWithJson(body: JsonType) => { ... }
+```
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        splitByContentType: true,
+      },
+    },
+  },
+});
+```
+
+> 如果 endpoint 只有一种内容类型，则不会添加后缀，行为与默认情况相同。
+
+### formData
+
+**类型：** `Boolean | String | Object`
+
+自定义 form data 的生成方式。如果传入对象，可指定 `path`、`name`，以及可选的 `default: true` 来表示默认导出。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          path: './api/mutator/custom-form-data-fn.ts',
+          name: 'customFormDataFn',
+          // default: true
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-form-data-fn.ts"
+export const customFormDataFn = <Body>(body: Body): FormData => {
+  const formData = new FormData();
+  // 自定义实现
+  Object.entries(body as Record<string, any>).forEach(([key, value]) => {
+    if (value !== undefined) {
+      formData.append(key, value);
+    }
+  });
+  return formData;
+};
+```
+
+#### arrayHandling
+
+**类型：** `'serialize' | 'serialize-with-brackets' | 'explode'`
+**默认值：** `'serialize'`
+
+指定 FormData 如何处理数组：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          arrayHandling: 'serialize-with-brackets',
+        },
+      },
+    },
+  },
+});
+```
+
+- `serialize`：`formData.append('items', JSON.stringify(value))`
+- `serialize-with-brackets`：`formData.append('items[]', JSON.stringify(value))`
+- `explode`：展开嵌套对象并使用带索引的 key
+
+### formUrlEncoded
+
+**类型：** `Boolean | String | Object`
+
+自定义 form URL encoded 数据的生成方式：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formUrlEncoded: {
+          path: './api/mutator/custom-form-url-encoded-fn.ts',
+          name: 'customFormUrlEncodedFn',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-form-url-encoded-fn.ts"
+export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
+  const params = new URLSearchParams();
+  Object.entries(body as Record<string, any>).forEach(([key, value]) => {
+    if (value !== undefined) {
+      params.append(key, String(value));
+    }
+  });
+  return params;
+};
+```
+
+### paramsSerializer
+
+**类型：** `String | Object`
+
+> **注意：** 适用于 Axios、Angular 和 fetch client。
+
+为 query parameters 自定义参数序列化器。设置后，生成的 URL helper 会把 query string 的构建完全委托给这个函数，而不再使用内置逻辑。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+        },
+      },
+    },
+  },
+});
+```
+
+对于 Axios 和 Angular，该函数接收 params 对象，并可以返回 Axios / Angular 接受的任何值。对于 fetch client，它必须返回 `string`（即不带前导 `?` 的原始 query string）：
+
+```ts title="custom-params-serializer-fn.ts"
+// Axios / Angular
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  return Object.entries(params)
+    .filter(([_, v]) => v !== undefined)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&');
+};
+
+// fetch client —— 必须返回 string
+export const customParamsSerializer = (
+  params: Record<string, unknown> | undefined,
+): string =>
+  new URLSearchParams(
+    Object.entries(params ?? {})
+      .filter(([_, v]) => v !== undefined)
+      .flatMap(([k, v]) =>
+        Array.isArray(v)
+          ? v.map((item) => [k, String(item)])
+          : [[k, String(v)]],
+      ),
+  ).toString();
+```
+
+### paramsSerializerOptions
+
+**类型：** `Object`
+
+> **注意：** 仅适用于 Axios 或 Angular。且仅当未定义 `paramsSerializer` 时才会生效。
+
+使用 `qs` 库进行参数序列化：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### paramsFilter
+
+**类型：** `String | Object`
+
+> **注意：** 仅适用于 `angular` client，或 `httpClient: 'angular'` 的 `angular-query`。
+
+替换 Angular Client 在把参数交给 `HttpParams` 之前使用的内置 query-parameter（查询参数）过滤逻辑。设置后，orval **不会**再帮你去掉 `null` / `undefined` 或非 primitive 值；你的函数返回什么，`HttpParams`（或配置的 `paramsSerializer`）就会收到什么。
+
+这个选项有意放在 `override.paramsFilter`，而不是 `override.angular.paramsFilter`，这样就能和 `mutator`、`paramsSerializer` 一样，让同一个 request-shaping override 既可以全局使用，也可以按 operation / tag 缩小范围。
+
+当配置了 `paramsSerializer` 时，orval 本来就会保留 schema 声明的对象型参数和对象数组参数，让 serializer 自己处理；如果没有 serializer，这些参数就会被丢弃。参见 [Angular guide](/docs/guides/angular#query-parameter-filtering)。如果你在没有 serializer 的情况下也需要拿到原始对象，或者需要 schema 表达不了的控制粒度，就使用 `paramsFilter`。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsFilter: {
+          path: './api/mutator/custom-params-filter-fn.ts',
+          name: 'customParamsFilterFn',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-params-filter-fn.ts"
+export const customParamsFilterFn = (
+  params: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+```
+
+### useDates
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将 OpenAPI 的 `date` 或 `datetime` 转换为 JavaScript `Date` 对象，而不是 `string`。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useDates: true,
+      },
+    },
+  },
+});
+```
+
+> **重要：** 你必须提供一个 Axios converter，把序列化后的日期字符串转换成 `Date` 对象。这个选项本身只会影响 TypeScript 定义。
+
+如果你还希望在运行时也完成转换，请优先使用下面的 `useDatesTransform`；拦截器方案会遍历整个响应，并且可能把“看起来像日期”的字符串也一起转换掉，即便它们在 schema 中并不是日期字段。
+
+```ts title="axios-instance.ts"
+import axios from 'axios';
+
+const client = axios.create({ baseURL: '' });
+
+client.interceptors.response.use((originalResponse) => {
+  handleDates(originalResponse.data);
+  return originalResponse;
+});
+
+export default client;
+
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+
+function isIsoDateString(value: any): boolean {
+  return value && typeof value === 'string' && isoDateFormat.test(value);
+}
+
+export function handleDates(body: any) {
+  if (body === null || body === undefined || typeof body !== 'object')
+    return body;
+
+  for (const key of Object.keys(body)) {
+    const value = body[key];
+    if (isIsoDateString(value)) {
+      body[key] = new Date(value); // 默认 JS 转换
+      // body[key] = parseISO(value); // date-fns 转换
+      // body[key] = luxon.DateTime.fromISO(value); // Luxon 转换
+    } else if (typeof value === 'object') {
+      handleDates(value);
+    }
+  }
+}
+```
+
+> 如果在 `fetch` client 中使用 `useDates: true`，则 `Date` 类型的 query 参数会通过 `toISOString()` 被字符串化。
+
+### useDatesTransform
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+用这个选项可以同时完成运行时日期转换。`useDates` 只会修改生成的 TypeScript 类型，而 `useDatesTransform` 还会为每个在响应 schema 中声明了 `format: date` 或 `format: date-time` 字段的 operation，额外生成一个小型的 `deserialize<OperationName>Response` 函数，并把它挂接到生成调用上：
+
+```ts
+export const getOrderDetails = (orderId: string) => {
+  return customInstance<OrderDetails>({ url: `/orders/${orderId}`, method: 'GET' }).then(
+    deserializeGetOrderDetailsResponse,
+  );
+};
+```
+
+它只会转换 schema 中明确声明为日期的字段，不会遍历整个响应，也不会通过字符串模式匹配去“猜”日期；没有日期字段的 operation 也不会生成额外代码。设置 `useDatesTransform: true` 会隐式开启 `useDates: true`。这样一来，就不再需要 `useDates` 下展示的 Axios interceptor 方案。
+
+当前限制如下：没有 OpenAPI [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object) `mapping` 的 `oneOf` / `anyOf` 会被跳过，因为静态分析无法判断某个 payload（载荷）到底匹配哪个分支；带显式 `mapping` 的 discriminated union 则会被转换，并在 discriminator 属性上生成一个包含多个 `case` 的 `switch`。`additionalProperties` map 不会被转换，多种 success shape 的响应也会被跳过，递归 schema 也会整体保持不变，因为如果只转换循环之上的层级，就会导致更深层的日期仍然是字符串，而生成类型却已经声明成 `Date`。目前只有基于 Axios 的 Clients 接入了这一能力（`react-query`、`vue-query`、`svelte-query`，以及 `httpClient: 'axios'` 的 `solid-query`）。
+
+### useBigInt
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将 OpenAPI 的 `int64` 和 `uint64` 格式转换为 JavaScript `BigInt` 对象，而不是 `number`。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useBigInt: true,
+      },
+    },
+  },
+});
+```
+
+### requestOptions
+
+**类型：** `Object | Boolean`
+
+配置或移除 request options。设为 `false` 可完全移除。
+
+### jsDoc.filter
+
+**类型：** `Function`
+
+通过过滤和转换 schema 条目来自定义 JSDoc 生成：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        jsDoc: {
+          filter: (schema) => {
+            const allowlist = [
+              'type', 'format', 'maxLength', 'minLength',
+              'description', 'minimum', 'maximum', 'pattern',
+              'nullable', 'enum',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => allowlist.includes(key))
+              .map(([key, value]) => ({ key, value }))
+              .sort((a, b) => a.key.length - b.key.length);
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+结果：
+
+```ts
+export interface Pet {
+  /**
+   * @type integer
+   * @format int64
+   */
+  id: number;
+  /**
+   * @type string
+   * @description Name of pet
+   */
+  name: string;
+}
+```

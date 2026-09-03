@@ -1,36 +1,119 @@
 ---
-title: Fetch Client
+title: Fetch Client（Fetch 客户端）
 description: 为 SWR 和 TanStack Query 配置 Fetch HTTP 客户端
 ---
 
-Fetch Client 使用浏览器或运行时内置的 `fetch` 作为底层 HTTP 客户端。它适合希望减少依赖并使用标准 Web API 的项目。
+Fetch API 是 `swr`、`react-query` 以及其他 Query Library 客户端默认使用的 HTTP 客户端。
 
 ## 生成结果
 
-Orval 会生成请求函数，并在 SWR、React Query、Vue Query、Svelte Query 或 Solid Query 中复用这些函数。
+当使用 SWR 或 TanStack Query 时，Orval 会生成基于 Fetch 的函数，以及配套的 Hooks（钩子）：
 
 ```ts
-export const getPet = (petId: string) => {
-  return fetch(`/pets/${petId}`).then((res) => res.json());
+export type listPetsResponse = {
+  data: Pets | BadRequest;
+  status: number;
+};
+
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === null) {
+      normalizedParams.append(key, 'null');
+    } else if (value !== undefined) {
+      normalizedParams.append(key, value.toString());
+    }
+  });
+
+  return normalizedParams.size
+    ? `http://localhost:8000/pets?${normalizedParams.toString()}`
+    : `http://localhost:8000/pets`;
+};
+
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+
+  return { status: res.status, data };
+};
+
+export const useListPets = <TError = Promise<Pets | Error>>(
+  params?: ListPetsParams,
+  options?: {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError>;
+    fetch?: RequestInit;
+  },
+) => {
+  // ... hook implementation
 };
 ```
 
 ## 简化返回类型
 
-Fetch 原生返回 `Response`。Orval 默认会帮你解析 JSON，并让调用方拿到业务响应类型。
+默认情况下，Fetch 响应会包含 HTTP status，因此访问数据时需要使用 `data.data`。如果你希望直接返回定义好的业务类型：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+      },
+    },
+  },
+});
+```
+
+这会把返回类型改成：
+
+```diff
+- export type listPetsResponse = {
+-   data: Pets | BadRequest;
+-   status: number;
+- };
+
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+- ): Promise<listPetsResponse> => {
++ ): Promise<Pet> => {
+  // ...
+-  return { status: res.status, data };
++  return data;
+};
+```
 
 ## 自定义 Fetch Client
 
-可以通过 mutator 包装 `fetch`，统一处理 base URL、headers、错误和重试。
+使用 mutator 接入自定义 Fetch 实现：
 
-```ts title="src/api/fetch-client.ts"
-export async function customFetch<T>(url: string, options: RequestInit) {
-  const response = await fetch(`${API_URL}${url}`, options);
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
 
-  if (!response.ok) {
-    throw new Error('Request failed');
-  }
-
-  return response.json() as Promise<T>;
-}
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'swr',
+      override: {
+        mutator: {
+          path: './src/mutator.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+  },
+});
 ```

@@ -3,84 +3,323 @@ title: Faker
 description: 使用 Faker.js 从 OpenAPI 生成 mock 数据工厂
 ---
 
-Faker 生成器会根据 OpenAPI schema 生成假数据工厂。它不依赖 `msw`，适合单元测试、Storybook、seed 脚本和任何不需要网络 mock 的场景。
+根据你的 OpenAPI 规范生成由 [Faker.js](https://fakerjs.dev/) 驱动的 mock 数据工厂。Faker 输出不依赖 `msw`，因此适合单元测试、Storybook stories、seed 脚本，以及任何不通过网络 mock 的测试场景。
+
+对于 Mock Service Worker 请求处理器，请参见 [MSW guide](/docs/guides/msw)。
 
 ## 配置
+
+在 `output.mock.generators` 中添加一个 `faker` 生成器条目：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'single',
+      target: './src/api/petstore.ts',
+      schemas: './src/api/model',
       mock: {
         generators: [{ type: 'faker' }],
       },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
 
+你也可以把 `msw` 和 `faker` 组合在一起，在同一次生成中同时输出两类文件：
+
+```ts
+mock: {
+  generators: [{ type: 'msw' }, { type: 'faker' }],
+}
+```
+
+Faker 输出会写入 `<filename>.faker.ts`，并且只依赖 `@faker-js/faker`。
+
 ## 生成结果
 
 ### 响应工厂
 
-每个操作会生成响应 mock 工厂：
+默认情况下，Orval 会为每个操作生成一个 `get<OperationId>ResponseMock` 工厂，它会返回一个填充完整的响应值。你可以通过 `operationResponses: false` 禁用该行为（通常与 `schemas: true` 一起使用，见下文）。
 
 ```ts
-const pet = getShowPetByIdResponseMock();
+import { faker } from '@faker-js/faker';
+
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha(20),
+  tag: faker.string.alpha(20),
+  ...overrideResponse,
+});
+```
+
+你可以为任意字段子集传入覆盖值：
+
+```ts
+const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
+// => { id: 7272122785202176, name: "Buddy", tag: "..." }
 ```
 
 ### Schema 工厂
 
-schema 也可以生成独立工厂，便于在测试或故事中复用。
+将 `schemas: true` 设为开启后，会为 `components/schemas` 下的每个条目生成一个 `get<SchemaName>Mock()` 工厂。所有工厂会写入一个汇总文件 `<schemas-dir>/index.faker.ts`，这样就可以统一导入，并且它们之间也可以直接互相引用：
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      schemas: true,            // 生成 components/schemas 工厂
+      operationResponses: true, // 同时生成按操作划分的响应工厂（默认值）
+    },
+  ],
+}
+```
+
+```ts title="src/api/model/index.faker.ts"
+import { faker } from '@faker-js/faker';
+import type { Pet } from '.';
+
+export const getPetMock = (overrideResponse: Partial<Pet> = {}): Pet => ({
+  id: faker.number.int(),
+  name: faker.string.alpha(20),
+  ...overrideResponse,
+});
+```
+
+当这两个选项同时启用时，按操作生成的 `get<Op>ResponseMock` 工厂会**委托**给 schema 级工厂，而不是再次内联 schema 内容：
 
 ```ts
-const pet = getPetMock({ name: 'Rex' });
+import { getPetMock } from './model/index.faker';
+
+export const getShowPetByIdResponseMock = (): Pet => ({ ...getPetMock() });
 ```
+
+如果某个操作级或 tag 级的 `override.mock` 规则命中了被引用 schema 的某个属性（通过名称、正则或精确 `#.path` 匹配），那么这个单独的 ref 会退回为内联形式，这样 override 才能真正生效。
+
+这要求你配置 `output.schemas`（汇总文件会写入该目录）。
+
+### 数组项工厂
+
+在任意 mock 生成器条目上设置 `arrayItems: true`，即可为操作响应中出现的**对象型数组项 schema**生成可复用的 mock 工厂。这也包括直接内联在响应体中的数组元素，而不只是 `components/schemas` 下的条目。该选项同时适用于 `faker` 和 `msw` 生成器：
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      arrayItems: true,
+    },
+  ],
+}
+```
+
+对于形如 `{ value: TenantResponseModelDto[], count: number }` 的分页列表响应，Orval 会同时生成操作工厂和可复用的数组项工厂：
+
+```ts
+export const getTenantResponseModelDtoMock = (
+  overrideResponse: Partial<TenantResponseModelDto> = {},
+): TenantResponseModelDto => ({ /* ... */, ...overrideResponse });
+
+export const getGetTenantsByRefResponseMock = (
+  overrideResponse: Partial<TenantListResponse> = {},
+): TenantListResponse => ({
+  value: Array.from(/* ... */).map(() => ({ ...getTenantResponseModelDtoMock() })),
+  count: faker.number.int(),
+  ...overrideResponse,
+});
+```
+
+- **`$ref` 数组项** → 当被引用的 schema 是对象型时，生成 `get<SchemaName>Mock`（会在引用同一 schema 的多个操作之间共享）。
+- **内联对象数组项** → 生成 `get<OperationId>Response<PropertyName>ItemMock`，其类型为 `<ResponseName><PropertyName>Item`（与 Orval 生成的数组项类型别名一致）。
+
+Orval 只会为它能够稳定命名并可靠 mock 的结构提取工厂。以下情况会回退为内联 `.map()` 形式（与 `arrayItems: false` 相同）：标量 schema 的 `$ref`、`oneOf` / `anyOf` 数组项组合、可空对象数组项，以及父上下文不是生成响应包装器的嵌套数组（例如同一操作里 `outer` 和 `inner` 下各有一个 `items`）。普通对象数组项、指向对象的 `$ref` 数组项，以及内联 `allOf` 数组项都受支持。
+
+顶层数组响应（数组本身，而不是包装对象）会复用与 schema 输出相同的元素类型别名。比如，若 `$ref` 指向数组 schema `CatalogItems`，则生成的数组项工厂类型为 `CatalogItemsItem`；而内联顶层数组则会复用其生成的 `<OperationName><Status>Item` 别名。对于那些无法确定推导出该别名的结构（例如 `$ref` 数组项通过没有直接属性的多 schema `allOf` 组合而成），则仍会使用内联形式。
+
+当同时启用 `schemas: true` 时，`$ref` 数组项会改为委托给汇总的 schema 工厂（与当前行为一致）。当数组项类型只存在于响应包装器内部，或者你希望获得数组项工厂而不生成全部 `components/schemas` 条目时，`arrayItems` 会很有用。启用这两个选项时，`$ref` 数组项不会从操作 mock 文件中重新导出；请改为从 `<schemas-dir>/index.faker.ts` 导入 `get<SchemaName>Mock`。
 
 ## 选项
 
-可以配置 Faker locale、数组长度、字符串长度、数字范围以及是否为每个 HTTP 状态码生成工厂。
+共享的 mock 选项同时适用于 `faker` 和 `msw` 生成器条目。仅限 Faker 的选项会在下方单独列出。
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      useExamples: true,
+      generateEachHttpStatus: true,
+      locale: 'en_GB',
+      preferredContentType: 'application/json',
+      arrayItems: true,
+    },
+  ],
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `useExamples` | `boolean` | `false` | 当 OpenAPI 中存在 `example`/`examples` 字段时，优先使用它们为 mock 值提供种子。 |
+| `generateEachHttpStatus` | `boolean` | `false` | 为规范中定义的每个 HTTP 状态码分别生成独立工厂，而不只是成功响应。 |
+| `locale` | `keyof typeof allLocales` | — | Faker locale。会把导入切换为 `@faker-js/faker/locale/<x>`（例如 `'en_GB'`、`'fr'`、`'ja'`）。 |
+| `preferredContentType` | `string` | — | 当某个操作定义了多个响应 content type 时，优先 mock 与该 MIME type 匹配的那个。 |
+| `arrayItems` | `boolean` | `false` | 为操作响应中的对象型数组项 schema 生成可复用的 mock 工厂。参见 [数组项工厂](#数组项工厂)。 |
+
+仅限 Faker 的选项：
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `schemas` | `boolean` | `false` | 为每个 `components/schemas` 条目生成一个汇总的 `get<SchemaName>Mock` 工厂，并写入 `<schemas-dir>/index.faker.ts`。参见 [Schema 工厂](#schema-工厂)。 |
+| `operationResponses` | `boolean` | `true` | 生成按操作划分的 `get<OperationId>ResponseMock` 工厂。设为 `false` 时（通常与 `schemas: true` 一起使用）会跳过操作级工厂。 |
 
 ## 自定义 Mock 值
 
-工厂通常接收 override 对象。传入的字段会覆盖默认假数据：
+使用 `override.mock` 控制单个 schema、属性和格式的 mock 生成方式。这些选项同时适用于 `faker` 和 `msw` 生成器。
 
-```ts
-getPetMock({
-  id: 1,
-  name: 'Milo',
-});
+```ts title="orval.config.ts"
+override: {
+  mock: {
+    properties: {
+      // 按属性名匹配（字符串或正则）
+      email: () => faker.internet.email(),
+      '/.*Id$/': () => faker.string.uuid(),
+    },
+    format: {
+      // 按 OpenAPI `format` 关键字匹配
+      date: () => faker.date.past().toISOString(),
+      'date-time': () => faker.date.recent().toISOString(),
+    },
+    required: true,      // 总是填充可选字段
+    nonNullable: true,   // 不再随机把可空字段设为 null
+    arrayMin: 3,
+    arrayMax: 5,
+    stringMin: 4,
+    stringMax: 20,
+    numberMin: 0,
+    numberMax: 100,
+    fractionDigits: 2,
+  },
+}
 ```
+
+你还可以通过 `override.operations` 和 `override.tags` 将 override 限定到特定操作或特定 tag。
+
+### 按 schema 定制 override
+
+`override.mock.properties` 是按属性名匹配的，因此一个 `color` override 会作用于**所有**包含 `color` 属性的 schema。如果你希望同名属性根据所属 schema 生成不同的 mock 值，可以在 `override.mock.schemas` 下按 schema 名称限定：
+
+```ts title="orval.config.ts"
+override: {
+  mock: {
+    schemas: {
+      Apple: {
+        properties: {
+          color: () => faker.helpers.arrayElement(['red', 'green']),
+        },
+      },
+      Car: {
+        properties: {
+          color: () => 'midnight black',
+        },
+      },
+    },
+  },
+}
+```
+
+这样 `getAppleMock()` 会把 `color` mock 为水果颜色，而 `getCarMock()` 会把它 mock 为汽车颜色，即使这两个 schema 都声明了 `color: string`。
+
+`properties` 下的 key 与 `override.mock.properties` 使用相同的匹配规则，即裸属性名、正则（`/.../`）或精确路径（`#.foo.bar`），但它们只会应用到命名 schema 的属性上（该 schema 通过自身的 `parentName` 匹配）。当启用 `schemas: true` 时，每个 `get<SchemaName>Mock` 工厂都会把其 schema 级 override 固化进去，因此委托给该工厂的引用也会保留这个 override。
+
+**优先级**（先匹配先生效）：`override.operations` → `override.tags` → `override.mock.schemas` → `override.mock.properties`。
 
 ## 用法
 
 ### 单元测试
 
 ```ts
-import { describe, expect, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import { getShowPetByIdResponseMock } from './api/petstore.faker';
 
-it('renders pet name', () => {
-  const pet = getPetMock({ name: 'Milo' });
-  expect(pet.name).toBe('Milo');
+describe('PetDetails', () => {
+  it('renders the pet name', () => {
+    const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
+    render(<PetDetails pet={pet} />);
+    expect(screen.getByText('Buddy')).toBeInTheDocument();
+  });
 });
 ```
 
 ### Storybook
 
-在 story 中使用工厂创建稳定示例数据，避免手写大型对象。
+```ts
+import type { Meta, StoryObj } from '@storybook/react';
+import { getShowPetByIdResponseMock } from '../api/petstore.faker';
+import { PetDetails } from './PetDetails';
+
+const meta: Meta<typeof PetDetails> = {
+  component: PetDetails,
+};
+export default meta;
+
+export const Default: StoryObj<typeof PetDetails> = {
+  args: { pet: getShowPetByIdResponseMock() },
+};
+
+export const NamedPet: StoryObj<typeof PetDetails> = {
+  args: { pet: getShowPetByIdResponseMock({ name: 'Buddy' }) },
+};
+```
 
 ### Seed 脚本
 
-seed 脚本可以批量生成符合 schema 的假数据，再写入本地数据库或测试环境。
+```ts
+import { writeFile } from 'node:fs/promises';
+import { getListPetsResponseMock } from './api/petstore.faker';
+
+const seed = Array.from({ length: 50 }, () => getListPetsResponseMock());
+await writeFile('seed/pets.json', JSON.stringify(seed, null, 2));
+```
 
 ## 确定性输出
 
-Faker 的随机数生成器可以设置 seed。需要快照测试或可复现数据时，在调用工厂前设置 seed。
+Faker 的 PRNG 支持设置 seed。你可以在调用工厂前设置 seed，以获得可复现的输出，这对快照测试尤其有帮助：
+
+```ts
+import { faker } from '@faker-js/faker';
+import { getShowPetByIdResponseMock } from './api/petstore.faker';
+
+beforeEach(() => {
+  faker.seed(42);
+});
+
+it('matches snapshot', () => {
+  expect(getShowPetByIdResponseMock()).toMatchSnapshot();
+});
+```
 
 ## 动态导入
 
-大型项目可以使用动态导入减少首屏 bundle。只在测试、Storybook 或 mock 环境加载 Faker 工厂。
+在 `split` 和 `tags-split` 模式下，可以启用 `mock.indexMockFiles` 来生成一个 `index.faker.ts` barrel 文件。在 `tags-split` 下，它会聚合各个按 tag 划分的 faker 文件；在 `split` 下，它会重新导出单个 faker 文件：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+        generators: [{ type: 'faker' }],
+      },
+    },
+  },
+});
+```

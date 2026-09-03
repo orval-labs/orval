@@ -1,11 +1,11 @@
 ---
-title: Input
+title: Input（输入配置）
 description: Input 配置选项
 ---
 
 ## target
 
-OpenAPI 规范的路径或 URL。
+你的 OpenAPI 规范的路径或 URL。
 
 **类型：** `string | string[] | OpenApiDocument | Record<string, unknown>`
 
@@ -21,7 +21,7 @@ export default defineConfig({
 });
 ```
 
-也可以传入多个 target。Orval 会按顺序尝试这些 target，并使用第一个成功解析的规范。这适合本地规范优先、远程规范兜底的场景。
+你也可以传入一个 target 数组。Orval 会按顺序尝试每个 target，并使用第一个成功解析的项（磁盘上的文件存在，或者 URL 可访问）。这适用于兜底场景，例如优先使用本地规范文件，不可用时再退回远程 URL。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -38,7 +38,7 @@ export default defineConfig({
 });
 ```
 
-`input` 的简写形式同样支持数组：
+简写形式的 `input` 属性同样支持数组：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -57,7 +57,7 @@ export default defineConfig({
 
 ### transformer
 
-在生成前转换 OpenAPI 规范。
+在生成之前转换 OpenAPI 规范。
 
 **类型：** `String | Function`
 
@@ -75,6 +75,264 @@ export default defineConfig({
 });
 ```
 
-`transformer` 会在规范校验之前执行，因此可以用来修复不符合规范的字段，而不必完全关闭校验。对于 OpenAPI 2.0，也就是 Swagger 规范，`transformer` 接收到的是升级前的 2.0 文档。
+`transformer` 会在规范校验**之前**执行（也会在内部进行 OpenAPI 2.0 -> 3.1 升级之前执行），因此你可以用它来修复格式不合法的规范（例如修正不符合标准的字段），而不必完全关闭校验。如果你的规范是 OpenAPI 2.0（Swagger），`transformer` 接收到的是 2.0 文档，而不是升级后的 3.1 形式。
 
-`transformer` 函数接收一个 `OpenApiDocument`，并返回 `OpenApiDocument` 或 `Promise<OpenApiDocument>`。它支持异步逻辑，也可以原地修改输入对象。
+`transformer` 函数接收一个 `OpenApiDocument`，并且必须返回 `OpenApiDocument` 或 `Promise<OpenApiDocument>`。支持异步 transformer，因此你可以在其中拉取 override，或执行任何可 `await` 的修复步骤。你既可以原地修改输入对象，也可以返回一个新对象。`orval` 提供的 `defineTransformer` 辅助函数可为同步和异步返回值都提供类型推断。
+
+```ts title="transformer.ts"
+import { defineTransformer } from 'orval';
+
+export default defineTransformer((inputSchema) => ({
+  ...inputSchema,
+  info: {
+    ...inputSchema.info,
+    title: `${inputSchema.info?.title} - Custom`,
+  },
+}));
+```
+
+异步示例：
+
+```ts title="transformer.ts"
+import { defineTransformer } from 'orval';
+
+export default defineTransformer(async (inputSchema) => {
+  const overrides = await fetch('https://example.com/overrides.json').then(
+    (r) => r.json(),
+  );
+  return { ...inputSchema, ...overrides };
+});
+```
+
+参考 [example transformer](https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js)。
+
+## filters
+
+过滤要生成的 endpoint。
+
+**默认值：** `{}`
+
+### mode
+
+**类型：** `'include' | 'exclude'`
+**默认值：** `'include'`
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['pets'],
+      },
+    },
+  },
+});
+```
+
+### tags
+
+**类型：** `(String | RegExp)[]`
+**默认值：** `[]`
+
+按 OpenAPI tags 过滤：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        tags: ['pets', /health/],
+      },
+    },
+  },
+});
+```
+
+当设置了 `tags` 且没有设置 `schemas` 时，orval 会自动将输出限制为匹配操作直接或传递性引用到的 schemas。这可以避免无关 schema 出现在生成结果中。
+
+如果你同时指定了 `schemas`，则会以 `schemas` 为准，并跳过自动推断。如果你想按 tags 过滤 endpoint，但仍然输出**所有** schemas，请设置 [`includeUnreferencedSchemas: true`](#includeunreferencedschemas)。它在 `include` 和 `exclude` 模式下都有效。
+
+### schemas
+
+**类型：** `(String | RegExp)[]`
+
+显式按 schema 名称过滤：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        schemas: ['Error', /Cat/],
+      },
+    },
+  },
+});
+```
+
+### includeUnreferencedSchemas
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+当设置了 `tags` 且没有设置 `schemas` 时，orval 默认只会输出匹配操作所引用到的 schemas。设置 `includeUnreferencedSchemas: true` 后，即使某些 schema 没有被任何操作引用，也会保留 `#/components/schemas` 下的**所有**条目，同时仍然按 `tags` 过滤 endpoint。其他组件部分（`responses`、`parameters`、`requestBodies`）仍会裁剪为匹配操作实际使用到的内容。它在 `include` 和 `exclude` 模式下都有效；如果设置了 `schemas`，则会忽略该选项。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['stream'],
+        includeUnreferencedSchemas: true,
+      },
+    },
+  },
+});
+```
+
+## parserOptions
+
+OpenAPI 规范解析器的可选配置，尤其适合从受保护的 URL 拉取规范时使用。
+
+### headers
+
+**类型：** `Array<{ domains: string[]; headers: Record<string, string> }>`
+
+从远程 URL 获取 OpenAPI 规范时，按域名发送特定 headers。headers 会根据当前拉取 URL 的域名进行匹配。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: 'https://api.example.com/openapi.json',
+      parserOptions: {
+        headers: [
+          {
+            domains: ['api.example.com'],
+            headers: {
+              Authorization: 'Bearer YOUR_TOKEN',
+              'X-API-Key': 'your-api-key',
+            },
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+为不同域名配置不同的 headers：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: 'https://api.example.com/openapi.json',
+      parserOptions: {
+        headers: [
+          {
+            domains: ['api.example.com', 'api.prod.example.com'],
+            headers: {
+              Authorization: 'Bearer PROD_TOKEN',
+            },
+          },
+          {
+            domains: ['api.dev.example.com'],
+            headers: {
+              Authorization: 'Bearer DEV_TOKEN',
+            },
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+### externalRefs
+
+控制如何解析外部 `$ref` 目标（本地文件或远程 URL）。
+
+默认情况下，orval 会拒绝解析任何外部 `$ref`，并打印一段可以粘贴到 `parserOptions` 中的配置片段。
+
+#### allow
+
+**类型：** `string[]`
+**默认值：** `[]`
+
+允许的外部 `$ref` 文档目标。每个条目都应是 `$ref` 的文档部分（不包含 `#/...` fragment）。文件路径相对于 spec 文件解析。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './openapi.yaml',
+      parserOptions: {
+        externalRefs: {
+          allow: [
+            './schemas/pet.yaml',
+            './schemas/user.yaml',
+            'https://example.com/schemas/shared.json',
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+使用 `['*']` 可以允许所有外部 refs（旧行为）。Orval 会输出 warning，列出顶层 spec 所引用的外部文档：
+
+```ts
+parserOptions: {
+  externalRefs: {
+    allow: ['*'],
+  },
+}
+```
+
+<Callout type="warn">
+  **安全性：** 外部 `$ref` 的值来自正在处理的 spec，而该 spec 可能并不可信。允许所有外部 refs（`['*']`）意味着 orval 会读取 spec 中引用的任意本地文件，并抓取任意 URL。更推荐显式列出你信任的具体文档。
+</Callout>
+
+## unsafeDisableValidation
+
+在代码生成期间禁用 OpenAPI 规范校验。
+
+**类型：** `boolean`
+**默认值：** `false`
+
+<Callout type="warn">
+  **请自行承担风险。** 基于无效 OpenAPI 规范进行代码生成并不保证可用，而且在小版本更新中也可能失效。关闭校验后的相关 bug 报告将不会被接受。
+</Callout>
+
+当设为 `true` 时，orval 会跳过规范级别的校验（`@scalar/openapi-parser`）以及组件 key 检查，无论 spec 是否有错误都会继续执行代码生成。它的设计目的是为某些使用了非标准扩展的规范提供兜底手段，例如 FastAPI 在 `text/event-stream` 响应上使用的 `itemSchema`，这类写法本来会被符合标准的校验器拒绝。只要规范能够原地修复，就应优先使用 [`override.transformer`](#transformer)，因为它会在校验之前运行。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+      unsafeDisableValidation: true,
+    },
+  },
+});
+```

@@ -1,19 +1,28 @@
 ---
 title: Vue Query
-description: 从 OpenAPI 生成类型安全的 Vue Query composables
+description: 从 OpenAPI 生成类型安全的 Vue Query Composables（组合式函数）
 ---
 
-Vue Query 客户端会生成适配 TanStack Query for Vue 的 composables。它适合 Vue 应用中用组合式 API 管理远程数据。
+根据你的 OpenAPI 规范生成完整类型化的 [TanStack Query for Vue](https://tanstack.com/query/latest/docs/vue/overview) Composables（组合式函数）。
 
 ## 配置
 
+将 `client` 选项设置为 `vue-query`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'vue-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,38 +30,161 @@ export default defineConfig({
 
 ## 生成结果
 
-生成内容包括 query composables、mutation composables、请求函数、query key helper 和类型。
+Orval 会为你的 OpenAPI 规范中的每个 path 生成一个 Composable（组合式函数）。例如，[这个规范](https://github.com/orval-labs/orval/blob/master/samples/vue-query/petstore.yaml)会生成：
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
+    queryKey,
+    queryFn,
+    {
+      enabled: petId !== null && petId !== undefined,
+      ...queryOptions,
+    },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+## 响应式参数
+
+生成的 Composables（组合式函数）接受响应式参数，因此当输入变化时 Query 会重新执行。在 **Vue Query v5** 下（它要求 Vue 3.3+），每个参数都会被类型化为 [`MaybeRefOrGetter<T>`](https://vuejs.org/api/utility-types.html#maybereforgetter)，也就是 `T | Ref<T> | (() => T)`，并在内部通过 [`toValue()`](https://vuejs.org/api/reactivity-utilities.html#tovalue) 解包。因此你可以直接传 Getter（取值函数），而不需要额外包一层 `computed`：
+
+```ts
+// 这三种形式都可以：
+useShowPetById(petId.value);
+useShowPetById(petId);
+useShowPetById(() => props.petId);
+```
+
+`MaybeRefOrGetter<T>` 是 `MaybeRef<T>` 的超集，因此现有那些传入 ref 或普通值的调用点都可以继续不做修改地工作。针对 Vue Query v4（或旧版 `vue-query` v3 package）生成的项目，则仍会使用 `MaybeRef<T>`/`unref()`，因为这些目标可能运行在早于 3.3 的 Vue 版本上。
 
 ## Infinite Queries
 
-启用后生成 infinite query composable，适合分页或无限滚动列表。
-
-## 单个操作覆盖
-
-可以用 `override.operations` 针对单个 operation 调整 query 行为。
-
-## Set Query Data
-
-启用后生成缓存写入 helper，用于 mutation 后同步更新缓存。
-
-## Get Query Data
-
-启用后生成缓存读取 helper，减少手写 query key 的重复。
-
-## 完整示例
+生成 `useInfiniteQuery` Composables（组合式函数）：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
       client: 'vue-query',
       override: {
         query: {
-          useSetQueryData: true,
-          useGetQueryData: true,
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
         },
       },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
+
+## 单个操作覆盖
+
+为特定操作覆盖 Query 选项：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'vue-query',
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              useInfinite: true,
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Set Query Data
+
+当设置 `useSetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来更新缓存中的 query data（查询数据）：
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: MaybeRefOrGetter<ListPetsParams> | undefined,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+    { queryKey: getListPetsQueryKey(params) },
+    updater,
+  );
+};
+```
+
+这个辅助函数使用的是 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata)，因此 query key（查询键）会按前缀匹配。对 query params（查询参数）或 body 传入 `undefined` 时，会更新所有共享同一路径的缓存条目；`updater` 会对每个命中的条目各调用一次。
+
+<Callout type="warn">
+  在这次变更之前，该辅助函数调用的是 `setQueryData`，它只会写入（并创建）单个精确 key 对应的条目。`setQueriesData` 只会更新已经存在的条目，并按前缀匹配，因此当你传入完整指定的 key 时，行为可能会有所不同。升级时请检查现有调用点。
+</Callout>
+
+## Get Query Data
+
+当设置 `useGetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来读取缓存中的 query data（查询数据）：
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
+## 完整示例
+
+请查看 GitHub 上的 [complete Vue Query example（完整 Vue Query 示例）](https://github.com/orval-labs/orval/tree/master/samples/vue-query)。

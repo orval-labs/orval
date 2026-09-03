@@ -1,98 +1,826 @@
 ---
 title: Angular
-description: 从 OpenAPI 生成 Angular HttpClient service 和 httpResource 函数
+description: 从 OpenAPI 生成带有 HttpClient 和 httpResource 函数的 Angular 服务
 ---
 
-Angular 客户端会生成基于 Angular `HttpClient` 的请求函数，也可以为 Angular v19.2+ 生成 `httpResource` 函数。它适合希望在 Angular 生态内保持类型安全和标准测试方式的项目。
+从 OpenAPI 规范生成完整类型的 Angular 服务，可使用 `HttpClient`，也可使用以 signal 为中心的 `httpResource` 函数。
+
+如果你只想看简要结论：
+
+- 传统 Angular service 风格 API 选 `httpClient`
+- 以 signal 为中心的读取流程选 `httpResource`
+- 既想要基于 resource 的读取，又想要基于 service 的写入时选 `both`
+- 当你生成 Zod schema 且希望在运行时校验响应时，启用 `override.angular.runtimeValidation`
 
 ## 配置
+
+将 `output.client` 设为 `angular` 以启用 Orval 的 Angular generator：
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
-      schemas: './src/model',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'angular',
-      httpClient: 'angular',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
 
+`output.client = 'angular'` 会选择 Angular generator。之后可通过 `override.angular.retrievalClient` 决定这类 **检索型** Angular operation 要生成成什么形式。旧的 `override.angular.client` 键仍然保留，作为向后兼容的别名。
+
 ## 生成结果
 
-Orval 会生成类型、请求函数、URL 构造函数和可选的 Angular service。请求函数使用 Angular 的 `HttpClient`，因此可以直接复用拦截器、测试工具和依赖注入。
+默认情况下，Angular Client 会生成基于 `HttpClient` 的可注入 Service Class（服务类）。
+
+可用的 Angular 检索模式：
+
+- `httpClient`：检索型 operation 保持为基于 `HttpClient` 的可注入 Service 方法
+- `httpResource`：为检索型 operation 生成以 signal 为核心的 `httpResource` 函数
+- `both`：同时生成 `httpResource` 检索函数，并保留 `HttpClient` 方法来处理命令式请求
+
+`create`、`update`、`delete` 以及多数命令式 `POST` 调用这类 mutation 风格操作，默认仍然使用生成出来的 `HttpClient` Service 方法。如果某个 operation 需要不同的行为，可以再用 operation 级别的 Angular override 单独调整。
+
+通过依赖注入注册生成的 service 即可使用，无论是 standalone 还是基于 module 的应用都适用：
+
+```ts title="app.config.ts"
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { PetstoreService } from './api/petstore';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(), PetstoreService],
+};
+```
+
+`providedIn` 只作用于生成的 service class。`httpResource` 函数只是普通导出，因此需要在使用处直接导入并调用。
 
 ## 选择 Angular 输出模式
 
-Angular 输出可以按项目偏好选择函数、service 或 `httpResource` 风格。已有 service 层的项目通常选择 service；需要更细粒度组合时选择函数；使用 Angular 新资源 API 时选择 `httpResource`。
+使用 `override.angular.retrievalClient` 选择生成的 Angular 检索模式：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpClient',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+如果省略 `override.angular.retrievalClient`，或旧别名 `override.angular.client`，Orval 会默认生成 Angular `HttpClient` service-class 输出。
 
 ### 应该选择哪种模式？
 
-- **函数模式**：最轻量，便于组合和测试。
-- **service 模式**：符合传统 Angular 分层方式。
-- **httpResource 模式**：适合使用 signal 驱动远程数据的 Angular 新项目。
+| `override.angular.retrievalClient` | Orval 会生成什么 | 适用场景 |
+|---|---|---|
+| `httpClient` | 检索型 operation 保持为基于 `HttpClient` 的可注入 service class 方法 | 你希望使用传统 Angular service、命令式请求方法，以及与请求选项和 mutator 的最广泛兼容性 |
+| `httpResource` | 检索型 operation 变成以 signal 为中心的 `httpResource` 函数；mutation 仍使用 `HttpClient` service 方法 | 你希望读取流程拥有 Angular 原生 signal 体验，并偏好基于 resource 的取数方式 |
+| `both` | service class 加上同级 `*.resource.ts` 检索辅助文件 | 你希望同时拥有 signal-first 的读取和命令式写入 |
+
+快速经验法则：
+
+- 传统 Angular service 风格 API 选 `httpClient`
+- signal-first 的读取流程选 `httpResource`
+- 当应用希望两种模式并存时选 `both`
+- 如果未设置 `override.angular.retrievalClient`，Orval 默认使用 `httpClient`
+- create、update、delete 以及其他 mutation 风格 operation 默认仍使用 `HttpClient` 方法
 
 ## 设置后端 URL
 
-可以通过 `output.baseUrl`、自定义 mutator 或 Angular provider 传入运行时 base URL。多环境项目建议把 base URL 放在运行时配置中。
+### 单个 API
+
+使用 HTTP interceptor 自动附加 API base URL。在现代 standalone Angular 应用中，函数式 interceptor 能让配置更紧凑：
+
+```ts title="api.interceptor.ts"
+import { HttpInterceptorFn } from '@angular/common/http';
+
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(
+    req.clone({
+      url: `https://api.example.com${req.url}`,
+    }),
+  );
+};
+```
+
+```ts title="app.config.ts"
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { apiInterceptor } from './api.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
+};
+```
+
+不过 interceptor 是全局生效的：它只能通过分析发出的 `req.url` 来判断该走哪条路由。当你在同一个应用里生成多个 Angular API，并把它们放在 gateway 或 proxy 后面，再为每个 API 分配不同的路径前缀或 host（主机）时，这种方式就容易失效，因为 interceptor 很难可靠判断某个请求到底来自哪个生成客户端。
+
+### 基于 DI 的 base URL 组合（多个 API / gateway 路由）
+
+设置 `override.angular.baseUrl` 后，这个输出会通过 Angular 的依赖注入来组合 base URL，而不是依赖全局 interceptor。和 interceptor 不同，这里的 base URL 是按每个生成出来的 API 单独解析的，因此当 gateway 需要把不同客户端映射到不同上游路径时，就可以直接在 DI 中表达这种关系。
+
+`apiId` 是必填且显式的，Orval 不会从规范标题或文件名推导它，因此生成的 token 和 helper 名称在重新生成后仍保持稳定：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          baseUrl: { apiId: 'petstore' },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+#### 生成产物
+
+设置 `override.angular.baseUrl` 后，Orval 会在生成客户端旁边额外输出一个同级 `<target>.base-url.ts` 文件：
+
+```ts title="petstore.base-url.ts"
+import { InjectionToken, inject, type Provider } from '@angular/core';
+
+export const PETSTORE_SERVER_URL: string = 'http://petstore.swagger.io/v1';
+
+export function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '');
+}
+
+export interface PetstoreBaseUrlResolverContext {
+  readonly apiId: 'petstore';
+  readonly serverUrl: string;
+}
+
+export type PetstoreBaseUrlResolver = (
+  context: PetstoreBaseUrlResolverContext,
+) => string;
+
+export const PETSTORE_BASE_URL_RESOLVER =
+  new InjectionToken<PetstoreBaseUrlResolver>('PETSTORE_BASE_URL_RESOLVER', {
+    providedIn: 'root',
+    factory: (): PetstoreBaseUrlResolver => (context) => context.serverUrl,
+  });
+
+export const PETSTORE_BASE_URL = new InjectionToken<string>(
+  'PETSTORE_BASE_URL',
+  {
+    providedIn: 'root',
+    factory: (): string => {
+      const resolver = inject(PETSTORE_BASE_URL_RESOLVER);
+      return normalizeBaseUrl(
+        resolver({ apiId: 'petstore', serverUrl: PETSTORE_SERVER_URL }),
+      );
+    },
+  },
+);
+
+export function providePetstoreBaseUrl(baseUrl: string): Provider {
+  return { provide: PETSTORE_BASE_URL, useValue: normalizeBaseUrl(baseUrl) };
+}
+
+export function providePetstoreBaseUrlResolver(
+  resolver: PetstoreBaseUrlResolver,
+): Provider {
+  return { provide: PETSTORE_BASE_URL_RESOLVER, useValue: resolver };
+}
+```
+
+这些标识符只会从 `apiId` 派生出来（`petstore` → `PETSTORE_*` / `Petstore*` / `providePetstore*`），因此当同一应用里为不同 `apiId` 生成多个输出时，不会发生命名冲突。该输出中的每个 `HttpClient` Service 方法和 `httpResource` 函数都会注入 `PETSTORE_BASE_URL`，再用它给路由补上前缀。
+
+#### 优先级
+
+`PETSTORE_BASE_URL` 会按以下顺序解析：
+
+1. 通过 `providePetstoreBaseUrl(...)` 直接提供的值，优先级最高，下面的 resolver 不会被调用。
+2. 通过 `providePetstoreBaseUrlResolver(...)` 提供的 resolver。
+3. 默认 resolver factory，它只是返回内嵌的 server URL。
+4. 生成时从规范 `servers` 字段解析出的内嵌 `PETSTORE_SERVER_URL` 常量；若规范没有 `servers`，则为空字符串 `''`，从而生成相对 URL。
+
+最终生效的值都会先经过 `normalizeBaseUrl` 处理，它会移除末尾斜杠（`'/api/x/'` → `'/api/x'`，`'https://h/'` → `'https://h'`，`'/'` → `''`）。而生成出来的路由始终以 `/` 开头，所以普通的字符串插值（`` `${baseUrl}${route}` ``）既不会产生双斜杠，也不会丢掉分隔符。
+
+#### 一个 gateway 后挂多个 API
+
+由于 `InjectionToken` 的身份是按输出隔离的，两个生成输出在没有共享运行时包的前提下，不能直接共用同一个 token 实例，而 Orval 的 Angular 输出本身又是按“无运行时依赖”来设计的。正确做法是共享同一个 resolver *函数*，再把它分别注册到每个输出自己的 resolver token 上。只要把它的类型写成一个简单的结构接口，它就能赋值给任何生成出来的 `<Api>BaseUrlResolver`，不管 `apiId` 是什么：
+
+```ts title="app.config.ts"
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { providePetstoreBaseUrlResolver } from './api/petstore.base-url';
+import { provideInventoryBaseUrlResolver } from './api/inventory.base-url';
+
+interface GatewayContext {
+  apiId: string;
+  serverUrl: string;
+}
+
+// 一个注册表，一个 resolver 函数，供所有生成 API 共享。
+const gatewayRoutes: Record<string, string> = {
+  petstore: '/gateway/petstore',
+  inventory: '/gateway/inventory',
+};
+
+const gatewayResolver = (ctx: GatewayContext): string =>
+  gatewayRoutes[ctx.apiId] ?? ctx.serverUrl;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(),
+    providePetstoreBaseUrlResolver(gatewayResolver),
+    provideInventoryBaseUrlResolver(gatewayResolver),
+  ],
+};
+```
+
+每个输出仍然会独立解析自己的 token；只是 `gatewayResolver` 会根据不同 token 传入的 `apiId` 来分发。因此 `petstore` Client 和 `inventory` Client 可以共用同一个 gateway，同时分别路由到不同的上游路径或 host（主机）。
+
+#### 测试
+
+在 `TestBed` 中像覆盖其他 provider 一样覆盖该 token 或 resolver：
+
+```ts title="pets.service.spec.ts"
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import {
+  providePetstoreBaseUrl,
+  providePetstoreBaseUrlResolver,
+} from './api/petstore.base-url';
+import { PetsService } from './api/pets/pets.service';
+
+describe('PetsService', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        providePetstoreBaseUrl('/gateway/petstore'),
+        // or: providePetstoreBaseUrlResolver((ctx) => `/gateway/${ctx.apiId}`),
+      ],
+    });
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('prefixes requests with the provided base URL', () => {
+    TestBed.inject(PetsService)
+      .createPets({ name: 'Rex', tag: 'dog' })
+      .subscribe();
+
+    httpMock.expectOne('/gateway/petstore/v1/pets').flush(null);
+  });
+});
+```
+
+同一个 token 只要在 `TestBed` 中提供一次，就会同时影响同一输出下的 `HttpClient` Service 和 `httpResource` 函数，因此在测试里做一次 provider override，就足以重定向这组输出发出的所有请求。
+
+#### `httpResource` 与 injection context
+
+生成出来的 `httpResource` 函数在调用时，如果当前处于 injection context 中，就会通过 `inject()` 读取该 token；如果你传入了显式的 `injector`，则会退回到 `options.injector.get(...)`。这和生成出来的 `httpResource` 函数处理其他依赖时的注入规则完全一致：
+
+```ts title="pets/pets.resource.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept?: ShowPetByIdAccept,
+  version?: Signal<number>,
+  options?: OrvalHttpResourceOptions<Pet, unknown>,
+): HttpResourceRef<Pet | undefined> {
+  const baseUrl = options?.injector
+    ? options.injector.get(PETSTORE_BASE_URL)
+    : inject(PETSTORE_BASE_URL);
+  // ...
+}
+```
+
+因此，你要么在 Angular 的 injection context 中调用这些函数，例如构造函数、字段初始化器或 `runInInjectionContext` 中；要么在做不到这一点时，通过 `options` 显式传入 `injector`。
+
+#### 说明
+
+- **不影响 Zod 运行时校验。** `override.angular.runtimeValidation` 的行为保持不变；base URL token 只会改变请求 URL 的拼接方式，不会改变响应的解析方式。
+- **自定义 mutator 收到的是已经组合好的 URL。** `${baseUrl}` 前缀会先附加到路由上，再传给 `generateMutatorConfig`，因此配置了 `mutator` 时，它看到的 URL 会和普通 `HttpClient` 调用保持一致。
+- **MSW Mock 仍然保持相对路由。** `override.angular.baseUrl` 不会影响 MSW Handler（处理器）的匹配；它们仍按路由路径匹配，而不是按组合后的 base URL 匹配。
+- **与 `output.baseUrl` 互斥。** `output.baseUrl` 会给所有 Client 的每个生成路由静态写入前缀；如果再叠加 `override.angular.baseUrl`，每个 URL 都会被重复加前缀，或者直接发生冲突，因此 Orval 会在配置阶段报错。若你需要运行时可配置的前缀，请移除 `output.baseUrl`，改用 `providePetstoreBaseUrlResolver`。
+- **`apiId` 始终是显式的。** 它不会从规范的 `info.title` 或目标文件名推导，因此即使重命名规范或输出文件，生成的 DI token 名称也不会悄悄变化。
+- 只有规范顶层的 `servers` 字段会被内嵌为回退 URL。如果你的规范在 path 或 operation 级别定义了 `servers`，token 仍只会回退到规范顶层的 `servers` 配置（通过 `index`/`variables` 选中），不会使用 path 级别的覆盖。
 
 ## httpResource 输出（Angular v19.2+）
 
-`httpResource` 输出会为读取操作生成资源函数。资源会暴露加载、错误和值状态，让组件以 signal 风格消费请求结果。
-
-### 哪些操作会变成 `httpResource`？
-
-通常 `GET` 操作适合生成资源函数；写操作仍应保留为普通请求或 mutation 风格函数。
-
-### 安全消费生成的资源
-
-读取 `value()` 前先判断 `hasValue()`，并显式处理加载和错误状态，避免在模板中访问空值。
-
-### 多内容类型
-
-当 OpenAPI 为同一操作声明多个 content type 时，Orval 会根据配置拆分或合并对应函数，确保请求体类型保持明确。
-
-### `both` 模式
-
-`both` 模式可以同时生成普通请求函数和 `httpResource` 函数。迁移项目可以先用这种方式逐步替换调用点。
-
-### httpResource 选项
-
-你可以通过 override 为单个操作配置资源选项，例如是否启用、默认值和请求参数来源。
-
-### Mutator 兼容性
-
-自定义 mutator 仍然可用，但需要保持与 Angular `HttpClient` 的调用约定一致。
-
-## httpResource + Zod schema 类型
-
-配合 Zod 输出时，生成的资源可以使用 schema 推导出的类型。这样组件拿到的值和运行时校验保持一致。
-
-## 测试生成的 `httpResource` 函数
-
-生成代码仍使用 Angular 标准 HTTP 栈，因此可以使用 `HttpTestingController` 测试请求 URL、方法、请求体和响应处理。
-
-## Zod 运行时校验
-
-开启运行时校验后，Orval 会在响应进入调用方前执行 schema parse。解析失败时应按业务约定处理错误状态。
-
-### 配置
+通过 `override.angular.retrievalClient` 可以启用 `httpResource` 检索模式。该模式面向 Angular v19.2+ 提供的 `httpResource` API：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+生成出来的 resource 函数使用 signal，并返回 `HttpResourceRef<T>`：
+
+```ts title="pets.service.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<Pet | undefined> {
+  return httpResource<Pet>(() => `/pets/${petId()}`);
+}
+```
+
+由于 Orval 返回的是 Angular 原生 `HttpResourceRef`，你可以直接使用 Angular 的资源 API，例如 `hasValue()`、`status()`、`error()`、`reload()` 以及资源快照 API 来做更高级的组合。
+
+### 哪些 operation 会变成 `httpResource` 函数？
+
+Orval 会为检索型 operation 生成 `httpResource` helper。
+
+- `GET` operation 会生成 resource
+- 检索型 `POST`，例如 search/list/find/query 一类 endpoint，也可生成 resource
+- mutation 风格 operation 仍保持为 `HttpClient` service 方法
+
+如果需要覆盖默认分类，可对单个 operation 使用 Angular 级别的 override：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
       client: 'angular',
+      target: 'src/api/petstore.ts',
       override: {
-        zod: {
-          strict: true,
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+        operations: {
+          searchPets: {
+            angular: {
+              retrievalClient: 'httpResource',
+            },
+          },
         },
       },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+当你的 API 使用 `POST` 来表示检索型 endpoint 时，这尤其有用。
+
+### 安全消费生成的资源
+
+读取 `value()` 之前请先用 `hasValue()` 做保护。Angular resource 在错误状态下读取 `value()` 会抛错，因此 `hasValue()` 是安全且推荐的判断方式。
+
+```ts title="pets.page.ts"
+import { computed, signal } from '@angular/core';
+
+import { showPetByIdResource } from './api/http-resource/pets.service';
+
+const petId = signal('1');
+const petResource = showPetByIdResource(petId);
+
+const petName = computed(() => {
+  if (!petResource.hasValue()) {
+    return undefined;
+  }
+
+  return petResource.value().name;
+});
+```
+
+<Callout title="Tip" type="info">
+当 `hasValue()` 为 false 时，推荐在 `computed()` 中返回一个兜底值，而不是无条件读取 `value()`。这样无论在模板还是组件逻辑中，都能安全处理加载中和错误状态。
+</Callout>
+
+### 多种内容类型
+
+当某个 operation 可能返回多种响应内容类型时，生成的 resource 可能会暴露 `accept` 参数，并针对不同的 `Accept` 值返回不同的结果类型。
+
+```ts title="pets.service.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept: 'application/json',
+): HttpResourceRef<Pet | undefined>;
+
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept: 'text/plain',
+): HttpResourceRef<string | undefined>;
+```
+
+这能让生成出来的 Angular API 与你的 OpenAPI 响应矩阵保持一致，包括纯文本、blob 和 array-buffer 的资源变体。
+
+内容协商的 resource 与单一内容类型 resource 一样具备响应式：路径参数、`params` 查询对象、`version` 以及 request-body signal 等所有 signal 输入都会在 `httpResource` factory 内部读取，所以任意一个变化都会触发重新请求。`accept` 参数本身不是 signal，而是普通值；它只用于决定创建哪一种 resource 变体（`httpResource`、`.text` 或 `.arrayBuffer`）。因此若要切换内容类型，应重新创建 resource，而不是修改一个 signal。
+
+<Callout title="Tip" type="info">
+由于 `accept` 只会在创建时读取一次，不要把它包成 signal；如果需要在运行时切换内容类型，请用不同的 `accept` 值重新调用 resource 函数。
+</Callout>
+
+### `both` 模式
+
+当你希望同时拥有 signal-first 的读取和命令式 `HttpClient` 方法时，使用 `both`：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+在 `both` 模式下，Orval 会把 service class 保留在主生成文件中，并将检索用 resource 输出到同级的 `*.resource.ts` 文件中。
+
+```ts title="pets.page.ts"
+import { PetstoreService } from './api/petstore';
+import { listPetsResource } from './api/petstore.resource';
+```
+
+当应用偏好 signal-first 的读取，但仍需要 service 方法来处理写入或命令式请求流程时，这种分离非常合适。
+
+### httpResource 选项
+
+你可以通过 `override.angular.httpResource` 自定义生成出来的 `httpResource` 调用：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          httpResource: {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+常见选项：
+
+- `defaultValue`：resource 在 idle/loading 时暴露的初始值
+- `debugName`：在 Angular DevTools 中显示的名称
+
+高级选项：
+
+- `injector`：原样传给 `HttpResourceOptions.injector` 的表达式
+- `equal`：原样传给 `HttpResourceOptions.equal` 的表达式
+
+在更高级的场景下，也可以为 Angular 的 resource 选项传入原始表达式：
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    retrievalClient: 'httpResource',
+    httpResource: {
+      injector: 'inject(Injector)',
+      equal: '(a, b) => a?.id === b?.id',
+    },
+  },
+}
+```
+
+operation 级别的 `httpResource` 选项会覆盖全局配置：
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    retrievalClient: 'httpResource',
+    httpResource: {
+      debugName: 'globalPetResource',
+    },
+  },
+  operations: {
+    showPetById: {
+      angular: {
+        retrievalClient: 'httpResource',
+        httpResource: {
+          debugName: 'showPetByIdResource',
+        },
+      },
+    },
+  },
+}
+```
+
+Orval 还会为这些选项输出一个共享 helper type。`TOmitParse` 的默认泛型值会随生成文件而异，但生成出来的类型形状如下：
+
+```ts
+export type OrvalHttpResourceOptions<
+  TValue,
+  TRaw = unknown,
+  TOmitParse extends boolean = false,
+> = (TOmitParse extends true
+  ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
+  : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
+```
+
+当配置了 `defaultValue` 时，生成出来的 resource overload 会返回 `HttpResourceRef<T>`，而不是 `HttpResourceRef<T | undefined>`。
+
+### Request headers 和 HttpContext
+
+生成出来的 `httpResource` helper（辅助函数）可以暴露与 `HttpClient` Service 方法相同的请求描述能力：包括 OpenAPI 中 `in: header` 的参数，以及在调用点额外附加 header 和 Angular `HttpContext` 的出口，例如给全局 HTTP interceptor 打标记。
+
+**OpenAPI `in: header` 参数。** 当启用顶层 `output.headers` 选项时，规范中声明的 header 参数会被生成为 `headers: Signal<XHeaders>` 参数，并在每次请求时转发：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      headers: true, // generate `in: header` parameters
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+```ts
+const correlationId = signal('abc-123');
+const headers = computed(() => ({ 'X-Correlation-Id': correlationId() }));
+
+listPetsResource(params, headers);
+```
+
+**调用点上的额外 header 与 `HttpContext`。** 每个生成出来的 `httpResource` helper（辅助函数）的最后一个 `options` 参数也接受 `headers`、`context` 和 `request`，无论该 operation 是否声明了 `in: header` 参数。这和生成出来的 `HttpClient` Service 方法上已有的 `HttpClientOptions` 能力保持一致，因此你不必仅仅为了附加 interceptor 策略，或给单次请求补一个 header，就退回到原始 `HttpClient`。
+
+这些扩展字段位于 **最后的 options 参数** 上，也就是承载 `defaultValue`/`debugName` 的同一个对象。其他生成参数必须先传完：路径/查询 signal、当启用 `output.headers` 时的 `in: header` signal，以及多内容类型 helper 上的 `accept` 参数，都在该 options 参数之前。
+
+```ts
+import { HttpContext } from '@angular/common/http';
+import { BYPASS_GLOBAL_ERROR_HANDLER } from './http-context-tokens';
+
+const requestId = signal('req-42');
+
+// 只有一个路径参数和一种内容类型的 operation：
+// options 参数位于第二个位置
+const itemEvents = getItemEventsResource(itemId, {
+  headers: () => ({ 'x-request-id': requestId() }),
+  context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLER, true),
+});
+
+// petstore sample 中的多内容类型 operation
+// （签名：petId, accept, version?, options?）——
+// 要在 options 前把所有生成参数都补齐，想跳过的可选参数用 `undefined`
+const pet = showPetByIdResource(petId, 'application/json', undefined, {
+  context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLER, true),
+});
+```
+
+- `headers`：额外 header，会覆盖合并到生成出的 header 之上。可以传 `HttpHeaders` 实例、普通对象，或返回其一的函数。
+- `context`：传给底层请求的 Angular `HttpContext`。可以传 `HttpContext` 实例，或返回它的函数。
+- `request`：最后兜底的逃生口，接收构建完成的 `HttpResourceRequest`，并返回 Orval 实际发送的请求对象。
+
+<Callout type="info">
+如果值会读取 signal，请使用函数形式，例如 `headers: () => ...`、`context: () => ...` 或 `request: (req) => ...`。Orval 会在 `httpResource` 的响应式 factory **内部** 调用这些函数，因此当其中读取的 signal 发生变化时，resource 会自动重新加载。普通对象或 `HttpContext` 实例只会在每次请求计算时读取一次，本身不会触发重新加载。
+</Callout>
+
+**优先级。** OpenAPI 中生成的 header 会先应用，然后再合并 options 中额外提供的 `headers`，同名时后者覆盖前者，最后才执行 `request`。对于具有多个成功内容类型的 operation，生成的 `Accept` header 会在你的扩展之后再次强制写回，以确保响应分支分发（也就是 `accept` 参数）保持正确。因此你的 `headers`/`context`/`request` 可以添加或覆盖其他 header，但不能覆盖 `Accept`。
+
+Orval 还会与 `OrvalHttpResourceOptions` 一起输出一个可复用的小型扩展接口：
+
+```ts
+export interface OrvalHttpResourceRequestExtension {
+  headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);
+  context?: HttpContext | (() => HttpContext);
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
+```
+
+`applyOrvalRequestExtension` 是生成出来用来应用这些字段的 helper。通常你不会直接调用它，但可能会在生成的 `httpResource` factory 中看到它。
+
+测试方式与其他生成出的 `httpResource` 调用完全一样，仍然使用 `HttpTestingController`，只是要额外断言拦截到的请求中的 `headers` 和 `context`：
+
+```ts
+const req = httpMock.expectOne('/items/42/events');
+expect(req.request.headers.get('x-request-id')).toBe('req-42');
+expect(req.request.context.get(BYPASS_GLOBAL_ERROR_HANDLER)).toBe(true);
+```
+
+### Mutator 兼容性
+
+`httpResource` 输出支持与 request 兼容的 mutator，但不支持那种必须把生成出来的 `HttpClient` 实例作为额外参数传入的 `HttpClient` 风格 mutator。如果你的 mutator 依赖这个注入进来的 `HttpClient` 参数，那么该 operation 更适合使用 `httpClient` 或 `both` 模式。
+
+## httpResource + Zod schema 类型
+
+当 `schemas.type` 设为 `zod` 时，Orval 可以在生成基于 Zod 的模型文件的同时，生成 Angular `httpResource` 函数。生成出来的 Resource 仍然返回 Angular 原生 `HttpResourceRef`，因此最重要的实践并没有变：读取 `value()` 时依然应该先用 `hasValue()` 保护，同时也要像测试其他 `httpResource` 一样，覆盖加载态和错误态。
+
+当启用 `override.angular.runtimeValidation: true` 时，生成出来的 JSON resource 还会输出 `parse: Schema.parse`，并暴露诸如 `PetOutput`、`PetsOutput` 这样的 Zod 输出类型。
+
+<Callout type="info">
+当启用 `schemas.type: 'zod'` 时，Zod 是运行时依赖。请确保你的应用安装了 `zod`，例如将它放到 `dependencies` 中。
+</Callout>
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: true, // opt-in
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## 测试生成的 `httpResource` 函数
+
+生成出来的 Resource 使用的是 Angular 标准 `HttpClient` 栈，因此测试方式与其他基于 `HttpClient` 的代码相同：先配置 `provideHttpClient()`，再配置 `provideHttpClientTesting()`；然后使用 `HttpTestingController` `flush` 请求；最后等待 Angular 把新的 signal 值传播出去。
+
+```ts title="pets.page.spec.ts"
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import { PetsPage } from './pets.page';
+
+describe('PetsPage', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [PetsPage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('renders fetched pets', async () => {
+    const fixture = TestBed.createComponent(PetsPage);
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/v1/pets');
+    expect(req.request.method).toBe('GET');
+    req.flush([{ id: 1, name: 'Rex', requiredNullableString: null }]);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Rex');
+  });
+});
+```
+
+这也是验证 `schemas.type: 'zod'` 输出里加载状态和后端错误行为的合适位置，尤其当你的组件使用了 `hasValue()` 来避免不安全地读取 `value()` 时更是如此。当启用 `override.angular.runtimeValidation` 时，至少应再加一个测试：用无效的 JSON payload（载荷）调用 `flush`，并断言 Resource 暴露出了 `ZodError`。
+
+## Zod 运行时校验
+
+当 `schemas.type` 设为 `zod` 且启用了 `override.angular.runtimeValidation` 时，Angular 输出就支持对基于 Zod 的响应做运行时校验。对于 JSON 模型响应，默认的 `throw` 策略会对符合条件的响应执行 `Schema.parse()`。`both` 策略则会使用 `safeParse()`，先通过 `console.error` 记录原始 `ZodError`，再把错误继续抛出。
+
+这不仅适用于 `httpResource`，同样也适用于生成出来的 Angular `HttpClient` Service。如果你保持默认的 Angular 检索模式（`retrievalClient: 'httpClient'`），那么符合条件的 `GET` 方法本身就已经会用 Zod 处理 JSON 模型响应。
+
+### 配置
+
+1. 将 `schemas.type` 设为 `zod` 以生成 Zod schema
+2. 将 `override.angular.runtimeValidation` 设为以下之一：
+   - `true`，即 `{ strategy: 'throw' }` 的简写
+   - `{ strategy: 'both' }`，表示先记录再抛出
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/schemas',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          runtimeValidation: { strategy: 'both' },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -100,64 +828,337 @@ export default defineConfig({
 
 ### 工作方式
 
-请求完成后，响应先通过生成的 Zod schema，再返回给调用方。这样可以捕获服务端契约漂移。
+对于生成出来的 `HttpClient` Service，JSON 响应会在 RxJS pipeline 中完成校验。对于生成出来的 `httpResource` JSON 检索函数，则会使用 Angular 的 `HttpResourceOptions.parse` hook，并沿用相同的策略语义。
 
-### 请求体类型化但不自动解析
+```ts
+// 生成代码（简化版）
+getPet(options?: HttpClientBodyOptions): Observable<PetOutput> {
+  return this.http
+    .get<PetOutput>(`/pet`, { observe: 'body' })
+    .pipe(map((data) => Pet.parse(data)));
+}
 
-请求体会获得 TypeScript 类型，但默认不会自动 parse。需要运行时请求体验证时，应在应用边界显式执行。
+showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<PetOutput | undefined> {
+  return httpResource<PetOutput>(() => `/pet/${petId()}`, {
+    parse: Pet.parse,
+  });
+}
+```
+
+**校验会作用于：**
+- 生成出来的 `HttpClient` service 中的 JSON 模型响应
+- 生成出来的 `GET` 方法返回的 JSON 模型响应
+- 生成出来的 `POST`、`PUT`、`PATCH`、`DELETE` 等 mutation 方法返回的 JSON 模型响应
+- 带有模型响应类型的 JSON `httpResource` 检索
+
+**以下情况会跳过校验：**
+- 原始类型（`string`、`number`、`boolean`、`void`、`unknown`）
+- 自定义 mutator 路径
+- 非 JSON 内容类型（text、blob、arrayBuffer）
+
+对于生成出来的 `HttpClient` service，当 JSON 响应体通过 `response` 或 response-event 的 observe 流暴露出来时，运行时校验同样会生效。
+
+### 请求体有类型，但不会自动 parse
+
+当你生成 Zod schema 时，Orval 也会同时生成诸如 `CreatePetsBody` 这样的请求体 schema，以及对应的 `z.input<>` / `z.output<>` 类型。生成出来的 Angular `HttpClient` 方法会使用这些类型，但它们 **不会** 在发送请求前自动调用 `Schema.parse(body)`。
+
+这意味着当前 Angular + Zod 的职责分工可以理解为：
+
+- 请求体会获得生成出来的 TypeScript 类型和可复用的 Zod schema
+- 响应体会在启用 `override.angular.runtimeValidation` 时自动执行运行时 parse
+
+如果你希望在发送前校验请求体，请在调用生成客户端之前显式执行：
+
+```ts
+const payload = CreatePetsBody.parse(formValue);
+return this.petsService.createPets(payload);
+```
+
+当你希望无效输入立即抛错时，使用 `.parse()`；当你希望在不抛异常的情况下反馈校验问题时，使用 `.safeParse()`。
 
 ## 请求体 readonly 指南
 
-生成类型可能包含 readonly 结构。调用方应避免原地修改请求体，优先创建新对象，减少状态共享问题。
+Angular 输出同样支持 `override.preserveReadonlyRequestBodies`，用于控制 OpenAPI `readOnly` 字段在生成请求体类型时的处理方式：
 
-### 运行时校验支持矩阵
-
-不同输出模式对运行时校验的接入点略有不同。普通请求函数和 service 最直接；`httpResource` 需要在资源请求链路中处理 parse 结果。
-
-### 错误处理
-
-建议统一处理 HTTP 错误和 Zod 解析错误，避免组件分别理解多种异常格式。
-
-## Query 参数过滤
-
-Orval 可以过滤 query 参数，避免把未声明或空值参数传给后端。
-
-### 默认行为（schema 感知透传）
-
-默认情况下，Orval 会根据 schema 保留已声明参数，并跳过不应发送的值。
-
-### 使用 `override.paramsFilter` 自定义过滤
+- `'strip'`（默认）：适用于多数 OpenAPI 规范，也是推荐默认值
+- `'preserve'`：当你的请求 DTO 有意设计成不可变时使用
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       override: {
-        paramsFilter: (params) => params,
+        preserveReadonlyRequestBodies: 'strip',
       },
     },
   },
 });
 ```
 
-## 高级辅助函数
+`'strip'` 是最合理的默认值，因为 OpenAPI 的 `readOnly` 属性通常更偏向响应语义。这个建议同样适用于 Angular `HttpClient` 和 `httpResource` 输出：即使是 `httpResource`，也可能会发送请求 payload（载荷），因此默认不应保留 readonly 请求字段。
 
-高级配置可以生成 URL 构造、schema、mock 和缓存辅助函数。只启用当前项目真正需要的能力，避免生成无用代码。
+### 运行时校验支持矩阵
 
-## 完整示例
+| Client | 配置键 | 运行时校验 |
+|--------|------------|--------------------|
+| `angular` | `override.angular.runtimeValidation` | ✅ Supported |
+| `angular-query` | `override.query.runtimeValidation` | ✅ Supported |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ Supported |
+| custom mutator paths | varies | ⚠️ See [#2858](https://github.com/orval-labs/orval/issues/2858) |
+
+### 错误处理
+
+当校验失败时，Zod 会抛出 `ZodError`。
+
+对于 `HttpClient` service，可在 subscription、effect 或 error interceptor 中处理：
+
+```ts
+this.petService.getPet().subscribe({
+  next: (pet) => console.log('Validated pet:', pet),
+  error: (err) => {
+    if (err.name === 'ZodError') {
+      console.error('Response validation failed:', err.issues);
+    }
+  },
+});
+```
+
+对于生成出来的 `httpResource` helper，应通过资源的 `error()` signal 读取错误，并继续使用 `hasValue()` 保护对 `value()` 的读取。
+
+## Query 参数过滤
+
+Angular 的 `HttpParams` 只接受原始值（`string`、`number`、`boolean` 及其数组）。其他任何内容，例如对象、对象数组、`null`、`undefined`，都会被拒绝，或被静默字符串化为 `"[object Object]"`。为了让 `HttpParams` 更安全，生成出来的 Angular client 会在把每个 query 参数传给 `HttpClient` 之前，先通过内部的 `filterParams` helper 做处理。
+
+### 默认行为（schema-aware passthrough）
+
+1. **原始类型参数** 仍会延续既有的空值剥离逻辑，但有一个例外：规范中同时声明为 `required` 且 `nullable` 的参数。静默删除必填参数会导致发送一个违反 OpenAPI 契约的请求，因此它永远不会被简单移除。在未配置 `paramsSerializer` 时，这类参数若值为 `null`，会被发送为空字符串（`?key=`），以确保 key 仍然出现在请求线上。如果配置了 `paramsSerializer`，则会原样传递字面量 `null`，由 serializer 决定如何编码。可选且可空的参数在为 `null` 时仍会被删除；只有必填可空参数会得到这种特殊处理。参见 [issue #3712](https://github.com/orval-labs/orval/issues/3712)。
+2. **由 schema 声明的对象参数** 会按照 OpenAPI 参数的 `style` / `explode` 进行序列化，见下方的 [Object query parameters](#object-query-parameters-style--explode)；但这只在 **未配置 `paramsSerializer`** 时成立。若配置了 `paramsSerializer`，对象会被原样保留并传给 serializer，由后者负责把原始对象编码成 `HttpParams` 可发送的形式。
+3. **对象数组** 只有在配置了 `paramsSerializer` 时，才会原样透传；如果没有 serializer，也没有 `paramsFilter`，就没有下游消费者能处理原始对象，因此该参数会被丢弃。OpenAPI 本身也没有为对象数组定义 `style` / `explode` 编码方式，因此与普通对象参数不同，这种情况不会受到前面的对象序列化行为影响。
+
+```yaml title="openapi.yaml"
+parameters:
+  - name: filters
+    in: query
+    schema:
+      type: object
+      additionalProperties:
+        type: string
+```
+
+在以上规范且 **未** 配置 `paramsSerializer` 的情况下，生成出来的 client 会按照 OpenAPI 默认值（`style: form`、`explode: true`）对 `filters` 进行序列化，也就是将对象属性展开成顶层 query 参数。如果配置了 `paramsSerializer`（例如 `qs.stringify`），生成出来的 client 会保留原始 `filters` 对象并将其传给 serializer。如果你即使在没有 serializer 的情况下也需要保留原始对象，例如 mutator 需要把它展开为带方括号的 key，那么请使用 `override.paramsFilter`，见下文。相关背景问题见 [issue #3326](https://github.com/orval-labs/orval/issues/3326) 和 [issue #3705](https://github.com/orval-labs/orval/issues/3705)。
+
+### Object query parameters（style & explode）
+
+> 该行为是在修复 [issue #3705](https://github.com/orval-labs/orval/issues/3705) 时加入的。
+
+OpenAPI 对 `in: query` 参数的默认规则是 `style: form` + `explode: true`。对于 `type: object` 的 schema，这意味着对象属性会被展开为多个顶层 query 参数，而不是嵌套在参数自身名称下。只要 operation 没有配置 `paramsSerializer` 或 `paramsFilter`，Orval 生成出来的 Angular client 现在就会在请求时遵循这一规则，同时也支持 `form` + `explode: false` 和 `deepObject` 变体。
+
+```yaml title="openapi.yaml"
+paths:
+  /catalog-items:
+    get:
+      operationId: searchCatalog
+      parameters:
+        - name: arg0
+          in: query
+          schema:
+            type: object
+            properties:
+              itemReferences:
+                type: array
+                items:
+                  type: string
+              pageNumber:
+                type: integer
+```
+
+```ts title="generated SearchCatalogParams (unchanged, still nested)"
+export type SearchCatalogParams = {
+  arg0?: {
+    itemReferences?: string[];
+    pageNumber?: number;
+  };
+};
+```
+
+```ts
+searchCatalog({ arg0: { itemReferences: ['a', 'b'], pageNumber: 1 } });
+// -> GET /catalog-items?itemReferences=a&itemReferences=b&pageNumber=1
+```
+
+生成出来的参数 **类型** 会刻意保持规范所声明的形状，也就是 `arg0` 仍然保留嵌套结构，以反映工具链给出的参数名。Orval 不会为了方便而为它发明一个更扁平的名字，因为这类名称往往只是源工具链的产物，并不真正属于你的 API 领域模型。如果你看到 `arg0` 之类的名字，是因为基于 Spring / springdoc 的后端在编译时没有保留参数名，那么应该从源头修复：启用 `-parameters` 的 `javac` 选项，或者在控制器方法参数上使用 `springdoc-openapi` 的 `@ParameterObject` 注解，让生成出来的规范报告真实的参数名。
+
+| `style` | `explode` | 线上格式 | 策略 |
+| --- | --- | --- | --- |
+| `form`（默认） | `true`（默认） | `itemReferences=a&itemReferences=b&pageNumber=1` | `flatten` |
+| `form` | `false` | `arg0=itemReferences,a,b,pageNumber,1` | `comma` |
+| `deepObject` | （任意） | `arg0[itemReferences]=a&arg0[itemReferences]=b&arg0[pageNumber]=1` | `deepObject` |
+
+在展开或 deepObject 序列化的对象内部，如果再出现非原始值嵌套（对象中的对象、对象数组），会继续沿用顶层过滤器的“仅原始值”规则将其丢弃。OpenAPI 同样没有为这些情况定义 `style` / `explode` 编码，因此它们不会以 `"[object Object]"` 的形式进入请求。
+
+如果你想恢复修复 #3705 之前的行为，也就是静默丢弃对象类型 query 参数，可设置：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      target: './src/api/petstore.ts',
+      override: {
+        angular: {
+          queryObjectSerialization: 'legacy',
+        },
+      },
+    },
+  },
+});
+```
+
+`queryObjectSerialization` 可以像 `retrievalClient` / `runtimeValidation` 一样在全局、tag 级或 operation 级设置。详见[配置参考](/docs/reference/configuration/output#queryobjectserialization)。
+
+### 使用 `override.paramsFilter` 自定义过滤
+
+当 schema 无法描述你的真实需求时，例如你希望保留空字符串、以不同方式编码数组，或在参数进入请求前改名，就可以提供 `paramsFilter` mutator。它会 **完全替换** 内建的 `filterParams`；任何解析到它的 operation 都不再调用默认逻辑，因此空值剥离和非原始值处理都由你自己负责。
+
+虽然 `paramsFilter` 仅作用于 Angular，但它位于 `override.paramsFilter` 而不是 `override.angular.paramsFilter`，这样你仍然可以复用 Orval 一贯的全局 / operation / tag 级 override 模式。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
-      schemas: './src/model',
       client: 'angular',
-      httpClient: 'angular',
+      target: './src/api/petstore.ts',
+      override: {
+        paramsFilter: {
+          path: './src/api/params-filter.ts',
+          name: 'filterPetstoreParams',
+        },
+      },
     },
   },
 });
 ```
+
+```ts title="src/api/params-filter.ts"
+// 现在你自己就是过滤器。orval 不会再替你移除 null、undefined 或对象值，
+// 你应返回 Angular HttpParams 最终应该看到的形状。
+export const filterPetstoreParams = (
+  params: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue;
+    result[key] = value;
+  }
+  return result;
+};
+```
+
+#### 选择自定义过滤后，你接管了什么
+
+内建 helper 不会与你的过滤器一起执行。具体来说，你需要自己负责：
+
+- 处理 `undefined`，因为 Angular 的 `HttpParams` 不能安全地把它表示为 query 值
+- 处理 `null`，因为 Angular 会把它当作字面量字符串 `"null"`
+- 过滤数组，因为像 `new HttpParams({ fromObject: { tags: [{}] } })` 这样的值是无效的
+- 按 `style` / `explode` 序列化对象类型参数，或自行做 coercion / flatten；或者依赖下游 `paramsSerializer`
+- 处理上文提到的“必填可空参数转空字符串”的回退逻辑；一旦选择 `paramsFilter`，这部分默认行为也会被替换，因此如果你想恢复旧的“静默丢弃”语义，`paramsFilter` 就是恢复它的逃生口
+
+下面是默认 helper 所应用的精确规则，适合作为你自定义版本的起点：
+
+```ts title="default-filter-behaviour.ts"
+// 当未配置 `paramsFilter` 时，orval 会生成这套逻辑。
+// `passthroughKeys` 只有在同时配置了 `paramsSerializer` 时才非空，
+// 它保存由 schema 声明的对象 / 对象数组参数键。
+// `objectParamStrategies` 保存每个键对应的 style / explode 策略
+//（issue #3705），当配置了 `paramsSerializer` 或设置了
+// `queryObjectSerialization: 'legacy'` 时，该对象为空。
+// `preserveRequiredNullables` 只会在配置了 `paramsSerializer` 时为 true，
+// 这使得字面量 `null` 可以被交给 serializer 编码；若未配置 serializer，
+// 则必填可空参数会转成空字符串，以确保 key 仍然进入请求（见 #3712）。
+// 你可以按需复制或改写其中任意部分。
+type Primitive = string | number | boolean;
+type Value = Primitive | Primitive[] | null;
+type ObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
+
+export const defaultFilter = (
+  params: Record<string, unknown>,
+  requiredNullableKeys = new Set<string>(),
+  preserveRequiredNullables = false,
+  passthroughKeys = new Set<string>(),
+  objectParamStrategies: Readonly<Record<string, ObjectParamStrategy>> = {},
+): Record<string, Value | unknown> => {
+  const out: Record<string, Value | unknown> = {};
+  const filterPrimitives = (value: unknown[]) =>
+    value.filter(
+      (item): item is Primitive =>
+        item != null &&
+        (typeof item === 'string' ||
+          typeof item === 'number' ||
+          typeof item === 'boolean'),
+    );
+  for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) out[key] = value;
+      continue;
+    }
+    const strategy = objectParamStrategies[key];
+    if (strategy && value != null && typeof value === 'object' && !Array.isArray(value)) {
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (strategy === 'comma') {
+        const parts = entries
+          .filter(([, v]) => v != null && typeof v !== 'object')
+          .flatMap(([k, v]) => [k, String(v)]);
+        if (parts.length) out[key] = parts.join(',');
+      } else {
+        for (const [prop, propValue] of entries) {
+          const targetKey = strategy === 'deepObject' ? `${key}[${prop}]` : prop;
+          if (Array.isArray(propValue)) {
+            const filtered = filterPrimitives(propValue);
+            if (filtered.length) out[targetKey] = filtered;
+          } else if (propValue != null && typeof propValue !== 'object') {
+            out[targetKey] = propValue as Value;
+          }
+        }
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const filtered = filterPrimitives(value);
+      if (filtered.length) out[key] = filtered;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      out[key] = preserveRequiredNullables ? null : '';
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      out[key] = value;
+    }
+  }
+  return out;
+};
+```
+
+#### 与 `paramsSerializer` 组合
+
+如果你同时配置了两者，orval 会按下面的顺序调用，因此 serializer 处理的是过滤后的结果：
+
+```
+raw params → paramsFilter → paramsSerializer → HttpParams
+```
+
+`paramsFilter` 控制的是 *哪些 key/value 最终进入请求*；`paramsSerializer` 控制的是 *这些幸存值如何被编码进 URL*。两者都是可选且相互独立的。配置 `paramsSerializer` 后，上文提到的内建对象序列化策略也会被关闭，原始对象会直接透传给你的 serializer。
+
+## 高级辅助函数
+
+生成出来的 `httpResource` 文件还会包含一些小型便捷 helper，例如 `ResourceState<T>` 和 `toResourceState()`，方便你将 Angular resource 集成到自定义状态抽象中。
+
+## 完整示例
+
+请参阅 GitHub 上的[完整 Angular 示例](https://github.com/orval-labs/orval/tree/master/samples/angular-app)。

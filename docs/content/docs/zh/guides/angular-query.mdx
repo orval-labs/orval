@@ -1,9 +1,9 @@
 ---
 title: Angular Query
-description: 生成 TanStack Query for Angular 查询函数
+description: 生成 TanStack Query for Angular
 ---
 
-Angular Query 客户端会从 OpenAPI 操作生成可注入、类型安全的 TanStack Query for Angular 函数。它适合已经使用 Angular signals 和 TanStack Query 管理远程数据的项目。
+从 OpenAPI 规范生成可注入的 [TanStack Query for Angular](https://tanstack.com/query/latest/docs/framework/angular/overview) 函数。
 
 ## 配置
 
@@ -12,11 +12,16 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
-      schemas: './src/model',
+      mode: 'tags-split',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
       client: 'angular-query',
+      httpClient: 'angular',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -24,69 +29,311 @@ export default defineConfig({
 
 ## 生成结果
 
-Orval 会生成：
+Orval 会生成使用 Angular 原生 `HttpClient` 的可注入查询函数：
 
-- 每个操作对应的查询函数和 mutation 函数
-- 请求和响应类型
-- query key 工具
-- 可选的缓存更新、失效和运行时校验辅助函数
+```ts
+// 基础 operation 函数
+export const showPetById = (
+  http: HttpClient,
+  petId: string,
+  options?: { signal?: AbortSignal | null },
+): Promise<Pet> => {
+  const url = `/pets/${petId}`;
+  const request$ = http.get<Pet>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+// Query key factory
+export const getShowPetByIdQueryKey = (petId?: string) =>
+  [`/pets/${petId}`] as const;
+
+// 可注入查询函数
+export function injectShowPetById<TData = Pet, TError = unknown>(
+  petId: string | (() => string),
+  options?: { query?: Partial<CreateQueryOptions<Pet, TError, TData>> },
+): CreateQueryResult<TData, TError> {
+  const http = inject(HttpClient);
+  const query = injectQuery(() => {
+    const _petId = typeof petId === 'function' ? petId() : petId;
+    return getShowPetByIdQueryOptions(http, _petId, options);
+  });
+  return query;
+}
+```
 
 ## Signal 响应式
 
-生成的查询函数遵循 Angular Query 的 signals 模型。查询参数可以来自 signal，也可以来自普通值。参数变化时，query key 会随之更新。
+参数可以通过 getter 函数支持 Angular signal：
+
+```ts
+@Component({...})
+export class PetDetailComponent {
+  petId = signal('1');
+
+  // 当 petId() 变化时，query 会重新执行
+  pet = injectShowPetById(() => this.petId());
+
+  // 动态启用/禁用
+  conditionalPet = injectShowPetById(
+    () => this.petId(),
+    () => ({ query: { enabled: this.isEnabled() } }),
+  );
+}
+```
 
 ## Mutations
 
-写操作会生成 mutation options。你可以在组件或 service 中组合 `injectMutation`，并把生成的 mutation options 传入。
+对于 POST、PUT、PATCH、DELETE 操作，Orval 会生成 mutation options factory 和可注入 mutation 函数：
 
 ```ts
-const createPetMutation = injectMutation(() => createPetMutationOptions());
+// Mutation options factory
+export const getCreatePetsMutationOptions = <TError = Error, TContext = unknown>(
+  http: HttpClient,
+  queryClient: QueryClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBody },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const mutationKey = ['createPets'];
+  const mutationFn = async (props: { data: CreatePetsBody }) => {
+    return createPets(http, props.data, options?.fetch);
+  };
+
+  return { mutationKey, mutationFn, ...options?.mutation };
+};
+
+// 可注入 mutation 函数
+export const injectCreatePets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: CreateMutationOptions<...>;
+    fetch?: RequestInit;
+  },
+): CreateMutationResult<...> => {
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+  const mutationOptions = getCreatePetsMutationOptions(http, queryClient, options);
+  return injectMutation(() => mutationOptions);
+};
+```
+
+用法：
+
+```ts
+@Component({...})
+export class CreatePetComponent {
+  createPet = injectCreatePets();
+
+  onSubmit(pet: CreatePetsBody) {
+    this.createPet.mutate({ data: pet });
+  }
+}
 ```
 
 ## Query Invalidation
 
-启用 `override.query.useInvalidate` 后，Orval 会生成失效辅助函数，用来让相关缓存重新请求。
+当设置 `useInvalidate: true` 时，Orval 会生成用于使查询失效的辅助函数：
 
 ```ts
-await invalidateListPets(queryClient);
+export const invalidateShowPetById = async (
+  queryClient: QueryClient,
+  petId: string,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    options,
+  );
+  return queryClient;
+};
 ```
 
 ## Set Query Data
 
-启用 `override.query.useSetQueryData` 后，会生成类型安全的缓存写入函数。它使用 TanStack Query 的 `setQueriesData`，因此可以按 query key 前缀更新多条缓存。
+当设置 `useSetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来更新缓存中的 query data（查询数据）：
+
+```ts
+export const setShowPetByIdQueryData = (
+  queryClient: QueryClient,
+  petId: string,
+  updater:
+    | Awaited<ReturnType<typeof showPetById>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof showPetById>> | undefined,
+      ) => Awaited<ReturnType<typeof showPetById>> | undefined),
+) => {
+  queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    updater,
+  );
+};
+```
+
+这个辅助函数使用 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata)，因此 query key（查询键）会按前缀匹配。对于带 query params（查询参数）或 body 的 endpoint，这些参数会被扩宽为可接受 `undefined`；传入 `undefined` 可更新共享同一路径的所有缓存条目，而 `updater` 会对每个匹配条目分别执行一次。
+
+<Callout type="warn">
+  在这一变更之前，该辅助函数调用的是 `setQueryData`，它会写入并创建单个精确 key 条目。`setQueriesData` 只会更新已存在的条目，并按前缀匹配，因此使用完整 key 的现有调用在升级后可能表现不同，请检查相关调用点。
+</Callout>
 
 ## Get Query Data
 
-启用 `override.query.useGetQueryData` 后，会生成读取缓存的辅助函数。返回值类型与对应操作的响应类型一致。
+当设置 `useGetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来读取缓存中的 query data（查询数据）：
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
 
 ## 自动 Mutation 失效
 
-`override.query.mutationInvalidates` 可以让 mutation 成功后自动失效相关查询。它适合常见的增删改场景，避免在每个组件里重复写 `onSuccess`。
-
-### 组合用户回调
-
-如果你同时传入自己的 `onSuccess`，Orval 会把自动失效逻辑和用户回调组合起来执行。
-
-### 跳过自动失效
-
-个别操作不需要自动失效时，可以在 operation override 中关闭对应配置。
-
-## Query Options
-
-可以通过全局配置或单个 operation override 设置 query options，例如 `staleTime`、`gcTime`、`enabled` 等。
-
-## 单个操作配置
+配置 mutation 成功时的自动失效：
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
     output: {
       client: 'angular-query',
       override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+用法：
+
+```ts
+@Component({
+  template: `
+    <ul>
+      @for (pet of pets.data(); track pet.id) {
+        <li>{{ pet.name }} <button (click)="onDelete(pet.id)">Delete</button></li>
+      }
+    </ul>
+  `,
+})
+export class PetListComponent {
+  pets = injectListPets();
+  deletePet = injectDeletePet();
+
+  onDelete(petId: string) {
+    // listPets 和 showPetById(petId) 会自动失效
+    this.deletePet.mutate({ petId });
+  }
+}
+```
+
+### 组合用户回调
+
+当你提供自己的 `onSuccess` 时，自动失效逻辑和你的回调都会执行：
+
+```ts
+deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: () => this.snackbar.open('Pet deleted!'),
+  },
+  // 在 onSuccess 之前，失效逻辑仍会自动运行
+});
+```
+
+### 跳过自动失效
+
+在运行时传入 `skipInvalidation: true` 可以选择退出自动失效，例如你希望自己延迟执行失效或按条件执行：
+
+```ts
+deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: (_data, variables) => {
+      // 自定义延迟失效
+      setTimeout(() => {
+        this.queryClient.invalidateQueries({
+          queryKey: getListPetsQueryKey(),
+        });
+      }, 700);
+    },
+  },
+  skipInvalidation: true,
+});
+```
+
+## Query Options
+
+配置无限查询和默认选项：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+## 单个操作配置
+
+你可以为单个 operation 或 tag 覆盖 `query` 选项：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
         operations: {
           listPets: {
             query: {
-              useQuery: true,
+              useInfinite: true,
+              useInfiniteQueryParam: 'cursor',
+              options: {
+                staleTime: 60000,
+              },
             },
           },
         },
@@ -98,28 +345,52 @@ export default defineConfig({
 
 ## Zod 运行时校验
 
-配合 Zod 输出时，可以开启运行时校验，让响应在进入应用状态前被 schema 检查。
+当与 Zod schema 一起使用时，你可以开启对 HTTP 响应的自动运行时校验。`runtimeValidation` 可以接受：
 
-## 完整示例
+- `true`，是 `{ strategy: 'throw' }` 的简写，表示 parse 后直接抛错
+- `{ strategy: 'both' }`，表示先记录原始 `ZodError`，再抛出
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
-      schemas: './src/model',
       client: 'angular-query',
+      httpClient: 'angular',
+      schemas: { path: 'src/model', type: 'zod' },
       override: {
         query: {
-          useInvalidate: true,
-          useSetQueryData: true,
-          useGetQueryData: true,
+          runtimeValidation: { strategy: 'both' },
         },
       },
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
 ```
+
+这会生成：
+
+```ts
+const request$ = http.get<PetsOutput>(url, { params: httpParams }).pipe(
+  map((data) => {
+    const result = Pets.safeParse(data);
+    if (!result.success) {
+      console.error('[orval] listPets response validation failed', result.error);
+      throw result.error;
+    }
+    return result.data;
+  }),
+);
+```
+
+使用 `runtimeValidation: true` 可保持原有 `Schema.parse()` 行为。对于原始类型响应（`string`、`void` 等）以及使用自定义 mutator 的操作，校验会自动跳过。
+
+经过校验的请求函数会使用 schema 的 `zod.output` 别名作为类型（上例中为 `Promise<PetsOutput>`），因为这才是运行时 parse 后返回的类型。当 schema 通过 `coerce`、`useDates`、默认值或 `.transform()` 转换值时，这一点尤其重要。使用 mutator 的操作则仍保留 schema 的输入类型，因为生成的 parse 不会在那条路径上执行。
+
+## 完整示例
+
+请参阅 GitHub 上的 [Angular Query sample](https://github.com/orval-labs/orval/tree/master/samples/angular-query)。

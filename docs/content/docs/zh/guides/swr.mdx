@@ -1,19 +1,28 @@
 ---
 title: SWR
-description: 从 OpenAPI 生成类型安全的 SWR hooks
+description: 从 OpenAPI 生成类型安全的 SWR Hooks（钩子）
 ---
 
-SWR 客户端会为读取操作生成 hooks，并复用生成的请求函数。它适合使用 SWR 进行数据获取和缓存的 React 项目。
+根据你的 OpenAPI 规范生成完整类型化的 [SWR](https://swr.vercel.app/) Hooks（钩子）。
 
 ## 配置
 
+将 `client` 选项设置为 `swr`：
+
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
       client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
     },
   },
 });
@@ -21,31 +30,83 @@ export default defineConfig({
 
 ## 生成结果
 
-生成内容包括 SWR hooks、请求函数、key helper 和响应类型。
+Orval 会为你的 OpenAPI 规范中的每个 path 生成一个自定义 Hook（钩子）。例如，[这个规范](https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr/petstore.yaml)会生成：
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdKey = (petId: string) => [`/pets/${petId}`];
+
+export const useShowPetById = <TError = Error>(
+  petId: string,
+  options?: {
+    swr?: SWRConfiguration<AsyncReturnType<typeof showPetById>, TError> & {
+      swrKey?: Key;
+      enabled?: boolean;
+    };
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { swr: swrOptions, axios: axiosOptions } = options ?? {};
+
+  const isEnabled =
+    swrOptions?.enabled !== false &&
+    petId !== null &&
+    petId !== undefined;
+  const swrKey =
+    swrOptions?.swrKey ?? (() => (isEnabled ? getShowPetByIdKey(petId) : null));
+  const swrFn = () => showPetById(petId, axiosOptions);
+
+  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(
+    swrKey,
+    swrFn,
+    swrOptions,
+  );
+
+  return {
+    swrKey,
+    ...query,
+  };
+};
+```
 
 ## 用法
 
 ```tsx
-const { data, error, isLoading } = useListPets();
+import { useShowPetById } from './api/petstore';
+
+function PetDetails({ petId }: { petId: string }) {
+  const { data, error, isLoading } = useShowPetById(petId);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <h1>{data?.name}</h1>
+      <p>ID: {data?.id}</p>
+    </div>
+  );
+}
 ```
 
-## 条件请求
+## 条件获取
 
-需要延迟请求时，可以让 key 为 `null` 或通过生成 hook 的参数控制 enabled 条件。
+按条件禁用 Hook（钩子）：
 
-## 完整示例
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      client: 'swr',
-      override: {
-        swr: {
-          useSWRMutationForGet: false,
-        },
-      },
-    },
+```tsx
+const { data } = useShowPetById(petId, {
+  swr: {
+    enabled: petId !== null && petId !== undefined, // 仅在 petId 已定义时发起请求
   },
 });
 ```
+
+## 完整示例
+
+请查看 GitHub 上的 [complete SWR example（完整 SWR 示例）](https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr)。

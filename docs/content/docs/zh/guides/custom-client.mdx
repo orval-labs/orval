@@ -1,9 +1,9 @@
 ---
-title: Custom HTTP Client
+title: Custom HTTP Client（自定义 HTTP 客户端）
 description: 使用 mutator 配置自定义 HTTP 客户端
 ---
 
-自定义 HTTP 客户端让你把请求细节集中在一个函数里，例如鉴权、base URL、错误格式、重试和观测埋点。Orval 生成的函数只负责传入请求配置并接收类型安全的结果。
+使用 mutator 配置选项创建自定义 HTTP 客户端。
 
 ## 配置
 
@@ -12,13 +12,12 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
     output: {
-      target: './src/petstore.ts',
+      // ...
       override: {
         mutator: {
-          path: './src/api/custom-client.ts',
-          name: 'customClient',
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
         },
       },
     },
@@ -28,43 +27,103 @@ export default defineConfig({
 
 ## 自定义实例实现
 
-```ts title="src/api/custom-client.ts"
-export const customClient = async <T>(url: string, options: RequestInit) => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
+```ts title="custom-instance.ts"
+const baseURL = '<BACKEND URL>'; // 使用你自己的 URL 或环境变量
 
-  if (!response.ok) {
-    throw new Error('Request failed');
+export const customInstance = async <T>(
+  url: string,
+  {
+    method,
+    params,
+    body,
+  }: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    params?: any;
+    body?: BodyType<unknown>;
+    responseType?: string;
+  },
+): Promise<T> => {
+  let targetUrl = `${baseURL}${url}`;
+
+  if (params) {
+    targetUrl += '?' + new URLSearchParams(params);
   }
 
-  return response.json() as Promise<T>;
+  const response = await fetch(targetUrl, {
+    method,
+    body,
+  });
+
+  return response.json();
 };
+
+export default customInstance;
+
+// 为 react-query 和 swr 覆盖返回错误类型
+export type ErrorType<Error> = AxiosError<Error>;
+
+// 如有需要，对 body 类型进行包装（例如用于大小写转换）
+export type BodyType<BodyData> = CamelCase<BodyData>;
 ```
 
 ## 重新导出 mutator
 
-`mutator.path` 指向的文件也可以从其他模块重新导出指定的 mutator：
+`mutator.path` 引用的文件也可以从其他模块重新导出命名的 mutator：
 
-```ts title="src/api/custom-client.ts"
-export { customClient } from '@acme/api-client/mutators';
+```ts title="custom-instance.ts"
+export { customInstance } from '@acme/api-client/mutators';
 ```
 
-Orval 会把 named re-export 视为有效的 mutator 导出。由于重新导出的实现不在当前配置文件中，Orval 会按标准的单请求参数 mutator 形态推断参数。如果生成的客户端需要额外的请求选项参数，请使用带显式参数的本地 wrapper 函数。
+命名重导出会被视为有效的 mutator 导出。由于被重导出的实现位于配置文件之外，Orval 会使用标准的单请求参数 mutator 形态来检测参数。如果生成的客户端需要额外的请求选项参数，请使用带显式参数的本地包装函数。
 
 ## Angular HTTP Client
 
-Angular 项目可以把 mutator 写成使用 `HttpClient` 的函数或 service。关键是保持生成代码期望的输入和返回类型一致。
+对于 Angular，请为 HttpClient 配置一个 mutator：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        mutator: 'src/api/mutator/response-type.ts',
+      },
+    },
+  },
+});
+```
+
+```ts title="response-type.ts"
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+const responseType = <Result>(
+  {
+    url,
+    method,
+    params,
+    data,
+  }: {
+    url: string;
+    method: string;
+    params?: any;
+    data?: any;
+    headers?: any;
+  },
+  http: HttpClient,
+): Observable<Result> =>
+  http.request<Result>(method, url, {
+    params,
+    body: data,
+    responseType: 'json',
+  });
+
+export default responseType;
+```
 
 ## 完整示例
 
-常见组合是：
-
-- `mutator.path` 指向共享请求函数
-- `mutator.name` 指定导出的函数名
-- `baseUrl` 或环境配置由 mutator 读取
-- 错误转换在 mutator 内完成
+- [使用 Fetch 的 Next.js](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [Angular App](https://github.com/orval-labs/orval/tree/master/samples/angular-app)

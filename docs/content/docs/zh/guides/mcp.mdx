@@ -1,13 +1,13 @@
 ---
-title: MCP Server
-description: 从 OpenAPI 生成 Model Context Protocol 服务
+title: MCP Server（MCP 服务端）
+description: 从 OpenAPI 生成 Model Context Protocol（MCP）服务端
 ---
 
-MCP 生成器会把 OpenAPI 操作转换为可被 AI Agent 调用的工具。它适合把已有 HTTP API 暴露给支持 Model Context Protocol 的客户端。
+根据你的 OpenAPI 规范生成 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) 服务端，以便集成到 AI Agent（智能体）中。
 
 ## 概览
 
-Orval 根据 OpenAPI 操作生成工具定义、输入 schema 和调用实现。每个 API operation 可以对应一个 MCP tool。
+MCP 服务端会把 API Client 转接给 AI Agent（智能体），这样你就不需要等待第三方实现。你可以为任何带有 OpenAPI 规范的服务创建 MCP 服务端，并将其与 Claude、Cline 等 AI Agent 一起使用。
 
 ## 配置
 
@@ -16,33 +16,65 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
+    input: {
+      target: './petstore.yaml',
+    },
     output: {
-      target: './src/mcp.ts',
+      mode: 'single',
       client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
     },
   },
 });
 ```
 
+<Callout type="info">
+`mcp` Client 目前仅支持在 `single` 模式下使用。
+</Callout>
+
 ## 生成结构
 
-生成文件通常包含：
-
-- MCP server 初始化
-- tools 注册
-- OpenAPI 请求调用函数
-- 输入参数 schema
+```
+src/
+├── http-schemas/
+│   ├── createPetsBodyItem.ts
+│   ├── error.ts
+│   ├── index.ts
+│   └── pet.ts
+├── handlers.ts         # 返回 MCP 格式的 handler 函数
+├── http-client.ts      # 生成的 fetch client
+├── server.ts           # MCP tools 和服务端配置
+└── tool-schemas.zod.ts # tool 输入的 Zod schema
+```
 
 ## 用法
 
 ### 1. 构建 Docker 镜像
 
-如果目标 Agent 通过容器加载 MCP server，可以先构建镜像。
+```bash
+docker build ./ -t mcp-petstore
+```
 
-### 2. 配置 AI Agent
+### 2. 配置 AI Agent（智能体）
 
-在客户端配置中加入 MCP server 的启动命令或容器信息。
+以 Cline 为例：
+
+```json
+{
+  "mcpServers": {
+    "petstore": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp-petstore"],
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}
+```
+
+这样你的 AI Agent（智能体）就可以通过 MCP 协议与该 API 交互。
 
 ## 请求取消
 
@@ -50,18 +82,74 @@ export default defineConfig({
 
 ## 自定义 Server
 
-你可以把生成的工具注册到自己的 server 中，统一加入鉴权、日志、限流或错误处理。
-
-## 完整示例
+默认情况下，生成的 `server.ts` 会通过 `StdioServerTransport` 建立连接。如果你想使用不同的 transport（传输方式，例如用于容器部署的 Streamable HTTP），可以通过 `override.mcp.server` 提供自定义 Server 函数。
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   petstore: {
-    input: './petstore.yaml',
+    input: {
+      target: './petstore.yaml',
+    },
     output: {
-      target: './src/generated/mcp.ts',
+      mode: 'single',
       client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+      override: {
+        mcp: {
+          server: {
+            path: './custom-server.ts',
+            name: 'customServer',
+          },
+        },
+      },
     },
   },
 });
 ```
+
+生成的 `server.ts` 会把一个 `createMcpServer` 工厂传给你的函数：
+
+```ts title="src/server.ts (generated)"
+import { customServer } from '../custom-server';
+
+const createMcpServer = () => {
+  // ...tool registrations
+};
+
+customServer(createMcpServer);
+```
+
+你可以实现这个自定义 Server 函数，以建立任意 transport（传输方式）。下面的例子使用 [Hono](https://hono.dev) 和 [`@hono/mcp`](https://github.com/honojs/middleware/tree/main/packages/mcp) 来提供 Streamable HTTP：
+
+```ts title="custom-server.ts"
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPTransport } from '@hono/mcp';
+import { Hono } from 'hono';
+
+export const customServer = (createMcpServer: () => McpServer) => {
+  const app = new Hono();
+  const server = createMcpServer();
+  const transport = new StreamableHTTPTransport();
+
+  app.all('/mcp', async (c) => {
+    if (!server.isConnected()) {
+      await server.connect(transport);
+    }
+    return transport.handleRequest(c);
+  });
+
+  Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+};
+```
+
+<Callout type="info">
+请把自定义 server 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。
+</Callout>
+
+## 完整示例
+
+请查看 GitHub 上的 [MCP Petstore sample（MCP Petstore 示例）](https://github.com/orval-labs/orval/tree/master/samples/mcp/petstore) 和 [MCP Custom Server sample（MCP 自定义 Server 示例）](https://github.com/orval-labs/orval/tree/master/samples/mcp/custom-server)。

@@ -1,30 +1,53 @@
 ---
-title: Stream NDJSON
-description: 使用 Newline Delimited JSON 进行类型安全流式读取
+title: Stream NDJSON（NDJSON 流）
+description: 使用 Newline Delimited JSON（NDJSON）进行类型安全的流式处理
 ---
 
-NDJSON 用换行分隔 JSON 对象，适合服务端持续推送事件、日志或批量结果。Orval 可以为这类响应生成类型安全的读取代码。
+Orval 会为 [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) 流式响应生成类型安全的代码。这种格式常用于处理大型数据集。
 
-## OpenAPI Schema
+## OpenAPI Schema（规范）
 
 ```yaml
-responses:
-  '200':
-    content:
-      application/x-ndjson:
-        schema:
-          type: object
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Stream
+paths:
+  /stream:
+    get:
+      operationId: stream
+      description: Stream results
+      responses:
+        '200':
+          content:
+            application/x-ndjson:
+              schema:
+                $ref: '#/components/schemas/StreamEntry'
+components:
+  schemas:
+    StreamEntry:
+      type: object
+      properties:
+        foo:
+          type: number
+        bar:
+          type: string
 ```
 
 ## 配置
 
 ```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
 export default defineConfig({
-  events: {
-    input: './openapi.yaml',
+  petstore: {
+    input: {
+      target: './stream.yaml',
+    },
     output: {
-      target: './src/events.ts',
       client: 'fetch',
+      target: 'src/endpoints.ts',
+      schemas: 'src/model',
     },
   },
 });
@@ -32,18 +55,88 @@ export default defineConfig({
 
 ## 生成结果
 
-生成函数会返回可读取的 stream，并保留每条消息的 TypeScript 类型。
+```ts
+interface TypedResponse<T> extends Response {
+  json(): Promise<T>;
+}
 
-## 读取 Stream
+export type streamResponse200 = {
+  stream: TypedResponse<StreamEntry>;
+  status: 200;
+};
 
-调用方需要逐块读取响应体，把每行解析为 JSON。注意处理半行、空行和连接关闭。
+export const stream = async (
+  options?: RequestInit,
+): Promise<streamResponse> => {
+  const stream = await fetch(getStreamUrl(), {
+    ...options,
+    method: 'GET',
+    headers: { Accept: 'application/x-ndjson', ...options?.headers },
+  });
+
+  return {
+    status: stream.status,
+    stream,
+    headers: stream.headers,
+  } as streamResponse;
+};
+```
+
+## 读取 Stream（流）
+
+Orval 只提供类型安全；Stream（流）的解析逻辑需要你自己实现：
+
+```ts
+export const readStream = <T extends object>(
+  response: Response & { json(): Promise<T> },
+  processLine: (value: T) => void,
+): Promise<void> => {
+  if (!response.body) return Promise.resolve();
+
+  const stream = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const loop = (): Promise<void> =>
+    stream.read().then(({ done, value }) => {
+      if (done) {
+        if (buffer.length > 0) processLine(JSON.parse(buffer));
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split(/\r?\n/);
+      buffer = parts.pop() ?? '';
+
+      for (const part of parts.filter(Boolean)) {
+        processLine(JSON.parse(part) as T);
+      }
+
+      return loop();
+    });
+
+  return loop();
+};
+```
 
 ## 用法示例
 
 ```ts
-for await (const event of streamEvents()) {
-  console.log(event);
-}
+export const getResults = async (): Promise<StreamEntry[]> => {
+  const results: StreamEntry[] = [];
+
+  const response = await stream();
+  if (response.status !== 200) return results;
+
+  await readStream(response.stream, (obj) => {
+    // obj 的类型是 StreamEntry
+    results.push(obj);
+  });
+
+  return results;
+};
 ```
 
-流式接口需要额外关注取消、超时和错误恢复。
+<Callout type="info">
+NDJSON streaming（流式传输）仅在 Fetch Client 下受支持。
+</Callout>

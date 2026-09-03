@@ -3,52 +3,103 @@ title: CLI
 description: 命令行接口参考
 ---
 
-Orval CLI 可以直接从命令行读取 OpenAPI 规范并生成代码，也可以读取配置文件执行更复杂的生成任务。
+从 OpenAPI 规范生成类型安全的客户端。
 
 ## 基础用法
 
 ```bash
-orval --input ./openapi.yaml --output ./src/api.ts
+orval
 ```
+
+默认情况下，Orval 会查找 `orval.config.js` 文件。
 
 ## 选项
 
 ### --input, -i
 
-指定 OpenAPI 规范路径或 URL。支持 YAML 和 JSON。
+你的 OpenAPI 规范的路径或 URL：
+
+```bash
+orval --input ./petstore.yaml
+```
 
 ### --output, -o
 
-指定生成文件的目标路径。简单场景可以直接用 CLI 输出到一个文件。
+生成文件的输出路径：
+
+```bash
+orval --output ./api/endpoints/petstoreFromFileSpec.ts
+```
 
 ### --config, -c
 
-指定配置文件路径。未指定时，Orval 会在当前工作目录查找 `orval.config.js`、`orval.config.ts` 或 `orval.config.mjs`。
+Orval 配置文件的路径：
+
+```bash
+orval --config ./api/orval.config.js
+```
 
 ### --project, -p
 
-当配置文件包含多个项目时，只运行指定 project。
+聚焦于配置中的特定 project：
+
+```bash
+orval --project petstore
+orval --project dogstore catstore
+```
 
 ### --watch, -w
 
-监听输入文件和配置文件变化，变化后自动重新生成。
+监听文件并在变更时重新生成：
+
+```bash
+orval --watch
+orval --watch ./src
+```
 
 ### --clean
 
-生成前清空输出目录（`target` 和 `schemas`）——会删除其中的所有文件，而不只是生成文件。
+在重新生成之前清理输出目录：
+
+```bash
+orval --clean
+orval --clean ./src
+```
+
+<Callout type="warn">
+这会清理所有输出 target 和 schemas 文件夹。
+</Callout>
 
 ### --formatter
 
-指定生成后使用的 formatter，例如 `prettier` 或项目支持的格式化器。
+使用指定的 formatter（`prettier`、`biome` 或 `oxfmt`）格式化生成文件：
+
+```bash
+orval --formatter prettier
+orval --formatter biome
+orval --formatter oxfmt
+```
 
 ### --tsconfig
 
-指定 TypeScript 配置路径，用于生成时解析路径和类型相关配置。
+指定 tsconfig 的路径：
+
+```bash
+orval --tsconfig ./src/tsconfig.json
+```
 
 ### --verbose
 
-输出更详细的执行日志，便于排查配置和生成问题。
+启用详细日志。会显示额外的诊断输出，例如检测到的依赖版本：
+
+```bash
+orval --verbose
+```
 
 ### --fail-on-warnings
 
-当生成过程中出现 warning 时以失败退出，适合 CI 中强制质量门禁。
+当生成过程中发出 warning 时，以错误码 1 退出。适合在 CI 流水线中强制要求无 warning 构建：
+
+```bash
+orval --fail-on-warnings
+```

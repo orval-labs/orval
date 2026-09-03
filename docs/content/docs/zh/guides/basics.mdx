@@ -18,6 +18,8 @@ export default defineConfig({
       mode: 'single',
       target: './src/petstore.ts',
       schemas: './src/model',
+      client: 'react-query',
+      httpClient: 'fetch',
       mock: true,
     },
     input: {
@@ -36,8 +38,11 @@ export default defineConfig({
 | `mode` | 指定文件生成方式。默认值为 `single`，也就是把所有内容生成到一个文件 |
 | `target` | 指定生成文件的目标路径 |
 | `schemas` | 指定模型文件的输出路径 |
-| `client` | 指定要生成的 HTTP 客户端，例如 `axios`、`react-query`、`vue-query` |
-| `mock` | 使用 MSW 生成 mock。参考 [MSW 指南](/zh/docs/guides/msw) |
+| `client` | 选择要生成的 Client（客户端）：`angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`swr`、`zod`、`effect`、`hono`、`fetch` 或 `mcp` |
+| `httpClient` | 选择请求传输层：`fetch`（默认）、`axios` 或 `angular`。可用的传输层取决于所选 `Client`。 |
+| `mock` | 使用 MSW 生成 mock。参考 [MSW 指南](/docs/guides/msw) |
+
+`client` 和 `httpClient` 控制的是生成结果中的不同部分。`client` 选择生成出来的 API 风格，而 `httpClient` 选择与该 Client 兼容的请求实现。例如，上面的配置会生成基于 Fetch API 的 React Query Hooks（钩子）。
 
 ## Input 选项
 
@@ -51,7 +56,7 @@ export default defineConfig({
 ## 下一步
 
 <Cards>
-  <Card title="配置参考" href="/zh/docs/reference/configuration" description="查看所有可用选项" />
-  <Card title="React Query" href="/zh/docs/guides/react-query" description="生成 React Query hooks" />
-  <Card title="MSW Mock" href="/zh/docs/guides/msw" description="生成 API mock" />
+  <Card title="配置参考" href="/docs/reference/configuration" description="查看所有可用选项" />
+  <Card title="React Query" href="/zh/docs/guides/react-query" description="生成 React Query Hooks（钩子）" />
+  <Card title="MSW Mock（MSW 模拟）" href="/zh/docs/guides/msw" description="生成 API Mock" />
 </Cards>

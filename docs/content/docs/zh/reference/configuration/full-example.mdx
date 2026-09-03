@@ -1,37 +1,57 @@
 ---
 title: 完整示例
-description: 完整配置文件示例
+description: 完整配置示例
 ---
 
-下面示例展示一个常见的 Orval 配置：读取 OpenAPI 规范，生成 React Query hooks、模型、MSW mock，并使用自定义客户端。
-
 ```ts title="orval.config.ts"
+import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
 export default defineConfig({
   petstore: {
+    output: {
+      mode: 'split',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        operations: {
+          listPets: {
+            mutator: 'src/response-type.js',
+            mock: {
+              properties: () => ({
+                id: () => faker.number.int({ min: 1, max: 99999 }),
+              }),
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+          delay: 500,
+        },
+      },
+      allParamsOptional: true,
+      urlEncodeParameters: true,
+    },
     input: {
       target: './petstore.yaml',
-    },
-    output: {
-      target: './src/api/petstore.ts',
-      schemas: './src/api/model',
-      client: 'react-query',
-      mode: 'tags-split',
-      mock: true,
-      clean: true,
       override: {
-        mutator: {
-          path: './src/api/custom-client.ts',
-          name: 'customClient',
-        },
-        query: {
-          useQuery: true,
-          useMutation: true,
-          useInvalidate: true,
-          useSetQueryData: true,
-          useGetQueryData: true,
-        },
+        transformer: 'src/add-version.js',
       },
     },
     hooks: {
@@ -40,5 +60,3 @@ export default defineConfig({
   },
 });
 ```
-
-这个配置适合中大型前端项目。小项目可以从 `input` 和 `output.target` 开始，只在需要时再加入 `schemas`、`mock`、`override` 和 `hooks`。
