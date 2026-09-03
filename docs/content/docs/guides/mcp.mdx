@@ -144,7 +144,9 @@ The generated `server.ts` calls your function with a `createMcpServer` factory:
 ```ts title="src/server.ts (generated)"
 import { customServer } from '../custom-server';
 
-const createMcpServer = () => {
+const createMcpServer = (
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   // ...tool registrations
 };
 
@@ -154,13 +156,21 @@ customServer(createMcpServer);
 Implement the custom server function to set up any transport. The following example uses [Hono](https://hono.dev) with [`@hono/mcp`](https://github.com/honojs/middleware/tree/main/packages/mcp) for Streamable HTTP:
 
 ```ts title="custom-server.ts"
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {
+  McpServer,
+  RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 
-export const customServer = (createMcpServer: () => McpServer) => {
+export const customServer = (
+  createMcpServer: (options?: RequestInit) => {
+    server: McpServer;
+    tools: Record<string, RegisteredTool>;
+  },
+) => {
   const app = new Hono();
-  const server = createMcpServer();
+  const { server } = createMcpServer();
   const transport = new StreamableHTTPTransport();
 
   app.all('/mcp', async (c) => {
