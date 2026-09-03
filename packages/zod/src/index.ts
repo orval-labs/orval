@@ -1006,28 +1006,69 @@ export const generateZodValidationSchemaDefinition = (
       // properties accept the emitted default (#3244). Whole-object/array
       // `as const` would make nested arrays `readonly`, which zod v4's
       // `.default()` rejects against its mutable parameter type (#3399).
+      // Recursively emit a default value as a TS expression. Strings get `as
+      // const` so zod.enum([...]) properties accept the emitted default (#3244);
+      // whole-object/array `as const` is avoided because it makes nested arrays
+      // readonly, which zod v4's `.default()` rejects (#3399).
+      const formatDefaultEntryValue = (
+        entryValue: unknown,
+      ): string | undefined => {
+        if (isString(entryValue)) {
+          return `${JSON.stringify(entryValue)} as const`;
+        }
+
+        if (Array.isArray(entryValue)) {
+          const arrayItems = entryValue.map((item) => {
+            if (isString(item)) {
+              return `${JSON.stringify(item)} as const`;
+            }
+            // Object items recurse so nested string values get `as const`
+            // (e.g. `{ value: 'active' as const }`), which JSON.stringify
+            // alone would drop (#3982 CodeRabbit).
+            if (isObject(item)) {
+              const formatted = formatDefaultEntryValue(item);
+              return formatted ?? 'null';
+            }
+            return `${JSON.stringify(item)}`;
+          });
+          return `[${arrayItems.join(', ')}]`;
+        }
+
+        // Nested objects recurse: emitting the raw value would stringify to
+        // `[object Object]` (#3972) and skipping it would leave a hole in the
+        // object literal `{ , , }` (#3974).
+        if (isObject(entryValue)) {
+          const nestedEntries = Object.entries(entryValue)
+            .map(([nestedKey, nestedValue]) => {
+              const formatted = formatDefaultEntryValue(nestedValue);
+              return formatted === undefined
+                ? undefined
+                : `${JSON.stringify(nestedKey)}: ${formatted}`;
+            })
+            .filter((entry) => entry !== undefined)
+            .join(', ');
+          return nestedEntries.length === 0 ? '{}' : `{ ${nestedEntries} }`;
+        }
+
+        if (
+          entryValue === null ||
+          entryValue === undefined ||
+          isNumber(entryValue) ||
+          isBoolean(entryValue)
+        )
+          return `${entryValue}`;
+
+        return undefined;
+      };
+
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
-          const safeKey = JSON.stringify(key);
-          if (isString(value)) {
-            return `${safeKey}: ${JSON.stringify(value)} as const`;
-          }
-
-          if (Array.isArray(value)) {
-            const arrayItems = value.map((item) =>
-              isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
-            );
-            return `${safeKey}: [${arrayItems.join(', ')}]`;
-          }
-
-          if (
-            value === null ||
-            value === undefined ||
-            isNumber(value) ||
-            isBoolean(value)
-          )
-            return `${safeKey}: ${value}`;
+          const formatted = formatDefaultEntryValue(value);
+          return formatted === undefined
+            ? undefined
+            : `${JSON.stringify(key)}: ${formatted}`;
         })
+        .filter((entry) => entry !== undefined)
         .join(', ');
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
