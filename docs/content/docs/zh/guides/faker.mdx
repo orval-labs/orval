@@ -177,7 +177,7 @@ mock: {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `schemas` | `boolean` | `false` | 为每个 `components/schemas` 条目生成一个汇总的 `get<SchemaName>Mock` 工厂，并写入 `<schemas-dir>/index.faker.ts`。参见 [Schema 工厂](#schema-工厂)。 |
+| `schemas` | `boolean` | `false` | 为每个 `components/schemas` 条目生成一个汇总的 `get<SchemaName>Mock` 工厂，并写入 `<schemas-dir>/index.faker.ts`。参见 [Schema 工厂](#schema-factoriesschema-工厂)。 |
 | `operationResponses` | `boolean` | `true` | 生成按操作划分的 `get<OperationId>ResponseMock` 工厂。设为 `false` 时（通常与 `schemas: true` 一起使用）会跳过操作级工厂。 |
 
 ## 自定义 Mock 值
