@@ -763,6 +763,10 @@ function resolveSchemaPropertiesToFormData({
   );
   for (const [key, value] of Object.entries(schemaProps)) {
     const { schema: property } = resolveSchemaRef(value, context);
+    const escapedKey = key
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/\$\{/g, '\\${');
 
     // Skip readOnly properties for formData
     if (property.readOnly) {
@@ -805,13 +809,13 @@ function resolveSchemaPropertiesToFormData({
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)
-      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey});\n`;
     } else if (fileType === 'binary' || property.format === 'binary') {
       // Binary: append directly (value is Blob)
-      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey});\n`;
     } else if (fileType === 'text') {
       // Text file: value is Blob | string, check at runtime
-      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
     } else if (
       property.type === 'object' ||
       (Array.isArray(property.type) && property.type.includes('object'))
@@ -828,7 +832,7 @@ function resolveSchemaPropertiesToFormData({
         // style: deepObject — emit each property as `key[subkey]=value`
         const inner = `${nonOptionalValueKey} && Object.entries(${nonOptionalValueKey}).forEach(([k, v]) => {
           if (v !== undefined && v !== null) {
-            ${variableName}.append(\`${keyPrefix}${key}[\${k}]\`, typeof v === 'object' ? JSON.stringify(v) : String(v));
+            ${variableName}.append(\`${keyPrefix}${escapedKey}[\${k}]\`, typeof v === 'object' ? JSON.stringify(v) : String(v));
           }
         });\n`;
         formDataValue = inner;
@@ -842,11 +846,11 @@ function resolveSchemaPropertiesToFormData({
                 propName: nonOptionalValueKey,
                 context,
                 isRequestBodyOptional,
-                keyPrefix: `${keyPrefix}${key}.`,
+                keyPrefix: `${keyPrefix}${escapedKey}.`,
                 depth: depth + 1,
                 encoding,
               })
-            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+            : `${variableName}.append(\`${keyPrefix}${escapedKey}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       }
     } else if (
       property.type === 'array' ||
@@ -869,7 +873,7 @@ function resolveSchemaPropertiesToFormData({
               propName: 'value',
               context,
               isRequestBodyOptional,
-              keyPrefix: `${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}].`,
+              keyPrefix: `${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}].`,
               depth: depth + 1,
             });
             formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
@@ -896,10 +900,10 @@ function resolveSchemaPropertiesToFormData({
         FormDataArrayHandling.EXPLODE
       ) {
         if (!hasNonPrimitiveChild) {
-          formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
+          formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
         }
       } else {
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
+        formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
       }
     } else if (
       (() => {
@@ -914,9 +918,9 @@ function resolveSchemaPropertiesToFormData({
         );
       })()
     ) {
-      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey}.toString())\n`;
     } else {
-      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey});\n`;
     }
 
     let existSubSchemaNullable = false;
@@ -930,7 +934,7 @@ function resolveSchemaPropertiesToFormData({
           return ['number', 'integer', 'boolean'].includes(subSchema.type);
         })
       ) {
-        formDataValue = `${variableName}.append(\`${key}\`, ${nonOptionalValueKey}.toString())\n`;
+        formDataValue = `${variableName}.append(\`${escapedKey}\`, ${nonOptionalValueKey}.toString())\n`;
       }
 
       if (
