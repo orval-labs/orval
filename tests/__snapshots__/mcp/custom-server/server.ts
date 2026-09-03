@@ -55,7 +55,13 @@ const createMcpServer = (
       outputSchema: ListPetsResponse,
       annotations: { readOnlyHint: true },
     },
-    (args) => listPetsHandler(args, options),
+    (args, ctx) =>
+      listPetsHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.createPets = server.registerTool(
@@ -70,7 +76,13 @@ const createMcpServer = (
       outputSchema: CreatePetsResponse,
       annotations: { destructiveHint: true },
     },
-    (args) => createPetsHandler(args, options),
+    (args, ctx) =>
+      createPetsHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.showPetById = server.registerTool(
@@ -84,7 +96,13 @@ const createMcpServer = (
       outputSchema: ShowPetByIdResponse,
       annotations: { readOnlyHint: true },
     },
-    (args) => showPetByIdHandler(args, options),
+    (args, ctx) =>
+      showPetByIdHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.deletePetById = server.registerTool(
@@ -98,7 +116,13 @@ const createMcpServer = (
       outputSchema: DeletePetByIdResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    (args) => deletePetByIdHandler(args, options),
+    (args, ctx) =>
+      deletePetByIdHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.healthCheck = server.registerTool(
@@ -109,7 +133,13 @@ const createMcpServer = (
       outputSchema: HealthCheckResponse,
       annotations: { readOnlyHint: true },
     },
-    () => healthCheckHandler(options),
+    (ctx) =>
+      healthCheckHandler({
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.showPetWithOwner = server.registerTool(
@@ -123,7 +153,13 @@ const createMcpServer = (
       outputSchema: ShowPetWithOwnerResponse,
       annotations: { readOnlyHint: true },
     },
-    (args) => showPetWithOwnerHandler(args, options),
+    (args, ctx) =>
+      showPetWithOwnerHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   return { server, tools };

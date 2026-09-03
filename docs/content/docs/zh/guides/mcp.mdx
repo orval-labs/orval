@@ -44,6 +44,10 @@ export default defineConfig({
 
 在客户端配置中加入 MCP server 的启动命令或容器信息。
 
+## 请求取消
+
+当 MCP 客户端取消工具调用时，生成的 `server.ts` 会把该调用的取消信号传递给底层 HTTP 请求，正在进行的 `fetch` 会以 `AbortError` 中止。通过 `createMcpServer(options)` 传入的 `signal` 会与每次调用的信号用 `AbortSignal.any` 合并，任一信号触发都会中止请求。运行环境需要 Node.js 20.3 或更高版本。
+
 ## 自定义 Server
 
 你可以把生成的工具注册到自己的 server 中，统一加入鉴权、日志、限流或错误处理。

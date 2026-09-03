@@ -49,7 +49,13 @@ const createMcpServer = (
       outputSchema: GetThingsResponse,
       annotations: { readOnlyHint: true },
     },
-    () => getThingsHandler(options),
+    (ctx) =>
+      getThingsHandler({
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.createThing = server.registerTool(
@@ -61,7 +67,13 @@ const createMcpServer = (
       outputSchema: CreateThingResponse,
       annotations: { destructiveHint: true },
     },
-    (args) => createThingHandler(args, options),
+    (args, ctx) =>
+      createThingHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.replaceThing = server.registerTool(
@@ -73,7 +85,13 @@ const createMcpServer = (
       outputSchema: ReplaceThingResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    (args) => replaceThingHandler(args, options),
+    (args, ctx) =>
+      replaceThingHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.patchThing = server.registerTool(
@@ -85,7 +103,13 @@ const createMcpServer = (
       outputSchema: PatchThingResponse,
       annotations: { destructiveHint: true },
     },
-    (args) => patchThingHandler(args, options),
+    (args, ctx) =>
+      patchThingHandler(args, {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.deleteThing = server.registerTool(
@@ -94,7 +118,13 @@ const createMcpServer = (
       outputSchema: DeleteThingResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    () => deleteThingHandler(options),
+    (ctx) =>
+      deleteThingHandler({
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.optionsThings = server.registerTool(
@@ -103,7 +133,13 @@ const createMcpServer = (
       outputSchema: OptionsThingsResponse,
       annotations: { readOnlyHint: true },
     },
-    () => optionsThingsHandler(options),
+    (ctx) =>
+      optionsThingsHandler({
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   tools.headThings = server.registerTool(
@@ -112,7 +148,13 @@ const createMcpServer = (
       outputSchema: HeadThingsResponse,
       annotations: { readOnlyHint: true },
     },
-    () => headThingsHandler(options),
+    (ctx) =>
+      headThingsHandler({
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      }),
   );
 
   return { server, tools };
