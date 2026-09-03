@@ -323,10 +323,14 @@ export const generateServer = (
         ? `\n    description: '${jsStringEscape(descriptionValue)}',`
         : '';
 
+      const requestInitWithSignal = `{
+    ...options,
+    signal: options?.signal ? AbortSignal.any([options.signal, ctx.signal]) : ctx.signal,
+  }`;
       const handlerCallImplementation =
         inputSchemaTypes.length > 0
-          ? `(args) => ${verbOption.operationName}Handler(args, options)`
-          : `() => ${verbOption.operationName}Handler(options)`;
+          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal})`
+          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal})`;
 
       const toolImplementation = `
 tools.${verbOption.operationName} = server.registerTool(

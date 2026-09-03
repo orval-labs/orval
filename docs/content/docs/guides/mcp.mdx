@@ -76,6 +76,38 @@ For Cline:
 
 This allows your AI agent to interact with the API through the MCP protocol.
 
+## Request Cancellation
+
+When an MCP client cancels a tool call, the generated `server.ts` passes the cancellation signal of that call to the underlying HTTP request. The in-flight `fetch` is aborted with an `AbortError` instead of running to completion.
+
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    // ...
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(args, {
+      ...options,
+      signal: options?.signal
+        ? AbortSignal.any([options.signal, ctx.signal])
+        : ctx.signal,
+    }),
+);
+```
+
+If you pass a `signal` through `createMcpServer(options)`, for example from a custom server to abort every in-flight request on shutdown, it is combined with the per-call signal using `AbortSignal.any`. Either signal aborts the request.
+
+```ts title="custom-server.ts"
+const shutdown = new AbortController();
+const { server } = createMcpServer({ signal: shutdown.signal });
+process.on('SIGTERM', () => shutdown.abort());
+```
+
+<Callout type="info">
+`AbortSignal.any` requires Node.js 20.3 or later at runtime.
+</Callout>
+
 ## Custom Server
 
 By default, the generated `server.ts` connects via `StdioServerTransport`. To use a different transport (e.g., Streamable HTTP for container deployments), provide a custom server function via `override.mcp.server`.
@@ -112,7 +144,9 @@ The generated `server.ts` calls your function with a `createMcpServer` factory:
 ```ts title="src/server.ts (generated)"
 import { customServer } from '../custom-server';
 
-const createMcpServer = () => {
+const createMcpServer = (
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   // ...tool registrations
 };
 
@@ -122,13 +156,21 @@ customServer(createMcpServer);
 Implement the custom server function to set up any transport. The following example uses [Hono](https://hono.dev) with [`@hono/mcp`](https://github.com/honojs/middleware/tree/main/packages/mcp) for Streamable HTTP:
 
 ```ts title="custom-server.ts"
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {
+  McpServer,
+  RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 
-export const customServer = (createMcpServer: () => McpServer) => {
+export const customServer = (
+  createMcpServer: (options?: RequestInit) => {
+    server: McpServer;
+    tools: Record<string, RegisteredTool>;
+  },
+) => {
   const app = new Hono();
-  const server = createMcpServer();
+  const { server } = createMcpServer();
   const transport = new StreamableHTTPTransport();
 
   app.all('/mcp', async (c) => {
