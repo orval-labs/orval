@@ -949,7 +949,7 @@ parameters:
 
 在以上规范且 **未** 配置 `paramsSerializer` 的情况下，生成出来的 client 会按照 OpenAPI 默认值（`style: form`、`explode: true`）对 `filters` 进行序列化，也就是将对象属性展开成顶层 query 参数。如果配置了 `paramsSerializer`（例如 `qs.stringify`），生成出来的 client 会保留原始 `filters` 对象并将其传给 serializer。如果你即使在没有 serializer 的情况下也需要保留原始对象，例如 mutator 需要把它展开为带方括号的 key，那么请使用 `override.paramsFilter`，见下文。相关背景问题见 [issue #3326](https://github.com/orval-labs/orval/issues/3326) 和 [issue #3705](https://github.com/orval-labs/orval/issues/3705)。
 
-### Object query parameters（style & explode）
+### Object Query Parameters（对象查询参数，style 与 explode）
 
 > 该行为是在修复 [issue #3705](https://github.com/orval-labs/orval/issues/3705) 时加入的。
 
@@ -1016,7 +1016,7 @@ export default defineConfig({
 });
 ```
 
-`queryObjectSerialization` 可以像 `retrievalClient` / `runtimeValidation` 一样在全局、tag 级或 operation 级设置。详见[配置参考](/docs/reference/configuration/output#queryobjectserialization)。
+`queryObjectSerialization` 可以像 `retrievalClient` / `runtimeValidation` 一样在全局、tag 级或 operation 级设置。详见[配置参考](/zh/docs/reference/configuration/output#queryobjectserialization)。
 
 ### 使用 `override.paramsFilter` 自定义过滤
 

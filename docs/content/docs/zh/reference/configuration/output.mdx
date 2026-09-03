@@ -570,7 +570,7 @@ export default defineConfig({
 
 `mock.generators` 中的每个条目都会生成自己的文件（`<filename>.msw.ts`、`<filename>.faker.ts` 等），除非设置 `inline: true` 让代码保留在实现文件中。设置 `mock: false`（或直接省略）即可完全禁用 mock 生成。
 
-### Mocks Options
+### Mocks Options（Mock 选项）
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1618,7 +1618,7 @@ Zod Mini 需要 Zod 4 输出。如果 `variant: 'mini'` 与 `version: 3` 一起�
 | `3` | 始终生成兼容 Zod 3 的语法（`.strict()`、`z.string().datetime()` 等）。 |
 | `'auto'` | 根据解析到的 `zod` 版本推断；如果检测不到，则回退为 Zod 4。 |
 
-与大多数 `override.zod` 选项不同，`version` 是 output 级别的，不能按 operation 或 tag 单独设置。详见 [Zod guide](/docs/guides/zod#zod-version)。
+与大多数 `override.zod` 选项不同，`version` 是 output 级别的，不能按 operation 或 tag 单独设置。详见 [Zod guide](/zh/docs/guides/zod#zod-version)。
 
 ### strict
 
@@ -1817,7 +1817,7 @@ export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
 - 使用的是 `zod.input`，而不是 `z.infer`（它本质上是 `zod.output` 的别名），因为请求侧 schema 经常带有 `.default()`、`coerce` 或 `.transform()`，在这些场景下，parse 前后的类型会不同。
 - 如果启用了 [`useBrandedTypes`](#usebrandedtypes)，干净的 `zod.input` 别名本身不会带 brand，`.brand()` 只会影响输出类型，因此 brand 会出现在 `...Output` 别名上。
 - 辅助值常量（如 `...Max`、`...Min`、`...RegExp`、`...Default`）只是普通值，不是 schema，因此不会生成 companion pair。
-- 可作为按 operation 或按 tag 的 override，与 `strict`、`generate`、`coerce`、`preprocess`、`params` 和 `useBrandedTypes` 一起使用。详见 [Scoping options per operation or tag](/docs/guides/zod#scoping-options-per-operation-or-tag)。
+- 可作为按 operation 或按 tag 的 override，与 `strict`、`generate`、`coerce`、`preprocess`、`params` 和 `useBrandedTypes` 一起使用。详见 [Scoping options per operation or tag](/zh/docs/guides/zod#scoping-options-per-operation-or-tag)。
 
 ---
 
@@ -1960,7 +1960,7 @@ Mutation-style operations（变更型操作）默认仍使用生成的 `HttpClie
 **类型：** `'spec' | 'legacy'`
 **默认值：** `'spec'`
 
-当 operation 没有配置 `paramsSerializer` / `paramsFilter`，并且它声明的 query parameter schema 是普通对象时，这个选项用来控制该对象应如何序列化。完整说明和示例见 [Object query parameters guide](/docs/guides/angular#object-query-parameters-style--explode)。
+当 operation 没有配置 `paramsSerializer` / `paramsFilter`，并且它声明的 query parameter schema 是普通对象时，这个选项用来控制该对象应如何序列化。完整说明和示例见 [Object query parameters guide](/zh/docs/guides/angular#object-query-parameters-style--explode)。
 
 - `spec`（默认）：遵循 OpenAPI parameter 的 `style` / `explode`。例如 `form` + `explode: true`（OpenAPI 默认值）会把对象属性平铺为顶层 query params；`form` + `explode: false` 会把它们拼成一个逗号分隔值；`deepObject` 会生成带括号的 `name[prop]` key。
 - `legacy`：恢复 #3705 之前的行为，静默丢弃生成请求中的对象型 query params。
@@ -2051,7 +2051,7 @@ export default defineConfig({
 });
 ```
 
-显式开启：通过 Angular 依赖注入（`InjectionToken`）来组合该 output 在运行时的 base URL，而不是把静态前缀固化进每一个生成的 route 字符串。完整优先级链、生成产物以及多 API gateway 路由示例见 [Angular guide](/docs/guides/angular#di-based-base-url-composition-multiple-apis--gateway-routing)。
+显式开启：通过 Angular 依赖注入（`InjectionToken`）来组合该 output 在运行时的 base URL，而不是把静态前缀固化进每一个生成的 route 字符串。完整优先级链、生成产物以及多 API gateway 路由示例见 [Angular guide](/zh/docs/guides/angular#di-based-base-url-composition-multiple-apis--gateway-routing)。
 
 <Callout type="info">
 仅适用于 `angular` client。在其他 client 上设置 `baseUrl` 时，只会记录 warning，不会生效。
@@ -2162,7 +2162,7 @@ export default defineConfig({
 
 ## override.mcp
 
-MCP server 选项：
+MCP Server（MCP 服务端）选项：
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2190,13 +2190,21 @@ export default defineConfig({
 使用 `@hono/mcp` 的实现示例：
 
 ```ts title="custom-server.ts"
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {
+  McpServer,
+  RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 
-export const customServer = (createMcpServer: () => McpServer) => {
+export const customServer = (
+  createMcpServer: (options?: RequestInit) => {
+    server: McpServer;
+    tools: Record<string, RegisteredTool>;
+  },
+) => {
   const app = new Hono();
-  const server = createMcpServer();
+  const { server } = createMcpServer();
   const transport = new StreamableHTTPTransport();
 
   app.all('/mcp', async (c) => {
@@ -2381,7 +2389,7 @@ export const load = async ({ fetch }) => {
 
 ---
 
-## Runtime validation support matrix
+## Runtime Validation Support Matrix（运行时校验支持矩阵）
 
 `runtimeValidation` 的支持情况会因 Client 家族以及是否使用 mutator 而有所不同：
 
@@ -2443,7 +2451,7 @@ export default defineConfig({
 
 ### schemas
 
-将属性覆盖限定到具名 schema，这样同一个属性名就可以在不同 schema 中使用不同的 mock（例如 `Apple` 上的 `color` 与 `Car` 上的 `color`）。按 schema 名作为 key；每个条目都包含一个 `properties` map，匹配规则与 `properties` 相同（裸名、`/regex/`、精确 `#.path`）。它的优先级高于全局 `properties` 覆盖。完整示例见 [Faker guide](/docs/guides/faker#per-schema-overrides)。
+将属性覆盖限定到具名 schema，这样同一个属性名就可以在不同 schema 中使用不同的 mock（例如 `Apple` 上的 `color` 与 `Car` 上的 `color`）。按 schema 名作为 key；每个条目都包含一个 `properties` map，匹配规则与 `properties` 相同（裸名、`/regex/`、精确 `#.path`）。它的优先级高于全局 `properties` 覆盖。完整示例见 [Faker guide](/zh/docs/guides/faker#per-schema-overrides)。
 
 ### format
 
@@ -2636,7 +2644,7 @@ export default defineConfig({
 
 ---
 
-## Type Generation Options
+## Type Generation Options（类型生成选项）
 
 ### useDates
 
@@ -2870,7 +2878,7 @@ export default defineConfig({
 
 ---
 
-## Other Options
+## Other Options（其他选项）
 
 ### allParamsOptional
 
@@ -3039,7 +3047,7 @@ owners/
 
 如果没有单独的 `schemas` 目录，那么所有 schemas 都会进入输出根目录下的单个 `petstore.schemas.ts` 文件。
 
-当使用 [`input.filters.tags`](/docs/reference/configuration/input#tags) 来过滤 endpoint 时，那些只通过内联 response `$defs` 中的 `$dynamicAnchor` + `$ref` 绑定被引用到的 schemas，也会被自动发现并加入输出，无需手动配置 [`filters.schemas`](/docs/reference/configuration/input#schemas)。
+当使用 [`input.filters.tags`](/zh/docs/reference/configuration/input#tags) 来过滤 endpoint 时，那些只通过内联 response `$defs` 中的 `$dynamicAnchor` + `$ref` 绑定被引用到的 schemas，也会被自动发现并加入输出，无需手动配置 [`filters.schemas`](/zh/docs/reference/configuration/input#schemas)。
 
 #### Limitations
 
@@ -3276,7 +3284,7 @@ export default defineConfig({
 
 这个选项有意放在 `override.paramsFilter`，而不是 `override.angular.paramsFilter`，这样就能和 `mutator`、`paramsSerializer` 一样，让同一个 request-shaping override 既可以全局使用，也可以按 operation / tag 缩小范围。
 
-当配置了 `paramsSerializer` 时，orval 本来就会保留 schema 声明的对象型参数和对象数组参数，让 serializer 自己处理；如果没有 serializer，这些参数就会被丢弃。参见 [Angular guide](/docs/guides/angular#query-parameter-filtering)。如果你在没有 serializer 的情况下也需要拿到原始对象，或者需要 schema 表达不了的控制粒度，就使用 `paramsFilter`。
+当配置了 `paramsSerializer` 时，orval 本来就会保留 schema 声明的对象型参数和对象数组参数，让 serializer 自己处理；如果没有 serializer，这些参数就会被丢弃。参见 [Angular guide](/zh/docs/guides/angular#query-parameter-filtering)。如果你在没有 serializer 的情况下也需要拿到原始对象，或者需要 schema 表达不了的控制粒度，就使用 `paramsFilter`。
 
 ```ts title="orval.config.ts"
 export default defineConfig({

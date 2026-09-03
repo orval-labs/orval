@@ -46,9 +46,9 @@ export default defineConfig({
 
 ## 运行时 base URL
 
-如果你想在应用运行时才解析 API base URL（例如从环境变量读取），同时继续使用 Orval 生成的 fetch client 和内置的 `override.fetch` 特性，请在 output 配置中设置 [`baseUrl.runtime`](/docs/reference/configuration/output#runtime)。它与 [`mock.baseUrl`](/docs/reference/configuration/output#mock-options) 是分开的，后者只影响生成的 MSW handlers。
+如果你想在应用运行时才解析 API base URL（例如从环境变量读取），同时继续使用 Orval 生成的 fetch client 和内置的 `override.fetch` 特性，请在 output 配置中设置 [`baseUrl.runtime`](/zh/docs/reference/configuration/output#runtime)。它与 [`mock.baseUrl`](/zh/docs/reference/configuration/output#mock-options) 是分开的，后者只影响生成的 MSW handlers。
 
-## HTTP Client 配置
+## HTTP Client（HTTP 客户端）配置
 
 ### Axios
 
@@ -67,13 +67,13 @@ axios.interceptors.request.use((config) => ({
 }));
 ```
 
-或者创建一个[自定义 Axios 实例](/docs/guides/custom-axios)：
+或者创建一个[自定义 Axios 实例](/zh/docs/guides/custom-axios)：
 
 ```ts
 const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' });
 ```
 
-### Fetch Client
+### Fetch Client（Fetch 客户端）
 
 创建一个自定义 fetch wrapper：
 
@@ -100,7 +100,7 @@ export const customFetch = async <T>(
 
 请参见[完整示例](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)。
 
-### Angular HTTP Client
+### Angular HTTP Client（Angular HTTP 客户端）
 
 使用 interceptor：
 

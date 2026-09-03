@@ -7,7 +7,7 @@ description: 从 OpenAPI 生成 Model Context Protocol（MCP）服务端
 
 ## 概览
 
-MCP 服务端会把 API Client 转接给 AI Agent（智能体），这样你就不需要等待第三方实现。你可以为任何带有 OpenAPI 规范的服务创建 MCP 服务端，并将其与 Claude、Cline 等 AI Agent 一起使用。
+MCP 服务端会将 API 客户端提供给 AI Agent（智能体）使用，这样你就不需要等待第三方实现。你可以为任何带有 OpenAPI 规范的服务创建 MCP 服务端，并将其与 Claude、Cline 等 AI Agent 一起使用。
 
 ## 配置
 
@@ -76,11 +76,39 @@ docker build ./ -t mcp-petstore
 
 这样你的 AI Agent（智能体）就可以通过 MCP 协议与该 API 交互。
 
-## 请求取消
+## Request Cancellation（请求取消）
 
 当 MCP 客户端取消工具调用时，生成的 `server.ts` 会把该调用的取消信号传递给底层 HTTP 请求，正在进行的 `fetch` 会以 `AbortError` 中止。通过 `createMcpServer(options)` 传入的 `signal` 会与每次调用的信号用 `AbortSignal.any` 合并，任一信号触发都会中止请求。运行环境需要 Node.js 20.3 或更高版本。
 
-## 自定义 Server
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    // ...
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(args, {
+      ...options,
+      signal: options?.signal
+        ? AbortSignal.any([options.signal, ctx.signal])
+        : ctx.signal,
+    }),
+);
+```
+
+如果通过 `createMcpServer(options)` 传入 `signal`，例如在自定义 Server 中希望在关闭时中止所有进行中的请求，该信号会通过 `AbortSignal.any` 与每次调用的信号合并。任一信号中止，相关请求都会被取消。
+
+```ts title="custom-server.ts"
+const shutdown = new AbortController();
+const { server } = createMcpServer({ signal: shutdown.signal });
+process.on('SIGTERM', () => shutdown.abort());
+```
+
+<Callout type="info">
+运行时需要 Node.js 20.3 或更高版本才能使用 `AbortSignal.any`。
+</Callout>
+
+## Custom Server（自定义服务端）
 
 默认情况下，生成的 `server.ts` 会通过 `StdioServerTransport` 建立连接。如果你想使用不同的 transport（传输方式，例如用于容器部署的 Streamable HTTP），可以通过 `override.mcp.server` 提供自定义 Server 函数。
 
@@ -116,7 +144,9 @@ export default defineConfig({
 ```ts title="src/server.ts (generated)"
 import { customServer } from '../custom-server';
 
-const createMcpServer = () => {
+const createMcpServer = (
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   // ...tool registrations
 };
 
@@ -126,13 +156,21 @@ customServer(createMcpServer);
 你可以实现这个自定义 Server 函数，以建立任意 transport（传输方式）。下面的例子使用 [Hono](https://hono.dev) 和 [`@hono/mcp`](https://github.com/honojs/middleware/tree/main/packages/mcp) 来提供 Streamable HTTP：
 
 ```ts title="custom-server.ts"
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {
+  McpServer,
+  RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 
-export const customServer = (createMcpServer: () => McpServer) => {
+export const customServer = (
+  createMcpServer: (options?: RequestInit) => {
+    server: McpServer;
+    tools: Record<string, RegisteredTool>;
+  },
+) => {
   const app = new Hono();
-  const server = createMcpServer();
+  const { server } = createMcpServer();
   const transport = new StreamableHTTPTransport();
 
   app.all('/mcp', async (c) => {

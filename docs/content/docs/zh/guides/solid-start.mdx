@@ -197,14 +197,14 @@ SolidStart Client 使用原生 Fetch API，不依赖任何 HTTP client（HTTP �
 - 使用 `.key` 获取某个 query 共享的基础缓存 key（缓存键）
 - 使用 `.keyFor(...args)` 获取某组特定参数对应的缓存 key（缓存键）
 
-### SolidStart Primitives
+### SolidStart Primitives（SolidStart 原语）
 
 - `query()`：用于 GET 请求，自动缓存并具备响应式
 - `action()`：用于 mutations（POST、PUT、PATCH、DELETE）
 - `cache()`：高级缓存能力（可通过 import 使用）
 - `revalidate()`：手动使缓存失效
 
-## 自定义 HTTP Client（Mutator）
+## Custom HTTP Client（自定义 HTTP 客户端，Mutator）
 
 你可以通过 `mutator` 配置使用自定义 HTTP client（HTTP 客户端）：
 

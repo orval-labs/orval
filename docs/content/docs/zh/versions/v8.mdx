@@ -110,7 +110,7 @@ export default defineConfig({
 
 TanStack Query（React Query）现已更新，可正确配合 React Compiler 使用。
 
-### Combined Types Inlining
+### Combined Types Inlining（联合类型内联）
 
 `anyOf`、`oneOf` 和 `allOf` 现在默认会被内联：
 
@@ -257,8 +257,8 @@ export default defineConfig({
 });
 ```
 
-详情请参考 [`input.unsafeDisableValidation`](/docs/reference/configuration/input#unsafedisablevalidation)
-和 [`input.override.transformer`](/docs/reference/configuration/input#transformer)。
+详情请参考 [`input.unsafeDisableValidation`](/zh/docs/reference/configuration/input#unsafedisablevalidation)
+和 [`input.override.transformer`](/zh/docs/reference/configuration/input#transformer)。
 
 <Callout type="info">
   如果你的规范是 OpenAPI 2.0（Swagger），`override.transformer` 现在接收到的是 2.0 文档本身；之前它运行在升级后的 3.1 形式上。请相应调整那些假定输入为 3.x 结构的 transformer。
@@ -334,7 +334,7 @@ output: {
 
 ## 其他改进
 
-### Fetch Client Headers 变量展开
+### Fetch Client Headers（Fetch 客户端请求头）变量展开
 
 现在 `override.requestOptions.headers` 已支持变量展开。
 

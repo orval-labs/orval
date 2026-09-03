@@ -79,7 +79,7 @@ export const listPetsHandlers = factory.createHandlers(
 把你的业务逻辑添加到生成的 Handlers（处理器）中：
 
 > 重新运行 orval 时，会根据
-> [`override.hono.handlerGenerationStrategy`](/docs/reference/configuration/output#handlergenerationstrategy)
+> [`override.hono.handlerGenerationStrategy`](/zh/docs/reference/configuration/output#handlergenerationstrategy)
 >（默认值为 `smart`）来协调 Handler 文件。使用 `smart` 时，orval 只会更新它自己拥有的部分，也就是它自己的 imports（导入项的名称、路径、大小写）和 `zValidator(...)` 参数，并为新增操作追加 Handlers；你的自定义 imports、middleware、中间的 Handler body 以及顶层 helper 都会被保留。使用 `skip` 可以冻结文件，使用 `full` 则会启用旧行为，重建外层包装并只保留 body。
 
 ```ts title="src/handlers/listPets.ts"

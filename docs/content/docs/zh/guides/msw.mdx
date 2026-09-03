@@ -5,7 +5,7 @@ description: 从 OpenAPI 生成 Mock Service Worker Handlers（请求处理器�
 
 根据你的 OpenAPI 规范生成 [MSW (Mock Service Worker)](https://mswjs.io/) Handlers（请求处理器），以便在开发和测试期间生成 API Mock。
 
-对于不带 MSW 请求 Handlers（请求处理器）的 Mock 数据工厂，请参见 [Faker guide（Faker 指南）](/docs/guides/faker)。
+对于不带 MSW 请求 Handlers（请求处理器）的 Mock 数据工厂，请参见 [Faker guide（Faker 指南）](/zh/docs/guides/faker)。
 
 ## 配置
 
@@ -33,7 +33,7 @@ export default defineConfig({
 
 ## 生成结果
 
-MSW 生成器会为每个操作生成两类函数，以及一个聚合器。mock **数据**（即 `get<Op>ResponseMock` factories）由 Faker 生成器负责生成。关于如何覆盖值和格式，请参见 [Faker guide](/docs/guides/faker)。
+MSW 生成器会为每个操作生成两类函数，以及一个聚合器。mock **数据**（即 `get<Op>ResponseMock` factories）由 Faker 生成器负责生成。关于如何覆盖值和格式，请参见 [Faker guide](/zh/docs/guides/faker)。
 
 ### 1. 请求 Handlers
 
@@ -99,7 +99,7 @@ export default defineConfig({
 
 ### 数组项工厂
 
-在 MSW generator 条目上设置 `arrayItems: true`，即可为操作响应中的对象型数组项 schema 生成可复用的 mock 工厂（例如针对 `value: TenantResponseModelDto[]` 生成 `getTenantResponseModelDtoMock`）。这些工厂会和 handlers、response mocks 一起写入同一个 `.msw.ts` / endpoints mock 文件。有关配置细节和支持的结构，请参见 [Faker guide — Array Item Factories](/docs/guides/faker#array-item-factories)。
+在 MSW generator 条目上设置 `arrayItems: true`，即可为操作响应中的对象型数组项 schema 生成可复用的 mock 工厂（例如针对 `value: TenantResponseModelDto[]` 生成 `getTenantResponseModelDtoMock`）。这些工厂会和 handlers、response mocks 一起写入同一个 `.msw.ts` / endpoints mock 文件。有关配置细节和支持的结构，请参见 [Faker guide — Array Item Factories](/zh/docs/guides/faker#array-item-factories)。
 
 ```ts title="orval.config.ts"
 mock: {

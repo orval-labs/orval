@@ -86,7 +86,7 @@ export class PetDetailComponent {
 }
 ```
 
-## Mutations
+## Mutations（变更操作）
 
 对于 POST、PUT、PATCH、DELETE 操作，Orval 会生成 mutation options factory 和可注入 mutation 函数：
 
@@ -140,7 +140,7 @@ export class CreatePetComponent {
 }
 ```
 
-## Query Invalidation
+## Query Invalidation（查询失效）
 
 当设置 `useInvalidate: true` 时，Orval 会生成用于使查询失效的辅助函数：
 
@@ -158,7 +158,7 @@ export const invalidateShowPetById = async (
 };
 ```
 
-## Set Query Data
+## Set Query Data（设置查询数据）
 
 当设置 `useSetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来更新缓存中的 query data（查询数据）：
 
@@ -186,7 +186,7 @@ export const setShowPetByIdQueryData = (
   在这一变更之前，该辅助函数调用的是 `setQueryData`，它会写入并创建单个精确 key 条目。`setQueriesData` 只会更新已存在的条目，并按前缀匹配，因此使用完整 key 的现有调用在升级后可能表现不同，请检查相关调用点。
 </Callout>
 
-## Get Query Data
+## Get Query Data（获取查询数据）
 
 当设置 `useGetQueryData: true` 时，Orval 会生成类型安全的辅助函数，用来读取缓存中的 query data（查询数据）：
 
@@ -290,7 +290,7 @@ deletePet = injectDeletePet({
 });
 ```
 
-## Query Options
+## Query Options（查询选项）
 
 配置无限查询和默认选项：
 

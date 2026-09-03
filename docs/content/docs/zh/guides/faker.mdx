@@ -5,7 +5,7 @@ description: 使用 Faker.js 从 OpenAPI 生成 mock 数据工厂
 
 根据你的 OpenAPI 规范生成由 [Faker.js](https://fakerjs.dev/) 驱动的 mock 数据工厂。Faker 输出不依赖 `msw`，因此适合单元测试、Storybook stories、seed 脚本，以及任何不通过网络 mock 的测试场景。
 
-对于 Mock Service Worker 请求处理器，请参见 [MSW guide](/docs/guides/msw)。
+对于 Mock Service Worker 请求处理器，请参见 [MSW guide](/zh/docs/guides/msw)。
 
 ## 配置
 
@@ -67,7 +67,7 @@ const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
 // => { id: 7272122785202176, name: "Buddy", tag: "..." }
 ```
 
-### Schema 工厂
+### Schema Factories（Schema 工厂）
 
 将 `schemas: true` 设为开启后，会为 `components/schemas` 下的每个条目生成一个 `get<SchemaName>Mock()` 工厂。所有工厂会写入一个汇总文件 `<schemas-dir>/index.faker.ts`，这样就可以统一导入，并且它们之间也可以直接互相引用：
 
