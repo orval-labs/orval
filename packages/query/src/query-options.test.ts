@@ -279,3 +279,43 @@ describe('getQueryOptionsDefinition: mutation variables alias (issue #3782)', ()
     expect(out).toContain('void, TContext>');
   });
 });
+
+describe('generateQueryOptions with useSkipToken', () => {
+  it('does not emit the enabled guard, because skipToken replaces it', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = generateQueryOptions({
+      params: [param('petId')],
+      options: undefined,
+      type: QueryType.QUERY,
+      adapter,
+      useSkipToken: true,
+    });
+    expect(out).not.toContain('enabled:');
+    expect(out).toContain('...queryOptions');
+  });
+
+  it('keeps the configured query options alongside it', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = generateQueryOptions({
+      params: [param('petId')],
+      options: { staleTime: 10000 },
+      type: QueryType.QUERY,
+      adapter,
+      useSkipToken: true,
+    });
+    expect(out).not.toContain('enabled:');
+    expect(out).toContain('staleTime: 10000');
+  });
+
+  it('still emits the enabled guard when the option is off', () => {
+    const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+    const out = generateQueryOptions({
+      params: [param('petId')],
+      options: undefined,
+      type: QueryType.QUERY,
+      adapter,
+      useSkipToken: false,
+    });
+    expect(out).toContain('enabled: petId !== null && petId !== undefined,');
+  });
+});

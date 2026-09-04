@@ -1253,6 +1253,17 @@ Query keys are matched by prefix, so query params and body arguments are widened
 
 Generate type-safe getQueryData helpers.
 
+### useSkipToken
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Hold a query whose params are not resolved yet with [`skipToken`](https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#typesafe-disabling-of-queries-using-skiptoken) instead of the generated `enabled` guard.
+
+Unlike `enabled`, holding the query in `queryFn` also blocks `refetch()`, and it leaves `enabled` free for the caller — the caller's `...queryOptions` is spread last, so their own `enabled` would otherwise replace the generated param check.
+
+React Query v5 only. Suspense queries are unaffected — TanStack excludes `SkipToken` from their `queryFn`.
+
 ### mutationInvalidates
 
 **Type:** `Array`

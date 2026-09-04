@@ -183,6 +183,35 @@ export const useGetListPetsQueryData = () => {
 };
 ```
 
+## Skip Token
+
+When `useSkipToken: true` is set, a query whose params are not resolved yet is held with [`skipToken`](https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#typesafe-disabling-of-queries-using-skiptoken) rather than the generated `enabled` guard:
+
+```ts
+export const getShowPetByIdQueryOptions = <...>(
+  petId: string,
+  options?: {...},
+) => {
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn: QueryFunction<...> = ({ signal }) => showPetById(petId, signal);
+
+  return {
+    queryKey,
+    queryFn: petId === null || petId === undefined ? skipToken : queryFn,
+    ...queryOptions,
+  } as ...;
+};
+```
+
+This matters in two cases the `enabled` guard does not cover:
+
+- `enabled` does not gate `refetch()`, so a retry button sends the request with the unresolved param in the URL. `skipToken` refuses instead.
+- `enabled` is a single option and `...queryOptions` is spread last, so `useShowPetById(petId, { query: { enabled: isTabVisible } })` replaces the generated param check. With `skipToken` the two gates are independent.
+
+Pair it with [`allParamsOptional`](/reference/configuration/output#allparamsoptional) so callers can pass an unresolved param without a cast.
+
+Suspense queries are unaffected: TanStack excludes `SkipToken` from their `queryFn`, which is also why they get no `enabled` guard.
+
 ## Full Example
 
 See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

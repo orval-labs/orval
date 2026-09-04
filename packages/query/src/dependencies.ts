@@ -148,6 +148,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'useQuery', values: true },
+      { name: 'skipToken', values: true },
       { name: 'useSuspenseQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useSuspenseInfiniteQuery', values: true },

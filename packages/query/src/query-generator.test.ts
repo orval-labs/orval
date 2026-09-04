@@ -1,10 +1,16 @@
-import type { GeneratorMutator, GetterBody, GetterProps } from '@orval/core';
+import type {
+  GeneratorMutator,
+  GetterBody,
+  GetterParams,
+  GetterProps,
+} from '@orval/core';
 import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
   allowUndefinedParam,
   getMutationInvalidatesConflictWarning,
+  getQueryFnProperty,
   getQueryKeyVerbPrefix,
   hasQueryParam,
   makeOptionalParam,
@@ -12,6 +18,7 @@ import {
   widenOptionalPropsToUndefined,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
+import { QueryType } from './query-options';
 
 const ruleFor = (op: string) => ({
   onMutations: [op],
@@ -555,5 +562,90 @@ describe('widenOptionalPropsToUndefined', () => {
     );
 
     expect(widened.implementation).toMatch(/^a\.b: undefined \|\s+string$/);
+  });
+});
+
+const skipParam = (name: string): GetterParams[number] => ({
+  name,
+  definition: `${name}: string`,
+  implementation: `${name}: string`,
+  default: undefined,
+  required: true,
+  imports: [],
+});
+
+describe('getQueryFnProperty', () => {
+  it('returns a plain queryFn when useSkipToken is off', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: false,
+        params: [skipParam('petId')],
+        type: QueryType.QUERY,
+      }),
+    ).toBe('queryFn');
+  });
+
+  it('returns a plain queryFn when the operation has no params to hold on', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [],
+        type: QueryType.QUERY,
+      }),
+    ).toBe('queryFn');
+  });
+
+  it('holds the query with skipToken until the param is resolved', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [skipParam('petId')],
+        type: QueryType.QUERY,
+      }),
+    ).toBe(
+      'queryFn: petId === null || petId === undefined ? skipToken : queryFn',
+    );
+  });
+
+  it('holds the query when any one of several params is unresolved', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [skipParam('version'), skipParam('petId')],
+        type: QueryType.QUERY,
+      }),
+    ).toBe(
+      'queryFn: version === null || version === undefined || petId === null || petId === undefined ? skipToken : queryFn',
+    );
+  });
+
+  it('holds an infinite query, which accepts skipToken', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [skipParam('petId')],
+        type: QueryType.INFINITE,
+      }),
+    ).toContain('skipToken');
+  });
+
+  it('never holds a suspense query, whose queryFn excludes SkipToken', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [skipParam('petId')],
+        type: QueryType.SUSPENSE_QUERY,
+      }),
+    ).toBe('queryFn');
+  });
+
+  it('never holds a suspense infinite query, for the same reason', () => {
+    expect(
+      getQueryFnProperty({
+        useSkipToken: true,
+        params: [skipParam('petId')],
+        type: QueryType.SUSPENSE_INFINITE,
+      }),
+    ).toBe('queryFn');
   });
 });

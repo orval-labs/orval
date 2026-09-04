@@ -37,11 +37,14 @@ export const generateQueryOptions = ({
   options,
   type,
   adapter,
+  useSkipToken,
 }: {
   params: GetterParams;
   options?: object | boolean;
   type: QueryType;
   adapter?: FrameworkAdapter;
+  /** `skipToken` holds the query instead, so the `enabled` guard is redundant. */
+  useSkipToken?: boolean;
 }) => {
   if (options === false) {
     return '';
@@ -59,6 +62,10 @@ export const generateQueryOptions = ({
     }
 
     return '...queryOptions';
+  }
+
+  if (useSkipToken) {
+    return `${queryConfig} ...queryOptions`;
   }
 
   const enabledOption = adapter

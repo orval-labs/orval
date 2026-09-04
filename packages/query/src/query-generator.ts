@@ -29,6 +29,7 @@ import {
   generateQueryOptions,
   getQueryOptionsDefinition,
   isInfiniteQuery,
+  isSuspenseQuery,
   QueryType,
   requiresUserSuppliedQueryOptions,
 } from './query-options';
@@ -179,6 +180,34 @@ export const allowUndefinedParam = (impl: string) => {
   const optional = /^(\w+)\?:\s*(.+)$/.exec(impl);
   if (optional) return `${optional[1]}: ${optional[2]} | undefined`;
   return impl.replace(/^(\w+):\s*(.+)$/, '$1: $2 | undefined');
+};
+
+/**
+ * The `queryFn` entry of the emitted options literal. With `useSkipToken` a query
+ * whose params are not resolved is held by `skipToken`, so a caller's own
+ * `enabled` cannot replace the check and `refetch()` cannot bypass it.
+ *
+ * A suspense query is never held — TanStack excludes `SkipToken` from its
+ * `queryFn`, which is also why it gets no generated `enabled` guard.
+ */
+export const getQueryFnProperty = ({
+  useSkipToken,
+  params,
+  type,
+}: {
+  useSkipToken?: boolean;
+  params: GetterParams;
+  type: (typeof QueryType)[keyof typeof QueryType];
+}) => {
+  if (!useSkipToken || params.length === 0 || isSuspenseQuery(type)) {
+    return 'queryFn';
+  }
+
+  const isUnresolved = params
+    .map(({ name }) => `${name} === null || ${name} === undefined`)
+    .join(' || ');
+
+  return `queryFn: ${isUnresolved} ? skipToken : queryFn`;
 };
 
 /**
@@ -453,6 +482,7 @@ const generateQueryImplementation = ({
   useInvalidate,
   useSetQueryData,
   useGetQueryData,
+  useSkipToken,
   adapter,
 }: {
   queryOption: {
@@ -491,6 +521,7 @@ const generateQueryImplementation = ({
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
   useGetQueryData?: boolean;
+  useSkipToken?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -693,7 +724,10 @@ const generateQueryImplementation = ({
     options,
     type,
     adapter,
+    useSkipToken,
   });
+
+  const queryFnProperty = getQueryFnProperty({ useSkipToken, params, type });
 
   const queryOptionsFnName = camel(
     shouldUseOptionsHook({
@@ -777,7 +811,7 @@ ${hookOptions}
             // operation. See #3153.
             `const customOptions = ${
               queryOptionsMutator.name
-            }({ queryKey, queryFn, ${queryOptionsImp}}${
+            }({ queryKey, ${queryFnProperty}, ${queryOptionsImp}}${
               queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
             }${
               queryOptionsMutator.hasThirdArg
@@ -790,7 +824,7 @@ ${hookOptions}
    return  ${
      queryOptionsMutator
        ? 'customOptions'
-       : `{ queryKey, queryFn, ${queryOptionsImp}}`
+       : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
    }${
      adapter.shouldCastQueryOptions?.() === false
        ? ''
@@ -1119,6 +1153,9 @@ export const generateQueryHook = async (
     isQuery = false;
   }
 
+  // `skipToken` does not exist before TanStack Query v5.
+  const useSkipToken = !!override.query.useSkipToken && adapter.hasQueryV5;
+
   // Warn when an operation referenced by a `mutationInvalidates` rule's
   // `onMutations` list is generated as a Query (or no hook at all). The rule
   // is wired up in mutation-generator and only fires for Mutation hooks, so
@@ -1347,6 +1384,7 @@ ${queryKeyFns}`;
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
         useGetQueryData:
           operationQueryOptions?.useGetQueryData ?? query.useGetQueryData,
+        useSkipToken,
         adapter,
       });
     }
