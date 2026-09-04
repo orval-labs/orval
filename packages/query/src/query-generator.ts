@@ -211,6 +211,20 @@ export const getQueryFnProperty = ({
 };
 
 /**
+ * Whether `useSkipToken` applies to this adapter. `skipToken` is exported by
+ * `@tanstack/react-query` v5 only: the other v5 adapters neither import it nor
+ * read their params the same way — vue unwraps refs in its `enabled` guard, for
+ * one — so they keep the guard.
+ */
+export const resolveUseSkipToken = (
+  useSkipToken: boolean | undefined,
+  adapter: FrameworkAdapter,
+) =>
+  !!useSkipToken &&
+  adapter.outputClient === OutputClient.REACT_QUERY &&
+  adapter.hasQueryV5;
+
+/**
  * Renders the `setXxxQueryData` helper as either a React hook (returns a
  * setter) or a plain function taking `queryClient`. Both shapes share the
  * same body and signature, so this collapses what would otherwise be two
@@ -1153,8 +1167,10 @@ export const generateQueryHook = async (
     isQuery = false;
   }
 
-  // `skipToken` does not exist before TanStack Query v5.
-  const useSkipToken = !!override.query.useSkipToken && adapter.hasQueryV5;
+  const useSkipToken = resolveUseSkipToken(
+    override.query.useSkipToken,
+    adapter,
+  );
 
   // Warn when an operation referenced by a `mutationInvalidates` rule's
   // `onMutations` list is generated as a Query (or no hook at all). The rule

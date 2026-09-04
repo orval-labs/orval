@@ -3,10 +3,12 @@ import type {
   GetterBody,
   GetterParams,
   GetterProps,
+  OutputClient,
 } from '@orval/core';
 import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createFrameworkAdapter } from './frameworks';
 import {
   allowUndefinedParam,
   getMutationInvalidatesConflictWarning,
@@ -15,6 +17,7 @@ import {
   hasQueryParam,
   makeOptionalParam,
   resolveInfiniteQueryParam,
+  resolveUseSkipToken,
   widenOptionalPropsToUndefined,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
@@ -647,5 +650,39 @@ describe('getQueryFnProperty', () => {
         type: QueryType.SUSPENSE_INFINITE,
       }),
     ).toBe('queryFn');
+  });
+});
+
+describe('resolveUseSkipToken', () => {
+  const adapterFor = (outputClient: OutputClient) =>
+    createFrameworkAdapter({ outputClient, queryVersion: 5 });
+
+  it('applies to react-query v5', () => {
+    expect(resolveUseSkipToken(true, adapterFor('react-query'))).toBe(true);
+  });
+
+  it('does not apply to react-query v4, which has no skipToken', () => {
+    const adapter = createFrameworkAdapter({
+      outputClient: 'react-query',
+      queryVersion: 4,
+    });
+    expect(resolveUseSkipToken(true, adapter)).toBe(false);
+  });
+
+  // The other v5 adapters set `hasQueryV5` too, but `skipToken` is a
+  // react-query export and their `enabled` guards differ (vue unwraps refs).
+  it.each<OutputClient>([
+    'vue-query',
+    'svelte-query',
+    'solid-query',
+    'angular-query',
+  ])('does not apply to %s v5', (outputClient) => {
+    expect(resolveUseSkipToken(true, adapterFor(outputClient))).toBe(false);
+  });
+
+  it('is off when the option is unset', () => {
+    expect(resolveUseSkipToken(undefined, adapterFor('react-query'))).toBe(
+      false,
+    );
   });
 });
