@@ -1045,6 +1045,13 @@ export const generateZodValidationSchemaDefinition = (
             if (isString(item)) {
               return `${JSON.stringify(item)} as const`;
             }
+            if (isNumber(item)) {
+              return `${item} as const`;
+            }
+            if (Array.isArray(item)) {
+              const formatted = formatDefaultEntryValue(item);
+              return formatted ?? '[]';
+            }
             // Object items recurse so nested string values get `as const`
             // (e.g. `{ value: 'active' as const }`), which JSON.stringify
             // alone would drop (#3982 CodeRabbit).
