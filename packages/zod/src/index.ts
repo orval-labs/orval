@@ -1073,10 +1073,13 @@ export const generateZodValidationSchemaDefinition = (
           return nestedEntries.length === 0 ? '{}' : `{ ${nestedEntries} }`;
         }
 
+        if (isNumber(entryValue)) {
+          return `${entryValue} as const`;
+        }
+
         if (
           entryValue === null ||
           entryValue === undefined ||
-          isNumber(entryValue) ||
           isBoolean(entryValue)
         )
           return `${entryValue}`;
