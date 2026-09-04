@@ -59,6 +59,21 @@ import {
 } from './compatible-v4';
 import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
 
+// Numeric/length constraints (minimum, maximum, exclusiveMinimum,
+// exclusiveMaximum, multipleOf) are interpolated into generated source as a
+// bare, unquoted expression (e.g. `export const XMin = ${min};`), so there is
+// no syntactic escaping that can make an untrusted value safe there. Reject
+// anything that isn't actually a finite number instead of emitting it as-is.
+const assertSafeNumericConstraint = (value: unknown, label: string): number => {
+  if (!isNumber(value) || !Number.isFinite(value)) {
+    throw new Error(
+      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${JSON.stringify(value)}). This value would otherwise be emitted verbatim into generated source.`,
+    );
+  }
+
+  return value;
+};
+
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
   _hasParamsSerializerOptions,
@@ -1467,35 +1482,51 @@ export const generateZodValidationSchemaDefinition = (
     const shouldUseExclusiveMax = exclusiveMaxRaw !== undefined;
 
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
+      const safeExclusiveMin = assertSafeNumericConstraint(
+        exclusiveMin,
+        'exclusiveMinimum',
+      );
       consts.push(
-        `export const ${name}ExclusiveMin${constsCounterValue} = ${exclusiveMin};`,
+        `export const ${name}ExclusiveMin${constsCounterValue} = ${safeExclusiveMin};`,
       );
       // Generate .gt() for exclusive minimum (> instead of >=)
       functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
     } else if (min !== undefined) {
-      if (min === 1) {
-        functions.push(['min', `${min}`]);
+      const safeMin = assertSafeNumericConstraint(min, 'minimum');
+      if (safeMin === 1) {
+        functions.push(['min', `${safeMin}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
+        consts.push(
+          `export const ${name}Min${constsCounterValue} = ${safeMin};`,
+        );
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
 
     // Handle maximum constraints: exclusiveMaximum (<.lt()) takes priority over maximum (.max())
     if (shouldUseExclusiveMax && exclusiveMax !== undefined) {
+      const safeExclusiveMax = assertSafeNumericConstraint(
+        exclusiveMax,
+        'exclusiveMaximum',
+      );
       consts.push(
-        `export const ${name}ExclusiveMax${constsCounterValue} = ${exclusiveMax};`,
+        `export const ${name}ExclusiveMax${constsCounterValue} = ${safeExclusiveMax};`,
       );
       // Generate .lt() for exclusive maximum (< instead of <=)
       functions.push(['lt', `${name}ExclusiveMax${constsCounterValue}`]);
     } else if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
+      const safeMax = assertSafeNumericConstraint(max, 'maximum');
+      consts.push(`export const ${name}Max${constsCounterValue} = ${safeMax};`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
 
     if (multipleOf !== undefined) {
+      const safeMultipleOf = assertSafeNumericConstraint(
+        multipleOf,
+        'multipleOf',
+      );
       consts.push(
-        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+        `export const ${name}MultipleOf${constsCounterValue} = ${safeMultipleOf.toString()};`,
       );
       functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
