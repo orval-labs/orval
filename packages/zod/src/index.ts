@@ -67,7 +67,7 @@ import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
 const assertSafeNumericConstraint = (value: unknown, label: string): number => {
   if (!isNumber(value) || !Number.isFinite(value)) {
     throw new Error(
-      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${JSON.stringify(value)}). This value would otherwise be emitted verbatim into generated source.`,
+      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${String(value)}). This value would otherwise be emitted verbatim into generated source.`,
     );
   }
 
@@ -761,11 +761,19 @@ export const generateZodValidationSchemaDefinition = (
   const exclusiveMaxRaw =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
 
-  // Convert boolean to number if using OpenAPI 3.0 format
-  const exclusiveMin =
-    isBoolean(exclusiveMinRaw) && exclusiveMinRaw ? min : exclusiveMinRaw;
-  const exclusiveMax =
-    isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
+  // Convert boolean to number if using OpenAPI 3.0 format. `false` means
+  // "not exclusive" and must normalize to undefined (not linger as the
+  // boolean `false`), or downstream code mistakes it for a constraint value.
+  const exclusiveMin = isBoolean(exclusiveMinRaw)
+    ? exclusiveMinRaw
+      ? min
+      : undefined
+    : exclusiveMinRaw;
+  const exclusiveMax = isBoolean(exclusiveMaxRaw)
+    ? exclusiveMaxRaw
+      ? max
+      : undefined
+    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
@@ -1478,8 +1486,8 @@ export const generateZodValidationSchemaDefinition = (
   if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
-    const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
-    const shouldUseExclusiveMax = exclusiveMaxRaw !== undefined;
+    const shouldUseExclusiveMin = exclusiveMin !== undefined;
+    const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       const safeExclusiveMin = assertSafeNumericConstraint(

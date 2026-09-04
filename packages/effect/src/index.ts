@@ -35,7 +35,7 @@ import { unique } from 'remeda';
 const assertSafeNumericConstraint = (value: unknown, label: string): number => {
   if (!isNumber(value) || !Number.isFinite(value)) {
     throw new Error(
-      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${JSON.stringify(value)}). This value would otherwise be emitted verbatim into generated source.`,
+      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${String(value)}). This value would otherwise be emitted verbatim into generated source.`,
     );
   }
 
@@ -199,10 +199,19 @@ export const generateEffectValidationSchemaDefinition = (
   const exclusiveMaxRaw =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
 
-  const exclusiveMin =
-    isBoolean(exclusiveMinRaw) && exclusiveMinRaw ? min : exclusiveMinRaw;
-  const exclusiveMax =
-    isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
+  // `false` means "not exclusive" and must normalize to undefined (not
+  // linger as the boolean `false`), or downstream code mistakes it for a
+  // constraint value.
+  const exclusiveMin = isBoolean(exclusiveMinRaw)
+    ? exclusiveMinRaw
+      ? min
+      : undefined
+    : exclusiveMinRaw;
+  const exclusiveMax = isBoolean(exclusiveMaxRaw)
+    ? exclusiveMaxRaw
+      ? max
+      : undefined
+    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
@@ -549,8 +558,8 @@ export const generateEffectValidationSchemaDefinition = (
   }
 
   if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
-    const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
-    const shouldUseExclusiveMax = exclusiveMaxRaw !== undefined;
+    const shouldUseExclusiveMin = exclusiveMin !== undefined;
+    const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       const safeExclusiveMin = assertSafeNumericConstraint(

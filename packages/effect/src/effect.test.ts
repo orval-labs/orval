@@ -76,6 +76,32 @@ describe('constraints', () => {
     expect(effect).toContain('S.lessThan(');
   });
 
+  it('maps exclusiveMinimum/exclusiveMaximum=true (3.0 boolean form) to exclusive bounds', () => {
+    const { effect } = gen({
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+      exclusiveMinimum: true,
+      exclusiveMaximum: true,
+    } as unknown as OpenApiSchemaObject);
+    expect(effect).toContain('S.greaterThan(');
+    expect(effect).toContain('S.lessThan(');
+  });
+
+  it('maps exclusiveMinimum/exclusiveMaximum=false (3.0 boolean form) to inclusive bounds', () => {
+    const { effect } = gen({
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+      exclusiveMinimum: false,
+      exclusiveMaximum: false,
+    } as unknown as OpenApiSchemaObject);
+    expect(effect).toContain('S.greaterThanOrEqualTo(');
+    expect(effect).toContain('S.lessThanOrEqualTo(');
+    expect(effect).not.toContain('S.greaterThan(');
+    expect(effect).not.toContain('S.lessThan(');
+  });
+
   it('maps pattern to S.pattern', () => {
     const { effect } = gen({ type: 'string', pattern: '^foo' });
     expect(effect).toContain('S.pattern(');
