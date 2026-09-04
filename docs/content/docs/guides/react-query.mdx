@@ -205,7 +205,7 @@ export const getShowPetByIdQueryOptions = <...>(
 
 This matters in two cases the `enabled` guard does not cover:
 
-- `enabled` does not gate `refetch()`, so a retry button sends the request with the unresolved param in the URL. `skipToken` refuses instead.
+- `enabled` does not gate `refetch()`, so a retry button sends the request with the unresolved param in the URL. With `skipToken` no request is sent — the query rejects with `Missing queryFn` instead, which is the tradeoff to know about before enabling the option.
 - `enabled` is a single option and `...queryOptions` is spread last, so `useShowPetById(petId, { query: { enabled: isTabVisible } })` replaces the generated param check. With `skipToken` the two gates are independent.
 
 Pair it with [`allParamsOptional`](/reference/configuration/output#allparamsoptional) so callers can pass an unresolved param without a cast.

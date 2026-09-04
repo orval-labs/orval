@@ -1260,7 +1260,7 @@ Generate type-safe getQueryData helpers.
 
 Hold a query whose params are not resolved yet with [`skipToken`](https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#typesafe-disabling-of-queries-using-skiptoken) instead of the generated `enabled` guard.
 
-Unlike `enabled`, holding the query in `queryFn` also blocks `refetch()`, and it leaves `enabled` free for the caller — the caller's `...queryOptions` is spread last, so their own `enabled` would otherwise replace the generated param check.
+Unlike `enabled`, this also covers `refetch()`: no request is sent with an unresolved param, and the query rejects with `Missing queryFn` instead (TanStack also logs a console error in development). It leaves `enabled` free for the caller too — the caller's `...queryOptions` is spread last, so their own `enabled` would otherwise replace the generated param check.
 
 React Query v5 only. Suspense queries are unaffected — TanStack excludes `SkipToken` from their `queryFn`.
 
