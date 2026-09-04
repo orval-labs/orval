@@ -21,6 +21,7 @@ import {
   isObject,
   isOperationInTagBucket,
   jsDoc,
+  jsStringLiteralEscape,
   logWarning,
   type NormalizedMutator,
   type NormalizedOutputOptions,
@@ -172,7 +173,11 @@ const generateHonoRoute = (
 ) => {
   const path = getRoute(pathRoute);
 
-  return `\n  .${verb.toLowerCase()}('${path}', ...${operationName}Handlers)`;
+  // `getRoute` only rewrites `{param}` placeholders and sanitizes the
+  // captured parameter names; the literal path text passes through
+  // unescaped. It is embedded below in a single-quoted literal, so escape it
+  // for that context here rather than trusting the document's path text.
+  return `\n  .${verb.toLowerCase()}('${jsStringLiteralEscape(path)}', ...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = (verbOptions, options) => {

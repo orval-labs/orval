@@ -4461,6 +4461,86 @@ describe('generateZodValidationSchemaDefinition`', () => {
         );
       });
 
+      it('generates .min() when exclusiveMinimum=false with minimum value', () => {
+        const schema = {
+          type: 'number',
+          minimum: 10,
+          exclusiveMinimum: false,
+        } as unknown as OpenApiSchemaObject;
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMinFalseOAS30',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['min', 'testNumberExclusiveMinFalseOAS30Min'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMinFalseOAS30Min = 10;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().min(testNumberExclusiveMinFalseOAS30Min).optional()',
+        );
+      });
+
+      it('generates .max() when exclusiveMaximum=false with maximum value', () => {
+        const schema = {
+          type: 'number',
+          maximum: 100,
+          exclusiveMaximum: false,
+        } as unknown as OpenApiSchemaObject;
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMaxFalseOAS30',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['max', 'testNumberExclusiveMaxFalseOAS30Max'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMaxFalseOAS30Max = 100;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().max(testNumberExclusiveMaxFalseOAS30Max).optional()',
+        );
+      });
+
       it('generates .gt() and .lt() when both exclusiveMinimum and exclusiveMaximum are true', () => {
         const schema = {
           type: 'number',
