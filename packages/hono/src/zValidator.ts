@@ -1,9 +1,9 @@
 // based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
 import { zValidator as zValidatorBase } from '@hono/zod-validator'
 import type { Context, Env, Input, MiddlewareHandler, TypedResponse, ValidationTargets } from 'hono'
-import * as v3 from 'zod/v3'
+import type * as v3 from 'zod/v3'
 import type { ZodSafeParseResult as ZodSafeParseResult$1 } from 'zod/v4'
-import * as v4 from 'zod/v4/core'
+import type * as v4 from 'zod/v4/core'
 
 type Awaitable<T> = T | Promise<T>
 type HasUndefined<T> = undefined extends T ? true : false

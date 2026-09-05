@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1
  */
 
-import { Form } from './custom-handlers';
+import type { Form } from './custom-handlers';
 
 export type addResponseDefault = {
   data: unknown;

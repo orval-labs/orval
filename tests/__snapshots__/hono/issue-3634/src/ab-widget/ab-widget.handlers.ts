@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../endpoints/validator';
-import { ListAbWidgetsContext } from './ab-widget.context';
+import type { ListAbWidgetsContext } from './ab-widget.context';
 import {
   ListAbWidgetsQueryParams,
   ListAbWidgetsResponse,

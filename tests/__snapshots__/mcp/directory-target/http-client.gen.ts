@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1
  */
 
-import { Form } from './sample.gen';
+import type { Form } from './sample.gen';
 
 export type addResponseDefault = {
   data: unknown;

@@ -13,7 +13,7 @@
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-import {
+import type {
   Pet,
   FindPetsByStatusParams,
   FindPetsByTagsParams,

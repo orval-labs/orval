@@ -103,7 +103,7 @@ export const getFooHandlers = factory.createHandlers(
     });
 
     expect(result).toContain(
-      "import { Get$FooContext } from '../endpoints.context';",
+      "import type { Get$FooContext } from '../endpoints.context';",
     );
     // user body untouched
     expect(result).toContain('async (c: Get$FooContext) =>');
@@ -719,7 +719,7 @@ export const listPetsHandlers = factory.createHandlers(
     expect(result).toContain('somethingCustom'); // user name preserved
     expect(result).toContain('export const createPetsHandlers'); // new op appended
     expect(result).toContain(
-      "import { CreatePetsContext } from '../endpoints.context';",
+      "import type { CreatePetsContext } from '../endpoints.context';",
     ); // new op's context added via a separate import
   });
 
@@ -854,7 +854,7 @@ export const listPetsHandlers = factory.createHandlers(
     expect(result).toContain("import * as Ctx from '../endpoints.context';"); // namespace kept
     expect(result).toContain('export const createPetsHandlers'); // new op appended
     expect(result).toContain(
-      "import { CreatePetsContext } from '../endpoints.context';",
+      "import type { CreatePetsContext } from '../endpoints.context';",
     ); // new op's bare context imported
     // the namespace-qualified existing context is not duplicated bare
     expect(result).not.toContain('import { ListPetsContext }');

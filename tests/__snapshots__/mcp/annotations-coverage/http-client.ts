@@ -5,7 +5,11 @@
  * OpenAPI spec version: 1
  */
 
-import { CreateThingBody, ReplaceThingBody, PatchThingBody } from './handlers';
+import type {
+  CreateThingBody,
+  ReplaceThingBody,
+  PatchThingBody,
+} from './handlers';
 
 export type getThingsResponse200 = {
   data: string[];

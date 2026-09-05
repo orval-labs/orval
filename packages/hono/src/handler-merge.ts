@@ -193,10 +193,16 @@ const localNameFor = (
   return undefined;
 };
 
-const renderImport = ({ names, module }: OrvalImport): string =>
-  names.length <= 1
-    ? `import { ${names.join('')} } from '${module}';`
-    : `import {\n  ${names.join(',\n  ')}\n} from '${module}';`;
+const renderImport = ({
+  names,
+  module,
+  typeOnly,
+}: OrvalImport & { typeOnly?: boolean }): string => {
+  const keyword = typeOnly ? 'import type ' : 'import ';
+  return names.length <= 1
+    ? `${keyword}{ ${names.join('')} } from '${module}';`
+    : `${keyword}{\n  ${names.join(',\n  ')}\n} from '${module}';`;
+};
 
 const lineStart = (source: string, position: number): number =>
   source.lastIndexOf('\n', position - 1) + 1;
@@ -277,6 +283,7 @@ export const reconcileHandlerFile = async (
     isOrvalName: (name: string) => boolean,
     augment?: (name: string) => boolean,
     collectRenames?: Map<string, string>,
+    typeOnly?: boolean,
   ) => {
     if (!existing) {
       // Never insert a name that is already bound bare elsewhere (e.g. a default
@@ -286,7 +293,9 @@ export const reconcileHandlerFile = async (
         augment ? names.filter((name) => augment(name)) : names
       ).filter((name) => !isImportedBare(name));
       if (toInsert.length > 0) {
-        pendingInsertions.push(renderImport({ names: toInsert, module }));
+        pendingInsertions.push(
+          renderImport({ names: toInsert, module, typeOnly }),
+        );
       }
       return;
     }
@@ -300,7 +309,9 @@ export const reconcileHandlerFile = async (
           (name) => augment(name) && !isImportedBare(name),
         );
         if (missing.length > 0) {
-          pendingInsertions.push(renderImport({ names: missing, module }));
+          pendingInsertions.push(
+            renderImport({ names: missing, module, typeOnly }),
+          );
         }
       }
       return;
@@ -313,7 +324,8 @@ export const reconcileHandlerFile = async (
 
     if (
       setEquals(importedNames(existing), names) &&
-      moduleText(existing) === module
+      moduleText(existing) === module &&
+      (existing.importClause?.isTypeOnly ?? false) === Boolean(typeOnly)
     ) {
       return;
     }
@@ -333,7 +345,7 @@ export const reconcileHandlerFile = async (
     edits.push({
       start: existing.getStart(sourceFile),
       end: existing.getEnd(),
-      text: renderImport({ names, module }),
+      text: renderImport({ names, module, typeOnly }),
     });
   };
 
@@ -434,6 +446,11 @@ export const reconcileHandlerFile = async (
     desired.imports.context.module,
     (name) => desired.imports.context.names.includes(name),
     needsBareContext,
+    undefined,
+    // Context identifiers only appear in type positions (the typed
+    // `async (c: XContext) => {}` handler callback), so the import is
+    // emitted type-only.
+    true,
   );
 
   const zodModule = desired.imports.zod?.module ?? '';

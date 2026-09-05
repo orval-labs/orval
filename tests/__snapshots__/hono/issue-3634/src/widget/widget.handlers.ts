@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../endpoints/validator';
-import { ListWidgetsContext } from './widget.context';
+import type { ListWidgetsContext } from './widget.context';
 import { ListWidgetsQueryParams, ListWidgetsResponse } from './widget.zod';
 
 const factory = createFactory();

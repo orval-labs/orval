@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../petstore.validator';
-import { ShowPetByIdContext } from '../petstore.context';
+import type { ShowPetByIdContext } from '../petstore.context';
 import { ShowPetByIdParams, ShowPetByIdResponse } from '../petstore.zod';
 
 const factory = createFactory();

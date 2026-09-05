@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../../endpoints.validator';
-import { DeletePetByIdContext } from '../../endpoints.context';
+import type { DeletePetByIdContext } from '../../endpoints.context';
 import { DeletePetByIdParams } from '../../endpoints.zod';
 
 const factory = createFactory();

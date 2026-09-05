@@ -134,7 +134,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     .toArray();
 
   const importSchemasImplementation = schemasPath
-    ? `import {\n  ${importSchemaNames.join(
+    ? `import type {\n  ${importSchemaNames.join(
         ',\n  ',
       )}\n} from '${relativeSchemaImportPath}';
 `
@@ -559,7 +559,10 @@ const generateHttpClientFiles = async (
     .map((imp) => imp.name);
   const uniqueImportNames = new Set(importNames).values().toArray();
 
-  const importImplementation = `import { ${uniqueImportNames.join(
+  // Type-only schemas — the http-client references them in type positions
+  // (response/params/body type aliases and function signatures), so the
+  // import is type-only.
+  const importImplementation = `import type { ${uniqueImportNames.join(
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
