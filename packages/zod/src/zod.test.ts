@@ -2533,7 +2533,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
+          'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 as const };',
         ],
       });
 
@@ -2548,7 +2548,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
+        'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 as const };',
       );
     });
 
@@ -2723,7 +2723,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const parentChildrenDefault = { "entries": [{ "value": 1 }] };',
+        'export const parentChildrenDefault = { "entries": [{ "value": 1 as const }] };',
       ]);
     });
 
@@ -3886,6 +3886,200 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'default',
         'enumPropertiesObjectDefault',
       ]);
+    });
+
+    it('narrows numeric literals in object defaults so enum properties keep literal types (#3992)', () => {
+      const schemaWithNumericEnumDefault: OpenApiSchemaObject = {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          example_value: {
+            type: 'integer',
+            enum: [0, 1, 2],
+            default: 2,
+          },
+        },
+        default: { example_value: 2 },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNumericEnumDefault,
+        context,
+        'Example',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const ExampleDefault = { "example_value": 2 as const };',
+      );
+      expect(result.functions).toContainEqual(['default', 'ExampleDefault']);
+    });
+
+    it('narrows numeric literals in nested object defaults', () => {
+      const schemaWithNestedNumericEnumDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          settings: {
+            type: 'object',
+            properties: {
+              example_value: { type: 'integer', enum: [0, 1, 2] },
+            },
+          },
+        },
+        default: { settings: { example_value: 2 } },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNestedNumericEnumDefault,
+        context,
+        'NestedExample',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const NestedExampleDefault = { "settings": { "example_value": 2 as const } };',
+      );
+    });
+
+    it('preserves decimal and negative numeric literals in object defaults', () => {
+      const schemaWithDecimalAndNegativeDefaults: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          decimal_value: {
+            type: 'number',
+            enum: [-2.1, 0, 2.1],
+            default: 2.1,
+          },
+          negative_value: {
+            type: 'number',
+            enum: [-2.1, -1, 0],
+            default: -2.1,
+          },
+        },
+        default: { decimal_value: 2.1, negative_value: -2.1 },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithDecimalAndNegativeDefaults,
+        context,
+        'NumericExample',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const NumericExampleDefault = { "decimal_value": 2.1 as const, "negative_value": -2.1 as const };',
+      );
+    });
+
+    it('narrows numeric enum array items in object defaults', () => {
+      const schemaWithNumericEnumArrayDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          codes: {
+            type: 'array',
+            items: { type: 'integer', enum: [1, 2, 3] },
+          },
+          negative_codes: {
+            type: 'array',
+            items: { type: 'integer', enum: [-2, -1] },
+          },
+          decimal_codes: {
+            type: 'array',
+            items: { type: 'number', enum: [-3.5, 2.1] },
+          },
+        },
+        default: {
+          codes: [1, 2],
+          negative_codes: [-2],
+          decimal_codes: [2.1, -3.5],
+        },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNumericEnumArrayDefault,
+        context,
+        'NumericArrayExample',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const NumericArrayExampleDefault = { "codes": [1 as const, 2 as const], "negative_codes": [-2 as const], "decimal_codes": [2.1 as const, -3.5 as const] };',
+      );
+      expect(result.functions).toContainEqual([
+        'default',
+        'NumericArrayExampleDefault',
+      ]);
+    });
+
+    it('narrows numeric enum array items in nested object defaults', () => {
+      const schemaWithNestedNumericEnumArrayDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          groups: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                codes: {
+                  type: 'array',
+                  items: { type: 'integer', enum: [-2, 1, 2] },
+                },
+              },
+            },
+          },
+        },
+        default: { groups: [{ codes: [-2, 1] }] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNestedNumericEnumArrayDefault,
+        context,
+        'NestedNumericArrayExample',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const NestedNumericArrayExampleDefault = { "groups": [{ "codes": [-2 as const, 1 as const] }] };',
+      );
+    });
+
+    it('narrows numeric enum values in nested arrays in object defaults', () => {
+      const schemaWithNestedNumericArrayDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          matrix: {
+            type: 'array',
+            items: {
+              type: 'array',
+              items: { type: 'integer', enum: [1, 2, 3] },
+            },
+          },
+        },
+        default: { matrix: [[2]] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNestedNumericArrayDefault,
+        context,
+        'MatrixExample',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toContain(
+        'export const MatrixExampleDefault = { "matrix": [[2 as const]] };',
+      );
     });
 
     it('keeps array values mutable in object defaults so zod.default() accepts them (#3399)', () => {
