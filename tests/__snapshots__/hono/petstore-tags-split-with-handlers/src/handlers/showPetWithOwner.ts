@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../../endpoints.validator';
-import { ShowPetWithOwnerContext } from '../../pets/pets.context';
+import type { ShowPetWithOwnerContext } from '../../pets/pets.context';
 import {
   ShowPetWithOwnerParams,
   ShowPetWithOwnerResponse,

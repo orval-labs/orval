@@ -6,7 +6,7 @@
  */
 import { createFactory } from 'hono/factory';
 import { zValidator } from '../../endpoints.validator';
-import { CreatePetsContext } from '../../endpoints.context';
+import type { CreatePetsContext } from '../../endpoints.context';
 import {
   CreatePetsQueryParams,
   CreatePetsBody,

@@ -476,7 +476,7 @@ const generateFreshHandlerFile = ({
   }
 
   imports.push(
-    `import { ${verbList
+    `import type { ${verbList
       .map((verb) => `${pascal(verb.typeName)}Context`)
       .join(
         ',\n',

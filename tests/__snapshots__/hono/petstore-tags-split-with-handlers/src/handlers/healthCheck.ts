@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { createFactory } from 'hono/factory';
-import { HealthCheckContext } from '../../health/health.context';
+import type { HealthCheckContext } from '../../health/health.context';
 
 const factory = createFactory();
 export const healthCheckHandlers = factory.createHandlers(

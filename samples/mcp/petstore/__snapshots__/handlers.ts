@@ -12,7 +12,7 @@
  * - [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
-import {
+import type {
   FilterPetsByStatusParams,
   Pet,
   FindPetsByStatusParams,

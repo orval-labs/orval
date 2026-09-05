@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-import {
+import type {
   Pets,
   Error,
   ListPetsParams,
