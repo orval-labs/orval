@@ -576,7 +576,7 @@ export const generateZodValidationSchemaDefinition = (
       // break the generated string literal (TS1002).
       functions.push([
         'describe',
-        `'${jsStringEscape(siblingSchema.description)}'`,
+        `'${jsStringLiteralEscape(siblingSchema.description)}'`,
       ]);
     }
   };
@@ -738,7 +738,10 @@ export const generateZodValidationSchemaDefinition = (
       if (deprecated) meta.deprecated = true;
       functions.push(['meta', meta]);
     } else if (description !== undefined) {
-      functions.push(['describe', `'${jsStringEscape(description)}'`]);
+      // `.describe()` embeds the text in a plain string literal, so `/` and
+      // `*` carry no meaning and escaping them would trip ESLint's
+      // `no-useless-escape` in the generated code (#3985).
+      functions.push(['describe', `'${jsStringLiteralEscape(description)}'`]);
     }
   };
 
@@ -1120,6 +1123,23 @@ export const generateZodValidationSchemaDefinition = (
         defaultVarName = defaultValue;
         defaultValue = undefined;
       }
+
+      // A tuple (prefixItems) default must stay inline: hoisting it into a
+      // named const widens the array to `number[]` (mutable, unbounded) which
+      // is not assignable to the fixed-length `[number, number]` tuple that
+      // `zod.tuple()` expects (#3984). Inline, TypeScript contextually types
+      // the array literal as a tuple. `resolveZodType` maps prefixItems
+      // arrays to 'tuple', so match both.
+      const isTupleWithDefault =
+        Array.isArray(schema.default) &&
+        (type === 'array' || type === 'tuple') &&
+        'prefixItems' in schema &&
+        schema.default.length > 0;
+
+      if (isTupleWithDefault) {
+        defaultVarName = defaultValue;
+        defaultValue = undefined;
+      }
     }
     if (defaultValue) {
       consts.push(`export const ${defaultVarName} = ${defaultValue};`);
@@ -1199,8 +1219,8 @@ export const generateZodValidationSchemaDefinition = (
                   dereference(item, context),
                   context,
                   camel(`${name}-${idx}-item`),
-                  isZodV4,
                   strict,
+                  isZodV4,
                   {
                     required: true,
                     constNameRegistry,
@@ -1729,13 +1749,13 @@ export interface ZodMetaArgs {
 const buildMetaArgs = (args: ZodMetaArgs): string | undefined => {
   const parts: string[] = [];
   if (args.id !== undefined) {
-    parts.push(`id: '${jsStringEscape(args.id)}'`);
+    parts.push(`id: '${jsStringLiteralEscape(args.id)}'`);
   }
   if (args.title !== undefined) {
-    parts.push(`title: '${jsStringEscape(args.title)}'`);
+    parts.push(`title: '${jsStringLiteralEscape(args.title)}'`);
   }
   if (args.description !== undefined) {
-    parts.push(`description: '${jsStringEscape(args.description)}'`);
+    parts.push(`description: '${jsStringLiteralEscape(args.description)}'`);
   }
   if (args.deprecated) {
     parts.push('deprecated: true');
@@ -2478,14 +2498,25 @@ ${Object.entries(objectArgs)
           const value = x.functions
             .map((prop) => parseProperty(prop, fieldPath))
             .join('');
+          // Tuple-item consts (e.g. min/max on prefixItems, #3983) must be
+          // emitted just like `array` does above, or the generated code
+          // references undeclared constants.
+          if (Array.isArray(x.consts)) {
+            appendConstsChunk(x.consts.join('\n'));
+          }
           return `${value.startsWith('.') ? 'zod' : ''}${value}`;
         })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
-      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions
+      const restArgs = args as ZodValidationSchemaDefinition;
+      const restValue = restArgs.functions
         .map((prop) => parseProperty(prop, fieldPath))
-        .join('')})`;
+        .join('');
+      if (Array.isArray(restArgs.consts)) {
+        appendConstsChunk(restArgs.consts.join('\n'));
+      }
+      return `.rest(zod${restValue})`;
     }
     const shouldCoerceType =
       coerceTypes &&
