@@ -741,4 +741,65 @@ describe('resolveDiscriminators getter', () => {
       enum: ['cat'],
     });
   });
+
+  it('leaves allOf-wrapped $ref discriminator properties untouched (#3991)', () => {
+    // A member whose discriminator property is an `allOf` wrapping a single
+    // `$ref` to a shared enum (drf-spectacular emits this when a member
+    // accepts multiple discriminator values). Merging mapping keys into the
+    // `allOf` wrapper produces `SharedEnum.enum([...])` in zod output, where
+    // `.enum` on ZodEnum is the values object, not callable (TS2349). The
+    // shared schema already carries the full value set, so the property must
+    // stay exactly as declared.
+    const schemas: OpenApiSchemasObject = {
+      AnyEventRef: {
+        oneOf: [
+          { $ref: '#/components/schemas/SessionEventRef' },
+          { $ref: '#/components/schemas/OtherEventRef' },
+        ],
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            Pause: '#/components/schemas/SessionEventRef',
+            Session: '#/components/schemas/SessionEventRef',
+            Other: '#/components/schemas/OtherEventRef',
+          },
+        },
+      },
+      SessionEventRef: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          type: {
+            allOf: [{ $ref: '#/components/schemas/EventTypeEnum' }],
+            title: 'Type',
+          },
+        },
+        required: ['id', 'type'],
+      },
+      OtherEventRef: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          type: { type: 'string', const: 'Other' },
+        },
+        required: ['id', 'type'],
+      },
+      EventTypeEnum: {
+        type: 'string',
+        enum: ['Session', 'Pause'],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const sessionProps = result.SessionEventRef.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+
+    // The allOf-wrapped ref survives untouched: no injected `enum`, no
+    // injected `type`.
+    expect(sessionProps?.type).toEqual({
+      allOf: [{ $ref: '#/components/schemas/EventTypeEnum' }],
+      title: 'Type',
+    });
+  });
 });
