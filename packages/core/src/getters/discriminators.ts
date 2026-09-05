@@ -66,6 +66,22 @@ export function resolveDiscriminators(
           continue;
         }
 
+        // When the discriminator property is an `allOf` wrapping a single
+        // `$ref` to a shared enum, the referenced schema already carries the
+        // full set of valid values. Merging mapping keys into the `allOf`
+        // wrapper itself produces a chimera (e.g. `EventTypeEnum.enum([...])`
+        // where `.enum` on ZodEnum is the values object, not callable —
+        // #3991). Leave the property as declared so the generator emits a
+        // plain reference to the shared schema.
+        const isAllOfRef =
+          property &&
+          Array.isArray(property.allOf) &&
+          property.allOf.length === 1 &&
+          isReference(property.allOf[0]);
+        if (isAllOfRef) {
+          continue;
+        }
+
         const schemaProperty =
           property && !isReference(property) ? property : undefined;
 
