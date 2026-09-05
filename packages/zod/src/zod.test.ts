@@ -2766,6 +2766,71 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'export const parentStateDefault = { "val1": { "enabled": false }, "val2": { "enabled": true } };',
       ]);
     });
+
+    it('keeps tuple (prefixItems) defaults inline for contextual tuple typing (#3984)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'array',
+          minItems: 2,
+          maxItems: 2,
+          default: [0, 100],
+          prefixItems: [
+            { type: 'number', minimum: 0 },
+            { type: 'number', maximum: 100 },
+          ],
+        },
+        context,
+        'exampleRange',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // The default must be inline, not a hoisted const that TS widens to
+      // `number[]` (unassignable to the zod.tuple parameter).
+      expect(parsed.zod).toContain('.default([0, 100])');
+      expect(parsed.consts).not.toContain('exampleRangeDefault =');
+    });
+
+    it('emits tuple item min/max consts so generated code compiles (#3983)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'array',
+          minItems: 2,
+          maxItems: 2,
+          prefixItems: [
+            { type: 'number', minimum: 0 },
+            { type: 'number', maximum: 100 },
+          ],
+        },
+        context,
+        'exampleRange',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toContain('.min(exampleRange0ItemMin)');
+      expect(parsed.zod).toContain('.max(exampleRange1ItemMax)');
+      expect(parsed.consts).toContain('export const exampleRange0ItemMin = 0;');
+      expect(parsed.consts).toContain(
+        'export const exampleRange1ItemMax = 100;',
+      );
+    });
   });
 
   describe('default value template-literal injection', () => {

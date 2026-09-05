@@ -15,12 +15,10 @@ export const PostApiSampleResponse = zod.object({
   example_tuple_additional: zod.tuple([zod.string(), zod.unknown()]).optional(),
   example_tuple_with_object_item: zod
     .tuple([
-      zod
-        .object({
-          id: zod.string().uuid().optional(),
-        })
-        .strict(),
-      zod.string().uuid(),
+      zod.object({
+        id: zod.uuid().optional(),
+      }),
+      zod.uuid(),
     ])
     .optional(),
   example_const: zod.literal('this_is_a_const').optional(),
