@@ -406,7 +406,7 @@ const generateImplementation = (
   // Build query params string
   const queryParamsCode = queryParams
     ? `const normalizedParams = new URLSearchParams();
-${deepObjectParameters.length > 0 ? '    const deepObjectEntries = [];\n' : ''}
+${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}
     Object.entries(params || {}).forEach(([key, value]) => {
       ${explodeArrayImplementation}${deepObjectImplementation}
       ${
