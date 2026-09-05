@@ -1268,6 +1268,12 @@ export interface NormalizedQueryOptions {
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
   useGetQueryData?: boolean;
+  /**
+   * Hold a query whose params are not resolved yet with `skipToken` instead of
+   * the generated `enabled` guard, so a caller's own `enabled` cannot replace
+   * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
+   */
+  useSkipToken?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
@@ -1297,6 +1303,12 @@ export interface QueryOptions {
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
   useGetQueryData?: boolean;
+  /**
+   * Hold a query whose params are not resolved yet with `skipToken` instead of
+   * the generated `enabled` guard, so a caller's own `enabled` cannot replace
+   * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
+   */
+  useSkipToken?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: Mutator;

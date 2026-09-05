@@ -1527,6 +1527,9 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useGetQueryData)
       ? {}
       : { useGetQueryData: queryOptions.useGetQueryData }),
+    ...(isNullish(queryOptions.useSkipToken)
+      ? {}
+      : { useSkipToken: queryOptions.useSkipToken }),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),
