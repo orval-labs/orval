@@ -276,7 +276,13 @@ export function getResponsesMockDefinition({
 
     const resolvedSchema = resolveRef(originalSchema, context).schema;
 
-    const responseImports = imports ?? [];
+    // `imports` belongs to the response type entry, which core shares across
+    // operations that resolve the same schema. Mock resolution appends the
+    // value imports it needs (`Object.values(Enum)`), and only the delta is
+    // reported below, so work on a copy: mutating the shared array would leak
+    // mock-only value imports into every later client that imports the same
+    // schema, turning its `import type` into a value import (#3931).
+    const responseImports = imports ? [...imports] : [];
     const importsBefore = responseImports.length;
     const scalar = getMockScalar({
       item: {

@@ -7,8 +7,8 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { CountryCode } from './model';
 import type {
+  CountryCode,
   ListPetsByAgeParams,
   ListPetsByCountryParams,
   Pets,

@@ -1,7 +1,8 @@
-import type {
-  NormalizedOverrideOutput,
-  OpenApiDocument,
-  ResReqTypesValue,
+import {
+  EnumGeneration,
+  type NormalizedOverrideOutput,
+  type OpenApiDocument,
+  type ResReqTypesValue,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
@@ -41,6 +42,41 @@ describe('getResponsesMockDefinition', () => {
     expect(result.imports).toEqual([
       { name: 'PointInFutureAbsolute', values: false },
     ]);
+  });
+
+  it('does not mutate the response imports it is given (#3931)', () => {
+    const context = createTestContextSpec({
+      override: { enumGenerationType: EnumGeneration.ENUM },
+    });
+    // Core shares this array between every operation that resolves the same
+    // schema, so it must come back untouched.
+    const sharedImports = [{ name: 'Color', schemaName: 'Color' }];
+
+    const result = getResponsesMockDefinition({
+      operationId: 'listColors',
+      tags: [],
+      returnType: 'Color',
+      responses: [
+        {
+          value: 'Color',
+          originalSchema: { type: 'string', enum: ['RED', 'GREEN'] },
+          contentType: 'application/json',
+          imports: sharedImports,
+          isRef: true,
+        } as unknown as ResReqTypesValue,
+      ],
+      mockOptionsWithoutFunc: {},
+      context,
+      splitMockImplementations: [],
+    });
+
+    expect(result.definitions).toEqual([
+      'faker.helpers.arrayElement(Object.values(Color))',
+    ]);
+    // The mock needs `Color` at runtime, so the value import is reported...
+    expect(result.imports).toContainEqual({ name: 'Color', values: true });
+    // ...without being written back into the caller's array.
+    expect(sharedImports).toEqual([{ name: 'Color', schemaName: 'Color' }]);
   });
 });
 
