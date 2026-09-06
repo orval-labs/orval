@@ -93,7 +93,10 @@ describe('getResponsesMockDefinition', () => {
 
     expect(result.definitions[0]).toContain('Object.values(CountryCode)');
     // The mock needs `CountryCode` at runtime, so the value import is reported...
-    expect(result.imports).toContainEqual({ name: 'CountryCode', values: true });
+    expect(result.imports).toContainEqual({
+      name: 'CountryCode',
+      values: true,
+    });
     // ...without being written back into the caller's array.
     expect(sharedImports).toEqual([{ name: 'Pets', schemaName: 'Pets' }]);
   });
