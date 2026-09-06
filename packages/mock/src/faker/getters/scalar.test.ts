@@ -1229,6 +1229,27 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
       expect.objectContaining({ name: 'MyEnum', values: true }),
     );
   });
+
+  it('inlines a referenced enum whose members are not actually strings', () => {
+    // Numeric members emit a numeric TS enum, and those compile to a two-way
+    // map (`{1: 'NUMBER_1', NUMBER_1: 1}`). `Object.values` would then also
+    // yield 'NUMBER_1'/'NUMBER_2', letting the mock return a value the schema
+    // never declared, so these have to stay inlined.
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        ...enumRefItem,
+        enum: [1, 2] as unknown as string[],
+      },
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).not.toContain('Object.values');
+    expect(result.value).toBe('faker.helpers.arrayElement([1,2] as MyEnum[])');
+    expect(result.imports).not.toContainEqual(
+      expect.objectContaining({ name: 'MyEnum', values: true }),
+    );
+  });
 });
 
 describe('getMockScalar (enum member type confusion)', () => {

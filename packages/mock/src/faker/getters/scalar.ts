@@ -706,9 +706,15 @@ function getEnum(
   // the imports and `Object.values`. A `union` reference is a pure type with
   // no runtime value, so `Object.values` would fail (TS2693) — keep the
   // inlined values in that case (#3690).
+  //
+  // Members must all actually be strings, not merely declared `type: 'string'`.
+  // A numeric member emits a numeric TS enum, which compiles to a two-way map
+  // (`{1: 'NUMBER_1', NUMBER_1: 1}`), so `Object.values` would also yield the
+  // member *names* and the mock could return a value the schema never declared.
   if (
     item.isRef &&
     type === 'string' &&
+    item.enum.every((e) => isString(e)) &&
     context.output.override.enumGenerationType !== EnumGeneration.UNION
   ) {
     enumValue = `Object.values(${item.name})`;
