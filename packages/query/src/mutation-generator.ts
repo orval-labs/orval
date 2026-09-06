@@ -27,7 +27,7 @@ import {
 import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryKeyVerbPrefix } from './query-generator';
 import { getQueryOptionsDefinition } from './query-options';
-import { shouldUseOptionsHook } from './utils';
+import { getOperationMetaLiteral, shouldUseOptionsHook } from './utils';
 
 interface NormalizedTarget {
   query: string;
@@ -718,7 +718,10 @@ ${
                   : ''
               }${
                 mutationOptionsMutator.hasThirdArg
-                  ? `, { operationId: '${operationId}', operationName: '${operationName}' }`
+                  ? `, { ${getOperationMetaLiteral(
+                      operationId,
+                      operationName,
+                    )} }`
                   : ''
               });`
             : ''

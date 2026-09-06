@@ -33,7 +33,11 @@ import {
   QueryType,
   requiresUserSuppliedQueryOptions,
 } from './query-options';
-import { getHasSignal, shouldUseOptionsHook } from './utils';
+import {
+  getHasSignal,
+  getOperationMetaLiteral,
+  shouldUseOptionsHook,
+} from './utils';
 
 /**
  * Decide whether the current operation's configuration conflicts with a
@@ -829,7 +833,10 @@ ${hookOptions}
               queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
             }${
               queryOptionsMutator.hasThirdArg
-                ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+                ? `, { url: \`${route}\`, ${getOperationMetaLiteral(
+                    operationId,
+                    operationName,
+                  )} }`
                 : ''
             });`
           : ''
@@ -911,7 +918,10 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
           queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
         }${
           queryOptionsMutator.hasThirdArg
-            ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+            ? `, { url: \`${route}\`, ${getOperationMetaLiteral(
+                operationId,
+                operationName,
+              )} }`
             : ''
         }).queryKey`
       : baseExpr;
