@@ -672,4 +672,103 @@ describe('getBodiesByContentType', () => {
     expect(result).toHaveLength(2);
     expect(result[1].contentTypeSuffix).toBe('Content');
   });
+
+  it('keeps `$`, which is legal in both a subtype and an identifier', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/a$b': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/ab': {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result[0].contentTypeSuffix).toBe('A$b');
+    expect(result[1].contentTypeSuffix).toBe('Ab');
+  });
+
+  it('numbers suffixes that two different media types reduce to', () => {
+    // `-` and `+` are both split points, so these would otherwise both be `AB`
+    // and emit two declarations with the same name.
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/a-b': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/a+b': {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].contentTypeSuffix).toBe('AB');
+    expect(result[1].contentTypeSuffix).toBe('AB2');
+  });
+
+  it('numbers the fallback suffix for two punctuation-only media types', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        "application/'''": {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/!!!': {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].contentTypeSuffix).toBe('Content');
+    expect(result[1].contentTypeSuffix).toBe('Content2');
+  });
+
+  it('does not resolve inherited members of the content type map', () => {
+    // A plain index lookup would return `Object.prototype.toString` here and
+    // splice the function source into the generated identifier.
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        toString: {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[1].contentTypeSuffix).toBe('ToString');
+    expect(result[1].contentTypeSuffix).toMatch(/^[A-Za-z0-9_$]+$/);
+  });
 });

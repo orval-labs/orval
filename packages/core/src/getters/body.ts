@@ -147,8 +147,19 @@ export function getBodiesByContentType({
     ];
   }
 
+  // Distinct media types can share a suffix: `application/a-b` and
+  // `application/a+b` both reduce to `AB`, and any two types made only of
+  // stripped characters both reduce to `Content`. Two bodies would then emit
+  // the same `${operationName}With${suffix}` declaration and the generated
+  // file would not compile, so number the repeats. The first occurrence keeps
+  // the plain suffix, which leaves every non-colliding name unchanged.
+  const suffixCounts = new Map<string, number>();
+
   return filteredBodyTypes.map((bodyType) => {
-    const suffix = getContentTypeSuffix(bodyType.contentType);
+    const baseSuffix = getContentTypeSuffix(bodyType.contentType);
+    const seen = suffixCounts.get(baseSuffix) ?? 0;
+    suffixCounts.set(baseSuffix, seen + 1);
+    const suffix = seen === 0 ? baseSuffix : `${baseSuffix}${seen + 1}`;
     const body = buildBody([bodyType], requestBody, operationName, context);
     return {
       ...body,
@@ -186,7 +197,10 @@ const CONTENT_TYPE_SUFFIX_MAP: Record<string, string> = {
 };
 
 function getContentTypeSuffix(contentType: string): string {
-  if (CONTENT_TYPE_SUFFIX_MAP[contentType]) {
+  // `contentType` is a raw spec key, so a plain index would resolve inherited
+  // members: a media type named `toString` would otherwise return the function
+  // itself and splice its source into the generated identifier.
+  if (Object.hasOwn(CONTENT_TYPE_SUFFIX_MAP, contentType)) {
     return CONTENT_TYPE_SUFFIX_MAP[contentType];
   }
   // For unknown content types, derive a PascalCase suffix from the subtype.
@@ -196,16 +210,18 @@ function getContentTypeSuffix(contentType: string): string {
   // into generated identifiers (`${operationName}With${suffix}`). Anything
   // that is not an identifier character has to be dropped, or a crafted media
   // type breaks out of the declaration and injects arbitrary top-level code.
+  // `$` is kept: it is legal both in a JS identifier and in an RFC 6838
+  // subtype, so dropping it would needlessly merge distinct media types.
   const subtype = contentType.split('/')[1] ?? contentType;
   const suffix = subtype
     .split(/[-+.]/)
-    .map((part) => part.replaceAll(/[^A-Za-z0-9_]/g, ''))
+    .map((part) => part.replaceAll(/[^A-Za-z0-9_$]/g, ''))
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 
   // A media type made up entirely of stripped characters would otherwise
-  // collapse to `${operationName}With`, colliding with any sibling that did
-  // the same.
+  // collapse to `${operationName}With`. Callers still have to disambiguate
+  // repeats — see `getBodiesByContentType`.
   return suffix || 'Content';
 }
