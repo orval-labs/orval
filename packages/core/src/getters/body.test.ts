@@ -619,4 +619,57 @@ describe('getBodiesByContentType', () => {
     expect(result[0].contentTypeSuffix).toBe('Json');
     expect(result[1].contentTypeSuffix).toBe('VndApiJson');
   });
+
+  it('strips non-identifier characters from the derived suffix', () => {
+    // The suffix is concatenated into generated identifiers, so a media type
+    // carrying statement-breaking punctuation must not survive into one.
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        "application/x-evil; q=1) { globalThis['pwned'] = 'yes'; } function unused(":
+          {
+            schema: { type: 'object', properties: { b: { type: 'string' } } },
+          },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[1].contentTypeSuffix).toMatch(/^[A-Za-z0-9_]+$/);
+    expect(result[1].contentTypeSuffix).not.toContain('(');
+    expect(result[1].contentTypeSuffix).not.toContain(')');
+    expect(result[1].contentTypeSuffix).not.toContain(';');
+    expect(result[1].contentTypeSuffix).not.toContain(' ');
+  });
+
+  it('falls back to a usable suffix when nothing identifier-safe remains', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        "application/'''": {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[1].contentTypeSuffix).toBe('Content');
+  });
 });

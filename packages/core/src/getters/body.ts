@@ -189,10 +189,23 @@ function getContentTypeSuffix(contentType: string): string {
   if (CONTENT_TYPE_SUFFIX_MAP[contentType]) {
     return CONTENT_TYPE_SUFFIX_MAP[contentType];
   }
-  // For unknown content types, derive a PascalCase suffix from the subtype
+  // For unknown content types, derive a PascalCase suffix from the subtype.
+  //
+  // The media type is a raw key from the spec's `content` object and is not
+  // validated anywhere upstream, while this suffix is concatenated straight
+  // into generated identifiers (`${operationName}With${suffix}`). Anything
+  // that is not an identifier character has to be dropped, or a crafted media
+  // type breaks out of the declaration and injects arbitrary top-level code.
   const subtype = contentType.split('/')[1] ?? contentType;
-  return subtype
+  const suffix = subtype
     .split(/[-+.]/)
+    .map((part) => part.replaceAll(/[^A-Za-z0-9_]/g, ''))
+    .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
+
+  // A media type made up entirely of stripped characters would otherwise
+  // collapse to `${operationName}With`, colliding with any sibling that did
+  // the same.
+  return suffix || 'Content';
 }
