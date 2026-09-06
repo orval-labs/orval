@@ -49,3 +49,21 @@ describe('getRoute getter', () => {
     );
   });
 });
+
+describe('getRouteMSW single-quote escaping', () => {
+  it('escapes a quote in a static path segment', () => {
+    expect(getRouteMSW("/api/v1/it's-endpoint/{id}", '')).toBe(
+      String.raw`/api/v1/it\'s-endpoint/:id`,
+    );
+  });
+
+  it('escapes a backslash so it cannot escape the closing quote', () => {
+    expect(getRouteMSW('/api/v1/trailing\\', '')).toBe('/api/v1/trailing\\\\');
+  });
+
+  it('escapes a quote in the base URL', () => {
+    expect(getRouteMSW('/pets/{petId}', "https://api.example.com/it's")).toBe(
+      String.raw`https://api.example.com/it\'s/pets/:petId`,
+    );
+  });
+});

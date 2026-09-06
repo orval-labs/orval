@@ -734,7 +734,7 @@ const generateHandlerFiles = async (
   ];
 };
 
-const getContext = (verbOption: GeneratorVerbOptions) => {
+export const getContext = (verbOption: GeneratorVerbOptions) => {
   let paramType = '';
   if (verbOption.params.length > 0) {
     const params = getParamsInPath(verbOption.pathRoute).map((name) => {
@@ -762,10 +762,14 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
     : '';
   const hasIn = !!paramType || !!queryType || !!bodyType;
 
+  // `getRoute` only rewrites `{param}` placeholders and sanitizes the captured
+  // parameter names; the literal path text passes through unescaped. It is
+  // embedded below in a single-quoted type literal, so escape it for that
+  // context here rather than trusting the document's path text.
   return `export type ${pascal(
     verbOption.typeName,
-  )}Context<E extends Env = any> = Context<E, '${getRoute(
-    verbOption.pathRoute,
+  )}Context<E extends Env = any> = Context<E, '${jsStringLiteralEscape(
+    getRoute(verbOption.pathRoute),
   )}'${
     hasIn
       ? `, { in: { ${paramType}${queryType}${bodyType} }, out: { ${paramType}${queryType}${bodyType} } }`
