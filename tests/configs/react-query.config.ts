@@ -1793,4 +1793,18 @@ export default defineConfig({
       target: '../specifications/infinite-query-param-array.yaml',
     },
   },
+  petstoreTagsOperationsSplit: {
+    output: {
+      target:
+        '../generated/react-query/petstore-tags-operations-split/endpoints.ts',
+      schemas: '../generated/react-query/petstore-tags-operations-split/model',
+      client: 'react-query',
+      mode: 'tags-operations-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
