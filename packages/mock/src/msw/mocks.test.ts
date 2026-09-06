@@ -1,7 +1,8 @@
-import type {
-  NormalizedOverrideOutput,
-  OpenApiDocument,
-  ResReqTypesValue,
+import {
+  EnumGeneration,
+  type NormalizedOverrideOutput,
+  type OpenApiDocument,
+  type ResReqTypesValue,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
@@ -41,6 +42,60 @@ describe('getResponsesMockDefinition', () => {
     expect(result.imports).toEqual([
       { name: 'PointInFutureAbsolute', values: false },
     ]);
+  });
+
+  it('does not mutate the response imports it is given (#3931)', () => {
+    // An array of objects whose property is a `const` enum: the array branch
+    // resolves its items with the array it was handed, and the item's value
+    // import is merged back into it.
+    const context = createTestContextSpec({
+      override: { enumGenerationType: EnumGeneration.CONST },
+      spec: {
+        components: {
+          schemas: {
+            Pets: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Pet' },
+            },
+            Pet: {
+              type: 'object',
+              required: ['countryCode'],
+              properties: {
+                countryCode: { $ref: '#/components/schemas/CountryCode' },
+              },
+            },
+            CountryCode: { type: 'string', enum: ['CN', 'UY'] },
+          },
+        },
+      },
+    });
+    // Core shares this array between every operation that resolves the same
+    // schema, so it must come back untouched.
+    const sharedImports = [{ name: 'Pets', schemaName: 'Pets' }];
+
+    const result = getResponsesMockDefinition({
+      operationId: 'listPets',
+      tags: [],
+      returnType: 'Pets',
+      responses: [
+        {
+          value: 'Pets',
+          originalSchema: { $ref: '#/components/schemas/Pets' },
+          contentType: 'application/json',
+          imports: sharedImports,
+          isRef: true,
+        } as unknown as ResReqTypesValue,
+      ],
+      mockOptionsWithoutFunc: {},
+      context,
+      splitMockImplementations: [],
+    });
+
+    expect(result.definitions[0]).toContain('Object.values(CountryCode)');
+    // The mock needs `CountryCode` at runtime, so the value import is reported...
+    expect(result.imports).toContainEqual({ name: 'CountryCode', values: true });
+    // ...without being written back into the caller's array.
+    expect(sharedImports).toEqual([{ name: 'Pets', schemaName: 'Pets' }]);
   });
 });
 
