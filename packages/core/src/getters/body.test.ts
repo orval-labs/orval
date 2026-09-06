@@ -722,6 +722,38 @@ describe('getBodiesByContentType', () => {
     expect(result[1].contentTypeSuffix).toBe('AB2');
   });
 
+  it('does not hand out a number that another media type already reduces to', () => {
+    // `application/a-b2` reduces to `AB2` on its own, which is also what the
+    // second `AB` variant gets numbered to.
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/a-b': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/a+b': {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+        'application/a-b2': {
+          schema: { type: 'object', properties: { c: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    const suffixes = result.map((r) => r.contentTypeSuffix);
+
+    expect(suffixes).toHaveLength(3);
+    expect(new Set(suffixes).size).toBe(3);
+    expect(suffixes[0]).toBe('AB');
+    expect(suffixes[1]).toBe('AB2');
+  });
+
   it('numbers the fallback suffix for two punctuation-only media types', () => {
     const requestBody: OpenApiRequestBodyObject = {
       content: {
@@ -744,6 +776,36 @@ describe('getBodiesByContentType', () => {
     expect(result).toHaveLength(2);
     expect(result[0].contentTypeSuffix).toBe('Content');
     expect(result[1].contentTypeSuffix).toBe('Content2');
+  });
+
+  it('does not hand out a fallback number that a real media type reduces to', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        "application/'''": {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/!!!': {
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
+        'application/content2': {
+          schema: { type: 'object', properties: { c: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    const suffixes = result.map((r) => r.contentTypeSuffix);
+
+    expect(suffixes).toHaveLength(3);
+    expect(new Set(suffixes).size).toBe(3);
+    expect(suffixes[0]).toBe('Content');
+    expect(suffixes[1]).toBe('Content2');
   });
 
   it('does not resolve inherited members of the content type map', () => {

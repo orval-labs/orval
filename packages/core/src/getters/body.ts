@@ -151,15 +151,23 @@ export function getBodiesByContentType({
   // `application/a+b` both reduce to `AB`, and any two types made only of
   // stripped characters both reduce to `Content`. Two bodies would then emit
   // the same `${operationName}With${suffix}` declaration and the generated
-  // file would not compile, so number the repeats. The first occurrence keeps
-  // the plain suffix, which leaves every non-colliding name unchanged.
-  const suffixCounts = new Map<string, number>();
+  // file would not compile, so number the repeats.
+  //
+  // The number has to be checked against what was actually handed out, not
+  // against a per-base counter: `application/a-b`, `application/a+b` and
+  // `application/a-b2` reduce to `AB`, `AB` and `AB2`, so a counter would give
+  // the second and third the same `AB2`. The first occurrence still keeps the
+  // plain suffix, which leaves every non-colliding name unchanged.
+  const usedSuffixes = new Set<string>();
 
   return filteredBodyTypes.map((bodyType) => {
     const baseSuffix = getContentTypeSuffix(bodyType.contentType);
-    const seen = suffixCounts.get(baseSuffix) ?? 0;
-    suffixCounts.set(baseSuffix, seen + 1);
-    const suffix = seen === 0 ? baseSuffix : `${baseSuffix}${seen + 1}`;
+    let suffix = baseSuffix;
+    for (let n = 2; usedSuffixes.has(suffix); n++) {
+      suffix = `${baseSuffix}${n}`;
+    }
+    usedSuffixes.add(suffix);
+
     const body = buildBody([bodyType], requestBody, operationName, context);
     return {
       ...body,
