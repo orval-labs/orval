@@ -558,17 +558,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
-  const returnType =
+  const innerType =
     override.fetch.forceSuccessResponse &&
     hasSuccess &&
     override.fetch.includeHttpResponseReturnType
-      ? `Promise<${successName}>`
-      : `Promise<${
-          useValidatedOutputType &&
-          !override.fetch.includeHttpResponseReturnType
-            ? getSchemaOutputTypeRef(responseType)
-            : responseTypeName
-        }>`;
+      ? successName
+      : useValidatedOutputType && !override.fetch.includeHttpResponseReturnType
+        ? getSchemaOutputTypeRef(responseType)
+        : responseTypeName;
+  const returnType = mutator?.inferred ? innerType : `Promise<${innerType}>`;
 
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
@@ -804,12 +802,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  let fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
+  let fetchImplementation = `export const ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
-    fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
+    fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
     ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }

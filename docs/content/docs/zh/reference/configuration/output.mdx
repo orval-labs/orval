@@ -962,6 +962,31 @@ export type ErrorType<Error> = AxiosError<Error>;
 export type BodyType<BodyData> = BodyData;
 ```
 
+#### `inferred`
+
+**类型：** `Boolean`
+
+**默认值：** `false`
+
+设为 `true` 时，生成的 fetch 函数会省略 `async` 关键字和 `: Promise<T>` 返回类型注解。返回类型由自定义 mutator 推断，允许返回同步值、Effect 风格的 Promise 或其他包装类型。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+          inferred: true,
+        },
+      },
+    },
+  },
+});
+```
+
 ### title
 
 **类型：** `String | Function`

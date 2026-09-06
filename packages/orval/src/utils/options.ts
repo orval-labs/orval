@@ -1057,6 +1057,7 @@ function normalizeMutator(
       external: m.external,
       extension: m.extension,
       useHooks: m.useHooks,
+      inferred: m.inferred,
     };
   }
 

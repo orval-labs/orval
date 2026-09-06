@@ -214,6 +214,7 @@ export interface NormalizedMutator {
   external?: string[];
   extension?: string;
   useHooks?: boolean;
+  inferred?: boolean;
 }
 
 export interface NormalizedOperationOptions {
@@ -727,6 +728,7 @@ export interface MutatorObject {
   external?: string[];
   extension?: string;
   useHooks?: boolean;
+  inferred?: boolean;
 }
 
 export type Mutator = string | MutatorObject;
@@ -1976,6 +1978,7 @@ export interface GeneratorMutator {
   isHook: boolean;
   bodyTypeName?: string;
   useHooks?: boolean;
+  inferred?: boolean;
 }
 
 export type ClientBuilder = (

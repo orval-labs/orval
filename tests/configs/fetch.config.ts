@@ -1138,4 +1138,23 @@ export default defineConfig({
       target: '../specifications/issue-3734/spec.yaml',
     },
   },
+  inferredMutator: {
+    output: {
+      target: '../generated/fetch/inferred-mutator/endpoints.ts',
+      schemas: '../generated/fetch/inferred-mutator/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+          inferred: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/inferred-mutator/petstore.yaml',
+    },
+  },
 });

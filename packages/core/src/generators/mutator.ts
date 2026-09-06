@@ -121,6 +121,7 @@ export async function generateMutator({
     hasThirdArg: mutatorInfo.numberOfParams > 2,
     isHook,
     useHooks: mutator.useHooks,
+    inferred: mutator.inferred,
     ...(hasBodyType ? { bodyTypeName } : {}),
   };
 }
