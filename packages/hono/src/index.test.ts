@@ -3,12 +3,19 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type {
+  GeneratorClient,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
 } from '@orval/core';
+import { OutputClient } from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { generateHandlerFile, resolveDefaultSchemaModule } from './index';
+import {
+  generateHandlerFile,
+  generateHono,
+  getContext,
+  resolveDefaultSchemaModule,
+} from './index';
 
 const verb = (operationName: string): GeneratorVerbOptions =>
   ({
@@ -254,5 +261,67 @@ describe('resolveDefaultSchemaModule', () => {
         output({ schemas: '/out/model/index.generated.ts' }),
       ),
     ).toBe('/out/model');
+  });
+});
+
+describe('single-quote escaping in generated route literals', () => {
+  const contextVerb = (
+    overrides: Partial<GeneratorVerbOptions> = {},
+  ): GeneratorVerbOptions =>
+    ({
+      operationName: 'getItem',
+      typeName: 'getItem',
+      verb: 'get',
+      pathRoute: "/api/v1/it's-endpoint/{id}",
+      params: [
+        {
+          name: 'id',
+          definition: 'id: string',
+          required: true,
+          imports: [],
+          implementation: 'id: string',
+        },
+      ],
+      queryParams: undefined,
+      body: { definition: '', imports: [] },
+      response: { originalSchema: {} },
+      ...overrides,
+    }) as unknown as GeneratorVerbOptions;
+
+  it('escapes a quote in the path of the generated context type', () => {
+    const context = getContext(contextVerb());
+
+    expect(context).toContain(
+      String.raw`Context<E, '/api/v1/it\'s-endpoint/:id'`,
+    );
+  });
+
+  it('escapes an injected type declaration in the path of the context type', () => {
+    const context = getContext(
+      contextVerb({
+        pathRoute: "/api/v1/'; type Injected = any //",
+        params: [],
+      }),
+    );
+
+    expect(context).toContain(
+      String.raw`Context<E, '/api/v1/\'; type Injected = any //'`,
+    );
+    expect(context).not.toContain('type Injected = any //<');
+  });
+
+  it('escapes a quote in the path of the generated route registration', () => {
+    const client = generateHono(
+      contextVerb(),
+      {
+        pathRoute: "/api/v1/it's-endpoint/{id}",
+        override: { hono: { compositeRoute: '' } },
+      } as unknown as Parameters<typeof generateHono>[1],
+      OutputClient.HONO,
+    ) as GeneratorClient;
+
+    expect(client.implementation).toContain(
+      String.raw`.get('/api/v1/it\'s-endpoint/:id', ...getItemHandlers)`,
+    );
   });
 });
