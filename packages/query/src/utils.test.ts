@@ -1,8 +1,14 @@
+import vm from 'node:vm';
+
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { GeneratorMutator } from '@orval/core';
 
-import { normalizeQueryOptions, shouldUseOptionsHook } from './utils';
+import {
+  getOperationMetaLiteral,
+  normalizeQueryOptions,
+  shouldUseOptionsHook,
+} from './utils';
 
 describe('normalizeQueryOptions', () => {
   it('preserves useHooks for options mutators', () => {
@@ -128,5 +134,49 @@ describe('shouldUseOptionsHook', () => {
         mutator: baseMutator,
       }),
     ).toBe(expected);
+  });
+});
+
+describe('getOperationMetaLiteral', () => {
+  // Evaluate the emitted fragment the way the generated hook would, so the
+  // assertions are about what the object actually becomes rather than about
+  // the escaping mechanics. `injected` records any code that broke out.
+  const evaluate = (literal: string) => {
+    const context = vm.createContext({ injected: false });
+    return vm.runInContext(`({ ${literal} })`, context) as Record<
+      string,
+      unknown
+    > & { injected?: unknown };
+  };
+
+  it('emits a plain operationId and operationName unchanged', () => {
+    expect(getOperationMetaLiteral('getPets', 'getPets')).toBe(
+      "operationId: 'getPets', operationName: 'getPets'",
+    );
+  });
+
+  it('escapes a quote in the operationId so it cannot inject object entries', () => {
+    const operationId = "getPets',x:(()=>{throw new Error('pwned')})(),y:'";
+    const parsed = evaluate(getOperationMetaLiteral(operationId, 'getPets'));
+
+    // The whole spec value has to stay inside the operationId string: an
+    // unescaped quote would add `x`/`y` keys and run the IIFE.
+    expect(Object.keys(parsed)).toEqual(['operationId', 'operationName']);
+    expect(parsed.operationId).toBe(operationId);
+  });
+
+  it('escapes a quote in the operationName', () => {
+    const operationName = "getPets','z':'";
+    const parsed = evaluate(getOperationMetaLiteral('getPets', operationName));
+
+    expect(Object.keys(parsed)).toEqual(['operationId', 'operationName']);
+    expect(parsed.operationName).toBe(operationName);
+  });
+
+  it('escapes a backslash so it cannot escape the closing quote', () => {
+    const parsed = evaluate(getOperationMetaLiteral('getPets\\', 'getPets'));
+
+    expect(Object.keys(parsed)).toEqual(['operationId', 'operationName']);
+    expect(parsed.operationId).toBe('getPets\\');
   });
 });

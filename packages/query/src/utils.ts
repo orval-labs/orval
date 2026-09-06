@@ -4,6 +4,7 @@ import { styleText } from 'node:util';
 import {
   isObject,
   isString,
+  jsStringLiteralEscape,
   type GeneratorMutator,
   type Mutator,
   type NormalizedMutator,
@@ -149,3 +150,19 @@ export const getHasSignal = ({
 }: {
   overrideQuerySignal?: boolean;
 }) => overrideQuerySignal;
+
+/**
+ * Builds the `operationId`/`operationName` pair passed as the third argument
+ * to a `queryOptions`/`mutationOptions` mutator.
+ *
+ * Both land in single-quoted literals inside an object that the generated hook
+ * evaluates at call time. `operationName` is already run through `sanitize`
+ * upstream, but `operationId` is the raw value from the OpenAPI document and
+ * nothing sanitizes it, so a quote in the spec would otherwise close the
+ * literal and inject entries — and expressions — into that object.
+ */
+export const getOperationMetaLiteral = (
+  operationId: string,
+  operationName: string,
+): string =>
+  `operationId: '${jsStringLiteralEscape(operationId)}', operationName: '${jsStringLiteralEscape(operationName)}'`;
