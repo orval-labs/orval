@@ -623,3 +623,33 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     expect(implementation).not.toContain('PetsOutput');
   });
 });
+
+describe('generateRequestFunction — Content-Type header escaping', () => {
+  it('escapes single quotes in the request body media type key', () => {
+    const verbOptions = makeVerbOptions({
+      verb: Verbs.POST,
+      body: {
+        definition: 'SubmitDataBody',
+        implementation: 'submitDataBody: SubmitDataBody',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: "application/json', 'X-Evil': 'injected",
+        isOptional: false,
+        originalSchema: {},
+        isBlob: false,
+      } as GeneratorVerbOptions['body'],
+    });
+
+    const implementation = generateImplementation(
+      verbOptions,
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain(
+      String.raw`'Content-Type': 'application/json\', \'X-Evil\': \'injected'`,
+    );
+    expect(implementation).not.toContain("'X-Evil': 'injected'");
+  });
+});

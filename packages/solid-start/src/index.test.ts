@@ -960,3 +960,41 @@ describe('generateSolidStartHeader namespace collision', () => {
     ).toBe('PetsApi');
   });
 });
+
+describe('generateSolidStart — Content-Type header escaping', () => {
+  it('escapes single quotes in the request body media type key', async () => {
+    const verbOptions = makeVerbOptions({
+      verb: Verbs.POST,
+      mutator: {
+        name: 'customInstance',
+        path: './custom-instance.ts',
+        default: false,
+        hasSecondArg: true,
+        hasThirdArg: false,
+        isHook: false,
+      } as GeneratorVerbOptions['mutator'],
+      body: {
+        definition: 'SubmitDataBody',
+        implementation: 'submitDataBody: SubmitDataBody',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: "application/json', 'X-Evil': 'injected",
+        isOptional: false,
+        originalSchema: {},
+        isBlob: false,
+      } as GeneratorVerbOptions['body'],
+    });
+
+    const implementation = await generateImplementation(
+      verbOptions,
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain(
+      String.raw`'Content-Type': 'application/json\', \'X-Evil\': \'injected'`,
+    );
+    expect(implementation).not.toContain("'X-Evil': 'injected'");
+  });
+});

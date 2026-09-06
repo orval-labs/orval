@@ -1232,6 +1232,29 @@ describe('generateMutatorConfig', () => {
       expect(result).toContain('headers');
     });
 
+    it('should escape single quotes in the request body media type key', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: {
+          ...minimalBody,
+          contentType: "application/json', 'X-Evil': 'injected",
+        },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+
+      expect(result).toContain(
+        "'Content-Type': 'application/json\\', \\'X-Evil\\': \\'injected'",
+      );
+      expect(result).not.toContain("'X-Evil': 'injected'");
+    });
+
     it('should set Content-Type header for application/x-www-form-urlencoded', () => {
       const result = generateMutatorConfig({
         route: '/api/test',

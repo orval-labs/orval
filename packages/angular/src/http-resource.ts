@@ -26,6 +26,7 @@ import {
   isObject,
   isSyntheticDefaultImportsAllow,
   jsDoc,
+  jsStringLiteralEscape,
   makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -1068,7 +1069,7 @@ const buildHttpResourceFunction = (
         const returnType = getBranchReturnType(type);
         const overloadArgs = [
           requiredPart,
-          `accept: '${type.contentType}'`,
+          `accept: '${jsStringLiteralEscape(type.contentType ?? '')}'`,
           optionalPart,
           `options?: ${buildBranchOptionsType(returnType, getBranchRawType(type), omitParse)}`,
         ]
@@ -1080,7 +1081,9 @@ const buildHttpResourceFunction = (
       .join('\n');
     const implementationArgsWithDefault = [
       requiredPart,
-      `accept: ${acceptTypeName} = '${defaultContentType}'`,
+      `accept: ${acceptTypeName} = '${jsStringLiteralEscape(
+        defaultContentType,
+      )}'`,
       optionalPart,
       `options?: ${implementationOptionsType}`,
     ]

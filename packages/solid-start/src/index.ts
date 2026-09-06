@@ -14,6 +14,7 @@ import {
   getIsBodyVerb,
   isObject,
   isOperationInTagBucket,
+  jsStringLiteralEscape,
   logWarning,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
@@ -184,7 +185,7 @@ const generateImplementation = (
 
     const headersToAdd: string[] = [
       ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
-        ? [`'Content-Type': '${body.contentType}'`]
+        ? [`'Content-Type': '${jsStringLiteralEscape(body.contentType)}'`]
         : []),
       ...overrideHeaders,
       ...(headers ? ['...headers'] : []),

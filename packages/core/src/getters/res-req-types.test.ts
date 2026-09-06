@@ -1105,3 +1105,37 @@ describe('getResReqTypes ($ref response without content)', () => {
     expect(result[0].originalSchema).toBeUndefined();
   });
 });
+
+describe('getResReqTypes (form-data part content type escaping)', () => {
+  it('escapes single quotes in an encoding content type', () => {
+    const reqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  note: { type: 'string' },
+                },
+                required: ['note'],
+              },
+              encoding: {
+                note: { contentType: "text/plain', evil: 'injected" },
+              },
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+
+    const result = getResReqTypes(reqBody, 'Body', context)[0];
+
+    expect(result.formData).toContain(
+      String.raw`new Blob([bodyRequestBody.note], { type: 'text/plain\', evil: \'injected' })`,
+    );
+    expect(result.formData).not.toContain("evil: 'injected'");
+  });
+});

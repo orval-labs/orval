@@ -786,6 +786,34 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should escape single quotes in the response media type key', () => {
+      const injectedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          contentTypes: ["application/problem+json', 'X-Evil': 'injected"],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(injectedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        String.raw`'Content-Type': 'application/problem+json\', \'X-Evil\': \'injected'`,
+      );
+      expect(result.implementation.handler).not.toContain(
+        "'X-Evil': 'injected'",
+      );
+    });
+
     it('should emit explicit Content-Type header for problem+json responses', () => {
       const problemJsonVerbOptions = {
         ...mockVerbOptions,

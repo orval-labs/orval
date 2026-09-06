@@ -23,7 +23,7 @@ import {
   getFormDataFieldFileType,
   isBinaryContentType,
 } from '../utils/content-type';
-import { getNumberWord } from '../utils/string';
+import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import type { FormDataContext } from './object';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 
@@ -815,7 +815,9 @@ function resolveSchemaPropertiesToFormData({
       formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey});\n`;
     } else if (fileType === 'text') {
       // Text file: value is Blob | string, check at runtime
-      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${jsStringLiteralEscape(
+        effectiveContentType ?? '',
+      )}' }));\n`;
     } else if (
       property.type === 'object' ||
       (Array.isArray(property.type) && property.type.includes('object'))

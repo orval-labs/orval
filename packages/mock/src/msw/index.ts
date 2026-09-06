@@ -11,6 +11,7 @@ import {
   isFunction,
   isMswMock,
   isObject,
+  jsStringLiteralEscape,
   pascal,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
@@ -350,16 +351,18 @@ function generateDefinition(
         : 'text/plain';
   const jsonCtHeaderSuffix =
     firstJsonCt && firstJsonCt !== 'application/json'
-      ? `, headers: { 'Content-Type': '${firstJsonCt}' }`
+      ? `, headers: { 'Content-Type': '${jsStringLiteralEscape(firstJsonCt)}' }`
       : // When preferredContentType matched a non-JSON type (e.g. application/octet-stream)
         // and the structured schema falls through to HttpResponse.json(), emit the
         // selected media type as the Content-Type so the contract survives.
         preferredContentTypeMatch && !preferredContentTypeMatch.includes('json')
-        ? `, headers: { 'Content-Type': '${preferredContentTypeMatch}' }`
+        ? `, headers: { 'Content-Type': '${jsStringLiteralEscape(
+            preferredContentTypeMatch,
+          )}' }`
         : '';
   const textCtHeaderSuffix =
     firstTextCt && firstTextCt !== textHelperDefaultContentType
-      ? `, headers: { 'Content-Type': '${firstTextCt}' }`
+      ? `, headers: { 'Content-Type': '${jsStringLiteralEscape(firstTextCt)}' }`
       : '';
 
   let responseBody: string;
@@ -388,7 +391,7 @@ function generateDefinition(
         ? binaryBody
         : new ArrayBuffer(0),
       { status: ${statusCode},
-        headers: { 'Content-Type': '${binaryContentType}' }
+        headers: { 'Content-Type': '${jsStringLiteralEscape(binaryContentType)}' }
       })`;
   } else if (isVoidUnionType) {
     // Runtime branching for void union types (e.g. 200 JSON + 204 No Content).

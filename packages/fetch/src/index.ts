@@ -12,6 +12,7 @@ import {
   getSchemaValueRef,
   hasSchemaImport,
   isPrimitiveResponseType,
+  jsStringLiteralEscape,
   rewriteImportsForResponseValidation,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -581,7 +582,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const headersToAdd: string[] = [
     ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? [`'Content-Type': '${body.contentType}'`]
+      ? [`'Content-Type': '${jsStringLiteralEscape(body.contentType)}'`]
       : []),
     ...(isNdJson && response.contentTypes.length === 1
       ? [

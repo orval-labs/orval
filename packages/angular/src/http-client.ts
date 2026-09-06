@@ -23,6 +23,7 @@ import {
   type GetterProp,
   GetterPropType,
   isBoolean,
+  jsStringLiteralEscape,
   makeRouteSafe,
   pascal,
   toObjectString,
@@ -731,7 +732,7 @@ export const generateHttpClientImplementation = (
         const overloadParams = [
           requiredNonBodyPart,
           bodyOverloadPart,
-          `accept: '${contentType}'`,
+          `accept: '${jsStringLiteralEscape(contentType ?? '')}'`,
           optionalNonBodyPart,
         ]
           .filter(Boolean)
@@ -800,7 +801,9 @@ export const generateHttpClientImplementation = (
     const allParams = [
       requiredNonBodyImplPart,
       bodyImplPart,
-      `accept: ${acceptTypeName ?? 'string'} = '${defaultContentType}'`,
+      `accept: ${acceptTypeName ?? 'string'} = '${jsStringLiteralEscape(
+        defaultContentType,
+      )}'`,
       optionalNonBodyImplPart,
     ]
       .filter(Boolean)

@@ -8,7 +8,12 @@ import {
   type ParamsSerializerOptions,
   Verbs,
 } from '../types';
-import { getIsBodyVerb, isObject, stringify } from '../utils';
+import {
+  getIsBodyVerb,
+  isObject,
+  jsStringLiteralEscape,
+  stringify,
+} from '../utils';
 
 /**
  * Per-parameter Angular query-object serialization strategy, mirroring
@@ -975,9 +980,9 @@ export function generateMutatorConfig({
     body.contentType && !ignoreContentTypes.includes(body.contentType);
 
   const headerOptions = shouldSetContentType
-    ? `,\n      headers: {'Content-Type': '${body.contentType}', ${
-        headers ? '...headers' : ''
-      }}`
+    ? `,\n      headers: {'Content-Type': '${jsStringLiteralEscape(
+        body.contentType,
+      )}', ${headers ? '...headers' : ''}}`
     : headers
       ? ',\n      headers'
       : '';

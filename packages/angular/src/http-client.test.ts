@@ -1356,6 +1356,39 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
     });
 
+    it('escapes single quotes in accept media type keys', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType(
+                'Pet',
+                "application/json', 'X-Evil': 'injected",
+              ),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: [
+            "application/json', 'X-Evil': 'injected",
+            'text/plain',
+          ],
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        "accept: 'application/json\\', \\'X-Evil\\': \\'injected'",
+      );
+      expect(impl).not.toContain("'X-Evil': 'injected'");
+    });
+
     it('omits text dispatch for JSON and Blob response types', () => {
       const verbOption = createVerbOption({
         operationId: 'getPetImage',
