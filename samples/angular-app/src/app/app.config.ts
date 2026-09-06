@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
+import type {
+  ApplicationConfig} from '@angular/core';
 import {
-  ApplicationConfig,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';

@@ -18,12 +18,13 @@ import {
   uploadFormData,
 } from '../api/endpoints-no-transformer/pets/pets';
 
+import type {
+  ListPetsQueryError} from '../api/endpoints-custom-instance/pets/pets';
 import {
   listPets as listPetsCustom,
   getListPetsQueryOptions as getListPetsQueryOptionsCustom,
   injectListPets as injectListPetsCustom,
-  getListPetsQueryKey as getListPetsQueryKeyCustom,
-  ListPetsQueryError,
+  getListPetsQueryKey as getListPetsQueryKeyCustom
 } from '../api/endpoints-custom-instance/pets/pets';
 import {
   uploadFormData as uploadFormDataCustom,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pets } from './api/model';
+import type { Pets } from './api/model';
 import { useApi } from './api/useApi';
 import './App.css';
 import { useAuthDispatch } from './auth.context';

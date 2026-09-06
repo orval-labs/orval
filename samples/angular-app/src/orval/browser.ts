@@ -1,5 +1,6 @@
 import { setupWorker } from 'msw/browser';
-import { http, HttpResponse, RequestHandler } from 'msw';
+import type { RequestHandler } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 import * as httpBothMocks from '../api/http-both/index.msw';
 import * as httpClientMocks from '../api/http-client/index.msw';

@@ -1,6 +1,6 @@
 import './App.css';
 
-import { Pet } from './gen/models';
+import type { Pet } from './gen/models';
 import { useListPets, useCreatePets } from './gen/endpoints/pets/pets';
 import { CreatePetsBodyItem } from './gen/endpoints/pets/pets.zod';
 

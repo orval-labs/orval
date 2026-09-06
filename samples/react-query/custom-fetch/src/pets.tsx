@@ -1,5 +1,5 @@
 import { useListPets, useCreatePets } from './gen/pets/pets';
-import { Pet } from './gen/models';
+import type { Pet } from './gen/models';
 
 export default function Pets() {
   const { data } = useListPets();

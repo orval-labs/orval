@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import type { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 
 export interface ExtendedServerErrorResponse<Error> extends HttpErrorResponse {

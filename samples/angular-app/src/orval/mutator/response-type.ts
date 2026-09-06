@@ -1,5 +1,5 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import type { HttpClient, HttpParams } from '@angular/common/http';
+import type { Observable } from 'rxjs';
 
 type QueryParamValue = string | number | boolean;
 

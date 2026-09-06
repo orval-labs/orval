@@ -1,9 +1,10 @@
 import { HttpEventType } from '@angular/common/http';
+import type {
+  OnInit} from '@angular/core';
 import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  OnInit,
   signal,
 } from '@angular/core';
 import { JsonPipe } from '@angular/common';

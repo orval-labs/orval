@@ -1,4 +1,4 @@
-import { AxiosError, AxiosRequestConfig } from 'axios';
+import type { AxiosError, AxiosRequestConfig } from 'axios';
 import { getPets, createPet, getPetById } from '~/server/pets';
 import type { CreatePetsBody } from '~/api/model';
 

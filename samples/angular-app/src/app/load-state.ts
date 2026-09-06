@@ -1,4 +1,5 @@
-import { catchError, map, Observable, of, startWith } from 'rxjs';
+import type { Observable} from 'rxjs';
+import { catchError, map, of, startWith } from 'rxjs';
 
 export type LoadState<T> =
   | { status: 'loading'; data: T; error?: undefined }

@@ -1,4 +1,4 @@
-import { Component } from 'solid-js';
+import type { Component } from 'solid-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import Pets from './lib/Pets';
 import './App.css';
