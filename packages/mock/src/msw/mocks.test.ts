@@ -45,21 +45,42 @@ describe('getResponsesMockDefinition', () => {
   });
 
   it('does not mutate the response imports it is given (#3931)', () => {
+    // An array of objects whose property is a `const` enum: the array branch
+    // resolves its items with the array it was handed, and the item's value
+    // import is merged back into it.
     const context = createTestContextSpec({
-      override: { enumGenerationType: EnumGeneration.ENUM },
+      override: { enumGenerationType: EnumGeneration.CONST },
+      spec: {
+        components: {
+          schemas: {
+            Pets: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Pet' },
+            },
+            Pet: {
+              type: 'object',
+              required: ['countryCode'],
+              properties: {
+                countryCode: { $ref: '#/components/schemas/CountryCode' },
+              },
+            },
+            CountryCode: { type: 'string', enum: ['CN', 'UY'] },
+          },
+        },
+      },
     });
     // Core shares this array between every operation that resolves the same
     // schema, so it must come back untouched.
-    const sharedImports = [{ name: 'Color', schemaName: 'Color' }];
+    const sharedImports = [{ name: 'Pets', schemaName: 'Pets' }];
 
     const result = getResponsesMockDefinition({
-      operationId: 'listColors',
+      operationId: 'listPets',
       tags: [],
-      returnType: 'Color',
+      returnType: 'Pets',
       responses: [
         {
-          value: 'Color',
-          originalSchema: { type: 'string', enum: ['RED', 'GREEN'] },
+          value: 'Pets',
+          originalSchema: { $ref: '#/components/schemas/Pets' },
           contentType: 'application/json',
           imports: sharedImports,
           isRef: true,
@@ -70,13 +91,11 @@ describe('getResponsesMockDefinition', () => {
       splitMockImplementations: [],
     });
 
-    expect(result.definitions).toEqual([
-      'faker.helpers.arrayElement(Object.values(Color))',
-    ]);
-    // The mock needs `Color` at runtime, so the value import is reported...
-    expect(result.imports).toContainEqual({ name: 'Color', values: true });
+    expect(result.definitions[0]).toContain('Object.values(CountryCode)');
+    // The mock needs `CountryCode` at runtime, so the value import is reported...
+    expect(result.imports).toContainEqual({ name: 'CountryCode', values: true });
     // ...without being written back into the caller's array.
-    expect(sharedImports).toEqual([{ name: 'Color', schemaName: 'Color' }]);
+    expect(sharedImports).toEqual([{ name: 'Pets', schemaName: 'Pets' }]);
   });
 });
 
