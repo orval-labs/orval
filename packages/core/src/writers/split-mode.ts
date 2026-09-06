@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
+import { generateModelsInline } from '../generators';
 import {
   type MswMockOptions,
   OutputClient,
@@ -25,6 +25,11 @@ import {
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
+  generateClientImports,
+  generateOrvalHelperTypes,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
@@ -36,7 +41,6 @@ import {
 } from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export async function writeSplitMode({
   builder,
@@ -62,18 +66,9 @@ export async function writeSplitMode({
       extension: output.fileExtension,
     });
 
-    const {
-      imports,
-      implementation,
-      mockOutputsFull,
-      mutators,
-      clientMutators,
-      formData,
-      formUrlEncoded,
-      paramsSerializer,
-      paramsFilter,
-      fetchReviver,
-    } = generateTarget(builder, output);
+    const target = generateTarget(builder, output);
+
+    const { imports, implementation, mockOutputsFull } = target;
 
     const mswGeneratorEntry = output.mock.generators.find(
       (g): g is MswMockOptions =>
@@ -134,20 +129,13 @@ export async function writeSplitMode({
       schemaOutputPlan,
     );
 
-    implementationData += builder.imports({
-      client: output.client,
+    implementationData += generateClientImports({
+      builder,
+      output,
       implementation,
       imports: importsForBuilder,
       projectName,
-      hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
-      hasGlobalMutator: !!output.override.mutator,
-      hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag?.mutator,
-      ),
-      hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
-      packageJson: output.packageJson,
-      output,
     });
 
     const schemasPath =
@@ -163,56 +151,9 @@ export async function writeSplitMode({
       await writeGeneratedFile(schemasPath, schemasData);
     }
 
-    if (mutators) {
-      implementationData += generateMutatorImports({
-        mutators,
-        implementation,
-      });
-    }
+    implementationData += generateTargetMutatorImports(target, implementation);
 
-    if (clientMutators) {
-      implementationData += generateMutatorImports({
-        mutators: clientMutators,
-      });
-    }
-
-    if (formData) {
-      implementationData += generateMutatorImports({ mutators: formData });
-    }
-
-    if (formUrlEncoded) {
-      implementationData += generateMutatorImports({
-        mutators: formUrlEncoded,
-      });
-    }
-
-    if (paramsSerializer) {
-      implementationData += generateMutatorImports({
-        mutators: paramsSerializer,
-      });
-    }
-
-    if (paramsFilter) {
-      implementationData += generateMutatorImports({
-        mutators: paramsFilter,
-      });
-    }
-
-    if (fetchReviver) {
-      implementationData += generateMutatorImports({
-        mutators: fetchReviver,
-      });
-    }
-
-    if (implementation.includes('NonReadonly<')) {
-      implementationData += getOrvalGeneratedTypes();
-      implementationData += '\n';
-    }
-
-    if (implementation.includes('TypedResponse<')) {
-      implementationData += getTypedResponse();
-      implementationData += '\n';
-    }
+    implementationData += generateOrvalHelperTypes(implementation);
 
     implementationData += `\n${implementation}`;
 

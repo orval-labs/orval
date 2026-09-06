@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
+import { generateModelsInline } from '../generators';
 import {
   OutputClient,
   type OutputClientFunc,
@@ -27,6 +27,12 @@ import {
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
+  filterImportsUsedInImplementation,
+  generateClientImports,
+  generateOrvalHelperTypes,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
@@ -35,7 +41,6 @@ import {
   buildTagHelpersImport,
   generateTargetForTagsOperations,
 } from './target-tags-operations';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 const SUPPORTED_CLIENTS = new Set<string>([
   OutputClient.REACT_QUERY,
@@ -181,15 +186,10 @@ export async function writeTagsOperationsMode({
               `${operationFilename}${extension}`,
             );
 
-            const implementationImports = operation.imports.filter((imp) => {
-              const searchWords = [imp.alias, imp.name]
-                .filter((part): part is string => Boolean(part?.length))
-                .join('|');
-              if (!searchWords) return false;
-              return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
-                operation.implementation,
-              );
-            });
+            const implementationImports = filterImportsUsedInImplementation(
+              operation.imports,
+              operation.implementation,
+            );
 
             const importsForBuilder = generateImportsForBuilder(
               output,
@@ -209,84 +209,24 @@ export async function writeTagsOperationsMode({
               );
             }
 
-            data += builder.imports({
-              client: output.client,
+            data += generateClientImports({
+              builder,
+              output,
               implementation: operation.implementation,
               imports: importsForBuilder,
               projectName,
-              hasSchemaDir: !!output.schemas,
               isAllowSyntheticDefaultImports,
-              hasGlobalMutator: !!output.override.mutator,
-              hasTagsMutator: Object.values(output.override.tags).some(
-                (tagOverride) => !!tagOverride?.mutator,
-              ),
-              hasParamsSerializerOptions:
-                !!output.override.paramsSerializerOptions,
-              packageJson: output.packageJson,
-              output,
             });
 
-            if (operation.mutators) {
-              data += generateMutatorImports({
-                mutators: operation.mutators,
-                implementation: operation.implementation,
-                oneMore: true,
-              });
-            }
-
-            if (operation.clientMutators) {
-              data += generateMutatorImports({
-                mutators: operation.clientMutators,
-                oneMore: true,
-              });
-            }
-
-            if (operation.formData) {
-              data += generateMutatorImports({
-                mutators: operation.formData,
-                oneMore: true,
-              });
-            }
-
-            if (operation.formUrlEncoded) {
-              data += generateMutatorImports({
-                mutators: operation.formUrlEncoded,
-                oneMore: true,
-              });
-            }
-
-            if (operation.paramsSerializer) {
-              data += generateMutatorImports({
-                mutators: operation.paramsSerializer,
-                oneMore: true,
-              });
-            }
-
-            if (operation.paramsFilter) {
-              data += generateMutatorImports({
-                mutators: operation.paramsFilter,
-                oneMore: true,
-              });
-            }
-
-            if (operation.fetchReviver) {
-              data += generateMutatorImports({
-                mutators: operation.fetchReviver,
-                oneMore: true,
-              });
-            }
+            data += generateTargetMutatorImports(
+              operation,
+              operation.implementation,
+              true,
+            );
 
             data += '\n\n';
 
-            if (operation.implementation.includes('NonReadonly<')) {
-              data += getOrvalGeneratedTypes();
-              data += '\n';
-            }
-
-            if (operation.implementation.includes('TypedResponse<')) {
-              data += getTypedResponse();
-              data += '\n';
-            }
+            data += generateOrvalHelperTypes(operation.implementation);
 
             data += operation.implementation;
 

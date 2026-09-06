@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
+import { generateModelsInline } from '../generators';
 import {
   type MswMockOptions,
   OutputClient,
@@ -28,6 +28,11 @@ import {
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
+  generateClientImports,
+  generateOrvalHelperTypes,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
@@ -39,7 +44,6 @@ import {
 } from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export async function writeSplitTagsMode({
   builder,
@@ -129,18 +133,7 @@ export async function writeSplitTagsMode({
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
-        const {
-          imports,
-          implementation,
-          mockOutputsFull,
-          mutators,
-          clientMutators,
-          formData,
-          fetchReviver,
-          formUrlEncoded,
-          paramsSerializer,
-          paramsFilter,
-        } = target;
+        const { imports, implementation, mockOutputsFull } = target;
 
         const mswGeneratorEntry = output.mock.generators.find(
           (g): g is MswMockOptions =>
@@ -218,20 +211,13 @@ export async function writeSplitTagsMode({
           schemaOutputPlan,
         );
 
-        implementationData += builder.imports({
-          client: output.client,
+        implementationData += generateClientImports({
+          builder,
+          output,
           implementation,
           imports: importsForBuilder,
           projectName,
-          hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
-          hasGlobalMutator: !!output.override.mutator,
-          hasTagsMutator: Object.values(output.override.tags).some(
-            (tag) => !!tag?.mutator,
-          ),
-          hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
-          packageJson: output.packageJson,
-          output,
         });
 
         const schemasPath =
@@ -247,62 +233,13 @@ export async function writeSplitTagsMode({
           await writeGeneratedFile(schemasPath, schemasData);
         }
 
-        if (mutators) {
-          implementationData += generateMutatorImports({
-            mutators,
-            implementation,
-            oneMore: true,
-          });
-        }
+        implementationData += generateTargetMutatorImports(
+          target,
+          implementation,
+          true,
+        );
 
-        if (clientMutators) {
-          implementationData += generateMutatorImports({
-            mutators: clientMutators,
-            oneMore: true,
-          });
-        }
-
-        if (formData) {
-          implementationData += generateMutatorImports({
-            mutators: formData,
-            oneMore: true,
-          });
-        }
-        if (formUrlEncoded) {
-          implementationData += generateMutatorImports({
-            mutators: formUrlEncoded,
-            oneMore: true,
-          });
-        }
-        if (paramsSerializer) {
-          implementationData += generateMutatorImports({
-            mutators: paramsSerializer,
-            oneMore: true,
-          });
-        }
-        if (paramsFilter) {
-          implementationData += generateMutatorImports({
-            mutators: paramsFilter,
-            oneMore: true,
-          });
-        }
-
-        if (fetchReviver) {
-          implementationData += generateMutatorImports({
-            mutators: fetchReviver,
-            oneMore: true,
-          });
-        }
-
-        if (implementation.includes('NonReadonly<')) {
-          implementationData += getOrvalGeneratedTypes();
-          implementationData += '\n';
-        }
-
-        if (implementation.includes('TypedResponse<')) {
-          implementationData += getTypedResponse();
-          implementationData += '\n';
-        }
+        implementationData += generateOrvalHelperTypes(implementation);
 
         implementationData += `\n${implementation}`;
 

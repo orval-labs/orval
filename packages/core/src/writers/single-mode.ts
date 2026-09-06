@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
+import { generateModelsInline } from '../generators';
 import { OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
@@ -13,7 +13,6 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
-import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import {
   getFinalizeMockImplementationOptions,
@@ -21,13 +20,18 @@ import {
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
+  filterImportsUsedInImplementation,
+  generateClientImports,
+  generateOrvalHelperTypes,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export async function writeSingleMode({
   builder,
@@ -53,18 +57,9 @@ export async function writeSingleMode({
       extension: output.fileExtension,
     });
 
-    const {
-      imports,
-      mockOutputs: rawMockOutputs,
-      implementation,
-      mutators,
-      clientMutators,
-      formData,
-      formUrlEncoded,
-      paramsSerializer,
-      paramsFilter,
-      fetchReviver,
-    } = generateTarget(builder, output);
+    const target = generateTarget(builder, output);
+
+    const { imports, mockOutputs: rawMockOutputs, implementation } = target;
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
       output.tsconfig,
@@ -98,19 +93,10 @@ export async function writeSingleMode({
         ).dirname
       : targetPath;
 
-    const implementationImports = imports.filter((imp) => {
-      const searchWords = [imp.alias, imp.name]
-        .filter((part): part is string => Boolean(part?.length))
-        .map((part) => escapeRegExp(part))
-        .join('|');
-      if (!searchWords) {
-        return false;
-      }
-
-      return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
-        implementation,
-      );
-    });
+    const implementationImports = filterImportsUsedInImplementation(
+      imports,
+      implementation,
+    );
 
     const normalizedImports = implementationImports.map((imp) => ({ ...imp }));
 
@@ -157,20 +143,13 @@ export async function writeSingleMode({
           '.',
         );
 
-    data += builder.imports({
-      client: output.client,
+    data += generateClientImports({
+      builder,
+      output,
       implementation,
       imports: importsForBuilder,
       projectName,
-      hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
-      hasGlobalMutator: !!output.override.mutator,
-      hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag?.mutator,
-      ),
-      hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
-      packageJson: output.packageJson,
-      output,
     });
 
     if (!shouldDeinlineMocks) {
@@ -238,43 +217,9 @@ export async function writeSingleMode({
       }
     }
 
-    if (mutators) {
-      data += generateMutatorImports({ mutators, implementation });
-    }
+    data += generateTargetMutatorImports(target, implementation);
 
-    if (clientMutators) {
-      data += generateMutatorImports({ mutators: clientMutators });
-    }
-
-    if (formData) {
-      data += generateMutatorImports({ mutators: formData });
-    }
-
-    if (formUrlEncoded) {
-      data += generateMutatorImports({ mutators: formUrlEncoded });
-    }
-
-    if (paramsSerializer) {
-      data += generateMutatorImports({ mutators: paramsSerializer });
-    }
-
-    if (paramsFilter) {
-      data += generateMutatorImports({ mutators: paramsFilter });
-    }
-
-    if (fetchReviver) {
-      data += generateMutatorImports({ mutators: fetchReviver });
-    }
-
-    if (implementation.includes('NonReadonly<')) {
-      data += getOrvalGeneratedTypes();
-      data += '\n';
-    }
-
-    if (implementation.includes('TypedResponse<')) {
-      data += getTypedResponse();
-      data += '\n';
-    }
+    data += generateOrvalHelperTypes(implementation);
 
     if (!output.schemas && needSchema) {
       data += generateSchemasInline
