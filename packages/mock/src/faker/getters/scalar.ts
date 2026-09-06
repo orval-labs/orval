@@ -10,6 +10,8 @@ import {
   EnumGeneration,
   type GeneratorImport,
   getRefInfo,
+  isBoolean,
+  isNumber,
   isReference,
   isString,
   jsStringLiteralEscape,
@@ -636,21 +638,40 @@ function getItemType(item: MockSchemaObject) {
   return ['string', 'number'].includes(type) ? type : undefined;
 }
 
+/**
+ * Renders one enum member as a literal for the generated faker array.
+ *
+ * The branch is on the member's own type, never on the schema's declared
+ * `type`: both come from the document and nothing makes them agree. Keying off
+ * the declared type meant a string member under `type: 'integer'` was spliced
+ * in as a live expression, a numeric member under `type: 'string'` crashed the
+ * generator, and an object member emitted `[object Object]`.
+ */
+function formatEnumMember(value: unknown): string {
+  if (isString(value)) {
+    return `'${jsStringLiteralEscape(value)}'`;
+  }
+
+  if (isNumber(value) || isBoolean(value)) {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
+}
+
 function getEnum(
   item: MockSchemaObject,
   imports: GeneratorImport[],
   context: ContextSpec,
   existingReferencedProperties: string[],
+  // Only gates the `Object.values(...)` reference shortcut below. It must not
+  // decide how a member is quoted — see `formatEnumMember`.
   type?: 'string' | 'number' | 'boolean',
 ) {
   if (!item.enum) return '';
   const joinedEnumValues = item.enum
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
-    .map((e) =>
-      type === 'string' || (type === undefined && isString(e))
-        ? `'${jsStringLiteralEscape(e)}'`
-        : e,
-    )
+    .map((e) => formatEnumMember(e))
     .join(',');
 
   let enumValue = `[${joinedEnumValues}]`;

@@ -1230,3 +1230,119 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
     );
   });
 });
+
+describe('getMockScalar (enum member type confusion)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  // The declared `type` and the members both come from the document and need
+  // not agree. Quoting keyed off the declared type let a string member under a
+  // numeric/boolean type through as a live expression.
+  it('quotes a string member declared under type: integer', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        enum: ['(globalThis.pwned=1)'],
+        name: 'numEnum',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['(globalThis.pwned=1)'] as const)",
+    );
+  });
+
+  it('quotes a string member declared under type: boolean', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'boolean' as OpenApiSchemaObjectType,
+        enum: ['(globalThis.pwned=1)'],
+        name: 'boolEnum',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['(globalThis.pwned=1)'] as const)",
+    );
+  });
+
+  it('escapes a quote in a string member declared under type: integer', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        enum: ["a',(globalThis.pwned=1),'b"],
+        name: 'numEnum',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['a\',(globalThis.pwned=1),\'b'] as const)`,
+    );
+  });
+
+  it('emits a numeric member declared under type: string without crashing', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: [1, 2] as unknown as string[],
+        name: 'strEnum',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.helpers.arrayElement([1,2] as const)');
+  });
+
+  it('serializes an object member instead of emitting [object Object]', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        enum: [{ a: 1 }] as unknown as string[],
+        name: 'objEnum',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.helpers.arrayElement([{"a":1}] as const)');
+    expect(result.value).not.toContain('[object Object]');
+  });
+
+  it('leaves genuine numeric and boolean members unquoted', () => {
+    expect(
+      getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as OpenApiSchemaObjectType,
+          enum: [1, 2] as unknown as string[],
+          name: 'numEnum',
+        },
+        context: scalarContext(),
+      }).value,
+    ).toBe('faker.helpers.arrayElement([1,2] as const)');
+
+    expect(
+      getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'boolean' as OpenApiSchemaObjectType,
+          enum: [true, false] as unknown as string[],
+          name: 'boolEnum',
+        },
+        context: scalarContext(),
+      }).value,
+    ).toBe('faker.helpers.arrayElement([true,false] as const)');
+  });
+});
