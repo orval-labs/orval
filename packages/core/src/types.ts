@@ -1427,6 +1427,7 @@ export interface NormalizedFetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation: NormalizedRuntimeValidation;
   useRuntimeFetcher: boolean;
+  httpClientInjection?: 'factory';
   /**
    * Serialization format for array query parameters that do not have an explicit
    * `explode` setting in the OpenAPI spec.
@@ -1453,6 +1454,13 @@ export interface FetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation?: RuntimeValidation;
   useRuntimeFetcher?: boolean;
+  /**
+   * When `'factory'`, wraps all generated functions inside a factory closure
+   * that accepts a `fetch` implementation once, instead of passing it per-call.
+   *
+   * @default undefined (top-level functions, fetchFn passed per-call)
+   */
+  httpClientInjection?: 'factory';
   /**
    * Serialization format for array query parameters that do not have an explicit
    * `explode` setting in the OpenAPI spec.
@@ -2063,6 +2071,7 @@ export type ClientFooterBuilder = (params: {
   title?: string;
   hasAwaitedType: boolean;
   hasMutator: boolean;
+  output?: NormalizedOutputOptions;
 }) => string;
 
 export type ClientTitleBuilder = (title: string) => string;
