@@ -31,5 +31,29 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=4",
+    "@tanstack/vue-query": ">=4",
+    "@tanstack/svelte-query": ">=4",
+    "@tanstack/solid-query": ">=5",
+    "@tanstack/angular-query-experimental": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "@tanstack/vue-query": {
+      "optional": true
+    },
+    "@tanstack/svelte-query": {
+      "optional": true
+    },
+    "@tanstack/solid-query": {
+      "optional": true
+    },
+    "@tanstack/angular-query-experimental": {
+      "optional": true
+    }
   }
 }

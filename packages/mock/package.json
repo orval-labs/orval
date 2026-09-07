@@ -30,5 +30,17 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "msw": ">=2",
+    "@faker-js/faker": ">=10"
+  },
+  "peerDependenciesMeta": {
+    "msw": {
+      "optional": true
+    },
+    "@faker-js/faker": {
+      "optional": true
+    }
   }
 }
