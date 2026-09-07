@@ -33,11 +33,11 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "@tanstack/angular-query-experimental": ">=5",
     "@tanstack/react-query": ">=4",
-    "@tanstack/vue-query": ">=4",
-    "@tanstack/svelte-query": ">=4",
     "@tanstack/solid-query": ">=5",
-    "@tanstack/angular-query-experimental": ">=5"
+    "@tanstack/svelte-query": ">=4",
+    "@tanstack/vue-query": ">=4"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-query": {

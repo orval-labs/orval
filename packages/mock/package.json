@@ -32,8 +32,8 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "msw": ">=2",
-    "@faker-js/faker": ">=10"
+    "@faker-js/faker": ">=10",
+    "msw": ">=2"
   },
   "peerDependenciesMeta": {
     "msw": {
