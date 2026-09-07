@@ -696,10 +696,26 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     expect(implementation).toContain(
       'if (h instanceof Headers) return Object.fromEntries(h.entries());',
     );
-    // The record branch is unchanged, so header casing — and therefore the
-    // override semantics of `{ ...literal, ...getHeaders(options?.headers) }`
-    // — is preserved.
-    expect(implementation).toContain('return h;');
+  });
+
+  it('builds the record branch entry by entry, skipping undefined values', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // A record whose values include `undefined` — Hono's header record, for
+    // one — is not assignable to the declared return type, so the result is
+    // built rather than passed through (#4029). Names are copied verbatim, so
+    // the override semantics of `{ ...literal, ...getHeaders(...) }` still
+    // hold, and an `undefined` value is skipped instead of reaching the wire
+    // as the literal text "undefined".
+    expect(implementation).toContain(
+      'const headers: Record<string, string | readonly string[]> = {};',
+    );
+    expect(implementation).toContain('if (value !== undefined)');
+    expect(implementation).toContain('return headers;');
+    expect(implementation).not.toContain('    return h;\n');
   });
 
   it('does not emit the helper when no headers are added', () => {

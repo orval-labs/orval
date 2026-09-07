@@ -138,7 +138,13 @@ export const createPets = async (
     if (Symbol.iterator in h) {
       return Object.fromEntries(h as Iterable<readonly [string, string]>);
     }
-    return h;
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
   };
   const res = await fetch(getCreatePetsUrl(), {
     ...options,
@@ -200,7 +206,13 @@ export const updatePets = async (
     if (Symbol.iterator in h) {
       return Object.fromEntries(h as Iterable<readonly [string, string]>);
     }
-    return h;
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
   };
   const res = await fetch(getUpdatePetsUrl(), {
     ...options,
