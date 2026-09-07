@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { PackageJson } from '../types';
@@ -6,7 +8,7 @@ import {
   resolveInstalledVersions,
 } from './resolve-version';
 
-const projectDir = process.cwd();
+const projectDir = path.join(import.meta.dirname, '../..');
 
 describe('resolveInstalledVersion', () => {
   it('resolves version for package with direct package.json access', () => {
