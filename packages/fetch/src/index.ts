@@ -117,10 +117,18 @@ export const generateRequestFunction = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
+  // Narrow on iterability rather than array-ness. `RequestInit['headers']` is
+  // declared per-runtime, and outside the DOM its non-record member need not be
+  // an array — `@cloudflare/workers-types` uses `Iterable<Iterable<string>>`,
+  // which `Array.isArray` cannot exclude. It then reached `return h`, failing
+  // the helper's own return type (TS2322) and, at runtime, spreading an
+  // iterable as an object silently dropped every header (#4034).
   const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
 `;

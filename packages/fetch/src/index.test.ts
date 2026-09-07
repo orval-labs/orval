@@ -653,3 +653,61 @@ describe('generateRequestFunction — Content-Type header escaping', () => {
     expect(implementation).not.toContain("'X-Evil': 'injected'");
   });
 });
+
+describe('generateRequestFunction — getHeaders helper (#4034)', () => {
+  const verbOptionsWithHeaders = () =>
+    makeVerbOptions({
+      verb: Verbs.POST,
+      body: {
+        definition: 'CreatePetBody',
+        implementation: 'createPetBody: CreatePetBody',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: 'application/json',
+        isOptional: false,
+        originalSchema: {},
+        isBlob: false,
+      } as GeneratorVerbOptions['body'],
+    });
+
+  it('narrows on iterability rather than array-ness', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // `RequestInit['headers']` is declared per runtime. Outside the DOM its
+    // non-record member need not be an array — `@cloudflare/workers-types`
+    // uses `Iterable<Iterable<string>>` — so `Array.isArray` cannot narrow it
+    // and the fall-through `return h` failed the declared return type.
+    expect(implementation).toContain('if (Symbol.iterator in h)');
+    expect(implementation).not.toContain('if (Array.isArray(h))');
+  });
+
+  it('still short-circuits empty input and unwraps a Headers instance', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain('if (!h) return {};');
+    expect(implementation).toContain(
+      'if (h instanceof Headers) return Object.fromEntries(h.entries());',
+    );
+    // The record branch is unchanged, so header casing — and therefore the
+    // override semantics of `{ ...literal, ...getHeaders(options?.headers) }`
+    // — is preserved.
+    expect(implementation).toContain('return h;');
+  });
+
+  it('does not emit the helper when no headers are added', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).not.toContain('const getHeaders');
+  });
+});

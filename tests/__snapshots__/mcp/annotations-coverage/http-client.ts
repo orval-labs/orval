@@ -66,7 +66,9 @@ export const createThing = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getCreateThingUrl(), {
@@ -112,7 +114,9 @@ export const replaceThing = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getReplaceThingUrl(), {
@@ -160,7 +164,9 @@ export const patchThing = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getPatchThingUrl(), {

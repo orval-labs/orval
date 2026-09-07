@@ -256,7 +256,9 @@ export const createPets = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   return customFetch<createPetsResponse>(getCreatePetsUrl(), {
@@ -376,7 +378,9 @@ export const updatePets = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   return customFetch<updatePetsResponse>(getUpdatePetsUrl(), {

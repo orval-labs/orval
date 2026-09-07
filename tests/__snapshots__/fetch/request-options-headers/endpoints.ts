@@ -101,7 +101,9 @@ export const listPets = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getListPetsUrl(params), {
@@ -168,7 +170,9 @@ export const createPets = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getCreatePetsUrl(params), {
@@ -230,7 +234,9 @@ export const showPetById = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getShowPetByIdUrl(petId), {
@@ -290,7 +296,9 @@ export const deletePetById = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getDeletePetByIdUrl(petId), {
@@ -351,7 +359,9 @@ export const healthCheck = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getHealthCheckUrl(), {
@@ -416,7 +426,9 @@ export const showPetWithOwner = async (
   ): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Array.isArray(h)) return Object.fromEntries(h);
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(h as Iterable<readonly [string, string]>);
+    }
     return h;
   };
   const res = await fetch(getShowPetWithOwnerUrl(petId), {
