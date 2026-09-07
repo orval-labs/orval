@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { isFunction, isNullish, isString } from 'remeda';
+import { isFunction, isNullish, isNumber, isString } from 'remeda';
 
 import {
   type ClientMockBuilder,
@@ -238,3 +238,50 @@ export function isFakerMock(
 
 /** Re-exported Remeda type guards and predicates used alongside local assertions. */
 export { isBoolean, isFunction, isNullish, isNumber, isString } from 'remeda';
+
+/**
+ * Asserts that a spec-supplied numeric constraint really is a finite number.
+ *
+ * Constraints (`minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`,
+ * `multipleOf`, `minLength`/`maxLength`, `minItems`/`maxItems`) are emitted
+ * into generated source as bare, unquoted expressions — `.min(${min})`,
+ * `S.minItems(${min})`, `faker.number.int({min: ${min}})`. There is no
+ * surrounding quote, so no escaping can make an arbitrary value safe there.
+ *
+ * OpenAPI 3.1 documents pass validation with these fields set to arbitrary
+ * strings, so the value has to be checked here rather than trusted.
+ *
+ * @param value Constraint value taken from the document
+ * @param label Field name, used in the error message
+ * @throws If `value` is not a finite number
+ */
+export function assertSafeNumericConstraint(
+  value: unknown,
+  label: string,
+): number {
+  if (!isNumber(value) || !Number.isFinite(value)) {
+    throw new Error(
+      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${String(value)}). This value would otherwise be emitted verbatim into generated source.`,
+    );
+  }
+
+  return value;
+}
+
+/**
+ * {@link assertSafeNumericConstraint} for an optional constraint.
+ *
+ * Passes `undefined` straight through so callers keep "absent" distinct from
+ * "present but not a number", which must still be rejected.
+ *
+ * @param value Constraint value taken from the document, possibly absent
+ * @param label Field name, used in the error message
+ */
+export function safeNumericConstraint(
+  value: unknown,
+  label: string,
+): number | undefined {
+  return value === undefined
+    ? undefined
+    : assertSafeNumericConstraint(value, label);
+}

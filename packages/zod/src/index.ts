@@ -3,6 +3,7 @@
 import {
   buildDynamicScope,
   buildInlineDynamicScope,
+  assertSafeNumericConstraint,
   camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
@@ -34,6 +35,7 @@ import {
   pascal,
   resolveDynamicRef,
   resolveRef,
+  safeNumericConstraint,
   stringify,
   type ZodCoerceType,
   type ZodVariantOption,
@@ -58,21 +60,6 @@ import {
   resolveIsZodV4,
 } from './compatible-v4';
 import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
-
-// Numeric/length constraints (minimum, maximum, exclusiveMinimum,
-// exclusiveMaximum, multipleOf) are interpolated into generated source as a
-// bare, unquoted expression (e.g. `export const XMin = ${min};`), so there is
-// no syntactic escaping that can make an untrusted value safe there. Reject
-// anything that isn't actually a finite number instead of emitting it as-is.
-const assertSafeNumericConstraint = (value: unknown, label: string): number => {
-  if (!isNumber(value) || !Number.isFinite(value)) {
-    throw new Error(
-      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${String(value)}). This value would otherwise be emitted verbatim into generated source.`,
-    );
-  }
-
-  return value;
-};
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -3027,14 +3014,19 @@ const parseBodyAndResponse = ({
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
-    const min =
+    // These reach `renderArrayWithBounds` and are emitted as bare expressions
+    // (`.min(${min})`), so they get the same finite-number assertion the scalar
+    // constraint block applies — nothing upstream validates them.
+    const rawMin =
       resolvedJsonSchema.minimum ??
       resolvedJsonSchema.minLength ??
       resolvedJsonSchema.minItems;
-    const max =
+    const rawMax =
       resolvedJsonSchema.maximum ??
       resolvedJsonSchema.maxLength ??
       resolvedJsonSchema.maxItems;
+    const min = safeNumericConstraint(rawMin, 'minimum/minLength/minItems');
+    const max = safeNumericConstraint(rawMax, 'maximum/maxLength/maxItems');
 
     // When useReusableSchemas is on, shallow-resolve one level so that $ref
     // references inside the items schema are preserved for named-ref emission.

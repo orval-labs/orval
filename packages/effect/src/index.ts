@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-array-reduce */
 
 import {
+  assertSafeNumericConstraint,
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
@@ -24,23 +25,10 @@ import {
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
+  safeNumericConstraint,
   stringify,
 } from '@orval/core';
 import { unique } from 'remeda';
-
-// Numeric/length constraints are interpolated into generated source as a
-// bare, unquoted expression (e.g. `export const XMin = ${min};`), so no
-// syntactic escaping can make an untrusted value safe there. Reject anything
-// that isn't actually a finite number instead of emitting it as-is.
-const assertSafeNumericConstraint = (value: unknown, label: string): number => {
-  if (!isNumber(value) || !Number.isFinite(value)) {
-    throw new Error(
-      `orval: refusing to generate code for an OpenAPI document whose "${label}" constraint is not a finite number (got ${String(value)}). This value would otherwise be emitted verbatim into generated source.`,
-    );
-  }
-
-  return value;
-};
 
 const EFFECT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -1260,14 +1248,19 @@ const parseBodyAndResponse = ({
   const resolvedJsonSchema = dereference(schema, context);
 
   if (resolvedJsonSchema.items) {
-    const min =
+    // Emitted as bare expressions (`S.minItems(${min})`), so they get the same
+    // finite-number assertion the scalar constraint block applies — nothing
+    // upstream validates them.
+    const rawMin =
       resolvedJsonSchema.minimum ??
       resolvedJsonSchema.minLength ??
       resolvedJsonSchema.minItems;
-    const max =
+    const rawMax =
       resolvedJsonSchema.maximum ??
       resolvedJsonSchema.maxLength ??
       resolvedJsonSchema.maxItems;
+    const min = safeNumericConstraint(rawMin, 'minimum/minLength/minItems');
+    const max = safeNumericConstraint(rawMax, 'maximum/maxLength/maxItems');
 
     return {
       input: generateEffectValidationSchemaDefinition(
