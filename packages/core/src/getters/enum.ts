@@ -203,14 +203,65 @@ export function getEnumImplementation(
 
   let result = '';
 
-  for (const member of membersWithoutNull) {
+  // Detect keys that collide across different value types (e.g. string '1'
+  // vs number 1, or string 'true' vs boolean true — both stringify to the
+  // same key).  For collided keys, prefix with the value type (#4028).
+  const derivedKeys = membersWithoutNull.map((member) =>
+    member.name
+      ? member.name
+      : deriveEnumKey(member.value, options.enumNamingConvention, disambiguate),
+  );
+  const keyCounts = new Map<string, number>();
+  for (const k of derivedKeys) {
+    keyCounts.set(k, (keyCounts.get(k) ?? 0) + 1);
+  }
+
+  const usedKeys = new Set<string>();
+
+  for (let i = 0; i < membersWithoutNull.length; i++) {
+    const member = membersWithoutNull[i];
     const value = stringifyEnumValue(member.value);
 
     const comment = getEnumMemberComment(member);
 
-    const rawKey = member.name
-      ? member.name
-      : deriveEnumKey(member.value, options.enumNamingConvention, disambiguate);
+    let rawKey = member.name ? member.name : derivedKeys[i];
+
+    // Disambiguate type collisions by prefixing the runtime type name.
+    // Only apply when the key does NOT already carry a type prefix
+    // (e.g. NUMBER_ from toNumberKey).  For those, compute a fresh key
+    // from the raw string representation instead of stacking prefixes.
+    if (!member.name && (keyCounts.get(rawKey) ?? 0) > 1) {
+      const typePrefix =
+        typeof member.value === 'string'
+          ? 'STRING_'
+          : typeof member.value === 'boolean'
+            ? 'BOOLEAN_'
+            : '';
+      if (typePrefix) {
+        const fresh = deriveEnumKey(
+          member.value,
+          options.enumNamingConvention,
+          disambiguate,
+        );
+        // Strip any existing NUMBER_/STRING_ prefix before re-prefixing,
+        // but preserve PLUS_/MINUS_ sign modifiers to keep keys unique.
+        const stripped = fresh.replace(/^(NUMBER|BOOLEAN)_/, '');
+        rawKey = `${typePrefix}${stripped}`;
+      }
+    }
+
+    // A type-prefixed key can still collide with an explicit member name
+    // (e.g. values ['STRING_1', '1', 1]).  Append a numeric suffix until
+    // the key is unique.
+    if (!member.name) {
+      let candidate = rawKey;
+      let suffix = 2;
+      while (usedKeys.has(candidate)) {
+        candidate = `${rawKey}_${suffix++}`;
+      }
+      rawKey = candidate;
+    }
+    usedKeys.add(rawKey);
 
     // Native enums do not allow quoted string literals as keys in standard TS syntax,
     // but object literals do. Choose key representation safely.
