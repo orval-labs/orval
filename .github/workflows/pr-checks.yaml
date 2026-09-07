@@ -23,6 +23,12 @@ concurrency:
 jobs:
   pr-checks:
     runs-on: ${{ matrix.os }}
+    # Windows defaults to pwsh, which does not fail the step when a native
+    # command (vp) exits non-zero. bash uses `set -e` / `pipefail`, so a
+    # failed `vp test` / `vp run` fails the job on both OSes.
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
