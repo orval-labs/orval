@@ -1,4 +1,6 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -1466,6 +1468,163 @@ describe('externalRefs', () => {
         'Can not generate unique compressed values',
       );
     } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('externalRefs allow-list and redirects', () => {
+  const EXTERNAL_DOC = JSON.stringify({
+    openapi: '3.0.2',
+    info: { title: 'ext', version: '1.0' },
+    paths: {},
+    components: { schemas: { Foo: { type: 'string' } } },
+  });
+
+  /**
+   * Two loopback servers: `redirectUrl` answers 302 pointing at `targetUrl`,
+   * and `targetUrl` serves the external document while counting requests.
+   */
+  async function startRedirectingServers() {
+    const target = http.createServer((_req, res) => {
+      target.hits += 1;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(EXTERNAL_DOC);
+    }) as http.Server & { hits: number };
+    target.hits = 0;
+
+    await new Promise<void>((resolve) =>
+      target.listen(0, '127.0.0.1', resolve),
+    );
+    const targetPort = (target.address() as AddressInfo).port;
+    const targetUrl = `http://127.0.0.1:${targetPort}/external.json`;
+
+    const redirector = http.createServer((_req, res) => {
+      res.writeHead(302, { Location: targetUrl });
+      res.end();
+    });
+    await new Promise<void>((resolve) =>
+      redirector.listen(0, '127.0.0.1', resolve),
+    );
+    const redirectUrl = `http://127.0.0.1:${(redirector.address() as AddressInfo).port}/external.json`;
+
+    return {
+      redirectUrl,
+      targetUrl,
+      get targetHits() {
+        return target.hits;
+      },
+      async close() {
+        await Promise.all([
+          new Promise<void>((resolve) => target.close(() => resolve())),
+          new Promise<void>((resolve) => redirector.close(() => resolve())),
+        ]);
+      },
+    };
+  }
+
+  async function createWorkspaceFor(ref: string) {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-redirect-'));
+    const specPath = path.join(workspace, 'spec.yaml');
+    await writeFile(
+      specPath,
+      JSON.stringify({
+        openapi: '3.0.2',
+        info: { title: 'main', version: '1.0' },
+        paths: {
+          '/x': {
+            get: {
+              operationId: 'getX',
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: { $ref: `${ref}#/components/schemas/Foo` },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      'utf8',
+    );
+    return { workspace, specPath };
+  }
+
+  it('does not follow a redirect to a URL outside the allow-list', async () => {
+    const servers = await startRedirectingServers();
+    const { workspace, specPath } = await createWorkspaceFor(
+      servers.redirectUrl,
+    );
+    const warnSpy = vi
+      .spyOn(orvalCore, 'logWarning')
+      .mockImplementation(() => {});
+
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            // Only the redirecting URL is allowed, not where it points.
+            parserOptions: {
+              externalRefs: { allow: [servers.redirectUrl] },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+
+      await expect(
+        importSpecs(workspace, normalizedOptions),
+      ).rejects.toBeDefined();
+
+      // The blocked destination must never be contacted.
+      expect(servers.targetHits).toBe(0);
+
+      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      expect(warnings).toContain('Refused to follow a redirect');
+      expect(warnings).toContain(servers.targetUrl);
+    } finally {
+      warnSpy.mockRestore();
+      await servers.close();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('follows a redirect when the destination is also allowed', async () => {
+    const servers = await startRedirectingServers();
+    const { workspace, specPath } = await createWorkspaceFor(
+      servers.redirectUrl,
+    );
+
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: {
+              externalRefs: {
+                allow: [servers.redirectUrl, servers.targetUrl],
+              },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+
+      const spec = await importSpecs(workspace, normalizedOptions);
+
+      expect(spec.verbOptions).toHaveProperty('getX');
+      expect(servers.targetHits).toBe(1);
+    } finally {
+      await servers.close();
       await rm(workspace, { recursive: true, force: true });
     }
   });
