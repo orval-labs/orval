@@ -629,7 +629,7 @@ export const isSolidQueryWithRenamedOptionsTypes = (
   return compareVersions(withoutRc, '5.100.6');
 };
 
-const getPackageByQueryClient = (
+export const getPackageByQueryClient = (
   packageJson: PackageJson | undefined,
   queryClient:
     | 'react-query'

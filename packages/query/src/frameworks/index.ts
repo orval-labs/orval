@@ -4,6 +4,7 @@ import {
   type GetterProps,
   GetterPropType,
   isObject,
+  logWarning,
   type OutputClient,
   OutputClient as OutputClientConst,
   type OutputClientFunc,
@@ -18,6 +19,7 @@ import {
   getQueryArgumentsRequestType,
 } from '../client';
 import {
+  getPackageByQueryClient,
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
@@ -265,6 +267,46 @@ type QueryClientType =
   | 'solid-query';
 
 /**
+ * Clients already warned about, so an undetectable version is reported once per
+ * run rather than once per operation.
+ */
+const undetectedVersionWarnings = new Set<string>();
+
+/**
+ * Warn when the installed version could not be determined and none was
+ * configured.
+ *
+ * `isQueryV5` and friends answer `false` for an unresolvable dependency, so the
+ * hooks are generated for v4. That is the right guess for a v4 project but
+ * silently wrong for a v5 one — v5 needs its option types wrapped in `Partial`,
+ * and without that the caller cannot omit `queryKey` (#2396). Detection only
+ * fails in setups where the dependency is not visible from the resolved
+ * `package.json` (a monorepo root, a catalog reference), which is exactly when
+ * the user needs telling.
+ */
+const warnOnUndetectedQueryVersion = (
+  clientType: QueryClientType,
+  packageJson: PackageJson | undefined,
+  queryVersion: number | undefined,
+) => {
+  if (
+    queryVersion !== undefined ||
+    // Angular Query is v5-only, so there is nothing to detect.
+    clientType === 'angular-query' ||
+    getPackageByQueryClient(packageJson, clientType) ||
+    undetectedVersionWarnings.has(clientType)
+  ) {
+    return;
+  }
+
+  undetectedVersionWarnings.add(clientType);
+  logWarning(
+    `Could not determine the installed @tanstack/${clientType} version, so hooks are generated for v4.\n` +
+      `If the project is on v5, set \`override.query.version: 5\` (or point \`output.packageJson\` at the package.json that declares the dependency) — otherwise the generated option types will not accept a partial \`query\` object.`,
+  );
+};
+
+/**
  * Create a FrameworkAdapter for the given output client, resolving version flags
  * from the packageJson and query config.
  */
@@ -278,6 +320,8 @@ export const createFrameworkAdapter = ({
   queryVersion?: number;
 }): FrameworkAdapter => {
   const clientType = outputClient as QueryClientType;
+
+  warnOnUndetectedQueryVersion(clientType, packageJson, queryVersion);
 
   const _hasQueryV5 = queryVersion === 5 || isQueryV5(packageJson, clientType);
 

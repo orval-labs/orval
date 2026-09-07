@@ -3133,7 +3133,21 @@ Takes effect only when used `mode` is `split` or `single-split`.
 **Type:** `Boolean`
 **Default:** `false`
 
-Make all parameters optional except path parameters.
+Let callers leave parameters unresolved.
+
+Path parameters keep their position in the signature but widen to accept a missing value, and the query/header parameters object becomes optional:
+
+```ts
+// allParamsOptional: false
+export const getPet = async (petId: string, params: GetPetParams, ...)
+
+// allParamsOptional: true
+export const getPet = async (petId: string | undefined | null, params?: GetPetParams, ...)
+```
+
+Properties inside the parameters object keep whatever the document says — a `required: true` query parameter stays required within `GetPetParams`.
+
+This is useful with the TanStack Query clients, where a hook is often called before its id is known and the generated `enabled` guard (or [`useSkipToken`](#useskiptoken)) already holds the request back until then.
 
 ### urlEncodeParameters
 
