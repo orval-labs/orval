@@ -136,6 +136,70 @@ describe('writeTagsOperationsSplitMode', () => {
     expect(schemasContent).not.toContain('Unrelated');
   });
 
+  it('follows schema imports that already carry an importPath into the schemas directory', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+
+    // With `output.schemas` set, the schemas writer runs first and rewrites
+    // each component-schema import with the path to its file in that
+    // directory. The per-operation schemas file must still include those
+    // schemas, otherwise `Pet` refers to `Dog` / `Cat` that are declared
+    // nowhere in the file.
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        schemas: [
+          {
+            name: 'Pet',
+            model: 'export type Pet = Dog | Cat;',
+            imports: [
+              { name: 'Dog', importPath: './dog' },
+              { name: 'Cat', importPath: './cat' },
+            ],
+            schema: {},
+          },
+          {
+            name: 'Dog',
+            model: 'export type Dog = {};',
+            imports: [],
+            schema: {},
+          },
+          {
+            name: 'Cat',
+            model: 'export type Cat = {};',
+            imports: [],
+            schema: {},
+          },
+        ],
+        operations: {
+          getPet: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'getPet',
+            imports: [{ name: 'Pet' }],
+            implementation:
+              'export const useGetPet = (): Pet => ({}) as Pet;\n',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_OPERATIONS_SPLIT,
+        client: OutputClient.REACT_QUERY,
+        schemas: path.join(tmpDir, 'model'),
+      }),
+    };
+
+    await writeTagsOperationsSplitMode({ ...props, needSchema: false });
+
+    const content = fs.readFileSync(
+      path.join(tmpDir, 'pets', 'get-pet.schemas.ts'),
+      'utf8',
+    );
+    expect(content).toContain('export type Pet = Dog | Cat;');
+    expect(content).toContain('export type Dog = {};');
+    expect(content).toContain('export type Cat = {};');
+  });
+
   it('writes the shared global schemas file when needSchema is true and output.schemas is unset', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);

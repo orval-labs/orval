@@ -1,6 +1,5 @@
 import {
   DefaultTag,
-  type GeneratorImport,
   type GeneratorOperation,
   type GeneratorOperationTarget,
   type GeneratorSchema,
@@ -13,10 +12,6 @@ import {
 import { getOperationTagKey, isOperationInTagBucket, pascal } from '../utils';
 import { flattenMockOutput } from './mock-outputs';
 import { hasTypeScriptAwaitedType } from './typescript-version';
-
-function isSchemaImport(imp: GeneratorImport): boolean {
-  return !imp.importPath;
-}
 
 /**
  * Resolves the transitive closure of component schemas an operation's
@@ -40,8 +35,12 @@ export function resolveTransitiveSchemas(
     const schema = schemaByName.get(name);
     if (!schema) continue;
     included.add(name);
+    // Match by name rather than by a missing `importPath`: when
+    // `output.schemas` is set, the schemas writer has already rewritten
+    // every component-schema import to point at its file in that
+    // directory, so an `importPath` no longer marks an external import.
     for (const imp of schema.imports) {
-      if (isSchemaImport(imp) && !included.has(imp.name)) {
+      if (schemaByName.has(imp.name) && !included.has(imp.name)) {
         queue.push(imp.name);
       }
     }
