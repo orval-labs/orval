@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { SchemaType, Verbs } from '../types';
 import {
+  assertSafeNumericConstraint,
   isBoolean,
   isDirectory,
   isDynamicReference,
@@ -18,6 +19,7 @@ import {
   isStringLike,
   isUrl,
   isVerb,
+  safeNumericConstraint,
 } from './assertion';
 
 describe('assertion testing', () => {
@@ -184,5 +186,44 @@ describe('isDynamicReference', () => {
 
   it('returns true for objects with $ref in isReference', () => {
     expect(isReference({ $ref: '#/components/schemas/Foo' })).toBe(true);
+  });
+});
+
+describe('assertSafeNumericConstraint', () => {
+  it('returns a finite number unchanged', () => {
+    expect(assertSafeNumericConstraint(0, 'minimum')).toBe(0);
+    expect(assertSafeNumericConstraint(-1.5, 'minimum')).toBe(-1.5);
+  });
+
+  // These land in generated source as bare expressions, so there is no quote
+  // to escape and the value has to be rejected outright.
+  it.each<[unknown, string]>([
+    ['0); globalThis.pwned=1; void(0', 'a code payload string'],
+    ['3', 'a numeric string'],
+    [Number.NaN, 'NaN'],
+    [Number.POSITIVE_INFINITY, 'Infinity'],
+    [true, 'a boolean'],
+    [null, 'null'],
+    [{}, 'an object'],
+  ])('rejects %j (%s)', (value: unknown) => {
+    expect(() => assertSafeNumericConstraint(value, 'minimum')).toThrow(
+      /"minimum" constraint is not a finite number/,
+    );
+  });
+});
+
+describe('safeNumericConstraint', () => {
+  it('passes undefined through so absent stays distinct from invalid', () => {
+    expect(safeNumericConstraint(undefined, 'minItems')).toBeUndefined();
+  });
+
+  it('returns a finite number unchanged', () => {
+    expect(safeNumericConstraint(7, 'minItems')).toBe(7);
+  });
+
+  it('rejects a non-numeric value', () => {
+    expect(() =>
+      safeNumericConstraint('1); globalThis.pwned=1; void(0', 'minItems'),
+    ).toThrow(/"minItems" constraint is not a finite number/);
   });
 });

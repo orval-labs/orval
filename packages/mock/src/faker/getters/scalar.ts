@@ -16,6 +16,7 @@ import {
   isString,
   jsStringLiteralEscape,
   mergeDeep,
+  safeNumericConstraint,
   type MockOptions,
   type OpenApiSchemaObject,
 } from '@orval/core';
@@ -233,21 +234,27 @@ export function getMockScalar({
       // Handle exclusiveMinimum/exclusiveMaximum for both OpenAPI 3.0 (boolean) and 3.1 (number).
       // OpenAPI 3.0: booleans indicating whether minimum/maximum is exclusive — use minimum/maximum as the bound.
       // OpenAPI 3.1: numbers representing the exclusive boundary value — use directly.
-      const numMin = (
+      // Spec-supplied bounds land in `faker.number.int({min: ${numMin}})` as
+      // bare expressions, so assert them rather than casting. `typeof` is not
+      // enough for the exclusive branches: a YAML document can say `.nan` or
+      // `.inf`, which are numbers but would emit `min: NaN` / `max: Infinity`.
+      const specMin = safeNumericConstraint(item.minimum, 'minimum');
+      const specMax = safeNumericConstraint(item.maximum, 'maximum');
+      const numMin =
         typeof item.exclusiveMinimum === 'number'
-          ? item.exclusiveMinimum
-          : (item.minimum ?? safeMockOptions.numberMin)
-      ) as number | undefined;
-      const numMax = (
+          ? safeNumericConstraint(item.exclusiveMinimum, 'exclusiveMinimum')
+          : (specMin ?? safeMockOptions.numberMin);
+      const numMax =
         typeof item.exclusiveMaximum === 'number'
-          ? item.exclusiveMaximum
-          : (item.maximum ?? safeMockOptions.numberMax)
-      ) as number | undefined;
+          ? safeNumericConstraint(item.exclusiveMaximum, 'exclusiveMaximum')
+          : (specMax ?? safeMockOptions.numberMax);
       const intParts: string[] = [];
       if (numMin !== undefined) intParts.push(`min: ${numMin}`);
       if (numMax !== undefined) intParts.push(`max: ${numMax}`);
       if (isFakerV9 && item.multipleOf !== undefined)
-        intParts.push(`multipleOf: ${item.multipleOf}`);
+        intParts.push(
+          `multipleOf: ${safeNumericConstraint(item.multipleOf, 'multipleOf')}`,
+        );
       let value = getNullable(
         `faker.number.${intFunction}(${intParts.length > 0 ? `{${intParts.join(', ')}}` : ''})`,
         isNullable,
@@ -258,7 +265,9 @@ export function getMockScalar({
         if (numMin !== undefined) floatParts.push(`min: ${numMin}`);
         if (numMax !== undefined) floatParts.push(`max: ${numMax}`);
         if (isFakerV9 && item.multipleOf !== undefined) {
-          floatParts.push(`multipleOf: ${item.multipleOf}`);
+          floatParts.push(
+            `multipleOf: ${safeNumericConstraint(item.multipleOf, 'multipleOf')}`,
+          );
         } else if (safeMockOptions.fractionDigits !== undefined) {
           floatParts.push(`fractionDigits: ${safeMockOptions.fractionDigits}`);
         }
@@ -438,8 +447,8 @@ export function getMockScalar({
       // min > max). This also avoids relying on faker's internal default
       // upper bound when only `minItems` is specified, which can otherwise
       // produce very large arrays.
-      const arrSchemaMin = item.minItems;
-      const arrSchemaMax = item.maxItems;
+      const arrSchemaMin = safeNumericConstraint(item.minItems, 'minItems');
+      const arrSchemaMax = safeNumericConstraint(item.maxItems, 'maxItems');
       const arrGlobalMin = safeMockOptions.arrayMin;
       const arrGlobalMax = safeMockOptions.arrayMax;
 
@@ -487,8 +496,8 @@ export function getMockScalar({
       // for the missing side only if it does not invert the range; otherwise
       // reuse the explicit bound so we never invent values the user did not
       // supply (and never produce min > max).
-      const schemaMin = item.minLength;
-      const schemaMax = item.maxLength;
+      const schemaMin = safeNumericConstraint(item.minLength, 'minLength');
+      const schemaMax = safeNumericConstraint(item.maxLength, 'maxLength');
       const globalMin = safeMockOptions.stringMin;
       const globalMax = safeMockOptions.stringMax;
 

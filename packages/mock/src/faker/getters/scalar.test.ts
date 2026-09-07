@@ -1367,3 +1367,120 @@ describe('getMockScalar (enum member type confusion)', () => {
     ).toBe('faker.helpers.arrayElement([true,false] as const)');
   });
 });
+
+describe('getMockScalar (numeric constraint safety)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  const payload = '0, x:(globalThis.pwned=1)' as unknown as number;
+
+  // These land inside faker call arguments as bare expressions
+  // (`faker.number.int({min: ${numMin}})`), so a non-numeric value would be
+  // spliced in as live code that runs when the mock factory is called.
+  it.each([
+    ['minimum', { type: 'integer', minimum: payload }],
+    ['maximum', { type: 'integer', maximum: payload }],
+    ['multipleOf', { type: 'integer', multipleOf: payload }],
+    ['minLength', { type: 'string', minLength: payload }],
+    ['maxLength', { type: 'string', maxLength: payload }],
+    [
+      'minItems',
+      { type: 'array', minItems: payload, items: { type: 'string' } },
+    ],
+    [
+      'maxItems',
+      { type: 'array', maxItems: payload, items: { type: 'string' } },
+    ],
+  ])('rejects a non-numeric %s', (label, schema) => {
+    expect(() =>
+      getMockScalar({
+        ...baseArg,
+        item: {
+          ...(schema as Record<string, unknown>),
+          name: 'field',
+        } as never,
+        // Faker v9: `multipleOf` is only emitted on that version, so the
+        // constraint is only reachable there.
+        context: scalarContext(
+          {},
+          { packageJson: { dependencies: { '@faker-js/faker': '^9.0.0' } } },
+        ),
+      }),
+    ).toThrow(new RegExp(`"${label}" constraint is not a finite number`));
+  });
+
+  it('still emits genuine numeric bounds', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        minimum: 3,
+        maximum: 42,
+        name: 'count',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.number.int({min: 3, max: 42})');
+  });
+});
+
+describe('getMockScalar (non-finite numeric constraints)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  // A YAML document can express `.nan` / `.inf`, which are numbers and so pass
+  // a `typeof` check, but would emit `min: NaN` / `max: Infinity` into the
+  // generated mock.
+  it.each<[string, Record<string, unknown>]>([
+    ['exclusiveMinimum NaN', { exclusiveMinimum: Number.NaN }],
+    ['exclusiveMaximum NaN', { exclusiveMaximum: Number.NaN }],
+    [
+      'exclusiveMinimum -Infinity',
+      { exclusiveMinimum: Number.NEGATIVE_INFINITY },
+    ],
+    [
+      'exclusiveMaximum Infinity',
+      { exclusiveMaximum: Number.POSITIVE_INFINITY },
+    ],
+    ['minimum Infinity', { minimum: Number.POSITIVE_INFINITY }],
+    ['maximum NaN', { maximum: Number.NaN }],
+  ])('rejects %s', (_label, constraint) => {
+    expect(() =>
+      getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as OpenApiSchemaObjectType,
+          ...constraint,
+          name: 'field',
+        } as never,
+        context: scalarContext(),
+      }),
+    ).toThrow(/constraint is not a finite number/);
+  });
+
+  it('still emits finite exclusive bounds', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        exclusiveMinimum: 1,
+        exclusiveMaximum: 9,
+        name: 'field',
+      } as never,
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.number.int({min: 1, max: 9})');
+  });
+});
