@@ -2242,12 +2242,22 @@ describe('response status key safety', () => {
 
   // The key lands in an unquoted expression position, so a non-numeric value
   // would splice live code into the handler rather than break a string.
-  it.each(['2,x:(globalThis.pwned=1)', '200,y:1', '(1)', 'abc'])(
-    'refuses the non-numeric response key %j',
-    (statusKey) => {
-      expect(() => generateMSW(verbOptions(statusKey), options)).toThrow(
-        /not a status code/,
-      );
-    },
-  );
+  it.each([
+    '2,x:(globalThis.pwned=1)',
+    '200,y:1',
+    '(1)',
+    'abc',
+    // Near-miss wildcards: only a single-digit `NXX` is a valid wildcard, so
+    // none of these may be salvaged into a three-digit status.
+    '20XX',
+    '2XXX',
+    'XX',
+    '1000',
+    '20X',
+    '',
+  ])('refuses the non-numeric response key %j', (statusKey) => {
+    expect(() => generateMSW(verbOptions(statusKey), options)).toThrow(
+      /not a status code/,
+    );
+  });
 });

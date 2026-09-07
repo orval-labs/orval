@@ -47,7 +47,17 @@ import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
  * handler previously emitted for those keys.
  */
 function assertSafeStatusCode(status: string): number {
-  const normalized = status === 'default' ? '200' : status.replace(/XX$/, '00');
+  // Map only the two forms the spec actually defines — `default` and a
+  // single-digit `NXX` wildcard — and leave everything else to fail the check
+  // below as-is. Rewriting a trailing `XX` before validating would work out
+  // the same (`20XX` becomes the four-digit `2000` and is still rejected), but
+  // this way the accepted shapes are stated rather than inferred.
+  const normalized =
+    status === 'default'
+      ? '200'
+      : /^\dXX$/.test(status)
+        ? `${status[0]}00`
+        : status;
 
   if (!/^\d{3}$/.test(normalized)) {
     throw new Error(
