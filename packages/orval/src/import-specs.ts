@@ -743,16 +743,46 @@ function isFetchableUrl(
 }
 
 /**
+ * The configured headers that apply to a URL's host.
+ *
+ * Mirrors the domain matching `fetchUrls` performs, so a hop is sent only the
+ * headers the user configured for the host actually being contacted.
+ */
+function headersForUrl(
+  url: string,
+  headers?: { domains: string[]; headers: Record<string, string> }[],
+): Record<string, string> | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  let host: string;
+  try {
+    host = new URL(url).host;
+  } catch {
+    return undefined;
+  }
+
+  return headers.find((entry) => entry.domains.includes(host))?.headers;
+}
+
+/**
  * A `fetch` that follows redirects itself so every hop is allow-list checked.
  *
  * The global `fetch` follows redirects transparently, so an allowed URL could
  * answer `302` and send the request to a host the user never allowed — the
  * allow-list only ever saw the first URL (GHSA-jmpc-3jgr-j7jv). Resolving each
  * `Location` and re-checking it closes that.
+ *
+ * Headers are recomputed per hop rather than carried over. `fetchUrls` picks
+ * them by domain for the *first* URL only, so reusing them would hand headers
+ * configured for one host to whatever the redirect points at — and the global
+ * `fetch` this replaces drops `Authorization` across origins by itself.
  */
 function createAllowListCheckedFetch(
   origin: string | undefined,
   allowedExternalRefs: string[],
+  headers?: { domains: string[]; headers: Record<string, string> }[],
 ) {
   return async (
     input: string | URL | globalThis.Request,
@@ -766,7 +796,11 @@ function createAllowListCheckedFetch(
           : input.url;
 
     for (let hop = 0; ; hop++) {
-      const response = await fetch(url, { ...init, redirect: 'manual' });
+      const response = await fetch(url, {
+        ...init,
+        headers: headersForUrl(url, headers),
+        redirect: 'manual',
+      });
 
       const location = response.headers.get('location');
       const isRedirect =
@@ -819,7 +853,13 @@ function createSafeUrlLoader(
     // default redirect handling in place.
     ...(isWildcard
       ? {}
-      : { fetch: createAllowListCheckedFetch(origin, allowedExternalRefs) }),
+      : {
+          fetch: createAllowListCheckedFetch(
+            origin,
+            allowedExternalRefs,
+            headers,
+          ),
+        }),
   });
   return {
     type: 'loader' as const,

@@ -1486,12 +1486,17 @@ describe('externalRefs allow-list and redirects', () => {
    * and `targetUrl` serves the external document while counting requests.
    */
   async function startRedirectingServers() {
-    const target = http.createServer((_req, res) => {
+    const target = http.createServer((req, res) => {
       target.hits += 1;
+      target.lastHeaders = { ...req.headers };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(EXTERNAL_DOC);
-    }) as http.Server & { hits: number };
+    }) as http.Server & {
+      hits: number;
+      lastHeaders: Record<string, string | string[] | undefined>;
+    };
     target.hits = 0;
+    target.lastHeaders = {};
 
     await new Promise<void>((resolve) =>
       target.listen(0, '127.0.0.1', resolve),
@@ -1513,6 +1518,9 @@ describe('externalRefs allow-list and redirects', () => {
       targetUrl,
       get targetHits() {
         return target.hits;
+      },
+      get targetHeaders() {
+        return target.lastHeaders;
       },
       async close() {
         await Promise.all([
@@ -1623,6 +1631,91 @@ describe('externalRefs allow-list and redirects', () => {
 
       expect(spec.verbOptions).toHaveProperty('getX');
       expect(servers.targetHits).toBe(1);
+    } finally {
+      await servers.close();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('does not carry headers configured for the source host to the redirect target', async () => {
+    const servers = await startRedirectingServers();
+    const { workspace, specPath } = await createWorkspaceFor(
+      servers.redirectUrl,
+    );
+
+    try {
+      const sourceHost = new URL(servers.redirectUrl).host;
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: {
+              // The credential is scoped to the redirecting host only.
+              headers: [
+                {
+                  domains: [sourceHost],
+                  headers: { authorization: 'Bearer SOURCE-ONLY' },
+                },
+              ],
+              externalRefs: {
+                allow: [servers.redirectUrl, servers.targetUrl],
+              },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+
+      const spec = await importSpecs(workspace, normalizedOptions);
+
+      expect(spec.verbOptions).toHaveProperty('getX');
+      expect(servers.targetHits).toBe(1);
+      // `fetchUrls` matches headers against the first URL's host, so carrying
+      // `init` across hops would hand this credential to the other host.
+      expect(servers.targetHeaders.authorization).toBeUndefined();
+    } finally {
+      await servers.close();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('sends headers configured for the redirect target host', async () => {
+    const servers = await startRedirectingServers();
+    const { workspace, specPath } = await createWorkspaceFor(
+      servers.redirectUrl,
+    );
+
+    try {
+      const targetHost = new URL(servers.targetUrl).host;
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: {
+              headers: [
+                {
+                  domains: [targetHost],
+                  headers: { authorization: 'Bearer TARGET' },
+                },
+              ],
+              externalRefs: {
+                allow: [servers.redirectUrl, servers.targetUrl],
+              },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+
+      await importSpecs(workspace, normalizedOptions);
+
+      // Recomputing per hop must still deliver what the user configured for
+      // the host actually being contacted.
+      expect(servers.targetHeaders.authorization).toBe('Bearer TARGET');
     } finally {
       await servers.close();
       await rm(workspace, { recursive: true, force: true });
