@@ -329,3 +329,72 @@ describe('getScalar integer enum + const (#3758)', () => {
     expect(result.value).toBe('1 | null');
   });
 });
+
+describe('getScalar (const/enum type confusion)', () => {
+  const payload = '0; console.log("pwned"); type Tail = 0';
+
+  // The value lands in a bare type position (`export type X = <here>`), so a
+  // mismatched string spliced in raw would close the declaration and turn what
+  // follows into live module statements.
+  it.each<[string, OpenApiSchemaObject]>([
+    ['numeric const', { type: 'number', const: payload }],
+    ['integer const', { type: 'integer', const: payload }],
+    ['boolean const', { type: 'boolean', const: payload }],
+    [
+      'boolean enum member',
+      { type: 'boolean', enum: [payload] } as OpenApiSchemaObject,
+    ],
+  ])(
+    'renders a mismatched string as a string literal for a %s',
+    (_label, schema) => {
+      const result = getScalar({ item: schema, name: 'field', context });
+
+      expect(result.value).toBe(`'${payload}'`);
+      // No bare `;` outside the literal — that is what breaks the declaration.
+      expect(result.value.endsWith("'")).toBe(true);
+    },
+  );
+
+  it('escapes a quote in a mismatched string so it cannot close the literal', () => {
+    const schema = {
+      type: 'number',
+      const: "0'; console.log('pwned'); type Tail = 0",
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'field', context });
+
+    expect(result.value).toBe(
+      String.raw`'0\'; console.log(\'pwned\'); type Tail = 0'`,
+    );
+  });
+
+  it('keeps the nullable suffix outside the literal', () => {
+    const schema = {
+      type: 'number',
+      const: payload,
+      nullable: true,
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'field', context });
+
+    expect(result.value).toBe(`'${payload}' | null`);
+  });
+
+  it('still emits genuine numeric and boolean consts unquoted', () => {
+    expect(
+      getScalar({
+        item: { type: 'number', const: 42 } as OpenApiSchemaObject,
+        name: 'n',
+        context,
+      }).value,
+    ).toBe('42');
+
+    expect(
+      getScalar({
+        item: { type: 'boolean', const: true } as OpenApiSchemaObject,
+        name: 'b',
+        context,
+      }).value,
+    ).toBe('true');
+  });
+});

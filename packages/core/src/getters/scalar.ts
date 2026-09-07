@@ -7,7 +7,7 @@ import type {
   OpenApiSchemaObjectType,
   ScalarValue,
 } from '../types';
-import { isString, jsStringLiteralEscape } from '../utils';
+import { isBoolean, isNumber, isString, jsStringLiteralEscape } from '../utils';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -62,6 +62,28 @@ interface GetScalarOptions {
 }
 
 /**
+ * Renders a `const` or enum member as a TypeScript literal type.
+ *
+ * The declared schema type and the value itself both come from the document and
+ * nothing makes them agree, so the branch is on the value's own type. This
+ * lands in a bare type position (`export type X = <here>`) where there is no
+ * quote to escape: a mismatched string spliced in raw closes the declaration
+ * and turns whatever follows into module statements. Rendering it as a
+ * string-literal type keeps it inert and still describes the document.
+ */
+function toLiteralTypeValue(value: unknown): string {
+  if (isString(value)) {
+    return `'${jsStringLiteralEscape(value)}'`;
+  }
+
+  if (isNumber(value) || isBoolean(value)) {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
+}
+
+/**
  * Return the typescript equivalent of open-api data type
  *
  * @param item
@@ -84,7 +106,7 @@ export function getScalar({
   const schemaExamples = item.examples as Parameters<
     typeof resolveExampleRefs
   >[0];
-  const schemaConst = item.const as string | undefined;
+  const schemaConst = item.const as unknown;
   const schemaFormat = item.format as string | undefined;
   const schemaNullable = item.nullable as boolean | undefined;
 
@@ -125,7 +147,9 @@ export function getScalar({
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems.map((enumItem) => `${enumItem}`).join(' | ');
+        value = enumItems
+          .map((enumItem) => toLiteralTypeValue(enumItem))
+          .join(' | ');
         isEnum = true;
       }
 
@@ -136,7 +160,7 @@ export function getScalar({
       // replace the union with a raw number, or getTypeConstEnum crashes on
       // `value.endsWith(...)` (#3758).
       if (schemaConst !== undefined) {
-        value = `${schemaConst}${nullable}`;
+        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
       }
 
       return {
@@ -160,7 +184,9 @@ export function getScalar({
         enumItems &&
         !(enumItems.includes(true) && enumItems.includes(false))
       ) {
-        value = enumItems.map((enumItem) => `${enumItem}`).join(' | ');
+        value = enumItems
+          .map((enumItem) => toLiteralTypeValue(enumItem))
+          .join(' | ');
       }
 
       value += nullable;
@@ -168,7 +194,7 @@ export function getScalar({
       // Same string-coercion as integer/number so const never becomes a
       // non-string type-value for downstream enum helpers (#3758).
       if (schemaConst !== undefined) {
-        value = `${schemaConst}${nullable}`;
+        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
       }
 
       return {
@@ -255,7 +281,10 @@ export function getScalar({
       value += nullable;
 
       if (schemaConst) {
-        value = `'${jsStringLiteralEscape(schemaConst)}'`;
+        // A non-string `const` under `type: string` is another mismatch; the
+        // helper renders whichever literal the value actually is. Previously
+        // this reached `jsStringLiteralEscape` with a non-string and threw.
+        value = toLiteralTypeValue(schemaConst);
       }
 
       return {
