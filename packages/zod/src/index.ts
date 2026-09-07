@@ -1165,7 +1165,7 @@ export const generateZodValidationSchemaDefinition = (
       // properties to their base type (#4023, #4024).
       const hasNestedTupleOrEnumArray =
         properties !== undefined &&
-        Object.entries(properties).some(([key, p]) => {
+        Object.values(properties).some((p) => {
           if (!p || typeof p !== 'object') return false;
           const propSchema = p as Record<string, unknown>;
           // Direct tuple property.
