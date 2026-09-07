@@ -653,3 +653,95 @@ describe('generateRequestFunction — Content-Type header escaping', () => {
     expect(implementation).not.toContain("'X-Evil': 'injected'");
   });
 });
+
+describe('generateRequestFunction — getHeaders helper (#4034)', () => {
+  const verbOptionsWithHeaders = () =>
+    makeVerbOptions({
+      verb: Verbs.POST,
+      body: {
+        definition: 'CreatePetBody',
+        implementation: 'createPetBody: CreatePetBody',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: 'application/json',
+        isOptional: false,
+        originalSchema: {},
+        isBlob: false,
+      } as GeneratorVerbOptions['body'],
+    });
+
+  it('narrows on iterability rather than array-ness', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // `RequestInit['headers']` is declared per runtime. Outside the DOM its
+    // non-record member need not be an array — `@cloudflare/workers-types`
+    // uses `Iterable<Iterable<string>>` — so `Array.isArray` cannot narrow it
+    // and the fall-through `return h` failed the declared return type.
+    expect(implementation).toContain('if (Symbol.iterator in h)');
+    expect(implementation).not.toContain('if (Array.isArray(h))');
+  });
+
+  it('materializes each entry before Object.fromEntries', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // `Object.fromEntries` reads `[0]`/`[1]` off each entry rather than
+    // iterating it, so a non-indexable entry — `new Set([new Set(['X-Trace',
+    // '1'])])` satisfies the declared `Iterable<Iterable<string>>` — produced
+    // a single `undefined` key and lost the real header.
+    expect(implementation).toContain(
+      'Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])',
+    );
+    expect(implementation).not.toContain(
+      'Object.fromEntries(h as Iterable<readonly [string, string]>)',
+    );
+  });
+
+  it('still short-circuits empty input and unwraps a Headers instance', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain('if (!h) return {};');
+    expect(implementation).toContain(
+      'if (h instanceof Headers) return Object.fromEntries(h.entries());',
+    );
+  });
+
+  it('builds the record branch entry by entry, skipping undefined values', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // A record whose values include `undefined` — Hono's header record, for
+    // one — is not assignable to the declared return type, so the result is
+    // built rather than passed through (#4029). Names are copied verbatim, so
+    // the override semantics of `{ ...literal, ...getHeaders(...) }` still
+    // hold, and an `undefined` value is skipped instead of reaching the wire
+    // as the literal text "undefined".
+    expect(implementation).toContain(
+      'const headers: Record<string, string | readonly string[]> = {};',
+    );
+    expect(implementation).toContain('if (value !== undefined)');
+    expect(implementation).toContain('return headers;');
+    expect(implementation).not.toContain('    return h;\n');
+  });
+
+  it('does not emit the helper when no headers are added', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).not.toContain('const getHeaders');
+  });
+});
