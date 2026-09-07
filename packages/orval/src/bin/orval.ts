@@ -5,12 +5,14 @@ import { Option, program } from '@commander-js/extra-typings';
 import {
   ErrorWithTag,
   getWarningCount,
+  isQuiet,
   isString,
   log,
   logError,
   OutputClient,
   OutputMode,
   resetWarnings,
+  setQuiet,
   setVerbose,
   startMessage,
   SupportedFormatter,
@@ -83,6 +85,7 @@ cli
   )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
+  .option('--quiet', 'Suppress the startup banner and success messages')
   .option(
     '--fail-on-warnings',
     'Exit with error code 1 when warnings are emitted',
@@ -91,9 +94,14 @@ cli
     if (options.verbose) {
       setVerbose(true);
     }
+    if (options.quiet) {
+      setQuiet(true);
+    }
 
     resetWarnings();
-    log(orvalMessage);
+    if (!isQuiet()) {
+      log(orvalMessage);
+    }
 
     if (isString(options.input) && isString(options.output)) {
       const normalizedOptions = await normalizeOptions({
