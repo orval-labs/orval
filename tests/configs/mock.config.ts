@@ -1214,4 +1214,28 @@ export default defineConfig({
       target: '../specifications/issue-3691.yaml',
     },
   },
+  // Regression for https://github.com/orval-labs/orval/issues/3912:
+  // optional properties use spread (`...(bool ? { key: val } : {})`) instead
+  // of `key: arrayElement([val, undefined])` so the mock compiles with
+  // `exactOptionalPropertyTypes: true`.
+  'exact-optional': {
+    output: {
+      target: '../generated/mock/exact-optional/endpoints.ts',
+      schemas: '../generated/mock/exact-optional/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        mock: {
+          exactOptional: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/exact-optional-mock.yaml',
+    },
+  },
 });

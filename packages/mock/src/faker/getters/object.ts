@@ -370,6 +370,13 @@ export function getMockObject({
           const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
+            if (mockOptions?.exactOptional) {
+              const optionalValue =
+                hasNullable && !mockOptions?.nonNullable
+                  ? `faker.helpers.arrayElement([${resolvedValue.value}, null])`
+                  : resolvedValue.value;
+              return `...(faker.datatype.boolean() ? { ${keyDefinition}: ${optionalValue} } : {})`;
+            }
             const omitValue =
               mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;
