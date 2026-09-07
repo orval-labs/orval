@@ -398,3 +398,56 @@ describe('getScalar (const/enum type confusion)', () => {
     ).toBe('true');
   });
 });
+
+describe('getScalar (string-schema const presence and nullability)', () => {
+  // `if (schemaConst)` treated these as absent and fell back to the wide type.
+  it.each<[string, unknown, string]>([
+    ['empty string', '', "''"],
+    ['zero', 0, '0'],
+    ['false', false, 'false'],
+  ])('keeps a falsy %s const', (_label, constValue, expected) => {
+    const schema = {
+      type: 'string',
+      const: constValue,
+    } as OpenApiSchemaObject;
+
+    expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
+      expected,
+    );
+  });
+
+  // The const branch overwrites the value assigned above it, so the suffix has
+  // to be re-applied — the number and boolean branches already did.
+  it('keeps the nullable suffix for a type-array nullable const', () => {
+    const schema = {
+      type: ['string', 'null'],
+      const: 'x',
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
+      "'x' | null",
+    );
+  });
+
+  it('keeps the nullable suffix for a nullable: true const', () => {
+    const schema = {
+      type: 'string',
+      const: 'x',
+      nullable: true,
+    } as OpenApiSchemaObject;
+
+    expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
+      "'x' | null",
+    );
+  });
+
+  it('leaves a schema without a const alone', () => {
+    expect(
+      getScalar({
+        item: { type: 'string' } as OpenApiSchemaObject,
+        name: 'f',
+        context,
+      }).value,
+    ).toBe('string');
+  });
+});

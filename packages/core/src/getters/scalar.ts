@@ -280,11 +280,16 @@ export function getScalar({
 
       value += nullable;
 
-      if (schemaConst) {
+      // Presence, not truthiness: `const: ''` / `0` / `false` are all real
+      // constants, and a truthiness check dropped them back to the wide type.
+      // The nullable suffix has to be re-applied because this overwrites the
+      // value assigned above, which is how the number and boolean branches do
+      // it too.
+      if (schemaConst !== undefined) {
         // A non-string `const` under `type: string` is another mismatch; the
         // helper renders whichever literal the value actually is. Previously
         // this reached `jsStringLiteralEscape` with a non-string and threw.
-        value = toLiteralTypeValue(schemaConst);
+        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
       }
 
       return {
