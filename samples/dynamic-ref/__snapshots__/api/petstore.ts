@@ -67,6 +67,17 @@ export const getPetstoreWithDynamicReferences = (
   ): Promise<AxiosResponse<Pet[]>> => {
     return axiosInstance.get(`/pets`, options);
   };
+  const getListPetsUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+      });
+  };
 
   /**
    * @summary Get a pet by ID
@@ -77,8 +88,19 @@ export const getPetstoreWithDynamicReferences = (
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.get(`/pets/${petId}`, options);
   };
+  const getShowPetByIdUrl = (petId: number) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets/${petId}`,
+        baseURL: '',
+      });
+  };
 
-  return { listPets, showPetById };
+  return { listPets, showPetById, getListPetsUrl, getShowPetByIdUrl };
 };
 export type ListPetsResult = AxiosResponse<Pet[]>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
