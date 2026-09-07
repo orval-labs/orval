@@ -195,6 +195,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
         title: titles.implementation,
         hasMutator,
         hasAwaitedType,
+        output,
       });
     }
   } catch {
@@ -204,6 +205,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
       title: titles.implementation,
       hasMutator,
       hasAwaitedType,
+      output,
     });
   }
 
