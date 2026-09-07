@@ -107,4 +107,4 @@ export const getShowPetByIdMockHandler = (
     options,
   );
 };
-export const getPetsMock = () => [getShowPetByIdMockHandler];
+export const getPetsMock = () => [getShowPetByIdMockHandler()];

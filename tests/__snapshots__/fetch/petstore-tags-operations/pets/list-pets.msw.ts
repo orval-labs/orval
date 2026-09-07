@@ -111,4 +111,4 @@ export const getListPetsMockHandler = (
     options,
   );
 };
-export const getPetsMock = () => [getListPetsMockHandler];
+export const getPetsMock = () => [getListPetsMockHandler()];

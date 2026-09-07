@@ -116,4 +116,4 @@ export const getShowPetWithOwnerMockHandler = (
     options,
   );
 };
-export const getPetsMock = () => [getShowPetWithOwnerMockHandler];
+export const getPetsMock = () => [getShowPetWithOwnerMockHandler()];
