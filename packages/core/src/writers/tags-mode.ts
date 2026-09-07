@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
+import { generateModelsInline } from '../generators';
 import { OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
@@ -15,7 +15,6 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
-import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import {
   getFinalizeMockImplementationOptions,
@@ -23,13 +22,18 @@ import {
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
+  filterImportsUsedInImplementation,
+  generateClientImports,
+  generateOrvalHelperTypes,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export async function writeTagsMode({
   builder,
@@ -105,32 +109,12 @@ export async function writeTagsMode({
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
-        const {
+        const { imports, implementation, mockOutputs: rawMockOutputs } = target;
+
+        const implementationImports = filterImportsUsedInImplementation(
           imports,
           implementation,
-          mockOutputs: rawMockOutputs,
-          mutators,
-          clientMutators,
-          formData,
-          formUrlEncoded,
-          fetchReviver,
-          paramsSerializer,
-          paramsFilter,
-        } = target;
-
-        const implementationImports = imports.filter((imp) => {
-          const searchWords = [imp.alias, imp.name]
-            .filter((part): part is string => Boolean(part?.length))
-            .map((part) => escapeRegExp(part))
-            .join('|');
-          if (!searchWords) {
-            return false;
-          }
-
-          return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
-            implementation,
-          );
-        });
+        );
 
         const normalizedImports = implementationImports.map((imp) => ({
           ...imp,
@@ -173,20 +157,13 @@ export async function writeTagsMode({
           schemaOutputPlan,
         );
 
-        data += builder.imports({
-          client: output.client,
+        data += generateClientImports({
+          builder,
+          output,
           implementation,
           imports: importsForBuilder,
           projectName,
-          hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
-          hasGlobalMutator: !!output.override.mutator,
-          hasTagsMutator: Object.values(output.override.tags).some(
-            (tag) => !!tag?.mutator,
-          ),
-          hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
-          packageJson: output.packageJson,
-          output,
         });
 
         if (!shouldDeinlineMocks) {
@@ -233,47 +210,11 @@ export async function writeTagsMode({
           await writeGeneratedFile(schemasPath, schemasData);
         }
 
-        if (mutators) {
-          data += generateMutatorImports({ mutators, implementation });
-        }
-
-        if (clientMutators) {
-          data += generateMutatorImports({
-            mutators: clientMutators,
-          });
-        }
-
-        if (formData) {
-          data += generateMutatorImports({ mutators: formData });
-        }
-
-        if (formUrlEncoded) {
-          data += generateMutatorImports({ mutators: formUrlEncoded });
-        }
-
-        if (paramsSerializer) {
-          data += generateMutatorImports({ mutators: paramsSerializer });
-        }
-
-        if (paramsFilter) {
-          data += generateMutatorImports({ mutators: paramsFilter });
-        }
-
-        if (fetchReviver) {
-          data += generateMutatorImports({ mutators: fetchReviver });
-        }
+        data += generateTargetMutatorImports(target, implementation);
 
         data += '\n\n';
 
-        if (implementation.includes('NonReadonly<')) {
-          data += getOrvalGeneratedTypes();
-          data += '\n';
-        }
-
-        if (implementation.includes('TypedResponse<')) {
-          data += getTypedResponse();
-          data += '\n';
-        }
+        data += generateOrvalHelperTypes(implementation);
 
         data += implementation;
 
