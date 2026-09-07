@@ -1429,3 +1429,58 @@ describe('getMockScalar (numeric constraint safety)', () => {
     expect(result.value).toBe('faker.number.int({min: 3, max: 42})');
   });
 });
+
+describe('getMockScalar (non-finite numeric constraints)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  // A YAML document can express `.nan` / `.inf`, which are numbers and so pass
+  // a `typeof` check, but would emit `min: NaN` / `max: Infinity` into the
+  // generated mock.
+  it.each<[string, Record<string, unknown>]>([
+    ['exclusiveMinimum NaN', { exclusiveMinimum: Number.NaN }],
+    ['exclusiveMaximum NaN', { exclusiveMaximum: Number.NaN }],
+    [
+      'exclusiveMinimum -Infinity',
+      { exclusiveMinimum: Number.NEGATIVE_INFINITY },
+    ],
+    [
+      'exclusiveMaximum Infinity',
+      { exclusiveMaximum: Number.POSITIVE_INFINITY },
+    ],
+    ['minimum Infinity', { minimum: Number.POSITIVE_INFINITY }],
+    ['maximum NaN', { maximum: Number.NaN }],
+  ])('rejects %s', (_label, constraint) => {
+    expect(() =>
+      getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as OpenApiSchemaObjectType,
+          ...constraint,
+          name: 'field',
+        } as never,
+        context: scalarContext(),
+      }),
+    ).toThrow(/constraint is not a finite number/);
+  });
+
+  it('still emits finite exclusive bounds', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as OpenApiSchemaObjectType,
+        exclusiveMinimum: 1,
+        exclusiveMaximum: 9,
+        name: 'field',
+      } as never,
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.number.int({min: 1, max: 9})');
+  });
+});

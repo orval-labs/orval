@@ -235,17 +235,18 @@ export function getMockScalar({
       // OpenAPI 3.0: booleans indicating whether minimum/maximum is exclusive — use minimum/maximum as the bound.
       // OpenAPI 3.1: numbers representing the exclusive boundary value — use directly.
       // Spec-supplied bounds land in `faker.number.int({min: ${numMin}})` as
-      // bare expressions, so assert them rather than casting. The
-      // `exclusive*` branches are already gated on `typeof === 'number'`.
+      // bare expressions, so assert them rather than casting. `typeof` is not
+      // enough for the exclusive branches: a YAML document can say `.nan` or
+      // `.inf`, which are numbers but would emit `min: NaN` / `max: Infinity`.
       const specMin = safeNumericConstraint(item.minimum, 'minimum');
       const specMax = safeNumericConstraint(item.maximum, 'maximum');
       const numMin =
         typeof item.exclusiveMinimum === 'number'
-          ? item.exclusiveMinimum
+          ? safeNumericConstraint(item.exclusiveMinimum, 'exclusiveMinimum')
           : (specMin ?? safeMockOptions.numberMin);
       const numMax =
         typeof item.exclusiveMaximum === 'number'
-          ? item.exclusiveMaximum
+          ? safeNumericConstraint(item.exclusiveMaximum, 'exclusiveMaximum')
           : (specMax ?? safeMockOptions.numberMax);
       const intParts: string[] = [];
       if (numMin !== undefined) intParts.push(`min: ${numMin}`);
