@@ -116,6 +116,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreTagsOperations: {
+    output: {
+      target: '../generated/fetch/petstore-tags-operations/endpoints.ts',
+      schemas: '../generated/fetch/petstore-tags-operations/model',
+      mock: true,
+      mode: 'tags-operations',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplitDeduplication: {
     output: {
       target:
