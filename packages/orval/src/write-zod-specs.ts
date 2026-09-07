@@ -1393,22 +1393,62 @@ export async function writeZodSchemasFromVerbs(
           ...verbOption.response.types.success,
           ...verbOption.response.types.errors,
         ]
+          .map((responseType) => {
+            // Strip trailing `[]` array wrappers so inline item types (e.g.
+            // `TestGet200Item[]`) pass the schema-identifier check and their
+            // unwrapped item schema is written to the model directory.
+            // Only unwrap when the array contains an inline (non-$ref) item
+            // schema; leave component references (whose item is a $ref)
+            // untouched so component schema writers handle them.
+            const cleanName = responseType.value.replace(/(\[\])+$/, '');
+            const hadArraySuffix = cleanName !== responseType.value;
+            let cleanSchema: OpenApiSchemaObject | undefined =
+              responseType.originalSchema;
+            if (hadArraySuffix) {
+              // Peel array layers to reach the innermost inline item schema.
+              // Stop when the item is a $ref (component schema — let the
+              // component schema writer handle it).
+              while (
+                cleanSchema &&
+                'type' in cleanSchema &&
+                cleanSchema.type === 'array' &&
+                cleanSchema.items &&
+                !isReference(cleanSchema.items) &&
+                'type' in cleanSchema.items &&
+                !('$ref' in cleanSchema.items)
+              ) {
+                cleanSchema = cleanSchema.items as OpenApiSchemaObject;
+              }
+              // If the loop didn't fully unwrap (still an array, or item is a
+              // $ref), discard — the component schema writer handles it.
+              if (
+                !cleanSchema ||
+                ('type' in cleanSchema &&
+                  (cleanSchema as OpenApiSchemaObject).type === 'array')
+              ) {
+                cleanSchema = undefined;
+              }
+            }
+            return {
+              isRef: responseType.isRef,
+              cleanName,
+              cleanSchema,
+            };
+          })
           .filter(
             (
-              responseType,
-            ): responseType is typeof responseType & {
-              originalSchema: OpenApiSchemaObject;
-            } =>
-              !!responseType.originalSchema &&
-              !responseType.isRef &&
-              isValidSchemaIdentifier(responseType.value) &&
-              !isPrimitiveSchemaName(responseType.value),
+              entry,
+            ): entry is typeof entry & { cleanSchema: OpenApiSchemaObject } =>
+              !!entry.cleanSchema &&
+              !entry.isRef &&
+              isValidSchemaIdentifier(entry.cleanName) &&
+              !isPrimitiveSchemaName(entry.cleanName),
           )
-          .map((responseType) => ({
-            name: responseType.value,
+          .map((entry) => ({
+            name: entry.cleanName,
             schema: useReusableSchemas
-              ? responseType.originalSchema
-              : dereference(responseType.originalSchema, zodContext),
+              ? entry.cleanSchema
+              : dereference(entry.cleanSchema, zodContext),
           }))
       : [];
 

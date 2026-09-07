@@ -542,4 +542,15 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'inline-enum-array': {
+    output: {
+      target: '../generated/zod/inline-enum-array/endpoints.ts',
+      schemas: '../generated/zod/inline-enum-array/model',
+      client: 'zod',
+      clean: true,
+    },
+    input: {
+      target: '../specifications/inline-enum-array/petstore.yaml',
+    },
+  },
 });
