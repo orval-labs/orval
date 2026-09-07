@@ -116,6 +116,40 @@ function createFormData(
   };
 }
 
+/** Extensions that mean a value names a source file rather than a directory. */
+const SOURCE_FILE_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
+
+/**
+ * Reject a schemas path that names a source file.
+ *
+ * The path is always a directory — orval writes one file per schema into it,
+ * plus a barrel. A filename was accepted silently and produced a *directory*
+ * with that name, so `./model/example.zod.ts` became a folder called
+ * `example.zod.ts` holding the split files: the shape a user asking for
+ * single-file output would least expect (#4042).
+ */
+function assertSchemasPathIsDirectory(path: string, option: string): void {
+  if (!SOURCE_FILE_EXTENSIONS.has(nodePath.extname(path).toLowerCase())) {
+    return;
+  }
+
+  throw new Error(
+    styleText(
+      'red',
+      `\`${option}\` is a directory, but "${path}" names a file. Orval writes one file per schema into that directory, so a filename would become a directory with that name.\nPass the directory instead (e.g. \`${option}: './model'\`), or omit \`schemas\` to generate them alongside the target.`,
+    ),
+  );
+}
+
 function normalizeSchemasOption(
   schemas: string | SchemaOptions | false | undefined,
   workspace: string,
@@ -125,6 +159,7 @@ function normalizeSchemasOption(
   }
 
   if (isString(schemas)) {
+    assertSchemasPathIsDirectory(schemas, 'schemas');
     return normalizePath(schemas, workspace);
   }
 
@@ -137,6 +172,7 @@ function normalizeSchemasOption(
     );
   }
 
+  assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
   const routes = schemas.routes
