@@ -722,6 +722,120 @@ function createSafeFileLoader(
   };
 }
 
+/** Redirect hops to follow before giving up, matching common HTTP clients. */
+const MAX_EXTERNAL_REF_REDIRECTS = 5;
+
+/**
+ * Whether a URL may be fetched: the top-level spec URL is always allowed, and
+ * anything else has to match an explicit allow-list entry. Mirrors the check in
+ * `createSafeUrlLoader.exec` so a redirect cannot reach somewhere the initial
+ * `$ref` could not.
+ */
+function isFetchableUrl(
+  url: string,
+  origin: string | undefined,
+  allowedExternalRefs: string[],
+): boolean {
+  if (origin && resolveRefTarget(url, origin) === resolveRefTarget(origin)) {
+    return true;
+  }
+  return isAllowedRef(url, allowedExternalRefs, origin);
+}
+
+/**
+ * The configured headers that apply to a URL's host.
+ *
+ * Mirrors the domain matching `fetchUrls` performs, so a hop is sent only the
+ * headers the user configured for the host actually being contacted.
+ */
+function headersForUrl(
+  url: string,
+  headers?: { domains: string[]; headers: Record<string, string> }[],
+): Record<string, string> | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  let host: string;
+  try {
+    host = new URL(url).host;
+  } catch {
+    return undefined;
+  }
+
+  return headers.find((entry) => entry.domains.includes(host))?.headers;
+}
+
+/**
+ * A `fetch` that follows redirects itself so every hop is allow-list checked.
+ *
+ * The global `fetch` follows redirects transparently, so an allowed URL could
+ * answer `302` and send the request to a host the user never allowed — the
+ * allow-list only ever saw the first URL (GHSA-jmpc-3jgr-j7jv). Resolving each
+ * `Location` and re-checking it closes that.
+ *
+ * Headers are recomputed per hop rather than carried over. `fetchUrls` picks
+ * them by domain for the *first* URL only, so reusing them would hand headers
+ * configured for one host to whatever the redirect points at — and the global
+ * `fetch` this replaces drops `Authorization` across origins by itself.
+ */
+function createAllowListCheckedFetch(
+  origin: string | undefined,
+  allowedExternalRefs: string[],
+  headers?: { domains: string[]; headers: Record<string, string> }[],
+) {
+  return async (
+    input: string | URL | globalThis.Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    let url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+
+    for (let hop = 0; ; hop++) {
+      const response = await fetch(url, {
+        ...init,
+        headers: headersForUrl(url, headers),
+        redirect: 'manual',
+      });
+
+      const location = response.headers.get('location');
+      const isRedirect =
+        response.status >= 300 && response.status < 400 && location;
+      if (!isRedirect) {
+        return response;
+      }
+
+      if (hop >= MAX_EXTERNAL_REF_REDIRECTS) {
+        throw new Error(
+          `Refused to follow more than ${MAX_EXTERNAL_REF_REDIRECTS} redirects while fetching an external $ref (stopped at ${url}).`,
+        );
+      }
+
+      const next = new URL(location, url).href;
+      if (!isFetchableUrl(next, origin, allowedExternalRefs)) {
+        // The loader swallows whatever this throws and reports only a generic
+        // "reference may be invalid, inaccessible" error, so say plainly what
+        // happened first — otherwise a blocked redirect is indistinguishable
+        // from an unreachable server.
+        logWarning(
+          `Refused to follow a redirect to a URL that is not allowed: ${next}\n` +
+            `Reached by redirect from ${url}.\n` +
+            `Add it to externalRefs.allow or use ['*'] to allow all.`,
+        );
+        throw new Error(
+          `Refused to follow a redirect to a URL that is not allowed: ${next}`,
+        );
+      }
+
+      url = next;
+    }
+  };
+}
+
 /**
  * Wrap `fetchUrls()` so every URL fetch is checked against the allow-list.
  * The top-level spec URL (matching `origin`) is always allowed; subsequent
@@ -733,7 +847,20 @@ function createSafeUrlLoader(
   allowedExternalRefs: string[],
   headers?: { domains: string[]; headers: Record<string, string> }[],
 ) {
-  const base = fetchUrls({ headers });
+  const base = fetchUrls({
+    headers,
+    // With the wildcard every destination is permitted anyway, so leave the
+    // default redirect handling in place.
+    ...(isWildcard
+      ? {}
+      : {
+          fetch: createAllowListCheckedFetch(
+            origin,
+            allowedExternalRefs,
+            headers,
+          ),
+        }),
+  });
   return {
     type: 'loader' as const,
     validate: base.validate,
