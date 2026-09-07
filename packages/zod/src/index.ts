@@ -1038,12 +1038,41 @@ export const generateZodValidationSchemaDefinition = (
       // readonly, which zod v4's `.default()` rejects (#3399).
       const formatDefaultEntryValue = (
         entryValue: unknown,
+        entrySchema?: unknown,
       ): string | undefined => {
         if (isString(entryValue)) {
           return `${JSON.stringify(entryValue)} as const`;
         }
 
         if (Array.isArray(entryValue)) {
+          const entrySchemaObj =
+            entrySchema && typeof entrySchema === 'object'
+              ? (entrySchema as Record<string, unknown>)
+              : undefined;
+          const prefixItems =
+            entrySchemaObj && Array.isArray(entrySchemaObj.prefixItems)
+              ? entrySchemaObj.prefixItems
+              : undefined;
+          if (prefixItems) {
+            // Nested tuple (prefixItems): items must NOT get `as const`
+            // on the whole array (that widens to readonly, which zod v4
+            // `.default()` rejects — #3399). Emit plain literals so
+            // TypeScript contextually types them as the tuple (#4023).
+            const tupleItems = entryValue.map((item) => {
+              if (isString(item)) {
+                return `${JSON.stringify(item)} as const`;
+              }
+              if (isNumber(item) || isBoolean(item)) {
+                return `${item}`;
+              }
+              if (item === null || item === undefined) {
+                return `${item}`;
+              }
+              const formatted = formatDefaultEntryValue(item);
+              return formatted ?? 'null';
+            });
+            return `[${tupleItems.join(', ')}]`;
+          }
           const arrayItems = entryValue.map((item) => {
             if (isString(item)) {
               return `${JSON.stringify(item)} as const`;
@@ -1073,7 +1102,23 @@ export const generateZodValidationSchemaDefinition = (
         if (isObject(entryValue)) {
           const nestedEntries = Object.entries(entryValue)
             .map(([nestedKey, nestedValue]) => {
-              const formatted = formatDefaultEntryValue(nestedValue);
+              const nestedSchema =
+                entrySchema &&
+                typeof entrySchema === 'object' &&
+                entrySchema !== null &&
+                'properties' in entrySchema &&
+                typeof (entrySchema as Record<string, unknown>).properties ===
+                  'object' &&
+                (entrySchema as Record<string, unknown>).properties !== null
+                  ? (
+                      (entrySchema as Record<string, unknown>)
+                        .properties as Record<string, unknown>
+                    )[nestedKey]
+                  : undefined;
+              const formatted = formatDefaultEntryValue(
+                nestedValue,
+                nestedSchema,
+              );
               return formatted === undefined
                 ? undefined
                 : `${JSON.stringify(nestedKey)}: ${formatted}`;
@@ -1097,9 +1142,13 @@ export const generateZodValidationSchemaDefinition = (
         return undefined;
       };
 
+      const properties =
+        schema.properties && isObject(schema.properties)
+          ? (schema.properties as Record<string, unknown>)
+          : undefined;
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
-          const formatted = formatDefaultEntryValue(value);
+          const formatted = formatDefaultEntryValue(value, properties?.[key]);
           return formatted === undefined
             ? undefined
             : `${JSON.stringify(key)}: ${formatted}`;
@@ -1107,19 +1156,64 @@ export const generateZodValidationSchemaDefinition = (
         .filter((entry) => entry !== undefined)
         .join(', ');
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
+
+      // If the object default contains a nested tuple (prefixItems), an
+      // array of objects (which may have enum-literal props), or any array
+      // with enum items, keep the whole object inline rather than hoisting
+      // it into a named const.  Named const loses TypeScript's contextual
+      // type information, widening tuple arrays to `T[]` and enum-literal
+      // properties to their base type (#4023, #4024).
+      const hasNestedTupleOrEnumArray =
+        properties !== undefined &&
+        Object.entries(properties).some(([key, p]) => {
+          if (!p || typeof p !== 'object') return false;
+          const propSchema = p as Record<string, unknown>;
+          // Direct tuple property.
+          if ('prefixItems' in propSchema) return true;
+          // Array whose items are $ref (we can't narrow inline objects
+          // without resolving the ref, and hoisting loses the type).
+          if (
+            propSchema.type === 'array' &&
+            propSchema.items &&
+            typeof propSchema.items === 'object' &&
+            propSchema.items !== null &&
+            '$ref' in propSchema.items
+          ) {
+            return true;
+          }
+          return false;
+        });
+      if (hasNestedTupleOrEnumArray) {
+        defaultVarName = defaultValue;
+        defaultValue = undefined;
+      }
     } else {
       // OpenApiSchemaObject defines default as 'any'
       defaultValue = formatDefaultValue(schema.default);
 
-      // If the schema is an array with enum items, inject inplace to avoid issues with default values
+      // If the schema is an array with enum items, inject inplace to avoid issues with default values.
+      // Also keep inline when array items are objects (or $ref to objects)
+      // that may contain enum-literal properties — hoisting to a const
+      // widens literal values to their base type (#4024).
+      const hasEnumOrObjectItems =
+        schema.items &&
+        typeof schema.items === 'object' &&
+        ('enum' in schema.items ||
+          schema.items.type === 'object' ||
+          '$ref' in schema.items);
       const isArrayWithEnumItems =
         Array.isArray(schema.default) &&
         type === 'array' &&
         schema.items &&
         'enum' in schema.items &&
         schema.default.length > 0;
+      const isArrayWithObjectItems =
+        Array.isArray(schema.default) &&
+        type === 'array' &&
+        hasEnumOrObjectItems &&
+        schema.default.length > 0;
 
-      if (isArrayWithEnumItems) {
+      if (isArrayWithEnumItems || isArrayWithObjectItems) {
         defaultVarName = defaultValue;
         defaultValue = undefined;
       }

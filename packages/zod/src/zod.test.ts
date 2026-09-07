@@ -2831,6 +2831,75 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'export const exampleRange1ItemMax = 100;',
       );
     });
+
+    it('keeps nested tuple (prefixItems) object defaults inline (#4023)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            position: {
+              type: 'array',
+              prefixItems: [{ type: 'integer' }, { type: 'integer' }],
+            },
+          },
+          default: { name: 'example', position: [0, 0] },
+        },
+        context,
+        'exampleWithTuple',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // The whole object default must be inline so TS contextually types
+      // `position` as the tuple, not `number[]`.
+      expect(parsed.zod).toContain(
+        '.default({ "name": "example" as const, "position": [0, 0] })',
+      );
+      expect(parsed.consts).not.toContain('exampleWithTupleDefault =');
+    });
+
+    it('keeps $ref object-array defaults inline so literal types survive (#4024)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ExampleItem' },
+            },
+          },
+          default: { items: [{ value: 1 }, { value: 2 }] },
+        },
+        context,
+        'exampleWithRefItems',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // Hoisting to a const widens `value` to `number`, incompatible with
+      // the `zod.literal(1) | zod.literal(2)` union.
+      expect(parsed.zod).toContain(
+        '.default({ "items": [{ "value": 1 as const }, { "value": 2 as const }] })',
+      );
+      expect(parsed.consts).not.toContain('exampleWithRefItemsDefault =');
+    });
   });
 
   describe('default value template-literal injection', () => {
