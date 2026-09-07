@@ -334,6 +334,58 @@ describe('generateFactory', () => {
     expect(result?.model).toContain("dateField: new Date('2026-01-01')");
   });
 
+  it('escapes a quote in a date default so it cannot close the literal', () => {
+    // The default is document text spliced into a hand-built single-quoted
+    // literal. An unescaped quote appended expressions to the `new Date(...)`
+    // argument, which the factory then evaluated on every call.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['dateField'],
+      properties: {
+        dateField: {
+          type: 'string',
+          format: 'date-time',
+          default: "2024-01-01' + (globalThis.pwned = 1, '') + '",
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'InjectedDateObj',
+      createMockContext({ override: { useDates: true } }),
+    );
+
+    expect(result?.model).toContain(
+      String.raw`dateField: new Date('2024-01-01\' + (globalThis.pwned = 1, \'\') + \'')`,
+    );
+    // The tell-tale of a break-out: the expression sitting outside the literal.
+    expect(result?.model).not.toContain("' + (globalThis.pwned = 1, '') + '')");
+  });
+
+  it('escapes a backslash in a date default', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['dateField'],
+      properties: {
+        dateField: {
+          type: 'string',
+          format: 'date',
+          default: '2024-01-01\\',
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'BackslashDateObj',
+      createMockContext({ override: { useDates: true } }),
+    );
+
+    // A trailing backslash would otherwise escape the closing quote.
+    expect(result?.model).toContain(String.raw`new Date('2024-01-01\\')`);
+  });
+
   it('handles enums with strings and numbers', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',

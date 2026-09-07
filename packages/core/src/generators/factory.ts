@@ -11,6 +11,7 @@ import {
   getFileInfo,
   getSchemasImportPath,
   isString,
+  jsStringLiteralEscape,
   logWarning,
   pascal,
   upath,
@@ -490,7 +491,10 @@ function buildDefaultPayload(
     typeof schema.default === 'string' &&
     (schema.format === 'date' || schema.format === 'date-time')
   ) {
-    return `new Date('${schema.default}')`;
+    // The default is document text, and this builds a single-quoted literal by
+    // hand: an unescaped `'` closed it and appended expressions to the
+    // `new Date(...)` argument, which the factory then evaluated on every call.
+    return `new Date('${jsStringLiteralEscape(schema.default)}')`;
   }
   return formatValue(schema.default);
 }
