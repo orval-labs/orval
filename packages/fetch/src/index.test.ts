@@ -686,6 +686,24 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     expect(implementation).not.toContain('if (Array.isArray(h))');
   });
 
+  it('materializes each entry before Object.fromEntries', () => {
+    const implementation = generateImplementation(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+    );
+
+    // `Object.fromEntries` reads `[0]`/`[1]` off each entry rather than
+    // iterating it, so a non-indexable entry — `new Set([new Set(['X-Trace',
+    // '1'])])` satisfies the declared `Iterable<Iterable<string>>` — produced
+    // a single `undefined` key and lost the real header.
+    expect(implementation).toContain(
+      'Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])',
+    );
+    expect(implementation).not.toContain(
+      'Object.fromEntries(h as Iterable<readonly [string, string]>)',
+    );
+  });
+
   it('still short-circuits empty input and unwraps a Headers instance', () => {
     const implementation = generateImplementation(
       verbOptionsWithHeaders(),
