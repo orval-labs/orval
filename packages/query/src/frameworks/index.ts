@@ -4,6 +4,8 @@ import {
   type GetterProps,
   GetterPropType,
   isObject,
+  isString,
+  logWarning,
   type OutputClient,
   OutputClient as OutputClientConst,
   type OutputClientFunc,
@@ -18,6 +20,7 @@ import {
   getQueryArgumentsRequestType,
 } from '../client';
 import {
+  getPackageByQueryClient,
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
@@ -264,6 +267,73 @@ type QueryClientType =
   | 'angular-query'
   | 'solid-query';
 
+const QUERY_CLIENT_TYPES = new Set<string>([
+  'react-query',
+  'vue-query',
+  'svelte-query',
+  'angular-query',
+  'solid-query',
+]);
+
+/**
+ * The client as one of the known TanStack adapters, or `undefined` for a custom
+ * `OutputClientFunc`.
+ *
+ * `createFrameworkAdapter` casts its `outputClient` to `QueryClientType`, but a
+ * custom client reaches this generator as the user's own function — naming it
+ * in a message would print the function source.
+ */
+const asQueryClientType = (
+  outputClient: OutputClient | OutputClientFunc,
+): QueryClientType | undefined =>
+  isString(outputClient) && QUERY_CLIENT_TYPES.has(outputClient)
+    ? (outputClient as QueryClientType)
+    : undefined;
+
+/**
+ * Clients already warned about, so an undetectable version is reported once per
+ * run rather than once per operation.
+ */
+const undetectedVersionWarnings = new Set<string>();
+
+/**
+ * Warn when the installed version could not be determined and none was
+ * configured.
+ *
+ * `isQueryV5` and friends answer `false` for an unresolvable dependency, so the
+ * hooks are generated for v4. That is the right guess for a v4 project but
+ * silently wrong for a v5 one — v5 needs its option types wrapped in `Partial`,
+ * and without that the caller cannot omit `queryKey` (#2396). Detection only
+ * fails in setups where the dependency is not visible from the resolved
+ * `package.json` (a monorepo root, a catalog reference), which is exactly when
+ * the user needs telling.
+ */
+const warnOnUndetectedQueryVersion = (
+  outputClient: OutputClient | OutputClientFunc,
+  packageJson: PackageJson | undefined,
+  queryVersion: number | undefined,
+) => {
+  // A custom client has no package to name, so there is no advice to give.
+  const clientType = asQueryClientType(outputClient);
+
+  if (
+    clientType === undefined ||
+    queryVersion !== undefined ||
+    // Angular Query is v5-only, so there is nothing to detect.
+    clientType === 'angular-query' ||
+    getPackageByQueryClient(packageJson, clientType) ||
+    undetectedVersionWarnings.has(clientType)
+  ) {
+    return;
+  }
+
+  undetectedVersionWarnings.add(clientType);
+  logWarning(
+    `Could not determine the installed @tanstack/${clientType} version, so hooks are generated for v4.\n` +
+      `If the project is on v5, set \`override.query.version: 5\` (or point \`output.packageJson\` at the package.json that declares the dependency) — otherwise the generated option types will not accept a partial \`query\` object.`,
+  );
+};
+
 /**
  * Create a FrameworkAdapter for the given output client, resolving version flags
  * from the packageJson and query config.
@@ -278,6 +348,8 @@ export const createFrameworkAdapter = ({
   queryVersion?: number;
 }): FrameworkAdapter => {
   const clientType = outputClient as QueryClientType;
+
+  warnOnUndetectedQueryVersion(outputClient, packageJson, queryVersion);
 
   const _hasQueryV5 = queryVersion === 5 || isQueryV5(packageJson, clientType);
 
