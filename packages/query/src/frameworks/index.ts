@@ -4,6 +4,7 @@ import {
   type GetterProps,
   GetterPropType,
   isObject,
+  isString,
   logWarning,
   type OutputClient,
   OutputClient as OutputClientConst,
@@ -266,6 +267,29 @@ type QueryClientType =
   | 'angular-query'
   | 'solid-query';
 
+const QUERY_CLIENT_TYPES = new Set<string>([
+  'react-query',
+  'vue-query',
+  'svelte-query',
+  'angular-query',
+  'solid-query',
+]);
+
+/**
+ * The client as one of the known TanStack adapters, or `undefined` for a custom
+ * `OutputClientFunc`.
+ *
+ * `createFrameworkAdapter` casts its `outputClient` to `QueryClientType`, but a
+ * custom client reaches this generator as the user's own function — naming it
+ * in a message would print the function source.
+ */
+const asQueryClientType = (
+  outputClient: OutputClient | OutputClientFunc,
+): QueryClientType | undefined =>
+  isString(outputClient) && QUERY_CLIENT_TYPES.has(outputClient)
+    ? (outputClient as QueryClientType)
+    : undefined;
+
 /**
  * Clients already warned about, so an undetectable version is reported once per
  * run rather than once per operation.
@@ -285,11 +309,15 @@ const undetectedVersionWarnings = new Set<string>();
  * the user needs telling.
  */
 const warnOnUndetectedQueryVersion = (
-  clientType: QueryClientType,
+  outputClient: OutputClient | OutputClientFunc,
   packageJson: PackageJson | undefined,
   queryVersion: number | undefined,
 ) => {
+  // A custom client has no package to name, so there is no advice to give.
+  const clientType = asQueryClientType(outputClient);
+
   if (
+    clientType === undefined ||
     queryVersion !== undefined ||
     // Angular Query is v5-only, so there is nothing to detect.
     clientType === 'angular-query' ||
@@ -321,7 +349,7 @@ export const createFrameworkAdapter = ({
 }): FrameworkAdapter => {
   const clientType = outputClient as QueryClientType;
 
-  warnOnUndetectedQueryVersion(clientType, packageJson, queryVersion);
+  warnOnUndetectedQueryVersion(outputClient, packageJson, queryVersion);
 
   const _hasQueryV5 = queryVersion === 5 || isQueryV5(packageJson, clientType);
 

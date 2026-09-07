@@ -14,7 +14,7 @@ describe('undetected query version warning', () => {
   const build = (
     packageJson?: PackageJson,
     queryVersion?: number,
-    outputClient = 'react-query',
+    outputClient: unknown = 'react-query',
   ) => {
     const warn = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {});
     try {
@@ -54,6 +54,19 @@ describe('undetected query version warning', () => {
 
   it('stays quiet for angular-query, which is v5 only', () => {
     const warnings = build(undefined, undefined, 'angular-query');
+
+    expect(warnings).toBe('');
+  });
+
+  it('stays quiet for a custom OutputClientFunc', () => {
+    // A custom client reaches this generator as the user's own function.
+    // Interpolating it into the message printed the function source, and there
+    // is no package name to advise on anyway.
+    const customClient = () => ({
+      client: () => ({ implementation: '', imports: [] }),
+    });
+
+    const warnings = build(undefined, undefined, customClient as never);
 
     expect(warnings).toBe('');
   });
