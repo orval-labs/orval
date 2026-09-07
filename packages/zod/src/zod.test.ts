@@ -2831,6 +2831,159 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'export const exampleRange1ItemMax = 100;',
       );
     });
+
+    it('keeps nested tuple (prefixItems) object defaults inline (#4023)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            position: {
+              type: 'array',
+              prefixItems: [{ type: 'integer' }, { type: 'integer' }],
+            },
+          },
+          default: { name: 'example', position: [0, 0] },
+        },
+        context,
+        'exampleWithTuple',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // The whole object default must be inline so TS contextually types
+      // `position` as the tuple, not `number[]`.
+      expect(parsed.zod).toContain(
+        '.default({ "name": "example" as const, "position": [0, 0] })',
+      );
+      expect(parsed.consts).not.toContain('exampleWithTupleDefault =');
+    });
+
+    it('keeps $ref object-array defaults inline so literal types survive (#4024)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ExampleItem' },
+            },
+          },
+          default: { items: [{ value: 1 }, { value: 2 }] },
+        },
+        context,
+        'exampleWithRefItems',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // Hoisting to a const widens `value` to `number`, incompatible with
+      // the `zod.literal(1) | zod.literal(2)` union.
+      expect(parsed.zod).toContain(
+        '.default({ "items": [{ "value": 1 as const }, { "value": 2 as const }] })',
+      );
+      expect(parsed.consts).not.toContain('exampleWithRefItemsDefault =');
+    });
+
+    const intTuple = {
+      type: 'array',
+      prefixItems: [{ type: 'integer' }, { type: 'integer' }],
+    };
+
+    const parseDefault = (schema: unknown, name: string) => {
+      const result = generateZodValidationSchemaDefinition(
+        schema as never,
+        context,
+        name,
+        false,
+        false,
+        { required: false },
+      );
+      return parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+    };
+
+    it('keeps a default inline when a tuple sits under a nested object', () => {
+      // Only the top-level properties were inspected, so this hoisted and
+      // TypeScript widened `position` to `number[]`, which is not assignable
+      // to the `[number, number]` tuple `zod.tuple()` expects.
+      const parsed = parseDefault(
+        {
+          type: 'object',
+          properties: {
+            settings: { type: 'object', properties: { position: intTuple } },
+          },
+          default: { settings: { position: [0, 0] } },
+        },
+        'nestedObjectTuple',
+      );
+
+      expect(parsed.zod).toContain(
+        '.default({ "settings": { "position": [0, 0] } })',
+      );
+      expect(parsed.consts).not.toContain('nestedObjectTupleDefault =');
+    });
+
+    it('keeps a default inline for an array-of-tuples property', () => {
+      const parsed = parseDefault(
+        {
+          type: 'object',
+          properties: { points: { type: 'array', items: intTuple } },
+          default: { points: [[0, 0]] },
+        },
+        'arrayOfTuplesProp',
+      );
+
+      expect(parsed.zod).toContain('.default({ "points": [[0, 0]] })');
+      expect(parsed.consts).not.toContain('arrayOfTuplesPropDefault =');
+    });
+
+    it('keeps a top-level array-of-tuples default inline', () => {
+      const parsed = parseDefault(
+        { type: 'array', items: intTuple, default: [[0, 0]] },
+        'topLevelArrayOfTuples',
+      );
+
+      expect(parsed.zod).toContain('.default([[0, 0]])');
+      expect(parsed.consts).not.toContain('topLevelArrayOfTuplesDefault =');
+    });
+
+    it('still hoists a default with no tuple or ref array in it', () => {
+      // The inline path is only for shapes that lose type information, so an
+      // ordinary object default must keep being hoisted.
+      const parsed = parseDefault(
+        {
+          type: 'object',
+          properties: { a: { type: 'string' }, b: { type: 'integer' } },
+          default: { a: 'x', b: 1 },
+        },
+        'plainObject',
+      );
+
+      expect(parsed.consts).toContain('plainObjectDefault =');
+      expect(parsed.zod).toContain('.default(plainObjectDefault)');
+    });
   });
 
   describe('default value template-literal injection', () => {

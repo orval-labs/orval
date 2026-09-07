@@ -211,6 +211,63 @@ export interface ZodValidationSchemaDefinition {
 
 const minAndMaxTypes = new Set(['number', 'integer', 'string', 'array']);
 
+/**
+ * Whether a schema's default has to be emitted inline rather than hoisted into
+ * a named const.
+ *
+ * Hoisting throws away the contextual type, which matters for two shapes: a
+ * tuple widens to `T[]`, and an array of `$ref` items widens its literal
+ * properties to their base types (#4023, #4024). Neither can be repaired after
+ * the fact — unlike an array of `enum` items, where the hoisted const narrows
+ * each element with `as const` and so must keep hoisting.
+ *
+ * The walk covers `properties` and `items`, so a tuple nested at any depth is
+ * still found.
+ *
+ * @param schema Schema node to inspect, from anywhere in the document
+ * @param seen Nodes already visited, guarding against a self-referential schema
+ */
+function needsInlineDefault(
+  schema: unknown,
+  seen = new Set<object>(),
+): boolean {
+  if (!schema || typeof schema !== 'object') {
+    return false;
+  }
+  if (seen.has(schema)) {
+    return false;
+  }
+  seen.add(schema);
+
+  const node = schema as Record<string, unknown>;
+
+  // A tuple anywhere below the default is enough on its own.
+  if ('prefixItems' in node) {
+    return true;
+  }
+
+  const items = node.items;
+  if (items && typeof items === 'object') {
+    // An array of `$ref` items cannot be narrowed here without resolving the
+    // ref, so its literal types only survive inline.
+    if ('$ref' in (items as Record<string, unknown>)) {
+      return true;
+    }
+    if (needsInlineDefault(items, seen)) {
+      return true;
+    }
+  }
+
+  const properties = node.properties;
+  if (properties && typeof properties === 'object') {
+    return Object.values(properties as Record<string, unknown>).some((child) =>
+      needsInlineDefault(child, seen),
+    );
+  }
+
+  return false;
+}
+
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject => {
@@ -1025,12 +1082,46 @@ export const generateZodValidationSchemaDefinition = (
       // readonly, which zod v4's `.default()` rejects (#3399).
       const formatDefaultEntryValue = (
         entryValue: unknown,
+        entrySchema?: unknown,
       ): string | undefined => {
         if (isString(entryValue)) {
           return `${JSON.stringify(entryValue)} as const`;
         }
 
         if (Array.isArray(entryValue)) {
+          const entrySchemaObj =
+            entrySchema && typeof entrySchema === 'object'
+              ? (entrySchema as Record<string, unknown>)
+              : undefined;
+          const prefixItems =
+            entrySchemaObj && Array.isArray(entrySchemaObj.prefixItems)
+              ? entrySchemaObj.prefixItems
+              : undefined;
+          if (prefixItems) {
+            // Nested tuple (prefixItems): items must NOT get `as const`
+            // on the whole array (that widens to readonly, which zod v4
+            // `.default()` rejects — #3399). Emit plain literals so
+            // TypeScript contextually types them as the tuple (#4023).
+            const tupleItems = entryValue.map((item) => {
+              if (isString(item)) {
+                return `${JSON.stringify(item)} as const`;
+              }
+              if (isNumber(item) || isBoolean(item)) {
+                return `${item}`;
+              }
+              if (item === null || item === undefined) {
+                return `${item}`;
+              }
+              const formatted = formatDefaultEntryValue(item);
+              return formatted ?? 'null';
+            });
+            return `[${tupleItems.join(', ')}]`;
+          }
+          // The items schema describes every element, so pass it down: without
+          // it an array of tuples formats its elements through the generic
+          // path and picks up per-item `as const`, instead of the plain
+          // literals the tuple branch emits.
+          const itemsSchema = entrySchemaObj?.items;
           const arrayItems = entryValue.map((item) => {
             if (isString(item)) {
               return `${JSON.stringify(item)} as const`;
@@ -1039,14 +1130,14 @@ export const generateZodValidationSchemaDefinition = (
               return `${item} as const`;
             }
             if (Array.isArray(item)) {
-              const formatted = formatDefaultEntryValue(item);
+              const formatted = formatDefaultEntryValue(item, itemsSchema);
               return formatted ?? '[]';
             }
             // Object items recurse so nested string values get `as const`
             // (e.g. `{ value: 'active' as const }`), which JSON.stringify
             // alone would drop (#3982 CodeRabbit).
             if (isObject(item)) {
-              const formatted = formatDefaultEntryValue(item);
+              const formatted = formatDefaultEntryValue(item, itemsSchema);
               return formatted ?? 'null';
             }
             return `${JSON.stringify(item)}`;
@@ -1060,7 +1151,23 @@ export const generateZodValidationSchemaDefinition = (
         if (isObject(entryValue)) {
           const nestedEntries = Object.entries(entryValue)
             .map(([nestedKey, nestedValue]) => {
-              const formatted = formatDefaultEntryValue(nestedValue);
+              const nestedSchema =
+                entrySchema &&
+                typeof entrySchema === 'object' &&
+                entrySchema !== null &&
+                'properties' in entrySchema &&
+                typeof (entrySchema as Record<string, unknown>).properties ===
+                  'object' &&
+                (entrySchema as Record<string, unknown>).properties !== null
+                  ? (
+                      (entrySchema as Record<string, unknown>)
+                        .properties as Record<string, unknown>
+                    )[nestedKey]
+                  : undefined;
+              const formatted = formatDefaultEntryValue(
+                nestedValue,
+                nestedSchema,
+              );
               return formatted === undefined
                 ? undefined
                 : `${JSON.stringify(nestedKey)}: ${formatted}`;
@@ -1084,9 +1191,13 @@ export const generateZodValidationSchemaDefinition = (
         return undefined;
       };
 
+      const properties =
+        schema.properties && isObject(schema.properties)
+          ? (schema.properties as Record<string, unknown>)
+          : undefined;
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
-          const formatted = formatDefaultEntryValue(value);
+          const formatted = formatDefaultEntryValue(value, properties?.[key]);
           return formatted === undefined
             ? undefined
             : `${JSON.stringify(key)}: ${formatted}`;
@@ -1094,19 +1205,51 @@ export const generateZodValidationSchemaDefinition = (
         .filter((entry) => entry !== undefined)
         .join(', ');
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
+
+      // If the object default contains a tuple (prefixItems), an array of
+      // objects (which may have enum-literal props), or any array with enum
+      // items — at any depth — keep the whole object inline rather than
+      // hoisting it into a named const. A named const loses TypeScript's
+      // contextual type information, widening tuple arrays to `T[]` and
+      // enum-literal properties to their base type (#4023, #4024).
+      if (
+        properties !== undefined &&
+        Object.values(properties).some((p) => needsInlineDefault(p))
+      ) {
+        defaultVarName = defaultValue;
+        defaultValue = undefined;
+      }
     } else {
       // OpenApiSchemaObject defines default as 'any'
       defaultValue = formatDefaultValue(schema.default);
 
-      // If the schema is an array with enum items, inject inplace to avoid issues with default values
+      // If the schema is an array with enum items, inject inplace to avoid issues with default values.
+      // Also keep inline when array items are objects (or $ref to objects)
+      // that may contain enum-literal properties — hoisting to a const
+      // widens literal values to their base type (#4024).
+      // `needsInlineDefault` also catches items that are themselves tuples, or
+      // that hide a tuple further down, which an `items`-only check misses
+      // (e.g. an array of `[number, number]` pairs).
+      const hasEnumOrObjectItems =
+        schema.items &&
+        typeof schema.items === 'object' &&
+        ('enum' in schema.items ||
+          schema.items.type === 'object' ||
+          '$ref' in schema.items ||
+          needsInlineDefault(schema.items));
       const isArrayWithEnumItems =
         Array.isArray(schema.default) &&
         type === 'array' &&
         schema.items &&
         'enum' in schema.items &&
         schema.default.length > 0;
+      const isArrayWithObjectItems =
+        Array.isArray(schema.default) &&
+        type === 'array' &&
+        hasEnumOrObjectItems &&
+        schema.default.length > 0;
 
-      if (isArrayWithEnumItems) {
+      if (isArrayWithEnumItems || isArrayWithObjectItems) {
         defaultVarName = defaultValue;
         defaultValue = undefined;
       }
