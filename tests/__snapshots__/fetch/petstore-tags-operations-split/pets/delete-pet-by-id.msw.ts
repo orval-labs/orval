@@ -27,4 +27,4 @@ export const getDeletePetByIdMockHandler = (
     options,
   );
 };
-export const getPetsMock = () => [getDeletePetByIdMockHandler];
+export const getPetsMock = () => [getDeletePetByIdMockHandler()];

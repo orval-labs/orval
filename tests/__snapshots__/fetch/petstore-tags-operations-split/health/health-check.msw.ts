@@ -37,4 +37,4 @@ export const getHealthCheckMockHandler = (
     options,
   );
 };
-export const getHealthMock = () => [getHealthCheckMockHandler];
+export const getHealthMock = () => [getHealthCheckMockHandler()];
