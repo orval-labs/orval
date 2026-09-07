@@ -1085,6 +1085,90 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it.each([
+    ['./model/schemas.ts', 'schemas.path'],
+    ['./model/schemas.tsx', 'schemas.path'],
+    ['./model/schemas.mjs', 'schemas.path'],
+  ])('rejects %s as schemas.path, which names a file', async (path) => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      // The path is a directory: a filename silently became a directory with
+      // that name, holding the split schema files (#4042).
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: { path, type: 'zod' },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(/names a file/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a filename given in the string form of schemas', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: { target: './generated.ts', schemas: './model/schemas.ts' },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(/`schemas` is a directory/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts a directory whose name merely contains a dot', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: { path: './model/v1.0', type: 'zod' },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toBeDefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('preserves schemas.importPath through normalization', async () => {
     const workspace = await createTempWorkspace();
 
