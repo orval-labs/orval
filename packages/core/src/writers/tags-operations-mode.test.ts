@@ -359,6 +359,63 @@ describe('writeTagsOperationsMode', () => {
     expect(paths).toContain(mockPath);
   });
 
+  it('calls each handler factory inside the per-operation aggregate mock helper', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const baseProps = createSplitModeProps(target);
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        header: () => ({
+          implementation: '',
+          implementationMock: 'export const getPetsMock = () => [\n',
+        }),
+        footer: () => ({ implementation: '', implementationMock: '\n]\n' }),
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: 'export const getListPetsMockHandler = () => {};\n',
+                  handlerName: 'getListPetsMockHandler',
+                },
+                imports: [],
+              },
+            ],
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_OPERATIONS,
+        client: OutputClient.REACT_QUERY,
+        mock: {
+          indexMockFiles: false,
+          inline: false,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeTagsOperationsMode({ ...props, needSchema: false });
+
+    const content = fs.readFileSync(
+      path.join(mockDir, 'pets', 'list-pets.msw.ts'),
+      'utf8',
+    );
+    // The aggregate returns handler instances, not the factories themselves.
+    expect(content).toContain(
+      'export const getPetsMock = () => [\n  getListPetsMockHandler()\n]',
+    );
+    expect(content).not.toMatch(/getListPetsMockHandler\s*\n\]/);
+  });
+
   it('writes a single mock index aggregating operations across every tag', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const mockDir = path.join(tmpDir, 'mocks');
