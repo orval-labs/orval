@@ -33,6 +33,41 @@ import {
 } from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
+/**
+ * Resolves an OpenAPI response key to the numeric status the generated handler
+ * emits.
+ *
+ * The key comes straight from the document and lands in an unquoted expression
+ * position (`{ status: 200 }`), so there is no quote to escape and no way to
+ * make a non-numeric value safe there — a key like
+ * `2,x:(<expression>)` would splice live code into the handler. Parse it, and
+ * refuse the document rather than emitting whatever it says.
+ *
+ * `default` maps to 200 and a `NXX` wildcard to `N00`, matching what the
+ * handler previously emitted for those keys.
+ */
+function assertSafeStatusCode(status: string): number {
+  // Map only the two forms the spec actually defines — `default` and a
+  // single-digit `NXX` wildcard — and leave everything else to fail the check
+  // below as-is. Rewriting a trailing `XX` before validating would work out
+  // the same (`20XX` becomes the four-digit `2000` and is still rejected), but
+  // this way the accepted shapes are stated rather than inferred.
+  const normalized =
+    status === 'default'
+      ? '200'
+      : /^\dXX$/.test(status)
+        ? `${status[0]}00`
+        : status;
+
+  if (!/^\d{3}$/.test(normalized)) {
+    throw new Error(
+      `orval: refusing to generate a mock handler for an OpenAPI response key that is not a status code (got "${status}"). This value would otherwise be emitted verbatim into generated source.`,
+    );
+  }
+
+  return Number(normalized);
+}
+
 function getMSWDependencies(
   options?: GlobalMockOptions,
 ): GeneratorDependency[] {
@@ -216,8 +251,11 @@ function generateDefinition(
   const isVoidUnionType =
     mockReturnType !== 'void' &&
     mockReturnType.split('|').some((part) => part.trim() === 'void');
+  // Also a raw response key, emitted unquoted in the void-union branch below.
   const noContentStatusCode = isVoidUnionType
-    ? (responses.find((r) => r.value === 'void')?.key ?? '204')
+    ? assertSafeStatusCode(
+        responses.find((r) => r.value === 'void')?.key ?? '204',
+      )
     : undefined;
   const nonVoidMockReturnType = isVoidUnionType
     ? mockReturnType
@@ -304,7 +342,7 @@ function generateDefinition(
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
     : ${getResponseMockFunctionName}()`;
 
-  const statusCode = status === 'default' ? 200 : status.replace(/XX$/, '00');
+  const statusCode = assertSafeStatusCode(status);
 
   // Determine the preferred non-JSON content type for binary responses
   const binaryContentType =

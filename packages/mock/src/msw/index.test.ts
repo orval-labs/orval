@@ -2183,3 +2183,81 @@ describe('recursion guards for cyclic allOf schemas', () => {
     expect(() => run(schemas, 'XElement')).not.toThrow();
   });
 });
+
+describe('response status key safety', () => {
+  const verbOptions = (statusKey: string): GeneratorVerbOptions =>
+    ({
+      operationId: 'getUser',
+      operationName: 'getUser',
+      typeName: 'getUser',
+      verb: 'get',
+      tags: [],
+      response: {
+        imports: [],
+        definition: { success: 'User' },
+        types: { success: [{ key: statusKey, value: 'User' }] },
+        contentTypes: ['application/json'],
+      },
+    }) as unknown as GeneratorVerbOptions;
+
+  const options = {
+    route: '/users/{id}',
+    pathRoute: '/users/{id}',
+    output: 'test',
+    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
+    context: {
+      target: 'test',
+      workspace: '',
+      spec: {
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+      },
+      output: {
+        target: 'test',
+        namingConvention: 'camelCase',
+        fileExtension: '.ts',
+        mode: 'single',
+        override: {
+          operations: {},
+          tags: {},
+          mock: { type: OutputMockType.MSW },
+        } as unknown as NormalizedOverrideOutput,
+        client: 'axios-functions',
+        httpClient: 'fetch',
+        propertySortOrder: 'specification',
+      },
+    },
+  } as unknown as GeneratorOptions;
+
+  it.each([
+    ['200', 'status: 200'],
+    ['default', 'status: 200'],
+    ['2XX', 'status: 200'],
+    ['5XX', 'status: 500'],
+  ])('emits %s as %s', (statusKey, expected) => {
+    const result = generateMSW(verbOptions(statusKey), options);
+    expect(result.implementation.handler).toContain(expected);
+  });
+
+  // The key lands in an unquoted expression position, so a non-numeric value
+  // would splice live code into the handler rather than break a string.
+  it.each([
+    '2,x:(globalThis.pwned=1)',
+    '200,y:1',
+    '(1)',
+    'abc',
+    // Near-miss wildcards: only a single-digit `NXX` is a valid wildcard, so
+    // none of these may be salvaged into a three-digit status.
+    '20XX',
+    '2XXX',
+    'XX',
+    '1000',
+    '20X',
+    '',
+  ])('refuses the non-numeric response key %j', (statusKey) => {
+    expect(() => generateMSW(verbOptions(statusKey), options)).toThrow(
+      /not a status code/,
+    );
+  });
+});
