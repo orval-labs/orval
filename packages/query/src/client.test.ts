@@ -4,6 +4,7 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiSchemaObject,
+  PackageJson,
   ResReqTypesValue,
 } from '@orval/core';
 import { OutputHttpClient } from '@orval/core';
@@ -784,6 +785,144 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
     expect(result.indexOf('const getPet')).toBeLessThan(
       result.indexOf('const deserializeGetPetResponse'),
     );
+  });
+
+  it('exports the Axios URL helper without replacing the request call', () => {
+    const result = generateAxiosRequestFunction(
+      { ...verbOptions, mutator: undefined },
+      options,
+      adapter,
+    );
+
+    expect(result).toContain('export const getGetPetUrl');
+    expect(result).toContain('axios.default.create({');
+    expect(result).toContain("baseURL: '',");
+    expect(result).toContain('params: null,');
+    expect(result).toContain('}).getUri({');
+    expect(result).toContain('axios.default.get(');
+    expect(result).not.toContain('axios.default.get(getGetPetUrl(');
+  });
+
+  it('unwraps Vue MaybeRef path values inside the URL helper', () => {
+    const vueAdapter = createFrameworkAdapter({ outputClient: 'vue-query' });
+    const result = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        params: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: undefined,
+            required: true,
+            imports: [],
+          },
+        ],
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: undefined,
+            required: true,
+            type: 'param',
+          },
+        ],
+        mutator: undefined,
+      },
+      createOptions({ route: '/pets/${petId}' }),
+      vueAdapter,
+    );
+
+    expect(result).toContain('export const getGetPetUrl');
+    expect(result).toContain('petId: MaybeRef<string>');
+    expect(result).toContain('petId = unref(petId);');
+  });
+
+  it('uses Vue toValue for MaybeRefOrGetter URL parameters in Query v5', () => {
+    const vueAdapter = createFrameworkAdapter({
+      outputClient: 'vue-query',
+      packageJson: {
+        dependencies: { '@tanstack/vue-query': '5.92.7' },
+      } as PackageJson,
+    });
+    const result = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        params: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: undefined,
+            required: true,
+            imports: [],
+          },
+        ],
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: undefined,
+            required: true,
+            type: 'param',
+          },
+        ],
+        mutator: undefined,
+      },
+      createOptions({ route: '/pets/${petId}' }),
+      vueAdapter,
+    );
+
+    expect(result).toContain('petId: MaybeRefOrGetter<string>');
+    expect(result).toContain('petId = toValue(petId);');
+  });
+
+  it('does not unwrap body-only parameters inside the URL helper', () => {
+    const vueAdapter = createFrameworkAdapter({ outputClient: 'vue-query' });
+    const result = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        route: '/pets',
+        pathRoute: '/pets',
+        props: [
+          {
+            name: 'createPetsBody',
+            definition: 'createPetsBody: CreatePetsBody',
+            implementation: 'createPetsBody: CreatePetsBody',
+            default: undefined,
+            required: true,
+            type: 'body',
+          },
+          {
+            name: 'params',
+            definition: 'params: CreatePetsParams',
+            implementation: 'params: CreatePetsParams',
+            default: undefined,
+            required: true,
+            type: 'queryParam',
+          },
+        ],
+        mutator: undefined,
+      },
+      createOptions({ route: '/pets' }),
+      vueAdapter,
+    );
+
+    const helper = result.slice(result.indexOf('export const getGetPetUrl'));
+    expect(helper).not.toContain('createPetsBody = toValue(createPetsBody);');
+    expect(helper).toContain('params = unref(params);');
+  });
+
+  it('does not export a URL helper for Axios mutators', () => {
+    const result = generateAxiosRequestFunction(verbOptions, options, adapter);
+
+    expect(result).not.toContain('getGetPetUrl');
   });
 
   it('emits identical output to today when the flag is off or no dates exist', () => {

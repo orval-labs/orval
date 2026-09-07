@@ -14,5 +14,16 @@ export const postSomething = (
 ): Promise<AxiosResponse<PostSomething200>> => {
   return axios.post(`/something`, undefined, options);
 };
+export const getPostSomethingUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/something`,
+      baseURL: '',
+    });
+};
 
 export type PostSomethingResult = AxiosResponse<PostSomething200>;

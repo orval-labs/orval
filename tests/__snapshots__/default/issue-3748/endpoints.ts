@@ -17,5 +17,16 @@ export const getItem = (
 ): Promise<AxiosResponse<ItemDetail>> => {
   return axios.get(`/item`, options);
 };
+export const getGetItemUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/item`,
+      baseURL: '',
+    });
+};
 
 export type GetItemResult = AxiosResponse<ItemDetail>;

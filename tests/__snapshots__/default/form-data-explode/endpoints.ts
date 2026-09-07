@@ -38,5 +38,16 @@ export const createPets = (
 
   return axios.post(`/pets`, formData, options);
 };
+export const getCreatePetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 export type CreatePetsResult = AxiosResponse<Pet>;

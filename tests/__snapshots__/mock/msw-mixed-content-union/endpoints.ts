@@ -20,7 +20,18 @@ export const getMSWMixedContentUnionRegression = (
   ): Promise<AxiosResponse<string | Pet>> => {
     return axiosInstance.get(`/mixed-content`, options);
   };
+  const getGetMixedContentUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/mixed-content`,
+        baseURL: '',
+      });
+  };
 
-  return { getMixedContent };
+  return { getMixedContent, getGetMixedContentUrl };
 };
 export type GetMixedContentResult = AxiosResponse<string | Pet>;

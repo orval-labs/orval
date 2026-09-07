@@ -567,6 +567,18 @@ export const healthCheck = (
   });
 };
 
+export const getHealthCheckUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/health`,
+      baseURL: '',
+    });
+};
+
 export const getHealthCheckQueryKey = () => {
   return [`/health`] as const;
 };

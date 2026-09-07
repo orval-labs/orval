@@ -52,6 +52,17 @@ export const createReadonlyFreeObject = (
 ): Promise<AxiosResponse<ReadonlyObject>> => {
   return axios.post(`/without-readonly`, createReadonlyFreeObjectBody, options);
 };
+export const getCreateReadonlyFreeObjectUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/without-readonly`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Create readonly object
@@ -61,6 +72,17 @@ export const createReadonly = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<ReadonlyObject>> => {
   return axios.post(`/readonly-ref`, readonlyObject, options);
+};
+export const getCreateReadonlyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/readonly-ref`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -72,6 +94,17 @@ export const updateReadonly = (
 ): Promise<AxiosResponse<ReadonlyObject>> => {
   return axios.put(`/readonly-direct`, updateReadonlyBody, options);
 };
+export const getUpdateReadonlyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/readonly-direct`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Create object with a nested readonly object
@@ -81,6 +114,17 @@ export const createNestedReadonly = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NestedReadonlyObject>> => {
   return axios.post(`/readonly-nested`, nestedReadonlyObject, options);
+};
+export const getCreateNestedReadonlyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/readonly-nested`,
+      baseURL: '',
+    });
 };
 
 export type CreateReadonlyFreeObjectResult = AxiosResponse<ReadonlyObject>;

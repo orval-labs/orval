@@ -165,6 +165,18 @@ export const listPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsUrl = (params: ListPetsParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Create a pet
@@ -179,6 +191,18 @@ export const createPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getCreatePetsUrl = (params: CreatePetsParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Info for a specific pet
@@ -189,6 +213,17 @@ export const showPetById = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
 };
+export const getShowPetByIdUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Deletes a specific pet
@@ -198,6 +233,17 @@ export const deletePetById = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.delete(`/pets/${petId}`, options);
+};
+export const getDeletePetByIdUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -211,6 +257,17 @@ export const healthCheck = (
     ...options,
   });
 };
+export const getHealthCheckUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/health`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary combinate nullable and $ref
@@ -220,6 +277,17 @@ export const showPetWithOwner = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PetWithTag>> => {
   return axios.get(`/pets/${petId}/owner`, options);
+};
+export const getShowPetWithOwnerUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}/owner`,
+      baseURL: '',
+    });
 };
 
 export type ListPetsResult = AxiosResponse<Pets>;

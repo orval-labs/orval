@@ -16,7 +16,18 @@ export const getIssue3675Petstore = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<Pet[]>> => {
     return axiosInstance.get(`/pets`, options);
   };
+  const getListPetsUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+      });
+  };
 
-  return { listPets };
+  return { listPets, getListPetsUrl };
 };
 export type ListPetsResult = AxiosResponse<Pet[]>;

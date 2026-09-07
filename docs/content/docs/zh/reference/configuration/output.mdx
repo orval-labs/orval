@@ -63,6 +63,23 @@ const customAxios = axios.create({ baseURL: 'https://api.example.com' });
 const api = getPetsApi(customAxios);
 ```
 
+生成的 factory 还会为每个未使用自定义 mutator 的操作提供
+`get<Operation>Url` helper：
+
+```typescript
+const url = api.getListPetsUrl({ limit: 10 });
+```
+
+该 helper 返回生成的 OpenAPI 路由，以及由 Axios 序列化的查询参数。它会使用
+注入实例的 Axios 序列化配置，但不会包含该实例运行时的 `baseURL`、默认请求参数、
+请求选项或拦截器。同样的 helper 也会为 `axios-functions` 和基于 Axios 的 Query
+client 生成。
+
+Helper 的命名格式为 `get<Operation>Url`（例如 `getListPetsUrl`），返回值类型为
+`string`。它只接收操作的路径参数和查询参数，不接收 Axios 请求选项。使用自定义
+mutator 的操作不会生成 helper，因为 mutator 负责运行时 URL 和序列化行为。
+Fetch 输出已有自己的 URL helper，此功能不会改变 Fetch 的行为。
+
 ## httpClient
 
 **类型：** `'fetch' | 'axios' | 'angular'`

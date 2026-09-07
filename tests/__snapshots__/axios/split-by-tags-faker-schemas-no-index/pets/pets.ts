@@ -25,11 +25,34 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getListPetsUrl = (params?: ListPetsParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+        params,
+      });
+  };
   const createPet = (
     createPetBody?: CreatePetBody,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.post(`/pets`, createPetBody, options);
+  };
+  const getCreatePetUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+      });
   };
   const getPetById = (
     petId: string,
@@ -37,7 +60,25 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.get(`/pets/${petId}`, options);
   };
-  return { listPets, createPet, getPetById };
+  const getGetPetByIdUrl = (petId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets/${petId}`,
+        baseURL: '',
+      });
+  };
+  return {
+    listPets,
+    createPet,
+    getPetById,
+    getListPetsUrl,
+    getCreatePetUrl,
+    getGetPetByIdUrl,
+  };
 };
 export type ListPetsResult = AxiosResponse<PetList>;
 export type CreatePetResult = AxiosResponse<Pet>;

@@ -10,6 +10,7 @@ export default defineConfig({
       'handler-preservation.spec.ts',
       'query-key-mutator.spec.ts',
       'serialize-response-headers.spec.ts',
+      'axios-url-runtime.spec.ts',
     ],
     silent: 'passed-only',
   },

@@ -17,11 +17,33 @@ export const getOrvalDefaultStatusTest = (
   ): Promise<AxiosResponse<Sample>> => {
     return axiosInstance.get(`/default-only`, options);
   };
+  const getDefaultOnlyUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/default-only`,
+        baseURL: '',
+      });
+  };
 
   const with200 = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Sample>> => {
     return axiosInstance.get(`/w-200`, options);
+  };
+  const getWith200Url = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/w-200`,
+        baseURL: '',
+      });
   };
 
   const with400 = (
@@ -29,14 +51,45 @@ export const getOrvalDefaultStatusTest = (
   ): Promise<AxiosResponse<Sample>> => {
     return axiosInstance.get(`/w-400`, options);
   };
+  const getWith400Url = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/w-400`,
+        baseURL: '',
+      });
+  };
 
   const with200and400 = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Sample>> => {
     return axiosInstance.get(`/w-200-400`, options);
   };
+  const getWith200and400Url = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/w-200-400`,
+        baseURL: '',
+      });
+  };
 
-  return { defaultOnly, with200, with400, with200and400 };
+  return {
+    defaultOnly,
+    with200,
+    with400,
+    with200and400,
+    getDefaultOnlyUrl,
+    getWith200Url,
+    getWith400Url,
+    getWith200and400Url,
+  };
 };
 export type DefaultOnlyResult = AxiosResponse<Sample>;
 export type With200Result = AxiosResponse<Sample>;

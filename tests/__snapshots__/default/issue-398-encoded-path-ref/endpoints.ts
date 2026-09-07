@@ -15,5 +15,16 @@ export const getById = (
     ...options,
   });
 };
+export const getGetByIdUrl = (id: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/${id}`,
+      baseURL: '',
+    });
+};
 
 export type GetByIdResult = AxiosResponse<string>;

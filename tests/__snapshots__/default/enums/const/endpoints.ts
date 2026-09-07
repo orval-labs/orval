@@ -26,6 +26,17 @@ export const getApiCat = (
 ): Promise<AxiosResponse<DogGroup[]>> => {
   return axios.get(`/api/cat`, options);
 };
+export const getGetApiCatUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/cat`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary sample required cat
@@ -34,6 +45,17 @@ export const getApiRequiredCat = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<RequiredCat>> => {
   return axios.get(`/api/required-cat`, options);
+};
+export const getGetApiRequiredCatUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/required-cat`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -44,6 +66,17 @@ export const getApiDog = (
 ): Promise<AxiosResponse<Dog>> => {
   return axios.get(`/api/dog`, options);
 };
+export const getGetApiDogUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/dog`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary sample required dog
@@ -52,6 +85,17 @@ export const getApiRequiredDog = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<RequiredDog>> => {
   return axios.get(`/api/required-dog`, options);
+};
+export const getGetApiRequiredDogUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/required-dog`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -62,6 +106,17 @@ export const getApiDuck = (
 ): Promise<AxiosResponse<Duck>> => {
   return axios.get(`/api/duck`, options);
 };
+export const getGetApiDuckUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/duck`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary sample cat dog
@@ -70,6 +125,17 @@ export const getApiCatDog = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<CatDog>> => {
   return axios.get(`/api/cat-dog`, options);
+};
+export const getGetApiCatDogUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/cat-dog`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -80,6 +146,17 @@ export const getApiPetTraining = (
 ): Promise<AxiosResponse<PetTrainingLevel>> => {
   return axios.get(`/api/pet-training`, options);
 };
+export const getGetApiPetTrainingUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/pet-training`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary sample pet needs training
@@ -88,6 +165,17 @@ export const getApiPetNeedsTraining = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PetNeedsTraining>> => {
   return axios.get(`/api/pet-needs-training`, options);
+};
+export const getGetApiPetNeedsTrainingUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/pet-needs-training`,
+      baseURL: '',
+    });
 };
 
 export type GetApiCatResult = AxiosResponse<DogGroup[]>;

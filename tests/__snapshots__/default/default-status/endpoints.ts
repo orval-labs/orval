@@ -14,11 +14,33 @@ export const defaultOnly = (
 ): Promise<AxiosResponse<Sample>> => {
   return axios.get(`/default-only`, options);
 };
+export const getDefaultOnlyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/default-only`,
+      baseURL: '',
+    });
+};
 
 export const with200 = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Sample>> => {
   return axios.get(`/w-200`, options);
+};
+export const getWith200Url = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/w-200`,
+      baseURL: '',
+    });
 };
 
 export const with400 = (
@@ -26,11 +48,33 @@ export const with400 = (
 ): Promise<AxiosResponse<Sample>> => {
   return axios.get(`/w-400`, options);
 };
+export const getWith400Url = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/w-400`,
+      baseURL: '',
+    });
+};
 
 export const with200and400 = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Sample>> => {
   return axios.get(`/w-200-400`, options);
+};
+export const getWith200and400Url = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/w-200-400`,
+      baseURL: '',
+    });
 };
 
 export type DefaultOnlyResult = AxiosResponse<Sample>;

@@ -14,5 +14,16 @@ export const get = (
 ): Promise<AxiosResponse<Get200>> => {
   return axios.get(`/`, options);
 };
+export const getGetUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/`,
+      baseURL: '',
+    });
+};
 
 export type GetResult = AxiosResponse<Get200>;

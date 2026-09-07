@@ -14,6 +14,17 @@ export const createSharedNote = (
 ): Promise<AxiosResponse<SharedNote>> => {
   return axios.post(`/shared-notes`, undefined, options);
 };
+export const getCreateSharedNoteUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/shared-notes`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Create a private note for the beneficiary.
@@ -22,6 +33,17 @@ export const createPrivateNote = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PrivateNote>> => {
   return axios.post(`/private-notes`, undefined, options);
+};
+export const getCreatePrivateNoteUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/private-notes`,
+      baseURL: '',
+    });
 };
 
 export type CreateSharedNoteResult = AxiosResponse<SharedNote>;

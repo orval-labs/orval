@@ -1,9 +1,11 @@
 import {
+  camel,
   type ClientHeaderBuilder,
   emitResponseValidation,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
+  generateAxiosUrl,
   generateOptions,
   generateResponseDateDeserializer,
   type GeneratorDependency,
@@ -18,6 +20,7 @@ import {
   hasSchemaImport,
   isPrimitiveResponseType,
   type GetterResponse,
+  GetterPropType,
   isObject,
   isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
@@ -450,6 +453,24 @@ export const generateAxiosRequestFunction = (
 
   const queryProps = toObjectString(props, 'implementation');
 
+  const urlProps = props.filter(
+    (prop) =>
+      prop.type === GetterPropType.PARAM ||
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+      prop.type === GetterPropType.QUERY_PARAM,
+  );
+  const axiosRef = `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
+  const urlImplementation = generateAxiosUrl({
+    functionName: camel(`get-${operationName}-url`),
+    propsImplementation: toObjectString(urlProps, 'implementation'),
+    route,
+    axiosRef,
+    hasQueryParams: !!queryParams,
+    beforeReturn: adapter.getRequestUnrefStatements(urlProps),
+    paramsSerializer: paramsSerializer?.name,
+    paramsSerializerOptions: override.paramsSerializerOptions,
+  });
+
   const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {
@@ -463,7 +484,8 @@ export const generateAxiosRequestFunction = (
         : ''
     };
   }
-${dateDeserializerImplementation}`;
+${dateDeserializerImplementation}
+${urlImplementation}`;
 
   return httpRequestFunctionImplementation;
 };

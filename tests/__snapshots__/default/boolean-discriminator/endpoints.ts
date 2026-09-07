@@ -14,11 +14,33 @@ export const getResult = (
 ): Promise<AxiosResponse<ApiResult>> => {
   return axios.get(`/api/result`, options);
 };
+export const getGetResultUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/result`,
+      baseURL: '',
+    });
+};
 
 export const getStatus = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<StatusResult>> => {
   return axios.get(`/api/status`, options);
+};
+export const getGetStatusUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/status`,
+      baseURL: '',
+    });
 };
 
 export type GetResultResult = AxiosResponse<ApiResult>;

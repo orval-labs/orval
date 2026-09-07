@@ -1,11 +1,242 @@
+import type {
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GeneratorMutator,
+} from '@orval/core';
+import { OutputClient } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  generateAxios,
+  generateAxiosFactory,
   generateAxiosHeader,
+  generateAxiosFooter,
+  generateAxiosFunctions,
   generateAxiosTitle,
   getAxiosDependencies,
   getAxiosFactoryDependencies,
 } from './index';
+
+const response = {
+  imports: [],
+  definition: { success: 'Pet', errors: 'unknown' },
+  isBlob: false,
+  types: { success: [], errors: [] },
+  contentTypes: ['application/json'],
+  schemas: [],
+};
+
+const createVerbOptions = (
+  overrides: Partial<GeneratorVerbOptions> = {},
+): GeneratorVerbOptions =>
+  ({
+    operationId: 'getPet',
+    operationName: 'getPet',
+    typeName: 'getPet',
+    verb: 'get',
+    route: '/pets/${petId}',
+    pathRoute: '/pets/{petId}',
+    tags: [],
+    summary: '',
+    doc: '',
+    response,
+    body: {
+      implementation: '',
+      definition: '',
+      imports: [],
+      schemas: [],
+      originalSchema: {},
+      contentType: '',
+      formData: '',
+      formUrlEncoded: '',
+      isOptional: true,
+      isBlob: false,
+    },
+    headers: undefined,
+    queryParams: {
+      schema: { name: 'PetParams', model: 'PetParams', imports: [] },
+      deps: [],
+      isOptional: true,
+    },
+    params: [
+      {
+        name: 'petId',
+        definition: 'petId: string',
+        implementation: 'petId: string',
+        default: undefined,
+        required: true,
+        imports: [],
+      },
+    ],
+    props: [
+      {
+        name: 'petId',
+        definition: 'petId: string',
+        implementation: 'petId: string',
+        default: undefined,
+        required: true,
+        type: 'param',
+      },
+      {
+        name: 'params',
+        definition: 'params?: PetParams',
+        implementation: 'params?: PetParams',
+        default: undefined,
+        required: false,
+        type: 'queryParam',
+      },
+    ],
+    mutator: undefined,
+    formData: undefined,
+    formUrlEncoded: undefined,
+    paramsSerializer: undefined,
+    override: {
+      requestOptions: true,
+      formData: { disabled: true, arrayHandling: 'serialize' },
+      formUrlEncoded: true,
+      paramsSerializerOptions: undefined,
+    },
+    originalOperation: {},
+    ...overrides,
+  }) as GeneratorVerbOptions;
+
+const generatorOptions = {
+  route: '/pets/${petId}',
+  pathRoute: '/pets/{petId}',
+  context: {
+    output: {
+      tsconfig: { compilerOptions: { allowSyntheticDefaultImports: true } },
+    },
+  },
+} as unknown as GeneratorOptions;
+
+const mutator: GeneratorMutator = {
+  name: 'customInstance',
+  path: './custom-instance',
+  default: false,
+  hasErrorType: false,
+  errorTypeName: '',
+  hasSecondArg: true,
+  hasThirdArg: false,
+  isHook: false,
+};
+
+describe('Axios URL helpers', () => {
+  it('adds a public helper without changing the existing request call', async () => {
+    const { implementation } = await generateAxiosFunctions(
+      createVerbOptions(),
+      generatorOptions,
+      OutputClient.AXIOS_FUNCTIONS,
+    );
+
+    expect(implementation).toContain(
+      'export const getGetPetUrl = (petId: string,',
+    );
+    expect(implementation).toContain('params?: PetParams,');
+    expect(implementation).toContain(
+      "return axios.create({\n    baseURL: '',\n    params: null,\n  }).getUri({\n    url: `/pets/${petId}`",
+    );
+    expect(implementation).toContain(
+      'return axios.get(\n      `/pets/${petId}`',
+    );
+    expect(implementation).not.toContain('axios.get(getGetPetUrl(');
+  });
+
+  it('keeps the exact route expression received by Axios generation', () => {
+    const encodedRoute = '/pets/${encodeURIComponent(String(petId))}';
+    const implementation = generateAxios(
+      createVerbOptions({ route: encodedRoute }),
+      { ...generatorOptions, route: encodedRoute },
+    ).implementation;
+
+    expect(implementation).toContain(`url: \`${encodedRoute}\``);
+    expect(implementation).toContain(`axios.get(\n      \`${encodedRoute}\``);
+  });
+
+  it('does not add path encoding when urlEncodeParameters is enabled', () => {
+    const route = '/pets/${petId}';
+    const implementation = generateAxios(createVerbOptions({ route }), {
+      ...generatorOptions,
+      route,
+      context: {
+        ...generatorOptions.context,
+        output: {
+          ...generatorOptions.context.output,
+          urlEncodeParameters: true,
+        },
+      },
+    }).implementation;
+
+    expect(implementation).toContain(`url: \`${route}\``);
+    expect(implementation).toContain(`axios.get(\n      \`${route}\``);
+  });
+
+  it('returns the helper from factory-generated APIs', async () => {
+    const { implementation } = await generateAxiosFactory(
+      createVerbOptions(),
+      generatorOptions,
+      OutputClient.AXIOS,
+    );
+    const footer = generateAxiosFooter({
+      operationNames: ['getPet'],
+      operations: [{ operationName: 'getPet', mutator: undefined } as never],
+      noFunction: false,
+      hasMutator: false,
+      hasAwaitedType: true,
+    });
+
+    expect(implementation).toContain('const getGetPetUrl = (petId: string,');
+    expect(implementation).toContain('params?: PetParams,');
+    expect(implementation).toContain(
+      "axiosInstance.create({\n    baseURL: '',\n    params: null,\n  }).getUri",
+    );
+    expect(footer).toContain('return {getPet,getGetPetUrl}};');
+  });
+
+  it('does not emit a helper when a mutator owns the request', async () => {
+    const { implementation } = await generateAxiosFunctions(
+      createVerbOptions({ mutator }),
+      generatorOptions,
+      OutputClient.AXIOS_FUNCTIONS,
+    );
+
+    expect(implementation).not.toContain('getGetPetUrl');
+  });
+
+  it('omits mutator-owned helpers from mixed factory returns', () => {
+    const footer = generateAxiosFooter({
+      operationNames: ['getPet', 'getMutatedPet'],
+      operations: [
+        { operationName: 'getPet', mutator: undefined } as never,
+        { operationName: 'getMutatedPet', mutator } as never,
+      ],
+      noFunction: false,
+      hasMutator: true,
+      hasAwaitedType: true,
+    });
+
+    expect(footer).toContain('return {getPet,getMutatedPet,getGetPetUrl}};');
+    expect(footer).not.toContain('getMutatedPetUrl');
+  });
+  it('does not add request options to the URL helper when disabled', async () => {
+    const { implementation } = await generateAxiosFunctions(
+      createVerbOptions({
+        override: {
+          ...createVerbOptions().override,
+          requestOptions: false,
+        },
+      }),
+      generatorOptions,
+      OutputClient.AXIOS_FUNCTIONS,
+    );
+
+    expect(implementation).toContain(
+      'export const getGetPetUrl = (petId: string,',
+    );
+    expect(implementation).toContain('params?: PetParams,');
+    expect(implementation).not.toContain('options?: AxiosRequestConfig');
+  });
+});
 
 describe('getAxiosDependencies (axios-functions mode)', () => {
   it('should return axios runtime import when no global mutator', () => {

@@ -19,6 +19,17 @@ export const getIssue3330 = (axiosInstance: AxiosInstance = axios) => {
       ...options,
     });
   };
+  const getDownloadInlineUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/download-inline`,
+        baseURL: '',
+      });
+  };
 
   const downloadRef = (
     options?: AxiosRequestConfig,
@@ -28,8 +39,24 @@ export const getIssue3330 = (axiosInstance: AxiosInstance = axios) => {
       ...options,
     });
   };
+  const getDownloadRefUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/download-ref`,
+        baseURL: '',
+      });
+  };
 
-  return { downloadInline, downloadRef };
+  return {
+    downloadInline,
+    downloadRef,
+    getDownloadInlineUrl,
+    getDownloadRefUrl,
+  };
 };
 export type DownloadInlineResult = AxiosResponse<Blob>;
 export type DownloadRefResult = AxiosResponse<TestPdfFile>;

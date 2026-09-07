@@ -19,5 +19,16 @@ export const retrieveTranslations = (
 ): Promise<AxiosResponse<RetrieveTranslations200>> => {
   return axios.get(`/${locale}.js`, options);
 };
+export const getRetrieveTranslationsUrl = (locale: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/${locale}.js`,
+      baseURL: '',
+    });
+};
 
 export type RetrieveTranslationsResult = AxiosResponse<RetrieveTranslations200>;

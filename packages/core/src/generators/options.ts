@@ -607,6 +607,58 @@ interface GenerateAxiosOptions {
   paramsFilter?: GeneratorMutator;
 }
 
+interface GenerateAxiosUrlOptions {
+  functionName: string;
+  propsImplementation: string;
+  route: string;
+  axiosRef: string;
+  hasQueryParams: boolean;
+  beforeReturn?: string;
+  paramsSerializer?: string;
+  paramsSerializerOptions?: ParamsSerializerOptions;
+}
+
+/**
+ * Generates an Axios URL helper without applying runtime request options.
+ *
+ * Axios owns query-string serialization, so getUri is used to keep the helper
+ * aligned with the request's paramsSerializer and Axios defaults. A derived
+ * instance clears default params while retaining the configured serializer;
+ * an empty baseURL keeps the helper's result at the generated OpenAPI route
+ * instead of turning it into the final transport URL for a configured Axios
+ * instance.
+ */
+export function generateAxiosUrl({
+  functionName,
+  propsImplementation,
+  route,
+  axiosRef,
+  hasQueryParams,
+  beforeReturn,
+  paramsSerializer,
+  paramsSerializerOptions,
+}: GenerateAxiosUrlOptions) {
+  const serializer = paramsSerializer
+    ? `paramsSerializer: ${paramsSerializer},`
+    : paramsSerializerOptions?.qs
+      ? `paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(paramsSerializerOptions.qs)}),`
+      : '';
+
+  return `export const ${functionName} = (${propsImplementation}) => {
+    ${beforeReturn ?? ''}
+  return ${axiosRef}.create({
+    baseURL: '',
+    params: null,
+  }).getUri({
+    url: \`${route}\`,
+    baseURL: '',
+    ${hasQueryParams ? 'params,' : ''}
+    ${serializer}
+  });
+}
+`;
+}
+
 export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,

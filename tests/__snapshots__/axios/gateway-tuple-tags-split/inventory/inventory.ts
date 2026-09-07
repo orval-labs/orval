@@ -19,13 +19,36 @@ export const getInventory = (axiosInstance: AxiosInstance = axios) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getGetStockUrl = (params?: GetInventoryStockParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/api/inventory/stock`,
+        baseURL: '',
+        params,
+      });
+  };
   const postStock = (
     product: Product,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Product>> => {
     return axiosInstance.post(`/api/inventory/stock`, product, options);
   };
-  return { getStock, postStock };
+  const getPostStockUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/api/inventory/stock`,
+        baseURL: '',
+      });
+  };
+  return { getStock, postStock, getGetStockUrl, getPostStockUrl };
 };
 export type GetInventoryStockResult = AxiosResponse<Product>;
 export type PostInventoryStockResult = AxiosResponse<Product>;

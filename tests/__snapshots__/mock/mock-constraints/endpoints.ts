@@ -18,5 +18,16 @@ export const getItems = (
 ): Promise<AxiosResponse<ConstrainedItem>> => {
   return axios.get(`/items`, options);
 };
+export const getGetItemsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/items`,
+      baseURL: '',
+    });
+};
 
 export type GetItemsResult = AxiosResponse<ConstrainedItem>;

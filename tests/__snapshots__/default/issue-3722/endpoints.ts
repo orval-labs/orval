@@ -20,5 +20,16 @@ export const getPetTagInfo = (
 ): Promise<AxiosResponse<PetTagInfo>> => {
   return axios.get(`/pets/${petId}/tag-info`, options);
 };
+export const getGetPetTagInfoUrl = (petId: number) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}/tag-info`,
+      baseURL: '',
+    });
+};
 
 export type GetPetTagInfoResult = AxiosResponse<PetTagInfo>;

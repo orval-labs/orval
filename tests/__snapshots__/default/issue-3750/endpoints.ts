@@ -21,11 +21,33 @@ export const getItem = (
 ): Promise<AxiosResponse<ItemDetail>> => {
   return axios.get(`/item`, options);
 };
+export const getGetItemUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/item`,
+      baseURL: '',
+    });
+};
 
 export const getNullableItem = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableItemDetail | null>> => {
   return axios.get(`/nullable-item`, options);
+};
+export const getGetNullableItemUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-item`,
+      baseURL: '',
+    });
 };
 
 export const getNestedNullableItem = (
@@ -33,11 +55,33 @@ export const getNestedNullableItem = (
 ): Promise<AxiosResponse<NestedNullableItemDetail | null>> => {
   return axios.get(`/nested-nullable-item`, options);
 };
+export const getGetNestedNullableItemUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nested-nullable-item`,
+      baseURL: '',
+    });
+};
 
 export const getRefNullableItem = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<RefNullableItemDetail | null>> => {
   return axios.get(`/ref-nullable-item`, options);
+};
+export const getGetRefNullableItemUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/ref-nullable-item`,
+      baseURL: '',
+    });
 };
 
 export type GetItemResult = AxiosResponse<ItemDetail>;

@@ -17,7 +17,18 @@ export const getOrvalEnumValueEscapingRepro = (
   ): Promise<AxiosResponse<Ping200>> => {
     return axiosInstance.get(`/ping`, options);
   };
+  const getPingUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/ping`,
+        baseURL: '',
+      });
+  };
 
-  return { ping };
+  return { ping, getPingUrl };
 };
 export type PingResult = AxiosResponse<Ping200>;
