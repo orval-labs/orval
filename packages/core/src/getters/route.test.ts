@@ -12,6 +12,7 @@ import {
   getRoute,
   getRouteAsArray,
   makeRouteSafe,
+  parseRoutePath,
   wrapRouteParameters,
 } from './route';
 
@@ -575,6 +576,87 @@ describe('makeRouteSafe', () => {
     );
     expect(result).toBe(
       '/pets/${pathParams()?.petId ?? 42}/x/${encodeURIComponent(String(x))}',
+    );
+  });
+});
+
+// #3703: static text and interpolations are produced from separate tokens, so
+// no downstream pass has to guess which `${...}` in the generated source is
+// real. These are the cases the old character-adjacency heuristics got wrong.
+describe('route tokenization (#3703)', () => {
+  /** `${name}` as it appears in generated source. */
+  const tag = (name: string) => '${' + name + '}';
+  /** `\${name}` — escaped static text, never an interpolation. */
+  const escapedTag = (name: string) => '\\${' + name + '}';
+
+  it('parses a spec path into literal and param tokens', () => {
+    expect(parseRoutePath('/pets/{petId}/tags')).toEqual([
+      { kind: 'literal', value: '/pets/' },
+      { kind: 'param', name: 'petId' },
+      { kind: 'literal', value: '/tags' },
+    ]);
+  });
+
+  it('never reads a spec `${...}` block as a param', () => {
+    expect(parseRoutePath('/v1/${evil}/x')).toEqual([
+      { kind: 'literal', value: '/v1/${evil}/x' },
+    ]);
+  });
+
+  it('still reads a param that follows a `${...}` block', () => {
+    expect(parseRoutePath('/v1/${evil}{petId}')).toEqual([
+      { kind: 'literal', value: '/v1/${evil}' },
+      { kind: 'param', name: 'petId' },
+    ]);
+  });
+
+  it('reads a param after a bare `$`', () => {
+    expect(parseRoutePath('/price$/{petId}')).toEqual([
+      { kind: 'literal', value: '/price$/' },
+      { kind: 'param', name: 'petId' },
+    ]);
+  });
+
+  it('leaves a malformed `{}` literal', () => {
+    expect(parseRoutePath('/a/{}/b')).toEqual([
+      { kind: 'literal', value: '/a/{}/b' },
+    ]);
+  });
+
+  it('makeRouteSafe leaves an escaped literal `${...}` untouched', () => {
+    const route = getRoute('/foo${petId}');
+    expect(route).toBe('/foo' + escapedTag('petId'));
+    expect(makeRouteSafe(route)).toBe(route);
+  });
+
+  it('makeRouteSafe still wraps a param after an escaped literal', () => {
+    const route = getRoute('/foo${lit}/{petId}');
+    expect(makeRouteSafe(route)).toBe(
+      '/foo' +
+        escapedTag('lit') +
+        '/' +
+        tag('encodeURIComponent(String(petId))'),
+    );
+  });
+
+  it('getRouteAsArray reads a param that follows an escaped backslash', () => {
+    // A trailing `\` in the spec segment is emitted as `\` by jsesc, so the
+    // interpolation that follows it is preceded by a backslash.
+    const route = getRoute('/a\\{petId}');
+    expect(route).toBe('/a\\\\' + tag('petId'));
+    expect(getRouteAsArray(route)).toBe("'a\\\\',petId");
+  });
+
+  it('getRouteAsArray keeps an escaped literal `${...}` as a static segment', () => {
+    const route = getRoute('/foo${lit}/{petId}');
+    expect(getRouteAsArray(route)).toBe("'foo" + escapedTag('lit') + "',petId");
+  });
+
+  it('getRouteAsArray does not split on a `/` inside an interpolation', () => {
+    const route =
+      tag("process.env.API ?? 'http://x'") + '/pets/' + tag('petId');
+    expect(getRouteAsArray(route)).toBe(
+      "process.env.API ?? 'http://x','pets',petId",
     );
   });
 });

@@ -24,4 +24,5 @@ export * from './schemas-options';
 export * from './sort';
 export * from './string';
 export * from './tags';
+export * from './template-literal';
 export * from './tsconfig';

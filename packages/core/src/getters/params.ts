@@ -6,31 +6,33 @@ import type {
   NormalizedOutputOptions,
 } from '../types';
 import { stringify } from '../utils';
-import { camelPathParamName } from './route';
+import { camelPathParamName, parseRoutePath } from './route';
 
 /**
- * Return every params in a path
+ * Return the name of every `{param}` in an OpenAPI path, in spec spelling.
+ *
+ * Uses the same tokenizer as the route generators ({@link parseRoutePath}), so
+ * a placeholder is reported here if and only if it becomes an interpolation in
+ * the generated route. Text that only looks like a placeholder — `{a+b}`,
+ * `{}`, or a `${...}` block written in the spec — is static text and is not
+ * reported (#3703).
  *
  * @example
  * ```
  * getParamsInPath("/pet/{category}/{name}/");
  * // => ["category", "name"]
  * ```
- * @param path
+ * @param path an OpenAPI path, not a generated route
  */
-export function getParamsInPath(path: string) {
-  let n;
-  const output = [];
-  const templatePathRegex = /\{(.*?)\}/g;
-  while ((n = templatePathRegex.exec(path)) !== null) {
-    output.push(n[1]);
-  }
-
-  return output;
+export function getParamsInPath(path: string): string[] {
+  return parseRoutePath(path)
+    .filter((token) => token.kind === 'param')
+    .map((token) => token.name);
 }
 
 interface GetParamsOptions {
-  route: string;
+  /** The OpenAPI path (`/pets/{petId}`), not the generated route. */
+  pathRoute: string;
   pathParams?: GetterParameters['query'];
   operationId: string;
   context: ContextSpec;
@@ -73,15 +75,21 @@ function resolvePathParam(
 }
 
 export function getParams({
-  route,
+  pathRoute,
   pathParams = [],
   operationId,
   context,
   output,
 }: GetParamsOptions): GetterParams {
-  const params = getParamsInPath(route);
-  return params.map((p) => {
-    const pathParam = resolvePathParam(p, pathParams, operationId);
+  // Derived from the spec path through the same tokenizer the route generator
+  // uses, so the generated function arguments and the route interpolations
+  // can never disagree about what is a parameter (#3703).
+  return getParamsInPath(pathRoute).map((specName) => {
+    const pathParam = resolvePathParam(
+      camelPathParamName(specName),
+      pathParams,
+      operationId,
+    );
 
     const {
       name: nameWithoutSanitize,

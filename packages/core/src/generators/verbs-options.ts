@@ -160,7 +160,7 @@ async function buildVerbOption({
     : undefined;
 
   const params = getParams({
-    route,
+    pathRoute,
     pathParams: parameters.path,
     operationId,
     context,
