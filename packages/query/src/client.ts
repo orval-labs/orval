@@ -292,6 +292,7 @@ export const generateAxiosRequestFunction = (
     headers,
     queryParams,
     operationName,
+    urlHelperName,
     response,
     mutator,
     body,
@@ -461,7 +462,7 @@ export const generateAxiosRequestFunction = (
   );
   const axiosRef = `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
   const urlImplementation = generateAxiosUrl({
-    functionName: camel(`get-${operationName}-url`),
+    functionName: urlHelperName ?? camel(`get-${operationName}-url`),
     propsImplementation: toObjectString(urlProps, 'implementation'),
     route,
     axiosRef,

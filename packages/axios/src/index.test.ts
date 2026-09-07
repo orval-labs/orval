@@ -3,7 +3,7 @@ import type {
   GeneratorVerbOptions,
   GeneratorMutator,
 } from '@orval/core';
-import { OutputClient } from '@orval/core';
+import { getOperationUrlHelperNames, OutputClient } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -122,6 +122,61 @@ const mutator: GeneratorMutator = {
 };
 
 describe('Axios URL helpers', () => {
+  it('uses collision-safe helper names in functions and factory output', async () => {
+    const [fooUrlName, getFooUrlName] = getOperationUrlHelperNames(
+      ['foo', 'getFooUrl'],
+      ['foo', 'getFooUrl'],
+    );
+    const foo = await generateAxiosFunctions(
+      createVerbOptions({ operationName: 'foo', urlHelperName: fooUrlName }),
+      generatorOptions,
+      OutputClient.AXIOS_FUNCTIONS,
+    );
+    const getFoo = await generateAxiosFunctions(
+      createVerbOptions({
+        operationName: 'getFooUrl',
+        urlHelperName: getFooUrlName,
+      }),
+      generatorOptions,
+      OutputClient.AXIOS_FUNCTIONS,
+    );
+
+    expect(`${foo.implementation}\n${getFoo.implementation}`).toContain(
+      'export const getFooUrl2',
+    );
+    expect(`${foo.implementation}\n${getFoo.implementation}`).toContain(
+      'export const getGetFooUrlUrl',
+    );
+    expect(
+      `${foo.implementation}\n${getFoo.implementation}`.match(
+        /export const getFooUrl\s*=/g,
+      ),
+    ).toHaveLength(1);
+
+    const footer = generateAxiosFooter({
+      operationNames: ['foo', 'getFooUrl'],
+      operations: [
+        {
+          operationName: 'foo',
+          urlHelperName: fooUrlName,
+          mutator: undefined,
+        } as never,
+        {
+          operationName: 'getFooUrl',
+          urlHelperName: getFooUrlName,
+          mutator: undefined,
+        } as never,
+      ],
+      noFunction: false,
+      hasMutator: false,
+      hasAwaitedType: true,
+    });
+
+    expect(footer).toContain(
+      'return {foo,getFooUrl,getFooUrl2,getGetFooUrlUrl}};',
+    );
+  });
+
   it('adds a public helper without changing the existing request call', async () => {
     const { implementation } = await generateAxiosFunctions(
       createVerbOptions(),

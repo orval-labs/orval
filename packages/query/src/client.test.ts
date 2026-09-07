@@ -7,7 +7,7 @@ import type {
   PackageJson,
   ResReqTypesValue,
 } from '@orval/core';
-import { OutputHttpClient } from '@orval/core';
+import { getOperationUrlHelperNames, OutputHttpClient } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './frameworks';
@@ -801,6 +801,37 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
     expect(result).toContain('}).getUri({');
     expect(result).toContain('axios.default.get(');
     expect(result).not.toContain('axios.default.get(getGetPetUrl(');
+  });
+
+  it('uses the resolved helper name for colliding Axios operations', () => {
+    const [fooUrlName, getFooUrlName] = getOperationUrlHelperNames(
+      ['foo', 'getFooUrl'],
+      ['foo', 'getFooUrl'],
+    );
+    const foo = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        operationName: 'foo',
+        urlHelperName: fooUrlName,
+        mutator: undefined,
+      },
+      options,
+      adapter,
+    );
+    const getFoo = generateAxiosRequestFunction(
+      {
+        ...verbOptions,
+        operationName: 'getFooUrl',
+        urlHelperName: getFooUrlName,
+        mutator: undefined,
+      },
+      options,
+      adapter,
+    );
+
+    expect(`${foo}\n${getFoo}`).toContain('export const getFooUrl2');
+    expect(`${foo}\n${getFoo}`).toContain('export const getGetFooUrlUrl');
+    expect(`${foo}\n${getFoo}`).not.toMatch(/export const getFooUrl\s*=/);
   });
 
   it('unwraps Vue MaybeRef path values inside the URL helper', () => {

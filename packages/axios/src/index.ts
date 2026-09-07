@@ -96,6 +96,7 @@ const generateAxiosImplementation = (
     headers,
     queryParams,
     operationName,
+    urlHelperName,
     typeName,
     response,
     mutator,
@@ -213,7 +214,7 @@ const generateAxiosImplementation = (
       prop.type === GetterPropType.QUERY_PARAM,
   );
   const urlImplementation = generateAxiosUrl({
-    functionName: camel(`get-${operationName}-url`),
+    functionName: urlHelperName ?? camel(`get-${operationName}-url`),
     propsImplementation: toObjectString(urlProps, 'implementation'),
     route,
     axiosRef,
@@ -285,7 +286,11 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   if (!noFunction) {
     const urlOperationNames = (operations ?? [])
       .filter((operation) => !operation.mutator)
-      .map((operation) => camel(`get-${operation.operationName}-url`));
+      .map(
+        (operation) =>
+          operation.urlHelperName ??
+          camel(`get-${operation.operationName}-url`),
+      );
     footer += `return {${[...operationNames, ...urlOperationNames].join(',')}}};\n`;
   }
 
