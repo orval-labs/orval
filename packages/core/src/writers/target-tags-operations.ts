@@ -240,10 +240,16 @@ export function generateTargetForTagsOperations(
           type: m.type,
           implementation: {
             function: m.implementation.function,
+            // `handlerName` is the factory's identifier. The aggregate helper
+            // must call it, as `target.ts` / `target-tags.ts` do, so that
+            // `setupServer(...getPetsMock())` receives handlers, not
+            // factories.
             handler: m.implementation.handlerName
               ? m.implementation.handler +
                 header.implementationMock +
+                '  ' +
                 m.implementation.handlerName +
+                '()' +
                 footer.implementationMock
               : m.implementation.handler,
             handlerName: m.implementation.handlerName,
