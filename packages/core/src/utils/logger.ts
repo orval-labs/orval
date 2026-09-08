@@ -25,6 +25,16 @@ export function setVerbose(v: boolean) {
   _verbose = v;
 }
 
+let _quiet = false;
+
+export function setQuiet(v: boolean) {
+  _quiet = v;
+}
+
+export function isQuiet(): boolean {
+  return _quiet;
+}
+
 export const logVerbose: typeof console.log = (...args) => {
   if (_verbose) log(...args);
 };
@@ -70,6 +80,9 @@ export function logError(err: unknown, tag?: string) {
 }
 
 export function createSuccessMessage(backend?: string) {
+  if (isQuiet()) {
+    return;
+  }
   log(
     `🎉 ${
       backend ? `${styleText('green', backend)} - ` : ''
