@@ -102,31 +102,51 @@ export const generateQuery: ClientBuilder = async (
     typeof options.context.output.schemas === 'object' &&
     options.context.output.schemas.type === 'zod';
   const responseType = verbOptions.response.definition.success;
+  const hasValidatableResponse =
+    isZodOutput &&
+    !isPrimitiveResponseType(responseType) &&
+    hasSchemaImport(verbOptions.response.imports, responseType);
   // A custom mutator skips the generated parse entirely, so its schema
   // import stays type-only and no rewrite is needed.
   const shouldUseRuntimeValidation =
     verbOptions.override.query.runtimeValidation?.enabled &&
-    isZodOutput &&
     !verbOptions.mutator &&
-    !isPrimitiveResponseType(responseType) &&
-    hasSchemaImport(verbOptions.response.imports, responseType);
+    hasValidatableResponse;
+  // ...unless the fetch request function hands the schema to the mutator
+  // (`includeZodSchemaInArguments`), which needs it imported as a value.
+  // Mirrors the conditions the fetch generator emits `schema:` under.
+  const shouldImportSchemaValue =
+    !!verbOptions.mutator &&
+    options.context.output.httpClient === OutputHttpClient.FETCH &&
+    options.context.output.override.includeZodSchemaInArguments &&
+    verbOptions.override.fetch.runtimeValidation.enabled &&
+    hasValidatableResponse &&
+    !verbOptions.response.contentTypes.some(
+      (contentType) =>
+        contentType === 'application/nd-json' ||
+        contentType === 'application/x-ndjson',
+    );
 
-  const normalizedVerbOptions = shouldUseRuntimeValidation
-    ? {
-        ...verbOptions,
-        response: {
-          ...verbOptions.response,
-          imports: rewriteImportsForResponseValidation(
-            verbOptions.response.imports,
-            responseType,
-            // Only the Angular HttpClient request function switches its
-            // declared type to the `XOutput` alias (#3941); other frameworks
-            // delegate to their http-client generator.
-            { includeOutputType: adapter.isAngularHttp },
-          ),
-        },
-      }
-    : verbOptions;
+  const normalizedVerbOptions =
+    shouldUseRuntimeValidation || shouldImportSchemaValue
+      ? {
+          ...verbOptions,
+          response: {
+            ...verbOptions.response,
+            imports: rewriteImportsForResponseValidation(
+              verbOptions.response.imports,
+              responseType,
+              // Only the Angular HttpClient request function switches its
+              // declared type to the `XOutput` alias (#3941); other frameworks
+              // delegate to their http-client generator.
+              {
+                includeOutputType:
+                  shouldUseRuntimeValidation && adapter.isAngularHttp,
+              },
+            ),
+          },
+        }
+      : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = adapter.generateRequestFunction(
