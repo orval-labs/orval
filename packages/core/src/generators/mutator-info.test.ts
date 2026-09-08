@@ -262,7 +262,8 @@ describe('getMutatorInfo', () => {
 
   describe('dynamic import', () => {
     // Regression test for https://github.com/orval-labs/orval/issues/1634.
-    // esbuild preserves dynamic `import()` in its ESM output, so the bundled
+    // esbuild used to preserve dynamic `import()` in its ESM output; rolldown
+    // does the same, so the bundled
     // code handed to acorn contains an `import()` expression. Acorn must be
     // able to parse it; otherwise the named export is reported as missing.
     it('should find named export when body contains await import()', async () => {
