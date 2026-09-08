@@ -50,6 +50,25 @@ const PETSTORE_SPEC: OpenApiDocument = {
   },
 };
 
+const URL_HELPER_COLLISION_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'URL helper collision', version: '1.0.0' },
+  paths: {
+    '/foo': {
+      get: {
+        operationId: 'foo',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/get-foo-url': {
+      get: {
+        operationId: 'getFooUrl',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+  },
+};
+
 const ROUTED_SCHEMA_SPEC: OpenApiDocument = {
   ...PETSTORE_SPEC,
   components: {
@@ -359,6 +378,40 @@ describe('generateSpec - unchanged formatted output', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+});
+
+describe('generateSpec - collision-safe Axios URL helpers', () => {
+  for (const client of ['axios-functions', 'axios', 'react-query'] as const) {
+    it(`keeps ${client} output free of duplicate declarations`, async () => {
+      const workspace = await createTempWorkspace();
+      const targetFile = path.join(workspace, 'endpoints.ts');
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: URL_HELPER_COLLISION_SPEC },
+            output: {
+              target: './endpoints.ts',
+              client,
+              ...(client === 'react-query' ? { httpClient: 'axios' } : {}),
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        const content = await fs.readFile(targetFile, 'utf8');
+        expect(content).toContain('getFooUrl2');
+        expect(content).toContain('getGetFooUrlUrl');
+        expect(content.match(/(?:export )?const getFooUrl\s*=/g)).toHaveLength(
+          1,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  }
 });
 
 describe('generateSpec - HTTP QUERY method', () => {

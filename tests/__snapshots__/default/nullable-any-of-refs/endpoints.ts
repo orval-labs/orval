@@ -20,11 +20,33 @@ export const getPets = (
 ): Promise<AxiosResponse<Pets[]>> => {
   return axios.get(`/pets`, options);
 };
+export const getGetPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 export const getAnimals = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Animals[]>> => {
   return axios.get(`/animals`, options);
+};
+export const getGetAnimalsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/animals`,
+      baseURL: '',
+    });
 };
 
 export const getNestedAnimals = (
@@ -32,17 +54,50 @@ export const getNestedAnimals = (
 ): Promise<AxiosResponse<NestedAnimals[]>> => {
   return axios.get(`/nested-animals`, options);
 };
+export const getGetNestedAnimalsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nested-animals`,
+      baseURL: '',
+    });
+};
 
 export const getMixedNullable = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<MixedNullable[]>> => {
   return axios.get(`/mixed-nullable`, options);
 };
+export const getGetMixedNullableUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/mixed-nullable`,
+      baseURL: '',
+    });
+};
 
 export const getMixedTypes = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<MixedTypes[]>> => {
   return axios.get(`/mixed-types`, options);
+};
+export const getGetMixedTypesUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/mixed-types`,
+      baseURL: '',
+    });
 };
 
 export type GetPetsResult = AxiosResponse<Pets[]>;

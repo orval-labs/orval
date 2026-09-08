@@ -1858,6 +1858,8 @@ export interface GeneratorOperation {
   paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   operationName: string;
+  /** Resolved Axios URL-helper name when the output client emits one. */
+  urlHelperName?: string;
   types?: {
     result: (title?: string) => string;
   };
@@ -1923,6 +1925,8 @@ export interface GeneratorVerbOptions {
   tags: string[];
   operationId: string;
   operationName: string;
+  /** Resolved Axios URL-helper name when the output client emits one. */
+  urlHelperName?: string;
   typeName: string;
   response: GetterResponse;
   body: GetterBody;

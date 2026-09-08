@@ -17,7 +17,18 @@ export const getIssue3691TuplePrefixItemsMock = (
   ): Promise<AxiosResponse<Example>> => {
     return axiosInstance.get(`/example`, options);
   };
+  const getGetExampleUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/example`,
+        baseURL: '',
+      });
+  };
 
-  return { getExample };
+  return { getExample, getGetExampleUrl };
 };
 export type GetExampleResult = AxiosResponse<Example>;

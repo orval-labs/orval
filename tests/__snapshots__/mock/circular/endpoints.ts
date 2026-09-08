@@ -22,6 +22,17 @@ export const getExample = (
 ): Promise<AxiosResponse<Node>> => {
   return axios.get(`/example`, options);
 };
+export const getGetExampleUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/example`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Node with required child
@@ -30,6 +41,17 @@ export const getNodeWithRequiredChild = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NodeWithRequiredChild>> => {
   return axios.get(`/node-with-required-child`, options);
+};
+export const getGetNodeWithRequiredChildUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/node-with-required-child`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -44,6 +66,18 @@ export const addList = (
     ...options,
     params: { ...params, ...options?.params },
   });
+};
+export const getAddListUrl = (params?: AddListParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/list`,
+      baseURL: '',
+      params,
+    });
 };
 
 export type GetExampleResult = AxiosResponse<Node>;

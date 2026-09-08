@@ -17,5 +17,20 @@ export const listFiles = (
     ...options,
   });
 };
+export const getListFilesUrl = (
+  prefix: string = 'C:\\logs\\',
+  namespace: string = 'App\\Models\\Document',
+  tz: string = 'Asia/Tokyo',
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/files/${prefix}/${namespace}/${tz}`,
+      baseURL: '',
+    });
+};
 
 export type ListFilesResult = AxiosResponse<string>;

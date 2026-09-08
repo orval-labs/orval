@@ -21,7 +21,18 @@ export const getUnionEnumRefMock = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<DisplayValueDto>> => {
     return axiosInstance.get(`/display`, options);
   };
+  const getGetDisplayUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/display`,
+        baseURL: '',
+      });
+  };
 
-  return { getDisplay };
+  return { getDisplay, getGetDisplayUrl };
 };
 export type GetDisplayResult = AxiosResponse<DisplayValueDto>;

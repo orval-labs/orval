@@ -21,7 +21,18 @@ export const getMSWProblemDetailsContentType = (
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.get(`/pets/${petId}`, options);
   };
+  const getGetPetUrl = (petId: number) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets/${petId}`,
+        baseURL: '',
+      });
+  };
 
-  return { getPet };
+  return { getPet, getGetPetUrl };
 };
 export type GetPetResult = AxiosResponse<Pet>;

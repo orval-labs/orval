@@ -50,6 +50,24 @@ export const listPets = (
   });
 };
 
+export const getListPetsUrl = (
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
+) => {
+  params = toValue(params);
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets`,
+      baseURL: '',
+      params,
+    });
+};
+
 export const getListPetsInfiniteQueryKey = (
   params?: MaybeRefOrGetter<ListPetsParams>,
   version: MaybeRefOrGetter<number> = 1,
@@ -270,6 +288,24 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsUrl = (
+  params: MaybeRefOrGetter<CreatePetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
+) => {
+  params = toValue(params);
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets`,
+      baseURL: '',
+      params,
+    });
+};
+
 export const getCreatePetsQueryKey = (
   createPetsBody?: MaybeRefOrGetter<CreatePetsBody>,
   params?: MaybeRefOrGetter<CreatePetsParams>,
@@ -379,6 +415,23 @@ export const showPetById = (
   return axios.get(`/v${version}/pets/${petId}`, options);
 };
 
+export const getShowPetByIdUrl = (
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
+) => {
+  petId = toValue(petId);
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}`,
+      baseURL: '',
+    });
+};
+
 export const getShowPetByIdQueryKey = (
   petId: MaybeRefOrGetter<string>,
   version: MaybeRefOrGetter<number> = 1,
@@ -474,6 +527,23 @@ export const deletePetById = (
   version = toValue(version);
 
   return axios.delete(`/v${version}/pets/${petId}`, options);
+};
+
+export const getDeletePetByIdUrl = (
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
+) => {
+  petId = toValue(petId);
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 export const getDeletePetByIdQueryKey = (
@@ -578,6 +648,19 @@ export const healthCheck = (
   });
 };
 
+export const getHealthCheckUrl = (version: MaybeRefOrGetter<number> = 1) => {
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/health`,
+      baseURL: '',
+    });
+};
+
 export const getHealthCheckQueryKey = (
   version: MaybeRefOrGetter<number> = 1,
 ) => {
@@ -666,6 +749,23 @@ export const showPetWithOwner = (
   version = toValue(version);
 
   return axios.get(`/v${version}/pets/${petId}/owner`, options);
+};
+
+export const getShowPetWithOwnerUrl = (
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
+) => {
+  petId = toValue(petId);
+  version = toValue(version);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}/owner`,
+      baseURL: '',
+    });
 };
 
 export const getShowPetWithOwnerQueryKey = (

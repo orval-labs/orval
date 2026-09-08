@@ -23,14 +23,41 @@ export const getIssue3200 = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<StringToIntegerMap>> => {
     return axiosInstance.get(`/integer-map`, options);
   };
+  const getGetIntegerMapUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/integer-map`,
+        baseURL: '',
+      });
+  };
 
   const getNumberMap = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<StringToNumberMap>> => {
     return axiosInstance.get(`/number-map`, options);
   };
+  const getGetNumberMapUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/number-map`,
+        baseURL: '',
+      });
+  };
 
-  return { getIntegerMap, getNumberMap };
+  return {
+    getIntegerMap,
+    getNumberMap,
+    getGetIntegerMapUrl,
+    getGetNumberMapUrl,
+  };
 };
 export type GetIntegerMapResult = AxiosResponse<StringToIntegerMap>;
 export type GetNumberMapResult = AxiosResponse<StringToNumberMap>;

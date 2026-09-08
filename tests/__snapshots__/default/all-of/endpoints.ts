@@ -27,6 +27,17 @@ export const createPets = (
 
   return axios.post(`/pets`, formData, options);
 };
+export const getCreatePetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 /**
  * Not has properties with allOf pets.
@@ -35,6 +46,17 @@ export const getNotHasPropertiesWithAllOfPets = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<GetNotHasPropertiesWithAllOfPets200>> => {
   return axios.get(`/not-has-properties-with-all-of-pets`, options);
+};
+export const getGetNotHasPropertiesWithAllOfPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/not-has-properties-with-all-of-pets`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -45,6 +67,17 @@ export const getNestedRefInAllOfPets = (
 ): Promise<AxiosResponse<Pet & PetDetail>> => {
   return axios.get(`/rested-ref-in-all-of-pets`, options);
 };
+export const getGetNestedRefInAllOfPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/rested-ref-in-all-of-pets`,
+      baseURL: '',
+    });
+};
 
 /**
  * Test allOf with nullable and required fields.
@@ -53,6 +86,17 @@ export const getItemsWithNullableRequired = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<ItemWithNullableRequired[]>> => {
   return axios.get(`/items-with-nullable-required`, options);
+};
+export const getGetItemsWithNullableRequiredUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/items-with-nullable-required`,
+      baseURL: '',
+    });
 };
 
 export type CreatePetsResult = AxiosResponse<void>;

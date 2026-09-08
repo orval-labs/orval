@@ -17,7 +17,18 @@ export const getMSWArrayItemFactories = (
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/tenants-by-ref`, options);
   };
+  const getGetTenantsByRefUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/tenants-by-ref`,
+        baseURL: '',
+      });
+  };
 
-  return { getTenantsByRef };
+  return { getTenantsByRef, getGetTenantsByRefUrl };
 };
 export type GetTenantsByRefResult = AxiosResponse<TenantListResponse>;

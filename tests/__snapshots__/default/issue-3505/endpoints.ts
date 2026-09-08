@@ -14,5 +14,16 @@ export const ping = (
 ): Promise<AxiosResponse<Ping200>> => {
   return axios.get(`/ping`, options);
 };
+export const getPingUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/ping`,
+      baseURL: '',
+    });
+};
 
 export type PingResult = AxiosResponse<Ping200>;

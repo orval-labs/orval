@@ -18,4 +18,15 @@ export const getTemplate = (
 ): Promise<AxiosResponse<Template>> => {
   return axios.get(`/api/template`, options);
 };
+export const getGetTemplateUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/template`,
+      baseURL: '',
+    });
+};
 export type GetTemplateResult = AxiosResponse<Template>;

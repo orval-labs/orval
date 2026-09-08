@@ -27,5 +27,16 @@ export const getPoints = (
 ): Promise<AxiosResponse<GetPoints200Item[]>> => {
   return axios.get(`/points`, options);
 };
+export const getGetPointsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/points`,
+      baseURL: '',
+    });
+};
 
 export type GetPointsResult = AxiosResponse<GetPoints200Item[]>;

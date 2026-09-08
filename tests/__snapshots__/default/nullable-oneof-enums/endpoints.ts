@@ -21,11 +21,33 @@ export const getItems = (
 ): Promise<AxiosResponse<Item1[]>> => {
   return axios.get(`/items`, options);
 };
+export const getGetItemsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/items`,
+      baseURL: '',
+    });
+};
 
 export const getItemsWithMultipleProps = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Item3[]>> => {
   return axios.get(`/items-with-multiple-props`, options);
+};
+export const getGetItemsWithMultiplePropsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/items-with-multiple-props`,
+      baseURL: '',
+    });
 };
 
 export const getNestedItems = (
@@ -33,17 +55,50 @@ export const getNestedItems = (
 ): Promise<AxiosResponse<NestedItem[]>> => {
   return axios.get(`/nested-items`, options);
 };
+export const getGetNestedItemsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nested-items`,
+      baseURL: '',
+    });
+};
 
 export const getMixedEnumItems = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<MixedEnumItem[]>> => {
   return axios.get(`/mixed-enum-items`, options);
 };
+export const getGetMixedEnumItemsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/mixed-enum-items`,
+      baseURL: '',
+    });
+};
 
 export const getMixedTypeEnums = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<MixedTypeEnums[]>> => {
   return axios.get(`/mixed-type-enums`, options);
+};
+export const getGetMixedTypeEnumsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/mixed-type-enums`,
+      baseURL: '',
+    });
 };
 
 export type GetItemsResult = AxiosResponse<Item1[]>;

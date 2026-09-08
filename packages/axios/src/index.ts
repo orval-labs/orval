@@ -1,4 +1,5 @@
 import {
+  camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -13,7 +14,9 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  generateAxiosUrl,
   isSyntheticDefaultImportsAllow,
+  GetterPropType,
   pascal,
   sanitize,
   toObjectString,
@@ -93,6 +96,7 @@ const generateAxiosImplementation = (
     headers,
     queryParams,
     operationName,
+    urlHelperName,
     typeName,
     response,
     mutator,
@@ -203,6 +207,22 @@ const generateAxiosImplementation = (
     ? 'axiosInstance'
     : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
 
+  const urlProps = props.filter(
+    (prop) =>
+      prop.type === GetterPropType.PARAM ||
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+      prop.type === GetterPropType.QUERY_PARAM,
+  );
+  const urlImplementation = generateAxiosUrl({
+    functionName: urlHelperName ?? camel(`get-${operationName}-url`),
+    propsImplementation: toObjectString(urlProps, 'implementation'),
+    route,
+    axiosRef,
+    hasQueryParams: !!queryParams,
+    paramsSerializer: paramsSerializer?.name,
+    paramsSerializerOptions: override.paramsSerializerOptions,
+  });
+
   return {
     implementation: `const ${operationName} = (\n    ${toObjectString(props, 'implementation')} ${
       isRequestOptions
@@ -211,7 +231,7 @@ const generateAxiosImplementation = (
     } ): Promise<AxiosResponse<${response.definition.success || 'unknown'}>> => {${bodyForm}
     return ${axiosRef}.${verb}(${options});
   }
-`,
+${isFactoryMode ? urlImplementation.replace(/^export /, '') : urlImplementation}`,
     returnType,
   };
 };
@@ -264,7 +284,14 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   let footer = '';
 
   if (!noFunction) {
-    footer += `return {${operationNames.join(',')}}};\n`;
+    const urlOperationNames = (operations ?? [])
+      .filter((operation) => !operation.mutator)
+      .map(
+        (operation) =>
+          operation.urlHelperName ??
+          camel(`get-${operation.operationName}-url`),
+      );
+    footer += `return {${[...operationNames, ...urlOperationNames].join(',')}}};\n`;
   }
 
   if (hasMutator && !hasAwaitedType) {

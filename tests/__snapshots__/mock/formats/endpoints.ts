@@ -18,5 +18,16 @@ export const showPetById = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
 };
+export const getShowPetByIdUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
+};
 
 export type ShowPetByIdResult = AxiosResponse<Pet>;

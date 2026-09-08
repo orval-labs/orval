@@ -15,6 +15,7 @@ export * from './get-property-safe';
 export * from './is-body-verb';
 export * from './logger';
 export * from './merge-deep';
+export * from './name';
 export * from './occurrence';
 export * as upath from './path';
 export * from './required';

@@ -1789,6 +1789,18 @@ export const handleResource = (
         params: {...params, ...options?.params},}
     );
   }
+export const getHandleResourceUrl = (workspaceId: string,
+    id: string,
+    params?: HandleResourceParams,) => {
+    \n  return axios.create({
+    baseURL: '',
+    params: null,
+  }).getUri({
+    url: \`/\${workspaceId}/resource/\${id}\`,
+    baseURL: '',
+    params,
+    \n  });
+}
 `;
 
     expect(implementation).toBe(expectedImplementation);
@@ -1859,6 +1871,18 @@ export const handleResource = (
         params: {...params, ...options?.params},}
     );
   }
+export const getHandleResourceUrl = (workspaceId: string,
+    id: string,
+    params: HandleResourceParams,) => {
+    \n  return axios.create({
+    baseURL: '',
+    params: null,
+  }).getUri({
+    url: \`/\${workspaceId}/resource/\${id}\`,
+    baseURL: '',
+    params,
+    \n  });
+}
 `;
 
     expect(implementation).toBe(expectedImplementation);

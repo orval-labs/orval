@@ -19,6 +19,17 @@ export const updateProfileWithJson = (
 ): Promise<AxiosResponse<Profile>> => {
   return axios.put(`/profiles/${id}`, updateProfileBody, options);
 };
+export const getUpdateProfileWithJsonUrl = (id: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/profiles/${id}`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Update a profile
@@ -36,6 +47,17 @@ export const updateProfileWithFormData = (
 
   return axios.put(`/profiles/${id}`, formData, options);
 };
+export const getUpdateProfileWithFormDataUrl = (id: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/profiles/${id}`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Upload an avatar
@@ -52,6 +74,17 @@ export const uploadAvatarWithFormData = (
 
   return axios.post(`/avatars`, formData, options);
 };
+export const getUploadAvatarWithFormDataUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/avatars`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Upload an avatar
@@ -62,6 +95,17 @@ export const uploadAvatarWithBlob = (
 ): Promise<AxiosResponse<Avatar>> => {
   return axios.post(`/avatars`, uploadAvatarBody, options);
 };
+export const getUploadAvatarWithBlobUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/avatars`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary List profiles
@@ -70,6 +114,17 @@ export const listProfiles = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Profile[]>> => {
   return axios.get(`/profiles`, options);
+};
+export const getListProfilesUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/profiles`,
+      baseURL: '',
+    });
 };
 
 export type UpdateProfileWithJsonResult = AxiosResponse<Profile>;

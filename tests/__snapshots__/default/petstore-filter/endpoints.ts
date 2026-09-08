@@ -34,5 +34,16 @@ export const healthCheck = (
     ...options,
   });
 };
+export const getHealthCheckUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/health`,
+      baseURL: '',
+    });
+};
 
 export type HealthCheckResult = AxiosResponse<string>;

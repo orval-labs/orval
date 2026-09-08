@@ -28,7 +28,19 @@ export const getOwners = (axiosInstance: AxiosInstance = axios) => {
       params: { ...params, ...options?.params },
     });
   };
-  return { listOwners };
+  const getListOwnersUrl = (params?: ListOwnersParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/owners`,
+        baseURL: '',
+        params,
+      });
+  };
+  return { listOwners, getListOwnersUrl };
 };
 export type ListOwnersResult = AxiosResponse<
   ApiEnvelopeTemplate<PaginatedOwnerItems>

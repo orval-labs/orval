@@ -22,6 +22,17 @@ export const fetchNullable = (
 ): Promise<AxiosResponse<string | null>> => {
   return axios.get(`/nullable`, options);
 };
+export const getFetchNullableUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Nullable object with nullable properties response
@@ -30,6 +41,17 @@ export const fetchNullableObject = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableObject | null>> => {
   return axios.get(`/nullable-object`, options);
+};
+export const getFetchNullableObjectUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-object`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -40,6 +62,17 @@ export const fetchNullableAnyObject = (
 ): Promise<AxiosResponse<NullableAnyObject | null>> => {
   return axios.get(`/nullable-any-object-key`, options);
 };
+export const getFetchNullableAnyObjectUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-any-object-key`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Nullable string enums
@@ -48,6 +81,17 @@ export const fetchNullableEnums = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableStringEnum | null>> => {
   return axios.get(`/nullable-string-enum`, options);
+};
+export const getFetchNullableEnumsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-string-enum`,
+      baseURL: '',
+    });
 };
 
 export type FetchNullableResult = AxiosResponse<string | null>;

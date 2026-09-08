@@ -21,6 +21,18 @@ export const getItems = (
     params: { ...params, ...options?.params },
   });
 };
+export const getGetItemsUrl = (params?: GetItemsParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/test`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Gets anyOf included allOf pets
@@ -30,6 +42,17 @@ export const getAnyOfIncludedAllOfPets = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/any-of-included-all-of-pet`, options);
 };
+export const getGetAnyOfIncludedAllOfPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/any-of-included-all-of-pet`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Gets anyOf included allOf and shared schema pets
@@ -38,6 +61,17 @@ export const getAnyOfIncludedAllOfAndSharedSchemaPets = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<CatDetail>> => {
   return axios.get(`/any-of-included-all-of-and-shared-schema-pet`, options);
+};
+export const getGetAnyOfIncludedAllOfAndSharedSchemaPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/any-of-included-all-of-and-shared-schema-pet`,
+      baseURL: '',
+    });
 };
 
 export type GetItemsResult = AxiosResponse<void>;

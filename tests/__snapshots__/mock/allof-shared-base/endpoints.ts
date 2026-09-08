@@ -17,5 +17,16 @@ export const getAllOfSharedBase = (
 ): Promise<AxiosResponse<Response>> => {
   return axios.get(`/allof-shared-base`, options);
 };
+export const getGetAllOfSharedBaseUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/allof-shared-base`,
+      baseURL: '',
+    });
+};
 
 export type GetAllOfSharedBaseResult = AxiosResponse<Response>;

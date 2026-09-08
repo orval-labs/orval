@@ -20,7 +20,18 @@ export const getMSWMixedVendorMediaRegression = (
   ): Promise<AxiosResponse<string | Pet>> => {
     return axiosInstance.get(`/mixed-content-vendor`, options);
   };
+  const getGetMixedContentVendorUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/mixed-content-vendor`,
+        baseURL: '',
+      });
+  };
 
-  return { getMixedContentVendor };
+  return { getMixedContentVendor, getGetMixedContentVendorUrl };
 };
 export type GetMixedContentVendorResult = AxiosResponse<string | Pet>;

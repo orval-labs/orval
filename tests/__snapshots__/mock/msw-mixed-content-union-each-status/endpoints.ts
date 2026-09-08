@@ -20,7 +20,18 @@ export const getMSWMixedContentEachStatusRegression = (
   ): Promise<AxiosResponse<string | Pet>> => {
     return axiosInstance.get(`/mixed-content-each-status`, options);
   };
+  const getGetMixedContentEachStatusUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/mixed-content-each-status`,
+        baseURL: '',
+      });
+  };
 
-  return { getMixedContentEachStatus };
+  return { getMixedContentEachStatus, getGetMixedContentEachStatusUrl };
 };
 export type GetMixedContentEachStatusResult = AxiosResponse<string | Pet>;

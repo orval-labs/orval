@@ -59,6 +59,25 @@ const customAxios = axios.create({ baseURL: 'https://api.example.com' });
 const api = getPetsApi(customAxios);
 ```
 
+The generated factory also exposes a `get<Operation>Url` helper for each
+operation that does not use a custom mutator:
+
+```typescript
+const url = api.getListPetsUrl({ limit: 10 });
+```
+
+The helper returns the generated OpenAPI route with its query parameters
+serialized by Axios. It uses the injected instance's Axios serialization
+configuration, while ignoring that instance's runtime `baseURL`, default
+request params, request options, and interceptors. The same helpers are emitted
+for `axios-functions` and Axios-backed query clients.
+
+Helpers are named `get<Operation>Url` (for example, `getListPetsUrl`) and
+return a `string`. They accept the operation's path and query parameters, but
+not Axios request options. Operations using a custom mutator do not emit a
+helper because the mutator owns the runtime URL and serialization behavior.
+Fetch output already has its own URL helper and is unchanged by this feature.
+
 ## httpClient
 
 **Type:** `'fetch' | 'axios' | 'angular'`

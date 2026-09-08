@@ -27,6 +27,21 @@ export const listPetsByCountry = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsByCountryUrl = (
+  params?: ListPetsByCountryParams,
+  country: CountryCode = 'UY',
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets-by-country/${country}`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary List all pets by age
@@ -40,6 +55,21 @@ export const listPetsByAge = (
     ...options,
     params: { ...params, ...options?.params },
   });
+};
+export const getListPetsByAgeUrl = (
+  params?: ListPetsByAgeParams,
+  age: number = 5,
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets-by-age/${age}`,
+      baseURL: '',
+      params,
+    });
 };
 
 export type ListPetsByCountryResult = AxiosResponse<Pets>;

@@ -14,11 +14,33 @@ export const getDerived1 = (
 ): Promise<AxiosResponse<Derived1>> => {
   return axios.get(`/derived1`, options);
 };
+export const getGetDerived1Url = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/derived1`,
+      baseURL: '',
+    });
+};
 
 export const getDerived2 = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Derived2>> => {
   return axios.get(`/derived2`, options);
+};
+export const getGetDerived2Url = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/derived2`,
+      baseURL: '',
+    });
 };
 
 export type GetDerived1Result = AxiosResponse<Derived1>;

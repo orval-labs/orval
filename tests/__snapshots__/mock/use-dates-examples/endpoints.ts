@@ -46,6 +46,18 @@ export const listPets = (
   return axios.get(`/pets`, options);
 };
 
+export const getListPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
+
 export const getListPetsQueryKey = () => {
   return [`/pets`] as const;
 };
@@ -167,6 +179,18 @@ export const getPet = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${id}`, options);
+};
+
+export const getGetPetUrl = (id: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${id}`,
+      baseURL: '',
+    });
 };
 
 export const getGetPetQueryKey = (id: string) => {

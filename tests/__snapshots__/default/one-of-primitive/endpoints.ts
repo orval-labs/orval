@@ -14,5 +14,16 @@ export const getPets = (
 ): Promise<AxiosResponse<Pets[]>> => {
   return axios.get(`/pets`, options);
 };
+export const getGetPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 export type GetPetsResult = AxiosResponse<Pets[]>;

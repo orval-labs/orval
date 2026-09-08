@@ -15,5 +15,16 @@ export const example = (
 ): Promise<AxiosResponse<Example>> => {
   return axios.get(`/example`, options);
 };
+export const getExampleUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/example`,
+      baseURL: '',
+    });
+};
 
 export type ExampleResult = AxiosResponse<Example>;

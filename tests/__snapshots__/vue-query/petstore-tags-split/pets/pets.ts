@@ -48,6 +48,20 @@ export const listPets = (
   });
 };
 
+export const getListPetsUrl = (params: MaybeRefOrGetter<ListPetsParams>) => {
+  params = toValue(params);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
+
 export const getListPetsQueryKey = (
   params?: MaybeRefOrGetter<ListPetsParams>,
 ) => {
@@ -138,6 +152,22 @@ export const createPets = (
   });
 };
 
+export const getCreatePetsUrl = (
+  params: MaybeRefOrGetter<CreatePetsParams>,
+) => {
+  params = toValue(params);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
+
 export const getCreatePetsMutationKey = () => ['createPets'] as const;
 
 export const getCreatePetsMutationOptions = <
@@ -220,6 +250,19 @@ export const showPetById = (
   petId = toValue(petId);
 
   return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdUrl = (petId: MaybeRefOrGetter<string>) => {
+  petId = toValue(petId);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 export const getShowPetByIdQueryKey = (petId: MaybeRefOrGetter<string>) => {
@@ -308,6 +351,19 @@ export const deletePetById = (
   return axios.delete(`/pets/${petId}`, options);
 };
 
+export const getDeletePetByIdUrl = (petId: MaybeRefOrGetter<string>) => {
+  petId = toValue(petId);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
+};
+
 export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
 
 export const getDeletePetByIdMutationOptions = <
@@ -390,6 +446,19 @@ export const showPetWithOwner = (
   petId = toValue(petId);
 
   return axios.get(`/pets/${petId}/owner`, options);
+};
+
+export const getShowPetWithOwnerUrl = (petId: MaybeRefOrGetter<string>) => {
+  petId = toValue(petId);
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}/owner`,
+      baseURL: '',
+    });
 };
 
 export const getShowPetWithOwnerQueryKey = (

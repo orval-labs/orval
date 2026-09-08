@@ -19,13 +19,36 @@ export const getCatalog = (axiosInstance: AxiosInstance = axios) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getGetProductsUrl = (params?: GetCatalogProductsParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/api/catalog/products`,
+        baseURL: '',
+        params,
+      });
+  };
   const postProducts = (
     product: Product,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Product>> => {
     return axiosInstance.post(`/api/catalog/products`, product, options);
   };
-  return { getProducts, postProducts };
+  const getPostProductsUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/api/catalog/products`,
+        baseURL: '',
+      });
+  };
+  return { getProducts, postProducts, getGetProductsUrl, getPostProductsUrl };
 };
 export type GetCatalogProductsResult = AxiosResponse<Product>;
 export type PostCatalogProductsResult = AxiosResponse<Product>;

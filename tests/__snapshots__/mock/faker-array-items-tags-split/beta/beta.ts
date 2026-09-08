@@ -15,6 +15,17 @@ export const getBeta = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/b`, options);
   };
-  return { getB };
+  const getGetBUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/b`,
+        baseURL: '',
+      });
+  };
+  return { getB, getGetBUrl };
 };
 export type GetBResult = AxiosResponse<TenantListResponse>;

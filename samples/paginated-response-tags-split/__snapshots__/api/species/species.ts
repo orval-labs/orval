@@ -20,6 +20,17 @@ export const getSpecies = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<LocalizedSpeciesCategory>> => {
     return axiosInstance.get(`/species/tree`, options);
   };
-  return { getSpeciesTree };
+  const getGetSpeciesTreeUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/species/tree`,
+        baseURL: '',
+      });
+  };
+  return { getSpeciesTree, getGetSpeciesTreeUrl };
 };
 export type GetSpeciesTreeResult = AxiosResponse<LocalizedSpeciesCategory>;

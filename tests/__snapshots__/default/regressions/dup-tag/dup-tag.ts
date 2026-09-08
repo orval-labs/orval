@@ -12,25 +12,80 @@ export const getEndpointA = (
 ): Promise<AxiosResponse<void>> => {
   return axios.get(`/endpointA`, options);
 };
+export const getGetEndpointAUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/endpointA`,
+      baseURL: '',
+    });
+};
 export const getEndpointB = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.get(`/endpointB`, options);
+};
+export const getGetEndpointBUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/endpointB`,
+      baseURL: '',
+    });
 };
 export const getEndpointC = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.get(`/endpointC`, options);
 };
+export const getGetEndpointCUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/endpointC`,
+      baseURL: '',
+    });
+};
 export const getEndpointD = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.get(`/endpointD`, options);
 };
+export const getGetEndpointDUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/endpointD`,
+      baseURL: '',
+    });
+};
 export const getEndpointE = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.get(`/endpointE`, options);
+};
+export const getGetEndpointEUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/endpointE`,
+      baseURL: '',
+    });
 };
 export type GetEndpointAResult = AxiosResponse<void>;
 export type GetEndpointBResult = AxiosResponse<void>;

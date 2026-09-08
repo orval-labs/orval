@@ -18,7 +18,18 @@ export const getBinaryMultiContent = (axiosInstance: AxiosInstance = axios) => {
       ...options,
     });
   };
+  const getGetProfilePictureUrl = (id: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/api/account/profile-picture-file/${id}`,
+        baseURL: '',
+      });
+  };
 
-  return { getProfilePicture };
+  return { getProfilePicture, getGetProfilePictureUrl };
 };
 export type GetProfilePictureResult = AxiosResponse<Blob>;
