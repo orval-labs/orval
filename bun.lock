@@ -67,7 +67,7 @@
         "vite-plus": "catalog:",
       },
       "peerDependencies": {
-        "@faker-js/faker": ">=10",
+        "@faker-js/faker": ">=8",
       },
       "optionalPeers": [
         "@faker-js/faker",
@@ -85,6 +85,12 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "effect": ">=3",
+      },
+      "optionalPeers": [
+        "effect",
+      ],
     },
     "packages/fetch": {
       "name": "@orval/fetch",
@@ -135,6 +141,12 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "@modelcontextprotocol/sdk": ">=1",
+      },
+      "optionalPeers": [
+        "@modelcontextprotocol/sdk",
+      ],
     },
     "packages/mock": {
       "name": "@orval/mock",
@@ -148,6 +160,14 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "@faker-js/faker": ">=8",
+        "msw": ">=2",
+      },
+      "optionalPeers": [
+        "@faker-js/faker",
+        "msw",
+      ],
     },
     "packages/orval": {
       "name": "orval",
@@ -213,6 +233,20 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "@tanstack/angular-query-experimental": ">=5",
+        "@tanstack/react-query": ">=4",
+        "@tanstack/solid-query": ">=4",
+        "@tanstack/svelte-query": ">=4",
+        "@tanstack/vue-query": ">=4",
+      },
+      "optionalPeers": [
+        "@tanstack/angular-query-experimental",
+        "@tanstack/react-query",
+        "@tanstack/solid-query",
+        "@tanstack/svelte-query",
+        "@tanstack/vue-query",
+      ],
     },
     "packages/solid-start": {
       "name": "@orval/solid-start",
@@ -238,6 +272,12 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "swr": ">=2",
+      },
+      "optionalPeers": [
+        "swr",
+      ],
     },
     "packages/zod": {
       "name": "@orval/zod",
@@ -253,6 +293,12 @@
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "zod": ">=3",
+      },
+      "optionalPeers": [
+        "zod",
+      ],
     },
     "samples/angular-app": {
       "name": "angular-app",

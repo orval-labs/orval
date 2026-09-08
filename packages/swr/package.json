@@ -30,5 +30,13 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "swr": ">=2"
+  },
+  "peerDependenciesMeta": {
+    "swr": {
+      "optional": true
+    }
   }
 }
