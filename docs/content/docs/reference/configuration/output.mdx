@@ -3044,7 +3044,8 @@ Orval generates for `runtimeValidation` never runs (see
 [#2858](https://github.com/orval-labs/orval/issues/2858)). Enabling this option
 hands the schema to the mutator instead.
 
-Supported by the `fetch` client. Requires `schemas: { type: 'zod' }` and
+Supported by the `fetch` client and by the query clients using
+`httpClient: 'fetch'`. Requires `schemas: { type: 'zod' }` and
 `override.fetch.runtimeValidation: true`. The schema is omitted for operations
 without a validatable response — primitive or `void` responses, and
 `application/x-ndjson` streams.
