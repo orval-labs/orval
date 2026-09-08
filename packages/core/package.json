@@ -47,7 +47,7 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@faker-js/faker": ">=10"
+    "@faker-js/faker": ">=8"
   },
   "peerDependenciesMeta": {
     "@faker-js/faker": {
