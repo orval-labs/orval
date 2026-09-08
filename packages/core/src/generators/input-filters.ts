@@ -1,10 +1,14 @@
 import type {
+  ContextSpec,
   InputFiltersOptions,
   NormalizedInputOptions,
   OpenApiDocument,
   OpenApiOperationObject,
   OpenApiPathItemObject,
 } from '../types';
+import { isReference } from '../utils/assertion';
+import { resolveRef } from '../resolvers/ref';
+import { isString } from 'remeda';
 
 const COMPONENT_TYPES = [
   'schemas',
@@ -138,3 +142,118 @@ export const collectReferencedComponents = (
     requestBodies: [],
   });
 };
+
+/**
+ * Prune operations that do not reference any of the kept schemas, so only
+ * artifacts related to the requested schemas are generated (#3689).
+ *
+ * An operation is kept when at least one of its (transitively resolved)
+ * component references points at a schema matching the include/exclude
+ * filters. Operations without any schema references cannot be attributed to
+ * the filter and are kept as-is.
+ */
+export function filterPathsBySchemas(
+  spec: OpenApiDocument,
+  schemas: NonNullable<InputFiltersOptions['schemas']>,
+  mode: InputFiltersOptions['mode'] = 'include',
+): OpenApiDocument {
+  const keepSchemaName = (name: string): boolean => {
+    const isMatch = schemas.some((filter) => {
+      if (isString(filter)) return filter === name;
+      // Reset lastIndex so stateful flags (`g`, `y`) cannot leak between
+      // operations and wrongly reject a schema that matches.
+      filter.lastIndex = 0;
+      return filter.test(name);
+    });
+    return mode === 'exclude' ? !isMatch : isMatch;
+  };
+
+  const schemasOfRefs = (
+    refs: string[],
+    visited: Set<string> = new Set(),
+  ): { type: ComponentType; name: string }[] => {
+    const components = getComponentNames(refs, spec).filter(
+      ({ type, name }) => !visited.has(`${type}/${name}`),
+    );
+    components.forEach(({ type, name }) => visited.add(`${type}/${name}`));
+
+    return components.flatMap(({ type, name }) => {
+      if (type === 'schemas') return [{ type, name }];
+      // Resolve transitive schema references through other component
+      // sections (responses, requestBodies, parameters).
+      return schemasOfRefs(
+        findRefs(spec.components?.[type]?.[name]),
+        new Set(visited),
+      );
+    });
+  };
+
+  return {
+    ...spec,
+    paths: Object.fromEntries(
+      Object.entries(spec.paths ?? {})
+        .map(([pathRoute, pathItem]) => {
+          if (!pathItem || typeof pathItem !== 'object') {
+            return [pathRoute, pathItem] as const;
+          }
+
+          const resolvedPathItem = isReference(pathItem)
+            ? resolveRef<OpenApiPathItemObject>(pathItem, {
+                spec,
+              } as unknown as ContextSpec).schema
+            : pathItem;
+
+          const httpMethods = new Set([
+            'get',
+            'put',
+            'post',
+            'delete',
+            'options',
+            'head',
+            'patch',
+            'trace',
+          ]);
+
+          const keptVerbs: Record<string, unknown> = {};
+          const pathMetadata: Record<string, unknown> = {};
+          for (const [key, operation] of Object.entries(resolvedPathItem)) {
+            if (!httpMethods.has(key.toLowerCase())) {
+              // Path-item metadata (summary, description, parameters,
+              // servers, ...) is preserved as-is.
+              pathMetadata[key] = operation;
+              continue;
+            }
+            if (
+              !operation ||
+              typeof operation !== 'object' ||
+              isReference(operation)
+            ) {
+              keptVerbs[key] = operation;
+              continue;
+            }
+            const referencedSchemas = schemasOfRefs([
+              ...findRefs(operation),
+              ...findRefs(resolvedPathItem.parameters),
+            ])
+              .filter((c) => c.type === 'schemas')
+              .map((c) => c.name);
+            if (
+              referencedSchemas.length === 0 ||
+              referencedSchemas.some(keepSchemaName)
+            ) {
+              keptVerbs[key] = operation;
+            }
+          }
+
+          if (Object.keys(keptVerbs).length === 0) {
+            return [pathRoute, undefined] as const;
+          }
+
+          return [pathRoute, { ...pathMetadata, ...keptVerbs }] as const;
+        })
+        .filter((entry): entry is [string, OpenApiPathItemObject] =>
+          Boolean(entry[1]),
+        ),
+    ),
+  };
+}
