@@ -154,18 +154,15 @@ export const findPetsByStatusHandler = async (
   options?: RequestInit,
   ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const fetcher = (overrides?: RequestInit) => {
-    const headers = new Headers(options?.headers);
-    new Headers(overrides?.headers).forEach((value, name) =>
-      headers.set(name, value),
-    );
-
-    return findPetsByStatus(args.queryParams, {
+  const fetcher = (overrides?: RequestInit) =>
+    findPetsByStatus(args.queryParams, {
       ...options,
       ...overrides,
-      headers,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
+      },
     });
-  };
 
   return customHandler(fetcher, ctx);
 };
