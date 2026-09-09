@@ -2216,6 +2216,10 @@ export default defineConfig({
             path: './custom-server.ts',
             name: 'customServer',
           },
+          handler: {
+            path: './custom-handler.ts',
+            name: 'customHandler',
+          },
         },
       },
     },
@@ -2259,6 +2263,44 @@ export const customServer = (
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 };
 ```
+
+### handler
+
+**类型：** `Object`
+
+自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它和工具调用上下文一起传给你的函数。返回值会直接作为工具结果使用。
+
+```ts title="custom-handler.ts"
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  CallToolResult,
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
+export const customHandler = async (
+  fetcher: (
+    overrides?: RequestInit,
+  ) => Promise<{ status: number; data: unknown; headers: Headers }>,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+): Promise<CallToolResult> => {
+  const res = await fetcher();
+
+  if (res.status >= 400) {
+    return {
+      content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+    structuredContent: res.data as Record<string, unknown>,
+  };
+};
+```
+
+关于 `fetcher` 和 `ctx` 的详细说明，请参阅 [MCP 指南](/docs/zh/guides/mcp)。
 
 ---
 

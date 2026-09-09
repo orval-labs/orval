@@ -2419,6 +2419,10 @@ export default defineConfig({
             path: './custom-server.ts',
             name: 'customServer',
           },
+          handler: {
+            path: './custom-handler.ts',
+            name: 'customHandler',
+          },
         },
       },
     },
@@ -2462,6 +2466,44 @@ export const customServer = (
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 };
 ```
+
+### handler
+
+**Type:** `Object`
+
+Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it and the tool call context. The return value is used as the tool result as is.
+
+```ts title="custom-handler.ts"
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  CallToolResult,
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
+export const customHandler = async (
+  fetcher: (
+    overrides?: RequestInit,
+  ) => Promise<{ status: number; data: unknown; headers: Headers }>,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+): Promise<CallToolResult> => {
+  const res = await fetcher();
+
+  if (res.status >= 400) {
+    return {
+      content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+    structuredContent: res.data as Record<string, unknown>,
+  };
+};
+```
+
+See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` and `ctx`.
 
 ---
 

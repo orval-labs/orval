@@ -1217,12 +1217,26 @@ export interface NormalizedMcpServerOptions {
   default: boolean;
 }
 
+export interface McpHandlerOptions {
+  path: string;
+  name?: string;
+  default?: boolean;
+}
+
+export interface NormalizedMcpHandlerOptions {
+  path: string;
+  name?: string;
+  default: boolean;
+}
+
 export interface McpOptions {
   server?: McpServerOptions;
+  handler?: McpHandlerOptions;
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
+  handler?: NormalizedMcpHandlerOptions;
 }
 
 /**

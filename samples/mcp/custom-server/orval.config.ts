@@ -19,6 +19,10 @@ export default defineConfig({
             path: './custom-server.ts',
             name: 'customServer',
           },
+          handler: {
+            path: './custom-handler.ts',
+            name: 'customHandler',
+          },
         },
       },
     },

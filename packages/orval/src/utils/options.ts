@@ -28,6 +28,7 @@ import {
   type JsDocOptions,
   logWarning,
   type McpOptions,
+  type McpHandlerOptions,
   type McpServerOptions,
   type Mutator,
   NamingConvention,
@@ -37,6 +38,7 @@ import {
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
+  type NormalizedMcpHandlerOptions,
   type NormalizedMcpServerOptions,
   type NormalizedMocksConfig,
   type NormalizedMutator,
@@ -1503,14 +1505,14 @@ function normalizeHonoOptions(
   };
 }
 
-function normalizeMcpServerOptions(
-  server: McpServerOptions,
+function normalizeMcpModuleOptions(
+  module: McpServerOptions | McpHandlerOptions,
   workspace: string,
-): NormalizedMcpServerOptions {
+): NormalizedMcpServerOptions | NormalizedMcpHandlerOptions {
   return {
-    path: nodePath.resolve(workspace, server.path),
-    name: server.name,
-    default: server.default ?? !server.name,
+    path: nodePath.resolve(workspace, module.path),
+    name: module.name,
+    default: module.default ?? !module.name,
   };
 }
 
@@ -1518,9 +1520,14 @@ function normalizeMcpOptions(
   mcp: McpOptions = {},
   workspace: string,
 ): NormalizedMcpOptions {
-  return mcp.server
-    ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
-    : {};
+  return {
+    ...(mcp.server && {
+      server: normalizeMcpModuleOptions(mcp.server, workspace),
+    }),
+    ...(mcp.handler && {
+      handler: normalizeMcpModuleOptions(mcp.handler, workspace),
+    }),
+  };
 }
 
 function normalizeJSDocOptions(

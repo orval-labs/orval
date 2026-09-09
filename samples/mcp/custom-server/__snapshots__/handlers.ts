@@ -34,6 +34,13 @@ import {
   deleteUser,
 } from './http-client';
 
+import { customHandler } from '../custom-handler';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
 /**
  * Multiple status values can be provided with comma separated strings.
  * @summary Finds Pets by status.
@@ -46,30 +53,19 @@ export type findPetsByStatusArgs = {
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await findPetsByStatus(args.queryParams, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    findPetsByStatus(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -84,30 +80,19 @@ export type findPetsByTagsArgs = {
 export const findPetsByTagsHandler = async (
   args: findPetsByTagsArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await findPetsByTags(args.queryParams, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    findPetsByTags(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -124,30 +109,19 @@ export type getPetByIdArgs = {
 export const getPetByIdHandler = async (
   args: getPetByIdArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await getPetById(args.pathParams.petId, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    getPetById(args.pathParams.petId, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -165,34 +139,19 @@ export type updatePetWithFormArgs = {
 export const updatePetWithFormHandler = async (
   args: updatePetWithFormArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await updatePetWithForm(
-    args.pathParams.petId,
-    args.queryParams,
-    options,
-  );
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    updatePetWithForm(args.pathParams.petId, args.queryParams, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -209,30 +168,19 @@ export type deletePetArgs = {
 export const deletePetHandler = async (
   args: deletePetArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await deletePet(args.pathParams.petId, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    deletePet(args.pathParams.petId, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -240,30 +188,21 @@ export const deletePetHandler = async (
  * @summary Returns pet inventories by status.
  */
 
-export const getInventoryHandler = async (options?: RequestInit) => {
-  const res = await getInventory(options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+export const getInventoryHandler = async (
+  options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+) => {
+  const fetcher = (overrides?: RequestInit) =>
+    getInventory({
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -280,30 +219,19 @@ export type getOrderByIdArgs = {
 export const getOrderByIdHandler = async (
   args: getOrderByIdArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await getOrderById(args.pathParams.orderId, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    getOrderById(args.pathParams.orderId, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -320,30 +248,19 @@ export type deleteOrderArgs = {
 export const deleteOrderHandler = async (
   args: deleteOrderArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await deleteOrder(args.pathParams.orderId, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    deleteOrder(args.pathParams.orderId, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -358,30 +275,19 @@ export type loginUserArgs = {
 export const loginUserHandler = async (
   args: loginUserArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await loginUser(args.queryParams, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    loginUser(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -389,30 +295,21 @@ export const loginUserHandler = async (
  * @summary Logs out current logged in user session.
  */
 
-export const logoutUserHandler = async (options?: RequestInit) => {
-  const res = await logoutUser(options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+export const logoutUserHandler = async (
+  options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+) => {
+  const fetcher = (overrides?: RequestInit) =>
+    logoutUser({
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -429,30 +326,19 @@ export type getUserByNameArgs = {
 export const getUserByNameHandler = async (
   args: getUserByNameArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await getUserByName(args.pathParams.username, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    getUserByName(args.pathParams.username, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
 
 /**
@@ -469,28 +355,17 @@ export type deleteUserArgs = {
 export const deleteUserHandler = async (
   args: deleteUserArgs,
   options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const res = await deleteUser(args.pathParams.username, options);
-
-  if (res.status >= 400) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(res.data ?? null),
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
+  const fetcher = (overrides?: RequestInit) =>
+    deleteUser(args.pathParams.username, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
       },
-    ],
-    structuredContent: res.data,
-  };
+    });
+
+  return customHandler(fetcher, ctx);
 };
