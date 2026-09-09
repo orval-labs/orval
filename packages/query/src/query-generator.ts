@@ -13,7 +13,6 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
-  logWarning,
   OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
@@ -24,6 +23,7 @@ import {
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+import { logger } from './logger';
 import { generateMutationHook } from './mutation-generator';
 import {
   generateQueryOptions,
@@ -935,7 +935,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   // contract is out of scope here.
   const hasHookMutator = !!queryOptionsMutator?.isHook;
   if (hasHookMutator && (useSetQueryData || useGetQueryData)) {
-    logWarning(
+    logger.warn(
       `'${name}' has a hook-based queryOptions mutator, so the requested set/get-query-data helpers were skipped to avoid a cache-key mismatch with the query hook.`,
     );
   }
@@ -1194,7 +1194,7 @@ export const generateQueryHook = async (
     mutationInvalidates: override.query.mutationInvalidates,
   });
   if (conflictWarning) {
-    logWarning(conflictWarning);
+    logger.warn(conflictWarning);
   }
 
   if (isQuery) {

@@ -22,7 +22,6 @@ import {
   isOperationInTagBucket,
   jsDoc,
   jsStringLiteralEscape,
-  logWarning,
   type NormalizedMutator,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -36,6 +35,8 @@ import {
 } from '@orval/core';
 import { generateZod, getZodImportSource } from '@orval/zod';
 import fs from 'fs-extra';
+
+import { logger } from './logger';
 
 import {
   type DesiredImports,
@@ -557,7 +558,7 @@ export const generateHandlerFile = async ({
   if (!(await ensureTypeScript())) {
     if (!warnedMissingTypeScript) {
       warnedMissingTypeScript = true;
-      logWarning(
+      logger.warn(
         `hono handlerGenerationStrategy '${strategy}' requires the optional peer dependency "typescript", which is not installed. Existing handler files are left unchanged (as with 'skip'). Install typescript to enable handler reconciliation.`,
       );
     }

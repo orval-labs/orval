@@ -26,7 +26,6 @@ import {
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
-  logVerbose,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
@@ -47,6 +46,8 @@ import {
 } from '@orval/core';
 import jsesc from 'jsesc';
 import { unique } from 'remeda';
+
+import { logger } from './logger';
 
 import {
   getLooseObjectFunctionName,
@@ -658,8 +659,8 @@ export const generateZodValidationSchemaDefinition = (
       return { functions, consts };
     }
 
-    logVerbose(
-      `[orval/zod] $ref ${schema.$ref} has non-chainable siblings ` +
+    logger.verbose(
+      `$ref ${schema.$ref} has non-chainable siblings ` +
         `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
     );
     schema = dereference(
@@ -704,8 +705,8 @@ export const generateZodValidationSchemaDefinition = (
           return { functions, consts };
         }
 
-        logVerbose(
-          `[orval/zod] $dynamicRef ${schema.$dynamicRef} has non-chainable siblings ` +
+        logger.verbose(
+          `$dynamicRef ${schema.$dynamicRef} has non-chainable siblings ` +
             `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
         );
       }
@@ -2762,9 +2763,10 @@ function tryResolveRefSchema(
     return resolveRef({ $ref } as OpenApiReferenceObject, context)
       .schema as OpenApiSchemaObject;
   } catch (error) {
-    logVerbose(
-      `[orval/zod] Failed to resolve $ref "${$ref}":`,
-      error instanceof Error ? error.message : error,
+    logger.verbose(
+      `Failed to resolve $ref "${$ref}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
     return;
   }

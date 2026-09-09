@@ -4,8 +4,6 @@ import {
   dynamicImport,
   isObject,
   isString,
-  logVerbose,
-  logWarning,
   type PackageJson,
   resolveInstalledVersions,
 } from '@orval/core';
@@ -13,6 +11,7 @@ import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
+import { logger } from '../logger';
 import { normalizePath } from './options';
 
 type CatalogData = Pick<PackageJson, 'catalog' | 'catalogs'>;
@@ -76,7 +75,7 @@ const resolveAndAttachVersions = (
     pkg.resolvedVersions = resolved;
     resolvedCache.set(cacheKey, resolved);
     for (const [name, version] of Object.entries(resolved)) {
-      logVerbose(
+      logger.verbose(
         styleText(
           'dim',
           `Detected ${styleText('white', name)} v${styleText('white', version)}`,
@@ -166,8 +165,8 @@ const maybeReplaceCatalog = async (
     (await loadYarnrcCatalog(workspace));
 
   if (!catalogData) {
-    logWarning(
-      '⚠️  package.json contains catalog: references, but no catalog source was found (checked: pnpm-workspace.yaml, package.json, .yarnrc.yml).',
+    logger.warn(
+      'package.json contains catalog: references, but no catalog source was found (checked: pnpm-workspace.yaml, package.json, .yarnrc.yml).',
     );
     return pkg;
   }
@@ -187,15 +186,15 @@ const performSubstitution = (
   for (const [packageName, version] of Object.entries(dependencies)) {
     if (version === 'catalog:' || version === 'catalog:default') {
       if (!catalogData.catalog) {
-        logWarning(
-          `⚠️  catalog: substitution for the package '${packageName}' failed as there is no default catalog.`,
+        logger.warn(
+          `catalog: substitution for the package '${packageName}' failed as there is no default catalog.`,
         );
         continue;
       }
       const sub = catalogData.catalog[packageName];
       if (!sub) {
-        logWarning(
-          `⚠️  catalog: substitution for the package '${packageName}' failed as there is no matching package in the default catalog.`,
+        logger.warn(
+          `catalog: substitution for the package '${packageName}' failed as there is no matching package in the default catalog.`,
         );
         continue;
       }
@@ -204,15 +203,15 @@ const performSubstitution = (
       const catalogName = version.slice('catalog:'.length);
       const catalog = catalogData.catalogs?.[catalogName];
       if (!catalog) {
-        logWarning(
-          `⚠️  '${version}' substitution for the package '${packageName}' failed as there is no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(catalogData.catalogs ?? {}).join(', ')})`,
+        logger.warn(
+          `'${version}' substitution for the package '${packageName}' failed as there is no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(catalogData.catalogs ?? {}).join(', ')})`,
         );
         continue;
       }
       const sub = catalog[packageName];
       if (!sub) {
-        logWarning(
-          `⚠️  '${version}' substitution for the package '${packageName}' failed as there is no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`,
+        logger.warn(
+          `'${version}' substitution for the package '${packageName}' failed as there is no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`,
         );
         continue;
       }

@@ -15,7 +15,6 @@ import {
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
-  logWarning,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -25,6 +24,8 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
+
+import { logger } from './logger';
 
 const SOLID_START_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -86,7 +87,7 @@ const resolveNamespaceName = (
     candidate = `${title}Api${suffix}`;
   }
 
-  logWarning(
+  logger.warn(
     `solid-start: exporting the namespace as \`${candidate}\` instead of \`${title}\`, because this file also imports a schema named \`${title}\`. Import \`${candidate}\` from this file, or rename the schema to keep \`${title}\`.`,
   );
 

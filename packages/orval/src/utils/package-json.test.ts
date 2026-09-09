@@ -4,7 +4,7 @@
  * because package managers do not resolve them for us at runtime.
  */
 
-import { isString as isRemedaString } from 'remeda';
+import { noopReporter, withReporter } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -34,27 +34,40 @@ vi.mock('js-yaml', () => ({
   },
 }));
 
-vi.mock('@orval/core', () => ({
-  dynamicImport: vi.fn(),
-  isObject: (v: unknown) =>
-    Object.prototype.toString.call(v) === '[object Object]',
-  isString: isRemedaString,
-  log: vi.fn(),
-  logVerbose: vi.fn(),
-  logWarning: vi.fn(),
-  resolveInstalledVersions: vi.fn(() => ({})),
+const { logWarningSpy } = vi.hoisted(() => ({
+  logWarningSpy: vi.fn(),
 }));
+
+vi.mock('@orval/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@orval/core')>();
+  return {
+    ...actual,
+    dynamicImport: vi.fn(),
+    resolveInstalledVersions: vi.fn(() => ({})),
+  };
+});
 
 vi.mock('./options', () => ({
   normalizePath: (p: string) => p,
 }));
 
-import { dynamicImport, logWarning } from '@orval/core';
+import { dynamicImport } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { loadPackageJson } from './package-json';
+import { loadPackageJson as loadPackageJsonImpl } from './package-json';
+
+const loadPackageJson: typeof loadPackageJsonImpl = (...args) =>
+  withReporter(
+    {
+      ...noopReporter,
+      warn: (event) => {
+        logWarningSpy(event.message);
+      },
+    },
+    () => loadPackageJsonImpl(...args),
+  );
 
 const mockFindUp = (
   resolver: (name: string | string[] | undefined) => string | undefined,
@@ -79,6 +92,7 @@ const mockReadFile = (value: string) => {
 describe('loadPackageJson - catalog resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    logWarningSpy.mockClear();
   });
 
   afterEach(() => {
@@ -190,7 +204,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.lodash).toBe('catalog:');
-      expect(logWarning).toHaveBeenCalledWith(
+      expect(logWarningSpy).toHaveBeenCalledWith(
         expect.stringContaining('no matching package in the default catalog'),
       );
     });
@@ -386,7 +400,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.react).toBe('catalog:');
-      expect(logWarning).toHaveBeenCalledWith(
+      expect(logWarningSpy).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });
@@ -454,7 +468,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.jest).toBe('catalog:nonexistent');
-      expect(logWarning).toHaveBeenCalledWith(
+      expect(logWarningSpy).toHaveBeenCalledWith(
         expect.stringContaining("no matching catalog named 'nonexistent'"),
       );
     });
@@ -613,7 +627,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.express).toBe('catalog:');
-      expect(logWarning).toHaveBeenCalledWith(
+      expect(logWarningSpy).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });
@@ -670,7 +684,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.zod).toBe('catalog:');
-      expect(logWarning).toHaveBeenCalledWith(
+      expect(logWarningSpy).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });

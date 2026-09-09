@@ -3,27 +3,27 @@ import path from 'node:path';
 
 import { Option, program } from '@commander-js/extra-typings';
 import {
-  ErrorWithTag,
+  consoleReporter,
   getWarningCount,
-  isQuiet,
   isString,
-  log,
-  logError,
+  LOG_LEVELS,
   OutputClient,
   OutputMode,
   resetWarnings,
-  setQuiet,
-  setVerbose,
+  resolveLogLevel,
+  setLogLevel,
+  setProjectName,
   startMessage,
   SupportedFormatter,
+  withReporter,
 } from '@orval/core';
 
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
+import { logger } from '../logger';
 import { findConfigFile, loadConfigFile } from '../utils/config';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
-
 const orvalMessage = startMessage({
   name: pkg.name,
   version: pkg.version,
@@ -84,145 +84,161 @@ cli
     ).choices(Object.values(SupportedFormatter)),
   )
   .option('--tsconfig <path>', 'path to your tsconfig file')
-  .option('--verbose', 'Enable verbose logging')
-  .option('--quiet', 'Suppress the startup banner and success messages')
+  .addOption(
+    new Option('--verbose', 'Set the log level to verbose').conflicts([
+      'quiet',
+      'logLevel',
+    ]),
+  )
+  .addOption(
+    new Option('--quiet', 'Set the log level to warn').conflicts([
+      'verbose',
+      'logLevel',
+    ]),
+  )
+  .addOption(
+    new Option('--log-level <level>', 'Set the log level')
+      .choices(LOG_LEVELS)
+      .conflicts(['verbose', 'quiet']),
+  )
   .option(
     '--fail-on-warnings',
     'Exit with error code 1 when warnings are emitted',
   )
   .action(async (options) => {
-    if (options.verbose) {
-      setVerbose(true);
-    }
-    if (options.quiet) {
-      setQuiet(true);
-    }
+    await withReporter(consoleReporter, async () => {
+      setLogLevel(
+        resolveLogLevel({
+          verbose: options.verbose,
+          quiet: options.quiet,
+          logLevel: options.logLevel,
+        }),
+      );
+      resetWarnings();
+      logger.info(orvalMessage);
 
-    resetWarnings();
-    if (!isQuiet()) {
-      log(orvalMessage);
-    }
-
-    if (isString(options.input) && isString(options.output)) {
-      const normalizedOptions = await normalizeOptions({
-        input: options.input,
-        output: {
-          target: options.output,
-          clean: options.clean,
-          formatter: options.formatter,
-          mock: options.mock,
-          client: options.client,
-          mode: options.mode,
-          tsconfig: options.tsconfig,
-        },
-      });
-
-      try {
-        await generateSpec(process.cwd(), normalizedOptions);
-      } catch (error) {
-        if (error instanceof ErrorWithTag) {
-          logError(error.cause, error.tag);
-        } else {
-          logError(error);
-        }
-        process.exit(1);
-      }
-
-      if (options.watch) {
-        await startWatcher(
-          options.watch,
-          async () => {
-            resetWarnings();
-            try {
-              await generateSpec(process.cwd(), normalizedOptions);
-            } catch (error) {
-              logError(error);
-              process.exit(1);
-            }
-            if (options.failOnWarnings && getWarningCount() > 0) {
-              logError(
-                `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
-              );
-              process.exit(1);
-            }
+      if (isString(options.input) && isString(options.output)) {
+        const normalizedOptions = await normalizeOptions({
+          input: options.input,
+          output: {
+            target: options.output,
+            clean: options.clean,
+            formatter: options.formatter,
+            mock: options.mock,
+            client: options.client,
+            mode: options.mode,
+            tsconfig: options.tsconfig,
           },
-          normalizedOptions.input.target as string,
-        );
-      }
-    } else {
-      const configFilePath = findConfigFile(options.config);
-      const workspace = path.dirname(configFilePath);
-      const configFile = await loadConfigFile(configFilePath);
-
-      const missingProjects = options.project?.filter(
-        (p) => !Object.hasOwn(configFile, p),
-      );
-
-      if (missingProjects?.length) {
-        logError(`Project not found in config: ${missingProjects.join(', ')}`);
-        process.exit(1);
-      }
-
-      const configs = Object.entries(configFile).filter(
-        ([projectName]) =>
-          // only filter by project if specified
-          !Array.isArray(options.project) ||
-          options.project.includes(projectName),
-      );
-
-      let hasErrors = false;
-      for (const [projectName, config] of configs) {
-        const normalizedOptions = await normalizeOptions(
-          config,
-          workspace,
-          options,
-        );
+        });
 
         try {
-          await generateSpec(workspace, normalizedOptions, projectName);
+          await generateSpec(process.cwd(), normalizedOptions);
         } catch (error) {
-          hasErrors = true;
-          logError(error, projectName);
+          logger.error(error);
+          process.exit(1);
         }
 
-        if (options.watch !== undefined) {
-          const fileToWatch = isString(normalizedOptions.input.target)
-            ? normalizedOptions.input.target
-            : undefined;
-
+        if (options.watch) {
           await startWatcher(
             options.watch,
             async () => {
               resetWarnings();
               try {
-                await generateSpec(workspace, normalizedOptions, projectName);
+                await generateSpec(process.cwd(), normalizedOptions);
               } catch (error) {
-                logError(error, projectName);
+                logger.error(error);
+                process.exit(1);
               }
               if (options.failOnWarnings && getWarningCount() > 0) {
-                logError(
+                logger.error(
                   `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
                 );
                 process.exit(1);
               }
             },
-            fileToWatch,
+            normalizedOptions.input.target as string,
           );
+        }
+      } else {
+        const configFilePath = findConfigFile(options.config);
+        const workspace = path.dirname(configFilePath);
+        const configFile = await loadConfigFile(configFilePath);
+
+        const missingProjects = options.project?.filter(
+          (p) => !Object.hasOwn(configFile, p),
+        );
+
+        if (missingProjects?.length) {
+          logger.error(
+            `Project not found in config: ${missingProjects.join(', ')}`,
+          );
+          process.exit(1);
+        }
+
+        const configs = Object.entries(configFile).filter(
+          ([projectName]) =>
+            // only filter by project if specified
+            !Array.isArray(options.project) ||
+            options.project.includes(projectName),
+        );
+
+        let hasErrors = false;
+        for (const [projectName, config] of configs) {
+          setProjectName(projectName);
+          const normalizedOptions = await normalizeOptions(
+            config,
+            workspace,
+            options,
+          );
+
+          try {
+            await generateSpec(workspace, normalizedOptions, projectName);
+          } catch (error) {
+            hasErrors = true;
+            logger.error(error);
+          }
+
+          if (options.watch !== undefined) {
+            const fileToWatch = isString(normalizedOptions.input.target)
+              ? normalizedOptions.input.target
+              : undefined;
+
+            await startWatcher(
+              options.watch,
+              async () => {
+                resetWarnings();
+                try {
+                  await generateSpec(workspace, normalizedOptions, projectName);
+                } catch (error) {
+                  logger.error(error);
+                }
+                if (options.failOnWarnings && getWarningCount() > 0) {
+                  logger.error(
+                    `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+                  );
+                  process.exit(1);
+                }
+              },
+              fileToWatch,
+            );
+          }
+        }
+
+        setProjectName(); // clears project name
+
+        if (hasErrors) {
+          logger.error('One or more project failed, see above for details');
+          process.exit(1);
         }
       }
 
-      if (hasErrors) {
-        logError('One or more project failed, see above for details');
+      if (options.failOnWarnings && getWarningCount() > 0) {
+        logger.error(
+          `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+        );
         process.exit(1);
       }
-    }
-
-    if (options.failOnWarnings && getWarningCount() > 0) {
-      logError(
-        `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
-      );
-      process.exit(1);
-    }
+    });
   });
 
 await cli.parseAsync(process.argv);

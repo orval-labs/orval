@@ -2,8 +2,10 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  noopReporter,
   type NormalizedOptions,
   SupportedFormatter,
+  withReporter,
   type WriteSpecBuilder,
 } from '@orval/core';
 import fs from 'fs-extra';
@@ -27,16 +29,6 @@ vi.mock('execa', () => ({
 vi.mock('./formatters/prettier', () => ({
   formatWithPrettier: vi.fn(),
 }));
-
-vi.mock('@orval/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@orval/core')>();
-  return {
-    ...actual,
-    createSuccessMessage: vi.fn(),
-    log: vi.fn(),
-    logWarning: vi.fn(),
-  };
-});
 
 import { execa } from 'execa';
 
@@ -75,8 +67,8 @@ describe('runFormatter', () => {
 
   it('delegates to formatWithPrettier for prettier', async () => {
     const { formatWithPrettier } = await import('./formatters/prettier');
-    await runFormatter(SupportedFormatter.PRETTIER, paths, 'petstore');
-    expect(formatWithPrettier).toHaveBeenCalledWith(paths, 'petstore');
+    await runFormatter(SupportedFormatter.PRETTIER, paths);
+    expect(formatWithPrettier).toHaveBeenCalledWith(paths);
     expect(mockedExeca).not.toHaveBeenCalled();
   });
 
@@ -86,15 +78,19 @@ describe('runFormatter', () => {
   });
 
   it('logs a warning when binary is not found (ENOENT)', async () => {
-    const { logWarning } = await import('@orval/core');
+    const warn = vi.fn();
     const error = new MockExecaError('spawn oxfmt ENOENT');
     error.code = 'ENOENT';
     mockedExeca.mockRejectedValueOnce(error);
 
-    await runFormatter(SupportedFormatter.OXFMT, paths, 'petstore');
+    await withReporter({ ...noopReporter, warn }, () =>
+      runFormatter(SupportedFormatter.OXFMT, paths),
+    );
 
-    expect(logWarning).toHaveBeenCalledWith(
-      expect.stringContaining('oxfmt not found'),
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('oxfmt not found'),
+      }),
     );
   });
 });

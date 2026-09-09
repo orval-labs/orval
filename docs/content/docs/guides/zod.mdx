@@ -192,7 +192,7 @@ Per-operation and per-tag overrides accept the settings that apply to an individ
 Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, `generateMeta`, `generateDiscriminatedUnion`, and `exactOptional` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
 
 ```
-⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
+⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
 ```
 
 ## Usage

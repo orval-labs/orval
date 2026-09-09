@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { GeneratorVerbOptions } from '@orval/core';
+import type { GeneratorVerbOptions, OrvalReporter } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -11,13 +11,6 @@ import {
   it,
   vi,
 } from 'vite-plus/test';
-
-const { logWarningSpy } = vi.hoisted(() => ({ logWarningSpy: vi.fn() }));
-
-vi.mock('@orval/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@orval/core')>();
-  return { ...actual, logWarning: logWarningSpy };
-});
 
 // Simulate the optional `typescript` peer dependency being absent.
 vi.mock('./handler-merge', async (importOriginal) => {
@@ -47,7 +40,6 @@ describe('generateHandlerFile when typescript is unavailable', () => {
 
   beforeEach(async () => {
     dir = await mkdtemp(path.join(tmpdir(), 'orval-hono-nots-'));
-    logWarningSpy.mockClear();
     // The "warn once" guard is module-scoped state in ./index. Reset the module
     // registry so each test gets a fresh guard and the warning assertion below
     // doesn't depend on test order.
@@ -58,24 +50,34 @@ describe('generateHandlerFile when typescript is unavailable', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  const run = async (strategy: 'smart' | 'full') => {
+  const run = async (strategy: 'smart' | 'full', reporter?: OrvalReporter) => {
     const { generateHandlerFile } = await import('./index');
+    const { withReporter } = await import('@orval/core');
     const file = path.join(dir, 'listPets.ts');
     await writeFile(file, existing, 'utf8');
-    return generateHandlerFile({
-      verbs: [verb('listPets')],
-      path: file,
-      header: '/* eslint-disable */\n',
-      zodModule: path.join(dir, 'endpoints.zod'),
-      contextModule: path.join(dir, 'endpoints.context'),
-      strategy,
-    });
+    const generate = () =>
+      generateHandlerFile({
+        verbs: [verb('listPets')],
+        path: file,
+        header: '/* eslint-disable */\n',
+        zodModule: path.join(dir, 'endpoints.zod'),
+        contextModule: path.join(dir, 'endpoints.context'),
+        strategy,
+      });
+    return reporter ? withReporter(reporter, generate) : generate();
   };
 
   it('smart falls back to leaving the file unchanged and warns', async () => {
-    const result = await run('smart');
+    const warn = vi.fn();
+    const result = await run('smart', {
+      info() {},
+      warn,
+      error() {},
+      verbose() {},
+      debug() {},
+    });
     expect(result).toBe(existing);
-    expect(logWarningSpy).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
   });
 
   it('full also falls back to leaving the file unchanged', async () => {

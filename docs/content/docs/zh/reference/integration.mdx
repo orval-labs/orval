@@ -85,6 +85,9 @@ const globalOptions: GlobalOptions = {
   packageJson: './package.json',
   input: './api-spec.yaml',
 
+  // 日志
+  logLevel: 'error', // 仅输出错误
+
   // 错误处理
   throwOnError: true, // 首次生成出错时直接抛出，而不只是记录日志
 };
@@ -123,19 +126,80 @@ function generate(
 默认情况下，`generate()` 会记录首次生成时的错误，并在处理完已配置的一个或多个项目后完成。如果脚本需要捕获首次生成失败并自行决定如何处理，请设置 `throwOnError`：
 
 ```ts
-import { generate, logError } from 'orval';
+import { generate } from 'orval';
 
 try {
   await generate('./orval.config.js', process.cwd(), {
     throwOnError: true,
   });
-} catch (error) {
-  logError(error);
+} catch {
   process.exit(1);
 }
 ```
 
+`generate()` 会先通过当前报告器记录错误，然后再重新抛出。`logger.error` 在 `withReporter` 之外是空操作，因此不要在这个 catch 中调用它。
+
 当配置文件包含多个项目时，`throwOnError` 会在首次运行遇到第一个生成错误时立即停止，而不是继续执行后续项目。watch 模式中的生成错误则会在 watcher 启动后继续以日志形式输出。
+
+## Reporter（报告器）
+
+报告器选择属于编程调用的执行上下文，不是 `orval.config.ts` 选项。内置包会向当前异步调用链上的报告器发送结构化事件（`message`、`packageName`，以及可选的 `projectName`）。
+
+| 入口 | 默认行为 |
+| --- | --- |
+| 底层 API（`generateSpec`、辅助函数、格式化） | 无操作 |
+| CLI（`orval`） | 输出到控制台 |
+| 公开的 `generate()` | 输出到控制台；若外层已有 `withReporter`，则保留外层报告器 |
+
+使用 `withReporter` 为一次调用链安装报告器。外层报告器始终优先于 `generate()` 的控制台默认值，因此测试可以静默输出，而不改变生产环境的调用方。
+
+```ts
+import { generate, withReporter, noopReporter, consoleReporter } from 'orval';
+
+// 在测试中静默 generate()
+await withReporter(noopReporter, () => generate(config));
+
+// 让底层 API 使用现有的终端输出
+await withReporter(consoleReporter, () => generateSpec(workspace, options));
+```
+
+自定义报告器会收到结构化事件。当项目在作用域中时，日志会在 `message` 前加上项目名称。消息保留现有文案和 ANSI 样式；如果需要纯文本，请自行去掉颜色。
+
+```ts
+import { generate, withReporter, type OrvalReporter } from 'orval';
+
+const reporter: OrvalReporter = {
+  info: (event) => process.stdout.write(`${event.packageName}: ${event.message}\n`),
+  warn: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  error: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  verbose: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  debug: (event) => {
+    if (process.env.DEBUG) {
+      process.stderr.write(`${event.packageName}: ${event.message}\n`);
+    }
+  },
+};
+
+await withReporter(reporter, () => generate(config));
+```
+
+要在测试中断言一个或多个事件，只需覆盖关心的级别：
+
+```ts
+import { generate, noopReporter, withReporter } from 'orval';
+import { vi } from 'vitest';
+
+const warn = vi.fn();
+
+await withReporter({ ...noopReporter, warn }, () => generate(config));
+
+expect(warn).toHaveBeenCalledWith(
+  expect.objectContaining({
+    packageName: 'orval',
+    message: expect.stringContaining('symbolic link'),
+  }),
+);
+```
 
 ## Watch Mode（监听模式）
 

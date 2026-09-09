@@ -192,7 +192,7 @@ export default defineConfig({
 而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion` 和 `exactOptional`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
 
 ```
-⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
+⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
 ```
 
 ## 用法

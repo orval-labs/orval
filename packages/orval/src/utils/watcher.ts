@@ -1,4 +1,6 @@
-import { isBoolean, log, logError } from '@orval/core';
+import { bindReporter, isBoolean } from '@orval/core';
+
+import { logger } from '../logger';
 
 /**
  * Start a file watcher and invoke an async callback on file changes.
@@ -23,12 +25,13 @@ export async function startWatcher(
 ) {
   if (!watchOptions) return;
   const { watch } = await import('chokidar');
+  const restore = bindReporter();
 
   const ignored = ['**/{.git,node_modules}/**'];
 
   const watchPaths = isBoolean(watchOptions) ? defaultTarget : watchOptions;
 
-  log(
+  logger.info(
     `Watching for changes in ${
       Array.isArray(watchPaths)
         ? watchPaths.map((v) => '"' + v + '"').join(' | ')
@@ -41,12 +44,18 @@ export async function startWatcher(
     ignored,
   });
   watcher.on('ready', () => {
-    log('Initial scan complete. Watching for changes...');
-    watcher.on('all', (type, file) => {
-      log(`Change detected: ${type} ${file}`);
+    restore(() => {
+      logger.info('Initial scan complete. Watching for changes...');
+      watcher.on('all', (type, file) => {
+        restore(() => {
+          logger.info(`Change detected: ${type} ${file}`);
 
-      watchFn().catch((error: unknown) => {
-        logError(error);
+          watchFn().catch((error: unknown) => {
+            restore(() => {
+              logger.error(error);
+            });
+          });
+        });
       });
     });
   });

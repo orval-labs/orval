@@ -12,7 +12,7 @@ import {
   getSchemasImportPath,
   isString,
   jsStringLiteralEscape,
-  logWarning,
+  logger,
   pascal,
   upath,
 } from '../utils';
@@ -448,8 +448,8 @@ function buildArrayPayload(
   if (minItems && items) {
     const MAX_MIN_ITEMS = 50;
     if (minItems > MAX_MIN_ITEMS) {
-      logWarning(
-        `Warning: minItems is ${minItems}, capping at ${MAX_MIN_ITEMS} to prevent massive payload.`,
+      logger.warn(
+        `minItems is ${minItems}, capping at ${MAX_MIN_ITEMS} to prevent massive payload.`,
       );
     }
     const count = Math.min(minItems, MAX_MIN_ITEMS);

@@ -24,7 +24,6 @@ import {
   generateDependencyImports,
   getBaseUrlRuntimeImports,
   isFunction,
-  logWarning,
   OutputClient,
   OutputMockType,
   pascal,
@@ -39,6 +38,8 @@ import query from '@orval/query';
 import solidStart from '@orval/solid-start';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
+
+import { logger } from './logger';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -184,8 +185,8 @@ export const generateClientFooter: GeneratorClientFooter = ({
         footer as unknown as (operationNames: string[]) => string
       )(operationNames);
       // being here means that the previous call worked
-      logWarning(
-        '⚠️  Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
+      logger.warn(
+        'Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
       );
     } else {
       implementation = footer({

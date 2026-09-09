@@ -16,7 +16,6 @@ import {
   isObject,
   isString,
   jsDoc,
-  logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMockType,
@@ -49,6 +48,7 @@ import {
   createPrettierFileTransform,
   formatWithPrettier,
 } from './formatters/prettier';
+import { logger } from './logger';
 import {
   executeHook,
   readReExportSpecifiers,
@@ -66,46 +66,37 @@ import {
 async function runExternalFormatter(
   bin: string,
   args: string[],
-  projectTitle?: string,
 ): Promise<void> {
   try {
     await execa(bin, args);
   } catch (error) {
-    let message: string;
-    if (error instanceof ExecaError) {
-      message =
-        error.code === 'ENOENT'
-          ? `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} not found`
-          : error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
+    if (error instanceof ExecaError && error.code === 'ENOENT') {
+      logger.warn(`${bin} not found`);
     } else {
-      message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} failed`;
+      logger.warn(error);
     }
-    logWarning(message);
   }
 }
 
 export async function runFormatter(
   formatter: SupportedFormatter | undefined,
   paths: string[],
-  projectTitle?: string,
 ): Promise<void> {
   switch (formatter) {
     case SupportedFormatter.PRETTIER: {
-      await formatWithPrettier(paths, projectTitle);
+      await formatWithPrettier(paths);
       break;
     }
     case SupportedFormatter.BIOME: {
-      await runExternalFormatter(
-        SupportedFormatter.BIOME,
-        ['check', '--write', ...paths],
-        projectTitle,
-      );
+      await runExternalFormatter(SupportedFormatter.BIOME, [
+        'check',
+        '--write',
+        ...paths,
+      ]);
       break;
     }
     case SupportedFormatter.OXFMT: {
-      await runExternalFormatter(SupportedFormatter.OXFMT, paths, projectTitle);
+      await runExternalFormatter(SupportedFormatter.OXFMT, paths);
       break;
     }
   }
@@ -572,8 +563,6 @@ async function writeSpecsInternal(
   const { schemaTagMap, schemaOutputPlan } = builder;
   const shouldSplitSchemasByTags =
     isObject(output.schemas) && output.schemas.splitByTags === true;
-  const projectTitle = projectName ?? info.title;
-
   const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
@@ -1049,7 +1038,7 @@ async function writeSpecsInternal(
     );
   }
 
-  await runFormatter(output.formatter, paths, projectTitle);
+  await runFormatter(output.formatter, paths);
 
   if (output.docs) {
     try {
@@ -1097,21 +1086,16 @@ async function writeSpecsInternal(
         );
         await app.generateOutputs(project);
 
-        await runFormatter(output.formatter, [outputPath], projectTitle);
+        await runFormatter(output.formatter, [outputPath]);
       } else {
         throw new Error('TypeDoc not initialized');
       }
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
-
-      logWarning(message);
+      logger.warn(error instanceof Error ? error : 'Unable to generate docs');
     }
   }
 
-  createSuccessMessage(projectTitle);
+  logger.info(createSuccessMessage(info.title));
 }
 
 export async function writeSpecs(
@@ -1124,7 +1108,7 @@ export async function writeSpecs(
     options.output.formatter === SupportedFormatter.PRETTIER &&
     !options.hooks.afterAllFilesWrite;
   const transform = shouldFormatBeforeWriting
-    ? await createPrettierFileTransform(projectName ?? builder.info.title)
+    ? await createPrettierFileTransform()
     : undefined;
 
   if (transform) {

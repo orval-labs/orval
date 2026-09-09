@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import type { OpenApiDocument } from '@orval/core';
-import * as orvalCore from '@orval/core';
+import { noopReporter, withReporter } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
@@ -298,21 +298,16 @@ describe('validation', () => {
 
     expect(normalizedOptions.input.unsafeDisableValidation).toBe(true);
 
-    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
-      /* noop */
-    });
+    const warn = vi.fn();
+    const spec = await withReporter({ ...noopReporter, warn }, () =>
+      importSpecs(workspace, normalizedOptions),
+    );
 
-    try {
-      const spec = await importSpecs(workspace, normalizedOptions);
+    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+    expect(spec.verbOptions).toHaveProperty('list_pets');
 
-      expect(spec.verbOptions).toHaveProperty('sse_endpoint');
-      expect(spec.verbOptions).toHaveProperty('list_pets');
-
-      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
-      expect(warnings).toContain('OpenAPI spec validation is disabled');
-    } finally {
-      warnSpy.mockRestore();
-    }
+    const warnings = warn.mock.calls.map(([event]) => event.message).join('\n');
+    expect(warnings).toContain('OpenAPI spec validation is disabled');
   });
 
   it('should resolve external $ref injected by override.transformer (#3327)', async () => {
@@ -1045,9 +1040,7 @@ describe('externalRefs', () => {
 
   it('should resolve all external $refs with wildcard and emit warnings', async () => {
     const { workspace, specPath } = await createExternalRefWorkspace();
-    const warnSpy = vi
-      .spyOn(orvalCore, 'logWarning')
-      .mockImplementation(() => {});
+    const warn = vi.fn();
     try {
       const normalizedOptions = await normalizeOptions(
         {
@@ -1060,14 +1053,17 @@ describe('externalRefs', () => {
         workspace,
         {},
       );
-      const spec = await importSpecs(workspace, normalizedOptions);
+      const spec = await withReporter({ ...noopReporter, warn }, () =>
+        importSpecs(workspace, normalizedOptions),
+      );
       expect(spec.verbOptions).toHaveProperty('getX');
 
-      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      const warnings = warn.mock.calls
+        .map(([event]) => event.message)
+        .join('\n');
       expect(warnings).toContain('External $ref documents being resolved');
       expect(warnings).toContain('external.yaml');
     } finally {
-      warnSpy.mockRestore();
       await rm(workspace, { recursive: true, force: true });
     }
   });
@@ -1567,9 +1563,7 @@ describe('externalRefs allow-list and redirects', () => {
     const { workspace, specPath } = await createWorkspaceFor(
       servers.redirectUrl,
     );
-    const warnSpy = vi
-      .spyOn(orvalCore, 'logWarning')
-      .mockImplementation(() => {});
+    const warn = vi.fn();
 
     try {
       const normalizedOptions = await normalizeOptions(
@@ -1588,17 +1582,20 @@ describe('externalRefs allow-list and redirects', () => {
       );
 
       await expect(
-        importSpecs(workspace, normalizedOptions),
+        withReporter({ ...noopReporter, warn }, () =>
+          importSpecs(workspace, normalizedOptions),
+        ),
       ).rejects.toBeDefined();
 
       // The blocked destination must never be contacted.
       expect(servers.targetHits).toBe(0);
 
-      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      const warnings = warn.mock.calls
+        .map(([event]) => event.message)
+        .join('\n');
       expect(warnings).toContain('Refused to follow a redirect');
       expect(warnings).toContain(servers.targetUrl);
     } finally {
-      warnSpy.mockRestore();
       await servers.close();
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3041,10 +3038,7 @@ describe('dereferenceExternalRefs', () => {
   it('should break cycles when an external ref recursively points back to itself (#1642)', () => {
     // A self-referencing x-ext entry outside components.schemas would
     // otherwise inline forever and OOM; the inner ref must collapse to `{}`.
-    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
-      /* noop */
-    });
-
+    const warn = vi.fn();
     const input = {
       openapi: '3.0.0',
       components: {
@@ -3065,7 +3059,9 @@ describe('dereferenceExternalRefs', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input) as {
+    const result = withReporter({ ...noopReporter, warn }, () =>
+      dereferenceExternalRef(input),
+    ) as {
       components: { schemas: { Foo: Record<string, unknown> } };
     };
 
@@ -3077,11 +3073,11 @@ describe('dereferenceExternalRefs', () => {
       },
     });
     expect(result).not.toHaveProperty('x-ext');
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('circular external $ref'),
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('circular external $ref'),
+      }),
     );
-
-    warnSpy.mockRestore();
   });
 
   it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {
