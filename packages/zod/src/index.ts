@@ -101,6 +101,7 @@ export const predefinedZodFormats = new Set([
   'date',
   'time',
   'date-time',
+  'date-time-local',
   'email',
   'uri',
   'hostname',
@@ -1483,8 +1484,14 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (schema.format === 'date-time') {
-          const options = context.output.override.zod.dateTimeOptions;
+        if (
+          schema.format === 'date-time' ||
+          schema.format === 'date-time-local'
+        ) {
+          const options =
+            schema.format === 'date-time-local'
+              ? { local: true }
+              : context.output.override.zod.dateTimeOptions;
           const formatAPI = getZodDateTimeFormat(isZodV4);
 
           functions.push([formatAPI, JSON.stringify(options)]);
