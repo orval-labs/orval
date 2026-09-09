@@ -6,7 +6,7 @@ import type {
   OpenApiReferenceObject,
 } from '../types';
 import { isReference } from '../utils';
-import { isComponentRef } from './ref';
+import { getRefInfo, isComponentRef } from './ref';
 
 interface GetParametersOptions {
   parameters: (OpenApiReferenceObject | OpenApiParameterObject)[];
@@ -20,7 +20,7 @@ export function getParameters({
   const result: GetterParameters = { path: [], query: [], header: [] };
   for (const p of parameters) {
     if (isReference(p)) {
-      const { schema, imports } = resolveRef(p, context);
+      const { schema } = resolveRef(p, context);
       const parameter = schema as OpenApiParameterObject;
 
       const location = parameter.in;
@@ -34,7 +34,21 @@ export function getParameters({
         // `generateParameterDefinition`, so emitting a named import would
         // dangle. Inline the resolved parameter's schema instead. Mirrors the
         // #398 fix in `resolvers/value.ts`. See issue #1879.
-        const safeImports = p.$ref && isComponentRef(p.$ref) ? imports : [];
+        // Operation params reference the reusable parameter alias itself. Any
+        // schema refs nested inside that parameter are imported by the generated
+        // `components.parameters` alias, so they must not be forwarded here.
+        const componentRefInfo =
+          p.$ref && isComponentRef(p.$ref)
+            ? getRefInfo(p.$ref, context)
+            : undefined;
+        const safeImports = componentRefInfo
+          ? [
+              {
+                name: componentRefInfo.name,
+                schemaName: componentRefInfo.originalName,
+              },
+            ]
+          : [];
         result[location].push({ parameter, imports: safeImports });
       }
     } else {
