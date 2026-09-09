@@ -1,5 +1,6 @@
 import {
   collectReferencedComponents,
+  filterPathsBySchemas,
   type ContextSpec,
   generateComponentDefinition,
   generateParameterDefinition,
@@ -20,7 +21,15 @@ function filterSpecComponents(
   input: InputOptions,
 ): OpenApiDocument {
   const filters = input.filters;
-  if (!filters?.tags || filters.schemas) return spec;
+
+  // `filters.schemas` prunes operations that do not reference any kept
+  // schema, so only artifacts related to the requested schemas are
+  // generated (#3689).
+  if (filters?.schemas) {
+    return filterPathsBySchemas(spec, filters.schemas, filters.mode);
+  }
+
+  if (!filters?.tags) return spec;
 
   const referenced = collectReferencedComponents(
     spec,

@@ -38,6 +38,19 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-3689-schema-filter': {
+    input: {
+      target: '../specifications/issue-3689.yaml',
+      filters: {
+        schemas: ['CreateUserRequest'],
+      },
+    },
+    output: {
+      target: '../generated/default/issue-3689-schema-filter/endpoints.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'petstore-transfomer': {
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
