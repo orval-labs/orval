@@ -257,7 +257,12 @@ ${handlerArgsTypes.join('\n')}
   const handlerImplementation = customHandler
     ? `
 export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit, ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
-  const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{ ...options, ...overrides });
+  const fetcher = (overrides?: RequestInit) => {
+    const headers = new Headers(options?.headers);
+    new Headers(overrides?.headers).forEach((value, name) => headers.set(name, value));
+
+    return ${verbOptions.operationName}(${fetchArgs}{ ...options, ...overrides, headers });
+  };
 
   return ${customHandler.name ?? 'customHandler'}(fetcher, ctx);
 };`

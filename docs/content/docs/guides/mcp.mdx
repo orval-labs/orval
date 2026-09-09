@@ -154,8 +154,18 @@ export const findPetsByStatusHandler = async (
   options?: RequestInit,
   ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const fetcher = (overrides?: RequestInit) =>
-    findPetsByStatus(args.queryParams, { ...options, ...overrides });
+  const fetcher = (overrides?: RequestInit) => {
+    const headers = new Headers(options?.headers);
+    new Headers(overrides?.headers).forEach((value, name) =>
+      headers.set(name, value),
+    );
+
+    return findPetsByStatus(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers,
+    });
+  };
 
   return customHandler(fetcher, ctx);
 };
@@ -204,7 +214,7 @@ export const customHandler = async (
 };
 ```
 
-`fetcher` already carries the tool arguments and the `RequestInit` passed to `createMcpServer`, including the cancellation signal described above. Pass overrides to add headers or to replace the signal.
+`fetcher` already carries the tool arguments and the `RequestInit` passed to `createMcpServer`, including the cancellation signal described above. Pass overrides to add headers or to replace the signal. Headers from overrides are merged into the base headers instead of replacing them, so headers such as `Authorization` set through `createMcpServer(options)` stay on the request.
 
 `ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`. It is optional so that the generated handlers can still be called directly, for example from tests.
 

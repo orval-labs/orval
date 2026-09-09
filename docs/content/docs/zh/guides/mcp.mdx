@@ -154,8 +154,18 @@ export const findPetsByStatusHandler = async (
   options?: RequestInit,
   ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
-  const fetcher = (overrides?: RequestInit) =>
-    findPetsByStatus(args.queryParams, { ...options, ...overrides });
+  const fetcher = (overrides?: RequestInit) => {
+    const headers = new Headers(options?.headers);
+    new Headers(overrides?.headers).forEach((value, name) =>
+      headers.set(name, value),
+    );
+
+    return findPetsByStatus(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers,
+    });
+  };
 
   return customHandler(fetcher, ctx);
 };
@@ -204,7 +214,7 @@ export const customHandler = async (
 };
 ```
 
-`fetcher` 已经绑定了工具参数以及传给 `createMcpServer` 的 `RequestInit`，其中包含上文描述的取消信号。传入 overrides 可以追加请求头或替换信号。
+`fetcher` 已经绑定了工具参数以及传给 `createMcpServer` 的 `RequestInit`，其中包含上文描述的取消信号。传入 overrides 可以追加请求头或替换信号。overrides 中的请求头会合并到基础请求头中而不是整体替换，因此通过 `createMcpServer(options)` 设置的 `Authorization` 等请求头仍会保留在请求上。
 
 `ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。它是可选参数，因此生成的 handler 仍然可以被直接调用，例如在测试中。
 
