@@ -96,6 +96,63 @@ function makeContextSpec({
   };
 }
 
+describe.each([
+  { version: 3, variant: 'classic' },
+  { version: 4, variant: 'classic' },
+  { version: 4, variant: 'mini' },
+] as const)(
+  'date-time-local (Zod $version, $variant)',
+  ({ version, variant }) => {
+    const render = (format: string, required: boolean) => {
+      const context = makeContextSpec();
+      context.output.override.zod.dateTimeOptions = { offset: true };
+      const definition = generateZodValidationSchemaDefinition(
+        { type: 'string', format },
+        context,
+        'localDateTime',
+        false,
+        version === 4,
+        { required },
+      );
+      return parseZodValidationSchemaDefinition(
+        definition,
+        context,
+        false,
+        false,
+        version === 4,
+        undefined,
+        undefined,
+        variant,
+      ).zod;
+    };
+
+    it.each([true, false])(
+      'generates local datetime validation with required=%s',
+      (required) => {
+        const validator =
+          version === 4
+            ? 'zod.iso.datetime({"local":true})'
+            : 'zod.string().datetime({"local":true})';
+        const expected = required
+          ? validator
+          : variant === 'mini'
+            ? `zod.optional(${validator})`
+            : `${validator}.optional()`;
+
+        expect(render('date-time-local', required)).toBe(expected);
+      },
+    );
+
+    it('preserves timezone offset validation for date-time', () => {
+      expect(render('date-time', true)).toBe(
+        version === 4
+          ? 'zod.iso.datetime({"offset":true})'
+          : 'zod.string().datetime({"offset":true})',
+      );
+    });
+  },
+);
+
 const record: ZodValidationSchemaDefinition = {
   functions: [
     [
@@ -1957,6 +2014,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ['date', getZodDateFormat(true)],
       ['time', getZodTimeFormat(true)],
       ['date-time', getZodDateTimeFormat(true)],
+      ['date-time-local', getZodDateTimeFormat(true)],
       ['email', 'email'],
       ['uri', 'url'],
       ['hostname', 'hostname'],
