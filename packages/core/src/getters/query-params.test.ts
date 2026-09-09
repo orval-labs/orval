@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils/context';
 import { EnumGeneration, type OpenApiParameterObject } from '../types';
+import { getParameters } from './parameters';
 import { getQueryParams } from './query-params';
 
 // Fully-typed context via the shared factory — no unsafe cast, so missing
@@ -207,6 +208,69 @@ describe('getQueryParams getter', () => {
         ' * Parameter description.',
         ' */',
         'queryParamWithDescription?: string;',
+        '};',
+      ].join('\n'),
+    );
+  });
+
+  it('does not import schemas used only behind reusable parameter aliases (issue #4057)', () => {
+    const whereItem = {
+      type: 'object',
+      properties: {
+        attribute: { type: 'string' },
+        value: { type: 'string' },
+      },
+    } as const;
+    const whereParameter: OpenApiParameterObject = {
+      name: 'where',
+      in: 'query',
+      description: 'Complex filtering criteria',
+      style: 'deepObject',
+      explode: true,
+      schema: { $ref: '#/components/schemas/WhereItem' },
+    };
+    const reusableParameterContext = createTestContextSpec({
+      spec: {
+        components: {
+          parameters: { Where: whereParameter },
+          schemas: { WhereItem: whereItem },
+        },
+      },
+      override: {
+        components: {
+          schemas: {
+            prefix: '',
+            itemPrefix: '',
+            suffix: '',
+            itemSuffix: '',
+          },
+          responses: { prefix: '', suffix: '' },
+          parameters: { prefix: '', suffix: 'Parameter' },
+          requestBodies: { prefix: '', suffix: '' },
+        },
+      },
+    });
+    const parameters = getParameters({
+      parameters: [{ $ref: '#/components/parameters/Where' }],
+      context: reusableParameterContext,
+    });
+
+    const result = getQueryParams({
+      queryParams: parameters.query,
+      operationName: 'getItems',
+      context: reusableParameterContext,
+    });
+
+    expect(result?.schema.imports).toEqual([
+      { name: 'WhereParameter', schemaName: 'Where' },
+    ]);
+    expect(result?.schema.model.trim()).toBe(
+      [
+        'export type GetItemsParams = {',
+        '/**',
+        ' * Complex filtering criteria',
+        ' */',
+        'where?: WhereParameter;',
         '};',
       ].join('\n'),
     );
