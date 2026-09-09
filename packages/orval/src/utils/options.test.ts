@@ -89,6 +89,47 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('resolves override.mcp.handler against the workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './src/handlers.ts',
+            client: 'mcp',
+            override: {
+              mcp: {
+                handler: {
+                  path: './custom-handler.ts',
+                  name: 'customHandler',
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mcp).toEqual({
+        handler: {
+          path: path.join(workspace, 'custom-handler.ts'),
+          name: 'customHandler',
+          default: false,
+        },
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('keeps ESM-only package mutator specifiers as imports', async () => {
     const workspace = await createTempWorkspace();
 

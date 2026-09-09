@@ -76,6 +76,18 @@ const getAnnotations = (verb: Verbs): string => {
   }
 };
 
+const getCustomModuleImport = (
+  module: { path: string; name?: string; default: boolean },
+  fallbackName: string,
+  fromPath: string,
+) => {
+  const name = module.name ?? fallbackName;
+  const specifier = module.default ? name : `{ ${name} }`;
+  const relativePath = upath.getRelativeImportPath(fromPath, module.path);
+
+  return `import ${specifier} from '${relativePath}';`;
+};
+
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
   context.spec.info ?? {
     title: 'API',
@@ -161,15 +173,27 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   )}\n} from '${relativeFetchClientPath}';
   `;
 
+  const handlerOptions = output.override.mcp.handler;
+  const importCustomHandlerImplementation = handlerOptions
+    ? `${getCustomModuleImport(handlerOptions, 'customHandler', targetInfo.path)}
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+`
+    : '';
+
   const content = [
     importSchemasImplementation,
     importFetchClientImplementation,
+    importCustomHandlerImplementation,
   ].join('\n');
 
   return content + '\n';
 };
 
-export const generateMcp: ClientBuilder = (verbOptions) => {
+export const generateMcp: ClientBuilder = (verbOptions, options) => {
   const handlerArgsTypes = [];
   const originalParamNames = getParamsInPath(verbOptions.pathRoute);
   const pathParamsType = verbOptions.params
@@ -225,9 +249,21 @@ ${handlerArgsTypes.join('\n')}
   }
 
   const handlerName = `${verbOptions.operationName}Handler`;
-  const handlerImplementation = `
-export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : ''}options?: RequestInit) => {
-  const res = await ${verbOptions.operationName}(${fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : ''}options);
+  const handlerArgsSignature =
+    handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : '';
+  const fetchArgs = fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : '';
+
+  const customHandler = options.override.mcp.handler;
+  const handlerImplementation = customHandler
+    ? `
+export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit, ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
+  const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{ ...options, ...overrides });
+
+  return ${customHandler.name ?? 'customHandler'}(fetcher, ctx);
+};`
+    : `
+export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit) => {
+  const res = await ${verbOptions.operationName}(${fetchArgs}options);
 
   if (res.status >= 400) {
     return {
@@ -327,10 +363,11 @@ export const generateServer = (
     ...options,
     signal: options?.signal ? AbortSignal.any([options.signal, ctx.signal]) : ctx.signal,
   }`;
+      const ctxArgument = output.override.mcp.handler ? ', ctx' : '';
       const handlerCallImplementation =
         inputSchemaTypes.length > 0
-          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal})`
-          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal})`;
+          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal}${ctxArgument})`
+          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal}${ctxArgument})`;
 
       const toolImplementation = `
 tools.${verbOption.operationName} = server.registerTool(
@@ -395,12 +432,6 @@ ${toolImplementations}
 `;
 
   const serverFunctionName = mcpServerOptions?.name ?? 'customServer';
-  const relativeServerPath = mcpServerOptions
-    ? upath.getRelativeImportPath(serverPath, mcpServerOptions.path)
-    : '';
-  const importSpecifier = mcpServerOptions?.default
-    ? serverFunctionName
-    : `{ ${serverFunctionName} }`;
 
   const importMcpServer = `import {
   McpServer,
@@ -409,7 +440,7 @@ ${toolImplementations}
 `;
 
   const importTransport = mcpServerOptions
-    ? `import ${importSpecifier} from '${relativeServerPath}';`
+    ? getCustomModuleImport(mcpServerOptions, 'customServer', serverPath)
     : `import {
   StdioServerTransport
 } from '@modelcontextprotocol/sdk/server/stdio.js';`;
