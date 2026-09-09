@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
+import type {
   ListPetsParams,
   CreatePetsParams,
   CreatePetsBody,
