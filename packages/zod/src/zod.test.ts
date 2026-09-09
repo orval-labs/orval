@@ -130,13 +130,15 @@ describe.each([
       'generates local datetime validation with required=%s',
       (required) => {
         const validator =
-          version === 4
-            ? 'zod.iso.datetime({"local":true})'
-            : 'zod.string().datetime({"local":true})';
+          variant === 'mini'
+            ? '/*#__PURE__*/ zod.iso.datetime({"local":true})'
+            : version === 4
+              ? 'zod.iso.datetime({"local":true})'
+              : 'zod.string().datetime({"local":true})';
         const expected = required
           ? validator
           : variant === 'mini'
-            ? `zod.optional(${validator})`
+            ? `/*#__PURE__*/ zod.optional(${validator})`
             : `${validator}.optional()`;
 
         expect(render('date-time-local', required)).toBe(expected);
@@ -145,9 +147,11 @@ describe.each([
 
     it('preserves timezone offset validation for date-time', () => {
       expect(render('date-time', true)).toBe(
-        version === 4
-          ? 'zod.iso.datetime({"offset":true})'
-          : 'zod.string().datetime({"offset":true})',
+        variant === 'mini'
+          ? '/*#__PURE__*/ zod.iso.datetime({"offset":true})'
+          : version === 4
+            ? 'zod.iso.datetime({"offset":true})'
+            : 'zod.string().datetime({"offset":true})',
       );
     });
   },
