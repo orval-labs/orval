@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { ContextSpec, OpenApiSchemaObject } from '../types';
@@ -1939,5 +1940,127 @@ describe('combineSchemas (allOf required handling)', () => {
     });
 
     expect(resultA.value).toBe(resultB.value);
+  });
+});
+
+describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via schema names', () => {
+  // Schema-derived names land in the key position of `Pick`/`Extract`, which is
+  // a TS *string literal type* — always quoted, so always in need of escaping.
+  // Emitted raw, a `'` in a name closed the literal and the rest was written as
+  // sibling top-level source in `export type X = …;`. A value statement there
+  // survives type erasure and runs when the module is imported.
+  const payload =
+    "id'>>>;\nexport const pwned=(()=>{globalThis.__PWNED=1;})();\ntype _Dummy = Array<Array<Array<'id";
+
+  // The property that actually matters: whatever the name contains, the emitted
+  // type must stay a single `export type X = …;` statement. A breakout shows up
+  // as a second top-level statement, which is what carried the payload. Parsing
+  // with TypeScript checks that directly rather than pattern-matching source —
+  // the escaped payload legitimately still contains the text `export const`
+  // *inside* a string literal, where it is inert.
+  const expectSingleStatement = (value: string) => {
+    const source = ts.createSourceFile(
+      'evil.ts',
+      `export type Evil = ${value};`,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    expect(
+      source.statements.map((statement) => statement.getText(source)),
+    ).toHaveLength(1);
+    expect(source.statements[0].kind).toBe(ts.SyntaxKind.TypeAliasDeclaration);
+  };
+
+  const contextWithEvilBase = {
+    ...context,
+    spec: {
+      components: {
+        schemas: {
+          ...context.spec.components!.schemas,
+          // Owns the property but does not require it, so the parent's
+          // `required` drives the Pick/Extract emission.
+          EvilBase: {
+            type: 'object',
+            properties: { [payload]: { type: 'string' } },
+          },
+        },
+      },
+    },
+  } as unknown as ContextSpec;
+
+  it('escapes the name in the Extract<keyof …> branch', () => {
+    // The required name is not a known member key, so it takes the
+    // Extract-guarded path — reachable under default config.
+    const result = combineSchemas({
+      schema: {
+        required: [payload],
+        allOf: [{ $ref: '#/components/schemas/Base' }],
+      } as OpenApiSchemaObject,
+      name: 'Evil',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Extract<keyof (Base)');
+    expectSingleStatement(result.value);
+  });
+
+  it('escapes the name in the Required<Pick<…>> branch', () => {
+    // Same name is a real member key here, so it is pickable directly.
+    const result = combineSchemas({
+      schema: {
+        required: [payload],
+        allOf: [{ $ref: '#/components/schemas/EvilBase' }],
+      } as OpenApiSchemaObject,
+      name: 'Evil',
+      separator: 'allOf',
+      context: contextWithEvilBase,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Required<Pick<EvilBase,');
+    expect(result.value).not.toContain('Extract<');
+    expectSingleStatement(result.value);
+  });
+
+  it('escapes the name in the unionAddMissingProperties `?: never` keys', () => {
+    const contextWithUnionFill = {
+      ...context,
+      output: { ...context.output, unionAddMissingProperties: true },
+    } as unknown as ContextSpec;
+
+    const result = combineSchemas({
+      schema: {
+        oneOf: [
+          { type: 'object', properties: { [payload]: { type: 'string' } } },
+          { type: 'object', properties: { other: { type: 'string' } } },
+        ],
+      } as OpenApiSchemaObject,
+      name: 'Evil',
+      separator: 'oneOf',
+      context: contextWithUnionFill,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('?: never');
+    expectSingleStatement(result.value);
+  });
+
+  it('leaves ordinary names byte-identical', () => {
+    // The escaper must be a no-op for every name that does not need it, so no
+    // generated output churns.
+    const result = combineSchemas({
+      schema: {
+        required: ['baseProp'],
+        allOf: [{ $ref: '#/components/schemas/Base' }],
+      } as OpenApiSchemaObject,
+      name: 'Plain',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toBe("Base & Required<Pick<Base, 'baseProp'>>");
   });
 });

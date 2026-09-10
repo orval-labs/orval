@@ -9,6 +9,31 @@ export function getKey(key: string) {
 }
 
 /**
+ * Emits a schema-derived name as a TypeScript *string literal type*
+ * (`'petId'`), for the key positions of `Pick`, `Omit` and `Extract`.
+ *
+ * The sibling {@link getKey} covers the property-key position, where a valid
+ * identifier may be emitted bare. A string literal type has no bare form —
+ * `Extract<keyof T, petId>` is a type *reference*, not the literal `'petId'` —
+ * so the name is always quoted, and therefore always has to be escaped. Left
+ * unescaped, a `'` in a schema name closes the literal and the rest of the
+ * name is emitted as sibling top-level source in `export type X = …;`, which
+ * survives type erasure and runs when the generated module is imported
+ * (GHSA-6h9g-hcv4-66p6).
+ */
+export function getStringLiteralType(name: string) {
+  return `'${jsStringLiteralEscape(name)}'`;
+}
+
+/**
+ * Joins schema-derived names into a union of string literal types
+ * (`'a' | 'b'`). See {@link getStringLiteralType}.
+ */
+export function getStringLiteralTypeUnion(names: readonly string[]) {
+  return names.map((name) => getStringLiteralType(name)).join(' | ');
+}
+
+/**
  * Emits a property access for a possibly non-identifier name: dot access for
  * valid identifier names (`.petId`), quoted bracket access otherwise
  * (`['scope.id']`).
