@@ -49,6 +49,7 @@ import {
   rewriteSentinelsToDirect,
 } from './reusable-schemas';
 import { reconcileZodBarrel } from './utils/barrel';
+import { namesAFile } from './utils/options';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
@@ -1704,7 +1705,9 @@ export async function writeZodSchemasSingle(
     false,
   );
   await writeGeneratedFile(
-    path.join(schemasPath, `index${fileExtension}`),
+    namesAFile(schemasPath)
+      ? schemasPath
+      : path.join(schemasPath, `index${fileExtension}`),
     `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n\n${components}${operations}`,
   );
 }

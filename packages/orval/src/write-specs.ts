@@ -54,6 +54,7 @@ import {
   readReExportSpecifiers,
   reconcileWorkspaceBarrel,
 } from './utils';
+import { namesAFile } from './utils/options';
 import {
   generateZodSchemasInline,
   writeZodSchemas,
@@ -597,10 +598,16 @@ async function writeSpecsInternal(
       // Reusable component schemas live as separate files under `schemasPath`,
       // so we resolve the user's `override.zod.params` mutator once relative
       // to that directory and pass it down. Each emitted schema file lives in
-      // the same dir, so the relative import is identical across files.
+      // the same dir, so the relative import is identical across files. In
+      // `single` mode the path may name the schema module itself; the mutator
+      // then sits beside it.
+      const schemasDir =
+        singleZodFile && namesAFile(schemasPath)
+          ? path.dirname(schemasPath)
+          : schemasPath;
       const schemasParamsMutator = output.override.zod.params
         ? await generateMutator({
-            output: path.join(schemasPath, `__params__${fileExtension}`),
+            output: path.join(schemasDir, `__params__${fileExtension}`),
             mutator: output.override.zod.params,
             name: 'zodParams',
             workspace,

@@ -418,6 +418,10 @@ export interface NormalizedFactoryMethodsOptions {
 }
 
 export interface SchemaOptions {
+  /**
+   * Output path for schemas. A directory in split mode; in `mode: 'single'`
+   * the path may name the schema module file directly.
+   */
   path: string;
   /** Write Zod schemas to one index file instead of separate schema files. */
   mode?: 'split' | 'single';

@@ -130,6 +130,11 @@ const SOURCE_FILE_EXTENSIONS = new Set([
   '.cjs',
 ]);
 
+/** True when a path names a source file rather than a directory. */
+export function namesAFile(path: string): boolean {
+  return SOURCE_FILE_EXTENSIONS.has(nodePath.extname(path).toLowerCase());
+}
+
 /**
  * Reject a schemas path that names a source file.
  *
@@ -138,9 +143,12 @@ const SOURCE_FILE_EXTENSIONS = new Set([
  * with that name, so `./model/example.zod.ts` became a folder called
  * `example.zod.ts` holding the split files: the shape a user asking for
  * single-file output would least expect (#4042).
+ *
+ * `schemas.mode: 'single'` is the exception: there the path may name the
+ * schema module itself.
  */
 function assertSchemasPathIsDirectory(path: string, option: string): void {
-  if (!SOURCE_FILE_EXTENSIONS.has(nodePath.extname(path).toLowerCase())) {
+  if (!namesAFile(path)) {
     return;
   }
 
@@ -192,7 +200,9 @@ function normalizeSchemasOption(
     }
   }
 
-  assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
+  if (schemas.mode !== 'single') {
+    assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
+  }
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
   const routes = schemas.routes

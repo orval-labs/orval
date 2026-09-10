@@ -765,6 +765,58 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  it('writes the schema module to a file-like schemas.path in single mode', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasFile = path.join(workspace, 'schemas.zod.ts');
+    const mutatorFile = path.join(workspace, 'zod-params.ts');
+
+    try {
+      await fs.writeFile(
+        mutatorFile,
+        'export const zodParams = (_ctx: unknown) => ({});\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './client.ts',
+            mode: 'single',
+            client: 'zod',
+            schemas: {
+              path: './schemas.zod.ts',
+              type: 'zod',
+              mode: 'single',
+            },
+            override: {
+              zod: {
+                generateReusableSchemas: true,
+                params: { path: './zod-params.ts', name: 'zodParams' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      // The named file is the schema module; no <dir>/index.zod.ts is created.
+      const content = await fs.readFile(schemasFile, 'utf8');
+      expect(content).toContain('export const Pet = zod.object(');
+      expect(fs.existsSync(path.join(workspace, 'index.zod.ts'))).toBe(false);
+
+      // The zodParams mutator is emitted beside the schema file and imported
+      // with the relative path a sibling module needs.
+      expect(fs.existsSync(path.join(workspace, 'zod-params.ts'))).toBe(true);
+      expect(content).toMatch(
+        /import \{ zodParams \} from ['"]\.\/zod-params['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('generateSpec - generateReusableSchemas inline + override.zod.params', () => {

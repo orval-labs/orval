@@ -137,7 +137,7 @@ export default defineConfig({
 
 | Property      | Type      | Description                                     |
 | ------------- | --------- | ----------------------------------------------- |
-| `path`        | `string`  | Filesystem path for schema output               |
+| `path`        | `string`  | Filesystem path for schema output. A directory by default; in `mode: 'single'` it may point directly at the schema module file |
 | `type`        | `string`  | `'typescript'` (default) or `'zod'` — optional |
 | `importPath`  | `string`  | Optional package import specifier (see below)   |
 | `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
@@ -195,8 +195,13 @@ output: {
 }
 ```
 
-`path` remains a directory. The filename uses `schemaFileExtension` (default
-`.zod.ts`). No additional barrel is generated, regardless of `indexFiles`.
+`path` names a directory by default, so the module is written as
+`<schemas.path>/index.zod.ts`. In `mode: 'single'`, `path` may also point
+directly at the output file, e.g.
+`schema: { path: './api/model.zod.ts', type: 'zod', mode: 'single' }`; a
+directory path keeps the `index.zod.ts` behavior. The filename uses
+`schemaFileExtension` (default `.zod.ts`). No additional barrel is generated,
+regardless of `indexFiles`.
 `importPath`, when provided, must resolve to the single module.
 This mode cannot be combined with `splitByTags`, `routes`, `operationSchemas`,
 mock generators, or `factoryMethods`.
