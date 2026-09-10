@@ -88,7 +88,12 @@ test('Fetch, Axios and custom transports preserve mutation payloads and HTTP err
   await page.goto('/');
   const results = await page.evaluate(async () => {
     const results: boolean[] = [];
-    for (const transport of ['fetch-single', 'axios-single', 'custom']) {
+    for (const transport of [
+      'fetch-single',
+      'axios-single',
+      'custom',
+      'custom-axios',
+    ]) {
       const api = await import(`/src/gen/${transport}/client.ts`);
       const created = await api
         .getCreatePetMutationOptions()
@@ -114,12 +119,12 @@ test('Fetch, Axios and custom transports preserve mutation payloads and HTTP err
     }
     return results;
   });
-  expect(results).toEqual([true, true, true, true, true, true]);
+  expect(results).toEqual([true, true, true, true, true, true, true, true]);
   expect(
     calls.filter(
       (call) => call.method === 'PUT' && call.body.includes('Replacement'),
     ),
-  ).toHaveLength(3);
+  ).toHaveLength(4);
   expect(
     calls.filter(
       (call) =>
@@ -127,7 +132,7 @@ test('Fetch, Axios and custom transports preserve mutation payloads and HTTP err
         call.contentType.includes('application/x-www-form-urlencoded') &&
         call.body.includes('Form'),
     ),
-  ).toHaveLength(3);
+  ).toHaveLength(4);
   expect(
     calls.filter(
       (call) =>
@@ -135,6 +140,6 @@ test('Fetch, Axios and custom transports preserve mutation payloads and HTTP err
         call.contentType.includes('multipart/form-data') &&
         call.body.includes('image bytes'),
     ),
-  ).toHaveLength(3);
-  expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(3);
+  ).toHaveLength(4);
+  expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(4);
 });

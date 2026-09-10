@@ -54,4 +54,16 @@ export default defineConfig({
       },
     },
   },
+  customAxios: {
+    input: './openapi.json',
+    output: {
+      target: 'src/gen/custom-axios/client.ts',
+      client: 'pinia-colada',
+      httpClient: 'axios',
+      baseUrl: '/api',
+      override: {
+        mutator: { path: './src/custom-axios.ts', name: 'customAxios' },
+      },
+    },
+  },
 });

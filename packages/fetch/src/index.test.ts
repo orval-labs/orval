@@ -658,6 +658,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
   const verbOptionsWithHeaders = () =>
     makeVerbOptions({
       verb: Verbs.POST,
+      override: { ...makeVerbOptions().override, requestOptions: true },
       body: {
         definition: 'CreatePetBody',
         implementation: 'createPetBody: CreatePetBody',
@@ -671,6 +672,18 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
         isBlob: false,
       } as GeneratorVerbOptions['body'],
     });
+
+  it('keeps static body headers without referencing disabled request options', () => {
+    const verb = verbOptionsWithHeaders();
+    verb.override.requestOptions = false;
+    const implementation = generateImplementation(
+      verb,
+      makeOptions(makeContext()),
+    );
+    expect(implementation).toContain("'Content-Type': 'application/json'");
+    expect(implementation).not.toContain('options?.headers');
+    expect(implementation).not.toContain('const getHeaders');
+  });
 
   it('narrows on iterability rather than array-ness', () => {
     const implementation = generateImplementation(
