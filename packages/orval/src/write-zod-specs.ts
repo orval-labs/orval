@@ -1198,23 +1198,22 @@ async function writeZodSchemasReusable(
   return new Map([[ROOT_DIR, rewritten.map((e) => e.name)]]);
 }
 
-/** Writes operation-derived Zod schemas using the selected route layout. */
-export async function writeZodSchemasFromVerbs(
+/** Builds operation schemas for either single-file or split-file output. */
+function generateZodSchemasFromVerbs(
   verbOptions: WriteZodSchemasFromVerbsInput,
   schemasPath: string,
   fileExtension: string,
-  header: string,
   output: WriteZodOutputOptions,
   context: WriteZodSchemasFromVerbsContext,
   schemaTagMap?: SchemaTagMap,
   schemaOutputPlan?: SchemaOutputPlan,
-): Promise<WrittenSchemaInfo> {
+) {
   const isSplit = !!schemaTagMap;
   const zodContext = context as unknown as ContextSpec;
   const verbOptionsArray = Object.values(verbOptions);
 
   if (verbOptionsArray.length === 0) {
-    return new Map();
+    return { schemasToWrite: [], uniqueVerbsSchemas: [] };
   }
 
   const isZodV4 = resolveIsZodV4(
@@ -1581,6 +1580,33 @@ export async function writeZodSchemasFromVerbs(
     });
   }
 
+  return { schemasToWrite, uniqueVerbsSchemas };
+}
+
+export async function writeZodSchemasFromVerbs(
+  verbOptions: WriteZodSchemasFromVerbsInput,
+  schemasPath: string,
+  fileExtension: string,
+  header: string,
+  output: WriteZodOutputOptions,
+  context: WriteZodSchemasFromVerbsContext,
+  schemaTagMap?: SchemaTagMap,
+  schemaOutputPlan?: SchemaOutputPlan,
+): Promise<WrittenSchemaInfo> {
+  const isSplit = !!schemaTagMap;
+  const useReusableSchemas =
+    output.override.zod.generateReusableSchemas === true;
+  const { schemasToWrite, uniqueVerbsSchemas } = generateZodSchemasFromVerbs(
+    verbOptions,
+    schemasPath,
+    fileExtension,
+    output,
+    context,
+    schemaTagMap,
+    schemaOutputPlan,
+  );
+  if (Object.keys(verbOptions).length === 0) return new Map();
+
   const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
   for (const schemaGroup of groupedSchemasToWrite) {
@@ -1636,4 +1662,49 @@ export async function writeZodSchemasFromVerbs(
   }
 
   return new Map([[ROOT_DIR, writtenSchemaNames]]);
+}
+
+/** Writes component and operation schemas to one module, preserving dependency order. */
+export async function writeZodSchemasSingle(
+  builder: WriteZodSchemasInput,
+  verbOptions: WriteZodSchemasFromVerbsInput,
+  schemasPath: string,
+  fileExtension: string,
+  header: string,
+  output: WriteZodOutputOptions,
+  context: WriteZodSchemasFromVerbsContext,
+  paramsMutator?: GeneratorMutator,
+): Promise<void> {
+  const { schemasToWrite } = generateZodSchemasFromVerbs(
+    verbOptions,
+    schemasPath,
+    fileExtension,
+    output,
+    context,
+  );
+  const operationNames = new Set(
+    schemasToWrite.map((entry) => entry.schemaName),
+  );
+  const components = generateZodSchemasInline(
+    {
+      ...builder,
+      schemas: builder.schemas.filter(
+        (schema) => !operationNames.has(schema.name),
+      ),
+    },
+    output,
+    false,
+    paramsMutator,
+    true,
+  );
+  const operations = generateZodSchemaFileContent(
+    '',
+    schemasToWrite.map((entry) => ({ ...entry, importStatements: undefined })),
+    output.override.zod.variant,
+    false,
+  );
+  await writeGeneratedFile(
+    path.join(schemasPath, `index${fileExtension}`),
+    `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n\n${components}${operations}`,
+  );
 }

@@ -391,6 +391,8 @@ export interface NormalizedFactoryMethodsOptions {
 
 export interface SchemaOptions {
   path: string;
+  /** Write Zod schemas to one index file instead of separate schema files. */
+  mode?: 'split' | 'single';
   type?: SchemaGenerationType;
   importPath?: string;
   routes?: SchemaRouteOptions;
@@ -411,6 +413,7 @@ export interface SchemaRouteOptions {
 
 export interface NormalizedSchemaOptions {
   path: string;
+  mode?: 'split' | 'single';
   type: SchemaGenerationType;
   importPath?: string;
   splitByTags: boolean;

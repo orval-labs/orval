@@ -71,6 +71,24 @@ export function resolveSchemaImportDependencies(
   const schemasImportPath = getSchemasImportPath(output.schemas);
   const isPackageImport = !!schemasImportPath;
 
+  if (
+    output.schemas &&
+    typeof output.schemas === 'object' &&
+    output.schemas.mode === 'single'
+  ) {
+    return [
+      {
+        exports: dedupeSchemaImports(resolved),
+        dependency:
+          schemasImportPath ??
+          upath.joinSafe(
+            relativeSchemasPath,
+            `index${getImportExtension(output.schemaFileExtension, output.tsconfig)}`,
+          ),
+      },
+    ];
+  }
+
   // A root barrel makes every schema available from one module.
   if (output.indexFiles) {
     return [
