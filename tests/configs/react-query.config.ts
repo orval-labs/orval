@@ -492,7 +492,7 @@ export default defineConfig({
   // references an operation that is forced into a Query hook via
   // `override.operations[*].query.useQuery`, the rule silently does not
   // fire (because it is wired only on Mutation hooks). Generation should
-  // emit a logWarning explaining the misconfiguration. The snapshot
+  // emit a warning explaining the misconfiguration. The snapshot
   // captures the resulting output: `createPets` is a Query hook with no
   // invalidation wiring, while `deletePetById` keeps its Mutation hook
   // and the invalidation wiring as usual.

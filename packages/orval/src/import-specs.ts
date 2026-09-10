@@ -3,7 +3,6 @@ import {
   isObject,
   isString,
   isUrl,
-  logWarning,
   type ExternalRefNamingStrategy,
   type NormalizedOptions,
   type OpenApiDocument,
@@ -24,6 +23,7 @@ import { isNullish } from 'remeda';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
+import { logger } from './logger';
 import { getHeadersForUrl } from './utils/options';
 
 interface ResolveSpecOptions {
@@ -68,7 +68,7 @@ async function resolveSpec(
       ...new Set(collectExternalRefs(specData).map(getRefDocument)),
     ];
     if (docs.length > 0) {
-      logWarning(
+      logger.warn(
         `External $ref documents being resolved:\n` +
           docs.map((d) => `  - ${d}`).join('\n'),
       );
@@ -113,8 +113,8 @@ async function resolveSpec(
   }
 
   if (unsafeDisableValidation) {
-    logWarning(
-      `🚨 OpenAPI spec validation is disabled.\n` +
+    logger.warn(
+      `OpenAPI spec validation is disabled.\n` +
         `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
         `  Bug reports with validation disabled will not be accepted.`,
     );
@@ -204,7 +204,7 @@ export function normalizeNullableRefs(
     delete obj.nullable;
     delete obj.$ref;
     const jsonPointer = '#/' + path.join('/');
-    logWarning(
+    logger.warn(
       `Invalid nullable reference found at ${jsonPointer}.\n` +
         `  A \`$ref\` with a sibling \`nullable: true\` is out of spec (siblings on a reference are ignored).\n` +
         `  Treating it as \`${ref} | null\` by rewriting to \`anyOf: [\`$ref\`, { type: "null" }]\`.\n` +
@@ -821,7 +821,7 @@ function createAllowListCheckedFetch(
         // "reference may be invalid, inaccessible" error, so say plainly what
         // happened first — otherwise a blocked redirect is indistinguishable
         // from an unreachable server.
-        logWarning(
+        logger.warn(
           `Refused to follow a redirect to a URL that is not allowed: ${next}\n` +
             `Reached by redirect from ${url}.\n` +
             `Add it to externalRefs.allow or use ['*'] to allow all.`,
@@ -1205,7 +1205,7 @@ function replaceXExtRefs(
 
           // Otherwise inline the content; break cycles with `{}`.
           if (inliningRefs.has(refValue)) {
-            logWarning(
+            logger.warn(
               `Detected a circular external $ref while inlining "${refValue}". ` +
                 `Replacing with an empty schema to avoid infinite recursion. ` +
                 `Move the schema under "components.schemas" in its source file ` +

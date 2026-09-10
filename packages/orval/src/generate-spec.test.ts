@@ -1,14 +1,21 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { styleText } from 'node:util';
 
 import {
+  consoleReporter,
+  createSuccessMessage,
+  noopReporter,
   type OpenApiDocument,
   OutputMockType,
   type OutputOptions,
+  setLogLevel,
+  setProjectName,
+  withReporter,
 } from '@orval/core';
 import fs from 'fs-extra';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils';
@@ -2910,24 +2917,35 @@ const listFilesRecursively = async (dir: string): Promise<string[]> => {
 const generateWithOutput = async (
   workspace: string,
   output: Partial<OutputOptions> = {},
+  projectName?: string,
 ) => {
-  const options = await normalizeOptions(
-    {
-      input: { target: PETSTORE_SPEC },
-      output: {
-        target: './src/client/api.ts',
-        mode: 'tags-split',
-        client: 'fetch',
-        clean: true,
-        ...output,
+  if (projectName !== undefined) {
+    setProjectName(projectName);
+  }
+
+  try {
+    const options = await normalizeOptions(
+      {
+        input: { target: PETSTORE_SPEC },
+        output: {
+          target: './src/client/api.ts',
+          mode: 'tags-split',
+          client: 'fetch',
+          clean: true,
+          ...output,
+        },
       },
-    },
-    workspace,
-  );
+      workspace,
+    );
 
-  await generateSpec(workspace, options);
+    await generateSpec(workspace, options, projectName);
 
-  return options;
+    return options;
+  } finally {
+    if (projectName !== undefined) {
+      setProjectName();
+    }
+  }
 };
 
 describe('generateSpec - clean prunes configured mock directories', () => {
@@ -3325,6 +3343,142 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
 
       expect(await fs.pathExists(outsideFile)).toBe(true);
       expect(await fs.pathExists(staleLookingFile)).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      await rm(outsideTarget, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - reporter', () => {
+  it('emits structured events through a spy reporter', async () => {
+    const workspace = await createTempWorkspace();
+    const info = vi.fn();
+    const warn = vi.fn();
+
+    try {
+      await withReporter({ ...noopReporter, info, warn }, () =>
+        generateWithOutput(workspace, {}, 'petstore'),
+      );
+
+      expect(info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            `${styleText('green', 'petstore')} - Cleaning output folder`,
+          ),
+          packageName: 'orval',
+          projectName: 'petstore',
+        }),
+      );
+      expect(info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            `${styleText('green', 'petstore')} - ${createSuccessMessage('Petstore')}`,
+          ),
+          packageName: 'orval',
+          projectName: 'petstore',
+        }),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('prints existing terminal output when consoleReporter is opted in', async () => {
+    const workspace = await createTempWorkspace();
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      await withReporter(consoleReporter, () =>
+        generateWithOutput(workspace, {}, 'petstore'),
+      );
+
+      expect(consoleLog).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `${styleText('green', 'petstore')} - Cleaning output folder`,
+        ),
+      );
+      expect(consoleLog).toHaveBeenCalledWith(
+        expect.stringContaining(createSuccessMessage('Petstore')),
+      );
+    } finally {
+      consoleLog.mockRestore();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('includes the OpenAPI title when no project name is set', async () => {
+    const workspace = await createTempWorkspace();
+    const info = vi.fn();
+
+    try {
+      await withReporter({ ...noopReporter, info }, () =>
+        generateWithOutput(workspace),
+      );
+
+      expect(info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: createSuccessMessage('Petstore'),
+          packageName: 'orval',
+          projectName: undefined,
+        }),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('suppresses info messages when log level is error', async () => {
+    const workspace = await createTempWorkspace();
+    const info = vi.fn();
+
+    try {
+      setLogLevel('error');
+
+      await withReporter({ ...noopReporter, info }, () =>
+        generateWithOutput(workspace, {}, 'petstore'),
+      );
+
+      expect(info).not.toHaveBeenCalled();
+    } finally {
+      setLogLevel('info');
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('reports a skipped symlink mock path as a structured warning', async ({
+    skip,
+  }) => {
+    const workspace = await createTempWorkspace();
+    const outsideTarget = await createTempWorkspace();
+    const warn = vi.fn();
+
+    try {
+      const mockLink = path.join(workspace, 'src/mocks');
+      await fs.ensureDir(path.dirname(mockLink));
+      try {
+        await fs.symlink(outsideTarget, mockLink, 'junction');
+      } catch (error: unknown) {
+        const code = (error as NodeJS.ErrnoException)?.code;
+        if (code === 'EPERM' || code === 'ENOTSUP') skip();
+        else throw error;
+      }
+
+      await withReporter({ ...noopReporter, warn }, () =>
+        generateWithOutput(
+          workspace,
+          { mock: { path: './src/mocks', generators: [{ type: 'msw' }] } },
+          'petstore',
+        ),
+      );
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('symbolic link'),
+          packageName: 'orval',
+          projectName: 'petstore',
+        }),
+      );
     } finally {
       await rm(workspace, { recursive: true, force: true });
       await rm(outsideTarget, { recursive: true, force: true });

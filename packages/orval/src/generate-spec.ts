@@ -5,8 +5,6 @@ import {
   getConfiguredMockDirectories,
   getFileInfo,
   isString,
-  log,
-  logWarning,
   type NormalizedOptions,
   OutputMockType,
   removeFilesAndEmptyFolders,
@@ -14,6 +12,7 @@ import {
 } from '@orval/core';
 
 import { importSpecs } from './import-specs';
+import { logger } from './logger';
 import { writeSpecs } from './write-specs';
 
 /**
@@ -59,7 +58,7 @@ const relativeToParent = (parent: string, child: string): string =>
  *
  * @param workspace - Absolute or relative workspace path used to resolve imports.
  * @param options - Normalized generation options for this project.
- * @param projectName - Optional project name used in logging output.
+ * @param projectName - Optional project name used in generation (imports, writers).
  * @returns A promise that resolves once generation (and optional cleaning) completes.
  *
  * @example
@@ -149,8 +148,8 @@ export async function generateSpec(
         continue; // Nothing to clean if the directory doesn't exist yet.
       }
       if (mockRootStats.isSymbolicLink()) {
-        logWarning(
-          `${projectName ? `${projectName} ` : ''}Skipped cleaning "${directory}": the configured mock path is a symbolic link.`,
+        logger.warn(
+          `Skipped cleaning "${directory}": the configured mock path is a symbolic link.`,
         );
         continue;
       }
@@ -160,7 +159,7 @@ export async function generateSpec(
       });
     }
 
-    log(`${projectName} Cleaning output folder`);
+    logger.info('Cleaning output folder');
   }
 
   const writeSpecBuilder = await importSpecs(workspace, options, projectName);

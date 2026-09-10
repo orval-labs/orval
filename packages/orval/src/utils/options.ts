@@ -26,7 +26,6 @@ import {
   isString,
   isUrl,
   type JsDocOptions,
-  logWarning,
   type McpOptions,
   type McpHandlerOptions,
   type McpServerOptions,
@@ -68,6 +67,7 @@ import {
 import { getDefaultMockOptionsForType } from '@orval/mock';
 
 import pkg from '../../package.json';
+import { logger } from '../logger';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
 
@@ -489,8 +489,8 @@ function normalizeAngularBaseUrl(
   }
 
   if (outputClient !== OutputClient.ANGULAR) {
-    logWarning(
-      `⚠️  \`override.angular.baseUrl\` is only supported by the \`angular\` client. It has no effect for other clients.`,
+    logger.warn(
+      `\`override.angular.baseUrl\` is only supported by the \`angular\` client. It has no effect for other clients.`,
     );
   }
 
@@ -1093,8 +1093,8 @@ export async function normalizeOptions(
     normalizedOptions.output.optionsParamRequired &&
     normalizedOptions.output.override.requestOptions !== false
   ) {
-    logWarning(
-      `⚠️  With \`httpClient: 'fetch'\`, \`optionsParamRequired: true\` cannot make the generated \`options\` parameter required. The fetch \`options\` parameter remains optional with type \`RequestInit\` (\`optionsParamRequired\` may still affect other generated parameters). Set \`httpClient: 'axios'\` to make the \`options\` parameter required.`,
+    logger.warn(
+      `With \`httpClient: 'fetch'\`, \`optionsParamRequired: true\` cannot make the generated \`options\` parameter required. The fetch \`options\` parameter remains optional with type \`RequestInit\` (\`optionsParamRequired\` may still affect other generated parameters). Set \`httpClient: 'axios'\` to make the \`options\` parameter required.`,
     );
   }
 
@@ -1325,8 +1325,8 @@ function normalizeOperationsAndTags(
             .map((unsupportedKey) => `zod.${unsupportedKey}`)
             .join(', ');
 
-          logWarning(
-            `⚠️  override.${source}.${key}.zod only supports ${supportedZodKeysLabel}. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+          logger.warn(
+            `override.${source}.${key}.zod only supports ${supportedZodKeysLabel}. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
           );
         }
 
@@ -1342,8 +1342,8 @@ function normalizeOperationsAndTags(
           );
 
         if (angular?.baseUrl) {
-          logWarning(
-            `⚠️  override.${source}.${key}.angular.baseUrl is not supported — \`baseUrl\` is an output-level concern and is configured via \`override.angular.baseUrl\`. Ignoring.`,
+          logger.warn(
+            `override.${source}.${key}.angular.baseUrl is not supported — \`baseUrl\` is an output-level concern and is configured via \`override.angular.baseUrl\`. Ignoring.`,
           );
         }
 
@@ -1492,7 +1492,7 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    logWarning(`⚠️  Unknown provided mode => ${mode}`);
+    logger.warn(`Unknown provided mode => ${mode}`);
     return OutputMode.SINGLE;
   }
 
@@ -1575,14 +1575,14 @@ function normalizeQueryOptions(
   globalOptions: NormalizedQueryOptions = {},
 ): NormalizedQueryOptions {
   if (queryOptions.options) {
-    logWarning(
-      '⚠️  Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
+    logger.warn(
+      'Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
     );
   }
 
   if (!isNullish(queryOptions.shouldExportQueryKey)) {
-    logWarning(
-      '⚠️  shouldExportQueryKey is deprecated and will be removed in a future major release. Please use shouldExportKeys instead, which also gates the mutation key getters.',
+    logger.warn(
+      'shouldExportQueryKey is deprecated and will be removed in a future major release. Please use shouldExportKeys instead, which also gates the mutation key getters.',
     );
   }
 

@@ -6,19 +6,19 @@ import {
   isFunction,
   isObject,
   isString,
-  log,
-  logError,
   type NormalizedHookCommand,
 } from '@orval/core';
 import { execa } from 'execa';
 import { parseArgsStringToArgv } from 'string-argv';
+
+import { logger } from '../logger';
 
 export const executeHook = async (
   name: Hook,
   commands: NormalizedHookCommand = [],
   args: string[] = [],
 ) => {
-  log(styleText('white', `Running ${name} hook...`));
+  logger.info(styleText('white', `Running ${name} hook...`));
 
   for (const command of commands) {
     try {
@@ -30,7 +30,7 @@ export const executeHook = async (
         await executeObjectCommand(command as HookOption, args);
       }
     } catch (error) {
-      logError(error, `Failed to run ${name} hook`);
+      logger.error(error, `Failed to run ${name} hook`);
     }
   }
 };

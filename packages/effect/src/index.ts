@@ -17,7 +17,6 @@ import {
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
-  logVerbose,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
@@ -29,6 +28,8 @@ import {
   stringify,
 } from '@orval/core';
 import { unique } from 'remeda';
+
+import { logger } from './logger';
 
 const EFFECT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -1071,9 +1072,10 @@ function tryResolveRefSchema(
     return resolveRef({ $ref } as OpenApiReferenceObject, context)
       .schema as OpenApiSchemaObject;
   } catch (error) {
-    logVerbose(
-      `[orval/effect] Failed to resolve $ref "${$ref}":`,
-      error instanceof Error ? error.message : error,
+    logger.verbose(
+      `Failed to resolve $ref "${$ref}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
     return;
   }

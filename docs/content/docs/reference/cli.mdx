@@ -88,12 +88,28 @@ Specify the path to your tsconfig:
 orval --tsconfig ./src/tsconfig.json
 ```
 
+### --log-level
+
+Set the log level. One of `error`, `warn`, `info`, `verbose`, or `debug`. The default is `info`. Mutually exclusive with `--verbose` and `--quiet`:
+
+```bash
+orval --log-level warn
+```
+
 ### --verbose
 
-Enable verbose logging. Shows additional diagnostic output such as detected dependency versions:
+Shortcut for `--log-level verbose`. Mutually exclusive with `--log-level` and `--quiet`:
 
 ```bash
 orval --verbose
+```
+
+### --quiet
+
+Shortcut for `--log-level warn`. Errors and warnings are printed; info, verbose, and debug are suppressed. Mutually exclusive with `--log-level` and `--verbose`:
+
+```bash
+orval --quiet
 ```
 
 ### --fail-on-warnings

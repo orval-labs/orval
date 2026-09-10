@@ -85,6 +85,9 @@ const globalOptions: GlobalOptions = {
   packageJson: './package.json',
   input: './api-spec.yaml',
 
+  // Logging
+  logLevel: 'error', // Only log errors
+
   // Error handling
   throwOnError: true, // Throw initial generation errors instead of only logging them
 };
@@ -123,19 +126,80 @@ function generate(
 By default, `generate()` logs initial generation errors and resolves after processing the configured project or projects. Set `throwOnError` when a script needs to catch initial generation failures and decide how to handle them:
 
 ```ts
-import { generate, logError } from 'orval';
+import { generate } from 'orval';
 
 try {
   await generate('./orval.config.js', process.cwd(), {
     throwOnError: true,
   });
-} catch (error) {
-  logError(error);
+} catch {
   process.exit(1);
 }
 ```
 
+`generate()` logs the error through the active reporter before rethrowing. `logger.error` is a no-op outside `withReporter`, so do not use it in this catch block.
+
 When a config file contains multiple projects, `throwOnError` stops on the first generation error during the initial run instead of continuing with later projects. Watch mode generation errors are still logged after the watcher has started.
+
+## Reporter
+
+Reporter selection is a programmatic execution concern, not an `orval.config.ts` option. Built-in packages emit structured events (`message`, `packageName`, and optional `projectName`) to the reporter that is active for the current async call chain.
+
+| Entry point | Default |
+| --- | --- |
+| Lower-level APIs (`generateSpec`, helpers, formatters) | No-op |
+| CLI (`orval`) | Console |
+| Public `generate()` | Console, unless an outer `withReporter` is already active |
+
+Use `withReporter` to install a reporter for one call chain. An outer reporter always wins over `generate()`'s console default, so tests can silence output without changing production callers.
+
+```ts
+import { generate, withReporter, noopReporter, consoleReporter } from 'orval';
+
+// Quiet a programmatic generate() in tests
+await withReporter(noopReporter, () => generate(config));
+
+// Opt lower-level APIs into the existing terminal output
+await withReporter(consoleReporter, () => generateSpec(workspace, options));
+```
+
+Custom reporters receive the structured event. When a project is in scope, the logger prefixes `message` with that project name. Messages keep their current wording and ANSI styling; strip colors if you need plain text.
+
+```ts
+import { generate, withReporter, type OrvalReporter } from 'orval';
+
+const reporter: OrvalReporter = {
+  info: (event) => process.stdout.write(`${event.packageName}: ${event.message}\n`),
+  warn: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  error: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  verbose: (event) => process.stderr.write(`${event.packageName}: ${event.message}\n`),
+  debug: (event) => {
+    if (process.env.DEBUG) {
+      process.stderr.write(`${event.packageName}: ${event.message}\n`);
+    }
+  },
+};
+
+await withReporter(reporter, () => generate(config));
+```
+
+To assert one or more events in a test, override only the levels you care about:
+
+```ts
+import { generate, noopReporter, withReporter } from 'orval';
+import { vi } from 'vitest';
+
+const warn = vi.fn();
+
+await withReporter({ ...noopReporter, warn }, () => generate(config));
+
+expect(warn).toHaveBeenCalledWith(
+  expect.objectContaining({
+    packageName: 'orval',
+    message: expect.stringContaining('symbolic link'),
+  }),
+);
+```
 
 ## Watch Mode
 

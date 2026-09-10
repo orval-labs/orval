@@ -1,5 +1,5 @@
 import type { PackageJson } from '@orval/core';
-import * as orvalCore from '@orval/core';
+import { noopReporter, withReporter } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './index';
@@ -16,17 +16,15 @@ describe('undetected query version warning', () => {
     queryVersion?: number,
     outputClient: unknown = 'react-query',
   ) => {
-    const warn = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {});
-    try {
+    const warn = vi.fn();
+    withReporter({ ...noopReporter, warn }, () => {
       createFrameworkAdapter({
         outputClient: outputClient as never,
         packageJson,
         queryVersion,
       });
-      return warn.mock.calls.map(([msg]) => msg).join('\n');
-    } finally {
-      warn.mockRestore();
-    }
+    });
+    return warn.mock.calls.map(([event]) => event.message).join('\n');
   };
 
   it('warns when neither a package.json nor an explicit version resolves', () => {

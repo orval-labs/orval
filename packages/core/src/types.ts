@@ -20,6 +20,34 @@ export interface Options {
   hooks?: Partial<HooksOptions>;
 }
 
+/** Structured payload delivered to an {@link OrvalReporter}. */
+export interface OrvalReportEvent {
+  message: string;
+  packageName: string;
+  projectName?: string;
+}
+
+/**
+ * Receives generation diagnostics. Selection is ambient (via `withReporter` /
+ * `setProjectName`), not part of `orval.config.ts`.
+ */
+export interface OrvalReporter {
+  info(event: OrvalReportEvent): void;
+  warn(event: OrvalReportEvent): void;
+  error(event: OrvalReportEvent): void;
+  verbose(event: OrvalReportEvent): void;
+  debug(event: OrvalReportEvent): void;
+}
+
+/** Package-bound logger that emits {@link OrvalReportEvent}s. */
+export interface OrvalLogger {
+  info(message: string): void;
+  warn(err: unknown, tag?: string): void;
+  error(err: unknown, tag?: string): void;
+  verbose(message: string): void;
+  debug(message: string): void;
+}
+
 export type OptionsFn = () => Options | Promise<Options>;
 export type OptionsExport = Options | Promise<Options> | OptionsFn;
 
@@ -1664,9 +1692,19 @@ export interface DynamicAnchorIndexEntry {
   count: number;
 }
 
+export const LOG_LEVELS = [
+  'error',
+  'warn',
+  'info',
+  'verbose',
+  'debug',
+] as const;
+
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
 export interface GlobalOptions {
   watch?: boolean | string | string[];
-  verbose?: boolean;
+  logLevel?: LogLevel;
   clean?: boolean | string[];
   formatter?: SupportedFormatter;
   mock?: OutputMocksOption;

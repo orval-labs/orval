@@ -5,7 +5,6 @@ import {
   GetterPropType,
   isObject,
   isString,
-  logWarning,
   type OutputClient,
   OutputClient as OutputClientConst,
   type OutputClientFunc,
@@ -37,6 +36,7 @@ import type {
   FrameworkAdapterConfig,
   MutationOnSuccessContext,
 } from '../framework-adapter';
+import { logger } from '../logger';
 import {
   getQueryOptionsDefinition,
   requiresUserSuppliedQueryOptions,
@@ -328,7 +328,7 @@ const warnOnUndetectedQueryVersion = (
   }
 
   undetectedVersionWarnings.add(clientType);
-  logWarning(
+  logger.warn(
     `Could not determine the installed @tanstack/${clientType} version, so hooks are generated for v4.\n` +
       `If the project is on v5, set \`override.query.version: 5\` (or point \`output.packageJson\` at the package.json that declares the dependency) — otherwise the generated option types will not accept a partial \`query\` object.`,
   );

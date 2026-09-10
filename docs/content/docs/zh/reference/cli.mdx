@@ -88,12 +88,28 @@ orval --formatter oxfmt
 orval --tsconfig ./src/tsconfig.json
 ```
 
+### --log-level
+
+设置日志级别。可选值为 `error`、`warn`、`info`、`verbose` 或 `debug`。默认值为 `info`。与 `--verbose` 和 `--quiet` 互斥：
+
+```bash
+orval --log-level warn
+```
+
 ### --verbose
 
-启用详细日志。会显示额外的诊断输出，例如检测到的依赖版本：
+`--log-level verbose` 的快捷方式。与 `--log-level` 和 `--quiet` 互斥：
 
 ```bash
 orval --verbose
+```
+
+### --quiet
+
+`--log-level warn` 的快捷方式。会输出 error 和 warning；info、verbose 和 debug 会被抑制。与 `--log-level` 和 `--verbose` 互斥：
+
+```bash
+orval --quiet
 ```
 
 ### --fail-on-warnings

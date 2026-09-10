@@ -1,14 +1,17 @@
 import {
+  consoleReporter,
   getWarningCount,
   type GlobalOptions,
   isString,
-  logError,
   type OptionsExport,
   resetWarnings,
-  setVerbose,
+  setLogLevel,
+  setProjectName,
+  withReporter,
 } from '@orval/core';
 
 import { generateSpec } from './generate-spec';
+import { logger } from './logger';
 import { findConfigFile, loadConfigFile } from './utils/config';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -18,7 +21,17 @@ export async function generate(
   workspace = process.cwd(),
   options?: GlobalOptions,
 ) {
-  setVerbose(!!options?.verbose);
+  return withReporter({ reporter: consoleReporter, ifUnset: true }, () =>
+    generateWithReporter(optionsExport, workspace, options),
+  );
+}
+
+async function generateWithReporter(
+  optionsExport: string | OptionsExport | undefined,
+  workspace: string,
+  options?: GlobalOptions,
+) {
+  setLogLevel(options?.logLevel ?? 'info');
   resetWarnings();
 
   if (!optionsExport || isString(optionsExport)) {
@@ -29,6 +42,7 @@ export async function generate(
 
     let hasErrors = false;
     for (const [projectName, config] of configs) {
+      setProjectName(projectName);
       const normalizedOptions = await normalizeOptions(
         config,
         workspace,
@@ -38,11 +52,11 @@ export async function generate(
       try {
         await generateSpec(workspace, normalizedOptions, projectName);
       } catch (error) {
+        logger.error(error);
         if (options?.throwOnError) {
           throw error;
         }
         hasErrors = true;
-        logError(error, projectName);
       }
 
       if (options?.watch !== undefined) {
@@ -57,7 +71,7 @@ export async function generate(
             try {
               await generateSpec(workspace, normalizedOptions, projectName);
             } catch (error) {
-              logError(error, projectName);
+              logger.error(error);
             }
             if (options.failOnWarnings && getWarningCount() > 0) {
               throw new Error(
@@ -70,8 +84,10 @@ export async function generate(
       }
     }
 
+    setProjectName();
+
     if (hasErrors)
-      logError('One or more project failed, see above for details');
+      logger.error('One or more project failed, see above for details');
 
     if (options?.failOnWarnings && getWarningCount() > 0) {
       throw new Error(
@@ -91,10 +107,10 @@ export async function generate(
   try {
     await generateSpec(workspace, normalizedOptions);
   } catch (error) {
+    logger.error(error);
     if (options?.throwOnError) {
       throw error;
     }
-    logError(error);
   }
 
   if (options?.watch) {
@@ -105,7 +121,7 @@ export async function generate(
         try {
           await generateSpec(workspace, normalizedOptions);
         } catch (error) {
-          logError(error);
+          logger.error(error);
         }
         if (options.failOnWarnings && getWarningCount() > 0) {
           throw new Error(

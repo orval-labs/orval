@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { noopReporter, withReporter } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -11,19 +12,22 @@ import {
   vi,
 } from 'vite-plus/test';
 
+import { normalizeOptions as normalizeOptionsImpl } from './options';
+
 const { logWarningSpy } = vi.hoisted(() => ({
   logWarningSpy: vi.fn(),
 }));
 
-vi.mock('@orval/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@orval/core')>();
-  return {
-    ...actual,
-    logWarning: logWarningSpy,
-  };
-});
-
-import { normalizeOptions } from './options';
+const normalizeOptions: typeof normalizeOptionsImpl = (...args) =>
+  withReporter(
+    {
+      ...noopReporter,
+      warn: (event) => {
+        logWarningSpy(event.message);
+      },
+    },
+    () => normalizeOptionsImpl(...args),
+  );
 
 const createTempWorkspace = async () => {
   return realpath(await mkdtemp(path.join(os.tmpdir(), 'orval-options-')));
