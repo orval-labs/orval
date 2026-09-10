@@ -335,31 +335,11 @@ async function writeFakerSchemaMocks(
   const fileExtension = output.fileExtension || '.ts';
 
   if (output.schemas) {
-    const schemasPath = isString(output.schemas)
+    const schemasDir = isString(output.schemas)
       ? output.schemas
       : output.schemas.path;
-    const isNamedSingleSchema =
-      isObject(output.schemas) &&
-      output.schemas.mode === 'single' &&
-      namesAFile(schemasPath);
-    const schemasDir = isNamedSingleSchema
-      ? path.dirname(schemasPath)
-      : schemasPath;
     filePath = path.join(schemasDir, `index.faker${fileExtension}`);
-
-    if (isNamedSingleSchema) {
-      const schemaSourceExtension = path.extname(schemasPath);
-      const relative = upath.getRelativeImportPath(
-        filePath,
-        schemasPath,
-        true,
-      );
-      schemaImportPath =
-        stripFileExtension(relative, schemaSourceExtension) +
-        getImportExtension(schemaSourceExtension, output.tsconfig);
-    } else {
-      schemaImportPath = '.';
-    }
+    schemaImportPath = '.';
   } else {
     const targetInfo = output.target
       ? getFileInfo(output.target, { extension: fileExtension })
@@ -1102,7 +1082,7 @@ async function writeSpecsInternal(
       let config: Partial<TypeDocOptions> = {};
       let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath, ...config } = output.docs);
+        ({ configPath, ...config } = output.docs;
         if (configPath) {
           config.options = configPath;
         }
