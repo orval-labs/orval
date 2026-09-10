@@ -82,8 +82,10 @@ export const builder =
       const hasRequestOptions =
         verb.override.requestOptions !== false &&
         (!verb.mutator || verb.mutator.hasSecondArg || isFetch);
+      const requiredRequest = hasRequestOptions && output.optionsParamRequired;
+      const optionalConfig = requiredRequest ? '' : '?';
       const requestOption = hasRequestOptions
-        ? `request?: Parameters<typeof ${name}>[${verb.props.length}];`
+        ? `request${optionalConfig}: Parameters<typeof ${name}>[${verb.props.length}];`
         : '';
       const args = verb.props.map((prop) => prop.name);
       const typeAt = (index: number) => `Parameters<typeof ${name}>[${index}]`;
@@ -95,6 +97,10 @@ export const builder =
         (prop, index) =>
           `${prop.name}${prop.required ? '' : '?'}: MaybeRefOrGetter<${typeAt(index)}>`,
       );
+      const withRequiredConfig = (parameters: string[]) =>
+        requiredRequest
+          ? parameters.map((parameter) => parameter.replace('?:', ':'))
+          : parameters;
       const query = verb.verb === 'get' || verb.verb === 'head';
       let wrapper: string;
 
@@ -117,7 +123,7 @@ export const ${key} = (${plain.join(', ')}) => [${[
           ...args.map((arg) => `${arg} ?? null`),
         ].join(', ')}] as const;
 
-export function ${getOptions}${generic}(${[...plain, `${config}?: ${configType}`].join(', ')}): ${optionType} {
+export function ${getOptions}${generic}(${[...withRequiredConfig(plain), `${config}${optionalConfig}: ${configType}`].join(', ')}): ${optionType} {
   const ${request} = ${name};
   return {
     key: ${key}(${args.join(', ')}),
@@ -126,7 +132,7 @@ export function ${getOptions}${generic}(${[...plain, `${config}?: ${configType}`
   };
 }
 
-export function use${title}${generic}(${[...reactive, `${config}?: MaybeRefOrGetter<${configType}>`].join(', ')}) {
+export function use${title}${generic}(${[...withRequiredConfig(reactive), `${config}${optionalConfig}: MaybeRefOrGetter<${configType}>`].join(', ')}) {
   return useColadaQuery(() => ${getOptions}(${[
     ...args.map((arg) => `toColadaValue(${arg})`),
     `toColadaValue(${config})`,
@@ -145,12 +151,14 @@ export function use${title}${generic}(${[...reactive, `${config}?: MaybeRefOrGet
         const configType = `{ mutation?: Omit<${optionType}, 'mutation'>; ${requestOption} }`;
         const requestArgs = [
           ...args.map((arg) => `${variables}.${arg}`),
-          ...(hasRequestOptions ? [`${config}?.request`] : []),
+          ...(hasRequestOptions
+            ? [`${config}${requiredRequest ? '.' : '?.'}request`]
+            : []),
         ];
         wrapper = `
 export type ${varsType} = ${props.length ? `{ ${props.join('; ')} }` : 'void'};
 
-export function get${title}MutationOptions${generic}(${config}?: ${configType}): ${optionType} {
+export function get${title}MutationOptions${generic}(${config}${optionalConfig}: ${configType}): ${optionType} {
   const ${request} = ${name};
   return {
     ...${config}?.mutation,
@@ -158,7 +166,7 @@ export function get${title}MutationOptions${generic}(${config}?: ${configType}):
   };
 }
 
-export function use${title}${generic}(${config}?: ${configType}) {
+export function use${title}${generic}(${config}${optionalConfig}: ${configType}) {
   return useColadaMutation(get${title}MutationOptions(${config}));
 }
 `;

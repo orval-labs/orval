@@ -20,6 +20,27 @@ export default defineConfig({
       ]),
     ),
   ),
+  ...Object.fromEntries(
+    (['fetch', 'axios'] as const).flatMap((httpClient) =>
+      (['named', 'no-options', 'required-options'] as const).map((variant) => [
+        `${httpClient}-${variant}`,
+        {
+          input: './openapi.json',
+          output: {
+            target: `src/gen/${httpClient}-${variant}/client.ts`,
+            client: 'pinia-colada',
+            httpClient,
+            optionsParamRequired: variant === 'required-options',
+            override: {
+              useNamedParameters: variant === 'named',
+              requestOptions: variant !== 'no-options',
+              fetch: { includeHttpResponseReturnType: false },
+            },
+          },
+        },
+      ]),
+    ),
+  ),
   custom: {
     input: './openapi.json',
     output: {
@@ -29,6 +50,7 @@ export default defineConfig({
       baseUrl: '/api',
       override: {
         mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
+        fetch: { includeHttpResponseReturnType: false },
       },
     },
   },
