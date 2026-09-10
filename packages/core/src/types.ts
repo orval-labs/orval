@@ -512,6 +512,7 @@ export const OutputClient = {
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
   SWR: 'swr',
+  PINIA_COLADA: 'pinia-colada',
   ZOD: 'zod',
   EFFECT: 'effect',
   HONO: 'hono',

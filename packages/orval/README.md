@@ -23,6 +23,7 @@ You can find below some samples
 - [react query](https://github.com/orval-labs/orval/tree/master/samples/react-query)
 - [svelte query](https://github.com/orval-labs/orval/tree/master/samples/svelte-query)
 - [vue query](https://github.com/orval-labs/orval/tree/master/samples/vue-query)
+- [pinia colada](https://github.com/orval-labs/orval/tree/master/samples/pinia-colada)
 - [react app with swr](https://github.com/orval-labs/orval/tree/master/samples/react-app-with-swr)
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)

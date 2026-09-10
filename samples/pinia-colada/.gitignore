@@ -1,0 +1,3 @@
+src/gen/
+test-results/
+playwright-report/

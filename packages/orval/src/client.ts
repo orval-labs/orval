@@ -34,6 +34,7 @@ import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
 import mcp from '@orval/mcp';
 import * as mock from '@orval/mock';
+import piniaColada from '@orval/pinia-colada';
 import query from '@orval/query';
 import solidStart from '@orval/solid-start';
 import swr from '@orval/swr';
@@ -59,6 +60,7 @@ const getGeneratorClient = (
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),
+    'pinia-colada': piniaColada({ output })(),
     zod: zod()(),
     effect: effect()(),
     hono: hono()(),

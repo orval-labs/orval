@@ -11,6 +11,7 @@
     "---Data Fetching---",
     "react-query",
     "vue-query",
+    "pinia-colada",
     "svelte-query",
     "solid-query",
     "angular-query",

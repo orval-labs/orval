@@ -641,7 +641,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...getHeaders(options?.headers) }`
+      ? `headers: { ${headersToAdd.join(',')}${isRequestOptions ? ', ...getHeaders(options?.headers)' : ''} }`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
@@ -832,11 +832,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   let fetchImplementation = `export const ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
-  ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
+  ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
     fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
-    ${fetchHeadersOption ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
+    ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }
 
