@@ -95,7 +95,17 @@ export async function generateSpec(
         schemas.mode === 'single' &&
         namesAFile(schemas.path)
       ) {
-        await fs.rm(schemas.path, { force: true });
+        const schemasDirectory = getFileInfo(schemas.path).dirname;
+        await Promise.all([
+          fs.rm(schemas.path, { force: true }),
+          fs.rm(
+            upath.join(
+              schemasDirectory,
+              `__params__${options.output.schemaFileExtension}`,
+            ),
+            { force: true },
+          ),
+        ]);
       } else {
         // Directory-form schemas are joined onto directly by their writers.
         // `getFileInfo(...).dirname` would give the parent whenever the last
