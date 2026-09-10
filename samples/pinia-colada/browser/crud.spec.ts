@@ -1,5 +1,32 @@
 import { test, expect } from '@playwright/test';
 
+test('query refresh cancels the previous generated request', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByTestId('detail')).toContainText('Milo');
+  let pending = 0;
+  let aborted = 0;
+  page.on('requestfailed', (request) => {
+    if (new URL(request.url()).pathname === '/api/pets/1') aborted++;
+  });
+  await page.route('**/api/pets/1', async (route) => {
+    pending++;
+    if (pending === 1)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.fulfill({ json: { id: 1, name: 'Refreshed' } }).catch(() => {});
+  });
+  await page
+    .getByRole('button', { name: 'Refresh details', exact: true })
+    .click();
+  await expect.poll(() => pending).toBe(1);
+  await page
+    .getByRole('button', { name: 'Refresh details', exact: true })
+    .click();
+  await expect(page.getByTestId('detail')).toContainText('Refreshed');
+  await expect.poll(() => aborted).toBe(1);
+});
+
 test('generated CRUD mutations refresh queries and recover from errors', async ({
   page,
 }) => {
