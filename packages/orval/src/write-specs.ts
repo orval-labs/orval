@@ -954,14 +954,37 @@ async function writeSpecsInternal(
       const schemasPath = isString(output.schemas)
         ? output.schemas
         : output.schemas.path;
-      imports.push(
-        schemaOutputPlan
-          ? upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath)
-          : upath.getRelativeImportPath(
-              indexFile,
-              getFileInfo(schemasPath).dirname,
-            ),
-      );
+      const isNamedSingleSchema =
+        isObject(output.schemas) &&
+        output.schemas.mode === 'single' &&
+        namesAFile(schemasPath);
+
+      if (schemaOutputPlan) {
+        imports.push(
+          upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath),
+        );
+      } else if (isNamedSingleSchema) {
+        const schemaImportExtension = getImportExtension(
+          output.schemaFileExtension,
+          output.tsconfig,
+        );
+        const relative = upath.getRelativeImportPath(
+          indexFile,
+          schemasPath,
+          true,
+        );
+        imports.push(
+          stripFileExtension(relative, output.schemaFileExtension) +
+            schemaImportExtension,
+        );
+      } else {
+        imports.push(
+          upath.getRelativeImportPath(
+            indexFile,
+            getFileInfo(schemasPath).dirname,
+          ),
+        );
+      }
     }
 
     if (output.operationSchemas) {
@@ -1025,9 +1048,15 @@ async function writeSpecsInternal(
         ]
       : output.schemas
         ? [
-            getFileInfo(
-              isString(output.schemas) ? output.schemas : output.schemas.path,
-            ).dirname,
+            isObject(output.schemas) &&
+            output.schemas.mode === 'single' &&
+            namesAFile(output.schemas.path)
+              ? output.schemas.path
+              : getFileInfo(
+                  isString(output.schemas)
+                    ? output.schemas
+                    : output.schemas.path,
+                ).dirname,
           ]
         : []),
     ...(fakerSchemaPath ? [fakerSchemaPath] : []),
