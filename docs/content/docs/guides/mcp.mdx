@@ -108,6 +108,117 @@ process.on('SIGTERM', () => shutdown.abort());
 `AbortSignal.any` requires Node.js 20.3 or later at runtime.
 </Callout>
 
+## Custom Handler
+
+By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and passes the parsed body as `structuredContent`. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'single',
+      client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+      override: {
+        mcp: {
+          handler: {
+            path: './custom-handler.ts',
+            name: 'customHandler',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+When set, every generated handler binds the tool arguments to a `fetcher` and delegates to your function together with the tool call context:
+
+```ts title="src/handlers.ts (generated)"
+import { customHandler } from '../custom-handler';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
+export const findPetsByStatusHandler = async (
+  args: findPetsByStatusArgs,
+  options?: RequestInit,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+) => {
+  const fetcher = (overrides?: RequestInit) =>
+    findPetsByStatus(args.queryParams, {
+      ...options,
+      ...overrides,
+      headers: {
+        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(overrides?.headers)),
+      },
+    });
+
+  return customHandler(fetcher, ctx);
+};
+```
+
+Implement the handler with the following signature. Its return value is used as the tool result as is, so return `structuredContent` on success whenever the tool declares an `outputSchema`:
+
+```ts title="custom-handler.ts"
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  CallToolResult,
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
+export const customHandler = async (
+  fetcher: (
+    overrides?: RequestInit,
+  ) => Promise<{ status: number; data: unknown; headers: Headers }>,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+): Promise<CallToolResult> => {
+  const res = await fetcher({
+    headers: ctx?.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
+  });
+
+  if (res.status >= 400) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            requestId: ctx?.requestId,
+            status: res.status,
+            error: res.data ?? null,
+          }),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+    structuredContent: res.data as Record<string, unknown>,
+  };
+};
+```
+
+`fetcher` already carries the tool arguments and the `RequestInit` passed to `createMcpServer`, including the cancellation signal described above. Pass overrides to add headers or to replace the signal. Headers from overrides are merged into the base headers instead of replacing them, so headers such as `Authorization` set through `createMcpServer(options)` stay on the request.
+
+`ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`. It is optional so that the generated handlers can still be called directly, for example from tests.
+
+<Callout type="info">
+Place the custom handler file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.
+</Callout>
+
 ## Custom Server
 
 By default, the generated `server.ts` connects via `StdioServerTransport`. To use a different transport (e.g., Streamable HTTP for container deployments), provide a custom server function via `override.mcp.server`.

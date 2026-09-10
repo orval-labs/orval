@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { NormalizedInputOptions, OpenApiDocument } from '../types';
-import { collectReferencedComponents, filteredVerbs } from './input-filters';
+import {
+  collectReferencedComponents,
+  filteredVerbs,
+  filterPathsBySchemas,
+} from './input-filters';
 
 const makeSpec = (overrides: Partial<OpenApiDocument> = {}): OpenApiDocument =>
   ({
@@ -781,5 +785,325 @@ describe('collectReferencedComponents', () => {
     expect(result.schemas).toEqual(
       expect.arrayContaining(['Folder', 'FolderTemplate', 'Resource']),
     );
+  });
+});
+
+describe('filterPathsBySchemas', () => {
+  const schemaFilterSpec = makeSpec({
+    paths: {
+      '/users': {
+        post: {
+          operationId: 'createUser',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CreateUserRequest' },
+              },
+            },
+          },
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/users/{id}': {
+        put: {
+          operationId: 'updateUser',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UpdateUserRequest' },
+              },
+            },
+          },
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        CreateUserRequest: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+        UpdateUserRequest: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      },
+    },
+  });
+
+  it('keeps only operations referencing the filtered schemas (#3689)', () => {
+    const result = filterPathsBySchemas(
+      schemaFilterSpec,
+      ['CreateUserRequest'],
+      'include',
+    );
+
+    expect(Object.keys(result.paths ?? {})).toEqual(['/users']);
+  });
+
+  it('keeps operations referencing any schema when mode is exclude', () => {
+    const result = filterPathsBySchemas(
+      schemaFilterSpec,
+      ['CreateUserRequest'],
+      'exclude',
+    );
+
+    expect(Object.keys(result.paths ?? {})).toEqual(['/users/{id}']);
+  });
+
+  it('keeps operations without any schema references', () => {
+    const specWithBareOp = makeSpec({
+      paths: {
+        '/health': {
+          get: {
+            operationId: 'health',
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+    });
+
+    const result = filterPathsBySchemas(
+      specWithBareOp,
+      ['Whatever'],
+      'include',
+    );
+    expect(Object.keys(result.paths ?? {})).toEqual(['/health']);
+  });
+
+  it('matches schemas with RegExp filters', () => {
+    const result = filterPathsBySchemas(
+      schemaFilterSpec,
+      [/^Create/],
+      'include',
+    );
+
+    expect(Object.keys(result.paths ?? {})).toEqual(['/users']);
+  });
+
+  it('resolves schema references through #/components/responses/*', () => {
+    const specWithResponseRef = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            operationId: 'listPets',
+            responses: {
+              404: { $ref: '#/components/responses/NotFound' },
+            },
+          },
+        },
+        '/users': {
+          get: {
+            operationId: 'listUsers',
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+      components: {
+        responses: {
+          NotFound: {
+            description: 'Not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+        schemas: {
+          Error: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = filterPathsBySchemas(
+      specWithResponseRef,
+      ['Error'],
+      'include',
+    );
+
+    // /users has no schema refs at all and is therefore kept by design.
+    expect(Object.keys(result.paths ?? {})).toEqual(['/pets', '/users']);
+  });
+
+  it('does not leak RegExp lastIndex between calls (g flag)', () => {
+    const filter = /^Create/g;
+
+    const first = filterPathsBySchemas(schemaFilterSpec, [filter], 'include');
+    const second = filterPathsBySchemas(schemaFilterSpec, [filter], 'include');
+
+    expect(Object.keys(first.paths ?? {})).toEqual(['/users']);
+    expect(Object.keys(second.paths ?? {})).toEqual(['/users']);
+  });
+
+  it('does not leak lastIndex between operations (y flag)', () => {
+    const sticky = /^Create/y;
+    const mixedSpec = makeSpec({
+      paths: {
+        '/users': {
+          post: {
+            operationId: 'createUser',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/CreateUserRequest' },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+        '/admins': {
+          post: {
+            operationId: 'createAdmin',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/CreateAdminRequest' },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          CreateUserRequest: { type: 'object' },
+          CreateAdminRequest: { type: 'object' },
+        },
+      },
+    });
+
+    const result = filterPathsBySchemas(mixedSpec, [sticky], 'include');
+
+    // A sticky filter advances lastIndex after /users matches; without a
+    // reset, /admins would be tested from the wrong offset and rejected.
+    expect(Object.keys(result.paths ?? {})).toEqual(['/users', '/admins']);
+  });
+
+  it('removes only the rejected verb when a path has mixed operations', () => {
+    const mixedSpec = makeSpec({
+      paths: {
+        '/users': {
+          get: {
+            operationId: 'getUser',
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/CreateUserRequest' },
+                  },
+                },
+              },
+            },
+          },
+          post: {
+            operationId: 'postUser',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/UpdateUserRequest' },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          CreateUserRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          UpdateUserRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = filterPathsBySchemas(
+      mixedSpec,
+      ['CreateUserRequest'],
+      'include',
+    );
+
+    // The path survives with `get`, but the rejected `post` is gone.
+    const pathItem = result.paths?.['/users'];
+    expect(pathItem).toBeDefined();
+    expect(pathItem && 'get' in pathItem).toBe(true);
+    expect(pathItem && 'post' in pathItem).toBe(false);
+  });
+
+  it('preserves path-level metadata while filtering verbs', () => {
+    const metadataSpec = makeSpec({
+      paths: {
+        '/users': {
+          summary: 'Users collection',
+          description: 'Operations about users',
+          parameters: [
+            {
+              name: 'verbose',
+              in: 'query',
+              schema: { type: 'boolean' },
+            },
+          ],
+          get: {
+            operationId: 'getUser',
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/CreateUserRequest' },
+                  },
+                },
+              },
+            },
+          },
+          post: {
+            operationId: 'postUser',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/UpdateUserRequest' },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          CreateUserRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          UpdateUserRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = filterPathsBySchemas(
+      metadataSpec,
+      ['CreateUserRequest'],
+      'include',
+    );
+
+    const pathItem = result.paths?.['/users'] as Record<string, unknown>;
+    expect(pathItem['summary']).toBe('Users collection');
+    expect(pathItem['description']).toBe('Operations about users');
+    expect(Array.isArray(pathItem['parameters'])).toBe(true);
+    expect('post' in pathItem).toBe(false);
   });
 });

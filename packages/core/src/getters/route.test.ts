@@ -7,6 +7,7 @@ import type {
   OpenApiServerObject,
 } from '../types';
 import {
+  escapeRouteForSingleQuotes,
   getBaseUrlRuntimeImports,
   getFullRoute,
   getRoute,
@@ -394,6 +395,34 @@ describe('getRoute — spec path injection', () => {
 
   it('still converts legitimate path params', () => {
     expect(getRoute('/v1/{petId}')).toContain('${petId}');
+  });
+});
+
+describe('escapeRouteForSingleQuotes', () => {
+  it('escapes the quote jsesc leaves alone in a backtick context', () => {
+    expect(escapeRouteForSingleQuotes(getRoute("/pets'+(evil())+'/x"))).toBe(
+      String.raw`/pets\'+(evil())+\'/x`,
+    );
+  });
+
+  it('does not re-escape the backslashes jsesc already emitted', () => {
+    // `getRoute` turns one backslash into two; escaping again would make four
+    // and change the value the generated literal evaluates to.
+    expect(escapeRouteForSingleQuotes(getRoute('/v1/path\\to'))).toBe(
+      String.raw`/v1/path\\to`,
+    );
+  });
+
+  it('round-trips through a single-quoted literal', () => {
+    for (const path of ["/pets'/x", '/v1/path\\to', "/a`b/${c}/d'e"]) {
+      const literal = `'${escapeRouteForSingleQuotes(getRoute(path))}'`;
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      expect(new Function(`return ${literal}`)()).toBe(path);
+    }
+  });
+
+  it('leaves a route without quotes untouched', () => {
+    expect(escapeRouteForSingleQuotes('/pets/')).toBe('/pets/');
   });
 });
 

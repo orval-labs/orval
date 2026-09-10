@@ -4,6 +4,7 @@ import {
   createSchemaOutputPlanForOutput,
   type ContextSpec,
   generateVerbsOptions,
+  getOperationUrlHelperNames,
   type GeneratorApiBuilder,
   type GeneratorApiOperations,
   type GeneratorSchema,
@@ -15,6 +16,7 @@ import {
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
+  type GeneratorVerbsOptions,
   resolveRef,
 } from '@orval/core';
 import {
@@ -46,42 +48,68 @@ export async function getApiBuilder({
    */
   componentSchemas: GeneratorSchema[];
 }): Promise<GeneratorApiBuilder> {
-  const api = await asyncReduce(
-    Object.entries(context.spec.paths ?? {}),
-    async (acc, [pathRoute, verbs]) => {
-      if (!verbs) {
-        return acc;
-      }
+  const pathEntries: Array<{
+    pathRoute: string;
+    route: string;
+    resolvedVerbs: OpenApiPathItemObject;
+    verbsOptions: GeneratorVerbsOptions;
+  }> = [];
 
-      const route = getRoute(pathRoute);
+  for (const [pathRoute, verbs] of Object.entries(context.spec.paths ?? {})) {
+    if (!verbs) {
+      continue;
+    }
 
-      let resolvedVerbs: OpenApiPathItemObject = verbs;
+    const route = getRoute(pathRoute);
+    let resolvedVerbs: OpenApiPathItemObject = verbs;
 
-      if (isReference(verbs)) {
-        const { schema }: { schema: OpenApiPathItemObject } = resolveRef(
-          verbs,
-          context,
-        );
-
-        resolvedVerbs = schema;
-      }
-
-      let verbsOptions = await generateVerbsOptions({
-        verbs: resolvedVerbs,
-        input,
-        output,
-        route,
-        pathRoute,
+    if (isReference(verbs)) {
+      const { schema }: { schema: OpenApiPathItemObject } = resolveRef(
+        verbs,
         context,
+      );
+
+      resolvedVerbs = schema;
+    }
+
+    let verbsOptions = await generateVerbsOptions({
+      verbs: resolvedVerbs,
+      input,
+      output,
+      route,
+      pathRoute,
+      context,
+    });
+
+    // GitHub #564 check if we want to exclude deprecated operations
+    if (output.override.useDeprecatedOperations === false) {
+      verbsOptions = verbsOptions.filter((verb) => !verb.deprecated);
+    }
+
+    pathEntries.push({ pathRoute, route, resolvedVerbs, verbsOptions });
+  }
+
+  const allOperationNames = pathEntries.flatMap(({ verbsOptions }) =>
+    verbsOptions.map(({ operationName }) => operationName),
+  );
+  const helperOptions = pathEntries.flatMap(({ verbsOptions }) =>
+    verbsOptions.filter(({ mutator }) => !mutator),
+  );
+  const helperNames = getOperationUrlHelperNames(
+    allOperationNames,
+    helperOptions.map(({ operationName }) => operationName),
+  );
+  const helperNamesByOption = new Map(
+    helperOptions.map((verbOption, index) => [verbOption, helperNames[index]]),
+  );
+
+  const api = await asyncReduce(
+    pathEntries,
+    async (acc, { pathRoute, route, resolvedVerbs, verbsOptions }) => {
+      const resolvedVerbOptions = verbsOptions.map((verbOption) => {
+        const urlHelperName = helperNamesByOption.get(verbOption);
+        return urlHelperName ? { ...verbOption, urlHelperName } : verbOption;
       });
-
-      // GitHub #564 check if we want to exclude deprecated operations
-      if (output.override.useDeprecatedOperations === false) {
-        verbsOptions = verbsOptions.filter((verb) => {
-          return !verb.deprecated;
-        });
-      }
-
       const schemas: GeneratorSchema[] = [];
       for (const {
         queryParams,
@@ -89,7 +117,7 @@ export async function getApiBuilder({
         body,
         response,
         props,
-      } of verbsOptions) {
+      } of resolvedVerbOptions) {
         schemas.push(
           ...props.flatMap((param) =>
             param.type === GetterPropType.NAMED_PATH_PARAMS ? param.schema : [],
@@ -115,7 +143,7 @@ export async function getApiBuilder({
       }
       const pathOperations = await generateOperations(
         output.client,
-        verbsOptions,
+        resolvedVerbOptions,
         {
           route: fullRoute,
           pathRoute,
@@ -126,7 +154,7 @@ export async function getApiBuilder({
         output,
       );
 
-      for (const verbOption of verbsOptions) {
+      for (const verbOption of resolvedVerbOptions) {
         acc.verbOptions[verbOption.operationId] = verbOption;
       }
       acc.schemas.push(...schemas);

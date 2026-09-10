@@ -59,6 +59,25 @@ const customAxios = axios.create({ baseURL: 'https://api.example.com' });
 const api = getPetsApi(customAxios);
 ```
 
+The generated factory also exposes a `get<Operation>Url` helper for each
+operation that does not use a custom mutator:
+
+```typescript
+const url = api.getListPetsUrl({ limit: 10 });
+```
+
+The helper returns the generated OpenAPI route with its query parameters
+serialized by Axios. It uses the injected instance's Axios serialization
+configuration, while ignoring that instance's runtime `baseURL`, default
+request params, request options, and interceptors. The same helpers are emitted
+for `axios-functions` and Axios-backed query clients.
+
+Helpers are named `get<Operation>Url` (for example, `getListPetsUrl`) and
+return a `string`. They accept the operation's path and query parameters, but
+not Axios request options. Operations using a custom mutator do not emit a
+helper because the mutator owns the runtime URL and serialization behavior.
+Fetch output already has its own URL helper and is unchanged by this feature.
+
 ## httpClient
 
 **Type:** `'fetch' | 'axios' | 'angular'`
@@ -123,6 +142,7 @@ export default defineConfig({
 | `importPath`  | `string`  | Optional package import specifier (see below)   |
 | `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
 | `routes`      | `object`  | Route enums separately from other schemas |
+| `mode`        | `'split' \| 'single'` | Zod schema file layout (default `'split'`) |
 
 `routes.default` is required and route values are relative directories under
 `schemas.path`. `routes.enum` is optional; without it, enums use the default
@@ -159,6 +179,29 @@ When `splitByTags` is also enabled, tag directories are nested under their
 route. Schemas used by multiple tags (or by no operation) are placed under
 `<route>/shared`, for example `schemas/models/pets`,
 `schemas/models/shared`, and `schemas/types/pets`.
+
+### Single-file Zod schemas
+
+Set `schemas.mode: 'single'` to write component and operation schemas into
+`<schemas.path>/index.zod.ts`. The API client stays in its own output file and
+imports the schemas and their derived TypeScript types from this module.
+
+```ts
+output: {
+  target: './api/client.ts',
+  client: 'react-query',
+  httpClient: 'fetch',
+  schemas: { path: './api/model', type: 'zod', mode: 'single' },
+}
+```
+
+`path` remains a directory. The filename uses `schemaFileExtension` (default
+`.zod.ts`). No additional barrel is generated, regardless of `indexFiles`.
+`importPath`, when provided, must resolve to the single module.
+This mode cannot be combined with `splitByTags`, `routes`, `operationSchemas`,
+mock generators, or `factoryMethods`.
+Omitting `schemas.mode` preserves the existing split-file schema output.
+`output.mode` independently controls how API client files are organized.
 
 ### importPath
 
@@ -236,7 +279,7 @@ subdirectories instead of a single flat directory. Schemas referenced by
 only one tag go in that tag's directory; schemas referenced by multiple
 tags (or not referenced by any operation) go in `shared`. If an operation has
 multiple tags, Orval uses its first tag, matching the existing Orval routing
-behavior. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+behavior. Works with any `output.mode` (`single`, `split`, `tags`, `tags-split`).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -276,7 +319,9 @@ import type { Error } from '../shared/error';
 
 **Requirements:**
 
-- Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+- Works with any `output.mode` (`single`, `split`, `tags`, `tags-split`).
+- Incompatible with `schemas.mode: 'single'`, which writes all Zod schemas
+  into one file instead of per-tag directories.
 - Can be combined with `schemas.routes`; tag directories are nested under the
   selected route, while shared schemas are nested under `<route>/shared`.
 - Incompatible with `operationSchemas` — operation-derived types are placed
@@ -2400,6 +2445,10 @@ export default defineConfig({
             path: './custom-server.ts',
             name: 'customServer',
           },
+          handler: {
+            path: './custom-handler.ts',
+            name: 'customHandler',
+          },
         },
       },
     },
@@ -2443,6 +2492,44 @@ export const customServer = (
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 };
 ```
+
+### handler
+
+**Type:** `Object`
+
+Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it and the tool call context. The return value is used as the tool result as is.
+
+```ts title="custom-handler.ts"
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  CallToolResult,
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+
+export const customHandler = async (
+  fetcher: (
+    overrides?: RequestInit,
+  ) => Promise<{ status: number; data: unknown; headers: Headers }>,
+  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+): Promise<CallToolResult> => {
+  const res = await fetcher();
+
+  if (res.status >= 400) {
+    return {
+      content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
+    structuredContent: res.data as Record<string, unknown>,
+  };
+};
+```
+
+See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` and `ctx`.
 
 ---
 
@@ -3025,7 +3112,8 @@ Orval generates for `runtimeValidation` never runs (see
 [#2858](https://github.com/orval-labs/orval/issues/2858)). Enabling this option
 hands the schema to the mutator instead.
 
-Supported by the `fetch` client. Requires `schemas: { type: 'zod' }` and
+Supported by the `fetch` client and by the query clients using
+`httpClient: 'fetch'`. Requires `schemas: { type: 'zod' }` and
 `override.fetch.runtimeValidation: true`. The schema is omitted for operations
 without a validatable response — primitive or `void` responses, and
 `application/x-ndjson` streams.

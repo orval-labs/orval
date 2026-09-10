@@ -1,5 +1,6 @@
 import {
   camel,
+  escapeRouteForSingleQuotes,
   generateMutator,
   type GeneratorImport,
   type GeneratorMutator,
@@ -309,9 +310,19 @@ const generateParamArgs = (
  * contains a `${...}` interpolation, so it must be emitted as a template
  * literal; otherwise a plain single-quoted string is enough and keeps the
  * output byte-identical to the no-baseUrl case.
+ *
+ * `prefix` is `getRoute` output, escaped for a backtick context — which leaves
+ * `'` untouched. The single-quoted branch therefore has to escape the quote
+ * itself, otherwise a spec path such as `/pets'+(globalThis.x=1)+'/{id}` closes
+ * the literal and emits the rest of the path as live code in the consumer's
+ * generated client (GHSA-5g7p-r63h-5vfw). The backtick branch needs no extra
+ * work: jsesc already neutralized backticks and `${` in the static text, and
+ * the only unescaped `${...}` is the runtime baseUrl expression we put there.
  */
 const toPrefixLiteral = (prefix: string): string =>
-  prefix.includes('${') ? `\`${prefix}\`` : `'${prefix}'`;
+  prefix.includes('${')
+    ? `\`${prefix}\``
+    : `'${escapeRouteForSingleQuotes(prefix)}'`;
 
 /**
  * What one invalidate target resolves to: the `queryClient` method to call and

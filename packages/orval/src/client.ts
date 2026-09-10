@@ -348,6 +348,7 @@ export const generateOperations = (
         paramsSerializer: verbOption.paramsSerializer,
         paramsFilter: verbOption.paramsFilter,
         operationName: verbOption.operationName,
+        urlHelperName: verbOption.urlHelperName,
         fetchReviver: verbOption.fetchReviver,
         ...(client.returnType
           ? { types: { result: client.returnType } }

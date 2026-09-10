@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
@@ -12,6 +14,7 @@ import {
 import {
   buildAngularParamsFilterExpression,
   generateAxiosOptions,
+  generateAxiosUrl,
   generateBodyOptions,
   generateMutatorConfig,
   generateOptions,
@@ -20,6 +23,208 @@ import {
   getAngularFilteredParamsHelperBody,
   getAngularObjectParamStrategies,
 } from './options';
+
+const evaluateGeneratedUrl = (
+  source: string,
+  uriClient: { getUri: (config: Record<string, unknown>) => string },
+  functionName = 'getGetPetUrl',
+  globals: Record<string, unknown> = {},
+) => {
+  const client = {
+    create: (defaults: Record<string, unknown>) => {
+      expect(defaults).toEqual({ baseURL: '', params: null });
+      return {
+        getUri: (config: Record<string, unknown>) =>
+          uriClient.getUri({ ...defaults, ...config }),
+      };
+    },
+  };
+  const transpiled = ts.transpileModule(
+    `const axios = client;\n${source.replaceAll('export ', '')}`,
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText;
+
+  return runInNewContext(`${transpiled}; ${functionName}`, {
+    client,
+    ...globals,
+  }) as (...args: unknown[]) => string;
+};
+
+describe('generateAxiosUrl', () => {
+  it('emits a static route helper without query parameters', () => {
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetsUrl',
+      propsImplementation: '',
+      route: '/pets',
+      axiosRef: 'axios',
+      hasQueryParams: false,
+    });
+    const getUrl = evaluateGeneratedUrl(
+      source,
+      { getUri: (config) => config.url as string },
+      'getGetPetsUrl',
+    );
+
+    expect(getUrl()).toBe('/pets');
+  });
+
+  it('preserves multiple path parameters in the generated route', () => {
+    const source = generateAxiosUrl({
+      functionName: 'getGetUserPostUrl',
+      propsImplementation: 'userId: string, postId: string',
+      route: '/users/${userId}/posts/${postId}',
+      axiosRef: 'axios',
+      hasQueryParams: false,
+    });
+    const getUrl = evaluateGeneratedUrl(
+      source,
+      { getUri: (config) => config.url as string },
+      'getGetUserPostUrl',
+    );
+
+    expect(getUrl('user-1', 'post-2')).toBe('/users/user-1/posts/post-2');
+  });
+
+  it('emits an Axios-compatible route helper without leaking the runtime baseURL', () => {
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetUrl',
+      propsImplementation: 'petId: string, params?: Record<string, unknown>',
+      route: '/pets/${petId}',
+      axiosRef: 'axios',
+      hasQueryParams: true,
+    });
+
+    const getUrl = evaluateGeneratedUrl(source, {
+      getUri: (config) => {
+        expect(config.baseURL).toBe('');
+        const query = new URLSearchParams(
+          Object.entries((config.params as Record<string, unknown>) ?? {})
+            .filter(([, value]) => value !== undefined)
+            .flatMap(([key, value]): [string, string][] =>
+              Array.isArray(value)
+                ? value.map((item) => [key, String(item)])
+                : [[key, String(value)]],
+            ),
+        ).toString();
+        const url = config.url as string;
+        return `${url}${query ? `?${query}` : ''}`;
+      },
+    });
+
+    expect(
+      getUrl('a/b', { page: 2, tags: ['red', 'blue'], optional: undefined }),
+    ).toBe('/pets/a/b?page=2&tags=red&tags=blue');
+  });
+
+  it('keeps optional query values in the params object for Axios to serialize', () => {
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetUrl',
+      propsImplementation: 'params?: Record<string, unknown>',
+      route: '/pets',
+      axiosRef: 'axios',
+      hasQueryParams: true,
+    });
+    const received: Record<string, unknown>[] = [];
+    const getUrl = evaluateGeneratedUrl(source, {
+      getUri: (config) => {
+        received.push(config.params as Record<string, unknown>);
+        return config.url as string;
+      },
+    });
+
+    expect(getUrl({ page: undefined, tag: null })).toBe('/pets');
+    expect(received).toEqual([{ page: undefined, tag: null }]);
+  });
+
+  it('uses the exact supplied route, including existing path escaping', () => {
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetUrl',
+      propsImplementation: 'petId: string',
+      route: '/pets/${encodeURIComponent(String(petId))}',
+      axiosRef: 'axios',
+      hasQueryParams: false,
+    });
+    const getUrl = evaluateGeneratedUrl(source, {
+      getUri: (config) => config.url as string,
+    });
+
+    expect(getUrl('a/b')).toBe('/pets/a%2Fb');
+  });
+
+  it('uses a custom serializer through Axios getUri', () => {
+    const customSerializer = (params: Record<string, unknown>) =>
+      `tag=${(params.tag as string[]).join('|')}`;
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetUrl',
+      propsImplementation: 'petId: string, params?: Record<string, unknown>',
+      route: '/pets/${petId}',
+      axiosRef: 'axios',
+      hasQueryParams: true,
+      paramsSerializer: 'customSerializer',
+    });
+
+    const getUrl = evaluateGeneratedUrl(
+      source,
+      {
+        getUri: (config) => {
+          expect(config.baseURL).toBe('');
+          return `${config.url as string}?${(
+            config.paramsSerializer as (
+              params: Record<string, unknown>,
+            ) => string
+          )(config.params as Record<string, unknown>)}`;
+        },
+      },
+      'getGetPetUrl',
+      { customSerializer },
+    );
+
+    expect(getUrl('pet-1', { tag: ['red', 'blue'] })).toBe(
+      '/pets/pet-1?tag=red|blue',
+    );
+  });
+
+  it('uses qs options through Axios getUri', () => {
+    const qs = {
+      stringify: (params: Record<string, unknown>, options: unknown) => {
+        expect(options).toEqual({ arrayFormat: 'repeat' });
+        return (params.tag as string[]).map((tag) => `tag=${tag}`).join('&');
+      },
+    };
+
+    const source = generateAxiosUrl({
+      functionName: 'getGetPetUrl',
+      propsImplementation: 'petId: string, params?: Record<string, unknown>',
+      route: '/pets/${petId}',
+      axiosRef: 'axios',
+      hasQueryParams: true,
+      paramsSerializerOptions: { qs: { arrayFormat: 'repeat' } },
+    });
+
+    const getUrl = evaluateGeneratedUrl(
+      source,
+      {
+        getUri: (config) =>
+          `${config.url as string}?${(
+            config.paramsSerializer as (
+              params: Record<string, unknown>,
+            ) => string
+          )(config.params as Record<string, unknown>)}`,
+      },
+      'getGetPetUrl',
+      { qs },
+    );
+
+    expect(getUrl('pet-1', { tag: ['red', 'blue'] })).toBe(
+      '/pets/pet-1?tag=red&tag=blue',
+    );
+  });
+});
 
 const minimalSchema: GeneratorSchema = {
   name: 'TestSchema',

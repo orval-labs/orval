@@ -50,6 +50,25 @@ const PETSTORE_SPEC: OpenApiDocument = {
   },
 };
 
+const URL_HELPER_COLLISION_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: { title: 'URL helper collision', version: '1.0.0' },
+  paths: {
+    '/foo': {
+      get: {
+        operationId: 'foo',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/get-foo-url': {
+      get: {
+        operationId: 'getFooUrl',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+  },
+};
+
 const ROUTED_SCHEMA_SPEC: OpenApiDocument = {
   ...PETSTORE_SPEC,
   components: {
@@ -359,6 +378,40 @@ describe('generateSpec - unchanged formatted output', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+});
+
+describe('generateSpec - collision-safe Axios URL helpers', () => {
+  for (const client of ['axios-functions', 'axios', 'react-query'] as const) {
+    it(`keeps ${client} output free of duplicate declarations`, async () => {
+      const workspace = await createTempWorkspace();
+      const targetFile = path.join(workspace, 'endpoints.ts');
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: URL_HELPER_COLLISION_SPEC },
+            output: {
+              target: './endpoints.ts',
+              client,
+              ...(client === 'react-query' ? { httpClient: 'axios' } : {}),
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        const content = await fs.readFile(targetFile, 'utf8');
+        expect(content).toContain('getFooUrl2');
+        expect(content).toContain('getGetFooUrlUrl');
+        expect(content.match(/(?:export )?const getFooUrl\s*=/g)).toHaveLength(
+          1,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  }
 });
 
 describe('generateSpec - HTTP QUERY method', () => {
@@ -3312,6 +3365,178 @@ describe('generateSpec - clean scopes to the configured schemas directory', () =
       expect(
         await fs.pathExists(path.join(workspace, 'src/api/petstore.schemas')),
       ).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - single-file Zod schemas', () => {
+  it.each([
+    {
+      variant: 'classic' as const,
+      version: 3 as const,
+      reusable: false,
+      indexFiles: true,
+    },
+    {
+      variant: 'classic' as const,
+      version: 4 as const,
+      reusable: false,
+      indexFiles: false,
+    },
+    {
+      variant: 'classic' as const,
+      version: 4 as const,
+      reusable: true,
+      indexFiles: true,
+    },
+    {
+      variant: 'mini' as const,
+      version: 4 as const,
+      reusable: true,
+      indexFiles: false,
+    },
+  ])(
+    'writes one schema module for $variant v$version, reusable=$reusable, indexFiles=$indexFiles',
+    async ({ variant, version, reusable, indexFiles }) => {
+      const workspace = await createTempWorkspace();
+      const spec: OpenApiDocument = {
+        ...PETSTORE_SPEC,
+        paths: {
+          '/pets': {
+            post: {
+              operationId: 'createPet',
+              parameters: [
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { pet: { $ref: '#/components/schemas/Pet' } },
+                    },
+                  },
+                },
+              },
+              responses: {
+                '200': {
+                  description: 'OK',
+                  content: {
+                    'application/json': {
+                      schema: { $ref: '#/components/schemas/Pet' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec },
+            output: {
+              target: './client.ts',
+              client: 'react-query',
+              httpClient: 'fetch',
+              mode: 'single',
+              indexFiles,
+              schemas: { path: './model', type: 'zod', mode: 'single' },
+              override: {
+                zod: { variant, version, generateReusableSchemas: reusable },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        expect(await readdir(path.join(workspace, 'model'))).toEqual([
+          'index.zod.ts',
+        ]);
+        const schemas = await fs.readFile(
+          path.join(workspace, 'model/index.zod.ts'),
+          'utf8',
+        );
+        const client = await fs.readFile(
+          path.join(workspace, 'client.ts'),
+          'utf8',
+        );
+        expect(schemas).toMatch(/export const Pet =/);
+        expect(schemas).toMatch(/export type Pet = zod.input<typeof Pet>/);
+        expect(schemas).toMatch(
+          /export type PetOutput = zod.output<typeof Pet>/,
+        );
+        expect(schemas).toMatch(/export const CreatePetBody =/);
+        expect(schemas).toMatch(/export const CreatePetParams =/);
+        expect(schemas.match(/import \* as zod from/g)).toHaveLength(1);
+        expect(schemas).not.toMatch(/from ['"]\.\//);
+        expect(schemas).not.toContain('__REF_');
+        expect(client).toContain("from './model/index.zod'");
+        if (reusable) {
+          expect(schemas.indexOf('export const Pet =')).toBeLessThan(
+            schemas.indexOf('export const CreatePetBody ='),
+          );
+        }
+        const before = schemas;
+        await generateSpec(workspace, options);
+        expect(
+          await fs.readFile(path.join(workspace, 'model/index.zod.ts'), 'utf8'),
+        ).toBe(before);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('preserves recursive component references in one file', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Recursive', version: '1.0' },
+              paths: {},
+              components: {
+                schemas: {
+                  Tree: {
+                    type: 'object',
+                    properties: {
+                      children: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Tree' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          output: {
+            target: './client.ts',
+            client: 'fetch',
+            schemas: { path: './model', type: 'zod', mode: 'single' },
+            override: { zod: { version: 4, generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      expect(await readdir(path.join(workspace, 'model'))).toEqual([
+        'index.zod.ts',
+      ]);
+      const content = await fs.readFile(
+        path.join(workspace, 'model/index.zod.ts'),
+        'utf8',
+      );
+      expect(content).toContain('zod.lazy(() => Tree)');
+      expect(content).not.toContain('__REF_');
+      expect(content).not.toMatch(/from ['"]\.\//);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -82,6 +82,71 @@ describe('getParameters', () => {
     ]);
   });
 
+  it('keeps only the reusable parameter import when its schema is a component ref (issue #4057)', () => {
+    const whereItem = {
+      type: 'object',
+      properties: {
+        attribute: { type: 'string' },
+        value: { type: 'string' },
+      },
+    } as const;
+    const whereParameter: OpenApiParameterObject = {
+      name: 'where',
+      in: 'query',
+      description: 'Complex filtering criteria',
+      style: 'deepObject',
+      explode: true,
+      schema: { $ref: '#/components/schemas/WhereItem' },
+    };
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          parameters: { Where: whereParameter },
+          schemas: { WhereItem: whereItem },
+        },
+      },
+      override: {
+        components: {
+          schemas: {
+            prefix: '',
+            itemPrefix: '',
+            suffix: '',
+            itemSuffix: '',
+          },
+          responses: { prefix: '', suffix: '' },
+          parameters: { prefix: '', suffix: 'Parameter' },
+          requestBodies: { prefix: '', suffix: '' },
+        },
+      },
+    });
+
+    const result = getParameters({
+      parameters: [{ $ref: '#/components/parameters/Where' }],
+      context,
+    });
+
+    expect(result.query).toHaveLength(1);
+    expect(result.query[0].parameter.schema).toEqual(whereItem);
+    expect(result.query[0].imports).toEqual([
+      { name: 'WhereParameter', schemaName: 'Where' },
+    ]);
+  });
+
+  it('keeps imports empty for inline query parameters', () => {
+    const inlineParameter: OpenApiParameterObject = {
+      name: 'limit',
+      in: 'query',
+      schema: { type: 'integer' },
+    };
+
+    const result = getParameters({
+      parameters: [inlineParameter],
+      context: createTestContextSpec(),
+    });
+
+    expect(result.query).toEqual([{ parameter: inlineParameter, imports: [] }]);
+  });
+
   it('drops imports when a header parameter $ref targets a non-component slot (issue #1879)', () => {
     // Repro for #1879: JSON Pointer refs into another path's `parameters` array
     // (`#/paths/~1requestA/post/parameters/0`) resolve to a synthesized name

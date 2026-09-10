@@ -28,6 +28,7 @@ import {
   type JsDocOptions,
   logWarning,
   type McpOptions,
+  type McpHandlerOptions,
   type McpServerOptions,
   type Mutator,
   NamingConvention,
@@ -37,6 +38,7 @@ import {
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
+  type NormalizedMcpHandlerOptions,
   type NormalizedMcpServerOptions,
   type NormalizedMocksConfig,
   type NormalizedMutator,
@@ -172,6 +174,24 @@ function normalizeSchemasOption(
     );
   }
 
+  if (
+    schemas.mode !== undefined &&
+    schemas.mode !== 'split' &&
+    schemas.mode !== 'single'
+  ) {
+    throw new Error('schemas.mode must be "split" or "single".');
+  }
+  if (schemas.mode === 'single') {
+    if (schemas.type !== 'zod') {
+      throw new Error('schemas.mode "single" requires schemas.type "zod".');
+    }
+    if (schemas.splitByTags || schemas.routes) {
+      throw new Error(
+        'schemas.mode "single" cannot be combined with schemas.splitByTags or schemas.routes.',
+      );
+    }
+  }
+
   assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
 
@@ -184,6 +204,7 @@ function normalizeSchemasOption(
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
     splitByTags: schemas.splitByTags ?? false,
+    ...(schemas.mode === undefined ? {} : { mode: schemas.mode }),
     routes,
   };
 }
@@ -256,7 +277,19 @@ function validateSchemaRoute(value: string, fieldName: string): string {
 /** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
-  if (!schemas || isString(schemas) || !schemas.routes) return;
+  if (!schemas || isString(schemas)) return;
+  if (schemas.mode === 'single') {
+    if (
+      output.operationSchemas ||
+      output.mock.generators.length > 0 ||
+      output.factoryMethods
+    ) {
+      throw new Error(
+        'schemas.mode "single" cannot be combined with operationSchemas, mock generators, or factoryMethods.',
+      );
+    }
+  }
+  if (!schemas.routes) return;
 
   if (output.operationSchemas) {
     throw new Error(
@@ -1503,14 +1536,14 @@ function normalizeHonoOptions(
   };
 }
 
-function normalizeMcpServerOptions(
-  server: McpServerOptions,
+function normalizeMcpModuleOptions(
+  module: McpServerOptions | McpHandlerOptions,
   workspace: string,
-): NormalizedMcpServerOptions {
+): NormalizedMcpServerOptions | NormalizedMcpHandlerOptions {
   return {
-    path: nodePath.resolve(workspace, server.path),
-    name: server.name,
-    default: server.default ?? !server.name,
+    path: nodePath.resolve(workspace, module.path),
+    name: module.name,
+    default: module.default ?? !module.name,
   };
 }
 
@@ -1518,9 +1551,14 @@ function normalizeMcpOptions(
   mcp: McpOptions = {},
   workspace: string,
 ): NormalizedMcpOptions {
-  return mcp.server
-    ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
-    : {};
+  return {
+    ...(mcp.server && {
+      server: normalizeMcpModuleOptions(mcp.server, workspace),
+    }),
+    ...(mcp.handler && {
+      handler: normalizeMcpModuleOptions(mcp.handler, workspace),
+    }),
+  };
 }
 
 function normalizeJSDocOptions(

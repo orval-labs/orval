@@ -391,6 +391,8 @@ export interface NormalizedFactoryMethodsOptions {
 
 export interface SchemaOptions {
   path: string;
+  /** Write Zod schemas to one index file instead of separate schema files. */
+  mode?: 'split' | 'single';
   type?: SchemaGenerationType;
   importPath?: string;
   routes?: SchemaRouteOptions;
@@ -411,6 +413,7 @@ export interface SchemaRouteOptions {
 
 export interface NormalizedSchemaOptions {
   path: string;
+  mode?: 'split' | 'single';
   type: SchemaGenerationType;
   importPath?: string;
   splitByTags: boolean;
@@ -1217,12 +1220,26 @@ export interface NormalizedMcpServerOptions {
   default: boolean;
 }
 
+export interface McpHandlerOptions {
+  path: string;
+  name?: string;
+  default?: boolean;
+}
+
+export interface NormalizedMcpHandlerOptions {
+  path: string;
+  name?: string;
+  default: boolean;
+}
+
 export interface McpOptions {
   server?: McpServerOptions;
+  handler?: McpHandlerOptions;
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
+  handler?: NormalizedMcpHandlerOptions;
 }
 
 /**
@@ -1858,6 +1875,8 @@ export interface GeneratorOperation {
   paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   operationName: string;
+  /** Resolved Axios URL-helper name when the output client emits one. */
+  urlHelperName?: string;
   types?: {
     result: (title?: string) => string;
   };
@@ -1923,6 +1942,8 @@ export interface GeneratorVerbOptions {
   tags: string[];
   operationId: string;
   operationName: string;
+  /** Resolved Axios URL-helper name when the output client emits one. */
+  urlHelperName?: string;
   typeName: string;
   response: GetterResponse;
   body: GetterBody;
