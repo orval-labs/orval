@@ -38,6 +38,17 @@ export const createPets = (
 ): Promise<AxiosResponse<void>> => {
   return axios.post(`/v${version}/pets`, createPetsBody, options);
 };
+export const getCreatePetsUrl = (version: number = 1) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary List all pets as nested array
@@ -52,6 +63,21 @@ export const listPetsNestedArray = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsNestedArrayUrl = (
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets-nested-array`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Info for a specific pet
@@ -62,6 +88,17 @@ export const showPetById = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/v${version}/pets/${petId}`, options);
+};
+export const getShowPetByIdUrl = (petId: string, version: number = 1) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;

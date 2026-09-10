@@ -21,6 +21,17 @@ export const getShelters = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<ShelterResource>> => {
     return axiosInstance.get(`/shelters/${shelterId}/resources`, options);
   };
-  return { getShelterResources };
+  const getGetShelterResourcesUrl = (shelterId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/shelters/${shelterId}/resources`,
+        baseURL: '',
+      });
+  };
+  return { getShelterResources, getGetShelterResourcesUrl };
 };
 export type GetShelterResourcesResult = AxiosResponse<ShelterResource>;
