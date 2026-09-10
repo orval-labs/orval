@@ -4,8 +4,8 @@ description: Generate Vue queries and mutations with Pinia Colada.
 ---
 
 Set `client: 'pinia-colada'` to generate request functions, query keys,
-query/mutation options and Vue composables. Install `@pinia/colada` 1.4.4 or
-later and its Vue/Pinia peer dependencies in your application.
+query/mutation options and Vue composables. Install `@pinia/colada` 1.x (1.4.4 or
+later) and its Vue/Pinia peer dependencies in your application.
 
 ```ts
 export default defineConfig({
@@ -38,7 +38,9 @@ const options = getGetPetQueryOptions(1);
 ```
 
 Use `options.query` for Colada options, including a custom key, and
-`options.request` for Fetch/Axios request options. The query's AbortSignal is
+`options.request` for Fetch/Axios request options. For reactive query options,
+pass the composable an options getter, such as
+`() => ({ query: { enabled: isReady.value } })`. The query's AbortSignal is
 forwarded through request options when available. The built-in Fetch transport
 throws for HTTP failures so Colada can enter its error state. Axios preserves
 its normal response object; Fetch response shape follows

@@ -107,7 +107,7 @@ export const builder =
       if (query) {
         const key = `get${title}QueryKey`;
         const getOptions = `get${title}QueryOptions`;
-        const generic = `<TError = Error, TInitial extends ${data} | undefined = undefined>`;
+        const generic = `<TError = globalThis.Error, TInitial extends ${data} | undefined = undefined>`;
         const optionType = `DefineQueryOptions<${data}, TError, TInitial>`;
         const configType = `{ query?: Partial<Omit<${optionType}, 'query'>>; ${requestOption} }`;
         const requestArgs = [
@@ -146,7 +146,7 @@ export function use${title}${generic}(${[...withRequiredConfig(reactive), `${con
             `${prop.name}${prop.required ? '' : '?'}: ${typeAt(index)}`,
         );
         const generic =
-          '<TError = Error, TContext extends Record<string, unknown> = Record<string, never>>';
+          '<TError = globalThis.Error, TContext extends Record<string, unknown> = Record<string, never>>';
         const optionType = `UseMutationOptions<${data}, ${varsType}, TError, TContext>`;
         const configType = `{ mutation?: Omit<${optionType}, 'mutation'>; ${requestOption} }`;
         const requestArgs = [

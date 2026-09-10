@@ -16,7 +16,7 @@
         "vite-plus": "catalog:",
       },
       "peerDependencies": {
-        "@pinia/colada": ">=1.4.4",
+        "@pinia/colada": "^1.4.4",
       },
       "optionalPeers": [
         "@pinia/colada",
