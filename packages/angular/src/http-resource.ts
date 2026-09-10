@@ -28,6 +28,7 @@ import {
   jsDoc,
   jsStringLiteralEscape,
   makeRouteSafe,
+  mapTemplateExpressions,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputMode,
@@ -467,27 +468,26 @@ const applySignalRoute = (
   params: GeneratorVerbOptions['params'],
   useNamedParams: boolean,
 ): string => {
-  let updatedRoute = route;
-  for (const param of params) {
-    const template = '${' + param.name + '}';
+  const paramsByName = new Map(params.map((param) => [param.name, param]));
+  // Rewrite the route's interpolations only. A plain `replaceAll('${x}', ...)`
+  // would also hit escaped static text such as `\${x}` coming from a spec path
+  // like `/foo${x}` (#3703).
+  return mapTemplateExpressions(route, (expression) => {
+    const param = paramsByName.get(expression);
+    if (!param) return expression;
+
     const defaultValue = getDefaultValueFromImplementation(
       param.implementation,
     );
-    let replacement: string;
     if (useNamedParams) {
-      replacement =
-        defaultValue === undefined
-          ? '${pathParams().' + param.name + '}'
-          : '${pathParams()?.' + param.name + ' ?? ' + defaultValue + '}';
-    } else {
-      replacement =
-        defaultValue === undefined
-          ? '${' + param.name + '()}'
-          : '${' + param.name + '?.() ?? ' + defaultValue + '}';
+      return defaultValue === undefined
+        ? 'pathParams().' + param.name
+        : 'pathParams()?.' + param.name + ' ?? ' + defaultValue;
     }
-    updatedRoute = updatedRoute.replaceAll(template, replacement);
-  }
-  return updatedRoute;
+    return defaultValue === undefined
+      ? param.name + '()'
+      : param.name + '?.() ?? ' + defaultValue;
+  });
 };
 
 interface ResourceRequest {

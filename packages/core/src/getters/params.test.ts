@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils/context';
 import type { GetterParameters } from '../types';
-import { getParams } from './params';
+import { getParams, getParamsInPath } from './params';
 
 const context = createTestContextSpec();
 
@@ -25,10 +25,39 @@ const pathParamWithDefault = (
   imports: [],
 });
 
+// #3703: params are recognized by the same tokenizer that builds the route, so
+// the generated arguments and the route interpolations cannot disagree.
+describe('getParamsInPath', () => {
+  it('returns the spec spelling of each placeholder', () => {
+    expect(getParamsInPath('/pet/{category}/{name}/')).toEqual([
+      'category',
+      'name',
+    ]);
+    expect(getParamsInPath('/pet/{scope.id}/{path*}/{pet_id}')).toEqual([
+      'scope.id',
+      'path*',
+      'pet_id',
+    ]);
+  });
+
+  it('ignores braces that are not a valid parameter name', () => {
+    // These stay literal in the generated route, so reporting them as params
+    // used to make orval throw on a spec it can generate perfectly well.
+    expect(getParamsInPath('/calc/{a+b}/x')).toEqual([]);
+    expect(getParamsInPath('/set/{a,b}')).toEqual([]);
+    expect(getParamsInPath('/a/{}/x')).toEqual([]);
+  });
+
+  it('ignores a `${...}` block written in the spec path', () => {
+    expect(getParamsInPath('/foo${petId}')).toEqual([]);
+    expect(getParamsInPath('/foo${lit}/{petId}')).toEqual(['petId']);
+  });
+});
+
 describe('getParams getter', () => {
   it('matches a dotted spec name to its generated identifier in the route', () => {
     const params = getParams({
-      route: '/api/${scopeId}/items',
+      pathRoute: '/api/{scope.id}/items',
       pathParams: [pathParam('scope.id')],
       operationId: 'getItems',
       context,
@@ -43,7 +72,7 @@ describe('getParams getter', () => {
   it('throws when a route param has no matching spec parameter', () => {
     expect(() =>
       getParams({
-        route: '/api/${scopeId}',
+        pathRoute: '/api/{scopeId}',
         pathParams: [pathParam('other')],
         operationId: 'getItems',
         context,
@@ -57,7 +86,7 @@ describe('getParams getter', () => {
   it('throws when two spec names collide on the same generated identifier', () => {
     expect(() =>
       getParams({
-        route: '/api/${scopeId}',
+        pathRoute: '/api/{scopeId}',
         pathParams: [pathParam('scope.id'), pathParam('scope_id')],
         operationId: 'getItems',
         context,
@@ -79,7 +108,7 @@ describe('getParams getter', () => {
     'carries a %s default of %o into the signature',
     (type, defaultValue, rendered) => {
       const params = getParams({
-        route: '/api/${version}/items',
+        pathRoute: '/api/{version}/items',
         pathParams: [pathParamWithDefault('version', type, defaultValue)],
         operationId: 'getItems',
         context,

@@ -1,6 +1,5 @@
 import jsesc from 'jsesc';
 
-import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
@@ -10,7 +9,14 @@ import type {
   OpenApiServerObject,
   VariableRuntimeValue,
 } from '../types';
-import { camel, isObject, isString, sanitize } from '../utils';
+import {
+  camel,
+  isObject,
+  isString,
+  mapTemplateExpressions,
+  parseTemplateLiteral,
+  sanitize,
+} from '../utils';
 
 function isBaseUrlRuntime(
   baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | BaseUrlRuntime,
@@ -38,14 +44,76 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
   return '${' + t + '}';
 }
 
+/**
+ * One piece of an OpenAPI path, in the spec's own vocabulary: either static
+ * text (raw and unescaped) or a `{name}` path parameter. Every route emitted
+ * by orval is built from these tokens, so the decision "is this a parameter?"
+ * is made exactly once, against the spec path, and never re-derived from the
+ * generated source afterwards (#3703).
+ */
+export type RouteToken =
+  | { kind: 'literal'; value: string }
+  | { kind: 'param'; name: string };
+
 // Matches a `{name}` path-parameter template and captures the name
-// (`{petId}`, `{user_id}`, `{scope.id}`, `{kebab-case}`, `{path*}`). The
-// (?<!\$) guard is shared policy for every consumer (template-literal,
-// Hono and MSW routes): a `${...}` block in a spec path is never treated
-// as an OpenAPI param — it stays literal text in the emitted route. The name
-// must be non-empty so a malformed `{}` also stays literal instead of
-// emitting an invalid `${}` interpolation.
-const PATH_PARAM_REGEX = /(?<!\$)\{([\w.*-]+)\}/g;
+// (`{petId}`, `{user_id}`, `{scope.id}`, `{kebab-case}`, `{path*}`). Sticky:
+// it is only ever applied at a known `{`.
+const PATH_PARAM_NAME_REGEX = /\{([\w.*-]+)\}/y;
+
+/**
+ * Tokenizes an OpenAPI path into static text and `{name}` parameters.
+ *
+ * Two lexing rules keep spec content from turning into generated syntax:
+ *
+ * - A `$` immediately followed by `{` consumes both characters as static text,
+ *   so a `${...}` block written in a spec path is never read as a parameter.
+ *   This is shared policy for every consumer (template-literal, Hono and MSW
+ *   routes) and the reason `/v1/some${petId}/path` cannot smuggle an
+ *   interpolation into the generated client.
+ * - A `{` that is not followed by a non-empty `[\w.*-]+}` name is static text,
+ *   so a malformed `{}` stays literal instead of emitting an invalid `${}`.
+ */
+export const parseRoutePath = (path: string): RouteToken[] => {
+  const tokens: RouteToken[] = [];
+  let literal = '';
+  let index = 0;
+
+  const flushLiteral = () => {
+    if (literal) {
+      tokens.push({ kind: 'literal', value: literal });
+      literal = '';
+    }
+  };
+
+  while (index < path.length) {
+    const char = path[index];
+
+    // `${` is static text, never a parameter: consume both characters so the
+    // `{` cannot start a parameter on the next iteration.
+    if (char === '$' && path[index + 1] === '{') {
+      literal += '${';
+      index += 2;
+      continue;
+    }
+
+    if (char === '{') {
+      PATH_PARAM_NAME_REGEX.lastIndex = index;
+      const match = PATH_PARAM_NAME_REGEX.exec(path);
+      if (match) {
+        flushLiteral();
+        tokens.push({ kind: 'param', name: match[1] });
+        index += match[0].length;
+        continue;
+      }
+    }
+
+    literal += char;
+    index++;
+  }
+
+  flushLiteral();
+  return tokens;
+};
 
 // Spec paths are required to start with `/`, but malformed specs without it
 // are tolerated by normalizing here.
@@ -80,10 +148,11 @@ export const toColonRoutePath = (
   path: string,
   formatParamName: (rawName: string) => string,
 ): string =>
-  ensureLeadingSlash(path).replaceAll(
-    PATH_PARAM_REGEX,
-    (_, name: string) => `:${formatParamName(name)}`,
-  );
+  parseRoutePath(ensureLeadingSlash(path))
+    .map((token) =>
+      token.kind === 'param' ? `:${formatParamName(token.name)}` : token.value,
+    )
+    .join('');
 
 const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
 
@@ -113,13 +182,16 @@ export const escapeRouteForSingleQuotes = (route: string): string =>
  * with a leading `/`.
  */
 export function getRoute(route: string) {
-  // Splitting on the capture group leaves param names at odd indices and
-  // literal text at even indices. `${...}` blocks in the spec path fall into
-  // the literal parts (via the lookbehind) so they are escaped, not
-  // interpolated.
-  return ensureLeadingSlash(route)
-    .split(PATH_PARAM_REGEX)
-    .map((part, i) => (i % 2 ? `\${${camelPathParamName(part)}}` : esc(part)))
+  // Serialize the token stream: static text is escaped for a backtick string,
+  // parameters become interpolations. Because the two are produced from
+  // separate tokens, escaped static text can never be mistaken for an
+  // interpolation (or vice versa) by a later pass.
+  return parseRoutePath(ensureLeadingSlash(route))
+    .map((token) =>
+      token.kind === 'param'
+        ? `\${${camelPathParamName(token.name)}}`
+        : esc(token.value),
+    )
     .join('');
 }
 
@@ -313,7 +385,7 @@ export const wrapRouteParameters = (
   append: string,
   skip: Set<string> = new Set(),
 ): string =>
-  route.replaceAll(TEMPLATE_TAG_REGEX, (match, name: string) => {
+  mapTemplateExpressions(route, (name) => {
     // Angular's httpResource rewrites `${param}` to `${param()}`,
     // `${param?.() ?? default}`, `${pathParams().param}` or
     // `${pathParams()?.param ?? default}` before this runs; normalize the
@@ -327,7 +399,7 @@ export const wrapRouteParameters = (
       .replace(/\(\)$/, '')
       .replace(/[()?]/g, '')
       .trim();
-    return skip.has(key) ? `\${${name}}` : `\${${prepend}${name}${append}}`;
+    return skip.has(key) ? name : `${prepend}${name}${append}`;
   });
 
 export const makeRouteSafe = (
@@ -336,24 +408,55 @@ export const makeRouteSafe = (
 ): string =>
   wrapRouteParameters(route, 'encodeURIComponent(String(', '))', skip);
 
-// Creates a mixed use array with path variables and string from template string route
+/**
+ * Turns a template-literal route into the comma-separated query-key segments
+ * used by the Vue/split-query-key generators: `/pets/${petId}/tags` becomes
+ * `'pets',petId,'tags'`.
+ *
+ * The route is tokenized first and split on `/` only inside static text, so a
+ * `/` appearing inside an interpolation (a runtime `baseUrl` expression such as
+ * `${process.env.API ?? 'http://localhost'}`) does not tear the expression
+ * apart, and an escaped `\${...}` stays a literal segment.
+ */
 export function getRouteAsArray(route: string): string {
-  return route
-    .split('/')
-    .filter((i) => i !== '')
-    .flatMap((segment) => {
-      if (!segment.includes('${')) {
-        return [`'${escapeRouteForSingleQuotes(segment)}'`];
+  const entries: string[] = [];
+
+  // Static text is kept in its escaped backtick-source form and re-wrapped in
+  // single quotes, so it goes through `escapeRouteForSingleQuotes` — the one
+  // escape jsesc's backtick mode does not already cover. Empty chunks
+  // (leading, trailing or doubled slashes) contribute no segment.
+  const pushLiteral = (value: string) => {
+    if (value) entries.push(`'${escapeRouteForSingleQuotes(value)}'`);
+  };
+
+  for (const part of parseTemplateLiteral(route)) {
+    if (part.kind === 'expression') {
+      entries.push(part.source);
+      continue;
+    }
+
+    let chunk = '';
+    let index = 0;
+    while (index < part.source.length) {
+      const char = part.source[index];
+      // Consume escapes as a unit so a `\/` (were jsesc ever to emit one)
+      // is not mistaken for a segment separator.
+      if (char === '\\') {
+        chunk += part.source.slice(index, index + 2);
+        index += 2;
+        continue;
       }
-      // Split by template tags, keeping the delimiters.
-      // (?<!\\) prevents matching \${...} (jsesc-escaped) as a template tag.
-      return segment
-        .split(/(?<!\\)(\$\{.+?\})/g)
-        .filter(Boolean)
-        .map((part) => {
-          const match = /^(?<!\\)\$\{(.+?)\}$/.exec(part);
-          return match ? match[1] : `'${escapeRouteForSingleQuotes(part)}'`;
-        });
-    })
-    .join(',');
+      if (char === '/') {
+        pushLiteral(chunk);
+        chunk = '';
+        index++;
+        continue;
+      }
+      chunk += char;
+      index++;
+    }
+    pushLiteral(chunk);
+  }
+
+  return entries.join(',');
 }
