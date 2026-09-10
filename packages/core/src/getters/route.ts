@@ -88,6 +88,25 @@ export const toColonRoutePath = (
 const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
 
 /**
+ * Re-escape a route fragment that {@link getRoute} already escaped for a
+ * backtick template literal so it is safe inside a *single-quoted* literal.
+ *
+ * `jsesc(..., { quotes: 'backtick' })` neutralizes backslashes, line
+ * terminators, backticks and `${`, but deliberately leaves `'` alone — it is
+ * not special in a backtick context. Any consumer that drops that output into
+ * a single-quoted literal has to escape the quote itself, or a `'` in the spec
+ * path closes the literal and the remainder of the path is emitted as
+ * executable code (GHSA-5g7p-r63h-5vfw).
+ *
+ * Only `'` is escaped here: the backslashes jsesc already emitted must not be
+ * doubled a second time, which is why `jsStringLiteralEscape` is the wrong
+ * tool for an already-escaped route — use that one when the input is raw spec
+ * text.
+ */
+export const escapeRouteForSingleQuotes = (route: string): string =>
+  route.replaceAll("'", String.raw`\'`);
+
+/**
  * Converts an OpenAPI path (`{param}`) to a template-literal route (`${param}`),
  * escaping static text with jsesc for safe embedding in backtick strings.
  * The `route` arg must be a raw OpenAPI path; a non-empty route always emits
@@ -324,7 +343,7 @@ export function getRouteAsArray(route: string): string {
     .filter((i) => i !== '')
     .flatMap((segment) => {
       if (!segment.includes('${')) {
-        return [`'${segment.replaceAll("'", "\\'")}'`];
+        return [`'${escapeRouteForSingleQuotes(segment)}'`];
       }
       // Split by template tags, keeping the delimiters.
       // (?<!\\) prevents matching \${...} (jsesc-escaped) as a template tag.
@@ -333,7 +352,7 @@ export function getRouteAsArray(route: string): string {
         .filter(Boolean)
         .map((part) => {
           const match = /^(?<!\\)\$\{(.+?)\}$/.exec(part);
-          return match ? match[1] : `'${part.replaceAll("'", "\\'")}'`;
+          return match ? match[1] : `'${escapeRouteForSingleQuotes(part)}'`;
         });
     })
     .join(',');
