@@ -335,11 +335,31 @@ async function writeFakerSchemaMocks(
   const fileExtension = output.fileExtension || '.ts';
 
   if (output.schemas) {
-    const schemasDir = isString(output.schemas)
+    const schemasPath = isString(output.schemas)
       ? output.schemas
       : output.schemas.path;
+    const isNamedSingleSchema =
+      isObject(output.schemas) &&
+      output.schemas.mode === 'single' &&
+      namesAFile(schemasPath);
+    const schemasDir = isNamedSingleSchema
+      ? path.dirname(schemasPath)
+      : schemasPath;
     filePath = path.join(schemasDir, `index.faker${fileExtension}`);
-    schemaImportPath = '.';
+
+    if (isNamedSingleSchema) {
+      const schemaSourceExtension = path.extname(schemasPath);
+      const relative = upath.getRelativeImportPath(
+        filePath,
+        schemasPath,
+        true,
+      );
+      schemaImportPath =
+        stripFileExtension(relative, schemaSourceExtension) +
+        getImportExtension(schemaSourceExtension, output.tsconfig);
+    } else {
+      schemaImportPath = '.';
+    }
   } else {
     const targetInfo = output.target
       ? getFileInfo(output.target, { extension: fileExtension })
@@ -964,8 +984,9 @@ async function writeSpecsInternal(
           upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath),
         );
       } else if (isNamedSingleSchema) {
+        const schemaSourceExtension = path.extname(schemasPath);
         const schemaImportExtension = getImportExtension(
-          output.schemaFileExtension,
+          schemaSourceExtension,
           output.tsconfig,
         );
         const relative = upath.getRelativeImportPath(
@@ -974,7 +995,7 @@ async function writeSpecsInternal(
           true,
         );
         imports.push(
-          stripFileExtension(relative, output.schemaFileExtension) +
+          stripFileExtension(relative, schemaSourceExtension) +
             schemaImportExtension,
         );
       } else {
