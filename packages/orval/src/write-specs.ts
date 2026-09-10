@@ -112,7 +112,7 @@ export function getDocsTypedocOptions(
 ): Partial<TypeDocOptions> {
   const plugin = config.plugin ?? [];
 
-  return {
+  const options: Partial<TypeDocOptions> = {
     entryPoints,
     // Skip TypeScript diagnostics on the consuming project: TypeDoc would
     // otherwise pick up the user's tsconfig and surface errors from files
@@ -120,12 +120,25 @@ export function getDocsTypedocOptions(
     // with an unused `React` default import under the new JSX transform —
     // see #3338). User-overridable via the `docs` option below.
     skipErrorChecking: true,
+    // Quiet during bootstrap (plugin load, entry-point globs). Applied here
+    // rather than after `bootstrapWithPlugins` so TypeDoc never prints. The
+    // `docs` option below can still raise it.
+    logLevel: 'None',
     // Set the custom config location if it has been provided.
     ...config,
     plugin: plugin.includes(DOCS_MARKDOWN_PLUGIN)
       ? plugin
       : [DOCS_MARKDOWN_PLUGIN, ...plugin],
   };
+
+  // TypeDoc treats entry points as globs and rejects Windows separators.
+  if (options.entryPoints) {
+    options.entryPoints = options.entryPoints.map((entryPoint) =>
+      upath.toUnix(entryPoint),
+    );
+  }
+
+  return options;
 }
 
 /**

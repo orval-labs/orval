@@ -9,7 +9,7 @@ import {
   type OverrideInput,
   type WriteSpecBuilder,
 } from '@orval/core';
-import { bundle } from '@scalar/json-magic/bundle';
+import { bundle, type Plugin } from '@scalar/json-magic/bundle';
 import {
   fetchUrls,
   parseJson,
@@ -846,7 +846,7 @@ function createSafeUrlLoader(
   isWildcard: boolean,
   allowedExternalRefs: string[],
   headers?: { domains: string[]; headers: Record<string, string> }[],
-) {
+): Plugin {
   const base = fetchUrls({
     headers,
     // With the wildcard every destination is permitted anyway, so leave the

@@ -132,6 +132,19 @@ describe('getDocsTypedocOptions', () => {
         .skipErrorChecking,
     ).toBe(false);
   });
+
+  it('defaults logLevel to None so TypeDoc stays quiet during bootstrap', () => {
+    expect(getDocsTypedocOptions(entryPoints, {}).logLevel).toBe('None');
+    expect(
+      getDocsTypedocOptions(entryPoints, { logLevel: 'Verbose' }).logLevel,
+    ).toBe('Verbose');
+  });
+
+  it('converts Windows entry-point separators so TypeDoc globs accept them', () => {
+    expect(
+      getDocsTypedocOptions(['C:\\tmp\\petstore.ts'], {}).entryPoints,
+    ).toEqual(['C:/tmp/petstore.ts']);
+  });
 });
 
 describe('getDocsOutputName', () => {
@@ -240,7 +253,6 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
         createMarkdownPluginReader(),
       ]);
       app.options.setValue('readme', 'none');
-      app.options.setValue('logLevel', 'None');
 
       const project = await app.convert();
       expect(project).toBeTruthy();
