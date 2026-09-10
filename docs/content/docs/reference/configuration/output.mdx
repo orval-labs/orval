@@ -200,7 +200,8 @@ output: {
 `importPath`, when provided, must resolve to the single module.
 This mode cannot be combined with `splitByTags`, `routes`, `operationSchemas`,
 mock generators, or `factoryMethods`.
-Omitting `mode` preserves the existing split-file output.
+Omitting `schemas.mode` preserves the existing split-file schema output.
+`output.mode` independently controls how API client files are organized.
 
 ### importPath
 
@@ -278,7 +279,7 @@ subdirectories instead of a single flat directory. Schemas referenced by
 only one tag go in that tag's directory; schemas referenced by multiple
 tags (or not referenced by any operation) go in `shared`. If an operation has
 multiple tags, Orval uses its first tag, matching the existing Orval routing
-behavior. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+behavior. Works with any `output.mode` (`single`, `split`, `tags`, `tags-split`).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -318,7 +319,9 @@ import type { Error } from '../shared/error';
 
 **Requirements:**
 
-- Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+- Works with any `output.mode` (`single`, `split`, `tags`, `tags-split`).
+- Incompatible with `schemas.mode: 'single'`, which writes all Zod schemas
+  into one file instead of per-tag directories.
 - Can be combined with `schemas.routes`; tag directories are nested under the
   selected route, while shared schemas are nested under `<route>/shared`.
 - Incompatible with `operationSchemas` — operation-derived types are placed
