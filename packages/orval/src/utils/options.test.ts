@@ -2945,3 +2945,91 @@ describe('normalizeOptions', () => {
     }
   });
 });
+
+describe('single-file Zod schema options', () => {
+  it.each([
+    {
+      schemas: {
+        path: './model',
+        mode: 'single' as const,
+        type: 'typescript' as const,
+      },
+      error: 'requires schemas.type "zod"',
+    },
+    {
+      schemas: {
+        path: './model',
+        mode: 'single' as const,
+        type: 'zod' as const,
+        splitByTags: true,
+      },
+      error: 'cannot be combined',
+    },
+    {
+      schemas: {
+        path: './model',
+        mode: 'single' as const,
+        type: 'zod' as const,
+        routes: { default: 'models' },
+      },
+      error: 'cannot be combined',
+    },
+  ])(
+    'rejects incompatible schema layout $schemas',
+    async ({ schemas, error }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0' },
+                  paths: {},
+                },
+              },
+              output: { target: './client.ts', schemas },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(error);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe('single-file Zod schema output combinations', () => {
+  it.each([
+    { operationSchemas: './operations' },
+    { mock: true },
+    { factoryMethods: { outputDirectory: './factories' } },
+  ])('rejects unsupported output $0 before writing files', async (output) => {
+    const workspace = await createTempWorkspace();
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './client.ts',
+              schemas: { path: './model', type: 'zod', mode: 'single' },
+              ...output,
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('schemas.mode "single" cannot be combined');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});

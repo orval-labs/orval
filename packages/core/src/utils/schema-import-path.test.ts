@@ -308,3 +308,57 @@ describe('resolveSchemaImportDependencies', () => {
     });
   });
 });
+
+describe('single-file Zod schema imports', () => {
+  it.each([true, false])(
+    'uses the single module with indexFiles=%s',
+    (indexFiles) => {
+      const output = createOutput({
+        indexFiles,
+        schemas: {
+          path: '/models',
+          type: 'zod',
+          mode: 'single',
+          splitByTags: false,
+        },
+      });
+      expect(
+        resolve(output, '../models', [PET, ERROR], { isZod: true }),
+      ).toEqual(['../models/index.zod']);
+    },
+  );
+
+  it('honors the schema extension and NodeNext module resolution', () => {
+    const output = createOutput({
+      schemaFileExtension: '.schema.ts',
+      schemas: {
+        path: '/models',
+        type: 'zod',
+        mode: 'single',
+        splitByTags: false,
+      },
+      tsconfig: {
+        compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
+      },
+    });
+    expect(resolve(output, '../models', [PET], { isZod: true })).toEqual([
+      '../models/index.schema.js',
+    ]);
+  });
+
+  it('keeps an explicit package import path unchanged', () => {
+    const output = createOutput({
+      indexFiles: false,
+      schemas: {
+        path: '/models',
+        type: 'zod',
+        mode: 'single',
+        splitByTags: false,
+        importPath: '@acme/models',
+      },
+    });
+    expect(resolve(output, '@acme/models', [PET], { isZod: true })).toEqual([
+      '@acme/models',
+    ]);
+  });
+});

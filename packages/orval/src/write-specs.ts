@@ -57,6 +57,7 @@ import {
 import {
   generateZodSchemasInline,
   writeZodSchemas,
+  writeZodSchemasSingle,
   writeZodSchemasFromVerbs,
   writeZodSchemaRoutesBarrel,
   writeZodSchemaTagsSplitBarrel,
@@ -590,6 +591,8 @@ async function writeSpecsInternal(
         output.client === 'zod' &&
         output.override.zod.generateReusableSchemas);
 
+    const singleZodFile =
+      isObject(output.schemas) && output.schemas.mode === 'single';
     if (shouldSplitSchemasByTags && output.operationSchemas) {
       throw new Error(
         'schemas.splitByTags cannot be used with output.operationSchemas. ' +
@@ -616,7 +619,18 @@ async function writeSpecsInternal(
           })
         : undefined;
 
-      if (shouldSplitSchemasByTags) {
+      if (singleZodFile) {
+        await writeZodSchemasSingle(
+          builder,
+          builder.verbOptions,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          { spec: builder.spec, target: builder.target, workspace, output },
+          schemasParamsMutator,
+        );
+      } else if (shouldSplitSchemasByTags) {
         const componentDirs = await writeZodSchemas(
           builder,
           schemasPath,
