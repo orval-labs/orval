@@ -46,6 +46,19 @@ throws for HTTP failures so Colada can enter its error state. Axios preserves
 its normal response object; Fetch response shape follows
 `fetch.includeHttpResponseReturnType`.
 
+When overriding `query.key`, include every variable that affects the response.
+For reactive inputs, return the key from the same options getter:
+
+```ts
+const pet = useGetPet(petId, () => ({
+  query: { key: ['pets', petId.value] },
+}));
+```
+
+A constant key shared by different pet IDs would reuse the same cache entry.
+Invalidate custom keys using the same key factory; `getGetPetQueryKey()` still
+returns the default generated key. See Colada's [query key guidance](https://pinia-colada.esm.dev/guide/query-keys.html).
+
 ## Mutations
 
 Mutation variables contain the operation's path, query, header and body
