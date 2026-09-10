@@ -1,0 +1,81 @@
+---
+title: Pinia Colada
+description: Generate Vue queries and mutations with Pinia Colada.
+---
+
+Set `client: 'pinia-colada'` to generate request functions, query keys,
+query/mutation options and Vue composables. Install `@pinia/colada` 1.4.4 or
+later and its Vue/Pinia peer dependencies in your application.
+
+```ts
+export default defineConfig({
+  pets: {
+    input: './openapi.json',
+    output: {
+      target: './src/api/pets.ts',
+      client: 'pinia-colada',
+      httpClient: 'fetch', // or 'axios'
+      override: { fetch: { includeHttpResponseReturnType: false } },
+    },
+  },
+});
+```
+
+Register Pinia and the `PiniaColada` plugin in your Vue application.
+GET and HEAD operations generate queries; other methods generate mutations.
+
+## Queries
+
+Query parameters accept plain values, refs and getters. Generated query keys
+include the HTTP method, route and operation arguments. Colada receives matching
+key/request values when reactive arguments change.
+
+```ts
+const petId = ref(1);
+const pet = useGetPet(petId, { query: { staleTime: 30_000 } });
+const key = getGetPetQueryKey(1);
+const options = getGetPetQueryOptions(1);
+```
+
+Use `options.query` for Colada options, including a custom key, and
+`options.request` for Fetch/Axios request options. The query's AbortSignal is
+forwarded through request options when available. The built-in Fetch transport
+throws for HTTP failures so Colada can enter its error state. Axios preserves
+its normal response object; Fetch response shape follows
+`fetch.includeHttpResponseReturnType`.
+
+## Mutations
+
+Mutation variables contain the operation's path, query, header and body
+arguments, using their generated names and types. Pass Colada lifecycle
+callbacks through `options.mutation`.
+
+```ts
+const cache = useQueryCache();
+const createPet = useCreatePet({
+  mutation: {
+    onSuccess: () =>
+      cache.invalidateQueries({
+        key: getListPetsQueryKey().slice(0, 2),
+      }),
+  },
+});
+
+await createPet.mutateAsync({ createPetBody: { name: 'Milo' } });
+```
+
+The generator does not guess which queries a mutation invalidates. Choose the
+affected keys in application code. `getCreatePetMutationOptions()` also exposes
+reusable options without creating a composable.
+
+## Compatibility
+
+The client uses Orval's existing Fetch/Axios serializers and supports plain
+function mutators. Custom mutators must reject failed requests themselves.
+Hook mutators are not supported. JSON, multipart and URL-encoded bodies follow
+the request generator's existing configuration.
+
+Use the generated options and keys with Colada's cache APIs. Dedicated infinite
+query helpers and Nuxt integration are not generated. The sample at
+`samples/pinia-colada` demonstrates queries, CRUD mutations, cache invalidation,
+and error recovery in English.

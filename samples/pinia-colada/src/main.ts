@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import { PiniaColada, useQueryCache } from '@pinia/colada';
 import {
   getListPetsQueryKey,
+  getGetPetQueryKey,
   useCreatePet,
   useDeletePet,
   useGetPet,
@@ -23,7 +24,10 @@ const App = defineComponent({
     });
     const detail = useGetPet(selectedId);
     const refreshList = () =>
-      cache.invalidateQueries({ key: getListPetsQueryKey().slice(0, 2) });
+      Promise.all([
+        cache.invalidateQueries({ key: getListPetsQueryKey().slice(0, 2) }),
+        cache.invalidateQueries({ key: getGetPetQueryKey(selectedId.value) }),
+      ]);
     const mutation = {
       onSuccess: async () => {
         notice.value = 'Saved successfully';

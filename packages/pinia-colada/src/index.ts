@@ -15,7 +15,7 @@ const dependencies: GeneratorDependency[] = [
     exports: [
       { name: 'useQuery', values: true, alias: 'useColadaQuery' },
       { name: 'useMutation', values: true, alias: 'useColadaMutation' },
-      { name: 'UseQueryOptions' },
+      { name: 'DefineQueryOptions' },
       { name: 'UseMutationOptions' },
     ],
   },
@@ -102,7 +102,7 @@ export const builder =
         const key = `get${title}QueryKey`;
         const getOptions = `get${title}QueryOptions`;
         const generic = `<TError = Error, TInitial extends ${data} | undefined = undefined>`;
-        const optionType = `UseQueryOptions<${data}, TError, TInitial>`;
+        const optionType = `DefineQueryOptions<${data}, TError, TInitial>`;
         const configType = `{ query?: Partial<Omit<${optionType}, 'query'>>; ${requestOption} }`;
         const requestArgs = [
           ...args,
@@ -126,10 +126,10 @@ export function ${getOptions}${generic}(${[...plain, `${config}?: ${configType}`
   };
 }
 
-export function use${title}${generic}(${[...reactive, `${config}?: ${configType}`].join(', ')}) {
+export function use${title}${generic}(${[...reactive, `${config}?: MaybeRefOrGetter<${configType}>`].join(', ')}) {
   return useColadaQuery(() => ${getOptions}(${[
     ...args.map((arg) => `toColadaValue(${arg})`),
-    config,
+    `toColadaValue(${config})`,
   ].join(', ')}));
 }
 `;
