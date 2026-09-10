@@ -21,5 +21,8 @@
 ## Functions
 
 - [createPets](functions/createPets.md)
+- [getCreatePetsUrl](functions/getCreatePetsUrl.md)
+- [getListPetsUrl](functions/getListPetsUrl.md)
+- [getShowPetByIdUrl](functions/getShowPetByIdUrl.md)
 - [listPets](functions/listPets.md)
 - [showPetById](functions/showPetById.md)

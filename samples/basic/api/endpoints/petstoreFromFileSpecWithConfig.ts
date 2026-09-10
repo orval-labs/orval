@@ -91,6 +91,18 @@ export const listPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Create a pet
@@ -100,6 +112,17 @@ export const createPets = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.post(`/pets`, createPetsBody, options);
+};
+export const getCreatePetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -114,6 +137,20 @@ export const listPetsNestedArray = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsNestedArrayUrl = (
+  params?: ListPetsNestedArrayParams,
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets-nested-array`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Info for a specific pet
@@ -123,6 +160,17 @@ export const showPetById = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
+};
+export const getShowPetByIdUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 export type ListPetsResult = AxiosResponse<PetsArray>;

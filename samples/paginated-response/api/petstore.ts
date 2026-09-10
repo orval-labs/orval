@@ -150,6 +150,18 @@ export const getDynamicRefPetstoreShowcaseAPI = (
       params: { ...params, ...options?.params },
     });
   };
+  const getListPetsUrl = (params?: ListPetsParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+        params,
+      });
+  };
 
   /**
    * @summary Create a pet
@@ -160,6 +172,17 @@ export const getDynamicRefPetstoreShowcaseAPI = (
   ): Promise<AxiosResponse<ApiEnvelopeTemplate<Pet>>> => {
     return axiosInstance.post(`/pets`, petFields, options);
   };
+  const getCreatePetUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+      });
+  };
 
   /**
    * @summary Get a pet by ID
@@ -169,6 +192,17 @@ export const getDynamicRefPetstoreShowcaseAPI = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiEnvelopeTemplate<Pet>>> => {
     return axiosInstance.get(`/pets/${petId}`, options);
+  };
+  const getGetPetUrl = (petId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets/${petId}`,
+        baseURL: '',
+      });
   };
 
   /**
@@ -183,6 +217,18 @@ export const getDynamicRefPetstoreShowcaseAPI = (
       params: { ...params, ...options?.params },
     });
   };
+  const getListOwnersUrl = (params?: ListOwnersParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/owners`,
+        baseURL: '',
+        params,
+      });
+  };
 
   /**
    * @summary Get species category tree
@@ -191,6 +237,17 @@ export const getDynamicRefPetstoreShowcaseAPI = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<LocalizedSpeciesCategory>> => {
     return axiosInstance.get(`/species/tree`, options);
+  };
+  const getGetSpeciesTreeUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/species/tree`,
+        baseURL: '',
+      });
   };
 
   /**
@@ -202,6 +259,17 @@ export const getDynamicRefPetstoreShowcaseAPI = (
   ): Promise<AxiosResponse<ShelterResource>> => {
     return axiosInstance.get(`/shelters/${shelterId}/resources`, options);
   };
+  const getGetShelterResourcesUrl = (shelterId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/shelters/${shelterId}/resources`,
+        baseURL: '',
+      });
+  };
 
   return {
     listPets,
@@ -210,6 +278,12 @@ export const getDynamicRefPetstoreShowcaseAPI = (
     listOwners,
     getSpeciesTree,
     getShelterResources,
+    getListPetsUrl,
+    getCreatePetUrl,
+    getGetPetUrl,
+    getListOwnersUrl,
+    getGetSpeciesTreeUrl,
+    getGetShelterResourcesUrl,
   };
 };
 export type ListPetsResult = AxiosResponse<
