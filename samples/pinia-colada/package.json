@@ -1,0 +1,25 @@
+{
+  "name": "pinia-colada-sample",
+  "version": "8.30.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate-api": "vp exec orval",
+    "dev": "vp dev --host 127.0.0.1 --port 5180 --strictPort",
+    "build": "vp build",
+    "test": "tsc --noEmit",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@pinia/colada": "1.4.4",
+    "axios": "catalog:axios",
+    "pinia": "4.0.3",
+    "vue": "3.5.42"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "orval": "workspace:*",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -1,0 +1,50 @@
+body {
+  margin: 0;
+  color: #18302b;
+  background: #f4f7f5;
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+main {
+  max-width: 820px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+section {
+  margin: 20px 0;
+  padding: 24px;
+  background: white;
+  border: 1px solid #d5e3dc;
+  border-radius: 12px;
+}
+button,
+input {
+  font: inherit;
+  margin: 6px;
+  padding: 8px 12px;
+  border: 1px solid #b9cec2;
+  border-radius: 6px;
+}
+button {
+  cursor: pointer;
+  background: #e4f2e9;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+label {
+  display: block;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  display: flex;
+  justify-content: space-between;
+}
+[role='alert'] {
+  color: #ad2727;
+}

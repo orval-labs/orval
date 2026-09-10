@@ -63,6 +63,7 @@
     "@orval/hono": "workspace:*",
     "@orval/mcp": "workspace:*",
     "@orval/mock": "workspace:*",
+    "@orval/pinia-colada": "workspace:*",
     "@orval/query": "workspace:*",
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
