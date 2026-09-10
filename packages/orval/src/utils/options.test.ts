@@ -3000,3 +3000,36 @@ describe('single-file Zod schema options', () => {
     },
   );
 });
+
+describe('single-file Zod schema output combinations', () => {
+  it.each([
+    { operationSchemas: './operations' },
+    { mock: true },
+    { factoryMethods: { outputDirectory: './factories' } },
+  ])('rejects unsupported output $0 before writing files', async (output) => {
+    const workspace = await createTempWorkspace();
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './client.ts',
+              schemas: { path: './model', type: 'zod', mode: 'single' },
+              ...output,
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('schemas.mode "single" cannot be combined');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
