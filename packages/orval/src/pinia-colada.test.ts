@@ -7,6 +7,28 @@ import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils/options';
 
 describe('pinia-colada generation', () => {
+  it('does not restrict the HTTP client of other generators', async () => {
+    const workspace = await mkdtemp(path.join(tmpdir(), 'orval-angular-'));
+    try {
+      const options = await normalizeOptions(
+        {
+          input: path.resolve(
+            import.meta.dirname,
+            '../../../samples/pinia-colada/openapi.json',
+          ),
+          output: { target: './client.ts', client: 'angular' },
+        },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      const source = await readFile(path.join(workspace, 'client.ts'), 'utf8');
+      expect(source).toContain('HttpClient');
+      expect(source).not.toContain('useColadaQuery');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it.each(['fetch', 'axios'] as const)(
     'generates queries and mutations with %s',
     async (httpClient) => {

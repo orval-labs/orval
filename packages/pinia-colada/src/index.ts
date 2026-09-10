@@ -33,11 +33,6 @@ export const builder =
   ({ output }: { output: NormalizedOutputOptions }) =>
   () => {
     const isFetch = output.httpClient === OutputHttpClient.FETCH;
-    if (!isFetch && output.httpClient !== OutputHttpClient.AXIOS) {
-      throw new Error(
-        'pinia-colada supports the fetch and axios HTTP clients.',
-      );
-    }
     const transport = isFetch ? fetch()() : axios()();
 
     const client: ClientBuilder = async (
@@ -46,6 +41,11 @@ export const builder =
       outputClient,
       normalized,
     ) => {
+      if (!isFetch && output.httpClient !== OutputHttpClient.AXIOS) {
+        throw new Error(
+          'pinia-colada supports the fetch and axios HTTP clients.',
+        );
+      }
       if (verb.mutator?.isHook) {
         throw new Error(
           'pinia-colada requires a plain function mutator, not a hook mutator.',
