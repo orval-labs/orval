@@ -3,6 +3,7 @@ import {
   type GeneratorImport,
   getRefInfo,
   getRequiredKeys,
+  getStringLiteralType,
   isFunction,
   isReference,
   type MockOptions,
@@ -494,7 +495,9 @@ export function resolveMockValue({
 
         let overrideType = `Partial<${newSchema.name}>`;
         if (discriminatedProperty) {
-          overrideType = `Omit<${overrideType}, '${discriminatedProperty}'>`;
+          overrideType = `Omit<${overrideType}, ${getStringLiteralType(
+            discriminatedProperty,
+          )}>`;
         }
 
         const { param, returnType, returnCast } = getMockFactorySignatureParts(

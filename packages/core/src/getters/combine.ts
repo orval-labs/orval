@@ -21,6 +21,7 @@ import {
 } from '../utils';
 import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
+import { getKey, getStringLiteralTypeUnion } from './keys';
 import type { FormDataContext } from './object';
 import { getRefInfo, isComponentRef } from './ref';
 import { getScalar } from './scalar';
@@ -570,7 +571,13 @@ function combineValues({
         },
       ) as OpenApiSchemaObject[];
       if (discriminatedPropertySchemas.length > 0) {
-        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => (s.discriminator as Discriminator | undefined)?.propertyName).join("' | '")}'>`;
+        resolvedDataValue = `Omit<${resolvedDataValue}, ${getStringLiteralTypeUnion(
+          discriminatedPropertySchemas.map(
+            (s) =>
+              (s.discriminator as Discriminator | undefined)?.propertyName ??
+              '',
+          ),
+        )}>`;
       }
     }
     // Also wrap resolvedValue if it contains union (sibling pattern: allOf + oneOf at same level)
@@ -647,13 +654,13 @@ function combineValues({
       );
     let result = joined;
     if (pickableRequiredProperties.length > 0) {
-      result = `${result} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
+      result = `${result} & Required<Pick<${joined}, ${getStringLiteralTypeUnion(pickableRequiredProperties)}>>`;
     }
     if (unresolvedRequiredProperties.length > 0) {
-      result = `${result} & Required<Pick<${joined}, Extract<keyof (${joined}), '${unresolvedRequiredProperties.join("' | '")}'>>>`;
+      result = `${result} & Required<Pick<${joined}, Extract<keyof (${joined}), ${getStringLiteralTypeUnion(unresolvedRequiredProperties)}>>>`;
     }
     if (nullableParentRequiredProperties.length > 0) {
-      result = `${result} & (Required<Pick<NonNullable<${joined}>, '${nullableParentRequiredProperties.join("' | '")}'>> | null)`;
+      result = `${result} & (Required<Pick<NonNullable<${joined}>, ${getStringLiteralTypeUnion(nullableParentRequiredProperties)}>> | null)`;
     }
     if (
       pickableRequiredProperties.length > 0 ||
@@ -684,7 +691,7 @@ function combineValues({
       values.push(
         `${resolvedData.values[i]}${
           missingProperties.length > 0
-            ? ` & {${missingProperties.map((p) => `${p}?: never`).join('; ')}}`
+            ? ` & {${missingProperties.map((p) => `${getKey(p)}?: never`).join('; ')}}`
             : ''
         }`,
       );
