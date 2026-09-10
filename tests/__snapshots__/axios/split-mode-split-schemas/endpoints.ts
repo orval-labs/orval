@@ -30,6 +30,18 @@ export const getTagsSplitSharedModels = (
       params: { ...params, ...options?.params },
     });
   };
+  const getListPetsUrl = (params?: ListPetsParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+        params,
+      });
+  };
 
   const createPet = (
     createPetBody?: CreatePetBody,
@@ -37,12 +49,34 @@ export const getTagsSplitSharedModels = (
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.post(`/pets`, createPetBody, options);
   };
+  const getCreatePetUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets`,
+        baseURL: '',
+      });
+  };
 
   const getPetById = (
     petId: string,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.get(`/pets/${petId}`, options);
+  };
+  const getGetPetByIdUrl = (petId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/pets/${petId}`,
+        baseURL: '',
+      });
   };
 
   const listStores = (
@@ -54,6 +88,18 @@ export const getTagsSplitSharedModels = (
       params: { ...params, ...options?.params },
     });
   };
+  const getListStoresUrl = (params?: ListStoresParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores`,
+        baseURL: '',
+        params,
+      });
+  };
 
   const createStore = (
     createStoreBody?: CreateStoreBody,
@@ -61,12 +107,34 @@ export const getTagsSplitSharedModels = (
   ): Promise<AxiosResponse<Store>> => {
     return axiosInstance.post(`/stores`, createStoreBody, options);
   };
+  const getCreateStoreUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores`,
+        baseURL: '',
+      });
+  };
 
   const getStoreById = (
     storeId: string,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Store>> => {
     return axiosInstance.get(`/stores/${storeId}`, options);
+  };
+  const getGetStoreByIdUrl = (storeId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores/${storeId}`,
+        baseURL: '',
+      });
   };
 
   return {
@@ -76,6 +144,12 @@ export const getTagsSplitSharedModels = (
     listStores,
     createStore,
     getStoreById,
+    getListPetsUrl,
+    getCreatePetUrl,
+    getGetPetByIdUrl,
+    getListStoresUrl,
+    getCreateStoreUrl,
+    getGetStoreByIdUrl,
   };
 };
 export type ListPetsResult = AxiosResponse<PetList>;

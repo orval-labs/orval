@@ -44,6 +44,18 @@ export const listPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Create a pet
@@ -54,6 +66,17 @@ export const createPets = (
 ): Promise<AxiosResponse<void>> => {
   return axios.post(`/pets`, createPetsBody, options);
 };
+export const getCreatePetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Info for a specific pet
@@ -63,6 +86,17 @@ export const showPetById = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
+};
+export const getShowPetByIdUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 export type ListPetsResult = AxiosResponse<Pets>;

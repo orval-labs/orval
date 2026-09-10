@@ -17,5 +17,16 @@ export const getDeeplyNested = (
 ): Promise<AxiosResponse<DeeplyNestedRefSchema1>> => {
   return axios.get(`/deeply-nested`, options);
 };
+export const getGetDeeplyNestedUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/deeply-nested`,
+      baseURL: '',
+    });
+};
 
 export type GetDeeplyNestedResult = AxiosResponse<DeeplyNestedRefSchema1>;

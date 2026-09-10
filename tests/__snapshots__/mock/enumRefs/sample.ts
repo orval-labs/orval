@@ -16,6 +16,17 @@ export const getSample = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<SampleStepsResponse>> => {
     return axiosInstance.get(`/sampleApi`, options);
   };
-  return { getSampleApi };
+  const getGetSampleApiUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/sampleApi`,
+        baseURL: '',
+      });
+  };
+  return { getSampleApi, getGetSampleApiUrl };
 };
 export type GetSampleApiResult = AxiosResponse<SampleStepsResponse>;

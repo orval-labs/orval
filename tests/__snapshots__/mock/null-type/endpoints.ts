@@ -18,6 +18,17 @@ export const fetchNullable = (
 ): Promise<AxiosResponse<string | null>> => {
   return axios.get(`/nullable`, options);
 };
+export const getFetchNullableUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Nullable object response
@@ -26,6 +37,17 @@ export const fetchNullableObject = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableObject>> => {
   return axios.get(`/nullable-object`, options);
+};
+export const getFetchNullableObjectUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-object`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -57,6 +79,17 @@ export const nullableWithMultipartFormRequest = (
 
   return axios.post(`/nullable-with-multipart-form-data`, formData, options);
 };
+export const getNullableWithMultipartFormRequestUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-with-multipart-form-data`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Nullable $ref (type null + allOf) response
@@ -65,6 +98,17 @@ export const fetchNullableRef = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableRefContainer>> => {
   return axios.get(`/nullable-ref`, options);
+};
+export const getFetchNullableRefUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/nullable-ref`,
+      baseURL: '',
+    });
 };
 
 export type FetchNullableResult = AxiosResponse<string | null>;

@@ -14,5 +14,16 @@ export const putApiOrderLimit = (
 ): Promise<AxiosResponse<PutApiOrderLimit200Item[]>> => {
   return axios.put(`/api/order/limit`, undefined, options);
 };
+export const getPutApiOrderLimitUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/order/limit`,
+      baseURL: '',
+    });
+};
 
 export type PutApiOrderLimitResult = AxiosResponse<PutApiOrderLimit200Item[]>;

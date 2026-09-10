@@ -12,6 +12,17 @@ export const listPets = (
 ): Promise<AxiosResponse<string[]>> => {
   return axios.get(`/pets`, options);
 };
+export const getListPetsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets`,
+      baseURL: '',
+    });
+};
 
 export const getPet = (
   petId: string,
@@ -20,6 +31,17 @@ export const getPet = (
   return axios.get(`/pets/${petId}`, {
     ...options,
   });
+};
+export const getGetPetUrl = (petId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 export type ListPetsResult = AxiosResponse<string[]>;

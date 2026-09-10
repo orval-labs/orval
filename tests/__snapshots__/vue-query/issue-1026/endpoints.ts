@@ -37,6 +37,18 @@ export const getSomeEndpoint = (
   });
 };
 
+export const getGetSomeEndpointUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/v1/someEndPoint`,
+      baseURL: '',
+    });
+};
+
 export const getGetSomeEndpointQueryKey = () => {
   return ['api', 'v1', 'someEndPoint'] as const;
 };

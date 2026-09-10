@@ -17,5 +17,16 @@ export const getApiColors = (
 ): Promise<AxiosResponse<ColorObject>> => {
   return axios.get(`/api/colors`, options);
 };
+export const getGetApiColorsUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/colors`,
+      baseURL: '',
+    });
+};
 
 export type GetApiColorsResult = AxiosResponse<ColorObject>;

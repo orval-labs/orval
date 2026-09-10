@@ -35,6 +35,21 @@ export const listPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getListPetsUrl = (
+  { version = 1 }: ListPetsPathParameters = {},
+  params: ListPetsParams,
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Create a pet
@@ -50,6 +65,21 @@ export const createPets = (
     params: { ...params, ...options?.params },
   });
 };
+export const getCreatePetsUrl = (
+  { version = 1 }: CreatePetsPathParameters = {},
+  params: CreatePetsParams,
+) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets`,
+      baseURL: '',
+      params,
+    });
+};
 
 /**
  * @summary Info for a specific pet
@@ -60,6 +90,20 @@ export const showPetById = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/v${version}/pets/${petId}`, options);
 };
+export const getShowPetByIdUrl = ({
+  version = 1,
+  petId,
+}: ShowPetByIdPathParameters) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary Deletes a specific pet
@@ -69,6 +113,20 @@ export const deletePetById = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   return axios.delete(`/v${version}/pets/${petId}`, options);
+};
+export const getDeletePetByIdUrl = ({
+  version = 1,
+  petId,
+}: DeletePetByIdPathParameters) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}`,
+      baseURL: '',
+    });
 };
 
 /**
@@ -83,6 +141,19 @@ export const healthCheck = (
     ...options,
   });
 };
+export const getHealthCheckUrl = ({
+  version = 1,
+}: HealthCheckPathParameters = {}) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/health`,
+      baseURL: '',
+    });
+};
 
 /**
  * @summary combinate nullable and $ref
@@ -92,6 +163,20 @@ export const showPetWithOwner = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PetWithTag>> => {
   return axios.get(`/v${version}/pets/${petId}/owner`, options);
+};
+export const getShowPetWithOwnerUrl = ({
+  version = 1,
+  petId,
+}: ShowPetWithOwnerPathParameters) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/v${version}/pets/${petId}/owner`,
+      baseURL: '',
+    });
 };
 
 export type ListPetsResult = AxiosResponse<Pets>;

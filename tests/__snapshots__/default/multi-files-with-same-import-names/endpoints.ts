@@ -14,5 +14,16 @@ export const getTest = (
 ): Promise<AxiosResponse<Response>> => {
   return axios.get(`/test`, options);
 };
+export const getGetTestUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/test`,
+      baseURL: '',
+    });
+};
 
 export type GetTestResult = AxiosResponse<Response>;

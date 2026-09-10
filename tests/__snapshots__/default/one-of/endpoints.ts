@@ -17,5 +17,16 @@ export const getOneOfWithNullableObject = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/one-of-with-nullable-object`, options);
 };
+export const getGetOneOfWithNullableObjectUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/one-of-with-nullable-object`,
+      baseURL: '',
+    });
+};
 
 export type GetOneOfWithNullableObjectResult = AxiosResponse<Pet>;

@@ -18,5 +18,16 @@ export const getUserProjects = (
 ): Promise<AxiosResponse<UserProject[]>> => {
   return axios.get(`/users/${userId}/projects`, options);
 };
+export const getGetUserProjectsUrl = (userId: string) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/users/${userId}/projects`,
+      baseURL: '',
+    });
+};
 
 export type GetUserProjectsResult = AxiosResponse<UserProject[]>;

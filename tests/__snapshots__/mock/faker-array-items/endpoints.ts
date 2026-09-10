@@ -24,11 +24,33 @@ export const getFakerArrayItemFactories = (
   ): Promise<AxiosResponse<GetTenants200>> => {
     return axiosInstance.get(`/tenants`, options);
   };
+  const getGetTenantsUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/tenants`,
+        baseURL: '',
+      });
+  };
 
   const getTenantsByRef = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/tenants-by-ref`, options);
+  };
+  const getGetTenantsByRefUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/tenants-by-ref`,
+        baseURL: '',
+      });
   };
 
   const getTenantsA = (
@@ -36,11 +58,33 @@ export const getFakerArrayItemFactories = (
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/tenants-a`, options);
   };
+  const getGetTenantsAUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/tenants-a`,
+        baseURL: '',
+      });
+  };
 
   const getTenantsB = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/tenants-b`, options);
+  };
+  const getGetTenantsBUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/tenants-b`,
+        baseURL: '',
+      });
   };
 
   const getNames = (
@@ -48,11 +92,33 @@ export const getFakerArrayItemFactories = (
   ): Promise<AxiosResponse<GetNames200>> => {
     return axiosInstance.get(`/names`, options);
   };
+  const getGetNamesUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/names`,
+        baseURL: '',
+      });
+  };
 
   const getThings = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<GetThings200>> => {
     return axiosInstance.get(`/things`, options);
+  };
+  const getGetThingsUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/things`,
+        baseURL: '',
+      });
   };
 
   const getNullable = (
@@ -60,11 +126,33 @@ export const getFakerArrayItemFactories = (
   ): Promise<AxiosResponse<GetNullable200>> => {
     return axiosInstance.get(`/nullable-rows`, options);
   };
+  const getGetNullableUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/nullable-rows`,
+        baseURL: '',
+      });
+  };
 
   const getCollide = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<GetCollide200>> => {
     return axiosInstance.get(`/collide`, options);
+  };
+  const getGetCollideUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/collide`,
+        baseURL: '',
+      });
   };
 
   return {
@@ -76,6 +164,14 @@ export const getFakerArrayItemFactories = (
     getThings,
     getNullable,
     getCollide,
+    getGetTenantsUrl,
+    getGetTenantsByRefUrl,
+    getGetTenantsAUrl,
+    getGetTenantsBUrl,
+    getGetNamesUrl,
+    getGetThingsUrl,
+    getGetNullableUrl,
+    getGetCollideUrl,
   };
 };
 export type GetTenantsResult = AxiosResponse<GetTenants200>;

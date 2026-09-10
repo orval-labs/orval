@@ -77,4 +77,23 @@ export default defineConfig({
       },
     },
   },
+  customHandler: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/custom-handler/handlers.ts',
+      schemas: '../generated/mcp/custom-handler/http-schemas',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mcp: {
+          handler: {
+            path: '../mutators/mcp-custom-handler.ts',
+            name: 'customHandler',
+          },
+        },
+      },
+    },
+  },
 });

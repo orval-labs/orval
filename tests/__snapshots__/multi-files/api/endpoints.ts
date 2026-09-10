@@ -24,5 +24,16 @@ export const putPet = (
 ): Promise<AxiosResponse<Pet>> => {
   return axios.put(`/my-path`, pet, options);
 };
+export const getPutPetUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/my-path`,
+      baseURL: '',
+    });
+};
 
 export type PutPetResult = AxiosResponse<Pet>;

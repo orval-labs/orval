@@ -15,5 +15,16 @@ export const createUser = (
 ): Promise<AxiosResponse<void>> => {
   return axios.post(`/users`, requestUser, options);
 };
+export const getCreateUserUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/users`,
+      baseURL: '',
+    });
+};
 
 export type CreateUserResult = AxiosResponse<void>;

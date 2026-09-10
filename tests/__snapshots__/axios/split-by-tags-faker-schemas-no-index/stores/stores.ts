@@ -25,11 +25,34 @@ export const getStores = (axiosInstance: AxiosInstance = axios) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getListStoresUrl = (params?: ListStoresParams) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores`,
+        baseURL: '',
+        params,
+      });
+  };
   const createStore = (
     createStoreBody?: CreateStoreBody,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Store>> => {
     return axiosInstance.post(`/stores`, createStoreBody, options);
+  };
+  const getCreateStoreUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores`,
+        baseURL: '',
+      });
   };
   const getStoreById = (
     storeId: string,
@@ -37,7 +60,25 @@ export const getStores = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<Store>> => {
     return axiosInstance.get(`/stores/${storeId}`, options);
   };
-  return { listStores, createStore, getStoreById };
+  const getGetStoreByIdUrl = (storeId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/stores/${storeId}`,
+        baseURL: '',
+      });
+  };
+  return {
+    listStores,
+    createStore,
+    getStoreById,
+    getListStoresUrl,
+    getCreateStoreUrl,
+    getGetStoreByIdUrl,
+  };
 };
 export type ListStoresResult = AxiosResponse<StoreList>;
 export type CreateStoreResult = AxiosResponse<Store>;

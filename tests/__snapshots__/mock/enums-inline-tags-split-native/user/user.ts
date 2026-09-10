@@ -18,4 +18,15 @@ export const getUser = (
 ): Promise<AxiosResponse<User>> => {
   return axios.get(`/api/user`, options);
 };
+export const getGetUserUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/api/user`,
+      baseURL: '',
+    });
+};
 export type GetUserResult = AxiosResponse<User>;

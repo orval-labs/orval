@@ -21,6 +21,17 @@ export const getMixedSuccessStatusAPI = (
   ): Promise<AxiosResponse<Resource[]>> => {
     return axiosInstance.get(`/resources`, options);
   };
+  const getListResourcesUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/resources`,
+        baseURL: '',
+      });
+  };
 
   /**
    * @summary Get a resource
@@ -30,6 +41,17 @@ export const getMixedSuccessStatusAPI = (
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Resource | void>> => {
     return axiosInstance.get(`/resources/${resourceId}`, options);
+  };
+  const getGetResourceUrl = (resourceId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/resources/${resourceId}`,
+        baseURL: '',
+      });
   };
 
   /**
@@ -41,8 +63,26 @@ export const getMixedSuccessStatusAPI = (
   ): Promise<AxiosResponse<Resource | void>> => {
     return axiosInstance.delete(`/resources/${resourceId}`, options);
   };
+  const getDeleteResourceUrl = (resourceId: string) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/resources/${resourceId}`,
+        baseURL: '',
+      });
+  };
 
-  return { listResources, getResource, deleteResource };
+  return {
+    listResources,
+    getResource,
+    deleteResource,
+    getListResourcesUrl,
+    getGetResourceUrl,
+    getDeleteResourceUrl,
+  };
 };
 export type ListResourcesResult = AxiosResponse<Resource[]>;
 export type GetResourceResult = AxiosResponse<Resource | void>;

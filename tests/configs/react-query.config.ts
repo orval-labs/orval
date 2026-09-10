@@ -773,6 +773,35 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // A custom mutator owns the request, so the generated `Schema.parse()` never
+  // runs — `includeZodSchemaInArguments` passes the schema to the mutator
+  // instead, which means it has to be imported as a value (#4058).
+  zodSchemaResponseMutator: {
+    output: {
+      target: '../generated/react-query/zod-schema-response-mutator/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-response-mutator/model',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: {
+          path: '../mutators/custom-fetch-zod.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

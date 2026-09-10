@@ -15,6 +15,17 @@ export const getAlpha = (axiosInstance: AxiosInstance = axios) => {
   ): Promise<AxiosResponse<TenantListResponse>> => {
     return axiosInstance.get(`/a`, options);
   };
-  return { getA };
+  const getGetAUrl = () => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/a`,
+        baseURL: '',
+      });
+  };
+  return { getA, getGetAUrl };
 };
 export type GetAResult = AxiosResponse<TenantListResponse>;

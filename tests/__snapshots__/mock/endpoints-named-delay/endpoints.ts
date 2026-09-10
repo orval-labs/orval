@@ -22,5 +22,17 @@ export const delayInName = (
     params: { ...params, ...options?.params },
   });
 };
+export const getDelayInNameUrl = (params?: DelayInNameParams) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/delay-in-name`,
+      baseURL: '',
+      params,
+    });
+};
 
 export type DelayInNameResult = AxiosResponse<void>;

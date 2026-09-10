@@ -30,6 +30,18 @@ export const getPets = (axiosInstance: AxiosInstance = axios.default) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getListPetsUrl = (params: ListPetsParams, version: number = 1) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/v${version}/pets`,
+        baseURL: '',
+        params,
+      });
+  };
   /**
    * @summary Create a pet
    */
@@ -44,6 +56,18 @@ export const getPets = (axiosInstance: AxiosInstance = axios.default) => {
       params: { ...params, ...options?.params },
     });
   };
+  const getCreatePetsUrl = (params: CreatePetsParams, version: number = 1) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/v${version}/pets`,
+        baseURL: '',
+        params,
+      });
+  };
   /**
    * @summary Info for a specific pet
    */
@@ -53,6 +77,17 @@ export const getPets = (axiosInstance: AxiosInstance = axios.default) => {
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pet>> => {
     return axiosInstance.get(`/v${version}/pets/${petId}`, options);
+  };
+  const getShowPetByIdUrl = (petId: string, version: number = 1) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/v${version}/pets/${petId}`,
+        baseURL: '',
+      });
   };
   /**
    * @summary Deletes a specific pet
@@ -64,6 +99,17 @@ export const getPets = (axiosInstance: AxiosInstance = axios.default) => {
   ): Promise<AxiosResponse<void>> => {
     return axiosInstance.delete(`/v${version}/pets/${petId}`, options);
   };
+  const getDeletePetByIdUrl = (petId: string, version: number = 1) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/v${version}/pets/${petId}`,
+        baseURL: '',
+      });
+  };
   /**
    * @summary combinate nullable and $ref
    */
@@ -74,7 +120,29 @@ export const getPets = (axiosInstance: AxiosInstance = axios.default) => {
   ): Promise<AxiosResponse<PetWithTag>> => {
     return axiosInstance.get(`/v${version}/pets/${petId}/owner`, options);
   };
-  return { listPets, createPets, showPetById, deletePetById, showPetWithOwner };
+  const getShowPetWithOwnerUrl = (petId: string, version: number = 1) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/v${version}/pets/${petId}/owner`,
+        baseURL: '',
+      });
+  };
+  return {
+    listPets,
+    createPets,
+    showPetById,
+    deletePetById,
+    showPetWithOwner,
+    getListPetsUrl,
+    getCreatePetsUrl,
+    getShowPetByIdUrl,
+    getDeletePetByIdUrl,
+    getShowPetWithOwnerUrl,
+  };
 };
 export type ListPetsResult = AxiosResponse<Pets>;
 export type CreatePetsResult = AxiosResponse<Pet>;
