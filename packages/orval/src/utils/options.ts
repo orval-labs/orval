@@ -945,6 +945,11 @@ export async function normalizeOptions(
               }
             : {}),
         },
+        axios: {
+          includeHttpResponseReturnType:
+            outputOptions.override?.axios?.includeHttpResponseReturnType ??
+            false,
+        },
         fetch: {
           // Spread first so an explicit `undefined` cannot erase a default below.
           ...outputOptions.override?.fetch,

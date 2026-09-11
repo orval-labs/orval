@@ -147,6 +147,9 @@ const createOutput = (
         useBrandedTypes: false,
         exactOptional: false,
       },
+      axios: {
+        includeHttpResponseReturnType: false,
+      },
       fetch: {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,

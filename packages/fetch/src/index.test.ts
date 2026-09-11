@@ -157,6 +157,9 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         useBrandedTypes: false,
         exactOptional: false,
       },
+      axios: {
+        includeHttpResponseReturnType: false,
+      },
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,

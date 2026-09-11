@@ -12,6 +12,7 @@ export * from './extension';
 export * from './file';
 export * from './file-extensions';
 export * from './get-property-safe';
+export * from './http-status';
 export * from './is-body-verb';
 export * from './logger';
 export * from './merge-deep';

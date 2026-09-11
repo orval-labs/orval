@@ -2695,7 +2695,7 @@ describe('normalizeOptions', () => {
     }
   });
 
-  it('keeps fetch boolean defaults when the user passes them as undefined', async () => {
+  it('keeps client boolean defaults when the user passes them as undefined', async () => {
     const workspace = await createTempWorkspace();
 
     try {
@@ -2711,6 +2711,9 @@ describe('normalizeOptions', () => {
           output: {
             target: './generated.ts',
             override: {
+              axios: {
+                includeHttpResponseReturnType: undefined,
+              },
               fetch: {
                 serializeResponseHeaders: undefined,
                 includeHttpResponseReturnType: undefined,
@@ -2727,6 +2730,9 @@ describe('normalizeOptions', () => {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
       });
+      expect(
+        normalized.output.override.axios.includeHttpResponseReturnType,
+      ).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -26,6 +26,26 @@ const response = {
   schemas: [],
 };
 
+const responseWithMultipleSuccessStatuses = {
+  ...response,
+  definition: { success: 'Pet | void', errors: 'unknown' },
+  types: {
+    success: [
+      {
+        key: '200',
+        contentType: 'application/json',
+        value: 'Pet',
+      },
+      {
+        key: '204',
+        contentType: '',
+        value: 'void',
+      },
+    ],
+    errors: [],
+  },
+} as unknown as GeneratorVerbOptions['response'];
+
 const createVerbOptions = (
   overrides: Partial<GeneratorVerbOptions> = {},
 ): GeneratorVerbOptions =>
@@ -293,6 +313,66 @@ describe('Axios URL helpers', () => {
   });
 });
 
+describe('Axios response types', () => {
+  it('preserves the existing return type by default', () => {
+    const result = generateAxios(createVerbOptions(), generatorOptions);
+
+    expect(result.implementation).toContain('Promise<AxiosResponse<Pet>>');
+    expect(result.returnType()).toBe(
+      'export type GetPetResult = AxiosResponse<Pet>',
+    );
+  });
+
+  it('correlates response data with each success status when enabled', () => {
+    const result = generateAxios(
+      createVerbOptions({
+        response: responseWithMultipleSuccessStatuses,
+        override: {
+          ...createVerbOptions().override,
+          axios: { includeHttpResponseReturnType: true },
+        },
+      }),
+      generatorOptions,
+    );
+
+    expect(result.implementation).toContain('Promise<getPetResponse>');
+    expect(result.implementation).toContain('response.status === 204');
+    expect(result.implementation).toContain('data: undefined');
+    expect(result.returnType()).toContain(
+      'export type getPetResponse200 = AxiosResponse<Pet> & {\n  status: 200',
+    );
+    expect(result.returnType()).toContain(
+      'export type getPetResponse204 = AxiosResponse<void> & {\n  status: 204',
+    );
+    expect(result.returnType()).toContain(
+      'export type getPetResponse = getPetResponse200 | getPetResponse204',
+    );
+    expect(result.returnType()).toContain(
+      'export type GetPetResult = getPetResponse',
+    );
+  });
+
+  it('declares the correlated response type for custom mutators', () => {
+    const result = generateAxios(
+      createVerbOptions({
+        response: responseWithMultipleSuccessStatuses,
+        mutator,
+        override: {
+          ...createVerbOptions().override,
+          axios: { includeHttpResponseReturnType: true },
+        },
+      }),
+      generatorOptions,
+    );
+
+    expect(result.implementation).toContain('as Promise<getPetResponse>');
+    expect(result.implementation).not.toContain('data: undefined');
+    expect(result.returnType()).toContain(
+      'export type GetPetResult = getPetResponse',
+    );
+  });
+});
+
 describe('getAxiosDependencies (axios-functions mode)', () => {
   it('should return axios runtime import when no global mutator', () => {
     const deps = getAxiosDependencies(false, false);
@@ -313,6 +393,28 @@ describe('getAxiosDependencies (axios-functions mode)', () => {
     const deps = getAxiosDependencies(true, false);
 
     expect(deps).toHaveLength(0);
+  });
+
+  it('imports AxiosResponse for status-aware mutator return types', () => {
+    const deps = getAxiosDependencies(
+      true,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      {
+        axios: { includeHttpResponseReturnType: true },
+        operations: {},
+        tags: {},
+      } as never,
+    );
+
+    expect(deps).toEqual([
+      {
+        exports: [{ name: 'AxiosResponse' }],
+        dependency: 'axios',
+      },
+    ]);
   });
 
   it('should include qs dependency when params serializer is enabled', () => {
