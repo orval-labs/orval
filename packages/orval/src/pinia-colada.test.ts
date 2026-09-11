@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdtemp, readFile, rm, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vite-plus/test';
 
@@ -8,7 +7,9 @@ import { normalizeOptions } from './utils/options';
 
 describe('pinia-colada generation', () => {
   it('does not restrict the HTTP client of other generators', async () => {
-    const workspace = await mkdtemp(path.join(tmpdir(), 'orval-angular-'));
+    const workspace = await mkdtemp(
+      path.join(import.meta.dirname, '.orval-angular-'),
+    );
     try {
       const options = await normalizeOptions(
         {
@@ -25,14 +26,17 @@ describe('pinia-colada generation', () => {
       expect(source).toContain('HttpClient');
       expect(source).not.toContain('useColadaQuery');
     } finally {
-      await rm(workspace, { recursive: true, force: true });
+      await rm(path.join(workspace, 'client.ts'), { force: true });
+      await rmdir(workspace);
     }
   });
 
   it.each(['fetch', 'axios'] as const)(
     'generates queries and mutations with %s',
     async (httpClient) => {
-      const workspace = await mkdtemp(path.join(tmpdir(), 'orval-colada-'));
+      const workspace = await mkdtemp(
+        path.join(import.meta.dirname, '.orval-colada-'),
+      );
       try {
         const options = await normalizeOptions(
           {
@@ -64,7 +68,8 @@ describe('pinia-colada generation', () => {
         expect(source).not.toContain('staleTime: 60_000');
         if (httpClient === 'fetch') expect(source).toContain('!res.ok');
       } finally {
-        await rm(workspace, { recursive: true, force: true });
+        await rm(path.join(workspace, 'client.ts'), { force: true });
+        await rmdir(workspace);
       }
     },
   );
