@@ -2533,6 +2533,42 @@ See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` an
 
 ---
 
+## override.axios
+
+Axios client options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        axios: {
+          includeHttpResponseReturnType: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### includeHttpResponseReturnType
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Include the HTTP status in the return type and correlate it with the response
+data type. For example, an operation with a JSON `200` response and an empty
+`204` response returns a union that narrows `data` to the JSON body or `void`
+based on `status`.
+
+The built-in Axios client normalizes spec-declared empty responses to
+`undefined`. With a custom `mutator`, the option changes the generated type but
+not the runtime value because the mutator issues the request itself. The
+mutator must return a complete Axios response with the same status-correlated
+shape.
+
+---
+
 ## override.fetch
 
 Fetch client options:

@@ -159,6 +159,9 @@ export function createTestContextSpec({
         useBrandedTypes: false,
         exactOptional: false,
       },
+      axios: {
+        includeHttpResponseReturnType: false,
+      },
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,

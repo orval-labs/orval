@@ -100,6 +100,7 @@ export const createSplitModeOutput = (
       swr: {},
       zod: {},
       effect: {},
+      axios: {},
       fetch: {},
     },
     ...overrides,

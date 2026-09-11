@@ -15,8 +15,12 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   generateAxiosUrl,
+  getStatusCodeType,
+  HTTP_STATUS_CODE_SHARED_TYPES,
   isSyntheticDefaultImportsAllow,
   GetterPropType,
+  needsHttpStatusCodeTypes,
+  type NormalizedOverrideOutput,
   pascal,
   sanitize,
   toObjectString,
@@ -52,11 +56,32 @@ const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const hasHttpResponseReturnType = (override?: NormalizedOverrideOutput) =>
+  !!override &&
+  [
+    override,
+    ...Object.values(override.operations),
+    ...Object.values(override.tags),
+  ].some((entry) => entry?.axios?.includeHttpResponseReturnType);
+
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions: boolean,
+  _packageJson,
+  _httpClient,
+  _hasTagsMutator,
+  override,
 ) => [
-  ...(hasGlobalMutator ? [] : AXIOS_DEPENDENCIES),
+  ...(hasGlobalMutator
+    ? hasHttpResponseReturnType(override)
+      ? [
+          {
+            exports: [{ name: 'AxiosResponse' }],
+            dependency: 'axios',
+          },
+        ]
+      : []
+    : AXIOS_DEPENDENCIES),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
 ];
 
@@ -69,6 +94,7 @@ export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
   _packageJson,
   _httpClient,
   hasTagsMutator,
+  override,
 ) => [
   {
     exports: [
@@ -83,13 +109,112 @@ export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
         ? [{ name: 'AxiosInstance' }]
         : []),
       ...(hasGlobalMutator
-        ? []
+        ? hasHttpResponseReturnType(override)
+          ? [{ name: 'AxiosResponse' }]
+          : []
         : [{ name: 'AxiosRequestConfig' }, { name: 'AxiosResponse' }]),
     ],
     dependency: 'axios',
   },
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
 ];
+
+const getAxiosResponseTypes = (
+  response: GeneratorVerbOptions['response'],
+  typeName: string,
+) => {
+  const responseTypeName = `${typeName}Response`;
+  const responses = response.types.success.length
+    ? response.types.success
+    : [
+        {
+          key: 'default',
+          contentType: '',
+          value: response.definition.success || 'unknown',
+        },
+      ];
+  const responseKeys = responses.map(({ key }) => key);
+  const nonDefaultStatuses = responses
+    .filter(({ key }) => key !== 'default')
+    .map(({ key }) => getStatusCodeType(key, responseKeys));
+  const uniqueNonDefaultStatuses = [...new Set(nonDefaultStatuses)];
+  const types = responses.map((entry) => {
+    const hasDuplicateStatus =
+      responses.filter(({ key }) => key === entry.key).length > 1;
+    const name = `${responseTypeName}${pascal(entry.key)}${
+      hasDuplicateStatus ? pascal(entry.contentType) : ''
+    }`;
+    const status =
+      entry.key === 'default'
+        ? uniqueNonDefaultStatuses.length
+          ? `Exclude<HTTPStatusCodes, ${uniqueNonDefaultStatuses.join(' | ')}>`
+          : 'number'
+        : getStatusCodeType(entry.key, responseKeys);
+
+    return {
+      name,
+      value: `export type ${name} = AxiosResponse<${entry.value || 'unknown'}> & {
+  status: ${status}
+}`,
+    };
+  });
+
+  return {
+    name: responseTypeName,
+    value: `${types.map(({ value }) => value).join('\n\n')}
+
+export type ${responseTypeName} = ${types.map(({ name }) => name).join(' | ')}`,
+  };
+};
+
+const getEmptyResponseStatusCondition = (
+  response: GeneratorVerbOptions['response'],
+) => {
+  const statuses = new Set(response.types.success.map(({ key }) => key));
+  const exactStatuses = [...statuses].filter((key) => /^[1-5]\d{2}$/.test(key));
+
+  const conditionFor = (key: string) => {
+    if (/^[1-5]XX$/i.test(key)) {
+      const start = Number(key[0]) * 100;
+      const exclusions = exactStatuses
+        .filter((status) => status[0] === key[0])
+        .map((status) => `response.status !== ${status}`)
+        .join(' && ');
+      return `response.status >= ${start} && response.status < ${start + 100}${
+        exclusions ? ` && ${exclusions}` : ''
+      }`;
+    }
+    return `response.status === ${key}`;
+  };
+
+  return [...statuses]
+    .filter((key) =>
+      response.types.success
+        .filter((entry) => entry.key === key)
+        .every(({ value }) => value === 'void'),
+    )
+    .map((key) => {
+      if (key === 'default') {
+        const declaredConditions = [...statuses]
+          .filter((status) => status !== 'default')
+          .map(conditionFor);
+        return declaredConditions.length
+          ? `!(${declaredConditions.join(' || ')})`
+          : 'true';
+      }
+      return `(${conditionFor(key)})`;
+    })
+    .join(' || ');
+};
+
+const normalizeEmptyAxiosResponse = (condition: string) =>
+  condition
+    ? `.then((response) =>
+      ${condition}
+        ? { ...response, data: undefined }
+        : response,
+    )`
+    : '';
 
 const generateAxiosImplementation = (
   {
@@ -112,6 +237,12 @@ const generateAxiosImplementation = (
   isFactoryMode = false,
 ) => {
   const isRequestOptions = override.requestOptions !== false;
+  const includeHttpResponseReturnType =
+    override.axios?.includeHttpResponseReturnType;
+  const axiosResponse = getAxiosResponseTypes(response, typeName);
+  const emptyResponseNormalization = normalizeEmptyAxiosResponse(
+    getEmptyResponseStatusCondition(response),
+  );
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
@@ -151,11 +282,15 @@ const generateAxiosImplementation = (
       : '';
 
     const returnType = (title?: string) =>
-      `export type ${pascal(typeName)}Result = NonNullable<Awaited<ReturnType<${
-        title
-          ? `ReturnType<typeof ${title}>['${operationName}']`
-          : `typeof ${operationName}`
-      }>>>`;
+      includeHttpResponseReturnType
+        ? `${axiosResponse.value}
+
+export type ${pascal(typeName)}Result = ${axiosResponse.name}`
+        : `export type ${pascal(typeName)}Result = NonNullable<Awaited<ReturnType<${
+            title
+              ? `ReturnType<typeof ${title}>['${operationName}']`
+              : `typeof ${operationName}`
+          }>>>`;
 
     const propsImplementation =
       mutator.bodyTypeName && body.definition
@@ -173,7 +308,7 @@ const generateAxiosImplementation = (
       }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
-      ${requestOptions});
+      ${requestOptions})${includeHttpResponseReturnType ? ` as Promise<${axiosResponse.name}>` : ''};
     }
   `,
       returnType,
@@ -197,9 +332,13 @@ const generateAxiosImplementation = (
   });
 
   const returnType = () =>
-    `export type ${pascal(typeName)}Result = AxiosResponse<${
-      response.definition.success || 'unknown'
-    }>`;
+    includeHttpResponseReturnType
+      ? `${axiosResponse.value}
+
+export type ${pascal(typeName)}Result = ${axiosResponse.name}`
+      : `export type ${pascal(typeName)}Result = AxiosResponse<${
+          response.definition.success || 'unknown'
+        }>`;
 
   // In factory mode, use the axiosInstance parameter
   // In functions mode with global import, .default may be needed based on tsconfig
@@ -228,8 +367,8 @@ const generateAxiosImplementation = (
       isRequestOptions
         ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
         : ''
-    } ): Promise<AxiosResponse<${response.definition.success || 'unknown'}>> => {${bodyForm}
-    return ${axiosRef}.${verb}(${options});
+    } ): Promise<${includeHttpResponseReturnType ? axiosResponse.name : `AxiosResponse<${response.definition.success || 'unknown'}>`}> => {${bodyForm}
+    return ${axiosRef}.${verb}(${options})${includeHttpResponseReturnType ? emptyResponseNormalization + ` as Promise<${axiosResponse.name}>` : ''};
   }
 ${isFactoryMode ? urlImplementation.replace(/^export /, '') : urlImplementation}`,
     returnType,
@@ -264,13 +403,27 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
     isGlobalMutator ||
     Object.values(verbOptions).some((verbOption) => !!verbOption.mutator);
 
-  return `
+  const implementation = `
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
   ${noFunction ? '' : hasAnyMutator ? `export const ${title} = () => {\n` : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
+  const hasStatusCodeTypes = Object.values(verbOptions).some(
+    (verbOption) =>
+      verbOption.override?.axios?.includeHttpResponseReturnType &&
+      needsHttpStatusCodeTypes(
+        getAxiosResponseTypes(verbOption.response, verbOption.typeName).value,
+      ),
+  );
+
+  return hasStatusCodeTypes
+    ? {
+        implementation,
+        sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
+      }
+    : implementation;
 };
 
 export const generateAxiosFooter: ClientFooterBuilder = ({

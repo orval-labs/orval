@@ -8,9 +8,11 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorDependency,
+  getStatusCodeType,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   hasSchemaImport,
+  HTTP_STATUS_CODE_SHARED_TYPES,
   isPrimitiveResponseType,
   jsStringLiteralEscape,
   rewriteImportsForResponseValidation,
@@ -20,18 +22,17 @@ import {
   GetterPropType,
   isObject,
   makeRouteSafe,
+  needsHttpStatusCodeTypes,
   type OpenApiParameterObject,
   type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
-  type SharedTypeDeclaration,
   stringify,
   toObjectString,
 } from '@orval/core';
 
-const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: GeneratorOptions['context'],
@@ -39,14 +40,6 @@ const resolveSchemaRef = (
   resolveRef(schema, context) as {
     schema: OpenApiSchemaObject;
   };
-
-const getStatusCodeType = (key: string): string => {
-  if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
-    const prefix = key[0];
-    return `HTTPStatusCode${prefix}xx`;
-  }
-  return key;
-};
 
 const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -913,47 +906,11 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
-const HTTP_STATUS_CODE_SHARED_TYPES: SharedTypeDeclaration[] = [
-  {
-    name: 'HTTPStatusCode1xx',
-    exported: true,
-    code: 'type HTTPStatusCode1xx = 100 | 101 | 102 | 103;',
-  },
-  {
-    name: 'HTTPStatusCode2xx',
-    exported: true,
-    code: 'type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;',
-  },
-  {
-    name: 'HTTPStatusCode3xx',
-    exported: true,
-    code: 'type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;',
-  },
-  {
-    name: 'HTTPStatusCode4xx',
-    exported: true,
-    code: 'type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;',
-  },
-  {
-    name: 'HTTPStatusCode5xx',
-    exported: true,
-    code: 'type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;',
-  },
-  {
-    name: 'HTTPStatusCodes',
-    exported: true,
-    code: 'type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;',
-  },
-];
-
 /** Emits HTTP status-code union types at the top of the generated file when they are needed. */
 export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
 }) => {
-  const needsStatusCodeTypes = /HTTPStatusCode[1-5]xx|<HTTPStatusCodes,/.test(
-    clientImplementation,
-  );
-  if (!needsStatusCodeTypes) return '';
+  if (!needsHttpStatusCodeTypes(clientImplementation)) return '';
 
   return {
     implementation: '',

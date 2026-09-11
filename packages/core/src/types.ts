@@ -172,6 +172,7 @@ export interface NormalizedOverrideOutput {
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   effect: NormalizedEffectOptions;
+  axios: NormalizedAxiosOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -263,6 +264,7 @@ export interface NormalizedOperationOptions {
     route: string,
     verb: Verbs,
   ) => string | [string, string];
+  axios?: AxiosOptions;
   fetch?: FetchOptions;
   formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
@@ -872,6 +874,7 @@ export interface OverrideOutput {
     route: string,
     verb: Verbs,
   ) => string | [string, string];
+  axios?: AxiosOptions;
   fetch?: FetchOptions;
 
   requestOptions?: Record<string, unknown> | boolean;
@@ -1466,6 +1469,20 @@ export interface SwrOptions {
   swrInfiniteOptions?: unknown;
 }
 
+export interface NormalizedAxiosOptions {
+  includeHttpResponseReturnType: boolean;
+}
+
+export interface AxiosOptions {
+  /**
+   * Include the HTTP status in the return type so it discriminates the
+   * response data type.
+   *
+   * @default false
+   */
+  includeHttpResponseReturnType?: boolean;
+}
+
 export interface NormalizedFetchOptions {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
@@ -1537,6 +1554,7 @@ export interface OperationOptions {
     route: string,
     verb: Verbs,
   ) => string | [string, string];
+  axios?: AxiosOptions;
   fetch?: FetchOptions;
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
