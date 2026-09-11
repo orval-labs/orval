@@ -1,10 +1,24 @@
 import type { SharedTypeDeclaration } from '../types';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
+const EXACT_STATUS_CODE_REGEX = /^[1-5]\d{2}$/;
 
-export const getStatusCodeType = (key: string) => {
+export const getStatusCodeType = (key: string, responseKeys: string[] = []) => {
   if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
-    return `HTTPStatusCode${key[0]}xx`;
+    const wildcardType = `HTTPStatusCode${key[0]}xx`;
+    const exactStatuses = [
+      ...new Set(
+        responseKeys.filter(
+          (responseKey) =>
+            EXACT_STATUS_CODE_REGEX.test(responseKey) &&
+            responseKey[0] === key[0],
+        ),
+      ),
+    ];
+
+    return exactStatuses.length
+      ? `Exclude<${wildcardType}, ${exactStatuses.join(' | ')}>`
+      : wildcardType;
   }
   return key;
 };

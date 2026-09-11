@@ -352,6 +352,65 @@ describe('Axios response types', () => {
     );
   });
 
+  it('gives exact responses precedence over wildcard responses', () => {
+    const result = generateAxios(
+      createVerbOptions({
+        response: {
+          ...responseWithMultipleSuccessStatuses,
+          types: {
+            success: [
+              responseWithMultipleSuccessStatuses.types.success[0],
+              {
+                ...responseWithMultipleSuccessStatuses.types.success[1],
+                key: '2XX',
+              },
+            ],
+            errors: [],
+          },
+        },
+        override: {
+          ...createVerbOptions().override,
+          axios: { includeHttpResponseReturnType: true },
+        },
+      }),
+      generatorOptions,
+    );
+
+    expect(result.returnType()).toContain(
+      'status: Exclude<HTTPStatusCode2xx, 200>',
+    );
+    expect(result.implementation).toContain(
+      'response.status >= 200 && response.status < 300 && response.status !== 200',
+    );
+  });
+
+  it('uses a default empty response only for undeclared statuses', () => {
+    const result = generateAxios(
+      createVerbOptions({
+        response: {
+          ...responseWithMultipleSuccessStatuses,
+          types: {
+            success: [
+              responseWithMultipleSuccessStatuses.types.success[0],
+              {
+                ...responseWithMultipleSuccessStatuses.types.success[1],
+                key: 'default',
+              },
+            ],
+            errors: [],
+          },
+        },
+        override: {
+          ...createVerbOptions().override,
+          axios: { includeHttpResponseReturnType: true },
+        },
+      }),
+      generatorOptions,
+    );
+
+    expect(result.implementation).toContain('!(response.status === 200)');
+  });
+
   it('declares the correlated response type for custom mutators', () => {
     const result = generateAxios(
       createVerbOptions({

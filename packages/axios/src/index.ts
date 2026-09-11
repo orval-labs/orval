@@ -133,9 +133,10 @@ const getAxiosResponseTypes = (
           value: response.definition.success || 'unknown',
         },
       ];
+  const responseKeys = responses.map(({ key }) => key);
   const nonDefaultStatuses = responses
     .filter(({ key }) => key !== 'default')
-    .map(({ key }) => getStatusCodeType(key));
+    .map(({ key }) => getStatusCodeType(key, responseKeys));
   const uniqueNonDefaultStatuses = [...new Set(nonDefaultStatuses)];
   const types = responses.map((entry) => {
     const hasDuplicateStatus =
@@ -148,7 +149,7 @@ const getAxiosResponseTypes = (
         ? uniqueNonDefaultStatuses.length
           ? `Exclude<HTTPStatusCodes, ${uniqueNonDefaultStatuses.join(' | ')}>`
           : 'number'
-        : getStatusCodeType(entry.key);
+        : getStatusCodeType(entry.key, responseKeys);
 
     return {
       name,
@@ -170,6 +171,21 @@ const getEmptyResponseStatusCondition = (
   response: GeneratorVerbOptions['response'],
 ) => {
   const statuses = new Set(response.types.success.map(({ key }) => key));
+  const exactStatuses = [...statuses].filter((key) => /^[1-5]\d{2}$/.test(key));
+
+  const conditionFor = (key: string) => {
+    if (/^[1-5]XX$/i.test(key)) {
+      const start = Number(key[0]) * 100;
+      const exclusions = exactStatuses
+        .filter((status) => status[0] === key[0])
+        .map((status) => `response.status !== ${status}`)
+        .join(' && ');
+      return `response.status >= ${start} && response.status < ${start + 100}${
+        exclusions ? ` && ${exclusions}` : ''
+      }`;
+    }
+    return `response.status === ${key}`;
+  };
 
   return [...statuses]
     .filter((key) =>
@@ -178,12 +194,15 @@ const getEmptyResponseStatusCondition = (
         .every(({ value }) => value === 'void'),
     )
     .map((key) => {
-      if (key === 'default') return 'true';
-      if (/^[1-5]XX$/i.test(key)) {
-        const start = Number(key[0]) * 100;
-        return `(response.status >= ${start} && response.status < ${start + 100})`;
+      if (key === 'default') {
+        const declaredConditions = [...statuses]
+          .filter((status) => status !== 'default')
+          .map(conditionFor);
+        return declaredConditions.length
+          ? `!(${declaredConditions.join(' || ')})`
+          : 'true';
       }
-      return `response.status === ${key}`;
+      return `(${conditionFor(key)})`;
     })
     .join(' || ');
 };
