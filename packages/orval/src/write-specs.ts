@@ -1049,7 +1049,7 @@ async function writeSpecsInternal(
         ]
       : output.schemas
         ? [
-            isObject(output.schemas) &&
+            !isString(output.schemas) &&
             output.schemas.mode === 'single' &&
             namesAFile(output.schemas.path)
               ? output.schemas.path
