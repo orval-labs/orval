@@ -171,7 +171,7 @@ export type getMixedResponsesResponse200 = {
 
 export type getMixedResponsesResponse2xx = {
   data: GenericSuccessDto;
-  status: HTTPStatusCode2xx;
+  status: Exclude<HTTPStatusCode2xx, 200>;
 };
 
 export type getMixedResponsesResponse400 = {
@@ -181,7 +181,7 @@ export type getMixedResponsesResponse400 = {
 
 export type getMixedResponsesResponse4xx = {
   data: ErrorDto;
-  status: HTTPStatusCode4xx;
+  status: Exclude<HTTPStatusCode4xx, 400>;
 };
 
 export type getMixedResponsesResponseSuccess = (

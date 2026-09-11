@@ -480,9 +480,10 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
       dependencies: [],
     });
   }
+  const responseKeys = allResponses.map(({ key }) => key);
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
-    .map((r) => getStatusCodeType(r.key));
+    .map((r) => getStatusCodeType(r.key, responseKeys));
   const uniqueNonDefaultStatuses = [...new Set(nonDefaultStatuses)];
   const responseDataTypes = allResponses
     .map((r) =>
@@ -517,7 +518,7 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
       ? uniqueNonDefaultStatuses.length > 0
         ? `Exclude<HTTPStatusCodes, ${uniqueNonDefaultStatuses.join(' | ')}>`
         : 'number'
-      : getStatusCodeType(r.key)
+      : getStatusCodeType(r.key, responseKeys)
   }
 }`,
       };
