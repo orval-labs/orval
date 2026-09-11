@@ -516,7 +516,7 @@ function getImplementationPathsForIndex(
   // The workspace index must only re-export the root barrel (and the global
   // schemas file when present) — re-exporting individual operation files,
   // per-tag barrels, helper files, and per-operation schema files causes
-  // TS2308 ambiguous-re-export errors because many types appear in multiple
+  // TS2308 ambiguous-reexport errors because many types appear in multiple
   // files simultaneously (shared helpers across tags; shared schemas across
   // operations).
   const isTagsOperationsMode =
@@ -1082,7 +1082,7 @@ async function writeSpecsInternal(
       let config: Partial<TypeDocOptions> = {};
       let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath, ...config } = output.docs;
+        ({ configPath, ...config } = output.docs);
         if (configPath) {
           config.options = configPath;
         }
