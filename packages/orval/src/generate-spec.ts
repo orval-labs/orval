@@ -13,6 +13,7 @@ import {
 
 import { importSpecs } from './import-specs';
 import { logger } from './logger';
+import { namesAFile } from './utils/options';
 import { writeSpecs } from './write-specs';
 
 /**
@@ -74,10 +75,12 @@ export async function generateSpec(
       ? options.output.clean
       : [];
 
-    // `target` and `schemas` are Orval's own directories, so they are emptied.
-    // A configured mock directory can hold hand-written code, so only Orval's
-    // own mock files are removed there. A mock directory below an owned one
-    // keeps that protection: the wipe skips it and the prune cleans it.
+    // `target` and directory-form `schemas` are Orval's own directories, so
+    // they are emptied. A single-mode named schema is an exact file target and
+    // is removed directly instead of being used as a glob cwd. A configured
+    // mock directory can hold hand-written code, so only Orval's own mock files
+    // are removed there. A mock directory below an owned one keeps that
+    // protection: the wipe skips it and the prune cleans it.
     const ownedDirectories = new Set<string>();
 
     if (options.output.target) {
@@ -86,16 +89,31 @@ export async function generateSpec(
       );
     }
     if (options.output.schemas) {
-      // `schemas` names a directory and the writers join onto it directly.
-      // `getFileInfo(...).dirname` would give the parent of that directory
-      // whenever the last segment contains a dot.
-      ownedDirectories.add(
-        toComparablePath(
-          isString(options.output.schemas)
-            ? options.output.schemas
-            : options.output.schemas.path,
-        ),
-      );
+      const schemas = options.output.schemas;
+      if (
+        !isString(schemas) &&
+        schemas.mode === 'single' &&
+        namesAFile(schemas.path)
+      ) {
+        const schemasDirectory = getFileInfo(schemas.path).dirname;
+        await Promise.all([
+          fs.rm(schemas.path, { force: true }),
+          fs.rm(
+            upath.join(
+              schemasDirectory,
+              `__params__${options.output.schemaFileExtension}`,
+            ),
+            { force: true },
+          ),
+        ]);
+      } else {
+        // Directory-form schemas are joined onto directly by their writers.
+        // `getFileInfo(...).dirname` would give the parent whenever the last
+        // directory segment itself contains a dot.
+        ownedDirectories.add(
+          toComparablePath(isString(schemas) ? schemas : schemas.path),
+        );
+      }
     }
 
     const mockDirectories = getConfiguredMockDirectories(

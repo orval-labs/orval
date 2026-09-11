@@ -54,6 +54,7 @@ import {
   readReExportSpecifiers,
   reconcileWorkspaceBarrel,
 } from './utils';
+import { namesAFile } from './utils/options';
 import {
   generateZodSchemasInline,
   writeZodSchemas,
@@ -515,7 +516,7 @@ function getImplementationPathsForIndex(
   // The workspace index must only re-export the root barrel (and the global
   // schemas file when present) — re-exporting individual operation files,
   // per-tag barrels, helper files, and per-operation schema files causes
-  // TS2308 ambiguous-re-export errors because many types appear in multiple
+  // TS2308 ambiguous-reexport errors because many types appear in multiple
   // files simultaneously (shared helpers across tags; shared schemas across
   // operations).
   const isTagsOperationsMode =
@@ -597,10 +598,16 @@ async function writeSpecsInternal(
       // Reusable component schemas live as separate files under `schemasPath`,
       // so we resolve the user's `override.zod.params` mutator once relative
       // to that directory and pass it down. Each emitted schema file lives in
-      // the same dir, so the relative import is identical across files.
+      // the same dir, so the relative import is identical across files. In
+      // `single` mode the path may name the schema module itself; the mutator
+      // then sits beside it.
+      const schemasDir =
+        singleZodFile && namesAFile(schemasPath)
+          ? path.dirname(schemasPath)
+          : schemasPath;
       const schemasParamsMutator = output.override.zod.params
         ? await generateMutator({
-            output: path.join(schemasPath, `__params__${fileExtension}`),
+            output: path.join(schemasDir, `__params__${fileExtension}`),
             mutator: output.override.zod.params,
             name: 'zodParams',
             workspace,
@@ -947,14 +954,38 @@ async function writeSpecsInternal(
       const schemasPath = isString(output.schemas)
         ? output.schemas
         : output.schemas.path;
-      imports.push(
-        schemaOutputPlan
-          ? upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath)
-          : upath.getRelativeImportPath(
-              indexFile,
-              getFileInfo(schemasPath).dirname,
-            ),
-      );
+      const isNamedSingleSchema =
+        isObject(output.schemas) &&
+        output.schemas.mode === 'single' &&
+        namesAFile(schemasPath);
+
+      if (schemaOutputPlan) {
+        imports.push(
+          upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath),
+        );
+      } else if (isNamedSingleSchema) {
+        const schemaSourceExtension = path.extname(schemasPath);
+        const schemaImportExtension = getImportExtension(
+          schemaSourceExtension,
+          output.tsconfig,
+        );
+        const relative = upath.getRelativeImportPath(
+          indexFile,
+          schemasPath,
+          true,
+        );
+        imports.push(
+          stripFileExtension(relative, schemaSourceExtension) +
+            schemaImportExtension,
+        );
+      } else {
+        imports.push(
+          upath.getRelativeImportPath(
+            indexFile,
+            getFileInfo(schemasPath).dirname,
+          ),
+        );
+      }
     }
 
     if (output.operationSchemas) {
@@ -1018,9 +1049,15 @@ async function writeSpecsInternal(
         ]
       : output.schemas
         ? [
-            getFileInfo(
-              isString(output.schemas) ? output.schemas : output.schemas.path,
-            ).dirname,
+            !isString(output.schemas) &&
+            output.schemas.mode === 'single' &&
+            namesAFile(output.schemas.path)
+              ? output.schemas.path
+              : getFileInfo(
+                  isString(output.schemas)
+                    ? output.schemas
+                    : output.schemas.path,
+                ).dirname,
           ]
         : []),
     ...(fakerSchemaPath ? [fakerSchemaPath] : []),

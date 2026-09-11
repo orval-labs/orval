@@ -11,6 +11,7 @@ import {
   it,
   vi,
 } from 'vite-plus/test';
+import type { NormalizedSchemaOptions } from '@orval/core';
 
 import { normalizeOptions as normalizeOptionsImpl } from './options';
 
@@ -1209,6 +1210,73 @@ describe('normalizeOptions', () => {
       );
 
       expect(normalized.output.schemas).toBeDefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts a file-like schemas.path in single mode and keeps it verbatim', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './model/schemas.zod.ts',
+              type: 'zod',
+              mode: 'single',
+            },
+          },
+        },
+        workspace,
+      );
+
+      const normalizedSchemas = normalized.output.schemas as
+        | NormalizedSchemaOptions
+        | undefined;
+      expect(normalizedSchemas?.path).toBe(
+        path.resolve(workspace, 'model/schemas.zod.ts'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps rejecting a file-like schemas.path in split mode even with type zod', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './model/schemas.zod.ts',
+                type: 'zod',
+                mode: 'split',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(/names a file/);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
