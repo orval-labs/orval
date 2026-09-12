@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
-import { EnumGeneration } from '@orval/core';
+import { EnumGeneration, getKey } from '@orval/core';
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
@@ -1482,5 +1483,177 @@ describe('getMockScalar (non-finite numeric constraints)', () => {
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 9})');
+  });
+});
+
+describe('getMockScalar (enum type-cast name injection)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    splitMockImplementations: [],
+  };
+
+  /**
+   * The enum expression is emitted at the *value* side of a generated
+   * object-literal entry. Rebuild that entry and count what the TypeScript
+   * parser actually sees: one property means the value stayed contained, more
+   * than one means the name broke out of the cast and the enclosing call and
+   * introduced siblings — which is the whole exploit.
+   */
+  function propertyCount(key: string, value: string): number {
+    const source = ts.createSourceFile(
+      'mock.ts',
+      `const m = { ${getKey(key)}: ${value} };`,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let count = -1;
+    const visit = (node: ts.Node) => {
+      if (ts.isObjectLiteralExpression(node) && count === -1) {
+        count = node.properties.length;
+        return;
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(source, visit);
+    return count;
+  }
+
+  // Regression for GHSA-w68h-2r38-4cqq. Under `enumGenerationType: 'enum'` the
+  // property name was spliced raw into the cast annotating the enum expression.
+  // `getKey` escapes the key side of the object-literal entry; the value side
+  // is this cast, and it was quoting the name by hand. A quote in the name
+  // closed the cast, then the call, and the remainder became sibling
+  // properties whose initializers run when the mock is constructed at test
+  // time.
+  const PAYLOAD =
+    "k'][]), __pwned: (globalThis.__x = 1), z: (0 as unknown as Parent['k";
+
+  it('escapes the property name in the parent indexed-access cast', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: PAYLOAD,
+        parentName: 'Parent',
+      } as never,
+      existingReferencedProperties: ['Parent'],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['A','B'] as Parent['k\'][]), __pwned: (globalThis.__x = 1), z: (0 as unknown as Parent[\'k'][])`,
+    );
+    expect(propertyCount(PAYLOAD, result.value)).toBe(1);
+  });
+
+  it('leaves an ordinary property name byte-identical', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: 'status',
+        parentName: 'Parent',
+      } as never,
+      existingReferencedProperties: ['Parent'],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['A','B'] as Parent['status'][])",
+    );
+  });
+
+  // The other sink: with no enclosing `$ref` the name goes into identifier
+  // position, where there is no quote to escape and nothing to escape it with.
+  // A name that is not a type reference names no importable type either, so
+  // the cast is dropped for the `as const` the other generation types emit.
+  const ROOT_PAYLOAD =
+    'Evil[]), __pwned: (globalThis.__y = 1), z: (0 as unknown as Evil';
+
+  it('does not emit a non-identifier schema name bare in the type cast', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: ROOT_PAYLOAD,
+      } as never,
+      existingReferencedProperties: [],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe("faker.helpers.arrayElement(['A','B'] as const)");
+    expect(propertyCount(ROOT_PAYLOAD, result.value)).toBe(1);
+    // No phantom import either — there is no type by that name to import.
+    expect(result.imports).not.toContainEqual(
+      expect.objectContaining({ name: ROOT_PAYLOAD }),
+    );
+  });
+
+  it('still casts to a valid identifier schema name', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: 'MyEnum',
+      } as never,
+      existingReferencedProperties: [],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['A','B'] as MyEnum[])",
+    );
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'MyEnum' }),
+    );
+  });
+
+  it('keeps casting a name that already carries an array suffix', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: 'MyEnum[]',
+      } as never,
+      existingReferencedProperties: [],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['A','B'] as MyEnum[])",
+    );
+    // The imported type is `MyEnum`. `MyEnum[]` is an array of it, not a name
+    // anything exports, so importing that would leave the cast unresolved.
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'MyEnum' }),
+    );
+  });
+
+  // `parentReference` comes from resolved `$ref` names, which core sanitizes
+  // in `getRefInfo`, so this is defense in depth rather than a demonstrated
+  // exploit — but it sits in the same identifier position as the sink above.
+  it('drops the cast when the parent reference is not an identifier', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['A', 'B'],
+        name: 'status',
+        parentName: 'x',
+      } as never,
+      existingReferencedProperties: [
+        "P'], __pwned: (globalThis.__z = 1), q: ['",
+      ],
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe("faker.helpers.arrayElement(['A','B'] as const)");
   });
 });
