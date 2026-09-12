@@ -7,6 +7,7 @@ import {
   jsStringEscape,
   jsStringLiteralEscape,
   stringify,
+  toJsLiteral,
 } from './string';
 
 describe('dedupeUnionType', () => {
@@ -343,5 +344,96 @@ describe('stringify', () => {
       const parsed = JSON.parse('{ "__proto__": "x" }');
       expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
     });
+  });
+});
+
+describe('toJsLiteral', () => {
+  it('quotes and escapes a string', () => {
+    expect(toJsLiteral("it's")).toBe(String.raw`'it\'s'`);
+    expect(toJsLiteral('a\nb')).toBe(String.raw`'a\nb'`);
+    expect(toJsLiteral('back\\slash')).toBe(String.raw`'back\\slash'`);
+  });
+
+  // The declared schema `type` and the value a `const` carries both come from
+  // the document and nothing makes them agree, so a string payload has to stay
+  // quoted no matter what the schema claims the type is — otherwise it lands in
+  // the generated module as a live expression (GHSA-x4fj-j9hr-ccr6).
+  it('quotes a string payload that looks like an expression', () => {
+    expect(toJsLiteral("require('node:fs')")).toBe(
+      String.raw`'require(\'node:fs\')'`,
+    );
+  });
+
+  it('emits numbers and booleans bare', () => {
+    expect(toJsLiteral(42)).toBe('42');
+    expect(toJsLiteral(0)).toBe('0');
+    expect(toJsLiteral(true)).toBe('true');
+    expect(toJsLiteral(false)).toBe('false');
+  });
+
+  it('renders non-finite numbers as null, since neither is a TS literal type', () => {
+    expect(toJsLiteral(Number.NaN)).toBe('null');
+    expect(toJsLiteral(Number.POSITIVE_INFINITY)).toBe('null');
+  });
+
+  it('serializes null, objects and arrays as JSON literals', () => {
+    expect(toJsLiteral(null)).toBe('null');
+    expect(toJsLiteral({ a: 1 })).toBe('{"a":1}');
+    expect(toJsLiteral(['a', 'b'])).toBe('["a","b"]');
+  });
+});
+
+describe('toJsLiteral __proto__ handling', () => {
+  // `JSON.parse` creates a real own `__proto__` property, and `JSON.stringify`
+  // renders it as a plain key. In an object literal that key is the prototype
+  // setter, not a data property (Annex B.3.1), so the emitted constant would
+  // lose the property and take the document's value as its prototype instead.
+  it('emits a own __proto__ key as a computed key', () => {
+    const parsed: unknown = JSON.parse('{"__proto__": {"polluted": 1}}');
+
+    expect(toJsLiteral(parsed)).toBe('{["__proto__"]:{"polluted":1}}');
+  });
+
+  it('emits a nested __proto__ key as a computed key', () => {
+    const parsed: unknown = JSON.parse(
+      '{"a": {"__proto__": {"polluted": 1}}, "b": [{"__proto__": 2}]}',
+    );
+
+    expect(toJsLiteral(parsed)).toBe(
+      '{"a":{["__proto__"]:{"polluted":1}},"b":[{["__proto__"]:2}]}',
+    );
+  });
+
+  it('the emitted literal keeps __proto__ as an own property', () => {
+    const parsed: unknown = JSON.parse('{"__proto__": {"polluted": 1}}');
+
+    // eslint-disable-next-line no-eval
+    const rebuilt = eval(`(${toJsLiteral(parsed)})`) as object;
+
+    expect(Object.hasOwn(rebuilt, '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(rebuilt)).toBe(Object.prototype);
+  });
+
+  it.each([
+    [{ a: 1, b: 'x' }],
+    [{ nested: { deep: [1, 'two', true, null] } }],
+    [[1, 'a', null, { b: 2 }]],
+    [{ 'quote"key': 'quote"value' }],
+    [{ 'proto-ish': '__proto__' }],
+    [null],
+    [{}],
+    [[]],
+  ])('matches JSON.stringify for %j (no __proto__ key)', (value) => {
+    expect(toJsLiteral(value)).toBe(JSON.stringify(value));
+  });
+
+  it('omits undefined-valued keys, as JSON.stringify does', () => {
+    expect(toJsLiteral({ a: 1, b: undefined })).toBe('{"a":1}');
+  });
+
+  it('renders a nested non-finite number as null, as JSON.stringify does', () => {
+    expect(toJsLiteral({ a: Number.NaN, b: [Number.POSITIVE_INFINITY] })).toBe(
+      '{"a":null,"b":[null]}',
+    );
   });
 });

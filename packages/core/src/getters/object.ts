@@ -16,6 +16,7 @@ import {
   jsDoc,
   jsStringLiteralEscape,
   pascal,
+  toJsLiteral,
 } from '../utils';
 import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
@@ -473,15 +474,7 @@ export function getObject({
       const constValue =
         'const' in schema ? (schema.const as unknown) : undefined;
       const hasConst = constValue !== undefined;
-      let constLiteral: string | undefined;
-
-      if (!hasConst) {
-        constLiteral = undefined;
-      } else if (isString(constValue)) {
-        constLiteral = `'${jsStringLiteralEscape(constValue)}'`;
-      } else {
-        constLiteral = JSON.stringify(constValue);
-      }
+      const constLiteral = hasConst ? toJsLiteral(constValue) : undefined;
 
       const needsValueImport =
         hasConst && (resolvedValue.isEnum || resolvedValue.type === 'enum');
@@ -710,10 +703,7 @@ export function getObject({
     }
 
     return {
-      value:
-        typeof constValue === 'string'
-          ? `'${jsStringLiteralEscape(constValue)}'`
-          : JSON.stringify(constValue),
+      value: toJsLiteral(constValue),
       imports: [],
       schemas: [],
       isEnum: false,

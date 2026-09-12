@@ -7,7 +7,7 @@ import type {
   OpenApiSchemaObjectType,
   ScalarValue,
 } from '../types';
-import { isBoolean, isNumber, isString, jsStringLiteralEscape } from '../utils';
+import { toJsLiteral } from '../utils';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -59,28 +59,6 @@ interface GetScalarOptions {
   name?: string;
   context: ContextSpec;
   formDataContext?: FormDataContext;
-}
-
-/**
- * Renders a `const` or enum member as a TypeScript literal type.
- *
- * The declared schema type and the value itself both come from the document and
- * nothing makes them agree, so the branch is on the value's own type. This
- * lands in a bare type position (`export type X = <here>`) where there is no
- * quote to escape: a mismatched string spliced in raw closes the declaration
- * and turns whatever follows into module statements. Rendering it as a
- * string-literal type keeps it inert and still describes the document.
- */
-function toLiteralTypeValue(value: unknown): string {
-  if (isString(value)) {
-    return `'${jsStringLiteralEscape(value)}'`;
-  }
-
-  if (isNumber(value) || isBoolean(value)) {
-    return String(value);
-  }
-
-  return JSON.stringify(value);
 }
 
 /**
@@ -147,9 +125,7 @@ export function getScalar({
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems
-          .map((enumItem) => toLiteralTypeValue(enumItem))
-          .join(' | ');
+        value = enumItems.map((enumItem) => toJsLiteral(enumItem)).join(' | ');
         isEnum = true;
       }
 
@@ -160,7 +136,7 @@ export function getScalar({
       // replace the union with a raw number, or getTypeConstEnum crashes on
       // `value.endsWith(...)` (#3758).
       if (schemaConst !== undefined) {
-        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
+        value = `${toJsLiteral(schemaConst)}${nullable}`;
       }
 
       return {
@@ -184,9 +160,7 @@ export function getScalar({
         enumItems &&
         !(enumItems.includes(true) && enumItems.includes(false))
       ) {
-        value = enumItems
-          .map((enumItem) => toLiteralTypeValue(enumItem))
-          .join(' | ');
+        value = enumItems.map((enumItem) => toJsLiteral(enumItem)).join(' | ');
       }
 
       value += nullable;
@@ -194,7 +168,7 @@ export function getScalar({
       // Same string-coercion as integer/number so const never becomes a
       // non-string type-value for downstream enum helpers (#3758).
       if (schemaConst !== undefined) {
-        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
+        value = `${toJsLiteral(schemaConst)}${nullable}`;
       }
 
       return {
@@ -231,11 +205,7 @@ export function getScalar({
 
       if (enumItems) {
         value = enumItems
-          .map((enumItem) =>
-            isString(enumItem)
-              ? `'${jsStringLiteralEscape(enumItem)}'`
-              : `${enumItem}`,
-          )
+          .map((enumItem) => toJsLiteral(enumItem))
           .filter(Boolean)
           .join(` | `);
 
@@ -288,8 +258,8 @@ export function getScalar({
       if (schemaConst !== undefined) {
         // A non-string `const` under `type: string` is another mismatch; the
         // helper renders whichever literal the value actually is. Previously
-        // this reached `jsStringLiteralEscape` with a non-string and threw.
-        value = `${toLiteralTypeValue(schemaConst)}${nullable}`;
+        // this reached the string escaper with a non-string and threw.
+        value = `${toJsLiteral(schemaConst)}${nullable}`;
       }
 
       return {
@@ -373,11 +343,7 @@ export function getScalar({
 
       if (enumItems) {
         const value = enumItems
-          .map((enumItem) =>
-            isString(enumItem)
-              ? `'${jsStringLiteralEscape(enumItem)}'`
-              : String(enumItem),
-          )
+          .map((enumItem) => toJsLiteral(enumItem))
           .filter(Boolean)
           .join(` | `);
 

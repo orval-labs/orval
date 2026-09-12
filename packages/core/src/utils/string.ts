@@ -9,6 +9,72 @@ import {
 } from './assertion';
 
 /**
+ * Renders a document-supplied `const` or enum member as an inert literal.
+ *
+ * A schema's declared `type` and the value its `const` carries both come from
+ * the document and nothing makes them agree, so the branch has to be on the
+ * value's own JavaScript type. Deciding from the declared type instead lets an
+ * `object`-typed schema carry a string payload that is spliced in raw and then
+ * evaluated as an expression when the generated module loads.
+ *
+ * @param value - The value to render. Any JSON-representable value.
+ * @returns A literal that stays inert in both value and type position.
+ * @example
+ * toJsLiteral("it's") // returns "'it\\'s'"
+ * toJsLiteral(42) // returns "42"
+ * toJsLiteral({ a: 1 }) // returns '{"a":1}'
+ */
+export function toJsLiteral(value: unknown): string {
+  if (isString(value)) {
+    return `'${jsStringLiteralEscape(value)}'`;
+  }
+
+  // `Number.isFinite` because YAML spells `NaN` and `Infinity` as scalars and
+  // neither is a legal TypeScript literal type; `JSON.stringify` renders both
+  // as `null`, which is inert and valid wherever this lands.
+  if ((isNumber(value) && Number.isFinite(value)) || isBoolean(value)) {
+    return String(value);
+  }
+
+  return toStructuralLiteral(value);
+}
+
+/**
+ * `JSON.stringify` for structural values, except that `__proto__` is emitted as
+ * a computed key.
+ *
+ * A document parsed with `JSON.parse` can carry a real own `__proto__`
+ * property, and `JSON.stringify` renders it as a plain key. In an object
+ * literal that key is the prototype setter, not a data property (Annex B.3.1),
+ * so the constant would silently lose the property and take the document's
+ * value as its prototype instead. `['__proto__']` is the only form that stays
+ * an own property, and it is valid in type position as well as value position.
+ *
+ * Output is byte-identical to `JSON.stringify` for values without a
+ * `__proto__` key, so no generated output moves.
+ */
+function toStructuralLiteral(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => toStructuralLiteral(item)).join(',')}]`;
+  }
+
+  if (isObject(value)) {
+    const entries = Object.entries(value)
+      // `JSON.stringify` omits keys whose value is `undefined`; match it.
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .map(([key, entryValue]) => {
+        const serializedKey = JSON.stringify(key);
+        const safeKey =
+          key === '__proto__' ? `[${serializedKey}]` : serializedKey;
+        return `${safeKey}:${toStructuralLiteral(entryValue)}`;
+      });
+    return `{${entries.join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+/**
  * Converts data to a string representation suitable for code generation.
  * Handles strings, numbers, booleans, functions, arrays, and objects.
  *
