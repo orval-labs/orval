@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.31.0",
+  "version": "8.32.0",
   "type": "module",
   "scripts": {
     "ng": "ng",
