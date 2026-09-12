@@ -119,6 +119,71 @@ export const resolveInfiniteQueryParam = (
   return { queryParam, infiniteHookAllowed: queryParam !== undefined };
 };
 
+const quoteList = (values: readonly string[]) =>
+  values.map((value) => `'${value}'`).join(', ');
+
+/**
+ * `resolveInfiniteQueryParam` suppresses the infinite hook when none of the
+ * configured `useInfiniteQueryParam` candidates is one of the operation's
+ * query parameters, so a *global* `useInfinite: true` does not emit a useless
+ * infinite hook for every non-paginated `GET` (#3101). That suppression is
+ * right, but it leaves no trace: an operation that opts in explicitly and
+ * paginates through its request body instead — the common `POST` + filter-body
+ * shape — simply gets no infinite hook and no diagnostic, which reads as orval
+ * ignoring the config (#4025).
+ *
+ * Warn only for the explicit per-operation opt-in. There the user named both
+ * the operation and the page param, so the message is actionable and cannot
+ * become per-`GET` noise the way a warning on the global flag would.
+ */
+export const getSuppressedInfiniteQueryWarning = ({
+  operationName,
+  infiniteHookAllowed,
+  operationUseInfinite,
+  operationUseSuspenseInfiniteQuery,
+  configuredInfiniteQueryParam,
+  queryParams,
+}: {
+  operationName: string;
+  infiniteHookAllowed: boolean;
+  operationUseInfinite?: boolean;
+  operationUseSuspenseInfiniteQuery?: boolean;
+  configuredInfiniteQueryParam: string | string[] | undefined;
+  queryParams: GetterQueryParam | undefined;
+}): string | undefined => {
+  if (infiniteHookAllowed) return undefined;
+
+  const requested = [
+    operationUseInfinite === true ? 'useInfinite' : undefined,
+    operationUseSuspenseInfiniteQuery === true
+      ? 'useSuspenseInfiniteQuery'
+      : undefined,
+  ].filter((flag): flag is string => !!flag);
+  if (requested.length === 0) return undefined;
+
+  const candidates = (
+    Array.isArray(configuredInfiniteQueryParam)
+      ? configuredInfiniteQueryParam
+      : [configuredInfiniteQueryParam]
+  ).filter((name): name is string => !!name);
+
+  const declared = queryParams?.paramNames ?? [];
+  const declaredText =
+    declared.length > 0
+      ? `only declares ${quoteList(declared)}`
+      : 'declares no query parameters';
+
+  return (
+    `'${operationName}' sets ${quoteList(requested)}, but its ` +
+    `useInfiniteQueryParam (${quoteList(candidates)}) is not one of its query ` +
+    `parameters — the operation ${declaredText}, so no infinite hook was ` +
+    `generated. orval can only page through a URL query parameter; a page ` +
+    `param that lives in the request body is not supported yet (#4025). ` +
+    `Either declare it as a query parameter, or drop the infinite options for ` +
+    `this operation.`
+  );
+};
+
 const escapeRegExpMetaChars = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
@@ -1153,6 +1218,19 @@ export const generateQueryHook = async (
         override.query.useSuspenseInfiniteQuery,
       )) &&
     infiniteHookAllowed;
+
+  const suppressedInfiniteWarning = getSuppressedInfiniteQueryWarning({
+    operationName,
+    infiniteHookAllowed,
+    operationUseInfinite: operationQueryOptions?.useInfinite,
+    operationUseSuspenseInfiniteQuery:
+      operationQueryOptions?.useSuspenseInfiniteQuery,
+    configuredInfiniteQueryParam,
+    queryParams,
+  });
+  if (suppressedInfiniteWarning) {
+    logger.warn(suppressedInfiniteWarning);
+  }
 
   let isQuery =
     effectiveUseQuery ||
