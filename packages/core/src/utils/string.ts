@@ -36,6 +36,41 @@ export function toJsLiteral(value: unknown): string {
     return String(value);
   }
 
+  return toStructuralLiteral(value);
+}
+
+/**
+ * `JSON.stringify` for structural values, except that `__proto__` is emitted as
+ * a computed key.
+ *
+ * A document parsed with `JSON.parse` can carry a real own `__proto__`
+ * property, and `JSON.stringify` renders it as a plain key. In an object
+ * literal that key is the prototype setter, not a data property (Annex B.3.1),
+ * so the constant would silently lose the property and take the document's
+ * value as its prototype instead. `['__proto__']` is the only form that stays
+ * an own property, and it is valid in type position as well as value position.
+ *
+ * Output is byte-identical to `JSON.stringify` for values without a
+ * `__proto__` key, so no generated output moves.
+ */
+function toStructuralLiteral(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => toStructuralLiteral(item)).join(',')}]`;
+  }
+
+  if (isObject(value)) {
+    const entries = Object.entries(value)
+      // `JSON.stringify` omits keys whose value is `undefined`; match it.
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .map(([key, entryValue]) => {
+        const serializedKey = JSON.stringify(key);
+        const safeKey =
+          key === '__proto__' ? `[${serializedKey}]` : serializedKey;
+        return `${safeKey}:${toStructuralLiteral(entryValue)}`;
+      });
+    return `{${entries.join(',')}}`;
+  }
+
   return JSON.stringify(value);
 }
 

@@ -382,3 +382,58 @@ describe('toJsLiteral', () => {
     expect(toJsLiteral(['a', 'b'])).toBe('["a","b"]');
   });
 });
+
+describe('toJsLiteral __proto__ handling', () => {
+  // `JSON.parse` creates a real own `__proto__` property, and `JSON.stringify`
+  // renders it as a plain key. In an object literal that key is the prototype
+  // setter, not a data property (Annex B.3.1), so the emitted constant would
+  // lose the property and take the document's value as its prototype instead.
+  it('emits a own __proto__ key as a computed key', () => {
+    const parsed: unknown = JSON.parse('{"__proto__": {"polluted": 1}}');
+
+    expect(toJsLiteral(parsed)).toBe('{["__proto__"]:{"polluted":1}}');
+  });
+
+  it('emits a nested __proto__ key as a computed key', () => {
+    const parsed: unknown = JSON.parse(
+      '{"a": {"__proto__": {"polluted": 1}}, "b": [{"__proto__": 2}]}',
+    );
+
+    expect(toJsLiteral(parsed)).toBe(
+      '{"a":{["__proto__"]:{"polluted":1}},"b":[{["__proto__"]:2}]}',
+    );
+  });
+
+  it('the emitted literal keeps __proto__ as an own property', () => {
+    const parsed: unknown = JSON.parse('{"__proto__": {"polluted": 1}}');
+
+    // eslint-disable-next-line no-eval
+    const rebuilt = eval(`(${toJsLiteral(parsed)})`) as object;
+
+    expect(Object.hasOwn(rebuilt, '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(rebuilt)).toBe(Object.prototype);
+  });
+
+  it.each([
+    [{ a: 1, b: 'x' }],
+    [{ nested: { deep: [1, 'two', true, null] } }],
+    [[1, 'a', null, { b: 2 }]],
+    [{ 'quote"key': 'quote"value' }],
+    [{ 'proto-ish': '__proto__' }],
+    [null],
+    [{}],
+    [[]],
+  ])('matches JSON.stringify for %j (no __proto__ key)', (value) => {
+    expect(toJsLiteral(value)).toBe(JSON.stringify(value));
+  });
+
+  it('omits undefined-valued keys, as JSON.stringify does', () => {
+    expect(toJsLiteral({ a: 1, b: undefined })).toBe('{"a":1}');
+  });
+
+  it('renders a nested non-finite number as null, as JSON.stringify does', () => {
+    expect(toJsLiteral({ a: Number.NaN, b: [Number.POSITIVE_INFINITY] })).toBe(
+      '{"a":null,"b":[null]}',
+    );
+  });
+});
