@@ -236,6 +236,7 @@
         "fs-extra": "^11.3.2",
         "get-tsconfig": "^4.14.0",
         "jiti": "^2.6.1",
+        "json5": "^2.2.3",
         "js-yaml": "4.3.2",
         "remeda": "^2.33.6",
         "string-argv": "^0.3.2",

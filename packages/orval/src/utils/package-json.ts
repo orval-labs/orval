@@ -9,6 +9,7 @@ import {
 } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
+import JSON5 from 'json5';
 import yaml from 'js-yaml';
 
 import { logger } from '../logger';
@@ -40,7 +41,15 @@ export const loadPackageJson = async (
 
   const normalizedPath = normalizePath(packageJson, workspace);
   if (fs.existsSync(normalizedPath)) {
-    const pkg = await dynamicImport<unknown>(normalizedPath);
+    let pkg: unknown;
+    try {
+      pkg = JSON5.parse(await fs.readFile(normalizedPath, 'utf8')) as unknown;
+    } catch (error) {
+      throw new Error(
+        `Oups... 🍺. Path: ${normalizedPath} => ${String(error)}`,
+        { cause: error },
+      );
+    }
 
     if (isPackageJson(pkg)) {
       return resolveAndAttachVersions(
