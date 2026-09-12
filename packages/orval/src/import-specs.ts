@@ -958,17 +958,27 @@ export function validateComponentKeys(data: Record<string, unknown>): void {
 }
 
 /**
+ * Where a document keeps its reusable schemas. Swagger 2.0 has no
+ * `components` — carrying one makes the document invalid ("Property components
+ * is not expected to be here"), so merged schemas have to land in
+ * `definitions` and be referenced as `#/definitions/...` instead (#2993).
+ */
+const schemaRefPrefix = (data: Record<string, unknown>): string =>
+  isSwagger2(data) ? '#/definitions/' : '#/components/schemas/';
+
+/**
  * The plugins from `@scalar/json-magic` does not dereference $ref.
  * Instead it fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
  * This function:
- * 1. Merges external schemas into main spec's components.schemas (with collision handling)
- * 2. Replaces x-ext refs with standard component refs or inlined content
+ * 1. Merges external schemas into the main spec's schema container (with collision handling)
+ * 2. Replaces x-ext refs with standard schema refs or inlined content
  */
 export function dereferenceExternalRef(
   data: Record<string, unknown>,
   strategy: ExternalRefNamingStrategy = 'default',
 ): Record<string, unknown> {
   const extensions = (data['x-ext'] ?? {}) as Record<string, unknown>;
+  const refPrefix = schemaRefPrefix(data);
 
   // Step 1: Merge external schemas into main spec with collision handling
   const schemaNameMappings = mergeExternalSchemas(data, extensions, strategy);
@@ -977,7 +987,12 @@ export function dereferenceExternalRef(
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
     if (key !== 'x-ext') {
-      result[key] = replaceXExtRefs(value, extensions, schemaNameMappings);
+      result[key] = replaceXExtRefs(
+        value,
+        extensions,
+        schemaNameMappings,
+        refPrefix,
+      );
     }
   }
 
@@ -997,10 +1012,28 @@ function mergeExternalSchemas(
 
   if (Object.keys(extensions).length === 0) return schemaNameMappings;
 
-  data.components ??= {};
-  const mainComponents = data.components as Record<string, unknown>;
-  mainComponents.schemas ??= {};
-  const mainSchemas = mainComponents.schemas as Record<string, unknown>;
+  const swagger2 = isSwagger2(data);
+
+  // Materialized on the first schema actually merged. An external document that
+  // contributes none — the common case, where it holds bare schemas at its root
+  // and the ref is inlined instead — must not leave an empty container behind:
+  // on a Swagger 2.0 document that stray `components` fails validation (#2993).
+  let mainSchemas: Record<string, unknown> | undefined;
+  const getMainSchemas = () => {
+    if (mainSchemas) return mainSchemas;
+
+    if (swagger2) {
+      data.definitions ??= {};
+      mainSchemas = data.definitions as Record<string, unknown>;
+      return mainSchemas;
+    }
+
+    data.components ??= {};
+    const mainComponents = data.components as Record<string, unknown>;
+    mainComponents.schemas ??= {};
+    mainSchemas = mainComponents.schemas as Record<string, unknown>;
+    return mainSchemas;
+  };
 
   // Merge schemas from each external doc. In default mode, preserve the
   // original name unless it is occupied by a different schema. In always mode,
@@ -1013,7 +1046,8 @@ function mergeExternalSchemas(
       if (isObject(extComponents) && 'schemas' in extComponents) {
         const extSchemas = extComponents.schemas as Record<string, unknown>;
         for (const [schemaName, schema] of Object.entries(extSchemas)) {
-          const existingSchema = mainSchemas[schemaName];
+          const targetSchemas = getMainSchemas();
+          const existingSchema = targetSchemas[schemaName];
           const existingRef =
             isObject(existingSchema) &&
             '$ref' in existingSchema &&
@@ -1034,14 +1068,14 @@ function mergeExternalSchemas(
 
           if (strategy === 'always') {
             finalSchemaName = `${schemaName}_${suffix}`;
-          } else if (schemaName in mainSchemas && !isMatchingXExtRef) {
+          } else if (schemaName in targetSchemas && !isMatchingXExtRef) {
             finalSchemaName = `${schemaName}_${suffix}`;
           }
 
           const isExistingPlaceholder =
             finalSchemaName === schemaName && isMatchingXExtRef;
           if (
-            Object.hasOwn(mainSchemas, finalSchemaName) &&
+            Object.hasOwn(targetSchemas, finalSchemaName) &&
             !isExistingPlaceholder
           ) {
             throw new Error(
@@ -1050,13 +1084,17 @@ function mergeExternalSchemas(
           }
 
           schemaNameMappings[extKey][schemaName] = finalSchemaName;
-          mainSchemas[finalSchemaName] = scrubUnwantedKeys(schema);
+          targetSchemas[finalSchemaName] = scrubUnwantedKeys(schema);
         }
       }
     }
   }
 
+  // Nothing was merged, so there is no container and no ref to rewrite.
+  if (!mainSchemas) return schemaNameMappings;
+
   // Apply internal ref updates to all schemas from external docs
+  const refPrefix = schemaRefPrefix(data);
   for (const [extKey, mapping] of Object.entries(schemaNameMappings)) {
     for (const [, finalName] of Object.entries(mapping)) {
       const schema = mainSchemas[finalName];
@@ -1065,6 +1103,7 @@ function mergeExternalSchemas(
           schema,
           extKey,
           schemaNameMappings,
+          refPrefix,
         ) as Record<string, unknown>;
       }
     }
@@ -1094,18 +1133,24 @@ function scrubUnwantedKeys(obj: unknown): unknown {
 }
 
 /**
- * Update internal refs within an external schema to use suffixed names
+ * Update internal refs within an external schema to use suffixed names.
+ *
+ * External documents are OpenAPI 3 shaped, so their own refs read
+ * `#/components/schemas/...`. `refPrefix` is where those schemas landed in the
+ * *main* document, which is `#/definitions/` when that document is Swagger 2.0
+ * (#2993).
  */
 function updateInternalRefs(
   obj: unknown,
   extKey: string,
   schemaNameMappings: Record<string, Record<string, string>>,
+  refPrefix: string,
 ): unknown {
   if (obj === null || obj === undefined) return obj;
 
   if (Array.isArray(obj)) {
     return obj.map((element) =>
-      updateInternalRefs(element, extKey, schemaNameMappings),
+      updateInternalRefs(element, extKey, schemaNameMappings, refPrefix),
     );
   }
 
@@ -1121,7 +1166,7 @@ function updateInternalRefs(
         const mappedName = schemaNameMappings[extKey][schemaName];
         if (mappedName) {
           return {
-            $ref: `#/components/schemas/${mappedName}`,
+            $ref: `${refPrefix}${mappedName}`,
           };
         }
       }
@@ -1130,7 +1175,12 @@ function updateInternalRefs(
     // Recursively process all properties
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(record)) {
-      result[key] = updateInternalRefs(value, extKey, schemaNameMappings);
+      result[key] = updateInternalRefs(
+        value,
+        extKey,
+        schemaNameMappings,
+        refPrefix,
+      );
     }
     return result;
   }
@@ -1167,13 +1217,20 @@ function replaceXExtRefs(
   obj: unknown,
   extensions: Record<string, unknown>,
   schemaNameMappings: Record<string, Record<string, string>>,
+  refPrefix: string,
   inliningRefs = new Set<string>(),
 ): unknown {
   if (isNullish(obj)) return obj;
 
   if (Array.isArray(obj)) {
     return obj.map((element) =>
-      replaceXExtRefs(element, extensions, schemaNameMappings, inliningRefs),
+      replaceXExtRefs(
+        element,
+        extensions,
+        schemaNameMappings,
+        refPrefix,
+        inliningRefs,
+      ),
     );
   }
 
@@ -1200,7 +1257,7 @@ function replaceXExtRefs(
             // Use the mapped name (which may include suffix for collisions)
             const finalName =
               schemaNameMappings[extKey][schemaName] || schemaName;
-            return { $ref: `#/components/schemas/${finalName}` };
+            return { $ref: `${refPrefix}${finalName}` };
           }
 
           // Otherwise inline the content; break cycles with `{}`.
@@ -1238,6 +1295,7 @@ function replaceXExtRefs(
               cleaned,
               extensions,
               schemaNameMappings,
+              refPrefix,
               nextInlining,
             );
           }
@@ -1252,6 +1310,7 @@ function replaceXExtRefs(
         value,
         extensions,
         schemaNameMappings,
+        refPrefix,
         inliningRefs,
       );
     }
