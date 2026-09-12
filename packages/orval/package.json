@@ -79,7 +79,7 @@
     "get-tsconfig": "^4.14.0",
     "jiti": "^2.6.1",
     "js-yaml": "4.3.2",
-    "json5": "^2.2.3",
+    "json5": "2.2.3",
     "remeda": "^2.33.6",
     "string-argv": "^0.3.2",
     "typedoc": "^0.28.19",
