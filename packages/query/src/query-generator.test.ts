@@ -14,6 +14,7 @@ import {
   getMutationInvalidatesConflictWarning,
   getQueryFnProperty,
   getQueryKeyVerbPrefix,
+  getSuppressedInfiniteQueryWarning,
   hasQueryParam,
   makeOptionalParam,
   resolveInfiniteQueryParam,
@@ -313,6 +314,87 @@ describe('resolveInfiniteQueryParam', () => {
     expect(
       resolveInfiniteQueryParam(undefined, ['page', 'cursor.marker']),
     ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+  });
+});
+
+describe('getSuppressedInfiniteQueryWarning', () => {
+  const paramsWith = (...paramNames: string[]) => ({
+    schema: { name: 'ElementFilterParams', model: '', imports: [] },
+    deps: [],
+    isOptional: true,
+    paramNames,
+  });
+
+  const base = {
+    operationName: 'searchPageableElementsByFilter',
+    infiniteHookAllowed: false,
+    configuredInfiniteQueryParam: 'offset',
+    queryParams: undefined,
+  };
+
+  it('returns undefined when the infinite hook was not suppressed', () => {
+    expect(
+      getSuppressedInfiniteQueryWarning({
+        ...base,
+        infiniteHookAllowed: true,
+        operationUseInfinite: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when the operation did not opt in explicitly', () => {
+    expect(getSuppressedInfiniteQueryWarning(base)).toBeUndefined();
+  });
+
+  it('returns undefined when the operation opted out explicitly', () => {
+    expect(
+      getSuppressedInfiniteQueryWarning({
+        ...base,
+        operationUseInfinite: false,
+        operationUseSuspenseInfiniteQuery: false,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('warns when an explicit useInfinite opt-in was suppressed', () => {
+    const warning = getSuppressedInfiniteQueryWarning({
+      ...base,
+      operationUseInfinite: true,
+    });
+
+    expect(warning).toContain("'searchPageableElementsByFilter'");
+    expect(warning).toContain("'offset'");
+    expect(warning).toContain('declares no query parameters');
+  });
+
+  it('warns for an explicit useSuspenseInfiniteQuery opt-in too', () => {
+    expect(
+      getSuppressedInfiniteQueryWarning({
+        ...base,
+        operationUseSuspenseInfiniteQuery: true,
+      }),
+    ).toContain("'searchPageableElementsByFilter'");
+  });
+
+  it('lists the query parameters the operation does declare', () => {
+    const warning = getSuppressedInfiniteQueryWarning({
+      ...base,
+      operationUseInfinite: true,
+      queryParams: paramsWith('limit', 'sort'),
+    });
+
+    expect(warning).toContain("'limit', 'sort'");
+    expect(warning).not.toContain('declares no query parameters');
+  });
+
+  it('lists every configured candidate', () => {
+    const warning = getSuppressedInfiniteQueryWarning({
+      ...base,
+      operationUseInfinite: true,
+      configuredInfiniteQueryParam: ['offset', 'cursor'],
+    });
+
+    expect(warning).toContain("'offset', 'cursor'");
   });
 });
 
