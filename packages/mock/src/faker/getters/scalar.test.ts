@@ -1629,6 +1629,11 @@ describe('getMockScalar (enum type-cast name injection)', () => {
     expect(result.value).toBe(
       "faker.helpers.arrayElement(['A','B'] as MyEnum[])",
     );
+    // The imported type is `MyEnum`. `MyEnum[]` is an array of it, not a name
+    // anything exports, so importing that would leave the cast unresolved.
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'MyEnum' }),
+    );
   });
 
   // `parentReference` comes from resolved `$ref` names, which core sanitizes
