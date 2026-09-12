@@ -1314,3 +1314,129 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     expect(result).toContain('export const Widget =');
   });
 });
+
+/**
+ * An array response whose `items` is a composition (`allOf`/`oneOf`/`anyOf`)
+ * has no `type` key. The array-peeling loop required one, so it never unwrapped
+ * and the entry was discarded — the client still imported `<Op>200Item` (the TS
+ * side aliases compositions happily) but no zod schema was ever written for it
+ * (#2993).
+ */
+describe('writeZodSchemasFromVerbs — composed array item schemas', () => {
+  const arrayOf = (items: unknown) => ({ type: 'array', items }) as never;
+
+  const runWith = async (
+    value: string,
+    originalSchema: unknown,
+  ): Promise<string[]> => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-composed-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Base: { type: 'object', properties: { id: { type: 'number' } } },
+          },
+        },
+      } as never,
+      target: '',
+      workspace: root,
+    } satisfies MinimalVerbsContext;
+
+    const verbOptions = {
+      listThings: {
+        operationName: 'listThings',
+        typeName: 'listThings',
+        originalOperation: { parameters: [] },
+        response: {
+          types: {
+            success: [{ value, originalSchema }],
+            errors: [],
+          },
+        },
+      },
+    } as never;
+
+    await writeZodSchemasFromVerbs(
+      verbOptions,
+      schemasPath,
+      '.ts',
+      '',
+      createOutputOptions(),
+      context,
+    );
+
+    const files = (await fs.pathExists(schemasPath))
+      ? await fs.readdir(schemasPath)
+      : [];
+    await fs.remove(root);
+    return files;
+  };
+
+  it('writes the item schema for a plain inline object item', async () => {
+    const files = await runWith(
+      'ListThings200Item[]',
+      arrayOf({ type: 'object', properties: { id: { type: 'string' } } }),
+    );
+
+    expect(files).toContain('ListThings200Item.ts');
+  });
+
+  it('writes the item schema for an allOf item', async () => {
+    const files = await runWith(
+      'ListThings200Item[]',
+      arrayOf({
+        allOf: [
+          { $ref: '#/components/schemas/Base' },
+          { type: 'object', properties: { extra: { type: 'string' } } },
+        ],
+      }),
+    );
+
+    expect(files).toContain('ListThings200Item.ts');
+  });
+
+  it('writes the item schema for a oneOf item', async () => {
+    const files = await runWith(
+      'ListThings200Item[]',
+      arrayOf({
+        oneOf: [
+          { type: 'object', properties: { a: { type: 'string' } } },
+          { type: 'object', properties: { b: { type: 'number' } } },
+        ],
+      }),
+    );
+
+    expect(files).toContain('ListThings200Item.ts');
+  });
+
+  it('writes the item schema for an anyOf item', async () => {
+    const files = await runWith(
+      'ListThings200Item[]',
+      arrayOf({
+        anyOf: [
+          { type: 'object', properties: { a: { type: 'string' } } },
+          { type: 'object', properties: { b: { type: 'number' } } },
+        ],
+      }),
+    );
+
+    expect(files).toContain('ListThings200Item.ts');
+  });
+
+  it('still leaves a $ref item to the component schema writer', async () => {
+    const files = await runWith(
+      'Base[]',
+      arrayOf({ $ref: '#/components/schemas/Base' }),
+    );
+
+    expect(files).not.toContain('Base.ts');
+  });
+});

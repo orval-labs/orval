@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: Zod composed array items
+  version: 1.0.0
+paths:
+  /plain:
+    get:
+      operationId: listPlain
+      responses:
+        '200':
+          description: Items with a plain inline object schema.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+  /all-of:
+    get:
+      operationId: listAllOf
+      responses:
+        '200':
+          description: Items composed with allOf — no `type` key on the item.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Base'
+                    - type: object
+                      properties:
+                        extra:
+                          type: string
+  /one-of:
+    get:
+      operationId: listOneOf
+      responses:
+        '200':
+          description: Items composed with oneOf.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        a:
+                          type: string
+                    - type: object
+                      properties:
+                        b:
+                          type: number
+  /ref:
+    get:
+      operationId: listRef
+      responses:
+        '200':
+          description: Items that are a component $ref — the component writer owns these.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Base'
+components:
+  schemas:
+    Base:
+      type: object
+      properties:
+        id:
+          type: integer
