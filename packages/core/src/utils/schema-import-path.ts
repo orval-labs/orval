@@ -99,6 +99,21 @@ export function resolveSchemaImportDependencies(
     ];
   }
 
+  // Without `output.schemas` there is no schemas *directory*: every mode
+  // writer folds the schemas into one `<target>.schemas` sibling file and
+  // passes that file as `relativeSchemasPath`. The per-schema layout below
+  // assumes a directory, so joining a name onto it addresses a path inside a
+  // file (`./pets.schemas/pet`), which resolves to nothing. One file means one
+  // module regardless of `indexFiles`, exactly like the barrel above.
+  if (!output.schemas) {
+    return [
+      {
+        exports: dedupeSchemaImports(resolved),
+        dependency: relativeSchemasPath,
+      },
+    ];
+  }
+
   // Zod schema files are named with `schemaFileExtension` (`.zod.ts` by
   // default), TypeScript ones with `fileExtension`. Derive the import tail
   // from the same value, or the import names a file that is never emitted.
