@@ -89,6 +89,34 @@ const mockReadFile = (value: string) => {
   ).mockResolvedValue(Buffer.from(value));
 };
 
+describe('loadPackageJson - configured package manifest', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('loads a JSON5 package manifest', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    mockReadFile(`{
+      // JSON5 syntax is valid for configured package manifests.
+      dependencies: {
+        react: '^19.0.0',
+      },
+    }`);
+
+    const result = await loadPackageJson('/workspace/package.json5');
+
+    expect(result?.dependencies?.react).toBe('^19.0.0');
+    expect(fs.readFile).toHaveBeenCalledWith(
+      '/workspace/package.json5',
+      'utf8',
+    );
+  });
+});
+
 describe('loadPackageJson - catalog resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
