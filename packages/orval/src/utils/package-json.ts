@@ -41,9 +41,15 @@ export const loadPackageJson = async (
 
   const normalizedPath = normalizePath(packageJson, workspace);
   if (fs.existsSync(normalizedPath)) {
-    const pkg = JSON5.parse(
-      await fs.readFile(normalizedPath, 'utf8'),
-    ) as unknown;
+    let pkg: unknown;
+    try {
+      pkg = JSON5.parse(await fs.readFile(normalizedPath, 'utf8')) as unknown;
+    } catch (error) {
+      throw new Error(
+        `Oups... 🍺. Path: ${normalizedPath} => ${String(error)}`,
+        { cause: error },
+      );
+    }
 
     if (isPackageJson(pkg)) {
       return resolveAndAttachVersions(

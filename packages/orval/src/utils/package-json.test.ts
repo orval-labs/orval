@@ -115,6 +115,34 @@ describe('loadPackageJson - configured package manifest', () => {
       'utf8',
     );
   });
+
+  it('includes the manifest path and parse error as the cause', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    mockReadFile('{ invalid: }');
+
+    const result = loadPackageJson('/workspace/package.json5');
+
+    await expect(result).rejects.toThrow(
+      'Oups... 🍺. Path: /workspace/package.json5',
+    );
+    await expect(result).rejects.toHaveProperty(
+      'cause',
+      expect.any(SyntaxError),
+    );
+  });
+
+  it('includes the manifest path and read error as the cause', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    const readError = new Error('EACCES');
+    vi.mocked(fs.readFile).mockRejectedValue(readError);
+
+    const result = loadPackageJson('/workspace/package.json5');
+
+    await expect(result).rejects.toThrow(
+      'Oups... 🍺. Path: /workspace/package.json5 => Error: EACCES',
+    );
+    await expect(result).rejects.toHaveProperty('cause', readError);
+  });
 });
 
 describe('loadPackageJson - catalog resolution', () => {
