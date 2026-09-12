@@ -2316,9 +2316,9 @@ describe('dereferenceExternalRefs', () => {
           url: 'https://opensource.org/licenses/MIT',
         },
       },
-      components: {
-        schemas: {},
-      },
+      // No `components`: the external schema is inlined, so nothing is merged
+      // and no container is created. The empty one this used to assert was
+      // residue that made Swagger 2.0 documents fail validation (#2993).
       paths: {
         '/points': {
           get: {
@@ -3217,5 +3217,179 @@ describe('normalizeNullableRefs', () => {
     expect(normalizeNullableRefs(null)).toBe(null);
     expect(normalizeNullableRefs(42)).toBe(42);
     expect(normalizeNullableRefs([1, 2, 3])).toEqual([1, 2, 3]);
+  });
+});
+
+describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
+  /** Just enough of a Swagger 2.0 path item to read the response schema back. */
+  type PathsWithResponseSchema = Record<
+    string,
+    { get: { responses: Record<string, { schema: unknown }> } }
+  >;
+
+  it('does not inject a components key when nothing is merged', () => {
+    // Strava's shape: the external document holds bare schemas at its root, so
+    // the ref is inlined and no schema is merged. Creating the container
+    // regardless left an empty `components` on a 2.0 document, which the
+    // validator rejects with "Property components is not expected to be here".
+    const input = {
+      swagger: '2.0',
+      paths: {
+        '/athlete': {
+          get: {
+            responses: {
+              '200': { schema: { $ref: '#/x-ext/athlete/DetailedAthlete' } },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        athlete: {
+          DetailedAthlete: {
+            type: 'object',
+            properties: { id: { type: 'integer' } },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      paths: PathsWithResponseSchema;
+    };
+
+    expect(result).not.toHaveProperty('components');
+    expect(result.paths['/athlete'].get.responses['200'].schema).toEqual({
+      type: 'object',
+      properties: { id: { type: 'integer' } },
+    });
+  });
+
+  it('leaves an OpenAPI 3 document without merged schemas free of an empty container', () => {
+    const input = {
+      openapi: '3.0.3',
+      paths: {
+        '/athlete': {
+          get: {
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/x-ext/athlete/DetailedAthlete' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        athlete: { DetailedAthlete: { type: 'object' } },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as Record<string, unknown>;
+
+    expect(result).not.toHaveProperty('components');
+  });
+
+  it('merges external schemas into definitions and rewrites refs accordingly', () => {
+    const input = {
+      swagger: '2.0',
+      definitions: {
+        Local: { type: 'string' },
+      },
+      paths: {
+        '/athlete': {
+          get: {
+            responses: {
+              '200': {
+                schema: {
+                  $ref: '#/x-ext/athlete/components/schemas/DetailedAthlete',
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        athlete: {
+          components: {
+            schemas: {
+              DetailedAthlete: {
+                type: 'object',
+                properties: { id: { type: 'integer' } },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      definitions: Record<string, unknown>;
+      paths: PathsWithResponseSchema;
+    };
+
+    expect(result).not.toHaveProperty('components');
+    expect(result.definitions.DetailedAthlete).toEqual({
+      type: 'object',
+      properties: { id: { type: 'integer' } },
+    });
+    expect(result.definitions.Local).toEqual({ type: 'string' });
+    expect(result.paths['/athlete'].get.responses['200'].schema).toEqual({
+      $ref: '#/definitions/DetailedAthlete',
+    });
+  });
+
+  it('rewrites a merged schema’s own internal refs to definitions', () => {
+    const input = {
+      swagger: '2.0',
+      paths: {},
+      'x-ext': {
+        athlete: {
+          components: {
+            schemas: {
+              DetailedAthlete: {
+                type: 'object',
+                properties: { club: { $ref: '#/components/schemas/Club' } },
+              },
+              Club: { type: 'object' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      definitions: { DetailedAthlete: { properties: { club: unknown } } };
+    };
+
+    expect(result.definitions.DetailedAthlete.properties.club).toEqual({
+      $ref: '#/definitions/Club',
+    });
+  });
+
+  it('keeps OpenAPI 3 documents merging into components.schemas', () => {
+    const input = {
+      openapi: '3.0.3',
+      paths: {},
+      'x-ext': {
+        athlete: {
+          components: {
+            schemas: { DetailedAthlete: { type: 'object' } },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: Record<string, unknown> };
+      definitions?: unknown;
+    };
+
+    expect(result).not.toHaveProperty('definitions');
+    expect(result.components.schemas.DetailedAthlete).toEqual({
+      type: 'object',
+    });
   });
 });
