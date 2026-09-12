@@ -553,4 +553,26 @@ export default defineConfig({
       target: '../specifications/inline-enum-array/petstore.yaml',
     },
   },
+  // A composed (`allOf`/`oneOf`) array item carries no `type`, which used to
+  // stop the response array from being peeled — the client imported
+  // `<Op>200Item` but no zod schema was written for it (#2993). The plain and
+  // `$ref` items in the same spec pin the two neighbouring behaviours.
+  'composed-array-items': {
+    output: {
+      target: '../generated/zod/composed-array-items/endpoints.ts',
+      schemas: {
+        path: '../generated/zod/composed-array-items/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        fetch: { runtimeValidation: true },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/zod-composed-array-items.yaml',
+    },
+  },
 });

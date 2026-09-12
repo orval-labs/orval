@@ -1408,13 +1408,20 @@ function generateZodSchemasFromVerbs(
               // Peel array layers to reach the innermost inline item schema.
               // Stop when the item is a $ref (component schema — let the
               // component schema writer handle it).
+              //
+              // The item is NOT required to carry a `type`: a composed item
+              // (`allOf`/`oneOf`/`anyOf`) has none, and demanding one left the
+              // array unpeeled, so the entry was discarded below and no schema
+              // was written — while the client still imported the `<Op>200Item`
+              // name the TS side aliases for it (#2993). `isReference` plus the
+              // `$ref` check already excludes component references, which is
+              // the only thing this loop needs to stop at.
               while (
                 cleanSchema &&
                 'type' in cleanSchema &&
                 cleanSchema.type === 'array' &&
                 cleanSchema.items &&
                 !isReference(cleanSchema.items) &&
-                'type' in cleanSchema.items &&
                 !('$ref' in cleanSchema.items)
               ) {
                 cleanSchema = cleanSchema.items as OpenApiSchemaObject;
