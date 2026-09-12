@@ -43,8 +43,10 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getArrayResponseSchema,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  getZodNamespaceImport,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -383,14 +385,21 @@ export const generateHttpClientImplementation = (
   const dataType = response.definition.success || 'unknown';
   const isPrimitive = isPrimitiveType(dataType);
   const hasSchema = hasSchemaImport(response.imports, dataType);
+  // An inline `type: array` response is `Item[]`, which the exact-name checks
+  // above never match; it validates through its element schema instead (#3718).
+  const arraySchema = getArrayResponseSchema(
+    response.imports,
+    dataType,
+    getSchemaValueRef,
+  );
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
     override.angular.runtimeValidation.enabled &&
     isZodOutput &&
     !isPrimitive &&
-    hasSchema;
+    (hasSchema || !!arraySchema);
   const parsedDataType = shouldValidateResponse
-    ? getSchemaOutputTypeRef(dataType)
+    ? (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
     : dataType;
   const getGeneratedResponseType = (
     value: string,
@@ -401,10 +410,13 @@ export const generateHttpClientImplementation = (
       isZodOutput &&
       !!contentType &&
       (contentType.includes('json') || contentType.includes('+json')) &&
-      !isPrimitiveType(value) &&
-      hasSchemaImport(response.imports, value)
+      !isPrimitiveType(value)
     ) {
-      return getSchemaOutputTypeRef(value);
+      if (hasSchemaImport(response.imports, value)) {
+        return getSchemaOutputTypeRef(value);
+      }
+      const valueArraySchema = getArrayResponseSchema(response.imports, value);
+      if (valueArraySchema) return valueArraySchema.outputTypeRef;
     }
 
     return getContentTypeReturnType(contentType, value);
@@ -421,7 +433,7 @@ export const generateHttpClientImplementation = (
           ),
         ].join(' | ') || parsedDataType;
   const schemaValueRef = shouldValidateResponse
-    ? getSchemaValueRef(dataType)
+    ? (arraySchema?.schemaRef ?? getSchemaValueRef(dataType))
     : dataType;
   // When Zod runtime validation is enabled the emitted method signature exposes
   // `parsedDataType` (e.g. `PetsOutput`) directly instead of a caller-overridable
@@ -907,7 +919,8 @@ export const narrowsResponseEvents = (
     override.angular.runtimeValidation.enabled &&
     isZodSchemaOutput(output) &&
     !isPrimitiveType(dataType) &&
-    hasSchemaImport(response.imports, dataType)
+    (hasSchemaImport(response.imports, dataType) ||
+      !!getArrayResponseSchema(response.imports, dataType))
   );
 };
 
@@ -980,19 +993,30 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       },
     };
 
-    if (
-      !isPrimitiveResponse &&
-      hasSchemaImport(result.response.imports, responseType)
-    ) {
+    // A validated array response is parsed through its element schema, so it is
+    // the element that has to become a value import and contribute the `Output`
+    // alias — `Item[]` is not an import name at all (#3718).
+    const responseArraySchema = getArrayResponseSchema(
+      result.response.imports,
+      responseType,
+    );
+    const schemaImportName = hasSchemaImport(
+      result.response.imports,
+      responseType,
+    )
+      ? responseType
+      : responseArraySchema?.elementName;
+
+    if (!isPrimitiveResponse && schemaImportName !== undefined) {
       result = {
         ...result,
         response: {
           ...result.response,
           imports: [
             ...result.response.imports.map((imp) =>
-              imp.name === responseType ? { ...imp, values: true } : imp,
+              imp.name === schemaImportName ? { ...imp, values: true } : imp,
             ),
-            { name: getSchemaOutputTypeRef(responseType) },
+            { name: getSchemaOutputTypeRef(schemaImportName) },
           ],
         },
       };
@@ -1055,6 +1079,11 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
+      : []),
+    // Only a composed array expression references the `zod` namespace; a named
+    // schema calls `Schema.parse` on its own binding.
+    ...(implementation.includes('zod.array(')
+      ? [getZodNamespaceImport(options.context.output)]
       : []),
     ...(baseUrl
       ? [
