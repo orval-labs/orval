@@ -528,7 +528,11 @@ describe('angular httpResource generator', () => {
       expect(importNames).not.toContain('Error');
     });
 
-    it('keeps zod array response imports type-only when parse is not generated', async () => {
+    // This case used to assert `Pet` stayed type-only, which pinned #3718: an
+    // inline `Pet[]` response was silently left unvalidated. It now parses
+    // through the element schema, so `Pet` is a value import and contributes
+    // the `PetOutput` alias, exactly like a named array component does.
+    it('promotes the element import for a validated zod array response', async () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -558,8 +562,89 @@ describe('angular httpResource generator', () => {
         output,
       );
 
+      expect(result.imports).toContainEqual({ name: 'Pet', values: true });
+      expect(result.imports).toContainEqual(
+        expect.objectContaining({ name: 'PetOutput' }),
+      );
+      expect(result.imports).toContainEqual(
+        expect.objectContaining({ name: 'zod', namespaceImport: true }),
+      );
+    });
+
+    it('keeps zod array response imports type-only when validation is off', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', false),
+        } as NormalizedOutputOptions['override'],
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet[]', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/pets',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+
       expect(result.imports).toContainEqual({ name: 'Pet' });
       expect(result.imports).not.toContainEqual({ name: 'Pet', values: true });
+      expect(result.imports).not.toContainEqual(
+        expect.objectContaining({ name: 'zod' }),
+      );
+    });
+
+    it('leaves a primitive-element array unvalidated', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [],
+          definition: { success: 'string[]', errors: 'Error' },
+          types: {
+            success: [createSuccessType('string[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/names',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+
+      expect(result.imports).not.toContainEqual(
+        expect.objectContaining({ name: 'zod' }),
+      );
     });
   });
 

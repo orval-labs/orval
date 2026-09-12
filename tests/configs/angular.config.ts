@@ -199,6 +199,53 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // An inline `type: array` response is the definition `Item[]`, which never
+  // matches the import name `Item`, so runtime validation used to skip it while
+  // a named array component validated normally (#3718). `retrievalClient: 'both'`
+  // covers the HttpClient and httpResource surfaces from one fixture.
+  zodInlineArrayValidation: {
+    output: {
+      target: '../generated/angular/zod-inline-array/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/zod-inline-array/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-zod-inline-array.yaml',
+    },
+  },
+  // Same spec with validation off — pins that the array path is untouched then.
+  zodInlineArrayValidationDisabled: {
+    output: {
+      target: '../generated/angular/zod-inline-array-disabled/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/zod-inline-array-disabled/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+          runtimeValidation: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-zod-inline-array.yaml',
+    },
+  },
   httpResourceBothTagsSplit: {
     output: {
       target: '../generated/angular/http-resource-both-tags-split/endpoints.ts',
