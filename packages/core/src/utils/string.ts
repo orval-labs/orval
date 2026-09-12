@@ -9,6 +9,37 @@ import {
 } from './assertion';
 
 /**
+ * Renders a document-supplied `const` or enum member as an inert literal.
+ *
+ * A schema's declared `type` and the value its `const` carries both come from
+ * the document and nothing makes them agree, so the branch has to be on the
+ * value's own JavaScript type. Deciding from the declared type instead lets an
+ * `object`-typed schema carry a string payload that is spliced in raw and then
+ * evaluated as an expression when the generated module loads.
+ *
+ * @param value - The value to render. Any JSON-representable value.
+ * @returns A literal that stays inert in both value and type position.
+ * @example
+ * toJsLiteral("it's") // returns "'it\\'s'"
+ * toJsLiteral(42) // returns "42"
+ * toJsLiteral({ a: 1 }) // returns '{"a":1}'
+ */
+export function toJsLiteral(value: unknown): string {
+  if (isString(value)) {
+    return `'${jsStringLiteralEscape(value)}'`;
+  }
+
+  // `Number.isFinite` because YAML spells `NaN` and `Infinity` as scalars and
+  // neither is a legal TypeScript literal type; `JSON.stringify` renders both
+  // as `null`, which is inert and valid wherever this lands.
+  if ((isNumber(value) && Number.isFinite(value)) || isBoolean(value)) {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
+}
+
+/**
  * Converts data to a string representation suitable for code generation.
  * Handles strings, numbers, booleans, functions, arrays, and objects.
  *

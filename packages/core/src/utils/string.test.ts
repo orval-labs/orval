@@ -7,6 +7,7 @@ import {
   jsStringEscape,
   jsStringLiteralEscape,
   stringify,
+  toJsLiteral,
 } from './string';
 
 describe('dedupeUnionType', () => {
@@ -343,5 +344,41 @@ describe('stringify', () => {
       const parsed = JSON.parse('{ "__proto__": "x" }');
       expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
     });
+  });
+});
+
+describe('toJsLiteral', () => {
+  it('quotes and escapes a string', () => {
+    expect(toJsLiteral("it's")).toBe(String.raw`'it\'s'`);
+    expect(toJsLiteral('a\nb')).toBe(String.raw`'a\nb'`);
+    expect(toJsLiteral('back\\slash')).toBe(String.raw`'back\\slash'`);
+  });
+
+  // The declared schema `type` and the value a `const` carries both come from
+  // the document and nothing makes them agree, so a string payload has to stay
+  // quoted no matter what the schema claims the type is — otherwise it lands in
+  // the generated module as a live expression (GHSA-x4fj-j9hr-ccr6).
+  it('quotes a string payload that looks like an expression', () => {
+    expect(toJsLiteral("require('node:fs')")).toBe(
+      String.raw`'require(\'node:fs\')'`,
+    );
+  });
+
+  it('emits numbers and booleans bare', () => {
+    expect(toJsLiteral(42)).toBe('42');
+    expect(toJsLiteral(0)).toBe('0');
+    expect(toJsLiteral(true)).toBe('true');
+    expect(toJsLiteral(false)).toBe('false');
+  });
+
+  it('renders non-finite numbers as null, since neither is a TS literal type', () => {
+    expect(toJsLiteral(Number.NaN)).toBe('null');
+    expect(toJsLiteral(Number.POSITIVE_INFINITY)).toBe('null');
+  });
+
+  it('serializes null, objects and arrays as JSON literals', () => {
+    expect(toJsLiteral(null)).toBe('null');
+    expect(toJsLiteral({ a: 1 })).toBe('{"a":1}');
+    expect(toJsLiteral(['a', 'b'])).toBe('["a","b"]');
   });
 });

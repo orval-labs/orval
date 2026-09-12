@@ -7,7 +7,7 @@ import type {
   ResolverValue,
   ScalarValue,
 } from '../types';
-import { isSchemaNullable, jsDoc } from '../utils';
+import { isSchemaNullable, jsDoc, toJsLiteral } from '../utils';
 import { resolveValue } from './value';
 
 interface ResolveOptions {
@@ -53,14 +53,14 @@ export function createTypeAliasIfNeeded({
   const { originalSchema } = resolvedValue;
   const doc = jsDoc(originalSchema);
   const isConstant = 'const' in originalSchema;
-  const constantIsString =
-    'type' in originalSchema &&
-    (originalSchema.type === 'string' ||
-      (Array.isArray(originalSchema.type) &&
-        originalSchema.type.includes('string')));
 
+  // The constant lands in value position (`export const X = <here> as const`),
+  // so it has to be serialized from what it actually is. Quoting off the
+  // declared `type` left every non-string schema — an inline object being the
+  // reachable case, via an array component's `items` — emitting the document's
+  // text raw, which runs as an expression on import.
   const model = isConstant
-    ? `${doc}export const ${propName} = ${constantIsString ? `'${originalSchema.const}'` : originalSchema.const} as const;\n`
+    ? `${doc}export const ${propName} = ${toJsLiteral(originalSchema.const)} as const;\n`
     : `${doc}export type ${propName} = ${resolvedValue.value};\n`;
 
   return {
