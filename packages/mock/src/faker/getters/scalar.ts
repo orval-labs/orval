@@ -10,6 +10,7 @@ import {
   EnumGeneration,
   type GeneratorImport,
   getRefInfo,
+  getStringLiteralType,
   isBoolean,
   isNumber,
   isReference,
@@ -668,6 +669,24 @@ function formatEnumMember(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/**
+ * Returns `name` when it is safe to emit as a type reference (optionally an
+ * array of one), `undefined` otherwise.
+ *
+ * The name lands in identifier position inside a cast, where there is no quote
+ * to escape and nothing to escape it with — the only safe handling is to reject
+ * it. Names here are OpenAPI property keys and schema names, neither of which
+ * is constrained to an identifier, and a name carrying `'` or `)` closed the
+ * cast and the enclosing call so the rest became sibling object-literal
+ * properties with live initializers (GHSA-w68h-2r38-4cqq).
+ *
+ * Same guard `getArrayItemFactory` applies before naming a type.
+ */
+function safeTypeReference(name: string): string | undefined {
+  const base = name.endsWith('[]') ? name.slice(0, -2) : name;
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(base) ? name : undefined;
+}
+
 function getEnum(
   item: MockSchemaObject,
   imports: GeneratorImport[],
@@ -692,19 +711,36 @@ function getEnum(
       existingReferencedProperties.length === 0 ||
       isRootSchema
     ) {
-      enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({ name: item.name });
+      // A name that is not a type reference cannot be cast to: there is no
+      // type by that name to import, and the cast would only carry the name's
+      // text into the expression. Fall back to the `as const` the other
+      // generation types emit, which is always well-formed.
+      const typeName = safeTypeReference(item.name);
+      if (typeName) {
+        enumValue += ` as ${typeName}${typeName.endsWith('[]') ? '' : '[]'}`;
+        imports.push({ name: item.name });
+      } else {
+        enumValue += ' as const';
+      }
     } else {
       const parentReference = existingReferencedProperties.at(-1);
       if (!parentReference) {
         return '';
       }
 
-      enumValue += ` as ${parentReference}['${item.name}']`;
-      if (!item.path?.endsWith('[]')) enumValue += '[]';
-      imports.push({
-        name: parentReference,
-      });
+      // The property name is an indexed-access key — a TS string literal type,
+      // so always quoted and therefore always escaped. `getKey` covers the key
+      // side of the object-literal entry this expression ends up in; the value
+      // side is this cast, and it was quoting the name by hand.
+      if (safeTypeReference(parentReference)) {
+        enumValue += ` as ${parentReference}[${getStringLiteralType(item.name)}]`;
+        if (!item.path?.endsWith('[]')) enumValue += '[]';
+        imports.push({
+          name: parentReference,
+        });
+      } else {
+        enumValue += ' as const';
+      }
     }
   } else {
     enumValue += ' as const';
