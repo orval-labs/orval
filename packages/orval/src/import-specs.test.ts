@@ -3221,6 +3221,12 @@ describe('normalizeNullableRefs', () => {
 });
 
 describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
+  /** Just enough of a Swagger 2.0 path item to read the response schema back. */
+  type PathsWithResponseSchema = Record<
+    string,
+    { get: { responses: Record<string, { schema: unknown }> } }
+  >;
+
   it('does not inject a components key when nothing is merged', () => {
     // Strava's shape: the external document holds bare schemas at its root, so
     // the ref is inlined and no schema is merged. Creating the container
@@ -3247,12 +3253,15 @@ describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input) as Record<string, unknown>;
+    const result = dereferenceExternalRef(input) as {
+      paths: PathsWithResponseSchema;
+    };
 
     expect(result).not.toHaveProperty('components');
-    expect(
-      (result.paths as any)['/athlete'].get.responses['200'].schema,
-    ).toEqual({ type: 'object', properties: { id: { type: 'integer' } } });
+    expect(result.paths['/athlete'].get.responses['200'].schema).toEqual({
+      type: 'object',
+      properties: { id: { type: 'integer' } },
+    });
   });
 
   it('leaves an OpenAPI 3 document without merged schemas free of an empty container', () => {
@@ -3318,8 +3327,7 @@ describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
 
     const result = dereferenceExternalRef(input) as {
       definitions: Record<string, unknown>;
-      components?: unknown;
-      paths: any;
+      paths: PathsWithResponseSchema;
     };
 
     expect(result).not.toHaveProperty('components');
@@ -3353,7 +3361,7 @@ describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
     };
 
     const result = dereferenceExternalRef(input) as {
-      definitions: Record<string, any>;
+      definitions: { DetailedAthlete: { properties: { club: unknown } } };
     };
 
     expect(result.definitions.DetailedAthlete.properties.club).toEqual({
