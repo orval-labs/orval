@@ -362,3 +362,51 @@ describe('single-file Zod schema imports', () => {
     ]);
   });
 });
+
+/**
+ * Without `output.schemas`, every schema is written into a single
+ * `<target>.schemas.ts` sibling file, and `relativeSchemasPath` names that
+ * *file* rather than a directory. `indexFiles: false` has nothing to split
+ * into there, so the per-schema join produced `./pets.schemas/pet` — a path
+ * that points inside a file and resolves to nothing.
+ */
+describe('no output.schemas (single sibling schemas file)', () => {
+  const noSchemasOutput = (overrides: Partial<NormalizedOutputOptions> = {}) =>
+    createOutput({ schemas: undefined, ...overrides });
+
+  it('imports from the schemas file itself when indexFiles is false', () => {
+    const output = noSchemasOutput({ indexFiles: false });
+
+    expect(resolve(output, './pets.schemas')).toEqual(['./pets.schemas']);
+  });
+
+  it('collapses every import onto that one module', () => {
+    const output = noSchemasOutput({ indexFiles: false });
+
+    expect(resolve(output, '../pets.schemas')).toEqual(['../pets.schemas']);
+  });
+
+  it('keeps the schemas file for zod output too', () => {
+    const output = noSchemasOutput({ indexFiles: false });
+
+    expect(resolve(output, './pets.schemas', [PET], { isZod: true })).toEqual([
+      './pets.schemas',
+    ]);
+  });
+
+  it('still ignores a tag map, since there are no tag directories', () => {
+    const output = noSchemasOutput({ indexFiles: false });
+
+    expect(
+      resolve(output, './pets.schemas', [PET, ERROR], {
+        schemaTagMap: TAG_MAP,
+      }),
+    ).toEqual(['./pets.schemas']);
+  });
+
+  it('is unchanged when indexFiles is true', () => {
+    const output = noSchemasOutput({ indexFiles: true });
+
+    expect(resolve(output, './pets.schemas')).toEqual(['./pets.schemas']);
+  });
+});

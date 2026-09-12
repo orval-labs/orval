@@ -417,6 +417,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Same as above without `schemas`: the schemas land in one
+  // `endpoints.schemas.ts` sibling instead of a directory, so there is nothing
+  // for `indexFiles: false` to split into and every import has to name that
+  // file. Joining the schema name onto it addressed a path inside a file.
+  noIndexFilesNoSchemas: {
+    output: {
+      mode: 'split',
+      target: '../generated/default/no-index-files-no-schemas/endpoints.ts',
+      client: 'fetch',
+      indexFiles: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   multipleTags: {
     output: {
       target: '../generated/default/multiple-tags/endpoints.ts',
