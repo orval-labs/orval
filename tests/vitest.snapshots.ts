@@ -11,6 +11,7 @@ export default defineConfig({
       'query-key-mutator.spec.ts',
       'serialize-response-headers.spec.ts',
       'axios-url-runtime.spec.ts',
+      'angular-zod-array-validation.spec.ts',
     ],
     silent: 'passed-only',
   },

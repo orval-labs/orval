@@ -66,9 +66,11 @@ import {
   type ClientOverride,
   createReturnTypesRegistry,
   createRouteRegistry,
+  getArrayResponseSchema,
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  getZodNamespaceImport,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -643,7 +645,20 @@ const getHttpResourceResponseImports = (
   });
 };
 
-const getParseSchemaName = (
+/**
+ * The schema behind a validated `httpResource` response.
+ *
+ * `importName` is what has to become a value import and supply the `Output`
+ * alias; `schemaRef` is what `.parse` is called on. They differ for an inline
+ * array response, which is imported as its element (`Item`) but parsed through
+ * a composed expression (`zod.array(Item)`) — see {@link getArrayResponseSchema}.
+ */
+interface ResolvedParseSchema {
+  importName: string;
+  schemaRef: string;
+}
+
+const resolveParseSchema = (
   response: {
     readonly imports: readonly { name: string; isZodSchema?: boolean }[];
     readonly definition: { readonly success?: string };
@@ -651,12 +666,14 @@ const getParseSchemaName = (
   factory: HttpResourceFactoryName,
   output: NormalizedOutputOptions,
   responseTypeOverride?: string,
-): string | undefined => {
+): ResolvedParseSchema | undefined => {
   if (factory !== 'httpResource') return undefined;
 
   // Explicit isZodSchema flag on imports (forward-compatible)
   const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  if (zodSchema) return zodSchema.name;
+  if (zodSchema) {
+    return { importName: zodSchema.name, schemaRef: zodSchema.name };
+  }
 
   // Check if runtime validation is disabled
   if (!output.override.angular.runtimeValidation.enabled) return undefined;
@@ -672,10 +689,28 @@ const getParseSchemaName = (
   const hasMatchingImport = response.imports.some(
     (imp) => imp.name === responseType,
   );
-  if (!hasMatchingImport) return undefined;
+  if (hasMatchingImport) {
+    return { importName: responseType, schemaRef: responseType };
+  }
 
-  return responseType;
+  const arraySchema = getArrayResponseSchema(response.imports, responseType);
+  return arraySchema
+    ? { importName: arraySchema.elementName, schemaRef: arraySchema.schemaRef }
+    : undefined;
 };
+
+/** The import name to promote to a value import for a validated response. */
+const getParseSchemaName = (
+  response: {
+    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly definition: { readonly success?: string };
+  },
+  factory: HttpResourceFactoryName,
+  output: NormalizedOutputOptions,
+  responseTypeOverride?: string,
+): string | undefined =>
+  resolveParseSchema(response, factory, output, responseTypeOverride)
+    ?.importName;
 
 const getHttpResourceZodParsedImportNames = (
   response: GeneratorVerbOptions['response'],
@@ -703,13 +738,36 @@ const getHttpResourceZodParsedImportNames = (
   return names;
 };
 
+/**
+ * Whether any success type on this verb is parsed through a composed
+ * `zod.array(...)` expression, which is the only thing that references the
+ * `zod` namespace — a named schema calls `.parse` on its own binding.
+ */
+const needsZodNamespaceImport = (
+  response: GeneratorVerbOptions['response'],
+  output: NormalizedOutputOptions,
+): boolean =>
+  response.types.success.some((successType) =>
+    resolveParseSchema(
+      response,
+      getHttpResourceFactory(
+        response,
+        successType.contentType,
+        successType.value,
+      ),
+      output,
+      successType.value,
+    )?.schemaRef.startsWith('zod.'),
+  );
+
 const getHttpResourceVerbImports = (
   verbOptions: GeneratorVerbOptions,
   output: NormalizedOutputOptions,
 ): GeneratorImport[] => {
   const { response, body, queryParams, props, headers, params } = verbOptions;
   const responseImports = getHttpResourceResponseImports(response);
-  const parsedZodImportNames = isZodSchemaOutput(output)
+  const isZodOutput = isZodSchemaOutput(output);
+  const parsedZodImportNames = isZodOutput
     ? getHttpResourceZodParsedImportNames(response, output)
     : new Set<string>();
   const parsedZodImports = responseImports.filter((imp) =>
@@ -717,6 +775,9 @@ const getHttpResourceVerbImports = (
   );
 
   return [
+    ...(isZodOutput && needsZodNamespaceImport(response, output)
+      ? [getZodNamespaceImport(output)]
+      : []),
     ...responseImports.map((imp) =>
       parsedZodImportNames.has(imp.name) ? { ...imp, values: true } : imp,
     ),
@@ -749,16 +810,16 @@ const getParseExpression = (
   operationName: string,
   responseTypeOverride?: string,
 ): string | undefined => {
-  const schemaName = getParseSchemaName(
+  const resolved = resolveParseSchema(
     response,
     factory,
     output,
     responseTypeOverride,
   );
 
-  return schemaName
+  return resolved
     ? emitResponseValidation({
-        schemaRef: schemaName,
+        schemaRef: resolved.schemaRef,
         operationName,
         strategy: output.override.angular.runtimeValidation.strategy,
         context: 'parse-fn',
@@ -928,13 +989,19 @@ const buildHttpResourceFunction = (
   const hasResponseSchemaImport = responseSchemaImports.some(
     (imp) => imp.name === dataType,
   );
+  // An inline array response declares its element's output type (`ItemOutput[]`),
+  // mirroring how a named array component resolves to `ItemsOutput` (#3718).
+  const dataArraySchema = getArrayResponseSchema(
+    responseSchemaImports,
+    dataType,
+  );
   const resourceName = `${operationName}Resource`;
   const parsedDataType =
     omitParse &&
     output.override.angular.runtimeValidation.enabled &&
     !isPrimitiveType(dataType) &&
-    hasResponseSchemaImport
-      ? getSchemaOutputTypeRef(dataType)
+    (hasResponseSchemaImport || !!dataArraySchema)
+      ? (dataArraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
       : dataType;
   const successTypes = response.types.success;
   const overallReturnType =
@@ -1391,10 +1458,13 @@ const getHttpResourceGeneratedResponseType = (
     output.override.angular.runtimeValidation.enabled &&
     !!contentType &&
     (contentType.includes('json') || contentType.includes('+json')) &&
-    !isPrimitiveType(value) &&
-    responseImports.some((imp) => imp.name === value)
+    !isPrimitiveType(value)
   ) {
-    return getSchemaOutputTypeRef(value);
+    if (responseImports.some((imp) => imp.name === value)) {
+      return getSchemaOutputTypeRef(value);
+    }
+    const valueArraySchema = getArrayResponseSchema(responseImports, value);
+    if (valueArraySchema) return valueArraySchema.outputTypeRef;
   }
 
   return getContentTypeReturnType(contentType, value);

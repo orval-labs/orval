@@ -1,0 +1,63 @@
+openapi: 3.0.3
+info:
+  title: Angular zod inline array responses
+  version: 1.0.0
+paths:
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        '200':
+          description: Inline array of a component element — validated via the element schema.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+  /named-items:
+    get:
+      operationId: listNamedItems
+      responses:
+        '200':
+          description: Control — a $ref to a named array component, already validated today.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Items'
+  /strings:
+    get:
+      operationId: listStrings
+      responses:
+        '200':
+          description: Control — a primitive element has no schema to compose from.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: Control — a plain object response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Items:
+      type: array
+      items:
+        $ref: '#/components/schemas/Item'

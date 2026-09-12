@@ -2092,6 +2092,138 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('HttpClientObserveOptions');
     });
 
+    // #3718: an inline `type: array` response resolves to the definition
+    // `Pet[]`, which never equals the import name `Pet`, so every exact-name
+    // gate to runtime validation missed it and the array was returned
+    // unchecked. It now validates through the element schema.
+    describe('inline array responses (#3718)', () => {
+      const zodArrayOutput = () =>
+        createOutput({
+          schemas: {
+            type: 'zod',
+            path: '/tmp/schemas',
+          } as NormalizedOutputOptions['schemas'],
+          override: {
+            ...createOutput().override,
+            angular: {
+              ...angularOverride,
+              runtimeValidation: { enabled: true, strategy: 'throw' },
+            },
+          },
+        });
+
+      const implFor = (
+        successDefinition: string,
+        imports: { name: string }[],
+        output = zodArrayOutput(),
+      ) => {
+        const verbOption = createVerbOption({
+          operationId: 'listPets',
+          operationName: 'listPets',
+          typeName: 'listPets',
+          response: baseResponse({
+            imports,
+            definition: { success: successDefinition, errors: 'Error' },
+          }),
+          override: {
+            ...createVerbOption().override,
+            angular: {
+              ...angularOverride,
+              runtimeValidation: { enabled: true, strategy: 'throw' },
+            },
+          } as GeneratorVerbOptions['override'],
+        });
+
+        const options = {
+          route: '/api/pets',
+          pathRoute: '/pets',
+          override: output.override,
+          context: createContextSpec(output),
+          output: output.target,
+        } satisfies GeneratorOptions;
+
+        return generateHttpClientImplementation(verbOption, options);
+      };
+
+      it('validates the body branch with a composed zod.array expression', () => {
+        const impl = implFor('Pet[]', [{ name: 'Pet' }]);
+
+        expect(impl).toContain(
+          '.pipe(map(data => zod.array(Pet).parse(data)))',
+        );
+      });
+
+      it('validates the response and events branches', () => {
+        const impl = implFor('Pet[]', [{ name: 'Pet' }]);
+
+        expect(impl).toContain(
+          'response.clone({ body: zod.array(Pet).parse(response.body) })',
+        );
+        expect(impl).toContain(
+          'event instanceof AngularHttpResponse ? event.clone({ body: zod.array(Pet).parse(event.body) }) : event',
+        );
+      });
+
+      it('declares the element output type and drops the TData generic', () => {
+        const impl = implFor('Pet[]', [{ name: 'Pet' }]);
+
+        expect(impl).toContain('Observable<PetOutput[]>');
+        expect(impl).toContain('this.http.get<PetOutput[]>');
+        expect(impl).not.toContain('listPets<TData');
+        expect(impl).not.toContain('as TData');
+      });
+
+      it('leaves a primitive-element array unvalidated', () => {
+        const impl = implFor('string[]', []);
+
+        expect(impl).not.toContain('zod.array(');
+        expect(impl).toContain('listPets<TData = string[]>');
+      });
+
+      it('leaves an array whose element has no schema import unvalidated', () => {
+        const impl = implFor('Pet[]', [{ name: 'Other' }]);
+
+        expect(impl).not.toContain('zod.array(');
+      });
+
+      it('leaves a nested array unvalidated', () => {
+        const impl = implFor('Pet[][]', [{ name: 'Pet' }]);
+
+        expect(impl).not.toContain('zod.array(');
+      });
+
+      it('emits nothing new when runtime validation is off', () => {
+        const output = createOutput({
+          schemas: {
+            type: 'zod',
+            path: '/tmp/schemas',
+          } as NormalizedOutputOptions['schemas'],
+        });
+        const verbOption = createVerbOption({
+          operationId: 'listPets',
+          operationName: 'listPets',
+          typeName: 'listPets',
+          response: baseResponse({
+            imports: [{ name: 'Pet' }],
+            definition: { success: 'Pet[]', errors: 'Error' },
+          }),
+        });
+
+        const options = {
+          route: '/api/pets',
+          pathRoute: '/pets',
+          override: output.override,
+          context: createContextSpec(output),
+          output: output.target,
+        } satisfies GeneratorOptions;
+
+        const impl = generateHttpClientImplementation(verbOption, options);
+
+        expect(impl).not.toContain('zod.array(');
+        expect(impl).toContain('listPets<TData = Pet[]>');
+      });
+    });
+
     it('generates reusable Accept helper declarations in the header', () => {
       const header = generateAngularHeader({
         title: 'PetService',
