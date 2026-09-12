@@ -627,6 +627,40 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
   });
 });
 
+describe('generateRequestFunction — response status precedence', () => {
+  it('excludes exact responses from matching wildcard responses', () => {
+    const response = {
+      definition: { success: 'Pet | void', errors: '' },
+      imports: [],
+      types: {
+        success: [
+          {
+            key: '200',
+            contentType: 'application/json',
+            value: 'Pet',
+          },
+          { key: '2XX', contentType: '', value: 'void' },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    } as unknown as GeneratorVerbOptions['response'];
+    const verbOptions = makeVerbOptions({ response });
+    (
+      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
+    ).includeHttpResponseReturnType = true;
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain('status: Exclude<HTTPStatusCode2xx, 200>');
+  });
+});
+
 describe('generateRequestFunction — Content-Type header escaping', () => {
   it('escapes single quotes in the request body media type key', () => {
     const verbOptions = makeVerbOptions({
