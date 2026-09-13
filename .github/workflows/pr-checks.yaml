@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@v1
+        uses: voidzero-dev/setup-vp@v1.20.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: true
@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@v1
+        uses: voidzero-dev/setup-vp@v1.20.0
         with:
           node-version: 24
           cache: true
