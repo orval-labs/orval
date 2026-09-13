@@ -14002,4 +14002,73 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
       ),
     ).not.toThrow();
   });
+
+  // Review follow-up: `assertZodMethodName` sat only before the final
+  // fall-through, so three earlier paths interpolated `fn` first — the classic
+  // coercion return, and the two Zod Mini renderers. Each is now guarded at its
+  // own interpolation site.
+  describe('every method-name interpolation is guarded', () => {
+    const renderWith = (variant: ZodVariantOption, fn: string) => {
+      const context = makeContextSpec();
+      return () =>
+        parseZodValidationSchemaDefinition(
+          {
+            functions: [[fn, undefined]],
+            consts: [],
+          } as unknown as ZodValidationSchemaDefinition,
+          context,
+          false,
+          false,
+          true,
+          undefined,
+          undefined,
+          variant,
+        );
+    };
+
+    const payload = 'string();globalThis.__PWNED__=1;//';
+
+    it('guards the classic fall-through path', () => {
+      expect(renderWith('classic', payload)).toThrow(/not a plain identifier/);
+    });
+
+    it('guards the mini renderers', () => {
+      expect(renderWith('mini', payload)).toThrow(/not a plain identifier/);
+    });
+
+    // The two coercion returns interpolate `fn` as well and carry the same
+    // guard, but a non-identifier cannot actually reach them: coercion is
+    // gated on `COERCIBLE_TYPES.has(fn)` (or an explicit `coerce` list), so
+    // `fn` is already a known type by then. They are guarded anyway so the
+    // property holds at the interpolation rather than by reachability.
+
+    it('still renders the discriminator sentinel, which is not a method name', () => {
+      // `oneOf::discriminator::kind` rides through the same tuple field and is
+      // decoded rather than emitted, so it must not trip the guard.
+      const context = makeContextSpec();
+      expect(() =>
+        parseZodValidationSchemaDefinition(
+          {
+            functions: [
+              [
+                'oneOf::discriminator::kind',
+                [
+                  { functions: [['string', undefined]], consts: [] },
+                  { functions: [['number', undefined]], consts: [] },
+                ],
+              ],
+            ],
+            consts: [],
+          } as unknown as ZodValidationSchemaDefinition,
+          context,
+          false,
+          false,
+          true,
+          undefined,
+          undefined,
+          'classic',
+        ),
+      ).not.toThrow();
+    });
+  });
 });

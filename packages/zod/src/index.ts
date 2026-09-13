@@ -60,7 +60,12 @@ import {
   assertZodTarget,
   resolveIsZodV4,
 } from './compatible-v4';
-import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
+import {
+  assertZodMethodName,
+  PURE_COMMENT,
+  renderZodExport,
+  zodMiniCall,
+} from './export-emitter';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -108,32 +113,6 @@ export const predefinedZodFormats = new Set([
   'hostname',
   'uuid',
 ]);
-
-/**
- * A dotted path of JavaScript identifiers — the only shape a Zod method name
- * may take. The dots are for zod v4's namespaced constructors (`iso.datetime`,
- * `iso.date`), which the emitter reaches through this same path.
- */
-const ZOD_METHOD_NAME_PATTERN = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
-
-/**
- * Refuses a Zod method name that is not a plain (optionally dotted) identifier.
- *
- * Method names are interpolated unquoted into generated source (`zod.<fn>()`,
- * `.<fn>(...)`), so anything else there is executable code rather than a call.
- * Every name reaching the emitter is generator-chosen, so this only fires when
- * a spec-derived string has leaked into a code position — which is exactly how
- * a schema's scalar `type` became import-time RCE.
- *
- * @see GHSA-v263-cp2v-vrrx
- */
-const assertZodMethodName = (fn: string): void => {
-  if (ZOD_METHOD_NAME_PATTERN.test(fn)) return;
-
-  throw new Error(
-    `orval: refusing to generate a Zod schema with "${fn}" as a method name — it is not a plain identifier. This value would otherwise be emitted verbatim into generated source.`,
-  );
-};
 
 type ResolvedZodType =
   | string
@@ -207,8 +186,10 @@ const COERCIBLE_TYPES = new Set([
   'date',
 ]);
 
-const zodMiniCoerceCall = (fn: string, args = '') =>
-  `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+const zodMiniCoerceCall = (fn: string, args = '') => {
+  assertZodMethodName(fn);
+  return `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+};
 
 // Unicode property escapes (`\p{...}`) require the `u` flag; without it they
 // match the literal characters `p{...}`, so the generated validator silently
@@ -2730,6 +2711,7 @@ ${Object.entries(objectArgs)
       (fn !== 'date' && shouldCoerceType) ||
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
+      assertZodMethodName(fn);
       return `.coerce.${fn}(${combinedArgs})`;
     }
 
@@ -2740,10 +2722,6 @@ ${Object.entries(objectArgs)
       return '.exactOptional()';
     }
 
-    // Defence in depth for the method-name position. Every `fn` that reaches
-    // here is generator-chosen, so a value that is not a bare identifier means
-    // a spec-derived string slipped into a code position somewhere upstream —
-    // refuse the document rather than emitting it. See GHSA-v263-cp2v-vrrx.
     assertZodMethodName(fn);
 
     return `.${fn}(${combinedArgs})`;
