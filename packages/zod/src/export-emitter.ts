@@ -5,9 +5,42 @@ import { getZodTypeName } from './compatible-v4';
 /** Marks a call as side-effect-free for bundlers' tree-shaking passes. */
 export const PURE_COMMENT = '/*#__PURE__*/ ';
 
+/**
+ * A dotted path of JavaScript identifiers — the only shape a Zod method name
+ * may take. The dots are for zod v4's namespaced constructors (`iso.datetime`,
+ * `iso.date`), which the emitters reach through this same path.
+ */
+const ZOD_METHOD_NAME_PATTERN = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
+
+/**
+ * Refuses a Zod method name that is not a plain (optionally dotted) identifier.
+ *
+ * Method names are interpolated unquoted into generated source (`zod.<fn>()`,
+ * `.<fn>(...)`), so anything else there is executable code rather than a call.
+ * Every name reaching an emitter is generator-chosen, so this only fires when a
+ * spec-derived string has leaked into a code position — which is exactly how a
+ * schema's scalar `type` became import-time RCE.
+ *
+ * Called at each interpolation site rather than once up front: a definition
+ * tuple's name is not always a method name. The discriminator path smuggles
+ * `oneOf::discriminator::<property>` through the same field, and the branches
+ * that consume those decode them instead of emitting them.
+ *
+ * @see GHSA-v263-cp2v-vrrx
+ */
+export const assertZodMethodName = (fn: string): void => {
+  if (ZOD_METHOD_NAME_PATTERN.test(fn)) return;
+
+  throw new Error(
+    `orval: refusing to generate a Zod schema with "${fn}" as a method name — it is not a plain identifier. This value would otherwise be emitted verbatim into generated source.`,
+  );
+};
+
 /** Renders a Zod Mini functional call, e.g. `zod.minLength(1)`, with the pure-call comment. */
-export const zodMiniCall = (fn: string, args = '') =>
-  `${PURE_COMMENT}zod.${fn}(${args})`;
+export const zodMiniCall = (fn: string, args = '') => {
+  assertZodMethodName(fn);
+  return `${PURE_COMMENT}zod.${fn}(${args})`;
+};
 
 /**
  * Descriptor for one generated Zod `export const` block. Everything on this

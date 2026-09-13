@@ -60,7 +60,12 @@ import {
   assertZodTarget,
   resolveIsZodV4,
 } from './compatible-v4';
-import { PURE_COMMENT, renderZodExport, zodMiniCall } from './export-emitter';
+import {
+  assertZodMethodName,
+  PURE_COMMENT,
+  renderZodExport,
+  zodMiniCall,
+} from './export-emitter';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -141,8 +146,19 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     return type;
   }
 
-  // Handle single type value
-  const type = isString(schemaTypeValue) ? schemaTypeValue : undefined;
+  // Handle single type value.
+  //
+  // The resolved type becomes a Zod *method name* — a top-level schema renders
+  // as `export const XResponse = zod.<type>()` at module scope — so an
+  // unrecognized value here is not a bad type, it is arbitrary code that runs
+  // when the generated module is imported. The array branch above already
+  // filters against `possibleSchemaTypes`; applying it here too closes the
+  // asymmetry, and anything outside the set falls back to `unknown` below.
+  // See GHSA-v263-cp2v-vrrx.
+  const type =
+    isString(schemaTypeValue) && possibleSchemaTypes.has(schemaTypeValue)
+      ? schemaTypeValue
+      : undefined;
 
   // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
   if (schema.type === 'array' && 'prefixItems' in schema) {
@@ -170,8 +186,10 @@ const COERCIBLE_TYPES = new Set([
   'date',
 ]);
 
-const zodMiniCoerceCall = (fn: string, args = '') =>
-  `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+const zodMiniCoerceCall = (fn: string, args = '') => {
+  assertZodMethodName(fn);
+  return `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+};
 
 // Unicode property escapes (`\p{...}`) require the `u` flag; without it they
 // match the literal characters `p{...}`, so the generated validator silently
@@ -2693,6 +2711,7 @@ ${Object.entries(objectArgs)
       (fn !== 'date' && shouldCoerceType) ||
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
+      assertZodMethodName(fn);
       return `.coerce.${fn}(${combinedArgs})`;
     }
 
@@ -2702,6 +2721,8 @@ ${Object.entries(objectArgs)
     if (exactOptional && isZodV4 && fn === 'optional') {
       return '.exactOptional()';
     }
+
+    assertZodMethodName(fn);
 
     return `.${fn}(${combinedArgs})`;
   };

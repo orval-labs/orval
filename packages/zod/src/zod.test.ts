@@ -13870,3 +13870,205 @@ describe('generateZod (generateCompanionTypes)', () => {
     );
   });
 });
+
+/**
+ * A schema's scalar `type` is emitted as a Zod method name — `zod.<type>()` at
+ * module scope for a top-level schema. The `possibleSchemaTypes` allow-list was
+ * applied only to the OpenAPI 3.1 array-of-types branch, so a single-string
+ * `type` reached that method-name position verbatim and any statement in it ran
+ * when the generated module was imported. GHSA-v263-cp2v-vrrx.
+ */
+describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () => {
+  const render = (schema: OpenApiSchemaObject) => {
+    const context = makeContextSpec();
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'GetXResponse',
+      true,
+      true,
+      { required: true },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'classic',
+    ).zod;
+  };
+
+  it('falls back to unknown for the advisory payload instead of emitting it', () => {
+    const payload =
+      "string();globalThis.__ORVAL_PWNED__=require('child_process').execSync('id').toString();//";
+
+    const zod = render({ type: payload } as unknown as OpenApiSchemaObject);
+
+    expect(zod).not.toContain('__ORVAL_PWNED__');
+    expect(zod).not.toContain('child_process');
+    expect(zod).toBe('zod.unknown()');
+  });
+
+  it.each([
+    'string();evil()//',
+    'string).evil((',
+    'constructor',
+    '__proto__',
+    'toString',
+    'foo bar',
+    'number;x',
+  ])('falls back to unknown for the non-type %s', (type) => {
+    const zod = render({ type } as unknown as OpenApiSchemaObject);
+
+    expect(zod).toBe('zod.unknown()');
+  });
+
+  it.each([
+    ['string', 'zod.string()'],
+    ['number', 'zod.number()'],
+    ['boolean', 'zod.boolean()'],
+  ])('still resolves the legitimate scalar type %s', (type, expected) => {
+    expect(render({ type } as unknown as OpenApiSchemaObject)).toBe(expected);
+  });
+
+  it('still maps integer to int', () => {
+    // Zod v4 renders the dedicated `int()` constructor rather than
+    // `number().int()`; either way it must not degrade to `unknown`.
+    expect(render({ type: 'integer' } as unknown as OpenApiSchemaObject)).toBe(
+      'zod.int()',
+    );
+  });
+
+  it('still resolves a 3.1 array-of-types union', () => {
+    const zod = render({
+      type: ['string', 'number'],
+    } as unknown as OpenApiSchemaObject);
+
+    expect(zod).toContain('zod.string()');
+    expect(zod).toContain('zod.number()');
+  });
+
+  it('still builds a tuple from prefixItems', () => {
+    const zod = render({
+      type: 'array',
+      prefixItems: [{ type: 'string' }, { type: 'number' }],
+    } as unknown as OpenApiSchemaObject);
+
+    expect(zod).toContain('zod.tuple(');
+  });
+
+  // Defence in depth: even if a spec-derived string reached the emitter through
+  // some other path, the method-name position refuses anything that is not a
+  // plain (optionally dotted) identifier.
+  it('refuses a non-identifier method name at the emission site', () => {
+    const context = makeContextSpec();
+
+    expect(() =>
+      parseZodValidationSchemaDefinition(
+        {
+          functions: [['string();evil()//', undefined]],
+          consts: [],
+        } as unknown as ZodValidationSchemaDefinition,
+        context,
+        false,
+        false,
+        true,
+        undefined,
+        undefined,
+        'classic',
+      ),
+    ).toThrow(/not a plain identifier/);
+  });
+
+  it('still allows the v4 namespaced constructors', () => {
+    const context = makeContextSpec();
+
+    expect(() =>
+      parseZodValidationSchemaDefinition(
+        {
+          functions: [['iso.datetime', undefined]],
+          consts: [],
+        } as unknown as ZodValidationSchemaDefinition,
+        context,
+        false,
+        false,
+        true,
+        undefined,
+        undefined,
+        'classic',
+      ),
+    ).not.toThrow();
+  });
+
+  // Review follow-up: `assertZodMethodName` sat only before the final
+  // fall-through, so three earlier paths interpolated `fn` first — the classic
+  // coercion return, and the two Zod Mini renderers. Each is now guarded at its
+  // own interpolation site.
+  describe('every method-name interpolation is guarded', () => {
+    const renderWith = (variant: ZodVariantOption, fn: string) => {
+      const context = makeContextSpec();
+      return () =>
+        parseZodValidationSchemaDefinition(
+          {
+            functions: [[fn, undefined]],
+            consts: [],
+          } as unknown as ZodValidationSchemaDefinition,
+          context,
+          false,
+          false,
+          true,
+          undefined,
+          undefined,
+          variant,
+        );
+    };
+
+    const payload = 'string();globalThis.__PWNED__=1;//';
+
+    it('guards the classic fall-through path', () => {
+      expect(renderWith('classic', payload)).toThrow(/not a plain identifier/);
+    });
+
+    it('guards the mini renderers', () => {
+      expect(renderWith('mini', payload)).toThrow(/not a plain identifier/);
+    });
+
+    // The two coercion returns interpolate `fn` as well and carry the same
+    // guard, but a non-identifier cannot actually reach them: coercion is
+    // gated on `COERCIBLE_TYPES.has(fn)` (or an explicit `coerce` list), so
+    // `fn` is already a known type by then. They are guarded anyway so the
+    // property holds at the interpolation rather than by reachability.
+
+    it('still renders the discriminator sentinel, which is not a method name', () => {
+      // `oneOf::discriminator::kind` rides through the same tuple field and is
+      // decoded rather than emitted, so it must not trip the guard.
+      const context = makeContextSpec();
+      expect(() =>
+        parseZodValidationSchemaDefinition(
+          {
+            functions: [
+              [
+                'oneOf::discriminator::kind',
+                [
+                  { functions: [['string', undefined]], consts: [] },
+                  { functions: [['number', undefined]], consts: [] },
+                ],
+              ],
+            ],
+            consts: [],
+          } as unknown as ZodValidationSchemaDefinition,
+          context,
+          false,
+          false,
+          true,
+          undefined,
+          undefined,
+          'classic',
+        ),
+      ).not.toThrow();
+    });
+  });
+});
