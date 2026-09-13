@@ -1035,7 +1035,8 @@ export default defineConfig({
 
 **Type:** `String | Object`
 
-Custom TypeScript configuration path or inline config:
+Custom TypeScript configuration path or inline config. When omitted, Orval looks
+for the nearest `tsconfig.json` (or `jsconfig.json`).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1045,13 +1046,27 @@ export default defineConfig({
       // or inline
       tsconfig: {
         compilerOptions: {
-          target: 'ES2020',
+          moduleResolution: 'NodeNext',
         },
       },
     },
   },
 });
 ```
+
+Orval reads a small number of `compilerOptions` to shape the emitted imports —
+`module` and `moduleResolution` (whether generated relative imports carry a
+`.js` extension), `allowImportingTsExtensions`, `allowSyntheticDefaultImports`
+and `esModuleInterop` (default vs namespace import form), `baseUrl`, and
+`exactOptionalPropertyTypes`.
+
+`target` is **not** one of them, and it does not need to be set for Orval's
+sake. In particular, a [mutator](#mutator) is bundled internally only so its
+exported function can be inspected for how many parameters it takes; that bundle
+is discarded and never reaches your generated client, so it is parsed as modern
+JavaScript regardless of the target your project compiles to. A mutator may
+therefore use `import.meta`, top-level `await`, or any other syntax your own
+toolchain supports.
 
 ## packageJson
 
