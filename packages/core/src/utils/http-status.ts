@@ -3,6 +3,38 @@ import type { SharedTypeDeclaration } from '../types';
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
 const EXACT_STATUS_CODE_REGEX = /^[1-5]\d{2}$/;
 
+/**
+ * Refuses an OpenAPI response key that is not a status code.
+ *
+ * A response key reaches generated source in unquoted positions — a TypeScript
+ * type (`status: <key>`) in the fetch and axios clients, and a runtime
+ * expression (`response.status === <key>`) in the axios empty-response
+ * normalization. There is no quote to escape in either, so a key like
+ * `2 || <expression>` or `number }; <statement>; type _ = { _z: number` is
+ * spliced in as live code rather than data. Parse it, and refuse the document
+ * rather than emitting whatever it says.
+ *
+ * The spec validator rejects such keys, but `input.unsafeDisableValidation`
+ * turns it off, so the check has to sit at the emission point to be worth
+ * anything. This mirrors `assertSafeStatusCode` in the mock generator, which
+ * guards the structurally identical sink unconditionally for the same reason.
+ *
+ * `default` is deliberately refused: it is a valid spec key but not a valid
+ * status expression, and every caller resolves it to its own construct
+ * (`Exclude<HTTPStatusCodes, …>`) before reaching an emission sink.
+ *
+ * @see GHSA-rw75-cc5p-q7c9 (fetch/axios type position)
+ * @see GHSA-4j53-7m38-656f (axios runtime condition)
+ */
+export const assertSafeResponseStatusKey = (key: string): string => {
+  if (WILDCARD_STATUS_CODE_REGEX.test(key) || EXACT_STATUS_CODE_REGEX.test(key))
+    return key;
+
+  throw new Error(
+    `orval: refusing to generate code for an OpenAPI response key that is not a status code (got "${key}"). This value would otherwise be emitted verbatim into generated source.`,
+  );
+};
+
 export const getStatusCodeType = (key: string, responseKeys: string[] = []) => {
   if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
     const wildcardType = `HTTPStatusCode${key[0]}xx`;
@@ -20,7 +52,7 @@ export const getStatusCodeType = (key: string, responseKeys: string[] = []) => {
       ? `Exclude<${wildcardType}, ${exactStatuses.join(' | ')}>`
       : wildcardType;
   }
-  return key;
+  return assertSafeResponseStatusKey(key);
 };
 
 export const HTTP_STATUS_CODE_SHARED_TYPES: SharedTypeDeclaration[] = [

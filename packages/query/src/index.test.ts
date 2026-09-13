@@ -57,6 +57,9 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
         types: {
           success: [
             {
+              // `key` is required on `ResReqTypesValue` and always set by
+              // `getResReqTypes`; the cast below is what let it be omitted.
+              key: '200',
               value: 'Pets',
               contentType: 'application/json',
               hasReadonlyProps: false,
