@@ -43,8 +43,10 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getArrayResponseSchema,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  getZodNamespaceImport,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -78,6 +80,28 @@ const hasSchemaImport = (
 
 const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
+
+/**
+ * How a single response type is validated, or `undefined` when it cannot be.
+ *
+ * A value is validatable either as a named schema (`Item` → `Item.parse`) or as
+ * an inline array of one (`Item[]` → `zod.array(Item).parse`, #3718). Callers
+ * need the declared type and the parse expression to agree, so both come from
+ * one lookup rather than two parallel checks.
+ */
+const resolveValidatableSchema = (
+  imports: readonly { name: string }[],
+  value: string,
+): { outputTypeRef: string; schemaRef: string } | undefined => {
+  if (isPrimitiveType(value)) return undefined;
+  if (hasSchemaImport(imports, value)) {
+    return {
+      outputTypeRef: getSchemaOutputTypeRef(value),
+      schemaRef: getSchemaValueRef(value),
+    };
+  }
+  return getArrayResponseSchema(imports, value, getSchemaValueRef);
+};
 
 /**
  * Partition props into the three buckets used by per-content-type overload
@@ -383,14 +407,21 @@ export const generateHttpClientImplementation = (
   const dataType = response.definition.success || 'unknown';
   const isPrimitive = isPrimitiveType(dataType);
   const hasSchema = hasSchemaImport(response.imports, dataType);
+  // An inline `type: array` response is `Item[]`, which the exact-name checks
+  // above never match; it validates through its element schema instead (#3718).
+  const arraySchema = getArrayResponseSchema(
+    response.imports,
+    dataType,
+    getSchemaValueRef,
+  );
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
     override.angular.runtimeValidation.enabled &&
     isZodOutput &&
     !isPrimitive &&
-    hasSchema;
+    (hasSchema || !!arraySchema);
   const parsedDataType = shouldValidateResponse
-    ? getSchemaOutputTypeRef(dataType)
+    ? (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
     : dataType;
   const getGeneratedResponseType = (
     value: string,
@@ -400,11 +431,10 @@ export const generateHttpClientImplementation = (
       override.angular.runtimeValidation.enabled &&
       isZodOutput &&
       !!contentType &&
-      (contentType.includes('json') || contentType.includes('+json')) &&
-      !isPrimitiveType(value) &&
-      hasSchemaImport(response.imports, value)
+      (contentType.includes('json') || contentType.includes('+json'))
     ) {
-      return getSchemaOutputTypeRef(value);
+      const resolved = resolveValidatableSchema(response.imports, value);
+      if (resolved) return resolved.outputTypeRef;
     }
 
     return getContentTypeReturnType(contentType, value);
@@ -421,7 +451,7 @@ export const generateHttpClientImplementation = (
           ),
         ].join(' | ') || parsedDataType;
   const schemaValueRef = shouldValidateResponse
-    ? getSchemaValueRef(dataType)
+    ? (arraySchema?.schemaRef ?? getSchemaValueRef(dataType))
     : dataType;
   // When Zod runtime validation is enabled the emitted method signature exposes
   // `parsedDataType` (e.g. `PetsOutput`) directly instead of a caller-overridable
@@ -609,14 +639,16 @@ export const generateHttpClientImplementation = (
 
   const jsonReturnType =
     jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
-  const parsedJsonReturnType =
+  // The declared JSON type and the pipe that parses it have to agree, so both
+  // resolve through one lookup. Splitting them is what let the multi-content
+  // overload declare `ItemOutput[]` while nothing parsed it.
+  const jsonSchema =
     jsonSuccessValues.length === 1 &&
     override.angular.runtimeValidation.enabled &&
-    isZodOutput &&
-    !isPrimitiveType(jsonSuccessValues[0]) &&
-    hasSchemaImport(response.imports, jsonSuccessValues[0])
-      ? getSchemaOutputTypeRef(jsonSuccessValues[0])
-      : jsonReturnType;
+    isZodOutput
+      ? resolveValidatableSchema(response.imports, jsonSuccessValues[0])
+      : undefined;
+  const parsedJsonReturnType = jsonSchema?.outputTypeRef ?? jsonReturnType;
 
   let jsonValidationPipe = shouldValidateResponse
     ? emitResponseValidation({
@@ -626,25 +658,13 @@ export const generateHttpClientImplementation = (
         context: 'rxjs-map',
       })
     : '';
-  if (
-    hasMultipleContentTypes &&
-    !shouldValidateResponse &&
-    override.angular.runtimeValidation.enabled &&
-    isZodOutput &&
-    jsonSuccessValues.length === 1
-  ) {
-    const jsonType = jsonSuccessValues[0];
-    const jsonIsPrimitive = isPrimitiveType(jsonType);
-    const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
-    if (!jsonIsPrimitive && jsonHasSchema) {
-      const jsonSchemaRef = getSchemaValueRef(jsonType);
-      jsonValidationPipe = emitResponseValidation({
-        schemaRef: jsonSchemaRef,
-        operationName,
-        strategy: validationStrategy,
-        context: 'rxjs-map',
-      });
-    }
+  if (hasMultipleContentTypes && !shouldValidateResponse && jsonSchema) {
+    jsonValidationPipe = emitResponseValidation({
+      schemaRef: jsonSchema.schemaRef,
+      operationName,
+      strategy: validationStrategy,
+      context: 'rxjs-map',
+    });
   }
 
   const textSuccessTypes = successTypes.filter(
@@ -907,7 +927,8 @@ export const narrowsResponseEvents = (
     override.angular.runtimeValidation.enabled &&
     isZodSchemaOutput(output) &&
     !isPrimitiveType(dataType) &&
-    hasSchemaImport(response.imports, dataType)
+    (hasSchemaImport(response.imports, dataType) ||
+      !!getArrayResponseSchema(response.imports, dataType))
   );
 };
 
@@ -980,19 +1001,30 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       },
     };
 
-    if (
-      !isPrimitiveResponse &&
-      hasSchemaImport(result.response.imports, responseType)
-    ) {
+    // A validated array response is parsed through its element schema, so it is
+    // the element that has to become a value import and contribute the `Output`
+    // alias — `Item[]` is not an import name at all (#3718).
+    const responseArraySchema = getArrayResponseSchema(
+      result.response.imports,
+      responseType,
+    );
+    const schemaImportName = hasSchemaImport(
+      result.response.imports,
+      responseType,
+    )
+      ? responseType
+      : responseArraySchema?.elementName;
+
+    if (!isPrimitiveResponse && schemaImportName !== undefined) {
       result = {
         ...result,
         response: {
           ...result.response,
           imports: [
             ...result.response.imports.map((imp) =>
-              imp.name === responseType ? { ...imp, values: true } : imp,
+              imp.name === schemaImportName ? { ...imp, values: true } : imp,
             ),
-            { name: getSchemaOutputTypeRef(responseType) },
+            { name: getSchemaOutputTypeRef(schemaImportName) },
           ],
         },
       };
@@ -1017,19 +1049,24 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       if (jsonSchemaNames.length === 1) {
         const jsonType = jsonSchemaNames[0];
         const jsonIsPrimitive = isPrimitiveType(jsonType);
-        if (
-          !jsonIsPrimitive &&
-          hasSchemaImport(result.response.imports, jsonType)
-        ) {
+        // As above: an inline array is imported and aliased by its element.
+        const jsonImportName = hasSchemaImport(
+          result.response.imports,
+          jsonType,
+        )
+          ? jsonType
+          : getArrayResponseSchema(result.response.imports, jsonType)
+              ?.elementName;
+        if (!jsonIsPrimitive && jsonImportName !== undefined) {
           result = {
             ...result,
             response: {
               ...result.response,
               imports: [
                 ...result.response.imports.map((imp) =>
-                  imp.name === jsonType ? { ...imp, values: true } : imp,
+                  imp.name === jsonImportName ? { ...imp, values: true } : imp,
                 ),
-                { name: getSchemaOutputTypeRef(jsonType) },
+                { name: getSchemaOutputTypeRef(jsonImportName) },
               ],
             },
           };
@@ -1055,6 +1092,11 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
+      : []),
+    // Only a composed array expression references the `zod` namespace; a named
+    // schema calls `Schema.parse` on its own binding.
+    ...(implementation.includes('zod.array(')
+      ? [getZodNamespaceImport(options.context.output)]
       : []),
     ...(baseUrl
       ? [
