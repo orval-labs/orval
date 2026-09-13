@@ -317,4 +317,23 @@ describe('getMutatorInfo', () => {
       expect(result).toEqual({ numberOfParams: 1 });
     });
   });
+
+  // The inspection bundle is discarded after its arity is read, so it is built
+  // at esbuild's default target. Downleveling it to the project's TypeScript
+  // target warned on `import.meta` (the old `es6` fallback, which applied
+  // whenever `compilerOptions.target` was absent), failed outright on a low
+  // target, and rewrote default arguments out of the signature this parse
+  // measures. See issues/4093 and issues/1185.
+  describe('modern syntax in the inspected mutator', () => {
+    it('reads arity from a mutator using import.meta and a default argument', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'import-meta-mutator.ts'),
+        { namedExport: 'importMetaMutator' },
+      );
+
+      // Two declared parameters — the default argument must not be hoisted out
+      // of the signature, which is what a downleveled bundle would do.
+      expect(result).toEqual({ numberOfParams: 2 });
+    });
+  });
 });

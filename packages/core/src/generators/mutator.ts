@@ -86,12 +86,14 @@ export async function generateMutator({
     ? `${pascal(name)}${BODY_TYPE_NAME}`
     : BODY_TYPE_NAME;
 
+  // No `tsconfig` here: the inspection bundle is discarded after its arity is
+  // read, so it is built at esbuild's default target rather than the project's.
+  // See the note on `bundleFile`.
   const mutatorInfo = await getMutatorInfo(inspectionPath, {
     root: workspace,
     namedExport: mutatorInfoName,
     alias: mutator.alias,
     external: mutator.external,
-    tsconfig,
   });
 
   if (!mutatorInfo) {

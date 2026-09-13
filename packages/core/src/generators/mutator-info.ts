@@ -2,7 +2,7 @@ import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
 
-import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
+import type { GeneratorMutatorParsingInfo } from '../types';
 
 export async function getMutatorInfo(
   filePath: string,
@@ -11,7 +11,6 @@ export async function getMutatorInfo(
     namedExport?: string;
     alias?: Record<string, string>;
     external?: string[];
-    tsconfig?: Tsconfig;
   },
 ): Promise<GeneratorMutatorParsingInfo | undefined> {
   const {
@@ -19,26 +18,40 @@ export async function getMutatorInfo(
     namedExport = 'default',
     alias,
     external,
-    tsconfig,
   } = options ?? {};
 
-  const code = await bundleFile(
-    root,
-    filePath,
-    alias,
-    external,
-    tsconfig?.compilerOptions,
-  );
+  const code = await bundleFile(root, filePath, alias, external);
 
   return parseFile(code, namedExport);
 }
 
+/**
+ * Bundles the mutator purely so its exported function can be parsed for arity —
+ * `write: false`, and the only thing read back out is `numberOfParams` /
+ * `returnNumberOfParams`. None of this output reaches the generated client.
+ *
+ * That is why no `target` is set: esbuild defaults to `esnext`, and downleveling
+ * a throwaway bundle to the project's TypeScript target has no upside and three
+ * failure modes. It emitted `"import.meta" is not available in the configured
+ * target environment` for the `es6` fallback that applied whenever
+ * `compilerOptions.target` was absent — which covers a TypeScript 6+ project
+ * (where an omitted `target` means *latest*, not ES2015) and a solution-style
+ * `tsconfig.json` that only carries `references`. It failed outright on a low
+ * target, since esbuild cannot transform `const`, `async` or default arguments
+ * to `es5`. And rewriting default or rest parameters into the function body
+ * changes the very arity this parse exists to measure.
+ *
+ * `parseFile` reads the result with `ecmaVersion: 'latest'`, so a modern bundle
+ * is the safe input here, not a risky one.
+ *
+ * @see https://github.com/orval-labs/orval/issues/4093
+ * @see https://github.com/orval-labs/orval/issues/1185
+ */
 async function bundleFile(
   root: string,
   fileName: string,
   alias?: Record<string, string>,
   external?: string[],
-  compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<string> {
   const result = await build({
     absWorkingDir: root,
@@ -48,7 +61,6 @@ async function bundleFile(
     bundle: true,
     format: 'esm',
     metafile: false,
-    target: compilerOptions?.target ?? 'es6',
     minify: false,
     minifyIdentifiers: false,
     minifySyntax: false,

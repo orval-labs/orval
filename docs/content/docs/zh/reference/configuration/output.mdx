@@ -929,7 +929,8 @@ export default defineConfig({
 
 **类型：** `String | Object`
 
-自定义 TypeScript 配置路径或内联配置：
+自定义 TypeScript 配置路径或内联配置。省略时，Orval 会查找最近的
+`tsconfig.json`（或 `jsconfig.json`）。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -939,13 +940,25 @@ export default defineConfig({
       // 或内联
       tsconfig: {
         compilerOptions: {
-          target: 'ES2020',
+          moduleResolution: 'NodeNext',
         },
       },
     },
   },
 });
 ```
+
+Orval 只读取少量 `compilerOptions` 来决定生成代码中的导入形式：`module` 与
+`moduleResolution`（生成的相对导入是否带 `.js` 扩展名）、
+`allowImportingTsExtensions`、`allowSyntheticDefaultImports` 与
+`esModuleInterop`（默认导入还是命名空间导入）、`baseUrl`，以及
+`exactOptionalPropertyTypes`。
+
+`target` **不在**其中，也无需为 Orval 设置。特别地，[mutator](#mutator)
+只会被内部打包一次，用于检查其导出函数接受多少个参数；该产物会被丢弃，
+不会进入生成的客户端，因此无论项目编译到哪个 target，它都按现代 JavaScript
+解析。所以 mutator 可以使用 `import.meta`、顶层 `await`，或你自己的工具链
+支持的任何语法。
 
 ## packageJson
 
