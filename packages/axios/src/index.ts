@@ -11,6 +11,7 @@ import {
   generateMutatorRequestOptions,
   generateOptions,
   generateVerbImports,
+  assertSafeResponseStatusKey,
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -184,7 +185,9 @@ const getEmptyResponseStatusCondition = (
         exclusions ? ` && ${exclusions}` : ''
       }`;
     }
-    return `response.status === ${key}`;
+    // Unquoted expression position: an unparsed key here is live code, not a
+    // comparison (GHSA-4j53-7m38-656f).
+    return `response.status === ${assertSafeResponseStatusKey(key)}`;
   };
 
   return [...statuses]

@@ -352,6 +352,40 @@ describe('Axios response types', () => {
     );
   });
 
+  // GHSA-4j53-7m38-656f: the key lands in `response.status === <key>`, an
+  // unquoted expression position, so an unparsed key is live code. The spec
+  // validator rejects such keys but `input.unsafeDisableValidation` turns it
+  // off, so the refusal has to happen here.
+  it('refuses a response status key that is not a status code', () => {
+    const injected =
+      "2 || (globalThis.__pwned = require('child_process').execSync('id').toString()) || false";
+
+    expect(() =>
+      generateAxios(
+        createVerbOptions({
+          response: {
+            ...responseWithMultipleSuccessStatuses,
+            types: {
+              success: [
+                responseWithMultipleSuccessStatuses.types.success[0],
+                {
+                  ...responseWithMultipleSuccessStatuses.types.success[1],
+                  key: injected,
+                },
+              ],
+              errors: [],
+            },
+          },
+          override: {
+            ...createVerbOptions().override,
+            axios: { includeHttpResponseReturnType: true },
+          },
+        }),
+        generatorOptions,
+      ),
+    ).toThrow(/not a status code/);
+  });
+
   it('gives exact responses precedence over wildcard responses', () => {
     const result = generateAxios(
       createVerbOptions({

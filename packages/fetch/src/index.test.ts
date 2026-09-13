@@ -659,6 +659,37 @@ describe('generateRequestFunction — response status precedence', () => {
 
     expect(implementation).toContain('status: Exclude<HTTPStatusCode2xx, 200>');
   });
+
+  // GHSA-rw75-cc5p-q7c9: the key lands in `status: <key>`, an unquoted type
+  // position, so a key that closes the object early turns the rest into a
+  // top-level statement. A type-stripping build (esbuild, Vite, tsx, swc) then
+  // runs it at import time.
+  it('refuses a response status key that is not a status code', () => {
+    const injected =
+      'number }; globalThis.__pwned = 1; type _Ignore = { _z: number';
+    const response = {
+      definition: { success: 'Pet', errors: '' },
+      imports: [],
+      types: {
+        success: [
+          { key: '200', contentType: 'application/json', value: 'Pet' },
+          { key: injected, contentType: 'application/json', value: 'Pet' },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    } as unknown as GeneratorVerbOptions['response'];
+    const verbOptions = makeVerbOptions({ response });
+    (
+      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
+    ).includeHttpResponseReturnType = true;
+
+    expect(() =>
+      generateRequestFunction(verbOptions, makeOptions(makeContext())),
+    ).toThrow(/not a status code/);
+  });
 });
 
 describe('generateRequestFunction — Content-Type header escaping', () => {
