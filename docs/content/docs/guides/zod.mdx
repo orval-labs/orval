@@ -82,6 +82,25 @@ With Zod Mini + pure annotations, the unused schema can disappear entirely:
 
 In large generated clients this can remove unused schema initializers from the final bundle. In real builds this can mean hundreds of kilobytes less generated validation code loaded at startup.
 
+## Array response items
+
+Inline array response items can use OpenAPI compositions such as `allOf`,
+`oneOf`, or `anyOf`. Orval generates a schema for the item type, for example:
+
+```ts
+export const ListAllOf200Item = zod.object({
+  id: zod.int().optional(),
+}).and(
+  zod.object({
+    extra: zod.string().optional(),
+  }),
+);
+```
+
+The generated client can then use `ListAllOf200Item[]` for the response. When
+an array item is a component `$ref`, the component schema writer owns that
+schema and the operation does not generate a duplicate item schema.
+
 ## Zod version
 
 Orval uses **Zod 4** as its output baseline (`z.strictObject`, `z.looseObject`, `z.iso.datetime()`, `.meta()`, …), while projects still on Zod 3 are fully supported. The emitted syntax follows whichever `zod` major your project resolves.

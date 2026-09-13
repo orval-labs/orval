@@ -1,0 +1,184 @@
+---
+title: Pinia Colada
+description: 使用 Pinia Colada 生成 Vue 查询和 mutation。
+---
+
+将 `client` 设置为 `'pinia-colada'`，即可生成请求函数、query key、query/mutation options 和 Vue composables。请在应用中安装 `@pinia/colada` 1.x（1.4.4 或更高版本）以及 Vue/Pinia peer dependencies。
+
+## 配置
+
+```ts
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  pets: {
+    input: './openapi.json',
+    output: {
+      target: './src/api/pets.ts',
+      client: 'pinia-colada',
+      httpClient: 'fetch', // 或 'axios'
+      override: { fetch: { includeHttpResponseReturnType: false } },
+    },
+  },
+});
+```
+
+在 Vue 应用中注册 Pinia 和 `PiniaColada` 插件。GET 与 HEAD 操作会生成 query，其他 HTTP 方法会生成 mutation：
+
+```ts
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import { PiniaColada } from '@pinia/colada';
+import App from './App.vue';
+
+createApp(App).use(createPinia()).use(PiniaColada).mount('#app');
+```
+
+## 生成的结果
+
+对于名为 `getPet` 的操作，生成 `getPet`、`getGetPetQueryKey`、`getGetPetQueryOptions` 和 `useGetPet`。对于名为 `createPet` 的 mutation，生成 `createPet`、`CreatePetMutationVariables`、`getCreatePetMutationOptions` 和 `useCreatePet`。
+
+```ts
+const key = getGetPetQueryKey(1);
+const options = getGetPetQueryOptions(1, {
+  query: { staleTime: 30_000 },
+});
+```
+
+## Queries
+
+操作输入可以是普通值、ref 或 getter。生成的 query key 包含 HTTP method、route 和操作参数；当响应式输入变化时，Colada 会获得匹配的 key 和 request 值。
+
+```ts
+import { ref } from 'vue';
+
+const petId = ref(1);
+const pet = useGetPet(petId, { query: { staleTime: 30_000 } });
+useGetPet(petId.value);
+useGetPet(petId);
+useGetPet(() => petId.value);
+```
+
+使用 `options.query` 传递 Colada 选项，使用 `options.request` 传递 Fetch/Axios 请求选项。响应式选项应使用 getter：
+
+```ts
+const isReady = ref(true);
+
+useGetPet(petId, () => ({
+  query: { enabled: isReady.value },
+  request: { headers: { 'x-client': 'web' } },
+}));
+```
+
+生成的 query 函数会在可用时转发 Colada 的 `AbortSignal`。内置 Fetch transport 会拒绝 HTTP 失败，使 Colada 进入 error state；Axios 保留其正常的 response shape。
+
+自定义 `query.key` 时，必须包含所有会影响响应的变量。响应式输入应在同一个 options getter 中返回 key：
+
+```ts
+useGetPet(petId, () => ({
+  query: { key: ['pets', petId.value] },
+}));
+```
+
+不同 pet ID 共用固定 key 会复用同一个 cache entry。使用相同的 key factory 使自定义 key 失效；`getGetPetQueryKey()` 仍然返回默认 key。详见 [Colada query key 指南](https://pinia-colada.esm.dev/guide/query-keys.html)。
+
+## Mutations
+
+Mutation variables 包含操作的 path、query、header 和 body 参数，并保留生成的名称和类型。通过 `options.mutation` 传递 Colada 生命周期回调：
+
+```ts
+const cache = useQueryCache();
+const createPet = useCreatePet({
+  mutation: {
+    onSuccess: () =>
+      cache.invalidateQueries({
+        key: getListPetsQueryKey().slice(0, 2),
+      }),
+  },
+});
+
+await createPet.mutateAsync({ createPetBody: { name: 'Milo' } });
+```
+
+生成器不会猜测 mutation 应该使哪些 query 失效，应在应用代码中选择对应的 key。`getCreatePetMutationOptions()` 可以在不创建 composable 的情况下提供可复用 options。
+
+`mutate` 和 `mutateAsync` 使用生成的 operation argument 类型，生命周期回调也会获得类型化的 data、variables 和 context：
+
+```ts
+const createPet = useCreatePet({
+  mutation: {
+    onMutate: () => ({ previousName: 'Milo' }),
+    onSuccess(data, variables, context) {
+      console.log(data.id, variables.createPetBody.name, context.previousName);
+    },
+  },
+});
+
+createPet.mutate({ createPetBody: { name: 'Milo' } });
+await createPet.mutateAsync({ createPetBody: { name: 'Luna' } });
+```
+
+## Request and query options
+
+Colada 选项放在 `options.query` 中，Fetch 或 Axios 请求选项放在 `options.request` 中：
+
+```ts
+useGetPet(petId, {
+  query: { enabled: true, staleTime: 30_000 },
+  request: { headers: { 'x-client': 'web' } },
+});
+```
+
+对于响应式选项，使用 getter，使 query key 和 options 一起解析：
+
+```ts
+const isReady = ref(true);
+
+useGetPet(petId, () => ({
+  query: { enabled: isReady.value },
+  request: { headers: { 'x-client': 'web' } },
+}));
+```
+
+## Compatibility
+
+该 client 使用 Orval 现有的 Fetch/Axios serializer，并支持普通函数形式的 mutator。自定义 mutator 必须自行拒绝失败请求；不支持 hook mutator。JSON、multipart 和 URL-encoded body 遵循请求生成器已有的配置。
+
+内置 Fetch transport 会拒绝失败的 HTTP 响应，使 Colada 能通过 error state 接收失败。Axios 保留其正常的 response shape。普通 Fetch mutator 应自行拒绝失败响应，普通 Axios mutator 则应返回生成 operation 所期望的值。
+
+例如，普通 Fetch mutator 可以在保留生成请求契约的同时拒绝失败响应：
+
+```ts
+export async function customFetch<T>(
+  url: string,
+  options?: RequestInit,
+): Promise<T> {
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.status === 204 || response.status === 205
+    ? (undefined as T)
+    : response.json();
+}
+```
+
+如果生成的 operation 需要直接获得 response data，Axios mutator 可以返回该数据：
+
+```ts
+import axios, { type AxiosRequestConfig } from 'axios';
+
+export const customAxios = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> =>
+  axios({ ...config, ...options }).then((response) => response.data);
+```
+
+`requestOptions: false` 时不会生成 `options.request`。与 `optionsParamRequired: true` 一起使用时，支持 request options 的操作会要求该参数。`useNamedParameters` 会改变生成的操作参数形式，Pinia Colada wrapper 会遵循该形式。
+
+该 client 支持 `single`、`split`、`tags` 和 `tags-split` mode。不会生成专用的 infinite query helper，也不会生成 Nuxt 集成。生成的 query 会在可用时转发 AbortSignal，因此响应式输入变化时，之前的请求可能被 query library 取消。
+
+请将生成的 options 和 key 与 Colada cache API 一起使用。`samples/pinia-colada` 展示了 query、CRUD mutation、cache invalidation、Fetch/Axios transport、错误恢复和类型检查。
+
+## Full Example
+
+完整示例请参阅 [Pinia Colada sample](https://github.com/orval-labs/orval/tree/master/samples/pinia-colada)，其中包含 Fetch 和 Axios 输出、自定义 mutator、body 序列化、类型检查和浏览器测试。

@@ -82,6 +82,22 @@ object({
 
 在大型生成客户端中，这可以从最终 bundle 中移除未使用的 schema 初始化代码。在真实构建里，这可能意味着启动时少加载数百 KB 的验证代码。
 
+## 数组响应元素
+
+内联数组响应的元素可以使用 `allOf`、`oneOf` 或 `anyOf` 等 OpenAPI composition。Orval 会为元素类型生成 schema，例如：
+
+```ts
+export const ListAllOf200Item = zod.object({
+  id: zod.int().optional(),
+}).and(
+  zod.object({
+    extra: zod.string().optional(),
+  }),
+);
+```
+
+生成的 client 可以使用 `ListAllOf200Item[]` 作为响应类型。如果数组元素是 component `$ref`，则由 component schema writer 负责，不会生成重复的 operation item schema。
+
 ## Zod version
 
 Orval 以 **Zod 4** 作为输出基线（`z.strictObject`、`z.looseObject`、`z.iso.datetime()`、`.meta()` 等），但也完全支持仍在使用 Zod 3 的项目。最终输出的语法会跟随你的项目实际解析到的 `zod` 主版本。

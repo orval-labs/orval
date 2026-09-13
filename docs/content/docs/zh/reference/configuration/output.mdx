@@ -27,7 +27,9 @@ export default defineConfig({
 
 **类型：** `String | Function`
 **默认值：** `'axios-functions'`
-**可选值：** `angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`swr`、`zod`、`effect`、`hono`、`fetch`、`mcp`
+**可选值：** `angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`pinia-colada`、`swr`、`zod`、`effect`、`hono`、`fetch`、`mcp`
+
+关于生成 Vue query、mutation、query key 和 options 的说明，请参阅 [Pinia Colada 指南](/zh/docs/guides/pinia-colada)。
 
 指定生成客户端类型。
 
@@ -368,7 +370,7 @@ export default defineConfig({
 
 ## mode
 
-**类型：** `'single' | 'split' | 'tags' | 'tags-split'`
+**类型：** `'single' | 'split' | 'tags' | 'tags-split' | 'tags-operations' | 'tags-operations-split'`
 **默认值：** `'single'`
 
 ### single
@@ -445,6 +447,36 @@ my-app/src/
 └── users/
     └── users.ts
 ```
+
+### tags-operations
+
+在每个 OpenAPI tag 目录下为每个 operation 生成一个实现文件。启用 `indexFiles`（默认）时，会生成按 tag 聚合的 `index.ts`：
+
+```
+my-app/src/
+└── pets/
+    ├── get-pet.ts
+    ├── list-pets.ts
+    └── index.ts
+```
+
+实现文件同时包含该 operation 的类型和运行时实现。设置 `indexFiles: false` 时，请直接导入 operation 文件。该模式支持 `react-query`、`svelte-query`、`vue-query`、`swr` 和 `fetch` client。
+
+### tags-operations-split
+
+在每个 tag 目录下为每个 operation 生成实现文件和 `.schemas.ts` 文件。启用 `indexFiles`（默认）时，tag 的 `index.ts` 会重新导出这两个文件：
+
+```
+my-app/src/
+└── pets/
+    ├── get-pet.ts
+    ├── get-pet.schemas.ts
+    ├── list-pets.ts
+    ├── list-pets.schemas.ts
+    └── index.ts
+```
+
+设置 `indexFiles: false` 时，请直接导入 operation 和 schema 文件。该模式使用与 `tags-operations` 相同的 client 支持范围。
 
 ## baseUrl
 
@@ -720,13 +752,13 @@ import { getPetMock } from '@acme/data-layer/sdk/fakers';
 **类型：** `Boolean`
 **默认值：** `false`
 
-在 `tags-split` 模式下，将共享的基础设施类型（例如 fetch client 生成的 `HTTPStatusCode*`）提取到单独的 `common-types.ts` 文件中，并在 target 根目录生成一个 barrel `index.ts`。
+在 `tags-split` 模式下，只有启用 `tagsSplitDeduplication` 且未设置 `workspace` 时，才可以将共享的基础设施类型（例如 fetch client 生成的 `HTTPStatusCode*`）提取到单独的 `common-types.ts` 文件中。只有存在需要提取的共享类型时，才会生成共享类型文件；`indexFiles` 独立控制是否生成根目录的 `index.ts` barrel。
 
-当它与 [`indexFiles: true`](#indexfiles) 一起启用时：
+该选项与 [`indexFiles`](#indexfiles) 控制不同的行为：
 
 - 原本会在每个 tag 文件中重复出现的共享类型，会被统一收集并写入一次 `[commonTypesFileName].ts`
 - 每个 tag 文件都会从该公共文件导入共享类型，而不是内联声明
-- 会生成一个 barrel `index.ts`，其中包含对公共共享类型的具名 re-export，以及对每个 tag 实现文件的 `export *` re-export
+- 当 `indexFiles: true` 时，会生成一个 barrel `index.ts`，其中包含对公共共享类型的具名 re-export，以及对每个 tag 实现文件的 `export *` re-export
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -755,9 +787,9 @@ src/api/
     └── health.ts             ← import type { ... } from '../common-types'
 ```
 
-禁用时（默认），共享类型会继续按 tag 内联，也不会生成该 barrel，这与旧行为完全一致。
+禁用 `tagsSplitDeduplication` 时（默认），共享类型会继续按 tag 内联。只有在启用 `tagsSplitDeduplication` 且未设置 `workspace` 时，才可以提取共享类型。满足该条件时，即使 `indexFiles: false`，共享类型文件仍然可以生成，但不会生成根 barrel。
 
-当设置了 [`workspace`](#workspace) 时，此选项会被抑制（workspace 自己的 barrel 会处理聚合）。
+当设置了 [`workspace`](#workspace) 时，共享类型提取会被抑制，由 workspace 自己的 barrel 负责聚合。
 
 ## commonTypesFileName
 
@@ -1051,6 +1083,8 @@ export default defineConfig({
 
 传入 `false` 可以省略该注释块，传入函数则可替换它。传入 `true` 的效果与省略该选项相同，因为只要值既不是 `false` 也不是函数，就会回退到内置 header。
 
+该回调接收 OpenAPI [`Info Object`](https://spec.openapis.org/oas/v3.1.1#info-object) 作为 `info`。根据 OpenAPI 规范，`title` 和 `version` 是必填字段；`summary`、`description`、`termsOfService`、`contact` 和 `license` 是可选字段，使用前应先进行检查。对象中也可能包含 `x-*` 等规范扩展。回调可以返回一个字符串（按原样使用），也可以返回字符串数组（每个字符串渲染为一行）。
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
@@ -1201,6 +1235,17 @@ Query keys 通过前缀匹配，因此 query params 和 body 参数会被放宽�
 **类型：** `Boolean`
 
 生成类型安全的 `getQueryData` helpers。
+
+### useSkipToken
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+当 query 参数尚未解析时，使用 [`skipToken`](https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#typesafe-disabling-of-queries-using-skiptoken) 暂停 query，而不是使用生成的 `enabled` guard。
+
+与 `enabled` 不同，该选项也会覆盖 `refetch()`：参数未解析时不会发送请求，query 会改为因 `Missing queryFn` 而拒绝（TanStack 在开发环境中也会记录 console error）。同时，调用方仍可自由使用 `enabled`，因为调用方的 `...queryOptions` 会最后展开，否则可能覆盖生成的参数检查。
+
+仅适用于 React Query v5。Suspense queries 不受影响——TanStack 不会在其 `queryFn` 中使用 `SkipToken`。
 
 ### mutationInvalidates
 
@@ -1594,6 +1639,8 @@ export default defineConfig({
 ## override.zod
 
 Zod schema 生成选项：
+
+对于内联数组响应，使用 `allOf`、`oneOf` 或 `anyOf` 的元素 schema 也会作为 operation item schema 输出。作为 component `$ref` 的数组元素仍由 component schema writer 负责。示例请参阅 [Zod 指南](/zh/docs/guides/zod#数组响应元素)。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2304,6 +2351,35 @@ export const customHandler = async (
 
 ---
 
+## override.axios
+
+Axios client 选项：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        axios: {
+          includeHttpResponseReturnType: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### includeHttpResponseReturnType
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+在返回类型中包含 HTTP 状态，并将其与 response data 类型关联。例如，JSON `200` response 和空的 `204` response 会根据 `status` 将 `data` 收窄为 JSON body 或 `void`。
+
+内置 Axios client 会将规范中声明的空 response 规范化为 `undefined`。使用自定义 `mutator` 时，该选项只会改变生成的类型，不会改变运行时值，因为请求由 mutator 自行发出。mutator 必须返回具有相同 status 关联结构的完整 Axios response。
+
+---
+
 ## override.fetch
 
 Fetch client 选项：
@@ -2328,7 +2404,7 @@ export default defineConfig({
 **类型：** `Boolean`
 **默认值：** `true`
 
-在返回类型中包含 HTTP 状态。设为 `false` 时，直接返回数据。
+在返回类型中包含 HTTP 状态。设为 `false` 时，直接返回数据。当 operation 同时声明精确状态和匹配的 wildcard 状态时，生成的类型会优先使用精确状态。例如 `200` 和 `2XX` 会生成 `status: 200` 与 `status: Exclude<HTTPStatusCode2xx, 200>`。
 
 ### forceSuccessResponse
 
@@ -2628,6 +2704,8 @@ export default defineConfig({
 
 用于覆盖生成的 operation 名称的自定义函数。
 
+该回调接收 `(operation, route, verb)`：`operation` 是 OpenAPI Operation Object，`route` 是 operation 的 route 字符串，`verb` 是 Orval 的 HTTP verb 值。返回字符串时会同时设置方法名和类型名基底；返回 `[methodName, typeNameBase]` 时可以分别控制两者。
+
 **返回 `string`** 时，会同时控制方法名和类型名基底：
 
 ```ts title="orval.config.ts"
@@ -2700,6 +2778,24 @@ export default defineConfig({
           responses: { suffix: 'Response' },
           parameters: { suffix: 'Params' },
           requestBodies: { suffix: 'Bodies' },
+        },
+      },
+    },
+  },
+});
+```
+
+schema 的默认后缀为 `''`，response 为 `'Response'`，parameter 为 `'Parameter'`，request body 为 `'Body'`。显式设置后缀为 `''` 可以禁用后缀。
+
+对于数组 schema，`schemas.itemSuffix` 控制生成的元素类型后缀，默认值为 `'Item'`，且只适用于 `components.schemas`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { itemSuffix: 'Element' },
         },
       },
     },

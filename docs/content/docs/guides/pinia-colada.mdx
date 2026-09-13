@@ -7,7 +7,11 @@ Set `client: 'pinia-colada'` to generate request functions, query keys,
 query/mutation options and Vue composables. Install `@pinia/colada` 1.x (1.4.4 or
 later) and its Vue/Pinia peer dependencies in your application.
 
+## Configuration
+
 ```ts
+import { defineConfig } from 'orval';
+
 export default defineConfig({
   pets: {
     input: './openapi.json',
@@ -24,17 +28,53 @@ export default defineConfig({
 Register Pinia and the `PiniaColada` plugin in your Vue application.
 GET and HEAD operations generate queries; other methods generate mutations.
 
+```ts
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import { PiniaColada } from '@pinia/colada';
+import App from './App.vue';
+
+createApp(App).use(createPinia()).use(PiniaColada).mount('#app');
+```
+
+## Generated output
+
+For an operation named `getPet`, the client generates the request function,
+`getGetPetQueryKey`, `getGetPetQueryOptions`, and `useGetPet`. For a mutation
+named `createPet`, it generates `createPet`, `CreatePetMutationVariables`,
+`getCreatePetMutationOptions`, and `useCreatePet`.
+
+Query options factories can be used without creating a composable:
+
+```ts
+const key = getGetPetQueryKey(1);
+const options = getGetPetQueryOptions(1, {
+  query: { staleTime: 30_000 },
+});
+```
+
 ## Queries
 
-Query parameters accept plain values, refs and getters. Generated query keys
+Operation inputs accept plain values, refs and getters. Generated query keys
 include the HTTP method, route and operation arguments. Colada receives matching
 key/request values when reactive arguments change.
 
 ```ts
+import { ref } from 'vue';
+
 const petId = ref(1);
 const pet = useGetPet(petId, { query: { staleTime: 30_000 } });
 const key = getGetPetQueryKey(1);
 const options = getGetPetQueryOptions(1);
+```
+
+Each reactive input is typed as `MaybeRefOrGetter<T>`, so a path or query input
+can be a value, a Vue ref, or a getter:
+
+```ts
+useGetPet(petId.value);
+useGetPet(petId);
+useGetPet(() => petId.value);
 ```
 
 Use `options.query` for Colada options, including a custom key, and
@@ -83,6 +123,56 @@ The generator does not guess which queries a mutation invalidates. Choose the
 affected keys in application code. `getCreatePetMutationOptions()` also exposes
 reusable options without creating a composable.
 
+Mutation variables keep the generated operation argument types. The same types
+are used by `mutate` and `mutateAsync`, and lifecycle callbacks receive typed
+data, variables, and context:
+
+```ts
+const createPet = useCreatePet({
+  mutation: {
+    onMutate: () => ({ previousName: 'Milo' }),
+    onSuccess(data, variables, context) {
+      console.log(data.id, variables.createPetBody.name, context.previousName);
+    },
+  },
+});
+
+createPet.mutate({ createPetBody: { name: 'Milo' } });
+await createPet.mutateAsync({ createPetBody: { name: 'Luna' } });
+```
+
+## Request and query options
+
+Colada options are passed inside `options.query`, while Fetch or Axios request
+options are passed inside `options.request`:
+
+```ts
+useGetPet(petId, {
+  query: { enabled: true, staleTime: 30_000 },
+  request: { headers: { 'x-client': 'web' } },
+});
+```
+
+For reactive options, pass a getter so the query key and options are resolved
+together:
+
+```ts
+const isReady = ref(true);
+
+useGetPet(petId, () => ({
+  query: { enabled: isReady.value },
+  request: { headers: { 'x-client': 'web' } },
+}));
+```
+
+When `requestOptions: false` is configured, the generated operation does not
+accept request options and the generated Colada wrapper does not expose
+`options.request`. When request options are enabled together with
+`optionsParamRequired: true`, the request options argument is required for
+operations that support it. `useNamedParameters` changes the generated
+operation argument shape; the Pinia Colada wrapper follows that generated
+shape.
+
 ## Compatibility
 
 The client uses Orval's existing Fetch/Axios serializers and supports plain
@@ -90,7 +180,54 @@ function mutators. Custom mutators must reject failed requests themselves.
 Hook mutators are not supported. JSON, multipart and URL-encoded bodies follow
 the request generator's existing configuration.
 
-Use the generated options and keys with Colada's cache APIs. Dedicated infinite
-query helpers and Nuxt integration are not generated. The sample at
+The built-in Fetch transport is configured to reject failed HTTP responses so
+that Colada receives them through its error state. Axios keeps its normal
+response shape. A plain Fetch mutator should reject failed responses itself,
+and a plain Axios mutator should return the value expected by the generated
+request function.
+
+For example, a plain Fetch mutator can preserve the generated request contract
+while rejecting failed responses:
+
+```ts
+export async function customFetch<T>(
+  url: string,
+  options?: RequestInit,
+): Promise<T> {
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.status === 204 || response.status === 205
+    ? (undefined as T)
+    : response.json();
+}
+```
+
+An Axios mutator can return the response data directly when that is the shape
+expected by the generated operation:
+
+```ts
+import axios, { type AxiosRequestConfig } from 'axios';
+
+export const customAxios = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> =>
+  axios({ ...config, ...options }).then((response) => response.data);
+```
+
+The generated query function forwards Colada's `AbortSignal` to the request
+when request options are available. If a reactive query input changes while a
+request is pending, the previous request can be cancelled by the query
+library.
+
+The client works with the `single`, `split`, `tags`, and `tags-split` output
+modes. It does not generate dedicated infinite-query helpers or Nuxt
+integration, and hook mutators are not supported.
+
+Use the generated options and keys with Colada's cache APIs. The sample at
 `samples/pinia-colada` demonstrates queries, CRUD mutations, cache invalidation,
 and error recovery in English.
+
+## Full Example
+
+See the [complete Pinia Colada example](https://github.com/orval-labs/orval/tree/master/samples/pinia-colada) for Fetch and Axios output, custom mutators, payload serialization, type checks, and browser tests.

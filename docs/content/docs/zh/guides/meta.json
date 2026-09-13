@@ -11,6 +11,7 @@
     "---数据获取---",
     "react-query",
     "vue-query",
+    "pinia-colada",
     "svelte-query",
     "solid-query",
     "angular-query",

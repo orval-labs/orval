@@ -96,6 +96,29 @@ export const listPets = async (
 };
 ```
 
+## Exact and wildcard response statuses
+
+When `includeHttpResponseReturnType` is enabled and an operation declares both
+an exact status and a matching wildcard status, the exact status is removed
+from the wildcard type. This keeps the generated response union
+discriminated:
+
+```ts
+export type getMixedResponsesResponse200 = {
+  data: SuccessDto;
+  status: 200;
+};
+
+export type getMixedResponsesResponse2xx = {
+  data: GenericSuccessDto;
+  status: Exclude<HTTPStatusCode2xx, 200>;
+};
+```
+
+Narrow the generated response by checking `status`; this behavior affects the
+generated TypeScript types and does not change how the server selects a
+response.
+
 ## Custom Fetch Client
 
 Use a mutator for custom fetch implementations:

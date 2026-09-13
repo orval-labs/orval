@@ -96,6 +96,24 @@ export const listPets = async (
 };
 ```
 
+## 精确和 wildcard response status
+
+启用 `includeHttpResponseReturnType` 后，如果 operation 同时声明精确 status 和匹配的 wildcard status，精确 status 会从 wildcard 类型中排除：
+
+```ts
+export type getMixedResponsesResponse200 = {
+  data: SuccessDto;
+  status: 200;
+};
+
+export type getMixedResponsesResponse2xx = {
+  data: GenericSuccessDto;
+  status: Exclude<HTTPStatusCode2xx, 200>;
+};
+```
+
+这样可以通过检查 `status` 缩小生成的 response union。该行为影响生成的 TypeScript 类型，不改变服务器选择 response 的方式。
+
 ## Custom Fetch Client（自定义 Fetch 客户端）
 
 使用 mutator 接入自定义 Fetch 实现：
