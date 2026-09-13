@@ -4,6 +4,8 @@
  * Angular zod inline array responses
  * OpenAPI spec version: 1.0.0
  */
+import type { ListMultiContentAccept } from './endpoints';
+
 import type { Item, Items } from './model';
 
 import { HttpHeaders, httpResource } from '@angular/common/http';
@@ -179,10 +181,64 @@ export function getItemResource(
   );
 }
 
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function listMultiContentResource(
+  accept: 'application/json',
+  options?: OrvalHttpResourceOptions<Item[], unknown, true>,
+): HttpResourceRef<Item[] | undefined>;
+export function listMultiContentResource(
+  accept: 'text/plain',
+  options?: OrvalHttpResourceOptions<string, string, true>,
+): HttpResourceRef<string | undefined>;
+export function listMultiContentResource(
+  accept: ListMultiContentAccept = 'application/json',
+  options?:
+    | OrvalHttpResourceOptions<Item[], unknown, true>
+    | OrvalHttpResourceOptions<string, string, true>,
+): HttpResourceRef<Item[] | string | undefined> {
+  const buildRequest = (): HttpResourceRequest => {
+    const request = `/multi-content`;
+    const normalizedRequest: HttpResourceRequest = { url: request };
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
+    return {
+      ...extendedRequest,
+      headers:
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
+    };
+  };
+
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<Item[]>(
+      buildRequest,
+      options as unknown as OrvalHttpResourceOptions<Item[], unknown, true>,
+    );
+  }
+
+  if (accept.startsWith('text/') || accept.includes('xml')) {
+    return httpResource.text<string>(
+      buildRequest,
+      options as unknown as OrvalHttpResourceOptions<string, string, true>,
+    );
+  }
+
+  return httpResource<Item[]>(
+    buildRequest,
+    options as unknown as OrvalHttpResourceOptions<Item[], unknown, true>,
+  );
+}
+
 export type ListItemsResourceResult = NonNullable<Item[]>;
 export type ListNamedItemsResourceResult = NonNullable<Items>;
 export type ListStringsResourceResult = NonNullable<string[]>;
 export type GetItemResourceResult = NonNullable<Item>;
+export type ListMultiContentResourceResult = NonNullable<Item[] | string>;
 
 /**
  * Utility type for httpResource results with status tracking.

@@ -7,6 +7,10 @@
 import { Item, Items } from './model';
 import type { ItemOutput, ItemsOutput } from './model';
 
+import * as zod from 'zod';
+
+import type { ListMultiContentAccept } from './endpoints';
+
 import { HttpHeaders, httpResource } from '@angular/common/http';
 import type {
   HttpContext,
@@ -16,8 +20,6 @@ import type {
 } from '@angular/common/http';
 
 import type { ResourceStatus, Signal } from '@angular/core';
-
-import * as zod from 'zod';
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
@@ -191,10 +193,64 @@ export function getItemResource(
   );
 }
 
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function listMultiContentResource(
+  accept: 'application/json',
+  options?: OrvalHttpResourceOptions<ItemOutput[], unknown, true>,
+): HttpResourceRef<ItemOutput[] | undefined>;
+export function listMultiContentResource(
+  accept: 'text/plain',
+  options?: OrvalHttpResourceOptions<string, string, true>,
+): HttpResourceRef<string | undefined>;
+export function listMultiContentResource(
+  accept: ListMultiContentAccept = 'application/json',
+  options?:
+    | OrvalHttpResourceOptions<ItemOutput[], unknown, true>
+    | OrvalHttpResourceOptions<string, string, true>,
+): HttpResourceRef<ItemOutput[] | string | undefined> {
+  const buildRequest = (): HttpResourceRequest => {
+    const request = `/multi-content`;
+    const normalizedRequest: HttpResourceRequest = { url: request };
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
+    return {
+      ...extendedRequest,
+      headers:
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
+    };
+  };
+
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<ItemOutput[]>(buildRequest, {
+      ...(options ?? {}),
+      parse: zod.array(Item).parse,
+    } as unknown as OrvalHttpResourceOptions<ItemOutput[], unknown, true>);
+  }
+
+  if (accept.startsWith('text/') || accept.includes('xml')) {
+    return httpResource.text<string>(
+      buildRequest,
+      options as unknown as OrvalHttpResourceOptions<string, string, true>,
+    );
+  }
+
+  return httpResource<ItemOutput[]>(buildRequest, {
+    ...(options ?? {}),
+    parse: zod.array(Item).parse,
+  } as unknown as OrvalHttpResourceOptions<ItemOutput[], unknown, true>);
+}
+
 export type ListItemsResourceResult = NonNullable<ItemOutput[]>;
 export type ListNamedItemsResourceResult = NonNullable<ItemsOutput>;
 export type ListStringsResourceResult = NonNullable<string[]>;
 export type GetItemResourceResult = NonNullable<ItemOutput>;
+export type ListMultiContentResourceResult = NonNullable<ItemOutput[] | string>;
 
 /**
  * Utility type for httpResource results with status tracking.

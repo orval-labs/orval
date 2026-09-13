@@ -47,6 +47,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Item'
+  /multi-content:
+    get:
+      operationId: listMultiContent
+      responses:
+        '200':
+          description: JSON inline array beside a second content type — the multi-content fallback owns validation here.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+            text/plain:
+              schema:
+                type: string
 components:
   schemas:
     Item:

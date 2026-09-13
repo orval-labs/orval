@@ -82,6 +82,28 @@ const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
 
 /**
+ * How a single response type is validated, or `undefined` when it cannot be.
+ *
+ * A value is validatable either as a named schema (`Item` → `Item.parse`) or as
+ * an inline array of one (`Item[]` → `zod.array(Item).parse`, #3718). Callers
+ * need the declared type and the parse expression to agree, so both come from
+ * one lookup rather than two parallel checks.
+ */
+const resolveValidatableSchema = (
+  imports: readonly { name: string }[],
+  value: string,
+): { outputTypeRef: string; schemaRef: string } | undefined => {
+  if (isPrimitiveType(value)) return undefined;
+  if (hasSchemaImport(imports, value)) {
+    return {
+      outputTypeRef: getSchemaOutputTypeRef(value),
+      schemaRef: getSchemaValueRef(value),
+    };
+  }
+  return getArrayResponseSchema(imports, value, getSchemaValueRef);
+};
+
+/**
  * Partition props into the three buckets used by per-content-type overload
  * rendering: required non-body params, body params, and optional non-body
  * params. The body always sits between the required and optional non-body
@@ -409,14 +431,10 @@ export const generateHttpClientImplementation = (
       override.angular.runtimeValidation.enabled &&
       isZodOutput &&
       !!contentType &&
-      (contentType.includes('json') || contentType.includes('+json')) &&
-      !isPrimitiveType(value)
+      (contentType.includes('json') || contentType.includes('+json'))
     ) {
-      if (hasSchemaImport(response.imports, value)) {
-        return getSchemaOutputTypeRef(value);
-      }
-      const valueArraySchema = getArrayResponseSchema(response.imports, value);
-      if (valueArraySchema) return valueArraySchema.outputTypeRef;
+      const resolved = resolveValidatableSchema(response.imports, value);
+      if (resolved) return resolved.outputTypeRef;
     }
 
     return getContentTypeReturnType(contentType, value);
@@ -621,14 +639,16 @@ export const generateHttpClientImplementation = (
 
   const jsonReturnType =
     jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
-  const parsedJsonReturnType =
+  // The declared JSON type and the pipe that parses it have to agree, so both
+  // resolve through one lookup. Splitting them is what let the multi-content
+  // overload declare `ItemOutput[]` while nothing parsed it.
+  const jsonSchema =
     jsonSuccessValues.length === 1 &&
     override.angular.runtimeValidation.enabled &&
-    isZodOutput &&
-    !isPrimitiveType(jsonSuccessValues[0]) &&
-    hasSchemaImport(response.imports, jsonSuccessValues[0])
-      ? getSchemaOutputTypeRef(jsonSuccessValues[0])
-      : jsonReturnType;
+    isZodOutput
+      ? resolveValidatableSchema(response.imports, jsonSuccessValues[0])
+      : undefined;
+  const parsedJsonReturnType = jsonSchema?.outputTypeRef ?? jsonReturnType;
 
   let jsonValidationPipe = shouldValidateResponse
     ? emitResponseValidation({
@@ -638,25 +658,13 @@ export const generateHttpClientImplementation = (
         context: 'rxjs-map',
       })
     : '';
-  if (
-    hasMultipleContentTypes &&
-    !shouldValidateResponse &&
-    override.angular.runtimeValidation.enabled &&
-    isZodOutput &&
-    jsonSuccessValues.length === 1
-  ) {
-    const jsonType = jsonSuccessValues[0];
-    const jsonIsPrimitive = isPrimitiveType(jsonType);
-    const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
-    if (!jsonIsPrimitive && jsonHasSchema) {
-      const jsonSchemaRef = getSchemaValueRef(jsonType);
-      jsonValidationPipe = emitResponseValidation({
-        schemaRef: jsonSchemaRef,
-        operationName,
-        strategy: validationStrategy,
-        context: 'rxjs-map',
-      });
-    }
+  if (hasMultipleContentTypes && !shouldValidateResponse && jsonSchema) {
+    jsonValidationPipe = emitResponseValidation({
+      schemaRef: jsonSchema.schemaRef,
+      operationName,
+      strategy: validationStrategy,
+      context: 'rxjs-map',
+    });
   }
 
   const textSuccessTypes = successTypes.filter(
@@ -1041,19 +1049,24 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       if (jsonSchemaNames.length === 1) {
         const jsonType = jsonSchemaNames[0];
         const jsonIsPrimitive = isPrimitiveType(jsonType);
-        if (
-          !jsonIsPrimitive &&
-          hasSchemaImport(result.response.imports, jsonType)
-        ) {
+        // As above: an inline array is imported and aliased by its element.
+        const jsonImportName = hasSchemaImport(
+          result.response.imports,
+          jsonType,
+        )
+          ? jsonType
+          : getArrayResponseSchema(result.response.imports, jsonType)
+              ?.elementName;
+        if (!jsonIsPrimitive && jsonImportName !== undefined) {
           result = {
             ...result,
             response: {
               ...result.response,
               imports: [
                 ...result.response.imports.map((imp) =>
-                  imp.name === jsonType ? { ...imp, values: true } : imp,
+                  imp.name === jsonImportName ? { ...imp, values: true } : imp,
                 ),
-                { name: getSchemaOutputTypeRef(jsonType) },
+                { name: getSchemaOutputTypeRef(jsonImportName) },
               ],
             },
           };

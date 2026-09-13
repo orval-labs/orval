@@ -13,10 +13,8 @@ import type { Observable } from 'rxjs';
 
 import type { Item, Items } from './model';
 
-import type {
-  HttpHeaders,
-  HttpResponse as AngularHttpResponse,
-} from '@angular/common/http';
+import { HttpHeaders } from '@angular/common/http';
+import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
@@ -57,6 +55,14 @@ type HttpClientResponseOptions = HttpClientOptions & {
 type HttpClientObserveOptions = HttpClientOptions & {
   readonly observe?: 'body' | 'events' | 'response';
 };
+
+export type ListMultiContentAccept =
+  (typeof ListMultiContentAccept)[keyof typeof ListMultiContentAccept];
+
+export const ListMultiContentAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
 
 @Injectable({ providedIn: 'root' })
 export class AngularZodInlineArrayResponsesService {
@@ -182,6 +188,48 @@ export class AngularZodInlineArrayResponsesService {
     return this.http.get<TData>(`/item`, {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
+    });
+  }
+
+  listMultiContent(
+    accept: 'application/json',
+    options?: HttpClientOptions,
+  ): Observable<Item[]>;
+  listMultiContent(
+    accept: 'text/plain',
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  listMultiContent(
+    accept?: ListMultiContentAccept,
+    options?: HttpClientOptions,
+  ): Observable<Item[] | string>;
+  listMultiContent(
+    accept: ListMultiContentAccept = 'application/json',
+    options?: HttpClientOptions,
+  ): Observable<Item[] | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.get<Item[]>(`/multi-content`, {
+        ...options,
+        responseType: 'json',
+        headers,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.get(`/multi-content`, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http.get<Item[]>(`/multi-content`, {
+      ...options,
+      responseType: 'json',
+      headers,
     });
   }
 }

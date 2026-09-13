@@ -2192,6 +2192,93 @@ describe('angular HttpClient generator', () => {
         expect(impl).not.toContain('zod.array(');
       });
 
+      // Review follow-up: with a second success content type the aggregate
+      // definition is `Pet[] | string`, which matches neither schema check, so
+      // `shouldValidateResponse` is false and the multi-content JSON fallback
+      // owns validation. It has to resolve the inline array too, or the JSON
+      // overload declares `PetOutput[]` while nothing parses it.
+      it('validates the JSON branch when a second content type is present', () => {
+        const output = zodArrayOutput();
+        const verbOption = createVerbOption({
+          operationId: 'listPets',
+          operationName: 'listPets',
+          typeName: 'listPets',
+          response: baseResponse({
+            imports: [{ name: 'Pet' }],
+            definition: { success: 'Pet[] | string', errors: 'Error' },
+            types: {
+              success: [
+                createSuccessType('Pet[]', 'application/json'),
+                createSuccessType('string', 'text/plain'),
+              ],
+              errors: [],
+            },
+            contentTypes: ['application/json', 'text/plain'],
+          }),
+          override: {
+            ...createVerbOption().override,
+            angular: {
+              ...angularOverride,
+              runtimeValidation: { enabled: true, strategy: 'throw' },
+            },
+          } as GeneratorVerbOptions['override'],
+        });
+        const options = {
+          route: '/api/pets',
+          pathRoute: '/pets',
+          override: output.override,
+          context: createContextSpec(output),
+          output: output.target,
+        } satisfies GeneratorOptions;
+
+        const impl = generateHttpClientImplementation(verbOption, options);
+
+        // The declared JSON type and the emitted pipe must agree.
+        expect(impl).toContain(
+          "accept: 'application/json', options?: HttpClientOptions): Observable<PetOutput[]>",
+        );
+        expect(impl).toContain(
+          '.pipe(map(data => zod.array(Pet).parse(data)))',
+        );
+        // The text branch keeps its raw type and stays unvalidated.
+        expect(impl).toContain(
+          "accept: 'text/plain', options?: HttpClientOptions): Observable<string>",
+        );
+      });
+
+      it('leaves a multi-content JSON branch alone when its element has no schema', () => {
+        const output = zodArrayOutput();
+        const verbOption = createVerbOption({
+          operationId: 'listPets',
+          operationName: 'listPets',
+          typeName: 'listPets',
+          response: baseResponse({
+            imports: [{ name: 'Other' }],
+            definition: { success: 'Pet[] | string', errors: 'Error' },
+            types: {
+              success: [
+                createSuccessType('Pet[]', 'application/json'),
+                createSuccessType('string', 'text/plain'),
+              ],
+              errors: [],
+            },
+            contentTypes: ['application/json', 'text/plain'],
+          }),
+        });
+        const options = {
+          route: '/api/pets',
+          pathRoute: '/pets',
+          override: output.override,
+          context: createContextSpec(output),
+          output: output.target,
+        } satisfies GeneratorOptions;
+
+        const impl = generateHttpClientImplementation(verbOption, options);
+
+        expect(impl).not.toContain('zod.array(');
+        expect(impl).not.toContain('PetOutput');
+      });
+
       it('emits nothing new when runtime validation is off', () => {
         const output = createOutput({
           schemas: {

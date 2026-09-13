@@ -53,6 +53,24 @@ describe('angular inline array responses are validated (#3718)', () => {
     expect(resource).toContain('HttpResourceRef<ItemOutput[] | undefined>');
   });
 
+  // Review follow-up: with a second success content type the aggregate
+  // definition matches neither schema check, so the multi-content JSON fallback
+  // owns validation. The declared JSON type and the emitted pipe must agree.
+  it('validates the JSON branch of a multi-content operation', () => {
+    // Matched loosely so prettier's line wrapping of the parameter list does
+    // not make the assertion brittle.
+    expect(service).toMatch(
+      /accept: 'application\/json',\s*options\?: HttpClientOptions,\s*\): Observable<ItemOutput\[]>/,
+    );
+    expect(service).toContain(
+      '.pipe(map((data) => zod.array(Item).parse(data)))',
+    );
+    // The text branch keeps its raw type and stays unvalidated.
+    expect(service).toMatch(
+      /accept: 'text\/plain',\s*options\?: HttpClientOptions,\s*\): Observable<string>/,
+    );
+  });
+
   it('leaves the named-array and primitive-array controls alone', () => {
     // A $ref to a named array component still parses through its own schema.
     expect(service).toContain('Items.parse(data)');
