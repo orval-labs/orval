@@ -568,13 +568,34 @@ async function bundleAndDereferenceExternalRefs(
 // ─── External ref allow-list enforcement (GHSA-cxq5-97v7-87j8) ─────────────
 
 /**
+ * JSON_SCHEMA keeps YAML scalars as plain JSON values — without it js-yaml
+ * coerces date-like strings such as `2026-01-27` into `Date` objects (#3947).
+ * It also drops the `merge` type, so the `<<` merge key would survive into the
+ * document as a literal property and the validator would reject it with
+ * "Property << is not expected to be here" (#4102). Add `merge` back on top of
+ * JSON_SCHEMA to keep both behaviours.
+ *
+ * js-yaml ships this exact type as `types.merge` but does not declare it in
+ * `@types/js-yaml`, so it is redefined here; the loader keys the merge off the
+ * tag name, not the type instance.
+ */
+const MERGE_KEY_TYPE = new jsYaml.Type('tag:yaml.org,2002:merge', {
+  kind: 'scalar',
+  resolve: (data: unknown) => data === '<<' || data === null,
+});
+
+const SPEC_YAML_SCHEMA = jsYaml.JSON_SCHEMA.extend({
+  implicit: [MERGE_KEY_TYPE],
+});
+
+/**
  * Load the top-level spec into an inline object so we can scan it for external
  * `$ref`s before `bundle()` resolves them. The top-level target is trusted
  * (user-configured `input.target`); only `$ref` values inside the spec are
  * untrusted.
  */
 function parseSpec(text: string): Record<string, unknown> {
-  const result = jsYaml.load(text, { schema: jsYaml.JSON_SCHEMA });
+  const result = jsYaml.load(text, { schema: SPEC_YAML_SCHEMA });
   if (!isObject(result)) {
     throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
   }
