@@ -346,6 +346,39 @@ describe('single-file Zod schema imports', () => {
     ]);
   });
 
+  // #4074 lets `schemas.path` name the schema module itself in single mode.
+  // The import must address that file, not the default `<dir>/index.zod.ts`.
+  it('imports the named schema file when the path is a filename', () => {
+    const output = createOutput({
+      schemas: {
+        path: '/src/api/client/new/schemas.zod.ts',
+        type: 'zod',
+        mode: 'single',
+        splitByTags: false,
+      },
+    });
+    expect(resolve(output, './model', [PET], { isZod: true })).toEqual([
+      './model/schemas.zod',
+    ]);
+  });
+
+  it('rewrites a named schema file for NodeNext resolution', () => {
+    const output = createOutput({
+      schemas: {
+        path: '/src/api/client/new/schemas.zod.ts',
+        type: 'zod',
+        mode: 'single',
+        splitByTags: false,
+      },
+      tsconfig: {
+        compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
+      },
+    });
+    expect(resolve(output, '../model', [PET], { isZod: true })).toEqual([
+      '../model/schemas.zod.js',
+    ]);
+  });
+
   it('keeps an explicit package import path unchanged', () => {
     const output = createOutput({
       indexFiles: false,
