@@ -1,6 +1,7 @@
 import {
   camel,
   type ClientBuilder,
+  type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   emitResponseValidation,
@@ -8,9 +9,11 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorDependency,
-  getStatusCodeType,
+  getArrayResponseSchema,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
+  getStatusCodeType,
+  getZodNamespaceImportSource,
   hasSchemaImport,
   HTTP_STATUS_CODE_SHARED_TYPES,
   isPrimitiveResponseType,
@@ -24,6 +27,7 @@ import {
   makeRouteSafe,
   needsHttpStatusCodeTypes,
   type OpenApiParameterObject,
+  type NormalizedOverrideOutput,
   type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -41,21 +45,28 @@ const resolveSchemaRef = (
     schema: OpenApiSchemaObject;
   };
 
-const FETCH_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      {
-        name: 'z',
-        alias: 'zod',
-        values: true,
-      },
-    ],
-    dependency: 'zod',
-  },
-];
+const getFetchZodDependency = (
+  override?: NormalizedOverrideOutput,
+): GeneratorDependency => ({
+  exports: [
+    {
+      name: 'z',
+      alias: 'zod',
+      values: true,
+    },
+  ],
+  dependency: getZodNamespaceImportSource(override),
+});
 
 /** Returns the list of generator dependencies required by the fetch client (e.g. zod). */
-export const getFetchDependencies = () => FETCH_DEPENDENCIES;
+export const getFetchDependencies: ClientDependenciesBuilder = (
+  _hasGlobalMutator,
+  _hasParamsSerializerOptions,
+  _packageJson,
+  _httpClient,
+  _hasTagsMutator,
+  override,
+) => [getFetchZodDependency(override)];
 
 const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain';
@@ -449,7 +460,18 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
   const isVoidResponse = responseType === 'void';
 
   const isPrimitiveType = isPrimitiveResponseType(responseType);
-  const hasSchema = hasSchemaImport(response.imports, responseType);
+  // A validated array response is parsed through its element schema. An inline
+  // `type: array` resolves to the definition `Item[]`, which is not an import
+  // name at all, so the exact-name check alone silently skips validation while
+  // a `$ref` to a named array component validates normally (#4106).
+  const responseArraySchema = getArrayResponseSchema(
+    response.imports,
+    responseType,
+    getSchemaValueRef,
+  );
+  const hasSchema =
+    hasSchemaImport(response.imports, responseType) ||
+    responseArraySchema !== undefined;
 
   const isValidateResponse =
     override.fetch.runtimeValidation.enabled &&
@@ -505,7 +527,8 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
         rawDataType === responseType &&
         !isContentTypeNdJson(r.contentType) &&
         (r.contentType === '' || isContentTypeJson(r.contentType))
-          ? getSchemaOutputTypeRef(responseType)
+          ? (responseArraySchema?.outputTypeRef ??
+            getSchemaOutputTypeRef(responseType))
           : rawDataType;
 
       return {
@@ -586,7 +609,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     override.fetch.includeHttpResponseReturnType
       ? successName
       : useValidatedOutputType && !override.fetch.includeHttpResponseReturnType
-        ? getSchemaOutputTypeRef(responseType)
+        ? (responseArraySchema?.outputTypeRef ??
+          getSchemaOutputTypeRef(responseType))
         : responseTypeName;
   const returnType = mutator?.inferred ? innerType : `Promise<${innerType}>`;
 
@@ -650,7 +674,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-  const schemaValueRef = getSchemaValueRef(responseType);
+  const schemaValueRef =
+    responseArraySchema?.schemaRef ?? getSchemaValueRef(responseType);
   const responseValidationExpression = emitResponseValidation({
     schemaRef: schemaValueRef,
     operationName,
@@ -867,6 +892,16 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
       contentType === 'application/nd-json' ||
       contentType === 'application/x-ndjson',
   );
+  // An inline array response is validated through its element schema, so it is
+  // the element that becomes a value import and contributes the `Output` alias
+  // — `Item[]` is not an import name at all (#4106).
+  const schemaImportName = hasSchemaImport(
+    verbOptions.response.imports,
+    responseType,
+  )
+    ? responseType
+    : getArrayResponseSchema(verbOptions.response.imports, responseType)
+        ?.elementName;
   // ndjson streams skip the generated parse entirely, so their schema import
   // stays type-only and no Output alias is needed.
   const shouldUseRuntimeValidation =
@@ -874,7 +909,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
     isZodOutput &&
     !isNdJsonResponse &&
     !isPrimitiveResponseType(responseType) &&
-    hasSchemaImport(verbOptions.response.imports, responseType);
+    schemaImportName !== undefined;
 
   const normalizedVerbOptions = shouldUseRuntimeValidation
     ? {
@@ -883,7 +918,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
           ...verbOptions.response,
           imports: rewriteImportsForResponseValidation(
             verbOptions.response.imports,
-            responseType,
+            schemaImportName,
             // A mutator skips the generated parse (it issues the request
             // itself), so the declared types keep the schema (input) name and
             // no Output alias import is needed — but the schema value import
