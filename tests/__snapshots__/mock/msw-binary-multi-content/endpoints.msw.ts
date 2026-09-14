@@ -10,18 +10,18 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-export const getGetProfilePictureResponseMock = (): ArrayBuffer =>
+export const getGetProfilePictureResponseMock = (): Blob =>
   faker.helpers.arrayElement([
-    new ArrayBuffer(faker.number.int({ min: 1, max: 64 })),
-    new ArrayBuffer(faker.number.int({ min: 1, max: 64 })),
+    new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]),
+    new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]),
   ]);
 
 export const getGetProfilePictureMockHandler = (
   overrideResponse?:
-    | ArrayBuffer
+    | Blob
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ArrayBuffer> | ArrayBuffer),
+      ) => Promise<Blob> | Blob),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
@@ -33,13 +33,10 @@ export const getGetProfilePictureMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getGetProfilePictureResponseMock();
-      return HttpResponse.arrayBuffer(
-        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        },
-      );
+      return new HttpResponse(binaryBody, {
+        status: 200,
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
     },
     options,
   );

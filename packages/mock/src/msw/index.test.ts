@@ -184,16 +184,16 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain(
         'application/octet-stream',
       );
-      // Mock function signature should use ArrayBuffer instead of Blob
-      expect(result.implementation.handler).not.toContain(
+      // The declared Blob type is kept end to end (#4062)
+      expect(result.implementation.handler).toContain(
         'overrideResponse?: Blob',
       );
       expect(result.implementation.handler).toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
-      // The mock function should return an ArrayBuffer
-      expect(result.implementation.function).toContain('ArrayBuffer');
-      expect(result.implementation.function).not.toContain('Blob');
+      // The mock function should return a Blob
+      expect(result.implementation.function).toContain('new Blob([');
+      expect(result.implementation.function).not.toContain('ArrayBuffer');
     });
 
     it('should handle image content types as binary', () => {
@@ -233,16 +233,16 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('JSON.stringify');
       expect(result.implementation.handler).toContain('font/woff2');
       expect(result.implementation.handler).toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
     });
 
     // Regression: issue #3065
     // When the OpenAPI upgrader converts `format: binary` to
     // `contentMediaType: application/octet-stream` (OAS 3.0 → 3.1), the mock
-    // generator must still emit an ArrayBuffer — not `faker.string.alpha(...)` —
+    // generator must still emit a binary mock — not `faker.string.alpha(...)` —
     // even when the declared content type is JSON-like (e.g. application/json).
-    it('should generate ArrayBuffer mock for binary schema under JSON content types', () => {
+    it('should generate Blob mock for binary schema under JSON content types', () => {
       const binaryJsonVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -288,13 +288,12 @@ describe('generateMSW', () => {
 
       const result = generateMSW(binaryJsonVerbOptions, baseOptions);
 
-      expect(result.implementation.function).toContain('ArrayBuffer');
+      expect(result.implementation.function).toContain('new Blob([');
       expect(result.implementation.function).not.toContain(
         'faker.string.alpha',
       );
-      expect(result.implementation.function).not.toContain(': Blob =>');
       expect(result.implementation.handler).toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
     });
 
@@ -316,11 +315,11 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('JSON.stringify');
       expect(result.implementation.handler).toContain('application/pdf');
       expect(result.implementation.handler).toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
     });
 
-    it('should generate ArrayBuffer mock for $ref to a format: binary schema', () => {
+    it('should generate Blob mock for $ref to a format: binary schema', () => {
       const refBinaryVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -349,15 +348,16 @@ describe('generateMSW', () => {
       const result = generateMSW(refBinaryVerbOptions, baseOptions);
 
       expect(result.implementation.handler).toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
       expect(result.implementation.handler).not.toContain('JSON.stringify');
-      // The ref alias return type must be rewritten to ArrayBuffer to stay consistent with the arrayBuffer body.
-      expect(result.implementation.function).toContain(': ArrayBuffer');
-      expect(result.implementation.function).not.toContain(': TestPdfFile');
+      // The ref alias resolves to Blob, which is what the mock now returns, so
+      // the declared return type is kept as-is (#4062).
+      expect(result.implementation.function).toContain(': TestPdfFile');
+      expect(result.implementation.function).toContain('new Blob([');
     });
 
-    it('should rewrite aliased ref imports for $ref binary schemas', () => {
+    it('should keep aliased ref imports for $ref binary schemas', () => {
       const aliasedVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -385,8 +385,8 @@ describe('generateMSW', () => {
 
       const result = generateMSW(aliasedVerbOptions, baseOptions);
 
-      expect(result.implementation.function).toContain(': ArrayBuffer');
-      expect(result.implementation.function).not.toContain(': __TestPdfFile');
+      expect(result.implementation.function).toContain(': __TestPdfFile');
+      expect(result.implementation.function).toContain('new Blob([');
     });
 
     it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
@@ -607,9 +607,8 @@ describe('generateMSW', () => {
 
       // Should NOT force binary path — the object schema is not binary (no format: binary)
       expect(result.implementation.handler).not.toContain(
-        'HttpResponse.arrayBuffer',
+        'new HttpResponse(binaryBody',
       );
-      expect(result.implementation.handler).not.toContain('new ArrayBuffer(0)');
       // Should use HttpResponse.json since no text-like content type is involved
       expect(result.implementation.handler).toContain('HttpResponse.json');
       // The selected media type should be preserved on the json fallback header
@@ -946,7 +945,7 @@ describe('generateMSW', () => {
       );
     });
 
-    it('should handle binary responses with ArrayBuffer fallback', () => {
+    it('should pass the binary response body straight to HttpResponse', () => {
       const blobVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -959,11 +958,10 @@ describe('generateMSW', () => {
 
       const result = generateMSW(blobVerbOptions, baseOptions);
 
-      // Should use the mock function and fall back to empty ArrayBuffer
+      // The Blob body is a valid BodyInit, so it needs no conversion
       expect(result.implementation.handler).toContain(
-        'binaryBody instanceof ArrayBuffer',
+        'new HttpResponse(binaryBody',
       );
-      expect(result.implementation.handler).toContain('new ArrayBuffer(0)');
       // The binary handler should call the mock function as fallback
       expect(result.implementation.handler).toContain(
         'getGetUserResponseMock()',

@@ -7,5 +7,5 @@
  */
 import { faker } from '@faker-js/faker';
 
-export const getGetBinaryBlobResponseMock = (): ArrayBuffer =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
+export const getGetBinaryBlobResponseMock = (): Blob =>
+  new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]);

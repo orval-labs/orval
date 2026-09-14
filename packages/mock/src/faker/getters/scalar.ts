@@ -187,7 +187,7 @@ export function getMockScalar({
   // The @scalar/openapi-parser upgrader rewrites `format: binary` to
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
   // treat both equivalently so the mock emits the binary format value
-  // (ArrayBuffer) instead of falling through to the string case.
+  // (Blob) instead of falling through to the string case.
   const schemaContentMediaType = (item as OpenApiSchemaObject).contentMediaType;
   if (
     !item.format &&

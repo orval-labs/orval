@@ -1800,7 +1800,7 @@ test('mock issue-3590 strict faker schema mocks typecheck and emit correct alias
   );
 
   expect(fakerContent).toContain('export type StatusMock = Status;');
-  expect(fakerContent).toContain('export type PhotoUploadMock = ArrayBuffer;');
+  expect(fakerContent).toContain('export type PhotoUploadMock = Blob;');
   expect(fakerContent).toContain(
     '...(getPetSettingMock() as PetSettingMock)',
   );
