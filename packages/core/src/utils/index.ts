@@ -4,7 +4,6 @@ export * from './barrel-re-exports';
 export * from './case';
 export * from './compare-version';
 export * from './content-type';
-export * from './debug';
 export * from './deep-non-nullable';
 export * from './doc';
 export * from './dynamic-import';
