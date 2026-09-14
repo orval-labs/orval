@@ -570,6 +570,74 @@ describe('validation', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  it('should resolve YAML merge keys in specs that use anchors', async () => {
+    const workspace = await mkdtemp(
+      path.join(os.tmpdir(), 'orval-yaml-merge-key-'),
+    );
+    const specPath = path.join(workspace, 'spec.yaml');
+
+    // Regression spec for https://github.com/orval-labs/orval/issues/4102:
+    // `<<` is a YAML merge key, resolved by js-yaml's DEFAULT_SCHEMA but not by
+    // JSON_SCHEMA. Left unresolved, the literal `<<` keys survive into the
+    // document and the validator rejects them with
+    // "Property << is not expected to be here".
+    const yamlContent = [
+      'openapi: "3.0.0"',
+      'info:',
+      '  title: MergeKeyRepro',
+      '  version: "1.0.0"',
+      'x-responses:',
+      '  default-authenticated: &authenticated-responses',
+      '    "401":',
+      '      description: Unauthorized',
+      'paths:',
+      '  /api/dmz/resource:',
+      '    post: &dmz-resource',
+      '      operationId: dmzPostResource',
+      '      responses: &dmz-post-resource-responses',
+      '        "200":',
+      '          description: OK',
+      '          content:',
+      '            application/json:',
+      '              schema:',
+      '                $ref: "#/components/schemas/Response"',
+      '  /api/resource:',
+      '    post:',
+      '      <<: *dmz-resource',
+      '      operationId: postResource',
+      '      responses:',
+      '        <<: [*dmz-post-resource-responses, *authenticated-responses]',
+      'components:',
+      '  schemas:',
+      '    Response:',
+      '      type: string',
+    ].join('\n');
+
+    try {
+      await writeFile(specPath, yamlContent, 'utf8');
+
+      const normalizedOptions = await normalizeOptions(
+        { output: { target: '' }, input: { target: specPath } },
+        workspace,
+        {},
+      );
+
+      const result = await importSpecs(workspace, normalizedOptions);
+
+      const merged = result.spec.paths?.['/api/resource']?.post;
+      expect(merged).toBeDefined();
+      expect(merged).not.toHaveProperty('<<');
+      // The merged operation keeps its own overrides and inherits the rest.
+      expect(merged?.operationId).toBe('postResource');
+      expect(Object.keys(merged?.responses ?? {})).toEqual(
+        expect.arrayContaining(['200', '401']),
+      );
+      expect(merged?.responses).not.toHaveProperty('<<');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('swagger2FormData', () => {
