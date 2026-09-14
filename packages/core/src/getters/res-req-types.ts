@@ -820,7 +820,8 @@ function resolveSchemaPropertiesToFormData({
       )}' }));\n`;
     } else if (
       property.type === 'object' ||
-      (Array.isArray(property.type) && property.type.includes('object'))
+      (Array.isArray(property.type) && property.type.includes('object')) ||
+      property.allOf
     ) {
       // `style: deepObject` + `explode: true` encodes each property as a
       // bracketed key on the parent, e.g. `metadata[order_id]=6735`. This is

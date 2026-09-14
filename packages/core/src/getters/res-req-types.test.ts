@@ -895,6 +895,65 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       );
     });
 
+    it('nested allOf property ($ref -> allOf -> $ref -> allOf, no explicit type: object): still JSON.stringifies the field', () => {
+      // Reproduces a real-world case: a multipart field ("a") whose
+      // schema is a $ref to a wrapper that itself is only `allOf: [$ref]`
+      // one level deeper than the already-covered "allOf: FormData still
+      // emits per-field appends" case above.
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              C: {
+                type: 'object',
+                properties: { title: { type: 'string' } },
+                required: ['title'],
+              },
+              // No explicit `type: object` here
+              B: {
+                allOf: [{ $ref: '#/components/schemas/C' }],
+              },
+              // Same: no explicit `type: object`, just wraps B.
+              A: {
+                allOf: [{ $ref: '#/components/schemas/B' }],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    a: { $ref: '#/components/schemas/A' },
+                  },
+                  required: ['report'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreateA', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      expect(formData).toContain(
+        'formData.append(`a`, JSON.stringify(createARequestBody.a))',
+      );
+    });
+
     it('oneOf alongside direct properties: loop skips direct keys to avoid duplicate appends', () => {
       const ctx: ContextSpec = {
         ...context,
