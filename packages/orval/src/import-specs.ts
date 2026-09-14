@@ -53,20 +53,19 @@ async function resolveSpec(
     parserOptions?.headers,
   );
 
+  const refScan = scanRefs(specData);
+
   // Enforce the allow-list on refs found in the top-level spec.
   // Transitive refs (inside external docs) are enforced by the loader wrappers.
   if (!isWildcard) {
-    const refs = collectExternalRefs(specData);
-    const disallowed = refs.filter(
+    const disallowed = refScan.external.filter(
       (ref) => !isAllowedRef(ref, allowedRefs, origin),
     );
     if (disallowed.length > 0) {
       throw new Error(formatDisallowedRefsError(disallowed, allowedRefs));
     }
   } else {
-    const docs = [
-      ...new Set(collectExternalRefs(specData).map(getRefDocument)),
-    ];
+    const docs = [...new Set(refScan.external.map(getRefDocument))];
     if (docs.length > 0) {
       logger.warn(
         `External $ref documents being resolved:\n` +
@@ -75,13 +74,19 @@ async function resolveSpec(
     }
   }
 
-  const dereferencedData = await bundleAndDereferenceExternalRefs(
-    specData,
-    parserOptions,
-    origin,
-    isWildcard,
-    allowedRefs,
-  );
+  // Bundling walks the whole document with an `await` per node and
+  // dereferencing then deep-clones the result. Neither changes anything when
+  // every `$ref` is already a local JSON pointer, so skip both — on a large
+  // spec without external refs that is the bulk of the parsing cost (#3805).
+  const dereferencedData = refScan.needsBundling
+    ? await bundleAndDereferenceExternalRefs(
+        specData,
+        parserOptions,
+        origin,
+        isWildcard,
+        allowedRefs,
+      )
+    : specData;
 
   // Apply user-provided transformer before validation so users can repair
   // malformed specs in-place. The transformer is typed against
@@ -100,16 +105,15 @@ async function resolveSpec(
     // those refs are resolved too (#3327). External refs resolve relative to
     // the original spec file, so reuse the string target as the bundle origin;
     // an object input has no file base and cannot introduce relative refs.
-    transformedData =
-      collectExternalRefs(applied).length > 0
-        ? await bundleAndDereferenceExternalRefs(
-            applied,
-            parserOptions,
-            origin,
-            isWildcard,
-            allowedRefs,
-          )
-        : applied;
+    transformedData = scanRefs(applied).needsBundling
+      ? await bundleAndDereferenceExternalRefs(
+          applied,
+          parserOptions,
+          origin,
+          isWildcard,
+          allowedRefs,
+        )
+      : applied;
   }
 
   if (unsafeDisableValidation) {
@@ -595,11 +599,33 @@ const SPEC_YAML_SCHEMA = jsYaml.JSON_SCHEMA.extend({
  * untrusted.
  */
 function parseSpec(text: string): Record<string, unknown> {
-  const result = jsYaml.load(text, { schema: SPEC_YAML_SCHEMA });
+  const result = parseSpecText(text);
   if (!isObject(result)) {
     throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
   }
   return result as Record<string, unknown>;
+}
+
+/**
+ * JSON is a strict subset of YAML, so a JSON document parses the same either
+ * way — but `JSON.parse` is an order of magnitude faster than js-yaml on the
+ * large documents orval is usually pointed at. Use the native parser whenever
+ * the text looks like a JSON object, and fall back to YAML when it turns out
+ * not to be one so that everything js-yaml accepts today keeps working (flow
+ * mappings with unquoted keys, a comment after the opening `{`, ...).
+ *
+ * `trimStart()` also strips a leading BOM, which `JSON.parse` rejects.
+ */
+function parseSpecText(text: string): unknown {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith('{')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      // Not JSON after all — let js-yaml parse it (and report the error).
+    }
+  }
+  return jsYaml.load(text, { schema: SPEC_YAML_SCHEMA });
 }
 
 async function loadSpec(
@@ -607,7 +633,11 @@ async function loadSpec(
   headers?: NonNullable<ResolveSpecOptions['parserOptions']>['headers'],
 ): Promise<{ data: Record<string, unknown>; origin?: string }> {
   if (!isString(input)) {
-    return { data: input };
+    // An in-memory spec belongs to the caller, and everything downstream
+    // (bundling, `upgrade()`, the nullable-$ref rewrite, ...) mutates the
+    // document in place. Parsed inputs are freshly allocated here, so clone
+    // only this one to give the pipeline a document it owns.
+    return { data: structuredClone(input) };
   }
   if (isUrl(input)) {
     const response = await fetch(input, {
@@ -633,25 +663,47 @@ function getRefDocument(ref: string): string {
 }
 
 /**
- * Collect all external `$ref` document targets from a spec object. Returns
- * deduplicated ref strings in their raw form (before fragment stripping).
+ * The result of a single pass over a spec looking for `$ref`s.
  */
-function collectExternalRefs(obj: unknown): string[] {
-  const refs = new Set<string>();
+interface RefScan {
+  /**
+   * Deduplicated external ref strings in their raw form (before fragment
+   * stripping) — everything that does not start with `#`.
+   */
+  external: string[];
+  /**
+   * Whether the document holds any `$ref` that `bundle()` would act on. Plain
+   * local JSON pointers (`#/...`) are returned untouched by the bundler, so a
+   * document made only of those can skip the bundle + dereference pipeline
+   * entirely. Anything else — an external target, or a local `$anchor`
+   * reference such as `#Pet` — has to go through it.
+   */
+  needsBundling: boolean;
+}
+
+/**
+ * Walk a spec object once and classify every `$ref` it contains.
+ */
+function scanRefs(obj: unknown): RefScan {
+  const external = new Set<string>();
+  let needsBundling = false;
   function walk(val: unknown) {
     if (Array.isArray(val)) {
       val.forEach(walk);
       return;
     }
     if (isObject(val)) {
-      if ('$ref' in val && isString(val.$ref) && !val.$ref.startsWith('#')) {
-        refs.add(val.$ref);
+      if ('$ref' in val && isString(val.$ref)) {
+        if (!val.$ref.startsWith('#')) {
+          external.add(val.$ref);
+        }
+        needsBundling ||= !val.$ref.startsWith('#/');
       }
       Object.values(val).forEach(walk);
     }
   }
   walk(obj);
-  return [...refs];
+  return { external: [...external], needsBundling };
 }
 
 /**
