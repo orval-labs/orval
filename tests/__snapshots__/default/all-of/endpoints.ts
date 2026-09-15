@@ -23,6 +23,15 @@ export const createPets = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
   const formData = new FormData();
+  if (allOfPet.doubleNest !== undefined) {
+    formData.append(`doubleNest`, allOfPet.doubleNest.toString());
+  }
+  if (allOfPet.nest !== undefined) {
+    formData.append(`nest`, allOfPet.nest.toString());
+  }
+  formData.append(`id`, allOfPet.id.toString());
+  formData.append(`name`, allOfPet.name);
+
   formData.append(`tag`, allOfPet.tag);
 
   return axios.post(`/pets`, formData, options);
