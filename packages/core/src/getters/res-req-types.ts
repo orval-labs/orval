@@ -699,7 +699,10 @@ function getSchemaFormDataAndUrlEncoded({
     const schemaItems = getSchemaItems(schema);
     if (schemaItems) {
       const { schema: itemSchema } = resolveSchemaRef(schemaItems, context);
-      if (itemSchema.type === 'object' || itemSchema.type === 'array') {
+      if (
+        isEffectivelyObjectSchema(itemSchema, context) ||
+        itemSchema.type === 'array'
+      ) {
         valueStr = 'JSON.stringify(value)';
       } else if (
         itemSchema.type === 'number' ||
