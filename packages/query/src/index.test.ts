@@ -165,3 +165,129 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
     );
   });
 });
+
+describe('generateQuery — angular-query runtimeValidation of an inline array response', () => {
+  const makeVerbOptions = (runtimeValidation: boolean): GeneratorVerbOptions =>
+    ({
+      verb: 'get',
+      route: '/items',
+      pathRoute: '/items',
+      operationId: 'listItems',
+      operationName: 'listItems',
+      typeName: 'listItems',
+      doc: '',
+      tags: [],
+      response: {
+        definition: { success: 'Item[]', errors: '' },
+        imports: [{ name: 'Item' }],
+        types: {
+          success: [
+            {
+              key: '200',
+              value: 'Item[]',
+              contentType: 'application/json',
+              hasReadonlyProps: false,
+              imports: [{ name: 'Item' }],
+              isEnum: false,
+              isRef: false,
+              schemas: [],
+              type: 'array',
+              dependencies: [],
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+        schemas: [],
+        isBlob: false,
+      },
+      body: {
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: '',
+        isOptional: true,
+        originalSchema: {},
+        isBlob: false,
+      },
+      params: [],
+      props: [],
+      override: {
+        formData: { disabled: false, arrayHandling: 'serialize' },
+        formUrlEncoded: false,
+        requestOptions: true,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
+        },
+        query: {
+          useQuery: true,
+          useMutation: false,
+          useInfinite: false,
+          useSuspenseQuery: false,
+          useSuspenseInfiniteQuery: false,
+          usePrefetch: false,
+          useInvalidate: false,
+          shouldExportKeys: true,
+          shouldExportHttpClient: true,
+          shouldExportMutatorHooks: true,
+          signal: false,
+          version: 5,
+          runtimeValidation: { enabled: runtimeValidation, strategy: 'throw' },
+        },
+      },
+      originalOperation: {},
+    }) as unknown as GeneratorVerbOptions;
+
+  const options = {
+    route: '/items',
+    pathRoute: '/items',
+    override: { operations: {} },
+    output: '',
+    context: createTestContextSpec({
+      output: {
+        client: OutputClient.ANGULAR_QUERY,
+        httpClient: OutputHttpClient.ANGULAR,
+        schemas: { path: './model', type: 'zod', splitByTags: false },
+      },
+    }),
+  } as unknown as GeneratorOptions;
+
+  it('parses the response through zod.array and imports what that needs', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions(true),
+      options,
+      'angular-query',
+    );
+
+    expect(implementation).toContain('zod.array(Item).parse(data)');
+    expect(implementation).toContain('): Promise<ItemOutput[]> =>');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'Item', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'ItemOutput' }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'zod', namespaceImport: true }),
+    );
+  });
+
+  it('leaves the response unvalidated when runtimeValidation is off', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions(false),
+      options,
+      'angular-query',
+    );
+
+    expect(implementation).not.toContain('zod.array(');
+    expect(implementation).toContain('): Promise<Item[]> =>');
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'zod' }),
+    );
+  });
+});
