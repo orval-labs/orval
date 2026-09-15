@@ -140,6 +140,7 @@ interface BuildParams {
   depth: number;
   /** Assignment target when it differs from `accessor` (readOnly properties). */
   writeAccessor?: string;
+  mode: DateTransformMode;
 }
 
 const buildStatements = ({
@@ -149,6 +150,7 @@ const buildStatements = ({
   visitedRefs,
   depth,
   writeAccessor,
+  mode,
 }: BuildParams): BuildResult => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
   if (ref) {
@@ -171,6 +173,7 @@ const buildStatements = ({
       visitedRefs,
       depth,
       writeAccessor,
+      mode,
     });
   } finally {
     if (ref) visitedRefs.delete(ref);
@@ -185,6 +188,7 @@ const buildResolvedStatements = ({
   visitedRefs,
   depth,
   writeAccessor,
+  mode,
 }: {
   schema: OpenApiSchemaObject;
   ref?: string;
@@ -193,11 +197,12 @@ const buildResolvedStatements = ({
   visitedRefs: Set<string>;
   depth: number;
   writeAccessor?: string;
+  mode: DateTransformMode;
 }): BuildResult => {
   let result: BuildResult;
-  if (isDateSchema(schema)) {
+  if (mode.isLeaf(schema)) {
     result = {
-      statements: [`${writeAccessor ?? accessor} = new Date(${accessor});`],
+      statements: [mode.leafStatement(accessor, writeAccessor ?? accessor)],
       cyclicRefs: new Set(),
     };
   } else {
@@ -213,6 +218,7 @@ const buildResolvedStatements = ({
         visitedRefs,
         depth,
         writeAccessor,
+        mode,
       }),
     );
 
@@ -222,15 +228,17 @@ const buildResolvedStatements = ({
       context,
       visitedRefs,
       depth,
+      mode,
     });
 
     const itemsResult = schema.items
-      ? buildItemsStatements({
+      ? mode.arrayStatements({
           items: schema.items,
           accessor,
           context,
           visitedRefs,
           depth,
+          mode,
         })
       : emptyResult();
 
@@ -242,6 +250,7 @@ const buildResolvedStatements = ({
           context,
           visitedRefs,
           depth,
+          mode,
         })
       : emptyResult();
 
@@ -277,6 +286,7 @@ const buildResolvedStatements = ({
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
   context: ContextSpec,
+  mode: DateTransformMode,
   seenRefs: Set<string> = new Set(),
 ): boolean => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
@@ -284,30 +294,74 @@ const writesToAccessorItself = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (isDateSchema(schema)) return true;
+  if (mode.isLeaf(schema)) return true;
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
-    writesToAccessorItself(branch, context, seenRefs),
+    writesToAccessorItself(branch, context, mode, seenRefs),
   );
 };
 
-const buildItemsStatements = ({
-  items,
-  accessor,
-  context,
-  visitedRefs,
-  depth,
-}: {
+/**
+ * Responses and requests walk the same schema: ref resolution, cycle guards,
+ * `allOf` merging, property iteration and discriminated-union dispatch are
+ * identical in both directions. They differ in which formats convert, what a
+ * leaf converts to, and how containers are traversed — a response mutates the
+ * payload it just parsed, a request must copy what it touches because the
+ * object belongs to the caller.
+ */
+interface DateTransformMode {
+  /** Schemas this direction converts. */
+  isLeaf: (schema: OpenApiSchemaObject) => boolean;
+  /** Conversion statement. `write` differs from `read` only for readOnly props. */
+  leafStatement: (read: string, write: string) => string;
+  /** Statements emitted before writing into an object container. */
+  objectPrelude: (
+    accessor: string,
+    schema: SchemaOrRef,
+    context: ContextSpec,
+  ) => string[];
+  /** Traversal of an array container. */
+  arrayStatements: (params: ArrayStatementsParams) => BuildResult;
+  /** Assignment target for a property when it differs from the read accessor. */
+  propertyWriteAccessor: (
+    accessor: string,
+    key: string,
+    propertySchema: OpenApiSchemaObject,
+  ) => string | undefined;
+}
+
+interface ArrayStatementsParams {
   items: SchemaOrRef;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
   depth: number;
-}): BuildResult => {
+  mode: DateTransformMode;
+}
+
+const responseMode: DateTransformMode = {
+  isLeaf: isDateSchema,
+  leafStatement: (read, write) => `${write} = new Date(${read});`,
+  objectPrelude: () => [],
+  arrayStatements: (params) => buildInPlaceItemsStatements(params),
+  propertyWriteAccessor: (accessor, key, propertySchema) =>
+    propertySchema.readOnly
+      ? propertyAccessor(mutableCast(accessor), key)
+      : undefined,
+};
+
+const buildInPlaceItemsStatements = ({
+  items,
+  accessor,
+  context,
+  visitedRefs,
+  depth,
+  mode,
+}: ArrayStatementsParams): BuildResult => {
   const index = `i${depth}`;
   const { nullable } = normalizeSchema(items, context);
   const loopHeader = `for (let ${index} = 0; ${index} < ${accessor}.length; ${index}++) {`;
 
-  if (writesToAccessorItself(items, context)) {
+  if (writesToAccessorItself(items, context, mode)) {
     const element = `${accessor}[${index}]`;
     const inner = buildStatements({
       schema: items,
@@ -315,6 +369,7 @@ const buildItemsStatements = ({
       context,
       visitedRefs,
       depth: depth + 1,
+      mode,
     });
     if (inner.statements.length === 0) return inner;
 
@@ -340,6 +395,7 @@ const buildItemsStatements = ({
     context,
     visitedRefs,
     depth: depth + 1,
+    mode,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -365,6 +421,7 @@ const buildPropertiesStatements = ({
   context,
   visitedRefs,
   depth,
+  mode,
 }: {
   properties: Record<string, SchemaOrRef>;
   required: string[] | undefined;
@@ -372,6 +429,7 @@ const buildPropertiesStatements = ({
   context: ContextSpec;
   visitedRefs: Set<string>;
   depth: number;
+  mode: DateTransformMode;
 }): BuildResult => {
   const requiredSet = new Set(required ?? []);
   return mergeResults(
@@ -387,21 +445,25 @@ const buildPropertiesStatements = ({
         context,
         visitedRefs,
         depth,
-        writeAccessor: propertySchema.readOnly
-          ? propertyAccessor(mutableCast(accessor), key)
-          : undefined,
+        writeAccessor: mode.propertyWriteAccessor(
+          accessor,
+          key,
+          propertySchema,
+        ),
+        mode,
       });
       if (inner.statements.length === 0) return inner;
 
+      const statements = [
+        ...mode.objectPrelude(target, property, context),
+        ...inner.statements,
+      ];
+
       const needsGuard = !requiredSet.has(key) || nullable;
-      if (!needsGuard) return inner;
+      if (!needsGuard) return { ...inner, statements };
 
       return {
-        statements: [
-          `if (${target} != null) {`,
-          ...indent(inner.statements),
-          '}',
-        ],
+        statements: [`if (${target} != null) {`, ...indent(statements), '}'],
         cyclicRefs: inner.cyclicRefs,
       };
     }),
@@ -421,12 +483,14 @@ const buildDiscriminatedUnionStatements = ({
   context,
   visitedRefs,
   depth,
+  mode,
 }: {
   schema: OpenApiSchemaObject;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
   depth: number;
+  mode: DateTransformMode;
 }): BuildResult => {
   const variants = schema.oneOf ?? schema.anyOf;
   const propertyName = schema.discriminator?.propertyName;
@@ -445,6 +509,7 @@ const buildDiscriminatedUnionStatements = ({
           context,
           visitedRefs,
           depth,
+          mode,
         });
       } catch {
         // An unresolvable mapping target must not abort generation of the
@@ -495,7 +560,14 @@ export const buildDateTransformStatements = ({
   visitedRefs = new Set(),
   depth = 0,
 }: BuildDateTransformParams): string[] =>
-  buildStatements({ schema, accessor, context, visitedRefs, depth }).statements;
+  buildStatements({
+    schema,
+    accessor,
+    context,
+    visitedRefs,
+    depth,
+    mode: responseMode,
+  }).statements;
 
 export interface GeneratedDateDeserializer {
   name: string;
