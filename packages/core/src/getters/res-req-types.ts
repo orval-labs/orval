@@ -724,6 +724,124 @@ function getSchemaFormDataAndUrlEncoded({
   return `${form}${variableName}.append('data', ${propName})\n`;
 }
 
+/**
+ * Determines whether a schema is object-shaped once `allOf` composition is
+ * resolved, without assuming "has allOf" implies "is an object" (allOf is a
+ * generic AND-combinator in JSON Schema and can just as validly compose a
+ * constrained string or number). Classifies as object-like only when a
+ * resolved branch positively establishes an object shape (own `type:
+ * object`, `properties`, `additionalProperties`, or a nested allOf member
+ * that itself resolves to an object) — an inconclusive/scalar result never
+ * defaults to "object".
+ */
+export function isEffectivelyObjectSchema(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  seen: Set<OpenApiSchemaObject> = new Set(),
+): boolean {
+  if (seen.has(schema)) {
+    // Recursive schema (e.g. a self-referential allOf chain) — bail out
+    // rather than looping; nothing further down this branch can add new
+    // information anyway.
+    return false;
+  }
+  seen.add(schema);
+
+  if (
+    schema.type === 'object' ||
+    (Array.isArray(schema.type) && schema.type.includes('object'))
+  ) {
+    return true;
+  }
+  if (schema.properties || schema.additionalProperties) {
+    return true;
+  }
+
+  const schemaAllOf = schema.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  if (Array.isArray(schemaAllOf)) {
+    return schemaAllOf.some((member) => {
+      const { schema: resolved } = resolveSchemaRef(member, context);
+      return isEffectivelyObjectSchema(resolved, context, seen);
+    });
+  }
+
+  return false;
+}
+
+/**
+ * Collects a schema's own `properties`, merged with any `properties`
+ * reachable through `allOf` composition (recursively, following `$ref`s).
+ * A pure wrapper schema (`{ allOf: [{ $ref: ... }] }`) has no `properties`
+ * of its own — its fields only exist behind the allOf member — so a plain
+ * `schema.properties` read misses them entirely.
+ */
+export function collectPropertiesThroughAllOf(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  seen: Set<OpenApiSchemaObject> = new Set(),
+): Record<string, OpenApiSchemaObject | OpenApiReferenceObject> {
+  if (seen.has(schema)) {
+    return {};
+  }
+  seen.add(schema);
+
+  const ownProps = getSchemaProperties(schema) ?? {};
+  const schemaAllOf = schema.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (!Array.isArray(schemaAllOf)) {
+    return ownProps;
+  }
+
+  let merged: Record<string, OpenApiSchemaObject | OpenApiReferenceObject> = {};
+  for (const member of schemaAllOf) {
+    const { schema: resolved } = resolveSchemaRef(member, context);
+    merged = {
+      ...merged,
+      ...collectPropertiesThroughAllOf(resolved, context, seen),
+    };
+  }
+  // Own properties (if any) take precedence over allOf-inherited ones,
+  // matching how allOf member conflicts are resolved elsewhere.
+  return { ...merged, ...ownProps };
+}
+
+/**
+ * Same reasoning as {@link collectPropertiesThroughAllOf}, but for
+ * `required`: a pure `allOf` wrapper schema has no `required` array of its
+ * own, so a plain `schema.required` read loses required-ness for every
+ * field that only exists behind the allOf composition.
+ */
+export function collectRequiredThroughAllOf(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  seen: Set<OpenApiSchemaObject> = new Set(),
+): string[] {
+  if (seen.has(schema)) {
+    return [];
+  }
+  seen.add(schema);
+
+  const ownRequired = getSchemaRequired(schema) ?? [];
+  const schemaAllOf = schema.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (!Array.isArray(schemaAllOf)) {
+    return ownRequired;
+  }
+
+  const inherited = schemaAllOf.flatMap((member) => {
+    const { schema: resolved } = resolveSchemaRef(member, context);
+    return collectRequiredThroughAllOf(resolved, context, seen);
+  });
+
+  return [...inherited, ...ownRequired];
+}
+
 interface ResolveSchemaPropertiesToFormDataOptions {
   schema: OpenApiSchemaObject;
   variableName: string;
@@ -749,7 +867,7 @@ function resolveSchemaPropertiesToFormData({
   // url-encoded bodies use URLSearchParams (string values only), so file/binary
   // fields are appended as plain strings rather than wrapped in a Blob (#1624).
   const isUrlEncoded = variableName === 'formUrlEncoded';
-  const schemaProps = getSchemaProperties(schema) ?? {};
+  const schemaProps = collectPropertiesThroughAllOf(schema, context);
   const propertyConvention =
     context.output.override.namingConvention?.properties;
   // Same collision set the type renderer computes: keys that would collide
@@ -821,7 +939,7 @@ function resolveSchemaPropertiesToFormData({
     } else if (
       property.type === 'object' ||
       (Array.isArray(property.type) && property.type.includes('object')) ||
-      property.allOf
+      isEffectivelyObjectSchema(property, context)
     ) {
       // `style: deepObject` + `explode: true` encodes each property as a
       // bracketed key on the parent, e.g. `metadata[order_id]=6735`. This is
@@ -949,7 +1067,7 @@ function resolveSchemaPropertiesToFormData({
       }
     }
 
-    const schemaRequired = getSchemaRequired(schema);
+    const schemaRequired = collectRequiredThroughAllOf(schema, context);
     const isRequired = schemaRequired?.includes(key) && !isRequestBodyOptional;
 
     const propType = getSchemaType(property);

@@ -9,7 +9,12 @@ import type {
 } from '../types';
 import { isString } from '../utils';
 import { isBinaryContentType } from '../utils/content-type';
-import { getResReqTypes } from './res-req-types';
+import {
+  collectPropertiesThroughAllOf,
+  collectRequiredThroughAllOf,
+  getResReqTypes,
+  isEffectivelyObjectSchema,
+} from './res-req-types';
 
 // Simulates an OpenAPI schema with a readOnly property
 const schemaWithReadOnly: OpenApiSchemaObject = {
@@ -934,7 +939,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                   properties: {
                     a: { $ref: '#/components/schemas/A' },
                   },
-                  required: ['report'],
+                  required: ['a'],
                 },
               },
             },
@@ -951,6 +956,307 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
 
       expect(formData).toContain(
         'formData.append(`a`, JSON.stringify(createARequestBody.a))',
+      );
+      expect(formData).not.toContain(
+        'formData.append(`a`, createARequestBody.a);',
+      );
+    });
+
+    it('nested allOf property ($ref -> allOf -> $ref -> allOf string): doesnt JSON.stringifies the field', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              C: { type: 'string' },
+              // No explicit `type: object` here
+              B: {
+                allOf: [{ $ref: '#/components/schemas/C' }],
+              },
+              // Same: no explicit `type: object`, just wraps B.
+              A: {
+                allOf: [{ $ref: '#/components/schemas/B' }],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    a: { $ref: '#/components/schemas/A' },
+                  },
+                  required: ['a'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreateA', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      expect(formData).toContain('formData.append(`a`, createARequestBody.a);');
+      expect(formData).not.toContain('JSON.stringify(createARequestBody.a)');
+    });
+
+    it('allOf wrapping a non-object schema: must not JSON.stringify a scalar value', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              StringLeaf: { type: 'string' },
+              // No explicit `type: string` here — purely a composition
+              // wrapper around a scalar, same shape as the object wrapper
+              // case above, but resolving to a non-object.
+              WrappedString: {
+                allOf: [{ $ref: '#/components/schemas/StringLeaf' }],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    note: { $ref: '#/components/schemas/WrappedString' },
+                  },
+                  required: ['note'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreateNote', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // The resolved schema is a string, so the raw value must be appended
+      // as-is — never JSON.stringify'd, which would wire up `"foo"`
+      // (quoted) instead of `foo`.
+      expect(formData).toContain(
+        'formData.append(`note`, createNoteRequestBody.note);',
+      );
+      expect(formData).not.toContain(
+        'JSON.stringify(createNoteRequestBody.note)',
+      );
+    });
+
+    it('allOf-wrapped object with EXPLODE arrayHandling: nested properties behind allOf must still be appended', () => {
+      // Review note: "For an object wrapper with EXPLODE, recursion reads
+      // only direct properties. The wrapper has none, so no multipart
+      // field is appended." Even once object-detection correctly resolves
+      // through allOf, the EXPLODE recursion branch
+      // (resolveSchemaPropertiesToFormData -> getSchemaProperties(schema))
+      // must also traverse into the allOf branches to find the actual
+      // properties — a wrapper schema that is *only* `allOf: [$ref]` has
+      // no properties of its own, so naively recursing on it directly
+      // silently drops the whole field instead of emitting its nested keys.
+      const ctx: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            ...context.output.override,
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        },
+        spec: {
+          components: {
+            schemas: {
+              Leaf: {
+                type: 'object',
+                properties: { x: { type: 'string' } },
+                required: ['x'],
+              },
+              // No own `properties` or `type: object` — the only way to
+              // reach `x` is by resolving through `allOf`.
+              WrapperNoOwnProps: {
+                allOf: [{ $ref: '#/components/schemas/Leaf' }],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    payload: {
+                      $ref: '#/components/schemas/WrapperNoOwnProps',
+                    },
+                  },
+                  required: ['payload'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreatePayload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // `x` is required on `Leaf`, and that required-ness must survive
+      // being merged through the allOf wrapper too — otherwise it's
+      // wrongly emitted behind an `if (... !== undefined)` guard.
+      expect(formData).toContain(
+        'formData.append(`payload.x`, createPayloadRequestBody.payload.x);',
+      );
+      expect(formData).not.toContain('!== undefined');
+    });
+
+    it('allOf-wrapped object with EXPLODE arrayHandling: properties across a multi-level allOf chain must all be appended', () => {
+      // Mirrors the real fixture that surfaced this exact bug in
+      // production (AllOfPet -> Pet -> NestedPet -> DoublyNestedPet,
+      // tests/specifications/all-of.yaml): a chain of THREE pure allOf
+      // wrapper hops, each contributing its own properties (some via
+      // their own allOf member, some directly), plus a mix of required
+      // and optional fields at different levels. The single-hop EXPLODE
+      // test above doesn't exercise recursion depth or required-merging
+      // together; this one does, for the arrayHandling mode most likely
+      // to expose a shallow (non-recursive) properties/required read.
+      const ctx: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            ...context.output.override,
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        },
+        spec: {
+          components: {
+            schemas: {
+              DoublyNestedLeaf: {
+                type: 'object',
+                properties: { doubleNest: { type: 'number' } },
+              },
+              // Level 2: own `nest` (optional) + allOf-inherited `doubleNest`.
+              NestedWrapper: {
+                allOf: [
+                  { $ref: '#/components/schemas/DoublyNestedLeaf' },
+                  { type: 'object', properties: { nest: { type: 'number' } } },
+                ],
+              },
+              // Level 1: own `id`/`name` (required) + everything inherited
+              // from NestedWrapper (nest, doubleNest).
+              MidWrapper: {
+                allOf: [
+                  { $ref: '#/components/schemas/NestedWrapper' },
+                  {
+                    type: 'object',
+                    required: ['id', 'name'],
+                    properties: {
+                      id: { type: 'integer' },
+                      name: { type: 'string' },
+                    },
+                  },
+                ],
+              },
+              PetDetailLeaf: {
+                type: 'object',
+                required: ['tag'],
+                properties: { tag: { type: 'string' } },
+              },
+              // Root: pure allOf wrapper, no own properties at all —
+              // everything comes from two further levels of composition.
+              AllOfPayload: {
+                allOf: [
+                  { $ref: '#/components/schemas/MidWrapper' },
+                  { $ref: '#/components/schemas/PetDetailLeaf' },
+                ],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    payload: { $ref: '#/components/schemas/AllOfPayload' },
+                  },
+                  required: ['payload'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreatePayload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // Optional, two allOf-hops deep: guarded.
+      expect(formData).toContain(
+        'if(createPayloadRequestBody.payload.doubleNest !== undefined) {',
+      );
+      expect(formData).toContain(
+        'formData.append(`payload.doubleNest`, createPayloadRequestBody.payload.doubleNest.toString())',
+      );
+      // Optional, one allOf-hop deep: guarded.
+      expect(formData).toContain(
+        'if(createPayloadRequestBody.payload.nest !== undefined) {',
+      );
+      expect(formData).toContain(
+        'formData.append(`payload.nest`, createPayloadRequestBody.payload.nest.toString())',
+      );
+      // Required, one allOf-hop deep: unguarded.
+      expect(formData).toContain(
+        'formData.append(`payload.id`, createPayloadRequestBody.payload.id.toString())',
+      );
+      expect(formData).toContain(
+        'formData.append(`payload.name`, createPayloadRequestBody.payload.name);',
+      );
+      // Required, sibling allOf branch at the root: unguarded.
+      expect(formData).toContain(
+        'formData.append(`payload.tag`, createPayloadRequestBody.payload.tag);',
       );
     });
 
@@ -1196,5 +1502,259 @@ describe('getResReqTypes (form-data part content type escaping)', () => {
       String.raw`new Blob([bodyRequestBody.note], { type: 'text/plain\', evil: \'injected' })`,
     );
     expect(result.formData).not.toContain("evil: 'injected'");
+  });
+});
+
+describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertiesThroughAllOf / collectRequiredThroughAllOf)', () => {
+  const StringLeaf: OpenApiSchemaObject = { type: 'string' };
+  const ObjectLeaf: OpenApiSchemaObject = {
+    type: 'object',
+    properties: { x: { type: 'string' } },
+    required: ['x'],
+  };
+  const NoOwnType: OpenApiSchemaObject = {
+    properties: { y: { type: 'number' } },
+  };
+
+  const ctxWith = (schemas: Record<string, OpenApiSchemaObject>): ContextSpec =>
+    ({
+      ...context,
+      spec: { components: { schemas } },
+    }) as unknown as ContextSpec;
+
+  describe('isEffectivelyObjectSchema', () => {
+    it('true for an explicit type: object', () => {
+      expect(isEffectivelyObjectSchema({ type: 'object' }, context)).toBe(true);
+    });
+
+    it('true for a type array that includes object', () => {
+      expect(
+        isEffectivelyObjectSchema(
+          { type: ['object', 'null'] as unknown as 'object' },
+          context,
+        ),
+      ).toBe(true);
+    });
+
+    it('true when properties are present without an explicit type', () => {
+      expect(isEffectivelyObjectSchema(NoOwnType, context)).toBe(true);
+    });
+
+    it('true when only additionalProperties is present', () => {
+      expect(
+        isEffectivelyObjectSchema(
+          { additionalProperties: { type: 'string' } },
+          context,
+        ),
+      ).toBe(true);
+    });
+
+    it('false for a plain scalar schema', () => {
+      expect(isEffectivelyObjectSchema(StringLeaf, context)).toBe(false);
+    });
+
+    it('false for an empty/unknown schema (never defaults to true)', () => {
+      expect(isEffectivelyObjectSchema({}, context)).toBe(false);
+    });
+
+    it('true for a single-level allOf wrapping an object $ref', () => {
+      const ctx = ctxWith({ ObjectLeaf });
+      expect(
+        isEffectivelyObjectSchema(
+          { allOf: [{ $ref: '#/components/schemas/ObjectLeaf' }] },
+          ctx,
+        ),
+      ).toBe(true);
+    });
+
+    it('false for a single-level allOf wrapping a scalar $ref', () => {
+      const ctx = ctxWith({ StringLeaf });
+      expect(
+        isEffectivelyObjectSchema(
+          { allOf: [{ $ref: '#/components/schemas/StringLeaf' }] },
+          ctx,
+        ),
+      ).toBe(false);
+    });
+
+    it('true through a two-level allOf -> $ref -> allOf -> $ref chain', () => {
+      const ctx = ctxWith({
+        ObjectLeaf,
+        Core: { allOf: [{ $ref: '#/components/schemas/ObjectLeaf' }] },
+      });
+      expect(
+        isEffectivelyObjectSchema(
+          { allOf: [{ $ref: '#/components/schemas/Core' }] },
+          ctx,
+        ),
+      ).toBe(true);
+    });
+
+    it('false through a two-level allOf -> $ref -> allOf -> $ref chain wrapping a scalar', () => {
+      const ctx = ctxWith({
+        StringLeaf,
+        Core: { allOf: [{ $ref: '#/components/schemas/StringLeaf' }] },
+      });
+      expect(
+        isEffectivelyObjectSchema(
+          { allOf: [{ $ref: '#/components/schemas/Core' }] },
+          ctx,
+        ),
+      ).toBe(false);
+    });
+
+    it('does not stack-overflow or infinite-loop on a self-referential allOf chain', () => {
+      const ctx = ctxWith({
+        SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
+      });
+      expect(() =>
+        isEffectivelyObjectSchema(
+          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
+          ctx,
+        ),
+      ).not.toThrow();
+      expect(
+        isEffectivelyObjectSchema(
+          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
+          ctx,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('collectPropertiesThroughAllOf', () => {
+    it('returns own properties unchanged when there is no allOf', () => {
+      expect(collectPropertiesThroughAllOf(ObjectLeaf, context)).toEqual({
+        x: { type: 'string' },
+      });
+    });
+
+    it('returns {} for a schema with neither properties nor allOf', () => {
+      expect(
+        collectPropertiesThroughAllOf({ type: 'object' }, context),
+      ).toEqual({});
+    });
+
+    it('pulls in properties through a single allOf -> $ref hop', () => {
+      const ctx = ctxWith({ ObjectLeaf });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [{ $ref: '#/components/schemas/ObjectLeaf' }],
+      };
+      expect(collectPropertiesThroughAllOf(wrapper, ctx)).toEqual({
+        x: { type: 'string' },
+      });
+    });
+
+    it('pulls in properties through a two-level allOf -> $ref -> allOf -> $ref chain', () => {
+      const ctx = ctxWith({
+        ObjectLeaf,
+        Core: { allOf: [{ $ref: '#/components/schemas/ObjectLeaf' }] },
+      });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [{ $ref: '#/components/schemas/Core' }],
+      };
+      expect(collectPropertiesThroughAllOf(wrapper, ctx)).toEqual({
+        x: { type: 'string' },
+      });
+    });
+
+    it('merges properties contributed by multiple allOf members', () => {
+      const A: OpenApiSchemaObject = { properties: { a: { type: 'string' } } };
+      const B: OpenApiSchemaObject = { properties: { b: { type: 'number' } } };
+      const ctx = ctxWith({ A, B });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [
+          { $ref: '#/components/schemas/A' },
+          { $ref: '#/components/schemas/B' },
+        ],
+      };
+      expect(collectPropertiesThroughAllOf(wrapper, ctx)).toEqual({
+        a: { type: 'string' },
+        b: { type: 'number' },
+      });
+    });
+
+    it('own properties take precedence over allOf-inherited ones on key conflicts', () => {
+      const Base: OpenApiSchemaObject = {
+        properties: { a: { type: 'string', description: 'base' } },
+      };
+      const ctx = ctxWith({ Base });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [{ $ref: '#/components/schemas/Base' }],
+        properties: { a: { type: 'string', description: 'override' } },
+      };
+      expect(
+        (collectPropertiesThroughAllOf(wrapper, ctx).a as OpenApiSchemaObject)
+          .description,
+      ).toBe('override');
+    });
+
+    it('does not stack-overflow or infinite-loop on a self-referential allOf chain', () => {
+      const ctx = ctxWith({
+        SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
+      });
+      expect(() =>
+        collectPropertiesThroughAllOf(
+          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
+          ctx,
+        ),
+      ).not.toThrow();
+    });
+  });
+
+  describe('collectRequiredThroughAllOf', () => {
+    it('returns own required array unchanged when there is no allOf', () => {
+      expect(collectRequiredThroughAllOf(ObjectLeaf, context)).toEqual(['x']);
+    });
+
+    it('returns [] for a schema with neither required nor allOf', () => {
+      expect(collectRequiredThroughAllOf({ type: 'object' }, context)).toEqual(
+        [],
+      );
+    });
+
+    it('pulls in required through a single allOf -> $ref hop', () => {
+      const ctx = ctxWith({ ObjectLeaf });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [{ $ref: '#/components/schemas/ObjectLeaf' }],
+      };
+      expect(collectRequiredThroughAllOf(wrapper, ctx)).toEqual(['x']);
+    });
+
+    it('merges required contributed by multiple allOf members plus its own', () => {
+      const A: OpenApiSchemaObject = {
+        properties: { a: { type: 'string' } },
+        required: ['a'],
+      };
+      const B: OpenApiSchemaObject = {
+        properties: { b: { type: 'number' } },
+        required: ['b'],
+      };
+      const ctx = ctxWith({ A, B });
+      const wrapper: OpenApiSchemaObject = {
+        allOf: [
+          { $ref: '#/components/schemas/A' },
+          { $ref: '#/components/schemas/B' },
+        ],
+        required: ['c'],
+        properties: { c: { type: 'boolean' } },
+      };
+      const required = collectRequiredThroughAllOf(wrapper, ctx);
+      expect(required).toContain('a');
+      expect(required).toContain('b');
+      expect(required).toContain('c');
+    });
+
+    it('does not stack-overflow or infinite-loop on a self-referential allOf chain', () => {
+      const ctx = ctxWith({
+        SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
+      });
+      expect(() =>
+        collectRequiredThroughAllOf(
+          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
+          ctx,
+        ),
+      ).not.toThrow();
+    });
   });
 });
