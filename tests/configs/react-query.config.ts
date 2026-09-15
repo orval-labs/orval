@@ -1822,6 +1822,25 @@ export default defineConfig({
       target: '../specifications/infinite-query-param-array.yaml',
     },
   },
+  // Named single-file zod schemas (#4100): the client import must name the
+  // file itself (`./schemas.zod`), not the default `./index.zod`.
+  namedSingleZodSchemas: {
+    output: {
+      target: '../generated/react-query/named-single-zod-schemas/client.ts',
+      schemas: {
+        type: 'zod',
+        mode: 'single',
+        path: '../generated/react-query/named-single-zod-schemas/schemas.zod.ts',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsOperationsSplit: {
     output: {
       target:

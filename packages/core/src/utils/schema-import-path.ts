@@ -1,13 +1,28 @@
+import path from 'node:path';
+
 import type {
   GeneratorDependency,
   GeneratorImport,
   NormalizedOutputOptions,
 } from '../types';
 import { conventionName } from './case';
+import { stripFileExtension } from './file';
 import * as upath from './path';
 import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
 import type { SchemaOutputPlan } from '../writers/schema-output-plan';
+
+/** Known source file extensions used to detect named single-schema files. */
+const SOURCE_FILE_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
 
 /**
  * Tag directory for a schema that more than one tag uses. Such schemas stay at
@@ -76,6 +91,33 @@ export function resolveSchemaImportDependencies(
     typeof output.schemas === 'object' &&
     output.schemas.mode === 'single'
   ) {
+    // `schemas.path` may name the schema module itself (#4074): a path
+    // with a source extension is written to directly, so the import must
+    // address that file, not the default `<dir>/index.zod.ts`. The stem and
+    // the import extension both derive from the *path's own* extension —
+    // `schemaFileExtension` may not even be a suffix of it (e.g.
+    // `schemas.zod.mts` with the default `.zod.ts`), and mixing the two
+    // would append the wrong tail and name a file nobody emits.
+    const namedSingleSchemaPath =
+      typeof output.schemas.path === 'string' &&
+      SOURCE_FILE_EXTENSIONS.has(
+        path.extname(output.schemas.path).toLowerCase(),
+      )
+        ? output.schemas.path
+        : undefined;
+    const namedSingleSchemaStem = namedSingleSchemaPath
+      ? path.basename(
+          stripFileExtension(
+            namedSingleSchemaPath,
+            path.extname(namedSingleSchemaPath),
+          ) +
+            getImportExtension(
+              path.extname(namedSingleSchemaPath),
+              output.tsconfig,
+            ),
+        )
+      : undefined;
+
     return [
       {
         exports: dedupeSchemaImports(resolved),
@@ -83,7 +125,8 @@ export function resolveSchemaImportDependencies(
           schemasImportPath ??
           upath.joinSafe(
             relativeSchemasPath,
-            `index${getImportExtension(output.schemaFileExtension, output.tsconfig)}`,
+            namedSingleSchemaStem ??
+              `index${getImportExtension(output.schemaFileExtension, output.tsconfig)}`,
           ),
       },
     ];
