@@ -151,9 +151,9 @@ describe('mock-types', () => {
       );
     });
 
-    it('uses ArrayBuffer for binary schema mocks', () => {
+    it('uses Blob for binary schema mocks', () => {
       expect(getStrictMockTypeDeclaration('PhotoUpload', 'binary')).toBe(
-        'export type PhotoUploadMock = ArrayBuffer;',
+        'export type PhotoUploadMock = Blob;',
       );
     });
 

@@ -5,7 +5,7 @@ export const DEFAULT_FORMAT_MOCK: Record<
   string
 > = {
   bic: 'faker.finance.bic()',
-  binary: 'new ArrayBuffer(faker.number.int({ min: 1, max: 64 }))',
+  binary: 'new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))])',
   city: 'faker.location.city()',
   country: 'faker.location.country()',
   date: 'faker.date.past().toISOString().slice(0, 10)',

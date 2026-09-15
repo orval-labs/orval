@@ -127,7 +127,7 @@ export function getStrictMockTypeDeclaration(
   }
 
   if (kind === 'binary') {
-    return `export type ${mockTypeName} = ArrayBuffer;`;
+    return `export type ${mockTypeName} = Blob;`;
   }
 
   const mappedType = `{\n  [K in keyof Required<NonNullable<${typeName}>>]: NonNullable<Required<NonNullable<${typeName}>>[K]>;\n}`;

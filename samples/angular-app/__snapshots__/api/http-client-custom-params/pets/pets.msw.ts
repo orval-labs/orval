@@ -237,8 +237,8 @@ export const getPatchPetByIdResponseMock = (
 
 export const getShowPetTextResponseMock = (): string => faker.word.sample();
 
-export const getDownloadFileResponseMock = (): ArrayBuffer =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
+export const getDownloadFileResponseMock = (): Blob =>
+  new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]);
 
 export const getSearchPetsMockHandler = (
   overrideResponse?:
@@ -437,10 +437,10 @@ export const getUploadFileMockHandler = (
 
 export const getDownloadFileMockHandler = (
   overrideResponse?:
-    | ArrayBuffer
+    | Blob
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ArrayBuffer> | ArrayBuffer),
+      ) => Promise<Blob> | Blob),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
@@ -452,13 +452,10 @@ export const getDownloadFileMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getDownloadFileResponseMock();
-      return HttpResponse.arrayBuffer(
-        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        },
-      );
+      return new HttpResponse(binaryBody, {
+        status: 200,
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
     },
     options,
   );

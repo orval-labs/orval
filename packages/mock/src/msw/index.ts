@@ -205,21 +205,13 @@ function generateDefinition(
   // When preferredContentType matched, only use schema-binary metadata to decide
   // the binary path — don't let the content-type name alone force it (issue #2962).
   // A structured schema (e.g. Pet) paired with application/octet-stream via
-  // preference should not discard the body as new ArrayBuffer(0).
+  // preference should still be serialized as JSON, not sent as a raw body.
   // When no preference matched, keep the content-type heuristic so binary-like
   // types with no schema metadata still get the correct helper.
   const isBinaryResponse = preferredContentTypeMatch
     ? responsesByPreference.some((r) => isSchemaBinary(r))
     : contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
       responsesByPreference.some((r) => isSchemaBinary(r));
-  // Bare ref names of schema-binary responses (include alias for collision-renamed imports).
-  const binaryRefNames = responsesByPreference
-    .filter((r) => isSchemaBinary(r))
-    .flatMap((r) =>
-      r.imports.flatMap((imp) =>
-        imp.alias ? [imp.name, imp.alias] : [imp.name],
-      ),
-    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -236,21 +228,13 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
-  const binaryTypeRewriteRegex = new RegExp(
-    String.raw`\b(?:${['Blob', ...binaryRefNames].map((n) => escapeRegExp(n)).join('|')})\b`,
-    'g',
-  );
-  const mockReturnType = isBinaryResponse
-    ? returnType.replaceAll(binaryTypeRewriteRegex, 'ArrayBuffer')
-    : returnType;
-
   // Detect when the return type is a union containing void (e.g. "Resource | void"
   // from endpoints with both 200 JSON and 204 No Content responses). In this case
   // we need runtime branching so that void responses use `new HttpResponse(null)`
   // instead of `HttpResponse.json()` which does not accept void/undefined.
   const isVoidUnionType =
-    mockReturnType !== 'void' &&
-    mockReturnType.split('|').some((part) => part.trim() === 'void');
+    returnType !== 'void' &&
+    returnType.split('|').some((part) => part.trim() === 'void');
   // Also a raw response key, emitted unquoted in the void-union branch below.
   const noContentStatusCode = isVoidUnionType
     ? assertSafeStatusCode(
@@ -258,19 +242,18 @@ function generateDefinition(
       )
     : undefined;
   const nonVoidMockReturnType = isVoidUnionType
-    ? mockReturnType
+    ? returnType
         .split('|')
         .filter((part) => part.trim() !== 'void')
         .join(' | ')
         .trim()
-    : mockReturnType;
+    : returnType;
 
   const hasJsonContentType = contentTypesByPreference.some(
     (ct) => ct.includes('json') || ct.includes('+json'),
   );
   const hasStringReturnType =
-    isTypeExactlyString(mockReturnType) ||
-    isUnionContainingString(mockReturnType);
+    isTypeExactlyString(returnType) || isUnionContainingString(returnType);
   const overrideResponseType = `Partial<Extract<${nonVoidMockReturnType}, object>>`;
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
@@ -284,7 +267,7 @@ function generateDefinition(
     isTextResponse &&
     hasJsonContentType &&
     hasStringReturnType &&
-    mockReturnType !== 'string';
+    returnType !== 'string';
 
   const mockOptionsFromOverride = override.mock;
   const strictMock = isStrictMock(mockOptionsFromOverride);
@@ -424,10 +407,7 @@ function generateDefinition(
       { status: ${statusCode}
       })`;
   } else if (isBinaryResponse) {
-    responseBody = `HttpResponse.arrayBuffer(
-      binaryBody instanceof ArrayBuffer
-        ? binaryBody
-        : new ArrayBuffer(0),
+    responseBody = `new HttpResponse(binaryBody,
       { status: ${statusCode},
         headers: { 'Content-Type': '${jsStringLiteralEscape(binaryContentType)}' }
       })`;
@@ -470,7 +450,7 @@ function generateDefinition(
   const infoType = `Parameters<Parameters<typeof http.${verb}>[1]>[0]`;
 
   const handlerImplementation = `
-export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoParam}: ${infoType}) => Promise<${mockReturnType}> | ${mockReturnType}), options?: RequestHandlerOptions) => {
+export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: ${infoType}) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}: ${infoType}) => {${
     delay === false
       ? ''

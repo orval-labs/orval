@@ -58,7 +58,7 @@ export type PetDetailMock = {
   >;
 };
 
-export type PhotoUploadMock = ArrayBuffer;
+export type PhotoUploadMock = Blob;
 
 export type PetListMock = PetList;
 
@@ -152,7 +152,7 @@ export const getPetDetailMock = <O extends Partial<PetDetail> = {}>(
   }) as MockWithNullableOverrides<PetDetail, O, PetDetailMock>;
 
 export const getPhotoUploadMock = (): PhotoUploadMock =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
+  new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]);
 
 export const getPetListMock = (): PetListMock =>
   Array.from(

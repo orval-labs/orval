@@ -38,7 +38,7 @@ describe('getResponsesMockDefinition', () => {
     });
 
     expect(result.definitions).toHaveLength(1);
-    expect(result.definitions[0]).toContain('ArrayBuffer');
+    expect(result.definitions[0]).toContain('new Blob([');
     expect(result.imports).toEqual([
       { name: 'PointInFutureAbsolute', values: false },
     ]);
