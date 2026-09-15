@@ -249,12 +249,13 @@ export function normalizeNullableRefs(
     };
   }
 
+  // `inAllOf` marks the direct members of an `allOf` array and nothing deeper:
+  // it is set when descending into `allOf` (the array branch then carries it to
+  // each member) and cleared again for every other key. A `$ref` further down,
+  // in a member's `properties` for instance, has no composition to be read
+  // through, so it takes the ordinary rewrite above.
   for (const [key, value] of Object.entries(obj)) {
-    obj[key] = normalizeNullableRefs(
-      value,
-      [...path, key],
-      inAllOf || key === 'allOf',
-    );
+    obj[key] = normalizeNullableRefs(value, [...path, key], key === 'allOf');
   }
 
   return obj;
