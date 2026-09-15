@@ -1122,6 +1122,23 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
     expect(implementation).toContain('ErrorSchema.parse(data)');
   });
 
+  it('validates an inline array response through its element schema', () => {
+    const response = makeResponse('Item');
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions({
+        response: {
+          ...response,
+          definition: { success: 'Item[]', errors: 'Error' },
+        },
+      }),
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain('): Promise<ItemOutput[]> =>');
+    expect(implementation).toContain('http.get<ItemOutput[]>(url)');
+    expect(implementation).toContain('zod.array(Item).parse(data)');
+  });
+
   it('keeps the schema (input) type when the schemas output is not zod', () => {
     const implementation = generateAngularHttpRequestFunction(
       makeVerbOptions(),

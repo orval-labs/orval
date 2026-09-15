@@ -3,6 +3,8 @@ import {
   type ClientDependenciesBuilder,
   type ClientHeaderBuilder,
   generateVerbImports,
+  getArrayResponseSchema,
+  getZodNamespaceImport,
   hasSchemaImport,
   isPrimitiveResponseType,
   mergeDeep,
@@ -126,6 +128,17 @@ export const generateQuery: ClientBuilder = async (
         contentType === 'application/nd-json' ||
         contentType === 'application/x-ndjson',
     );
+  // An inline array response resolves to `Item[]`, which the exact-name check
+  // above never matches. The Angular HttpClient request function validates it
+  // through `zod.array(Item)`, so the element becomes the value import and
+  // contributes the `Output` alias (#3718, #4106).
+  const responseArraySchema =
+    adapter.isAngularHttp &&
+    verbOptions.override.query.runtimeValidation?.enabled &&
+    !verbOptions.mutator &&
+    isZodOutput
+      ? getArrayResponseSchema(verbOptions.response.imports, responseType)
+      : undefined;
 
   const normalizedVerbOptions =
     shouldUseRuntimeValidation || shouldImportSchemaValue
@@ -146,7 +159,18 @@ export const generateQuery: ClientBuilder = async (
             ),
           },
         }
-      : verbOptions;
+      : responseArraySchema
+        ? {
+            ...verbOptions,
+            response: {
+              ...verbOptions.response,
+              imports: rewriteImportsForResponseValidation(
+                verbOptions.response.imports,
+                responseArraySchema.elementName,
+              ),
+            },
+          }
+        : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = adapter.generateRequestFunction(
@@ -169,7 +193,13 @@ export const generateQuery: ClientBuilder = async (
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
-    imports: [...imports, ...hookImports],
+    imports: [
+      ...imports,
+      ...hookImports,
+      ...(responseArraySchema
+        ? [getZodNamespaceImport(options.context.output.override)]
+        : []),
+    ],
     mutators,
     ...(isFetchHttpClient && { docComment: '' }),
   };

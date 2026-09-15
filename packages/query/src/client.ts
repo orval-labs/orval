@@ -14,6 +14,7 @@ import {
   type GeneratorVerbOptions,
   getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
+  getArrayResponseSchema,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getSuccessResponseType,
@@ -171,17 +172,26 @@ export const generateAngularHttpRequestFunction = (
   const responseType = response.definition.success || 'unknown';
   const isZodOutput =
     isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  // An inline array response (`Item[]`) is validated through its element
+  // schema, since the exact-name check never matches it (#3718, #4106).
+  const responseArraySchema = getArrayResponseSchema(
+    response.imports,
+    responseType,
+    getSchemaValueRef,
+  );
   const shouldValidateResponse =
     override.query.runtimeValidation?.enabled &&
     isZodOutput &&
     !isPrimitiveResponseType(responseType) &&
-    hasSchemaImport(response.imports, responseType);
+    (hasSchemaImport(response.imports, responseType) ||
+      responseArraySchema !== undefined);
   // The generated parse returns the schema's zod output type, so the declared
   // type (HttpClient generic and Promise return) references the `XOutput`
   // alias — the bare schema name aliases `zod.input`, which diverges under
   // `coerce`, `useDates`, defaults and transforms (#3941).
   const dataType = shouldValidateResponse
-    ? getSchemaOutputTypeRef(responseType)
+    ? (responseArraySchema?.outputTypeRef ??
+      getSchemaOutputTypeRef(responseType))
     : responseType;
 
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
@@ -252,9 +262,9 @@ export const generateAngularHttpRequestFunction = (
 
   // If validation is enabled, pipe through the shared runtime-validation emitter
   if (shouldValidateResponse) {
-    const schemaValueRef = getSchemaValueRef(responseType);
     httpCall = `${httpCall}${emitResponseValidation({
-      schemaRef: schemaValueRef,
+      schemaRef:
+        responseArraySchema?.schemaRef ?? getSchemaValueRef(responseType),
       operationName,
       strategy: override.query.runtimeValidation?.strategy ?? 'throw',
       context: 'rxjs-map',
