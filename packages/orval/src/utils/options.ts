@@ -975,6 +975,12 @@ export async function normalizeOptions(
           ),
           useRuntimeFetcher:
             outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
+          ...(outputOptions.override?.fetch?.httpClientInjection
+            ? {
+                httpClientInjection:
+                  outputOptions.override.fetch.httpClientInjection,
+              }
+            : {}),
           ...(outputOptions.override?.fetch?.arrayFormat
             ? { arrayFormat: outputOptions.override.fetch.arrayFormat }
             : {}),

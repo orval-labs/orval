@@ -1226,4 +1226,22 @@ export default defineConfig({
       target: '../specifications/inferred-mutator/petstore.yaml',
     },
   },
+  'fetch-factory': {
+    output: {
+      target: '../generated/fetch/fetch-factory/endpoints.ts',
+      schemas: '../generated/fetch/fetch-factory/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          useRuntimeFetcher: true,
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
