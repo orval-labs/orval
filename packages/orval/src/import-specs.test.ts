@@ -3354,6 +3354,27 @@ describe('normalizeNullableRefs', () => {
     expect(result).toEqual({ type: 'string', nullable: true });
   });
 
+  it('should drop a no-op nullable sibling from a $ref inside allOf', () => {
+    const input = {
+      allOf: [
+        { $ref: '#/components/schemas/Pet', nullable: true },
+        { type: 'object', properties: { marker: { type: 'string' } } },
+      ],
+    };
+
+    const result = normalizeNullableRefs(input);
+
+    // Left as a plain `$ref` rather than rewritten into a union: orval reads
+    // through allOf members to collect the keys a schema guarantees, and a union
+    // member hides them (#3714).
+    expect(result).toEqual({
+      allOf: [
+        { $ref: '#/components/schemas/Pet' },
+        { type: 'object', properties: { marker: { type: 'string' } } },
+      ],
+    });
+  });
+
   it('should normalize nullable refs nested inside properties', () => {
     const input = {
       type: 'object',

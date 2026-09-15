@@ -6,6 +6,6 @@
  */
 import type { NullableParentBase } from './nullableParentBase';
 
-export type NullableParentWrapper = (NullableParentBase | null) & {
+export type NullableParentWrapper = NullableParentBase & {
   marker?: string;
 };

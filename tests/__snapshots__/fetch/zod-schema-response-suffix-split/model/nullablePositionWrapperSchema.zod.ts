@@ -8,11 +8,14 @@ import * as zod from 'zod';
 
 export const NullablePositionWrapperSchema = zod.object({
   position: zod
-    .object({
-      id: zod.string(),
-      quantity: zod.number(),
-    })
-    .nullish(),
+    .union([
+      zod.object({
+        id: zod.string(),
+        quantity: zod.number(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
 });
 
 export type NullablePositionWrapperSchema = zod.input<

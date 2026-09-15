@@ -143,18 +143,26 @@ async function resolveSpec(
     ? collectSwagger2FormDataItems(transformedData)
     : undefined;
 
-  const upgraded = upgrade(transformedData);
-  let specification = upgraded.specification;
-
   // Normalize invalid OpenAPI 3.0 nullable references into a valid 3.1 form.
   // A `$ref` with a sibling `nullable: true` is out of spec: per the Reference
   // Object rules, sibling properties on a `$ref` are ignored, so `nullable` has
   // no effect. Many specs still use it to mean `Pet | null`. Rewrite
   // `{ $ref, nullable: true }` to `{ anyOf: [$ref, { type: 'null' }] }` and warn
-  // so users know their spec was non-conformant (#3714). Runs after `upgrade()`
-  // so the validator never sees the rewritten node and the warning fires once
-  // per source occurrence, not per dereference site.
-  specification = normalizeNullableRefs(specification) as typeof specification;
+  // so users know their spec was non-conformant (#3714).
+  //
+  // Runs *before* `upgrade()`: as of @scalar/openapi-upgrader@0.2.13 the
+  // upgrader performs the same rewrite itself, silently. Leaving this after the
+  // upgrade would find nothing left to rewrite and drop the diagnostic, so it
+  // goes first and the upgrader finds the case already handled. Validation has
+  // already run above, so the validator still sees the document as authored,
+  // and bundling and dereferencing are done, so the warning fires once per
+  // source occurrence rather than once per dereference site.
+  transformedData = normalizeNullableRefs(
+    transformedData,
+  ) as typeof transformedData;
+
+  const upgraded = upgrade(transformedData);
+  let specification = upgraded.specification;
 
   // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
   // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
@@ -174,8 +182,9 @@ async function resolveSpec(
  * `{ anyOf: [$ref, { type: 'null' }] }` and warn with the JSON Pointer path so
  * users learn their spec was non-conformant.
  *
- * Runs before `upgrade()` so the corrected spec is validated as 3.1 and the
- * warning fires once per occurrence, not per dereference site.
+ * Runs before `upgrade()`, which since @scalar/openapi-upgrader@0.2.13 applies
+ * the same rewrite without reporting it, and after bundling, so the warning
+ * fires once per occurrence rather than once per dereference site.
  */
 export function normalizeNullableRefs(
   spec: unknown,
@@ -194,10 +203,29 @@ export function normalizeNullableRefs(
 
   const obj = spec as Record<string, unknown>;
 
-  // A ReferenceObject with a sibling `nullable: true`.
-  // Only rewrite when NOT inside an allOf array — allOf + $ref + nullable is
-  // the valid OpenAPI 3.0 way to make a reference nullable, and orval already
-  // handles it correctly (#3714).
+  // The same sibling inside an `allOf` array is equally meaningless, and it must
+  // not be turned into a union: orval reads through `allOf` members to collect
+  // the keys a schema guarantees, and an `{ anyOf: [$ref, { type: 'null' }] }`
+  // member hides them, degrading `Pick<Wrapper, 'id'>` to
+  // `Pick<Wrapper, Extract<keyof Wrapper, 'id'>>`. The upgrader applies its
+  // rewrite with no `allOf` guard as of @scalar/openapi-upgrader@0.2.13, so drop
+  // the no-op sibling here and hand it a plain `$ref`. The emitted type is
+  // unchanged: `(Base | null) & { marker?: string }` and
+  // `Base & { marker?: string }` are the same type, since `null & { ... }`
+  // reduces to `never`.
+  if (
+    inAllOf &&
+    '$ref' in obj &&
+    isString(obj.$ref) &&
+    (obj.nullable as boolean | undefined) === true
+  ) {
+    delete obj.nullable;
+  }
+
+  // A ReferenceObject with a sibling `nullable: true` outside an `allOf`, where
+  // there is no composition left to read the reference through and the rewrite
+  // is the only way to keep the `| null` the author meant (#3714). The in-allOf
+  // form is handled just above.
   if (
     !inAllOf &&
     '$ref' in obj &&
