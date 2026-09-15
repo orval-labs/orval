@@ -336,9 +336,8 @@ describe('generateSchemasDefinition', () => {
 
   // Regression test for #3340: enum properties inside a *nullable* nested
   // object must still be extracted into named `as const` consts, exactly like
-  // non-nullable nested objects and top-level properties. OAS 3.0's
-  // `nullable: true` is upgraded to `type: ['object', 'null']` before
-  // generation, so that is the shape exercised here.
+  // non-nullable nested objects and top-level properties. The OAS 3.1
+  // `type: ['object', 'null']` shape is exercised here.
   it('extracts named const enums from a nullable nested object (#3340)', () => {
     const schemas: OpenApiSchemasObject = {
       Test: {
@@ -492,9 +491,8 @@ describe('generateSchemasDefinition', () => {
         enum: [true, false],
       },
       NumberEnumNullable: {
-        nullable: true,
-        type: 'number',
-        enum: [1.5, 2.5, 3.5],
+        type: ['number', 'null'],
+        enum: [1.5, 2.5, 3.5, null],
       },
       NumberEnumNotNull: {
         type: 'number',
