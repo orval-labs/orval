@@ -93,19 +93,30 @@ export function resolveSchemaImportDependencies(
   ) {
     // `schemas.path` may name the schema module itself (#4074): a path
     // with a source extension is written to directly, so the import must
-    // address that file, not the default `<dir>/index.zod.ts`.
-    const namedSingleSchemaStem =
+    // address that file, not the default `<dir>/index.zod.ts`. The stem and
+    // the import extension both derive from the *path's own* extension —
+    // `schemaFileExtension` may not even be a suffix of it (e.g.
+    // `schemas.zod.mts` with the default `.zod.ts`), and mixing the two
+    // would append the wrong tail and name a file nobody emits.
+    const namedSingleSchemaPath =
       typeof output.schemas.path === 'string' &&
       SOURCE_FILE_EXTENSIONS.has(
         path.extname(output.schemas.path).toLowerCase(),
       )
-        ? path.basename(
-            stripFileExtension(
-              output.schemas.path,
-              output.schemaFileExtension,
-            ) + getImportExtension(output.schemaFileExtension, output.tsconfig),
-          )
+        ? output.schemas.path
         : undefined;
+    const namedSingleSchemaStem = namedSingleSchemaPath
+      ? path.basename(
+          stripFileExtension(
+            namedSingleSchemaPath,
+            path.extname(namedSingleSchemaPath),
+          ) +
+            getImportExtension(
+              path.extname(namedSingleSchemaPath),
+              output.tsconfig,
+            ),
+        )
+      : undefined;
 
     return [
       {
