@@ -847,6 +847,21 @@ export default defineConfig({
       target: '../specifications/issue-3590-binary-response-imports.yaml',
     },
   },
+  issue4062: {
+    output: {
+      target: '../generated/mock/issue-4062/endpoints.ts',
+      schemas: '../generated/mock/issue-4062/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker', schemas: true }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4062.yaml',
+    },
+  },
   fakerArrayItems: {
     output: {
       target: '../generated/mock/faker-array-items/endpoints.ts',

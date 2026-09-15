@@ -1,0 +1,62 @@
+openapi: 3.0.1
+info:
+  version: 1.0.0
+  title: Issue 4062 - binary faker mocks must match the generated Blob type
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/4062
+# `format: binary` generates `Blob` in the model, so the faker mock has to be a
+# Blob too. Without `override.mock.required`/`nonNullable` (unlike #3590) there
+# is no `{Schema}Mock` alias to absorb a mismatch, and a binary *property*
+# cannot be absorbed by one at all — both must typecheck as `Blob`.
+
+paths:
+  /uploads:
+    post:
+      operationId: createUpload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Upload'
+      responses:
+        '200':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload'
+  /uploads/{id}/content:
+    get:
+      operationId: downloadUpload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: raw content
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/IFormFile'
+
+components:
+  schemas:
+    IFormFile:
+      type: string
+      format: binary
+
+    Upload:
+      type: object
+      properties:
+        name:
+          type: string
+        file:
+          type: string
+          format: binary
+        attachment:
+          $ref: '#/components/schemas/IFormFile'

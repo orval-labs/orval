@@ -10,15 +10,15 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-export const getGetBinaryBlobResponseMock = (): ArrayBuffer =>
-  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
+export const getGetBinaryBlobResponseMock = (): Blob =>
+  new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]);
 
 export const getGetBinaryBlobMockHandler = (
   overrideResponse?:
-    | ArrayBuffer
+    | Blob
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ArrayBuffer> | ArrayBuffer),
+      ) => Promise<Blob> | Blob),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
@@ -30,13 +30,10 @@ export const getGetBinaryBlobMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getGetBinaryBlobResponseMock();
-      return HttpResponse.arrayBuffer(
-        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        },
-      );
+      return new HttpResponse(binaryBody, {
+        status: 200,
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
     },
     options,
   );
