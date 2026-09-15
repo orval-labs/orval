@@ -275,6 +275,43 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/NullableParentWrapper'
+    # Where `nullable` sits relative to an `allOf` decides whether it survives.
+    # An `allOf` is an intersection, and `null & { ... }` is `never`, so a null
+    # branch cannot live inside one. NullableAllOfMemberWrapper above covers the
+    # sibling-on-a-member case; these three cover the rest of the placements.
+    NullablePlacementBase:
+      type: object
+      properties:
+        id:
+          type: string
+    # On the composed schema: the only placement where nullability survives.
+    NullablePlacementOnWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NullablePlacementBase'
+        - type: object
+          properties:
+            marker:
+              type: string
+      nullable: true
+    NullablePlacementHolder:
+      type: object
+      properties:
+        # A bare `$ref` sibling, outside any composition: rewritten to a union,
+        # with a warning that the spec is non-conformant.
+        bare_ref:
+          $ref: '#/components/schemas/NullablePlacementBase'
+          nullable: true
+    # Below an `allOf` member rather than on one: there is no composition at the
+    # property to read the reference through, so it still takes the union.
+    NullablePlacementBelowMember:
+      allOf:
+        - type: object
+          properties:
+            nested_ref:
+              $ref: '#/components/schemas/NullablePlacementBase'
+              nullable: true
+            marker:
+              type: string
 paths:
   /endpointA:
     get:
