@@ -640,6 +640,116 @@ describe('validation', () => {
   });
 });
 
+describe('specParsing', () => {
+  // JSON specs take `JSON.parse` instead of js-yaml, and specs whose $refs are
+  // all local JSON pointers skip the bundle + dereference pipeline entirely
+  // (#3805). Both fast paths must produce exactly what the slow paths did.
+  const JSON_SPEC = {
+    openapi: '3.0.3',
+    info: { title: 'JsonFastPath', version: '1.0.0' },
+    paths: {
+      '/test': {
+        get: {
+          operationId: 'getTest',
+          responses: {
+            '200': {
+              description: 'OK',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ApiVersion' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        ApiVersion: { type: 'string', enum: ['latest', '2026-01-27'] },
+      },
+    },
+  };
+
+  async function importJsonSpec(content: string, prefix: string) {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), prefix));
+    const specPath = path.join(workspace, 'spec.json');
+    try {
+      await writeFile(specPath, content, 'utf8');
+      const normalizedOptions = await normalizeOptions(
+        { output: { target: '' }, input: { target: specPath } },
+        workspace,
+        {},
+      );
+      return await importSpecs(workspace, normalizedOptions);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  }
+
+  it('should parse JSON specs and resolve their local refs', async () => {
+    const result = await importJsonSpec(
+      JSON.stringify(JSON_SPEC, undefined, 2),
+      'orval-json-parse-',
+    );
+
+    const apiVersion = result.schemas.find((s) => s.name === 'ApiVersion');
+    // The date-like enum member must stay a string, exactly as with js-yaml's
+    // JSON_SCHEMA (#3947), and the local $ref must still resolve.
+    expect(apiVersion?.model).toContain("'2026-01-27'");
+    expect(apiVersion?.model).not.toContain('GMT');
+    expect(JSON.stringify(result.spec)).not.toContain('x-ext');
+  });
+
+  it('should parse a JSON spec that carries a byte order mark', async () => {
+    const result = await importJsonSpec(
+      '﻿' + JSON.stringify(JSON_SPEC),
+      'orval-json-bom-',
+    );
+
+    expect(result.verbOptions).toHaveProperty('getTest');
+  });
+
+  it('should fall back to the YAML parser for YAML that starts with "{"', async () => {
+    // A flow mapping with a comment and unquoted keys: js-yaml accepts it,
+    // `JSON.parse` does not, so the fast path has to fall back.
+    const yamlFlow = [
+      '{ # a YAML comment inside a flow mapping',
+      '  openapi: "3.0.3",',
+      '  info: { title: FlowMapping, version: "1.0.0" },',
+      '  paths: {',
+      '    /test: { get: { operationId: getTest, responses: { "200": { description: OK } } } }',
+      '  }',
+      '}',
+    ].join('\n');
+
+    const result = await importJsonSpec(yamlFlow, 'orval-json-fallback-');
+
+    expect(result.verbOptions).toHaveProperty('getTest');
+  });
+
+  it('should report a parse error for text that is neither JSON nor YAML', async () => {
+    await expect(
+      importJsonSpec('{ "openapi": "3.0.3", ]', 'orval-json-invalid-'),
+    ).rejects.toThrow();
+  });
+
+  it('should not mutate an in-memory spec passed as input.target', async () => {
+    const workspace = 'test';
+    const target = structuredClone(JSON_SPEC) as unknown as OpenApiDocument;
+    const before = structuredClone(target);
+
+    const normalizedOptions = await normalizeOptions(
+      { output: { target: '' }, input: { target } },
+      workspace,
+      {},
+    );
+    await importSpecs(workspace, normalizedOptions);
+
+    expect(target).toEqual(before);
+  });
+});
+
 describe('swagger2FormData', () => {
   // Regression spec for https://github.com/orval-labs/orval/issues/3857:
   // @scalar/openapi-parser's upgrade() drops the `items` of Swagger 2.0

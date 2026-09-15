@@ -8,6 +8,8 @@ import {
   type GeneratorImport,
   type NormalizedOutputOptions,
   emitResponseValidation,
+  getZodNamespaceImport,
+  getArrayResponseSchema,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
@@ -43,10 +45,8 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
-  getArrayResponseSchema,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
-  getZodNamespaceImport,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -1096,7 +1096,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     // Only a composed array expression references the `zod` namespace; a named
     // schema calls `Schema.parse` on its own binding.
     ...(implementation.includes('zod.array(')
-      ? [getZodNamespaceImport(options.context.output)]
+      ? [getZodNamespaceImport(options.context.output.override)]
       : []),
     ...(baseUrl
       ? [

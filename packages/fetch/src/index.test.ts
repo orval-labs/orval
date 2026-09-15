@@ -627,6 +627,119 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
   });
 });
 
+describe('generateRequestFunction — inline array response validation (#4106)', () => {
+  // An inline `type: array` response resolves to the definition `Item[]`, which
+  // is never an import name, so the exact-name gate skipped validation entirely
+  // while a `$ref` to a named array component validated normally.
+  function makeArrayResponse(
+    definition: string,
+    imports: { name: string }[],
+  ): GeneratorVerbOptions['response'] {
+    return {
+      definition: { success: definition, errors: 'Error' },
+      imports,
+      types: {
+        success: [
+          {
+            key: '200',
+            contentType: 'application/json',
+            value: definition,
+            hasReadonlyProps: false,
+            imports: [],
+            isEnum: false,
+            isRef: false,
+            schemas: [],
+            type: 'array',
+            dependencies: [],
+          },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    } as unknown as GeneratorVerbOptions['response'];
+  }
+
+  function makeArrayVerbOptions(
+    definition: string,
+    imports: { name: string }[],
+  ): GeneratorVerbOptions {
+    const base = makeVerbOptions({
+      response: makeArrayResponse(definition, imports),
+    });
+    return {
+      ...base,
+      typeName: 'listPets',
+      override: {
+        ...base.override,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+      } as GeneratorVerbOptions['override'],
+    } as GeneratorVerbOptions;
+  }
+
+  function makeZodOptions() {
+    const context = makeContext();
+    (context.output as { schemas: unknown }).schemas = {
+      path: './model',
+      type: 'zod',
+    };
+    return makeOptions(context);
+  }
+
+  it('validates an inline array through its element schema', () => {
+    const implementation = generateRequestFunction(
+      makeArrayVerbOptions('Pet[]', [{ name: 'Pet' }]),
+      makeZodOptions(),
+    );
+
+    expect(implementation).toContain('zod.array(Pet).parse(parsedBody)');
+    expect(implementation).toContain('): Promise<PetOutput[]> =>');
+  });
+
+  it('references the Error schema by its aliased binding', () => {
+    const implementation = generateRequestFunction(
+      makeArrayVerbOptions('Error[]', [{ name: 'Error' }]),
+      makeZodOptions(),
+    );
+
+    expect(implementation).toContain(
+      'zod.array(ErrorSchema).parse(parsedBody)',
+    );
+  });
+
+  it('leaves a primitive element array unvalidated', () => {
+    const implementation = generateRequestFunction(
+      makeArrayVerbOptions('string[]', [{ name: 'Pet' }]),
+      makeZodOptions(),
+    );
+
+    expect(implementation).not.toContain('zod.array(');
+  });
+
+  it('leaves a nested array unvalidated', () => {
+    const implementation = generateRequestFunction(
+      makeArrayVerbOptions('Pet[][]', [{ name: 'Pet' }]),
+      makeZodOptions(),
+    );
+
+    expect(implementation).not.toContain('zod.array(');
+  });
+
+  it('leaves an array whose element has no schema import unvalidated', () => {
+    const implementation = generateRequestFunction(
+      makeArrayVerbOptions('Pet[]', []),
+      makeZodOptions(),
+    );
+
+    expect(implementation).not.toContain('zod.array(');
+  });
+});
+
 describe('generateRequestFunction — response status precedence', () => {
   it('excludes exact responses from matching wildcard responses', () => {
     const response = {

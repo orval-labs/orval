@@ -8,6 +8,8 @@ import {
   type ContextSpec,
   dedupeSchemaImports,
   emitResponseValidation,
+  getZodNamespaceImport,
+  getArrayResponseSchema,
   escapeRegExp,
   generateDependencyImports,
   generateFormDataAndUrlEncodedFunction,
@@ -66,11 +68,9 @@ import {
   type ClientOverride,
   createReturnTypesRegistry,
   createRouteRegistry,
-  getArrayResponseSchema,
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
-  getZodNamespaceImport,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -776,7 +776,7 @@ const getHttpResourceVerbImports = (
 
   return [
     ...(isZodOutput && needsZodNamespaceImport(response, output)
-      ? [getZodNamespaceImport(output)]
+      ? [getZodNamespaceImport(output.override)]
       : []),
     ...responseImports.map((imp) =>
       parsedZodImportNames.has(imp.name) ? { ...imp, values: true } : imp,

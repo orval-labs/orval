@@ -4,15 +4,23 @@
  * Zod composed array items
  * OpenAPI spec version: 1.0.0
  */
-import type {
+import { z as zod } from 'zod';
+
+import {
   Base,
   ListAllOf200Item,
   ListOneOf200Item,
   ListPlain200Item,
 } from './model';
+import type {
+  BaseOutput,
+  ListAllOf200ItemOutput,
+  ListOneOf200ItemOutput,
+  ListPlain200ItemOutput,
+} from './model';
 
 export type listPlainResponse200 = {
-  data: ListPlain200Item[];
+  data: ListPlain200ItemOutput[];
   status: 200;
 };
 
@@ -33,9 +41,17 @@ export const listPlain = async (
     method: 'GET',
   });
 
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPlainResponse['data'] = body ? JSON.parse(body) : {};
+  const parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  const data = contentType.includes('json')
+    ? zod.array(ListPlain200Item).parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,
@@ -44,7 +60,7 @@ export const listPlain = async (
 };
 
 export type listAllOfResponse200 = {
-  data: ListAllOf200Item[];
+  data: ListAllOf200ItemOutput[];
   status: 200;
 };
 
@@ -65,9 +81,17 @@ export const listAllOf = async (
     method: 'GET',
   });
 
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listAllOfResponse['data'] = body ? JSON.parse(body) : {};
+  const parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  const data = contentType.includes('json')
+    ? zod.array(ListAllOf200Item).parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,
@@ -76,7 +100,7 @@ export const listAllOf = async (
 };
 
 export type listOneOfResponse200 = {
-  data: ListOneOf200Item[];
+  data: ListOneOf200ItemOutput[];
   status: 200;
 };
 
@@ -97,9 +121,17 @@ export const listOneOf = async (
     method: 'GET',
   });
 
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listOneOfResponse['data'] = body ? JSON.parse(body) : {};
+  const parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  const data = contentType.includes('json')
+    ? zod.array(ListOneOf200Item).parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,
@@ -108,7 +140,7 @@ export const listOneOf = async (
 };
 
 export type listRefResponse200 = {
-  data: Base[];
+  data: BaseOutput[];
   status: 200;
 };
 
@@ -129,8 +161,16 @@ export const listRef = async (
     method: 'GET',
   });
 
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listRefResponse['data'] = body ? JSON.parse(body) : {};
+  const parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  const data = contentType.includes('json')
+    ? zod.array(Base).parse(parsedBody)
+    : parsedBody;
   return { data, status: res.status, headers: res.headers } as listRefResponse;
 };

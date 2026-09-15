@@ -1,5 +1,6 @@
 import type {
   GeneratorImport,
+  NormalizedOverrideOutput,
   NormalizedRuntimeValidation,
   RuntimeValidation,
   RuntimeValidationStrategy,
@@ -208,3 +209,74 @@ export const rewriteImportsForResponseValidation = (
       ]
     : []),
 ];
+
+/**
+ * How a validated array response is composed from its element schema.
+ *
+ * An inline `type: array` response resolves to the definition `Item[]`, and
+ * every gate into Zod runtime validation compares that definition to the
+ * response import names verbatim. `Item[]` never equals `Item`, so the whole
+ * validation branch is skipped while a `$ref` to a *named* array component
+ * validates normally (#3718, #4106). The element carries the generated schema;
+ * the array wrapper is composed at the use site.
+ */
+export interface ArrayResponseSchema {
+  /** Element schema name, e.g. `Item` — the import to promote to a value. */
+  elementName: string;
+  /** Expression to call `.parse` on, e.g. `zod.array(Item)`. */
+  schemaRef: string;
+  /** Declared type of the parsed value, e.g. `ItemOutput[]`. */
+  outputTypeRef: string;
+}
+
+/** A definition that is exactly one `[]` level over a bare identifier. */
+const ARRAY_DEFINITION_PATTERN = /^([A-Za-z_$][\w$]*)\[]$/;
+
+/**
+ * Resolves the array-response shape described by {@link ArrayResponseSchema},
+ * or `undefined` when the definition is not a validatable array.
+ *
+ * Deliberately narrow. A primitive element (`string[]`) has no generated schema
+ * to compose from, and a nested array (`Item[][]`) is left alone rather than
+ * guessed at — both keep their current unvalidated output.
+ *
+ * @param toValueRef Maps the element name to the identifier its schema value is
+ *   bound to at the call site (`Error` is emitted as `ErrorSchema`).
+ */
+export const getArrayResponseSchema = (
+  imports: readonly { name: string }[],
+  definition: string | undefined,
+  toValueRef: (typeName: string) => string = (typeName) => typeName,
+): ArrayResponseSchema | undefined => {
+  if (definition === undefined) return undefined;
+
+  const elementName = ARRAY_DEFINITION_PATTERN.exec(definition)?.[1];
+  if (elementName === undefined || isPrimitiveResponseType(elementName)) {
+    return undefined;
+  }
+  if (!imports.some((imp) => imp.name === elementName)) return undefined;
+
+  return {
+    elementName,
+    schemaRef: `zod.array(${toValueRef(elementName)})`,
+    outputTypeRef: `${getSchemaOutputTypeRef(elementName)}[]`,
+  };
+};
+
+/**
+ * Module specifier for the `zod` namespace import that composed array
+ * expressions reference. Mini ships its constructors from a separate entry
+ * point, and only the functional `zod.array(...)` form exists there — which is
+ * why the composed expression is built that way rather than as `Item.array()`.
+ */
+export const getZodNamespaceImportSource = (
+  override?: NormalizedOverrideOutput,
+): string => (override?.zod.variant === 'mini' ? 'zod/mini' : 'zod');
+
+/** The namespace import a composed `zod.array(...)` expression requires. */
+export const getZodNamespaceImport = (override?: NormalizedOverrideOutput) => ({
+  name: 'zod',
+  values: true,
+  namespaceImport: true,
+  importPath: getZodNamespaceImportSource(override),
+});

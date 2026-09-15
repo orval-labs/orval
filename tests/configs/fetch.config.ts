@@ -646,6 +646,47 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodInlineArrayValidation: {
+    output: {
+      target: '../generated/fetch/zod-inline-array/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-inline-array/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
+  // Same spec with validation off — pins that the array path is untouched then.
+  zodInlineArrayValidationDisabled: {
+    output: {
+      target: '../generated/fetch/zod-inline-array-disabled/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-inline-array-disabled/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
   zodSchemaResponseSplit: {
     output: {
       target: '../generated/fetch/zod-schema-response-split/endpoints.ts',
