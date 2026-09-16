@@ -1,8 +1,10 @@
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
+  GetterBody,
   GetterResponse,
   OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
   OpenApiSchemaObject,
 } from '../types';
 import { pascal } from '../utils';
@@ -205,6 +207,12 @@ const buildResolvedStatements = ({
       statements: [mode.leafStatement(accessor, writeAccessor ?? accessor)],
       cyclicRefs: new Set(),
     };
+  } else if (
+    mode.dropArrayObjectConflict &&
+    schema.items &&
+    needsObjectCopy(schema, context)
+  ) {
+    result = emptyResult();
   } else {
     // allOf, items and properties are siblings in JSON Schema, not
     // mutually-exclusive branches — a schema can combine `allOf` with its
@@ -282,11 +290,16 @@ const buildResolvedStatements = ({
  * wrapped in `allOf` or a nullable union) rather than into its properties or
  * elements. Such elements must be written back through the array slot: a
  * hoisted `const` would make the generated assignment reassign a const.
+ *
+ * Only ever reached from the response direction's in-place array builder
+ * (the request direction's array builder always hoists into a `let` and
+ * never needs this distinction), so it checks `isDateSchema` directly rather
+ * than taking a `mode` parameter for a choice that is already made by the
+ * only caller.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
   context: ContextSpec,
-  mode: DateTransformMode,
   seenRefs: Set<string> = new Set(),
 ): boolean => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
@@ -294,9 +307,9 @@ const writesToAccessorItself = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (mode.isLeaf(schema)) return true;
+  if (isDateSchema(schema)) return true;
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
-    writesToAccessorItself(branch, context, mode, seenRefs),
+    writesToAccessorItself(branch, context, seenRefs),
   );
 };
 
@@ -313,7 +326,13 @@ interface DateTransformMode {
   isLeaf: (schema: OpenApiSchemaObject) => boolean;
   /** Conversion statement. `write` differs from `read` only for readOnly props. */
   leafStatement: (read: string, write: string) => string;
-  /** Statements emitted before writing into an object container. */
+  /**
+   * Statements emitted once per property whose subtree produced statements,
+   * immediately before those statements. Never invoked for the root
+   * accessor (the caller's own copy is handled outside this walk), for
+   * array elements (handled by `arrayStatements`), or for discriminated-
+   * union variants (covered by the parent property's own prelude).
+   */
   objectPrelude: (
     accessor: string,
     schema: SchemaOrRef,
@@ -327,6 +346,32 @@ interface DateTransformMode {
     key: string,
     propertySchema: OpenApiSchemaObject,
   ) => string | undefined;
+  /**
+   * Properties this direction must not touch. The two directions disagree on
+   * purpose: a response is the server's own payload, so a `readOnly`
+   * property is exactly the kind of field it must convert (through its
+   * mutable cast); a request body is written by the client, and OpenAPI
+   * `readOnly` means the field is server-populated and response-only, so
+   * writing it into a request is semantically wrong, not merely untypeable.
+   */
+  skipProperty: (schema: OpenApiSchemaObject) => boolean;
+  /**
+   * When true, a schema that is both array-shaped (`items`) and
+   * object-shaped (own `properties`, a discriminator, or an `allOf` branch
+   * that is either) emits no statements at all, rather than combining an
+   * array walk with an object walk. The response direction can freely
+   * combine the two — `items` becomes a for-loop over the array in place and
+   * `properties` becomes plain field writes, and neither touches the
+   * other's code. The request direction cannot: it reassigns the container
+   * itself to build the transformed array (`copy = copy.map(...)`), which
+   * cannot also be the object the object branch shallow-copies and writes
+   * into. Emitting both breaks compilation at the root (`copy` is declared
+   * `const`) and crashes at runtime when nested under a property (an array
+   * spread into `{ ...copy.x }`, then `.map` called on the result). Emitting
+   * nothing instead follows the same rule already applied to recursive
+   * schemas: emit nothing rather than wrong code.
+   */
+  dropArrayObjectConflict: boolean;
 }
 
 interface ArrayStatementsParams {
@@ -337,17 +382,6 @@ interface ArrayStatementsParams {
   depth: number;
   mode: DateTransformMode;
 }
-
-const responseMode: DateTransformMode = {
-  isLeaf: isDateSchema,
-  leafStatement: (read, write) => `${write} = new Date(${read});`,
-  objectPrelude: () => [],
-  arrayStatements: (params) => buildInPlaceItemsStatements(params),
-  propertyWriteAccessor: (accessor, key, propertySchema) =>
-    propertySchema.readOnly
-      ? propertyAccessor(mutableCast(accessor), key)
-      : undefined,
-};
 
 const buildInPlaceItemsStatements = ({
   items,
@@ -361,7 +395,7 @@ const buildInPlaceItemsStatements = ({
   const { nullable } = normalizeSchema(items, context);
   const loopHeader = `for (let ${index} = 0; ${index} < ${accessor}.length; ${index}++) {`;
 
-  if (writesToAccessorItself(items, context, mode)) {
+  if (writesToAccessorItself(items, context)) {
     const element = `${accessor}[${index}]`;
     const inner = buildStatements({
       schema: items,
@@ -414,6 +448,19 @@ const buildInPlaceItemsStatements = ({
   };
 };
 
+const responseMode: DateTransformMode = {
+  isLeaf: isDateSchema,
+  leafStatement: (read, write) => `${write} = new Date(${read});`,
+  objectPrelude: () => [],
+  arrayStatements: buildInPlaceItemsStatements,
+  propertyWriteAccessor: (accessor, key, propertySchema) =>
+    propertySchema.readOnly
+      ? propertyAccessor(mutableCast(accessor), key)
+      : undefined,
+  skipProperty: () => false,
+  dropArrayObjectConflict: false,
+};
+
 const buildPropertiesStatements = ({
   properties,
   required,
@@ -439,6 +486,8 @@ const buildPropertiesStatements = ({
         property,
         context,
       );
+      if (mode.skipProperty(propertySchema)) return emptyResult();
+
       const inner = buildStatements({
         schema: property,
         accessor: target,
@@ -568,6 +617,252 @@ export const buildDateTransformStatements = ({
     depth,
     mode: responseMode,
   }).statements;
+
+const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
+  schema.format === 'date';
+
+/**
+ * OpenAPI `format: date` is a calendar day, but JavaScript has no date-only
+ * type and `Date.prototype.toJSON()` always renders an instant. The value is
+ * read as its UTC calendar day, matching what the mock generator emits for the
+ * same format (mock/src/faker/constants.ts).
+ *
+ * Guarded on `instanceof Date`: the same accessor can be reached twice (an
+ * `allOf` branch re-declaring a property its base already declares, or a
+ * discriminated-union variant re-declaring one its parent schema's own
+ * `properties` also converts), and unlike the response leaf's `new Date(...)`
+ * — a clone, harmless to repeat — this conversion produces a string. Running
+ * it twice without the guard would call `.toISOString()` on that string and
+ * throw at runtime. The guard makes a second pass a no-op instead.
+ */
+const serializeLeafStatement = (read: string, write: string): string =>
+  `${write} = ${read} instanceof Date ? (${read}.toISOString().slice(0, 10) as unknown as Date) : ${read};`;
+
+/**
+ * True when the subtree writes into the accessor's own properties, so the
+ * accessor must be shallow-copied before those writes. A bare array (`items`
+ * with no sibling `properties`/`allOf` contributing any) is excluded: `.map`
+ * already produces a new array, and spreading one would turn it into an
+ * object. `items`, `properties` and `allOf` are siblings in JSON Schema (see
+ * buildResolvedStatements), so `items` being present must not short-circuit
+ * before `allOf` is checked — a schema combining the two still needs a copy
+ * for whichever branch writes properties.
+ */
+const needsObjectCopy = (
+  schemaOrRef: SchemaOrRef,
+  context: ContextSpec,
+  seenRefs: Set<string> = new Set(),
+): boolean => {
+  const { schema, ref } = normalizeSchema(schemaOrRef, context);
+  if (ref) {
+    if (seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+  }
+  if (isDateOnlySchema(schema)) return false;
+  if (schema.properties || schema.discriminator) return true;
+  return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
+    needsObjectCopy(branch, context, seenRefs),
+  );
+};
+
+const buildCopyingItemsStatements = ({
+  items,
+  accessor,
+  context,
+  visitedRefs,
+  depth,
+  mode,
+}: ArrayStatementsParams): BuildResult => {
+  const element = `item${depth}`;
+  const value = `value${depth}`;
+  const { nullable } = normalizeSchema(items, context);
+
+  const inner = buildStatements({
+    schema: items,
+    accessor: value,
+    context,
+    visitedRefs,
+    depth: depth + 1,
+    mode,
+  });
+  if (inner.statements.length === 0) return inner;
+
+  // A `let` alias lets the recursion reassign the element itself (a date
+  // leaf, or a nested array's `.map` result) as well as write into a copy
+  // of it.
+  const body = [
+    ...(nullable ? [`if (${element} == null) return ${element};`] : []),
+    `let ${value} = ${element};`,
+    ...(needsObjectCopy(items, context) ? [`${value} = { ...${value} };`] : []),
+    ...inner.statements,
+    `return ${value};`,
+  ];
+
+  return {
+    statements: [
+      `${accessor} = ${accessor}.map((${element}) => {`,
+      ...indent(body),
+      '});',
+    ],
+    cyclicRefs: inner.cyclicRefs,
+  };
+};
+
+const requestMode: DateTransformMode = {
+  isLeaf: isDateOnlySchema,
+  leafStatement: serializeLeafStatement,
+  objectPrelude: (accessor, schema, context) =>
+    needsObjectCopy(schema, context)
+      ? [`${accessor} = { ...${accessor} };`]
+      : [],
+  arrayStatements: buildCopyingItemsStatements,
+  // No write accessor is needed in this direction: readOnly properties are
+  // skipped outright (see skipProperty below), and every property that is
+  // still walked is written into a fresh copy the caller already owns, so a
+  // plain assignment through `accessor` is always writable.
+  propertyWriteAccessor: () => undefined,
+  skipProperty: (schema) => schema.readOnly === true,
+  dropArrayObjectConflict: true,
+};
+
+export interface BuildRequestDateSerializeParams {
+  schema: SchemaOrRef;
+  /** Expression the statements mutate; must already be a copy the caller owns. */
+  accessor: string;
+  context: ContextSpec;
+  visitedRefs?: Set<string>;
+  depth?: number;
+}
+
+export const buildRequestDateSerializeStatements = ({
+  schema,
+  accessor,
+  context,
+  visitedRefs = new Set(),
+  depth = 0,
+}: BuildRequestDateSerializeParams): string[] =>
+  buildStatements({
+    schema,
+    accessor,
+    context,
+    visitedRefs,
+    depth,
+    mode: requestMode,
+  }).statements;
+
+/**
+ * Resolves a request body down to its single JSON content schema. Returns
+ * undefined for non-JSON bodies and for bodies offering several JSON media
+ * types, where there is no one schema to walk.
+ */
+const resolveJsonBodySchema = (
+  body: GetterBody,
+  context: ContextSpec,
+): OpenApiSchemaObject | undefined => {
+  const requestBody = isReference(body.originalSchema)
+    ? resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema
+    : (body.originalSchema as OpenApiRequestBodyObject);
+
+  const content = requestBody.content;
+  if (!content) return undefined;
+
+  const jsonEntries = Object.entries(content).filter(([mediaType]) =>
+    mediaType.toLowerCase().includes('json'),
+  );
+  if (jsonEntries.length !== 1) return undefined;
+
+  return jsonEntries[0][1].schema as OpenApiSchemaObject | undefined;
+};
+
+export interface GeneratedDateSerializer {
+  name: string;
+  implementation: string;
+}
+
+/**
+ * Builds a `serialize{Op}Request` function rendering schema-declared
+ * `format: date` fields of a JSON request body as `YYYY-MM-DD`. `format:
+ * date-time` is left alone — `Date.prototype.toJSON()` already produces the
+ * right thing for an instant. Returns undefined when there is nothing to
+ * serialize, so callers emit no code.
+ *
+ * The returned value is still typed as the model type (`Date` fields and
+ * all), but at runtime those `format: date` fields hold `YYYY-MM-DD`
+ * strings, not `Date` instances — a wire-level lie that is harmless when the
+ * result is passed straight to `data:`, but a caller that reads the result
+ * back (rather than only forwarding it) must know the type does not match
+ * the value.
+ */
+export const generateRequestDateSerializer = ({
+  operationName,
+  body,
+  context,
+}: {
+  operationName: string;
+  body: GetterBody;
+  context: ContextSpec;
+}): GeneratedDateSerializer | undefined => {
+  if (body.isBlob || !body.definition || !body.implementation) return undefined;
+
+  // A body offering several media types (e.g. `application/json` alongside
+  // `multipart/form-data`) is typed against the union of every surviving
+  // type's TS value — `GetterBody.contentType` is only populated when
+  // exactly one body type survived, and is `''` otherwise. A JSON-shaped
+  // walk cannot be typed against that union, so bail out symmetrically with
+  // `generateResponseDateDeserializer`'s single-success-type guard below.
+  if (!body.contentType?.toLowerCase().includes('json')) return undefined;
+
+  const schema = resolveJsonBodySchema(body, context);
+  if (!schema) return undefined;
+
+  const statements = buildRequestDateSerializeStatements({
+    schema,
+    accessor: 'copy',
+    context,
+  });
+  if (statements.length === 0) return undefined;
+
+  const dataType = body.definition;
+
+  // A body type carrying any readOnly property is emitted as `NonReadonly<T>`,
+  // whose mapped type recurses through `T[P] extends object` — which `Date`
+  // satisfies — replacing every Date with a structural twin whose methods are
+  // typed `{}`, so `.toISOString()` and `.map()` stop compiling. Casting the
+  // copy back to the model type once keeps the conversions type-checked.
+  // readOnly properties are skipped by the walk, so nothing writes to a key
+  // `NonReadonly` dropped.
+  const modelType = /^NonReadonly<(.+)>$/s.exec(dataType)?.[1];
+  const workingType = modelType ? ` as unknown as ${modelType}` : '';
+  const returnValue = modelType ? `copy as unknown as ${dataType}` : 'copy';
+
+  // The root is reassigned rather than spread when the body is an array or a
+  // bare date: `.map` builds the new array itself, and spreading either would
+  // be wrong.
+  const declaration = needsObjectCopy(schema, context)
+    ? `const copy = { ...data }${workingType};`
+    : `let copy = data${workingType};`;
+
+  const name = `serialize${pascal(operationName)}Request`;
+
+  // An operation prop generated from a `requestBody` that isn't `required: true`
+  // (the OpenAPI default) is typed `T | undefined` at the call site
+  // (`getProps` in `getters/props.ts`). Mirroring that in the serializer's own
+  // signature keeps the emitted call `serializeXRequest(<possibly undefined
+  // body>)` type-checking, while `if (data == null) return data;` above already
+  // makes this correct at runtime and gives TypeScript the narrowing it needs
+  // for the rest of the body.
+  const optionalSuffix = body.isOptional ? ' | undefined' : '';
+
+  const implementation = `const ${name} = (data: ${dataType}${optionalSuffix}): ${dataType}${optionalSuffix} => {
+  if (data == null) return data;
+  ${declaration}
+${indent(statements).join('\n')}
+  return ${returnValue};
+};
+`;
+
+  return { name, implementation };
+};
 
 export interface GeneratedDateDeserializer {
   name: string;

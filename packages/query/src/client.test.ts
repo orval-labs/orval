@@ -1049,6 +1049,112 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
       `petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
     );
   });
+
+  describe('request body serializer wiring', () => {
+    // A realistic JSON body — `implementation`/`definition`/`contentType` are
+    // all non-empty and `originalSchema` carries a real `format: date`
+    // property — unlike `verbOptions.body` above (whose fields are all `''`
+    // so `generateRequestDateSerializer` bails out before ever reaching
+    // `bodyForRequest`). `verb: 'put'` is required too: `getIsBodyVerb`
+    // excludes 'get', so a body-verb operation is needed to exercise the
+    // `data:` wiring at all.
+    const datedBody: GeneratorVerbOptions['body'] = {
+      implementation: 'appointment',
+      definition: 'Appointment',
+      imports: [],
+      schemas: [],
+      originalSchema: {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['day'],
+              properties: { day: { type: 'string', format: 'date' } },
+            },
+          },
+        },
+      },
+      contentType: 'application/json',
+      formData: '',
+      formUrlEncoded: '',
+      isOptional: false,
+      isBlob: false,
+    };
+
+    const dateBodyVerbOptions = createVerbOptions({
+      operationName: 'updateAppointment',
+      verb: 'put',
+      body: datedBody,
+    });
+
+    it('serializes the request body before the mutator call', () => {
+      const result = generateAxiosRequestFunction(
+        dateBodyVerbOptions,
+        options,
+        adapter,
+      );
+      expect(result).toContain(
+        'data: serializeUpdateAppointmentRequest(appointment)',
+      );
+      expect(result).toContain(
+        'const serializeUpdateAppointmentRequest = (data: Appointment): Appointment =>',
+      );
+    });
+
+    it('serializes the request body before the plain-axios call', () => {
+      const result = generateAxiosRequestFunction(
+        { ...dateBodyVerbOptions, mutator: undefined },
+        options,
+        adapter,
+      );
+      expect(result).toContain(
+        'serializeUpdateAppointmentRequest(appointment)',
+      );
+      expect(result).toContain(
+        'const serializeUpdateAppointmentRequest = (data: Appointment): Appointment =>',
+      );
+    });
+
+    it('emits the operation const before the serializer implementation, so the writer-prepended JSDoc stays attached to the operation', () => {
+      const result = generateAxiosRequestFunction(
+        dateBodyVerbOptions,
+        options,
+        adapter,
+      );
+      expect(result.indexOf('const updateAppointment')).toBeLessThan(
+        result.indexOf('const serializeUpdateAppointmentRequest'),
+      );
+    });
+
+    it('leaves the body identifier bare when useDatesTransform is disabled', () => {
+      const result = generateAxiosRequestFunction(
+        {
+          ...dateBodyVerbOptions,
+          override: {
+            ...dateBodyVerbOptions.override,
+            useDatesTransform: false,
+          },
+        },
+        options,
+        adapter,
+      );
+      expect(result).not.toContain('serializeUpdateAppointmentRequest');
+      expect(result).toContain('data: appointment');
+    });
+
+    it('emits no serializer for a body-less verb, even when the body has a JSON date field', () => {
+      // GET is excluded from `getIsBodyVerb`, so the body is never wired
+      // into `data:` at all — a serializer generated anyway would be an
+      // unreferenced `const` that fails a consumer's
+      // `noUnusedLocals`/`no-unused-vars` build.
+      const result = generateAxiosRequestFunction(
+        { ...dateBodyVerbOptions, verb: 'get' },
+        options,
+        adapter,
+      );
+      expect(result).not.toContain('serializeUpdateAppointmentRequest');
+    });
+  });
 });
 
 describe('getHooksOptionImplementation', () => {

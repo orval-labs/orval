@@ -88,6 +88,67 @@ paths:
               schema:
                 type: array
                 items: { type: string }
+  /appointments:
+    put:
+      operationId: updateAppointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /appointments/duplicate-date:
+    put:
+      operationId: updateAppointmentDuplicateDate
+      # `AppointmentWithDuplicateDate` re-declares `day` on an allOf branch
+      # sibling to the branch that inherits it — a common idiom for adding a
+      # description to an inherited property — so the request walk converts
+      # `day` twice. The conversion must be idempotent, or the second pass
+      # throws trying to call `.toISOString()` on the string the first pass
+      # produced.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentWithDuplicateDate'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentWithDuplicateDate'
+  /appointments/{appointmentId}/reminder:
+    patch:
+      operationId: updateAppointmentReminder
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema: { type: string }
+      # `required` intentionally omitted — OpenAPI defaults an unmarked
+      # requestBody to optional, so the generated prop is `reminderUpdate?:
+      # ReminderUpdate` and the argument type is `ReminderUpdate | undefined`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderUpdate'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
 components:
   schemas:
     Cat:
@@ -155,3 +216,39 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuditNode'
+    Appointment:
+      type: object
+      required: [day, bookedAt, slots]
+      properties:
+        day: { type: string, format: date }
+        bookedAt: { type: string, format: date-time }
+        reminderOn: { type: string, format: date, nullable: true }
+        slots:
+          type: array
+          items:
+            type: object
+            required: [start]
+            properties:
+              start: { type: string, format: date }
+              label: { type: string }
+    ReminderUpdate:
+      type: object
+      properties:
+        remindOn: { type: string, format: date }
+    AppointmentBase:
+      type: object
+      required: [day]
+      properties:
+        day: { type: string, format: date }
+    AppointmentWithDuplicateDate:
+      allOf:
+        - $ref: '#/components/schemas/AppointmentBase'
+        - type: object
+          required: [day]
+          properties:
+            # Re-declares the inherited `day` just to add a description —
+            # the request walk converts it once per allOf branch.
+            day:
+              type: string
+              format: date
+              description: 're-declared to add a description'

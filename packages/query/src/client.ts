@@ -7,6 +7,7 @@ import {
   generateMutatorRequestOptions,
   generateAxiosUrl,
   generateOptions,
+  generateRequestDateSerializer,
   generateResponseDateDeserializer,
   type GeneratorDependency,
   type GeneratorMutator,
@@ -15,6 +16,7 @@ import {
   getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
   getArrayResponseSchema,
+  getIsBodyVerb,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getSuccessResponseType,
@@ -364,10 +366,32 @@ export const generateAxiosRequestFunction = (
     ? `.then(${dateDeserializer.name})`
     : '';
 
+  // A body-less verb (GET/HEAD) never wires `body.implementation` into
+  // `data:` (see `bodyForRequest` below), so a serializer generated for one
+  // would be an unreferenced `const` — a consumer building with
+  // `noUnusedLocals`/`no-unused-vars` would fail on it.
+  const requestSerializer =
+    override.useDatesTransform && getIsBodyVerb(verb)
+      ? generateRequestDateSerializer({ operationName, body, context })
+      : undefined;
+  const requestSerializerImplementation = requestSerializer
+    ? `\n${requestSerializer.implementation}`
+    : '';
+  // Only `implementation` is swapped: it is the identifier both
+  // generateBodyOptions and generateBodyMutatorConfig drop into `data:`.
+  // `body` itself stays intact for `definition`, the form-data path, and the
+  // mutator bodyTypeName rewrite.
+  const bodyForRequest = requestSerializer
+    ? {
+        ...body,
+        implementation: `${requestSerializer.name}(${body.implementation})`,
+      }
+    : body;
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
-      body,
+      body: bodyForRequest,
       headers,
       queryParams,
       response,
@@ -427,7 +451,7 @@ export const generateAxiosRequestFunction = (
 
         return ${adapter.wrapHookMutatorCallback(callback, operationName)}
       }
-    ${dateDeserializerImplementation}`;
+    ${dateDeserializerImplementation}${requestSerializerImplementation}`;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
@@ -441,7 +465,7 @@ export const generateAxiosRequestFunction = (
       ${mutatorConfig},
       ${requestOptions})${thenDateDeserializer};
     }
-  ${dateDeserializerImplementation}`;
+  ${dateDeserializerImplementation}${requestSerializerImplementation}`;
   }
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
@@ -450,7 +474,7 @@ export const generateAxiosRequestFunction = (
 
   const options = generateOptions({
     route,
-    body,
+    body: bodyForRequest,
     headers,
     queryParams,
     response,
@@ -504,7 +528,7 @@ export const generateAxiosRequestFunction = (
         : ''
     };
   }
-${dateDeserializerImplementation}
+${dateDeserializerImplementation}${requestSerializerImplementation}
 ${urlImplementation}`;
 
   return httpRequestFunctionImplementation;

@@ -5,6 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './appointment';
+export * from './appointmentBase';
+export * from './appointmentSlotsItem';
+export * from './appointmentWithDuplicateDate';
 export * from './auditEntry';
 export * from './auditNode';
 export * from './auditRecord';
@@ -14,3 +18,4 @@ export * from './dog';
 export * from './dogPetType';
 export * from './orderDetails';
 export * from './orderEvent';
+export * from './reminderUpdate';
