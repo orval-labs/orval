@@ -802,6 +802,35 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // An inline array response is handed to the mutator as `zod.array(Item)`,
+  // which needs the element imported as a value and the zod namespace.
+  zodSchemaResponseMutatorInlineArray: {
+    output: {
+      target:
+        '../generated/react-query/zod-schema-response-mutator-inline-array/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-response-mutator-inline-array/model',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: {
+          path: '../mutators/custom-fetch-zod.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

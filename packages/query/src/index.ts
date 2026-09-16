@@ -117,26 +117,29 @@ export const generateQuery: ClientBuilder = async (
   // ...unless the fetch request function hands the schema to the mutator
   // (`includeZodSchemaInArguments`), which needs it imported as a value.
   // Mirrors the conditions the fetch generator emits `schema:` under.
-  const shouldImportSchemaValue =
+  const passesSchemaToMutator =
     !!verbOptions.mutator &&
     options.context.output.httpClient === OutputHttpClient.FETCH &&
     options.context.output.override.includeZodSchemaInArguments &&
     verbOptions.override.fetch.runtimeValidation.enabled &&
-    hasValidatableResponse &&
     !verbOptions.response.contentTypes.some(
       (contentType) =>
         contentType === 'application/nd-json' ||
         contentType === 'application/x-ndjson',
     );
+  const shouldImportSchemaValue =
+    passesSchemaToMutator && hasValidatableResponse;
   // An inline array response resolves to `Item[]`, which the exact-name check
   // above never matches. The Angular HttpClient request function validates it
-  // through `zod.array(Item)`, so the element becomes the value import and
-  // contributes the `Output` alias (#3718, #4106).
+  // through `zod.array(Item)`, and the fetch request function hands that same
+  // expression to the mutator, so the element becomes the value import. Only
+  // the Angular parse contributes the `Output` alias (#3718, #4106).
   const responseArraySchema =
-    adapter.isAngularHttp &&
-    verbOptions.override.query.runtimeValidation?.enabled &&
-    !verbOptions.mutator &&
-    isZodOutput
+    isZodOutput &&
+    ((adapter.isAngularHttp &&
+      verbOptions.override.query.runtimeValidation?.enabled &&
+      !verbOptions.mutator) ||
+      passesSchemaToMutator)
       ? getArrayResponseSchema(verbOptions.response.imports, responseType)
       : undefined;
 
@@ -167,6 +170,7 @@ export const generateQuery: ClientBuilder = async (
               imports: rewriteImportsForResponseValidation(
                 verbOptions.response.imports,
                 responseArraySchema.elementName,
+                { includeOutputType: !verbOptions.mutator },
               ),
             },
           }

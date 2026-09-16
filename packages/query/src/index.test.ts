@@ -151,6 +151,44 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
     );
   });
 
+  it('imports the element schema and zod for an inline array response', async () => {
+    const response = makeVerbOptions().response;
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions({
+        response: {
+          ...response,
+          definition: { success: 'Pet[]', errors: 'Error' },
+          imports: [{ name: 'Pet' }, { name: 'Error' }],
+          types: {
+            ...response.types,
+            success: [
+              {
+                ...response.types.success[0],
+                value: 'Pet[]',
+                imports: [{ name: 'Pet' }],
+                isRef: false,
+                type: 'array',
+              },
+            ],
+          },
+        },
+      }),
+      makeOptions(true),
+      'react-query',
+    );
+
+    expect(implementation).toContain('schema: zod.array(Pet)');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'Pet', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'zod', namespaceImport: true }),
+    );
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'PetOutput' }),
+    );
+  });
+
   it('keeps the schema import type-only when the option is off', async () => {
     const { implementation, imports } = await generateQuery(
       makeVerbOptions(),
