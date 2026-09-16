@@ -1778,6 +1778,55 @@ test('default regressions collect only guaranteed keys through nested allOf refs
   expect(nullableParentItem).not.toContain('Extract<');
 });
 
+test('default regressions place null by where nullable sits around an allOf', async () => {
+  const onWrapper = await readFile(
+    generated('default', 'regressions', 'model', 'nullablePlacementOnWrapper.ts'),
+    'utf8',
+  );
+  const holder = await readFile(
+    generated('default', 'regressions', 'model', 'nullablePlacementHolder.ts'),
+    'utf8',
+  );
+  const belowMember = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nullablePlacementBelowMember.ts',
+    ),
+    'utf8',
+  );
+  const allOfMemberWrapper = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nullableAllOfMemberWrapper.ts',
+    ),
+    'utf8',
+  );
+
+  // On the composed schema: the one placement where the null branch survives.
+  expect(onWrapper).toContain('| null');
+
+  // A bare `$ref` sibling, outside any composition, becomes a union.
+  expect(holder).toContain('bare_ref?: NullablePlacementBase | null');
+
+  // Below an `allOf` member, not on one: still a union, because the property
+  // itself has no composition to read the reference through.
+  expect(belowMember).toContain('nested_ref?: NullablePlacementBase | null');
+
+  // On an `allOf` member: dropped. An `allOf` is an intersection and
+  // `null & { ... }` is `never`, so TypeScript discards the branch either way —
+  // `(Base | null) & { marker?: string }` and `Base & { marker?: string }` are
+  // the same type. Keeping the reference plain is also what lets the key
+  // collection above read through to `Pick<Wrapper, 'id'>`.
+  expect(allOfMemberWrapper).toContain(
+    'NullableAllOfMemberWrapper = NullableAllOfMemberBase & {',
+  );
+  expect(allOfMemberWrapper).not.toContain('| null');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

@@ -275,6 +275,69 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/NullableParentWrapper'
+    # Where `nullable` sits relative to an `allOf` decides whether it survives.
+    # An `allOf` is an intersection, and `null & { ... }` is `never`, so a null
+    # branch cannot live inside one. NullableAllOfMemberWrapper above covers the
+    # sibling-on-a-member case; these three cover the rest of the placements.
+    NullablePlacementBase:
+      type: object
+      properties:
+        id:
+          type: string
+    # On the composed schema: the only placement where nullability survives.
+    NullablePlacementOnWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NullablePlacementBase'
+        - type: object
+          properties:
+            marker:
+              type: string
+      nullable: true
+    NullablePlacementHolder:
+      type: object
+      properties:
+        # A bare `$ref` sibling, outside any composition: rewritten to a union,
+        # with a warning that the spec is non-conformant.
+        bare_ref:
+          $ref: '#/components/schemas/NullablePlacementBase'
+          nullable: true
+    # Below an `allOf` member rather than on one: there is no composition at the
+    # property to read the reference through, so it still takes the union.
+    # An `allOf` only absorbs a member's null branch when something else in the
+    # intersection cannot itself be null. These two have nothing to absorb it, so
+    # the `| null` has to survive.
+    NullableAllOfLoneMemberBase:
+      type: object
+      properties:
+        id:
+          type: string
+    # A single member: there is no intersection partner, so this is `Base | null`.
+    NullableAllOfLoneMember:
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfLoneMemberBase'
+          nullable: true
+    NullableAllOfEveryMemberOther:
+      type: object
+      properties:
+        tag:
+          type: string
+    # Both members nullable: `(Base | null) & (Other | null)` is
+    # `(Base & Other) | null`, so neither absorbs the other's null.
+    NullableAllOfEveryMemberNullable:
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfLoneMemberBase'
+          nullable: true
+        - $ref: '#/components/schemas/NullableAllOfEveryMemberOther'
+          nullable: true
+    NullablePlacementBelowMember:
+      allOf:
+        - type: object
+          properties:
+            nested_ref:
+              $ref: '#/components/schemas/NullablePlacementBase'
+              nullable: true
+            marker:
+              type: string
 paths:
   /endpointA:
     get:

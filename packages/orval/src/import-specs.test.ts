@@ -3354,6 +3354,137 @@ describe('normalizeNullableRefs', () => {
     expect(result).toEqual({ type: 'string', nullable: true });
   });
 
+  it('should still rewrite a nullable $ref nested below an allOf member', () => {
+    const input = {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            pet: { $ref: '#/components/schemas/Pet', nullable: true },
+          },
+        },
+      ],
+    };
+
+    const result = normalizeNullableRefs(input);
+
+    // The exemption covers direct allOf members only. This `$ref` sits in a
+    // member's `properties`, not in the intersection itself, so the union does
+    // reach the emitted type as `pet?: Pet | null` and has to be kept.
+    expect(result).toEqual({
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            pet: {
+              anyOf: [{ $ref: '#/components/schemas/Pet' }, { type: 'null' }],
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should drop a nullable sibling from a $ref that is a direct allOf member', () => {
+    const input = {
+      allOf: [
+        { $ref: '#/components/schemas/Pet', nullable: true },
+        { type: 'object', properties: { marker: { type: 'string' } } },
+      ],
+    };
+
+    const result = normalizeNullableRefs(input);
+
+    // Left as a plain `$ref` rather than rewritten into a union. The sibling is
+    // out of spec in both positions — the difference from the test above is not
+    // what it means, but whether the union can survive where it sits. Members of
+    // an allOf are intersected, and `null & { marker?: string }` reduces to
+    // `never`, so `(Pet | null) & { marker?: string }` and
+    // `Pet & { marker?: string }` are the same type: emitting the union changes
+    // nothing. It does cost something, though — orval reads through allOf members
+    // to collect the keys a schema guarantees, and a union member hides them,
+    // degrading `Pick<W, 'id'>` to `Pick<W, Extract<keyof W, 'id'>>` (#3714).
+    // To make a composition nullable, `nullable` goes on the composed schema
+    // rather than on a member; see NullablePlacementOnWrapper in regressions.yaml.
+    expect(result).toEqual({
+      allOf: [
+        { $ref: '#/components/schemas/Pet' },
+        { type: 'object', properties: { marker: { type: 'string' } } },
+      ],
+    });
+  });
+
+  it('should keep the union when an allOf has nothing to absorb the null', () => {
+    // A lone member has no intersection partner, so the null branch is the whole
+    // type: `Base | null`, not `Base`. Dropping it here would silently delete a
+    // null the API can really return.
+    const input = {
+      allOf: [{ $ref: '#/components/schemas/Base', nullable: true }],
+    };
+
+    expect(normalizeNullableRefs(input)).toEqual({
+      allOf: [
+        { anyOf: [{ $ref: '#/components/schemas/Base' }, { type: 'null' }] },
+      ],
+    });
+  });
+
+  it('should keep the union when every allOf member is itself nullable', () => {
+    // `(Base | null) & (Other | null)` reduces to `(Base & Other) | null`, so
+    // neither member absorbs the other's null branch.
+    const input = {
+      allOf: [
+        { $ref: '#/components/schemas/Base', nullable: true },
+        { $ref: '#/components/schemas/Other', nullable: true },
+      ],
+    };
+
+    expect(normalizeNullableRefs(input)).toEqual({
+      allOf: [
+        { anyOf: [{ $ref: '#/components/schemas/Base' }, { type: 'null' }] },
+        { anyOf: [{ $ref: '#/components/schemas/Other' }, { type: 'null' }] },
+      ],
+    });
+  });
+
+  it('should drop the sibling when the enclosing schema absorbs the null', () => {
+    // The absorbing shape need not be inside the array: `{ properties, allOf }`
+    // is itself an intersection of the two halves. This is NullableParentWrapper
+    // in regressions.yaml.
+    const input = {
+      type: 'object',
+      properties: { marker: { type: 'string' } },
+      allOf: [{ $ref: '#/components/schemas/Base', nullable: true }],
+    };
+
+    expect(normalizeNullableRefs(input)).toEqual({
+      type: 'object',
+      properties: { marker: { type: 'string' } },
+      allOf: [{ $ref: '#/components/schemas/Base' }],
+    });
+  });
+
+  it('should treat a property named allOf as a property, not a composition', () => {
+    // `allOf` here is an ordinary property name; its value is a schema, not an
+    // array of members, so it must take the normal rewrite like its twin.
+    const input = {
+      type: 'object',
+      properties: {
+        allOf: { $ref: '#/components/schemas/Base', nullable: true },
+        other: { $ref: '#/components/schemas/Base', nullable: true },
+      },
+    };
+
+    const result = normalizeNullableRefs(input) as Record<string, unknown>;
+    const props = result.properties as Record<string, unknown>;
+    const expected = {
+      anyOf: [{ $ref: '#/components/schemas/Base' }, { type: 'null' }],
+    };
+
+    expect(props.allOf).toEqual(expected);
+    expect(props.other).toEqual(expected);
+  });
+
   it('should normalize nullable refs nested inside properties', () => {
     const input = {
       type: 'object',

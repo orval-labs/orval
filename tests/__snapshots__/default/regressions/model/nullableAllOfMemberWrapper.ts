@@ -6,6 +6,6 @@
  */
 import type { NullableAllOfMemberBase } from './nullableAllOfMemberBase';
 
-export type NullableAllOfMemberWrapper = (NullableAllOfMemberBase | null) & {
+export type NullableAllOfMemberWrapper = NullableAllOfMemberBase & {
   marker?: string;
 };

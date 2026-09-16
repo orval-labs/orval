@@ -71,11 +71,14 @@ export const PortfolioResponseSchema = zod.object({
   nullablePosition: zod
     .object({
       position: zod
-        .object({
-          id: zod.string(),
-          quantity: zod.number(),
-        })
-        .nullish(),
+        .union([
+          zod.object({
+            id: zod.string(),
+            quantity: zod.number(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
     })
     .optional(),
 });
