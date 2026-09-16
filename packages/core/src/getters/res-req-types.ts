@@ -701,7 +701,7 @@ function getSchemaFormDataAndUrlEncoded({
       const { schema: itemSchema } = resolveSchemaRef(schemaItems, context);
       if (
         isEffectivelyObjectSchema(itemSchema, context) ||
-        itemSchema.type === 'array'
+        isEffectivelyArraySchema(itemSchema, context)
       ) {
         valueStr = 'JSON.stringify(value)';
       } else if (
@@ -771,6 +771,36 @@ export function isEffectivelyObjectSchema(
   }
 
   return false;
+}
+
+/**
+ * Array counterpart of {@link isEffectivelyObjectSchema}: `type: array`
+ * either on the schema itself or behind its `allOf` members.
+ */
+function isEffectivelyArraySchema(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  seen: Set<OpenApiSchemaObject> = new Set(),
+): boolean {
+  if (seen.has(schema)) {
+    return false;
+  }
+  seen.add(schema);
+
+  if (schema.type === 'array') {
+    return true;
+  }
+
+  const schemaAllOf = schema.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  return (
+    Array.isArray(schemaAllOf) &&
+    schemaAllOf.some((member) => {
+      const { schema: resolved } = resolveSchemaRef(member, context);
+      return isEffectivelyArraySchema(resolved, context, seen);
+    })
+  );
 }
 
 /**
@@ -854,6 +884,8 @@ interface ResolveSchemaPropertiesToFormDataOptions {
   keyPrefix?: string;
   depth?: number;
   encoding?: Record<string, OpenApiEncodingObject>;
+  // Schemas already being exploded further up, to stop on recursive models.
+  ancestors?: Set<OpenApiSchemaObject>;
 }
 
 function resolveSchemaPropertiesToFormData({
@@ -865,8 +897,10 @@ function resolveSchemaPropertiesToFormData({
   keyPrefix = '',
   depth = 0,
   encoding,
+  ancestors = new Set(),
 }: ResolveSchemaPropertiesToFormDataOptions): string {
   let formDataValues = '';
+  const nestedAncestors = new Set(ancestors).add(schema);
   // url-encoded bodies use URLSearchParams (string values only), so file/binary
   // fields are appended as plain strings rather than wrapped in a Blob (#1624).
   const isUrlEncoded = variableName === 'formUrlEncoded';
@@ -963,7 +997,7 @@ function resolveSchemaPropertiesToFormData({
       } else {
         formDataValue =
           context.output.override.formData.arrayHandling ===
-          FormDataArrayHandling.EXPLODE
+            FormDataArrayHandling.EXPLODE && !nestedAncestors.has(property)
             ? resolveSchemaPropertiesToFormData({
                 schema: property,
                 variableName,
@@ -973,6 +1007,7 @@ function resolveSchemaPropertiesToFormData({
                 keyPrefix: `${keyPrefix}${escapedKey}.`,
                 depth: depth + 1,
                 encoding,
+                ancestors: nestedAncestors,
               })
             : `${variableName}.append(\`${keyPrefix}${escapedKey}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       }
@@ -987,24 +1022,34 @@ function resolveSchemaPropertiesToFormData({
         const { schema: itemSchema } = resolveSchemaRef(propertyItems, context);
         if (
           isEffectivelyObjectSchema(itemSchema, context) ||
-          itemSchema.type === 'array'
+          isEffectivelyArraySchema(itemSchema, context)
         ) {
-          if (
+          // Without fields to explode (maps, nested arrays) or on a recursive
+          // model, fall back to appending the whole item as JSON.
+          const resolvedValue =
             context.output.override.formData.arrayHandling ===
-            FormDataArrayHandling.EXPLODE
-          ) {
+              FormDataArrayHandling.EXPLODE && !nestedAncestors.has(itemSchema)
+              ? resolveSchemaPropertiesToFormData({
+                  schema: itemSchema,
+                  variableName,
+                  propName: 'value',
+                  context,
+                  isRequestBodyOptional,
+                  keyPrefix: `${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}].`,
+                  depth: depth + 1,
+                  ancestors: nestedAncestors,
+                })
+              : '';
+          if (resolvedValue) {
             hasNonPrimitiveChild = true;
-            const resolvedValue = resolveSchemaPropertiesToFormData({
-              schema: itemSchema,
-              variableName,
-              propName: 'value',
-              context,
-              isRequestBodyOptional,
-              keyPrefix: `${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}].`,
-              depth: depth + 1,
-            });
+            const itemType = getSchemaType(itemSchema);
+            const body =
+              itemSchema.nullable ||
+              (Array.isArray(itemType) && itemType.includes('null'))
+                ? `if (value !== null && value !== undefined) {\n ${resolvedValue} }\n`
+                : resolvedValue;
             formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
-    ${resolvedValue}});\n`;
+    ${body}});\n`;
           } else {
             valueStr = 'JSON.stringify(value)';
           }
