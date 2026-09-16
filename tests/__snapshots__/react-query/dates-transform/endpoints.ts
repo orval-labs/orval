@@ -862,15 +862,17 @@ const serializeUpdateAppointmentRequest = (data: Appointment): Appointment => {
         ? (copy.reminderOn.toISOString().slice(0, 10) as unknown as Date)
         : copy.reminderOn;
   }
-  copy.slots = copy.slots.map((item0) => {
-    let value0 = item0;
-    value0 = { ...value0 };
-    value0.start =
-      value0.start instanceof Date
-        ? (value0.start.toISOString().slice(0, 10) as unknown as Date)
-        : value0.start;
-    return value0;
-  });
+  if (copy.slots != null) {
+    copy.slots = copy.slots.map((item0) => {
+      let value0 = item0;
+      value0 = { ...value0 };
+      value0.start =
+        value0.start instanceof Date
+          ? (value0.start.toISOString().slice(0, 10) as unknown as Date)
+          : value0.start;
+      return value0;
+    });
+  }
   return copy;
 };
 

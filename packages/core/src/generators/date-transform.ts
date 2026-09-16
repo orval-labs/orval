@@ -209,7 +209,7 @@ const buildResolvedStatements = ({
     };
   } else if (
     mode.dropArrayObjectConflict &&
-    schema.items &&
+    isArrayShaped(schema, context) &&
     needsObjectCopy(schema, context)
   ) {
     result = emptyResult();
@@ -288,14 +288,19 @@ const buildResolvedStatements = ({
 /**
  * True when the subtree assigns to the accessor itself (a date, possibly
  * wrapped in `allOf` or a nullable union) rather than into its properties or
- * elements. Such elements must be written back through the array slot: a
- * hoisted `const` would make the generated assignment reassign a const.
+ * elements.
  *
- * Only ever reached from the response direction's in-place array builder
- * (the request direction's array builder always hoists into a `let` and
- * never needs this distinction), so it checks `isDateSchema` directly rather
- * than taking a `mode` parameter for a choice that is already made by the
- * only caller.
+ * Two callers: the response direction's in-place array builder, where such
+ * elements must be written back through the array slot (a hoisted `const`
+ * would make the generated assignment reassign a const); and the request
+ * direction's property builder, where it distinguishes a required date leaf
+ * (unguarded — `x instanceof Date ? … : x` already tolerates `undefined`)
+ * from a required container (object copy, array `.map`, or union dispatch),
+ * which must be null-guarded so an omitted container isn't turned into `{}`
+ * or thrown on. Both uses ask the same question — "does this write straight
+ * to the accessor, or into something reached through it?" — regardless of
+ * which formats a given direction actually converts, so it checks
+ * `isDateSchema` directly rather than taking a `mode` parameter.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
@@ -372,6 +377,23 @@ interface DateTransformMode {
    * schemas: emit nothing rather than wrong code.
    */
   dropArrayObjectConflict: boolean;
+  /**
+   * When true, a required (and non-nullable) property whose statements write
+   * through a container — an object copy, an array `.map` reassignment, or a
+   * discriminated-union switch — is still wrapped in an `!= null` guard, the
+   * same as an optional property would be. The response direction leaves a
+   * required container unguarded (`false`): it mutates a payload the server
+   * already sent, where a required field is expected to be present. The
+   * request direction (`true`) cannot make that assumption — a required
+   * container is exactly what a caller is most likely to accidentally omit —
+   * and without the guard an omitted object is spread into `{}` (a key the
+   * caller never sent), while an omitted array throws calling `.map` on
+   * `undefined`. A required property that instead writes a date leaf
+   * directly to the accessor is unaffected either way: `x instanceof Date ?
+   * … : x` already tolerates `undefined`, so guarding it would only churn
+   * the output for no behavioural benefit.
+   */
+  guardRequiredContainers: boolean;
 }
 
 interface ArrayStatementsParams {
@@ -459,6 +481,7 @@ const responseMode: DateTransformMode = {
       : undefined,
   skipProperty: () => false,
   dropArrayObjectConflict: false,
+  guardRequiredContainers: false,
 };
 
 const buildPropertiesStatements = ({
@@ -508,7 +531,11 @@ const buildPropertiesStatements = ({
         ...inner.statements,
       ];
 
-      const needsGuard = !requiredSet.has(key) || nullable;
+      const needsGuard =
+        !requiredSet.has(key) ||
+        nullable ||
+        (mode.guardRequiredContainers &&
+          !writesToAccessorItself(property, context));
       if (!needsGuard) return { ...inner, statements };
 
       return {
@@ -665,6 +692,33 @@ const needsObjectCopy = (
   );
 };
 
+/**
+ * True when the schema is array-shaped — carries `items`, either directly or
+ * through an `allOf` branch. Mirrors `needsObjectCopy`'s own `allOf`
+ * recursion (and its `seenRefs` cycle guard) so the two predicates agree on
+ * shape: `needsObjectCopy` already looks through `allOf` to find an object
+ * shape, and the array/object conflict guard above must see an array shape
+ * the same way, or a schema combining an array `allOf` branch with an object
+ * `allOf` branch (rather than a sibling `items` and `properties`) slips past
+ * the guard and emits both an array reassignment and an object-copy
+ * property write, which crashes at runtime.
+ */
+const isArrayShaped = (
+  schemaOrRef: SchemaOrRef,
+  context: ContextSpec,
+  seenRefs: Set<string> = new Set(),
+): boolean => {
+  const { schema, ref } = normalizeSchema(schemaOrRef, context);
+  if (ref) {
+    if (seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+  }
+  if (schema.items) return true;
+  return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
+    isArrayShaped(branch, context, seenRefs),
+  );
+};
+
 const buildCopyingItemsStatements = ({
   items,
   accessor,
@@ -723,6 +777,7 @@ const requestMode: DateTransformMode = {
   propertyWriteAccessor: () => undefined,
   skipProperty: (schema) => schema.readOnly === true,
   dropArrayObjectConflict: true,
+  guardRequiredContainers: true,
 };
 
 export interface BuildRequestDateSerializeParams {

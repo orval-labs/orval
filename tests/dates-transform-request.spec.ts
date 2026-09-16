@@ -105,3 +105,19 @@ test('serializes a field re-declared by an allOf branch idempotently, without th
 
   expect(body.day).toBe('2026-07-01');
 });
+
+test('does not throw and omits the key when a required array body field is left out', async () => {
+  // `Appointment.slots` is required and non-nullable. Before the request-side
+  // container guard, an omitted `slots` threw `TypeError: Cannot read
+  // properties of undefined (reading 'map')` inside the generated serializer.
+  const captured = captureRequest();
+
+  await updateAppointment({
+    day: new Date('2026-07-01'),
+    bookedAt: new Date('2026-07-01T09:30:00.000Z'),
+  } as unknown as Parameters<typeof updateAppointment>[0]);
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body).not.toHaveProperty('slots');
+});
