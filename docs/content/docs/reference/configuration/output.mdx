@@ -3935,23 +3935,30 @@ with `new Date(Date.UTC(year, month, day))` and read it back with `getUTCFullYea
 `getUTCMonth()` / `getUTCDate()` — a `Date` built from local parts can land on the
 previous day at positive UTC offsets.
 
-Current limitations: a `oneOf`/`anyOf` without an OpenAPI
+A `oneOf`/`anyOf` without an OpenAPI
 [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
 `mapping` is skipped, since there's no static way to tell which variant a
 given payload matched; a discriminated union with an explicit `mapping` is
 converted, emitting a `switch` on the discriminator property with one `case`
-per mapping key. `additionalProperties` maps are not converted, responses
-with multiple success shapes are skipped, and recursive schemas are left
-untouched entirely — converting only the levels above the cycle would leave
-deeper dates as strings while the generated types claim `Date`. A request body
-with several media types, several JSON media types, or a blob body generates no
-serializer, since there is no single JSON schema to walk; a schema that is both
-array- and object-shaped (OAS 3.1 `type: ['array', 'object']`, or a stray sibling
-`properties` on a `type: array` schema) also generates no serializer, since the two
-shapes can't be walked together on the request side. Only the
-axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`,
-and `solid-query` with `httpClient: 'axios'`). `Date` values in query and
-path parameters are still serialized as full ISO datetimes, so date-only parameters
+per mapping key. `additionalProperties` maps are converted with a loop over
+`Object.keys`, unless the schema also declares `properties` — directly, via
+`allOf`, or a sibling `oneOf`/`anyOf` — or declares a `propertyNames` that
+narrows the keys to an enumerable set (`enum` or `const`, inline or via
+`$ref`), in which case those take precedence and it is never walked as a map.
+
+Current limitations: responses with multiple success shapes are skipped, and
+recursive schemas are left untouched entirely — converting only the levels above
+the cycle would leave deeper dates as strings while the generated types claim
+`Date`. A request body with several media types, several JSON media types, or a
+blob body generates no serializer, since there is no single JSON schema to walk;
+a schema that is both array- and object-shaped (OAS 3.1 `type: ['array',
+'object']`, or a stray sibling `properties` on a `type: array` schema) also
+generates no serializer, since the two shapes can't be walked together on the
+request side — the same conflict with a map-valued `additionalProperties` in
+place of `properties` drops both the serializer and the deserializer. Only the
+axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`, and
+`solid-query` with `httpClient: 'axios'`). `Date` values in query and path
+parameters are still serialized as full ISO datetimes, so date-only parameters
 are not covered.
 
 ### useBigInt
