@@ -182,6 +182,13 @@ async function resolveSpec(
  * `{ anyOf: [$ref, { type: 'null' }] }` and warn with the JSON Pointer path so
  * users learn their spec was non-conformant.
  *
+ * Honoring the author's evident intent that way is a choice, not a reading of
+ * the spec, and it is made everywhere the intent can survive into the emitted
+ * type. The one position where it cannot is a direct member of an `allOf`:
+ * members are intersected, and `null & { ... }` reduces to `never`, so the null
+ * branch is inert there whether it is emitted or not. That case drops the
+ * sibling instead. See the two branches below.
+ *
  * Runs before `upgrade()`, which since @scalar/openapi-upgrader@0.2.13 applies
  * the same rewrite without reporting it, and after bundling, so the warning
  * fires once per occurrence rather than once per dereference site.
@@ -203,16 +210,22 @@ export function normalizeNullableRefs(
 
   const obj = spec as Record<string, unknown>;
 
-  // The same sibling inside an `allOf` array is equally meaningless, and it must
-  // not be turned into a union: orval reads through `allOf` members to collect
-  // the keys a schema guarantees, and an `{ anyOf: [$ref, { type: 'null' }] }`
-  // member hides them, degrading `Pick<Wrapper, 'id'>` to
-  // `Pick<Wrapper, Extract<keyof Wrapper, 'id'>>`. The upgrader applies its
-  // rewrite with no `allOf` guard as of @scalar/openapi-upgrader@0.2.13, so drop
-  // the no-op sibling here and hand it a plain `$ref`. The emitted type is
-  // unchanged: `(Base | null) & { marker?: string }` and
-  // `Base & { marker?: string }` are the same type, since `null & { ... }`
-  // reduces to `never`.
+  // Direct member of an `allOf`: drop the sibling instead of rewriting it. Not
+  // because it means any less here than it does elsewhere — it is out of spec in
+  // both positions — but because the union cannot survive this one. The member
+  // is intersected with its siblings, and `null & { marker?: string }` reduces
+  // to `never`, so `(Base | null) & { marker?: string }` and
+  // `Base & { marker?: string }` are the same type. The null branch is inert
+  // whether it is emitted or not.
+  //
+  // Emitting it anyway costs something real: orval reads through `allOf` members
+  // to collect the keys a schema guarantees, and an
+  // `{ anyOf: [$ref, { type: 'null' }] }` member hides them, degrading
+  // `Pick<Wrapper, 'id'>` to `Pick<Wrapper, Extract<keyof Wrapper, 'id'>>`. The
+  // upgrader applies its rewrite with no `allOf` guard as of
+  // @scalar/openapi-upgrader@0.2.13, so strip it here and hand it a plain
+  // `$ref`. A nullable composition has to be written with `nullable` on the
+  // composed schema rather than on a member; that form is preserved.
   if (
     inAllOf &&
     '$ref' in obj &&
@@ -222,10 +235,10 @@ export function normalizeNullableRefs(
     delete obj.nullable;
   }
 
-  // A ReferenceObject with a sibling `nullable: true` outside an `allOf`, where
-  // there is no composition left to read the reference through and the rewrite
-  // is the only way to keep the `| null` the author meant (#3714). The in-allOf
-  // form is handled just above.
+  // Every other position, including below an `allOf` member. Here the union does
+  // survive into the emitted type, so the rewrite is the only way to keep the
+  // `| null` the author meant, and it is worth warning about (#3714). The inert
+  // direct-member position is handled just above.
   if (
     !inAllOf &&
     '$ref' in obj &&

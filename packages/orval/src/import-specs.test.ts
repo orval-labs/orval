@@ -3368,8 +3368,9 @@ describe('normalizeNullableRefs', () => {
 
     const result = normalizeNullableRefs(input);
 
-    // The exemption covers direct allOf members only. A `$ref` further down has
-    // no composition to be read through, so it still needs the union.
+    // The exemption covers direct allOf members only. This `$ref` sits in a
+    // member's `properties`, not in the intersection itself, so the union does
+    // reach the emitted type as `pet?: Pet | null` and has to be kept.
     expect(result).toEqual({
       allOf: [
         {
@@ -3384,7 +3385,7 @@ describe('normalizeNullableRefs', () => {
     });
   });
 
-  it('should drop a no-op nullable sibling from a $ref inside allOf', () => {
+  it('should drop a nullable sibling from a $ref that is a direct allOf member', () => {
     const input = {
       allOf: [
         { $ref: '#/components/schemas/Pet', nullable: true },
@@ -3394,9 +3395,17 @@ describe('normalizeNullableRefs', () => {
 
     const result = normalizeNullableRefs(input);
 
-    // Left as a plain `$ref` rather than rewritten into a union: orval reads
-    // through allOf members to collect the keys a schema guarantees, and a union
-    // member hides them (#3714).
+    // Left as a plain `$ref` rather than rewritten into a union. The sibling is
+    // out of spec in both positions — the difference from the test above is not
+    // what it means, but whether the union can survive where it sits. Members of
+    // an allOf are intersected, and `null & { marker?: string }` reduces to
+    // `never`, so `(Pet | null) & { marker?: string }` and
+    // `Pet & { marker?: string }` are the same type: emitting the union changes
+    // nothing. It does cost something, though — orval reads through allOf members
+    // to collect the keys a schema guarantees, and a union member hides them,
+    // degrading `Pick<W, 'id'>` to `Pick<W, Extract<keyof W, 'id'>>` (#3714).
+    // To make a composition nullable, `nullable` goes on the composed schema
+    // rather than on a member; see NullablePlacementOnWrapper in regressions.yaml.
     expect(result).toEqual({
       allOf: [
         { $ref: '#/components/schemas/Pet' },
