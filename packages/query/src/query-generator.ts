@@ -1114,8 +1114,8 @@ ${
         doc,
         isReactQuery,
         fnName: setQueryDataFnName,
-        propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)`,
-        body: `queryClient.setQueriesData<${TData}>({ queryKey: ${setQueryDataKeyExpr} }, updater);`,
+        propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined), exactMatch: boolean = true`,
+        body: `queryClient.setQueriesData<${TData}>({ exact: exactMatch, queryKey: ${setQueryDataKeyExpr} }, updater);`,
       })
     : ''
 }

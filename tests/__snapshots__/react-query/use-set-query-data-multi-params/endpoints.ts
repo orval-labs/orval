@@ -272,9 +272,16 @@ export const useSetGetUsersUserIdOrdersQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof getUsersUserIdOrders>> | undefined,
         ) => Awaited<ReturnType<typeof getUsersUserIdOrders>> | undefined),
+    exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<
       Awaited<ReturnType<typeof getUsersUserIdOrders>>
-    >({ queryKey: getGetUsersUserIdOrdersQueryKey(userId, params) }, updater);
+    >(
+      {
+        exact: exactMatch,
+        queryKey: getGetUsersUserIdOrdersQueryKey(userId, params),
+      },
+      updater,
+    );
   };
 };
