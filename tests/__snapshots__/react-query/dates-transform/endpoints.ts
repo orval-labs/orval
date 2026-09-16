@@ -28,6 +28,7 @@ import type {
   Dog,
   OrderDetails,
   ReminderUpdate,
+  ShelterIntake,
 } from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
@@ -1172,6 +1173,137 @@ export const useUpdateAppointmentReminder = <
 > => {
   return useMutation(
     getUpdateAppointmentReminderMutationOptions(options),
+    queryClient,
+  );
+};
+
+export const updateShelterIntake = (
+  shelterId: string,
+  shelterIntake: ShelterIntake,
+  signal?: AbortSignal,
+) => {
+  return customInstance<ShelterIntake>({
+    url: `/shelters/${shelterId}/intake`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateShelterIntakeRequest(shelterIntake),
+    signal,
+  }).then(deserializeUpdateShelterIntakeResponse);
+};
+
+const deserializeUpdateShelterIntakeResponse = (
+  data: ShelterIntake,
+): ShelterIntake => {
+  if (data == null) return data;
+  for (const key0 of Object.keys(data.pets)) {
+    const item0 = data.pets[key0];
+    switch (item0.petType) {
+      case 'cat': {
+        item0.arrivedOn = new Date(item0.arrivedOn);
+        break;
+      }
+      case 'dog': {
+        item0.vaccinatedAt = new Date(item0.vaccinatedAt);
+        break;
+      }
+    }
+  }
+  return data;
+};
+
+const serializeUpdateShelterIntakeRequest = (
+  data: ShelterIntake,
+): ShelterIntake => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if (copy.pets != null) {
+    copy.pets = { ...copy.pets };
+    for (const key0 of Object.keys(copy.pets)) {
+      let value0 = copy.pets[key0];
+      value0 = { ...value0 };
+      switch (value0.petType) {
+        case 'cat': {
+          value0.arrivedOn =
+            value0.arrivedOn instanceof Date
+              ? (value0.arrivedOn.toISOString().slice(0, 10) as unknown as Date)
+              : value0.arrivedOn;
+          break;
+        }
+      }
+      copy.pets[key0] = value0;
+    }
+  }
+  return copy;
+};
+
+export const getUpdateShelterIntakeMutationKey = () =>
+  ['updateShelterIntake'] as const;
+
+export const getUpdateShelterIntakeMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateShelterIntake>>,
+    TError,
+    UpdateShelterIntakeMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateShelterIntake>>,
+  TError,
+  UpdateShelterIntakeMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateShelterIntakeMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateShelterIntake>>,
+    UpdateShelterIntakeMutationVariables
+  > = (props) => {
+    const { shelterId, data } = props ?? {};
+
+    return updateShelterIntake(shelterId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateShelterIntakeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateShelterIntake>>
+>;
+export type UpdateShelterIntakeMutationBody = ShelterIntake;
+export type UpdateShelterIntakeMutationError = unknown;
+export type UpdateShelterIntakeMutationVariables = {
+  shelterId: string;
+  data: ShelterIntake;
+};
+
+export const useUpdateShelterIntake = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateShelterIntake>>,
+      TError,
+      UpdateShelterIntakeMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateShelterIntake>>,
+  TError,
+  UpdateShelterIntakeMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateShelterIntakeMutationOptions(options),
     queryClient,
   );
 };
