@@ -1,6 +1,10 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { OpenApiDocument, OpenApiSchemaObject } from '@orval/core';
+import type {
+  OpenApiDocument,
+  OpenApiSchemaObject,
+  OverrideOutputContentType,
+} from '@orval/core';
 import ts from 'typescript';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
@@ -128,7 +132,11 @@ describe('custom fetch error responses (#4111)', () => {
           mutator + (defaultExport ? '\nexport default request;\n' : ''),
         );
         await writeFile(path.join(workspace, 'consumer.ts'), consumer);
-        async function generate(enabled: boolean, input = spec) {
+        async function generate(
+          enabled: boolean,
+          input = spec,
+          contentType?: OverrideOutputContentType,
+        ) {
           const options = await normalizeOptions(
             {
               input: { target: input },
@@ -138,6 +146,7 @@ describe('custom fetch error responses (#4111)', () => {
                 httpClient: 'fetch',
                 override: {
                   header: false,
+                  contentType,
                   mutator: {
                     path: './mutator.ts',
                     ...(defaultExport ? {} : { name: 'request' }),
@@ -276,6 +285,34 @@ describe('custom fetch error responses (#4111)', () => {
           ).rejects.toThrow(
             /includeErrorResponseInMutator requires explicit error status codes/,
           );
+          const filteredSpec: OpenApiDocument = {
+            ...spec,
+            paths: {
+              ...spec.paths,
+              '/example': {
+                get: {
+                  operationId: 'load',
+                  responses: {
+                    ...responses,
+                    [key]: {
+                      description: 'Excluded error response',
+                      content: { 'text/plain': { schema: { type: 'string' } } },
+                    },
+                  },
+                },
+                post: { operationId: 'save', responses },
+              },
+            },
+          };
+          for (const filter of [
+            { include: ['application/json'] },
+            { exclude: ['text/plain'] },
+          ]) {
+            const expected = await generate(true, spec, filter);
+            // Excluded responses affect neither the generated types nor metadata.
+            expect(await generate(true, filteredSpec, filter)).toBe(expected);
+            expect(diagnostics()).toEqual([]);
+          }
         }
       } finally {
         vi.unstubAllGlobals();

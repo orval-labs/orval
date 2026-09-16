@@ -2736,7 +2736,7 @@ customFetch(url, options, {
 
 The mutator's third parameter can use `{ errorResponses: readonly { status: number; contentType: string }[] }`. The list respects `override.contentType` and is empty when no errors are declared. Responses without a body use an empty `contentType`. The second argument remains the request options, including `schema` when `includeZodSchemaInArguments` is enabled.
 
-The mutator owns parsing, validation, and error handling. Matching the supplied status and media type does not validate the response body. Named and default mutator exports are supported; hook mutators are not. Only explicit error status codes are supported: `default` and ranges such as `4XX` cause generation to fail when this option is enabled.
+The mutator owns parsing, validation, and error handling. Matching the supplied status and media type does not validate the response body. Named and default mutator exports are supported; hook mutators are not. Only explicit error status codes are supported among the responses retained by `override.contentType`. A retained `default` or range such as `4XX` causes generation to fail. Responses excluded by the filter are omitted from both the generated error types and metadata and do not prevent generation.
 
 ### serializeResponseHeaders
 

@@ -1513,7 +1513,7 @@ export interface FetchOptions {
    * Pass full error response types to a custom mutator's ErrorType and declared
    * error statuses/media types in its third argument. Requires response envelopes,
    * forceSuccessResponse, and a non-hook mutator accepting three arguments.
-   * Only explicit error status codes are supported.
+   * Only explicit error status codes are supported after content-type filtering.
    *
    * @default false
    */
