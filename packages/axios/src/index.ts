@@ -295,13 +295,23 @@ export type ${pascal(typeName)}Result = ${axiosResponse.name}`
               : `typeof ${operationName}`
           }>>>`;
 
-    const propsImplementation =
-      mutator.bodyTypeName && body.definition
-        ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\w*):\s?${body.definition}`),
-            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
-          )
-        : toObjectString(props, 'implementation');
+    const propsImplementation = toObjectString(
+      props.map((prop) =>
+        mutator.bodyTypeName &&
+        body.definition &&
+        prop.type === GetterPropType.BODY &&
+        prop.implementation.endsWith(`: ${body.definition}`)
+          ? {
+              ...prop,
+              implementation: `${prop.implementation.slice(
+                0,
+                -body.definition.length,
+              )}${mutator.bodyTypeName}<${body.definition}>`,
+            }
+          : prop,
+      ),
+      'implementation',
+    );
 
     return {
       implementation: `const ${operationName} = (\n    ${propsImplementation}\n ${

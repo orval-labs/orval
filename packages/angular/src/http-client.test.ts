@@ -6,7 +6,7 @@ import type {
   NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
-import { GetterPropType } from '@orval/core';
+import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
@@ -2387,6 +2387,64 @@ describe('angular HttpClient generator', () => {
 
       expect(impl).toContain('customHttpRequest<TData>');
       expect(impl).not.toContain('ThirdParameter');
+    });
+
+    const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
+      generateHttpClientImplementation(
+        createVerbOption({
+          verb: Verbs.POST,
+          operationName: 'createPet',
+          mutator: {
+            name: 'customHttpRequest',
+            path: './custom-instance.ts',
+            default: false,
+            hasSecondArg: true,
+            hasThirdArg: false,
+            isHook: false,
+            bodyTypeName: 'BodyType',
+          } as GeneratorVerbOptions['mutator'],
+          body: {
+            ...createVerbOption().body,
+            definition,
+            implementation: 'pet',
+            isOptional: false,
+          },
+          props: [
+            {
+              name: 'petId',
+              definition: `petId: ${petIdType}`,
+              implementation: `petId: ${petIdType}`,
+              default: false,
+              required: true,
+              type: GetterPropType.PARAM,
+            },
+            {
+              name: 'pet',
+              definition: `pet: ${definition}`,
+              implementation: `pet: ${definition}`,
+              default: false,
+              required: true,
+              type: GetterPropType.BODY,
+            },
+          ],
+        }),
+        createGeneratorOptions(),
+      );
+
+    it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
+      'wraps a %s body in the mutator BodyType envelope',
+      (definition) => {
+        const impl = generateCreatePet(definition);
+
+        expect(impl).toContain('petId: PetStatus,');
+        expect(impl).toContain(`pet: BodyType<${definition}>,`);
+      },
+    );
+
+    it('wraps the body rather than a path param of the same type', () => {
+      expect(generateCreatePet('PetStatus', 'PetStatus')).toContain(
+        'petId: PetStatus,\n    pet: BodyType<PetStatus>,',
+      );
     });
 
     // ── Return type registry ──────────────────────────────────────────

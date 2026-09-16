@@ -8,6 +8,7 @@ import type {
 import {
   EnumGeneration,
   FormDataArrayHandling,
+  GetterPropType,
   NamingConvention,
   OutputClient,
   OutputHttpClient,
@@ -999,5 +1000,65 @@ describe('generateSolidStart — Content-Type header escaping', () => {
       String.raw`'Content-Type': 'application/json\', \'X-Evil\': \'injected'`,
     );
     expect(implementation).not.toContain("'X-Evil': 'injected'");
+  });
+});
+
+describe('generateSolidStart — mutator body type', () => {
+  const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
+    generateImplementation(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        operationId: 'createPet',
+        operationName: 'createPet',
+        mutator: {
+          name: 'customInstance',
+          path: './custom-instance',
+          default: false,
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+          bodyTypeName: 'BodyType',
+        } as GeneratorVerbOptions['mutator'],
+        body: {
+          ...makeVerbOptions().body,
+          definition,
+          implementation: 'pet',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: `petId: ${petIdType}`,
+            implementation: `petId: ${petIdType}`,
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'pet',
+            definition: `pet: ${definition}`,
+            implementation: `pet: ${definition}`,
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+      }),
+      makeOptions(makeContextWithPathParams()),
+    );
+
+  it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
+    'wraps a %s body in the mutator BodyType envelope',
+    async (definition) => {
+      expect(await generateCreatePet(definition)).toContain(
+        `(petId: PetStatus,\n    pet: BodyType<${definition}>,)`,
+      );
+    },
+  );
+
+  it('wraps the body rather than a path param of the same type', async () => {
+    expect(await generateCreatePet('PetStatus', 'PetStatus')).toContain(
+      `(petId: PetStatus,\n    pet: BodyType<PetStatus>,)`,
+    );
   });
 });

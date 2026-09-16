@@ -3,7 +3,11 @@ import type {
   GeneratorVerbOptions,
   GeneratorMutator,
 } from '@orval/core';
-import { getOperationUrlHelperNames, OutputClient } from '@orval/core';
+import {
+  GetterPropType,
+  getOperationUrlHelperNames,
+  OutputClient,
+} from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -462,6 +466,62 @@ describe('Axios response types', () => {
     expect(result.implementation).not.toContain('data: undefined');
     expect(result.returnType()).toContain(
       'export type GetPetResult = getPetResponse',
+    );
+  });
+
+  const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
+    generateAxios(
+      createVerbOptions({
+        verb: 'post',
+        operationName: 'createPet',
+        typeName: 'createPet',
+        mutator: { ...mutator, bodyTypeName: 'BodyType' },
+        body: {
+          ...createVerbOptions().body,
+          definition,
+          implementation: 'pet',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: `petId: ${petIdType}`,
+            implementation: `petId: ${petIdType}`,
+            default: undefined,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'pet',
+            definition: `pet: ${definition}`,
+            implementation: `pet: ${definition}`,
+            default: undefined,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+      }),
+      generatorOptions,
+    );
+
+  it.each([
+    ['Pet'],
+    ['Pet[]'],
+    ['Pet | Cat'],
+    ['(Pet | Cat)[]'],
+    ["'$1' | 'b'"],
+    ["'$&'"],
+  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
+    expect(generateCreatePet(definition).implementation).toContain(
+      `const createPet = (\n    petId: PetStatus,\n    pet: BodyType<${definition}>,\n`,
+    );
+  });
+
+  it('wraps the body rather than a path param of the same type', () => {
+    expect(
+      generateCreatePet('PetStatus', 'PetStatus').implementation,
+    ).toContain(
+      `const createPet = (\n    petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
     );
   });
 });

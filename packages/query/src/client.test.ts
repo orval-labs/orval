@@ -7,7 +7,11 @@ import type {
   PackageJson,
   ResReqTypesValue,
 } from '@orval/core';
-import { getOperationUrlHelperNames, OutputHttpClient } from '@orval/core';
+import {
+  GetterPropType,
+  getOperationUrlHelperNames,
+  OutputHttpClient,
+} from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './frameworks';
@@ -989,6 +993,61 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
     );
     expect(dateFree).not.toContain('deserializeGetPetResponse');
     expect(dateFree).not.toContain('.then(');
+  });
+  const generateCreatePet = (definition: string, petIdType = 'Pet[]Status') =>
+    generateAxiosRequestFunction(
+      createVerbOptions({
+        verb: 'post',
+        operationName: 'createPet',
+        typeName: 'createPet',
+        mutator: { ...mutator, bodyTypeName: 'BodyType' },
+        body: {
+          ...verbOptions.body,
+          definition,
+          implementation: 'pet',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: `petId: ${petIdType}`,
+            implementation: `petId: ${petIdType}`,
+            default: undefined,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'pet',
+            definition: `pet: ${definition}`,
+            implementation: `pet: ${definition}`,
+            default: undefined,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+      }),
+      options,
+      adapter,
+    );
+
+  it.each([
+    ['Pet'],
+    ['Pet[]'],
+    ['Pet[][]'],
+    ['Pet | Cat'],
+    ['(Pet | Cat)[]'],
+    ["'$1' | 'b'"],
+    ["'$&'"],
+  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
+    expect(generateCreatePet(definition)).toContain(
+      `petId: Pet[]Status,\n    pet: BodyType<${definition}>,\n`,
+    );
+  });
+
+  it('wraps the body rather than a path param of the same type', () => {
+    expect(generateCreatePet('PetStatus', 'PetStatus')).toContain(
+      `petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
+    );
   });
 });
 
