@@ -36,20 +36,20 @@ export type listPetsArgs = {
 
 export const listPetsHandler = async (
   args: listPetsArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     listPets(args.queryParams, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
 };
 
 /**
@@ -63,20 +63,20 @@ export type createPetsArgs = {
 
 export const createPetsHandler = async (
   args: createPetsArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     createPets(args.bodyParams, args.queryParams, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, () => undefined);
 };
 
 /**
@@ -91,20 +91,20 @@ export type showPetByIdArgs = {
 
 export const showPetByIdHandler = async (
   args: showPetByIdArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetById(args.pathParams.petId, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, () => undefined);
 };
 
 /**
@@ -119,20 +119,20 @@ export type deletePetByIdArgs = {
 
 export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deletePetById(args.pathParams.petId, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, () => undefined);
 };
 
 /**
@@ -140,20 +140,20 @@ export const deletePetByIdHandler = async (
  */
 
 export const healthCheckHandler = async (
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     healthCheck({
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
 };
 
 /**
@@ -168,18 +168,22 @@ export type showPetWithOwnerArgs = {
 
 export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetWithOwner(args.pathParams.petId, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(
+    fetcher,
+    ctx,
+    (data: unknown) => data as Record<string, unknown>,
+  );
 };

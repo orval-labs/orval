@@ -22,6 +22,7 @@ import {
   headThingsHandler,
 } from './handlers';
 import {
+  GetThingsResponse,
   CreateThingBody,
   ReplaceThingBody,
   PatchThingBody,
@@ -39,6 +40,7 @@ const createMcpServer = (
   tools.getThings = server.registerTool(
     'getThings',
     {
+      outputSchema: { result: GetThingsResponse },
       annotations: { readOnlyHint: true },
     },
     (ctx) =>

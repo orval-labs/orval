@@ -22,10 +22,12 @@ import {
 } from './handlers';
 import {
   ListPetsQueryParams,
+  ListPetsResponse,
   CreatePetsQueryParams,
   CreatePetsBody,
   ShowPetByIdParams,
   DeletePetByIdParams,
+  HealthCheckResponse,
   ShowPetWithOwnerParams,
   ShowPetWithOwnerResponse,
 } from './tool-schemas.zod';
@@ -47,6 +49,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: ListPetsQueryParams,
       },
+      outputSchema: { result: ListPetsResponse },
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -137,6 +140,7 @@ const createMcpServer = (
     {
       title: 'health check',
       description: 'health check',
+      outputSchema: { result: HealthCheckResponse },
       annotations: { readOnlyHint: true },
     },
     (ctx) =>

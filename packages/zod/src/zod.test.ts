@@ -47,7 +47,8 @@ import {
   generateZod,
   generateZodValidationSchemaDefinition,
   getZodDependencies,
-  isPlainObjectResponseSchema,
+  hasResponseSchema,
+  isObjectResponseSchema,
   parseZodValidationSchemaDefinition,
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
@@ -14076,7 +14077,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
   });
 });
 
-describe('isPlainObjectResponseSchema', () => {
+describe('isObjectResponseSchema / hasResponseSchema', () => {
   const run = (
     responses: OpenApiResponsesObject,
     zod: Partial<ContextSpec['output']['override']['zod']> = {},
@@ -14091,15 +14092,20 @@ describe('isPlainObjectResponseSchema', () => {
       ...zod,
     };
 
-    return isPlainObjectResponseSchema(
-      {
-        verb: 'get',
-        pathRoute: '/x',
-        override: context.output.override,
-      } as GeneratorVerbOptions,
-      context,
-    );
+    const verbOptions = {
+      verb: 'get',
+      pathRoute: '/x',
+      override: context.output.override,
+    } as GeneratorVerbOptions;
+
+    return {
+      object: isObjectResponseSchema(verbOptions, context),
+      has: hasResponseSchema(verbOptions, context),
+    };
   };
+  const objectSchema = { object: true, has: true };
+  const valueSchema = { object: false, has: true };
+  const noSchema = { object: false, has: false };
   const json = (schema: OpenApiSchemaObject): OpenApiResponsesObject => ({
     '200': { description: 'ok', content: { 'application/json': { schema } } },
   });
@@ -14108,22 +14114,16 @@ describe('isPlainObjectResponseSchema', () => {
     properties: { a: { type: 'string' } },
   };
 
-  it('is true only when the response is emitted as a bare zod.object', () => {
-    expect(run(json(object))).toBe(true);
-    expect(run(json({ type: 'array', items: object }))).toBe(false);
-    expect(
-      run(
-        json({
-          type: 'object',
-          oneOf: [object, { type: 'object' }],
-          properties: { id: { type: 'integer' } },
-        }),
-      ),
-    ).toBe(false);
+  it('is object only for a bare zod.object and value for other schemas', () => {
+    expect(run(json(object))).toEqual(objectSchema);
+    expect(run(json({ type: 'array', items: object }))).toEqual(valueSchema);
+    expect(run(json({ oneOf: [object, { type: 'object' }] }))).toEqual(
+      valueSchema,
+    );
     expect(
       run(json({ type: 'object', additionalProperties: { type: 'integer' } })),
-    ).toBe(false);
-    expect(run(json({ ...object, nullable: true }))).toBe(false);
+    ).toEqual(valueSchema);
+    expect(run(json({ ...object, nullable: true }))).toEqual(valueSchema);
     expect(
       run({
         '200': {
@@ -14131,17 +14131,7 @@ describe('isPlainObjectResponseSchema', () => {
           content: { 'text/plain': { schema: { type: 'string' } } },
         },
       }),
-    ).toBe(false);
-    expect(run({ '204': { description: 'no content' } })).toBe(false);
-  });
-
-  it('is false when the response schema is not emitted or gets wrapped', () => {
-    const base = makeContextSpec().output.override.zod;
-
-    expect(
-      run(json(object), { generate: { ...base.generate, response: false } }),
-    ).toBe(false);
-    expect(run(json(object), { generateEachHttpStatus: true })).toBe(false);
+    ).toEqual(valueSchema);
     expect(
       run(json(object), {
         preprocess: {
@@ -14152,6 +14142,30 @@ describe('isPlainObjectResponseSchema', () => {
           },
         },
       }),
-    ).toBe(false);
+    ).toEqual(valueSchema);
+  });
+
+  it('is neither when no usable response schema is emitted', () => {
+    const base = makeContextSpec().output.override.zod;
+
+    expect(run({ '204': { description: 'no content' } })).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'object',
+          oneOf: [object, { type: 'object' }],
+          properties: { id: { type: 'integer' } },
+        }),
+      ),
+    ).toEqual(noSchema);
+    expect(run(json({ allOf: [object, { type: 'object' }] }))).toEqual(
+      noSchema,
+    );
+    expect(
+      run(json(object), { generate: { ...base.generate, response: false } }),
+    ).toEqual(noSchema);
+    expect(run(json(object), { generateEachHttpStatus: true })).toEqual(
+      noSchema,
+    );
   });
 });

@@ -36,17 +36,21 @@ import {
 } from './handlers';
 import {
   FindPetsByStatusQueryParams,
+  FindPetsByStatusResponse,
   FindPetsByTagsQueryParams,
+  FindPetsByTagsResponse,
   GetPetByIdParams,
   GetPetByIdResponse,
   UpdatePetWithFormParams,
   UpdatePetWithFormQueryParams,
   UpdatePetWithFormResponse,
   DeletePetParams,
+  GetInventoryResponse,
   GetOrderByIdParams,
   GetOrderByIdResponse,
   DeleteOrderParams,
   LoginUserQueryParams,
+  LoginUserResponse,
   GetUserByNameParams,
   GetUserByNameResponse,
   DeleteUserParams,
@@ -70,6 +74,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByStatusQueryParams,
       },
+      outputSchema: { result: FindPetsByStatusResponse },
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -94,6 +99,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByTagsQueryParams,
       },
+      outputSchema: { result: FindPetsByTagsResponse },
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -186,6 +192,7 @@ const createMcpServer = (
     {
       title: 'Returns pet inventories by status.',
       description: 'Returns a map of status codes to quantities.',
+      outputSchema: { result: GetInventoryResponse },
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -257,6 +264,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: LoginUserQueryParams,
       },
+      outputSchema: { result: LoginUserResponse },
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>

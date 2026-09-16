@@ -3303,50 +3303,86 @@ const getSingleResponse = (
   );
 };
 
-/**
- * Whether the success response is emitted as a plain `zod.object(...)`.
- * MCP requires `outputSchema` and `structuredContent` to be objects, so the
- * MCP generator emits them only when this returns true.
- */
-export const isPlainObjectResponseSchema = (
+// Parses the success response exactly as `generateZodRoute` does, so the
+// predicates below describe the `<Operation>Response` that is actually emitted.
+const parseResponseSchema = (
   {
     verb,
     pathRoute,
     override,
   }: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
   context: ContextSpec,
-): boolean => {
-  // Per-status mode emits `<Operation><Status>Response` names instead.
-  if (context.output.override.zod.generateEachHttpStatus) return false;
-  // `zod.preprocess(...)` wraps the object schema.
-  if (override.zod.preprocess?.response) return false;
+) => {
   const isZodV4 = resolveIsZodV4(
     context.output.override.zod.version,
     context.output.packageJson,
   );
-  // zod v3 `.brand()` yields a `ZodBranded` wrapper; v4 keeps the object.
-  if (override.zod.useBrandedTypes && !isZodV4) return false;
 
-  const { input, isArray } = parseBodyAndResponse({
-    data: getSingleResponse(context.spec.paths?.[pathRoute]?.[verb]?.responses),
-    context,
-    name: 'response',
-    strict: override.zod.strict.response,
-    generate: override.zod.generate.response,
+  return {
     isZodV4,
-    parseType: 'response',
-  });
-  if (isArray) return false;
+    ...parseBodyAndResponse({
+      data: getSingleResponse(
+        context.spec.paths?.[pathRoute]?.[verb]?.responses,
+      ),
+      context,
+      name: 'response',
+      strict: override.zod.strict.response,
+      generate: override.zod.generate.response,
+      isZodV4,
+      parseType: 'response',
+    }),
+  };
+};
+
+/** The success response is emitted as a plain `zod.object(...)`. */
+export const isObjectResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray, isZodV4 } = parseResponseSchema(verbOptions, context);
+  const [root, ...modifiers] = input.functions;
+  if (isArray || root === undefined) return false;
+  // `zod.preprocess(...)` and zod v3 `.brand()` wrap the object.
+  if (
+    verbOptions.override.zod.preprocess?.response ||
+    (verbOptions.override.zod.useBrandedTypes && !isZodV4)
+  ) {
+    return false;
+  }
 
   const objectRoots = new Set(['object', 'looseObject', 'strictObject']);
   const objectModifiers = new Set(['strict', 'passthrough', 'describe']);
 
-  const [root, ...modifiers] = input.functions;
   return (
-    root !== undefined &&
     objectRoots.has(root[0]) &&
     modifiers.every(([fn]) => objectModifiers.has(fn))
   );
+};
+
+/**
+ * A `<Operation>Response` schema that can be converted to JSON Schema is
+ * emitted for the success response.
+ */
+export const hasResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray } = parseResponseSchema(verbOptions, context);
+  if (isArray) return true;
+
+  const [root] = input.functions;
+  // No schema is emitted as `zod.void()` / `zod.unknown()`, and `void` cannot
+  // even be converted to JSON Schema.
+  if (root === undefined) return false;
+  // `allOf` (also `oneOf` with sibling properties) renders as `.and()`, which
+  // becomes a JSON Schema `allOf` of closed objects that rejects every value.
+  return root[0] !== 'allOf';
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */

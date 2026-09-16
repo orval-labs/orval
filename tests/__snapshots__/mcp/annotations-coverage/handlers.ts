@@ -42,6 +42,7 @@ export const getThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 

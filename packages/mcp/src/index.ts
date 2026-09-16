@@ -30,7 +30,8 @@ import { generateClient, generateFetchHeader } from '@orval/fetch';
 import {
   generateZod,
   getZodImportSource,
-  isPlainObjectResponseSchema,
+  hasResponseSchema,
+  isObjectResponseSchema,
 } from '@orval/zod';
 
 // Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
@@ -257,20 +258,34 @@ ${handlerArgsTypes.join('\n')}
     handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : '';
   const fetchArgs = fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : '';
 
+  const toStructuredContent = isObjectResponseSchema(
+    verbOptions,
+    options.context,
+  )
+    ? '(data: unknown) => data as Record<string, unknown>'
+    : hasResponseSchema(verbOptions, options.context)
+      ? '(data: unknown) => ({ result: data })'
+      : '() => undefined';
+  const structuredContent = isObjectResponseSchema(verbOptions, options.context)
+    ? '\n    structuredContent: res.data,'
+    : hasResponseSchema(verbOptions, options.context)
+      ? '\n    structuredContent: { result: res.data },'
+      : '';
+
   const customHandler = options.override.mcp.handler;
   const handlerImplementation = customHandler
     ? `
-export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit, ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
   const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{
     ...options,
     ...overrides,
     headers: {
-      ...Object.fromEntries(new Headers(options?.headers)),
+      ...Object.fromEntries(new Headers(options.headers)),
       ...Object.fromEntries(new Headers(overrides?.headers)),
     },
   });
 
-  return ${customHandler.name ?? 'customHandler'}(fetcher, ctx);
+  return ${customHandler.name ?? 'customHandler'}(fetcher, ctx, ${toStructuredContent});
 };`
     : `
 export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit) => {
@@ -294,7 +309,7 @@ export const ${handlerName} = async (${handlerArgsSignature}options?: RequestIni
         type: 'text' as const,
         text: JSON.stringify(res.data ?? null),
       },
-    ],${isPlainObjectResponseSchema(verbOptions, options.context) ? '\n    structuredContent: res.data,' : ''}
+    ],${structuredContent}
   };
 };`;
 
@@ -343,12 +358,14 @@ export const generateServer = (
           ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      const outputSchemaImplementation = isPlainObjectResponseSchema(
+      const outputSchemaImplementation = isObjectResponseSchema(
         verbOption,
         context,
       )
         ? `\n    outputSchema: ${pascalOperationName}Response,`
-        : '';
+        : hasResponseSchema(verbOption, context)
+          ? `\n    outputSchema: { result: ${pascalOperationName}Response },`
+          : '';
 
       const annotationsValue = getAnnotations(verbOption.verb);
       const annotationsImplementation = annotationsValue
@@ -404,7 +421,7 @@ tools.${verbOption.operationName} = server.registerTool(
         imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
         imports.push(`  ${pascalOperationName}Body`);
-      if (isPlainObjectResponseSchema(verbOption, context))
+      if (hasResponseSchema(verbOption, context))
         imports.push(`  ${pascalOperationName}Response`);
 
       return imports;

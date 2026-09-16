@@ -9,25 +9,21 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ): Promise<CallToolResult> => {
   const res = await fetcher();
   const text = JSON.stringify(res.data ?? null);
 
   if (res.status >= 400) {
     return {
-      content: [{ type: 'text', text: `[${ctx?.requestId}] ${text}` }],
+      content: [{ type: 'text', text: `[${ctx.requestId}] ${text}` }],
       isError: true,
     };
   }
 
-  const data = res.data;
-
   return {
     content: [{ type: 'text', text }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
+    structuredContent: toStructuredContent(res.data),
   };
 };

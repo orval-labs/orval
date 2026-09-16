@@ -78,6 +78,7 @@ export const filterPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 
@@ -115,6 +116,7 @@ export const findPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 
@@ -152,6 +154,7 @@ export const findPetsByTagsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 
@@ -306,6 +309,7 @@ export const getInventoryHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 
@@ -422,6 +426,7 @@ export const loginUserHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: { result: res.data },
   };
 };
 
