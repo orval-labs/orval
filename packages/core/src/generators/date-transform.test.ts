@@ -1,12 +1,17 @@
+import vm from 'node:vm';
+
 import { describe, expect, it } from 'vite-plus/test';
 
 import type {
   ContextSpec,
+  GetterBody,
   GetterResponse,
   OpenApiSchemaObject,
 } from '../types';
 import {
   buildDateTransformStatements,
+  buildRequestDateSerializeStatements,
+  generateRequestDateSerializer,
   generateResponseDateDeserializer,
 } from './date-transform';
 
@@ -1100,5 +1105,1045 @@ describe('generateResponseDateDeserializer', () => {
         context,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('buildRequestDateSerializeStatements', () => {
+  it('formats a required date-only property as a UTC calendar day', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: { day: { type: 'string', format: 'date' } },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    );
+  });
+
+  it('emits nothing for date-time, which toJSON already serializes correctly', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['at'],
+      properties: { at: { type: 'string', format: 'date-time' } },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('guards an optional date-only property', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { day: { type: 'string', format: 'date' } },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.day != null) {',
+        '  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('copies a nested object before writing into it', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['nested'],
+      properties: {
+        nested: {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date' } },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.nested != null) {',
+        '  copy.nested = { ...copy.nested };',
+        '  copy.nested.day = copy.nested.day instanceof Date ? (copy.nested.day.toISOString().slice(0, 10) as unknown as Date) : copy.nested.day;',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('maps an array of date-only items without copying each element', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: { type: 'array', items: { type: 'string', format: 'date' } },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.days != null) {',
+        '  copy.days = copy.days.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('maps a nested array of arrays, reassigning each level through its own let binding', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['grid'],
+      properties: {
+        grid: {
+          type: 'array',
+          items: {
+            type: 'array',
+            items: { type: 'string', format: 'date' },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.grid != null) {',
+        '  copy.grid = copy.grid.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = value0.map((item1) => {',
+        '      let value1 = item1;',
+        '      value1 = value1 instanceof Date ? (value1.toISOString().slice(0, 10) as unknown as Date) : value1;',
+        '      return value1;',
+        '    });',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('copies each element of an array of objects', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['periods'],
+      properties: {
+        periods: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date' } },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.periods != null) {',
+        '  copy.periods = copy.periods.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = { ...value0 };',
+        '    value0.start = value0.start instanceof Date ? (value0.start.toISOString().slice(0, 10) as unknown as Date) : value0.start;',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('guards nullable array elements inside the map callback', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['periods'],
+      properties: {
+        periods: {
+          type: 'array',
+          items: {
+            type: 'object',
+            nullable: true,
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date' } },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.periods != null) {',
+        '  copy.periods = copy.periods.map((item0) => {',
+        '    if (item0 == null) return item0;',
+        '    let value0 = item0;',
+        '    value0 = { ...value0 };',
+        '    value0.start = value0.start instanceof Date ? (value0.start.toISOString().slice(0, 10) as unknown as Date) : value0.start;',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing for a recursive schema rather than a partial conversion', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        required: ['day', 'child'],
+        properties: {
+          day: { type: 'string', format: 'date' },
+          child: { $ref: '#/components/schemas/Node' },
+        },
+      },
+    });
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('resolves an OAS 3.1 nullable date-only property', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: {
+        day: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.day != null) {',
+        '  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves the response direction untouched', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: { day: { type: 'string', format: 'date' } },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe('data.day = new Date(data.day);');
+  });
+
+  it('skips a readOnly date-only property, converting only the writable sibling', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day', 'recordedAt'],
+      properties: {
+        day: { type: 'string', format: 'date' },
+        recordedAt: { type: 'string', format: 'date', readOnly: true },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    );
+  });
+
+  it('emits nothing when the only date-only property is readOnly', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['recordedAt'],
+      properties: {
+        recordedAt: { type: 'string', format: 'date', readOnly: true },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('resolves readOnly through a $ref before deciding to skip', () => {
+    const context = makeContext({
+      RecordedAt: { type: 'string', format: 'date', readOnly: true },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day', 'recordedAt'],
+      properties: {
+        day: { type: 'string', format: 'date' },
+        recordedAt: { $ref: '#/components/schemas/RecordedAt' },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }).join('\n'),
+    ).toBe(
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    );
+  });
+
+  it('converts an allOf-inherited property re-declared by a sibling branch idempotently, twice', () => {
+    // A very common spec idiom: re-declaring an inherited property just to
+    // add a description. `visitedRefs` is cleared on the way out of the
+    // `Base` branch (so a later, unrelated cycle isn't mistaken for one),
+    // and `mergeResults` doesn't dedup, so `createdOn` is converted once by
+    // each allOf branch. Without the `instanceof Date` guard the second
+    // statement would call `.toISOString()` on the string the first one
+    // just produced and throw at runtime.
+    const context = makeContext({
+      Base: {
+        type: 'object',
+        required: ['createdOn'],
+        properties: { createdOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        {
+          type: 'object',
+          required: ['createdOn'],
+          properties: {
+            createdOn: {
+              type: 'string',
+              format: 'date',
+              description: 'when it was made',
+            },
+          },
+        },
+      ],
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'copy.createdOn = copy.createdOn instanceof Date ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date) : copy.createdOn;',
+      'copy.createdOn = copy.createdOn instanceof Date ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date) : copy.createdOn;',
+    ]);
+  });
+
+  it('converts a property re-declared by both a discriminated-union variant and the parent schema idempotently, twice', () => {
+    // The switch case (from the variant) and the sibling property statement
+    // (from the parent schema's own `properties`) both convert the same
+    // accessor — the same double-conversion hazard as the allOf case above,
+    // but the two statements are textually different (one is wrapped in a
+    // `case` block), so a plain dedup of the merged statement list would not
+    // catch this shape. The fix must live at the leaf.
+    const context = makeContext({
+      Variant: {
+        type: 'object',
+        required: ['madeOn'],
+        properties: { madeOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Variant' }],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { v: '#/components/schemas/Variant' },
+      },
+      required: ['madeOn'],
+      properties: {
+        madeOn: {
+          type: 'string',
+          format: 'date',
+          description: 'redeclared on the parent',
+        },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }).join('\n'),
+    ).toBe(
+      [
+        'switch (copy.kind) {',
+        '  case "v": {',
+        '    copy.madeOn = copy.madeOn instanceof Date ? (copy.madeOn.toISOString().slice(0, 10) as unknown as Date) : copy.madeOn;',
+        '    break;',
+        '  }',
+        '}',
+        'copy.madeOn = copy.madeOn instanceof Date ? (copy.madeOn.toISOString().slice(0, 10) as unknown as Date) : copy.madeOn;',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing for a root schema that is both array- and object-shaped', () => {
+    // OAS 3.1 `type: ['array', 'object']`, or a hand-maintained spec with a
+    // stray sibling `properties`. `.map` already builds the new array; a
+    // `const copy` reassigned to that `.map` result does not compile, so the
+    // whole subtree emits nothing rather than broken code.
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      properties: { count: { type: 'string', format: 'date' } },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('contributes no statements for a property that is both array- and object-shaped, leaving siblings converted', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day', 'hybrid'],
+      properties: {
+        day: { type: 'string', format: 'date' },
+        hybrid: {
+          type: 'array',
+          items: { type: 'string', format: 'date' },
+          properties: { count: { type: 'string', format: 'date' } },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    ]);
+  });
+
+  it('leaves the response direction combining items and properties on the same schema unchanged', () => {
+    // Proves the array/object-conflict guard is request-only: the response
+    // direction may freely combine an in-place array loop with property
+    // writes on the same schema.
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date-time' },
+      properties: { count: { type: 'string', format: 'date-time' } },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.length; i0++) {',
+      '  data[i0] = new Date(data[i0]);',
+      '}',
+      'if (data.count != null) {',
+      '  data.count = new Date(data.count);',
+      '}',
+    ]);
+  });
+});
+
+const makeJsonBody = (
+  schema: OpenApiSchemaObject,
+  definition = 'Item',
+  isOptional = false,
+) =>
+  ({
+    originalSchema: { content: { 'application/json': { schema } } },
+    definition,
+    implementation: 'item',
+    contentType: 'application/json',
+    imports: [],
+    schemas: [],
+    isOptional,
+    isBlob: false,
+  }) as unknown as GetterBody;
+
+describe('generateRequestDateSerializer', () => {
+  it('generates a copying serializer for a date-only body field', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        required: ['day'],
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+    });
+
+    expect(result?.name).toBe('serializePutItemRequest');
+    expect(result?.implementation).toBe(
+      `const serializePutItemRequest = (data: Item): Item => {
+  if (data == null) return data;
+  const copy = { ...data };
+  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;
+  return copy;
+};
+`,
+    );
+  });
+
+  it('returns undefined when the body has no date-only field', () => {
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putItem',
+        body: makeJsonBody({
+          type: 'object',
+          required: ['at'],
+          properties: { at: { type: 'string', format: 'date-time' } },
+        }),
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a non-JSON body', () => {
+    const body = {
+      originalSchema: {
+        content: {
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              required: ['day'],
+              properties: { day: { type: 'string', format: 'date' } },
+            },
+          },
+        },
+      },
+      definition: 'Item',
+      implementation: 'item',
+      contentType: 'multipart/form-data',
+      imports: [],
+      schemas: [],
+      isOptional: false,
+      isBlob: false,
+    } as unknown as GetterBody;
+
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putItem',
+        body,
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a body offering json alongside a different-schema media type', () => {
+    // Mirrors what getBody actually produces for a multi-media-type body:
+    // contentType is '' (more than one media type survived filtering) and
+    // definition is the union of every surviving type's TS value.
+    const body = {
+      originalSchema: {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['day'],
+              properties: { day: { type: 'string', format: 'date' } },
+            },
+          },
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              required: ['name'],
+              properties: { name: { type: 'string' } },
+            },
+          },
+        },
+      },
+      definition: 'Item | Other',
+      implementation: 'putItemBody',
+      contentType: '',
+      imports: [],
+      schemas: [],
+      isOptional: false,
+      isBlob: false,
+    } as unknown as GetterBody;
+
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putItem',
+        body,
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+
+  it('reassigns the root when the body is an array of date-only items', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putDays',
+      body: makeJsonBody(
+        { type: 'array', items: { type: 'string', format: 'date' } },
+        'Date[]',
+      ),
+      context: makeContext(),
+    });
+
+    expect(result?.implementation).toBe(
+      `const serializePutDaysRequest = (data: Date[]): Date[] => {
+  if (data == null) return data;
+  let copy = data;
+  copy = copy.map((item0) => {
+    let value0 = item0;
+    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;
+    return value0;
+  });
+  return copy;
+};
+`,
+    );
+  });
+
+  it('casts through the model type when the body is NonReadonly-wrapped', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody(
+        {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date' } },
+        },
+        'NonReadonly<Item>',
+      ),
+      context: makeContext(),
+    });
+
+    expect(result?.implementation).toBe(
+      `const serializePutItemRequest = (data: NonReadonly<Item>): NonReadonly<Item> => {
+  if (data == null) return data;
+  const copy = { ...data } as unknown as Item;
+  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;
+  return copy as unknown as NonReadonly<Item>;
+};
+`,
+    );
+  });
+
+  it('emits no cast when the body type is not NonReadonly-wrapped', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        required: ['day'],
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+    });
+
+    expect(result?.implementation).toContain('const copy = { ...data };');
+    expect(result?.implementation).toContain('  return copy;');
+  });
+
+  it('types the signature as T | undefined for an optional (non-required) body', () => {
+    // A `requestBody` without `required: true` — the OpenAPI default — makes
+    // `getProps` emit the operation prop as `item?: Item`, so the call site
+    // passes `Item | undefined`. The serializer signature must match, or the
+    // generated call fails to type-check (TS2345).
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody(
+        {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date' } },
+        },
+        'Item',
+        true,
+      ),
+      context: makeContext(),
+    });
+
+    expect(result?.implementation).toBe(
+      `const serializePutItemRequest = (data: Item | undefined): Item | undefined => {
+  if (data == null) return data;
+  const copy = { ...data };
+  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;
+  return copy;
+};
+`,
+    );
+  });
+
+  it('composes the optional signature with the NonReadonly cast path', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody(
+        {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date' } },
+        },
+        'NonReadonly<Item>',
+        true,
+      ),
+      context: makeContext(),
+    });
+
+    expect(result?.implementation).toBe(
+      `const serializePutItemRequest = (data: NonReadonly<Item> | undefined): NonReadonly<Item> | undefined => {
+  if (data == null) return data;
+  const copy = { ...data } as unknown as Item;
+  copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;
+  return copy as unknown as NonReadonly<Item>;
+};
+`,
+    );
+  });
+
+  it('generates no serializer for a body that is both array- and object-shaped', () => {
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putHybrid',
+        body: makeJsonBody({
+          type: 'array',
+          items: { type: 'string', format: 'date' },
+          properties: { count: { type: 'string', format: 'date' } },
+        } as OpenApiSchemaObject),
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+});
+
+describe('review comment fixes — allOf array/object conflicts and required container guards', () => {
+  // Comment 1: `needsObjectCopy` recurses into `allOf` to find an object
+  // shape, but the conflict guard only ever looked at a sibling `items` — so
+  // an array reached through `allOf` disagreed with an object reached
+  // through a different `allOf` branch, and both branches' statements were
+  // emitted, producing runtime-broken code (`copy.x.map is not a function`
+  // after `copy.x` was already turned into an object copy).
+  const allOfArrayAndObject = {
+    allOf: [
+      { type: 'array', items: { type: 'string', format: 'date' } },
+      {
+        type: 'object',
+        required: ['d'],
+        properties: { d: { type: 'string', format: 'date' } },
+      },
+    ],
+  } as OpenApiSchemaObject;
+
+  it('drops all statements for a property that is array-shaped via allOf and object-shaped via a sibling allOf branch', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['x'],
+      properties: { x: allOfArrayAndObject },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('generates no serializer for a root body that is array-shaped via allOf and object-shaped via a sibling allOf branch', () => {
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putX',
+        body: makeJsonBody(allOfArrayAndObject, 'X'),
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+
+  it('leaves the response direction for the allOf array/object conflict schema unchanged', () => {
+    // Pinned against today's (pre-fix) behaviour: the response direction
+    // never applies the array/object-conflict guard (`dropArrayObjectConflict`
+    // is false there), so it freely combines the in-place array loop from
+    // one allOf branch with the property write from the other. This must
+    // stay byte-for-byte identical after the request-side fix.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['x'],
+      properties: { x: allOfArrayAndObject },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'for (let i0 = 0; i0 < data.x.length; i0++) {',
+        '  data.x[i0] = new Date(data.x[i0]);',
+        '}',
+        'data.x.d = new Date(data.x.d);',
+      ].join('\n'),
+    );
+  });
+
+  it('does not over-suppress an allOf branch that is array-shaped with no object branch', () => {
+    // Guards against a conflict-detection fix that is too eager: a schema
+    // whose only allOf branch is array-shaped (no object branch anywhere)
+    // must still emit its `.map` conversion.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        x: {
+          allOf: [{ type: 'array', items: { type: 'string', format: 'date' } }],
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.x != null) {',
+        '  copy.x = copy.x.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // Comment 2: a required, non-nullable container property (object or array)
+  // was written without a null guard, so omitting it from the caller's data
+  // either silently produced an extra empty object (`"a":{}`) or threw
+  // trying to `.map` over `undefined`. A required *date leaf* must stay
+  // unguarded — `x instanceof Date ? … : x` already tolerates `undefined`.
+  it('guards a request-side required object property, leaving a required date leaf unguarded', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['a', 'when'],
+      properties: {
+        a: {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date' } },
+        },
+        when: { type: 'string', format: 'date' },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.a != null) {',
+        '  copy.a = { ...copy.a };',
+        '  copy.a.day = copy.a.day instanceof Date ? (copy.a.day.toISOString().slice(0, 10) as unknown as Date) : copy.a.day;',
+        '}',
+        'copy.when = copy.when instanceof Date ? (copy.when.toISOString().slice(0, 10) as unknown as Date) : copy.when;',
+      ].join('\n'),
+    );
+  });
+
+  it('guards a request-side required array property', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['slots'],
+      properties: {
+        slots: { type: 'array', items: { type: 'string', format: 'date' } },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.slots != null) {',
+        '  copy.slots = copy.slots.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves the response direction for required object and array containers unchanged', () => {
+    // Pinned against today's (pre-fix) behaviour: the response direction
+    // never guards required containers (`guardRequiredContainers` is false
+    // there), and must stay that way — the response mutates a payload it
+    // just parsed, and every date field is expected to be present.
+    const objectSchema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['nested'],
+      properties: {
+        nested: {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date-time' } },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema: objectSchema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual(['data.nested.day = new Date(data.nested.day);']);
+
+    const arraySchema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: { type: 'array', items: { type: 'string', format: 'date-time' } },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema: arraySchema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.days.length; i0++) {',
+      '  data.days[i0] = new Date(data.days[i0]);',
+      '}',
+    ]);
+  });
+
+  it('executes the guarded serializer at runtime without adding keys for omitted required containers', () => {
+    // Comment 2, executed: strip the TS-only syntax (parameter/return type
+    // annotations and `as unknown as X` casts) from the emitted function so
+    // it can run as plain JS, then call it on a body that omits both a
+    // required object and a required array.
+    const result = generateRequestDateSerializer({
+      operationName: 'updateAppointment',
+      body: makeJsonBody({
+        type: 'object',
+        required: ['day', 'a', 'slots'],
+        properties: {
+          day: { type: 'string', format: 'date' },
+          a: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date' } },
+          },
+          slots: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['start'],
+              properties: { start: { type: 'string', format: 'date' } },
+            },
+          },
+        },
+      }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation
+      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
+      .replace(/ as unknown as [\w<>[\] |]+/g, '');
+
+    // Run in this realm (rather than a fresh vm context) so the `Date`
+    // instances the test constructs are `instanceof` the same `Date` the
+    // generated `instanceof Date` check compares against.
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => unknown;
+
+    const input = { day: new Date('2026-07-01') };
+
+    expect(() => fn(input)).not.toThrow();
+    expect(fn(input)).toEqual({ day: '2026-07-01' });
   });
 });

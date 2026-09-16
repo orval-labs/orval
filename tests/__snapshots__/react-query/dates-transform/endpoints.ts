@@ -4,20 +4,31 @@
  * Dates transform
  * OpenAPI spec version: 1.0.0
  */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
 
-import type { AuditRecord, Cat, Dog, OrderDetails } from './model';
+import type {
+  Appointment,
+  AppointmentWithDuplicateDate,
+  AuditRecord,
+  Cat,
+  Dog,
+  OrderDetails,
+  ReminderUpdate,
+} from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
 const withQueryKey = <T extends object, K>(
@@ -808,3 +819,359 @@ export function useListOrderNumbers<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const updateAppointment = (
+  appointment: Appointment,
+  signal?: AbortSignal,
+) => {
+  return customInstance<Appointment>({
+    url: `/appointments`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateAppointmentRequest(appointment),
+    signal,
+  }).then(deserializeUpdateAppointmentResponse);
+};
+
+const deserializeUpdateAppointmentResponse = (
+  data: Appointment,
+): Appointment => {
+  if (data == null) return data;
+  data.day = new Date(data.day);
+  data.bookedAt = new Date(data.bookedAt);
+  if (data.reminderOn != null) {
+    data.reminderOn = new Date(data.reminderOn);
+  }
+  for (let i0 = 0; i0 < data.slots.length; i0++) {
+    const item0 = data.slots[i0];
+    item0.start = new Date(item0.start);
+  }
+  return data;
+};
+
+const serializeUpdateAppointmentRequest = (data: Appointment): Appointment => {
+  if (data == null) return data;
+  const copy = { ...data };
+  copy.day =
+    copy.day instanceof Date
+      ? (copy.day.toISOString().slice(0, 10) as unknown as Date)
+      : copy.day;
+  if (copy.reminderOn != null) {
+    copy.reminderOn =
+      copy.reminderOn instanceof Date
+        ? (copy.reminderOn.toISOString().slice(0, 10) as unknown as Date)
+        : copy.reminderOn;
+  }
+  if (copy.slots != null) {
+    copy.slots = copy.slots.map((item0) => {
+      let value0 = item0;
+      value0 = { ...value0 };
+      value0.start =
+        value0.start instanceof Date
+          ? (value0.start.toISOString().slice(0, 10) as unknown as Date)
+          : value0.start;
+      return value0;
+    });
+  }
+  return copy;
+};
+
+export const getUpdateAppointmentMutationKey = () =>
+  ['updateAppointment'] as const;
+
+export const getUpdateAppointmentMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointment>>,
+    TError,
+    UpdateAppointmentMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointment>>,
+  TError,
+  UpdateAppointmentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateAppointmentMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointment>>,
+    UpdateAppointmentMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAppointment(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointment>>
+>;
+export type UpdateAppointmentMutationBody = Appointment;
+export type UpdateAppointmentMutationError = unknown;
+export type UpdateAppointmentMutationVariables = { data: Appointment };
+
+export const useUpdateAppointment = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAppointment>>,
+      TError,
+      UpdateAppointmentMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointment>>,
+  TError,
+  UpdateAppointmentMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateAppointmentMutationOptions(options), queryClient);
+};
+
+export const updateAppointmentDuplicateDate = (
+  appointmentWithDuplicateDate: AppointmentWithDuplicateDate,
+  signal?: AbortSignal,
+) => {
+  return customInstance<AppointmentWithDuplicateDate>({
+    url: `/appointments/duplicate-date`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateAppointmentDuplicateDateRequest(
+      appointmentWithDuplicateDate,
+    ),
+    signal,
+  }).then(deserializeUpdateAppointmentDuplicateDateResponse);
+};
+
+const deserializeUpdateAppointmentDuplicateDateResponse = (
+  data: AppointmentWithDuplicateDate,
+): AppointmentWithDuplicateDate => {
+  if (data == null) return data;
+  data.day = new Date(data.day);
+  data.day = new Date(data.day);
+  return data;
+};
+
+const serializeUpdateAppointmentDuplicateDateRequest = (
+  data: AppointmentWithDuplicateDate,
+): AppointmentWithDuplicateDate => {
+  if (data == null) return data;
+  const copy = { ...data };
+  copy.day =
+    copy.day instanceof Date
+      ? (copy.day.toISOString().slice(0, 10) as unknown as Date)
+      : copy.day;
+  copy.day =
+    copy.day instanceof Date
+      ? (copy.day.toISOString().slice(0, 10) as unknown as Date)
+      : copy.day;
+  return copy;
+};
+
+export const getUpdateAppointmentDuplicateDateMutationKey = () =>
+  ['updateAppointmentDuplicateDate'] as const;
+
+export const getUpdateAppointmentDuplicateDateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>,
+    TError,
+    UpdateAppointmentDuplicateDateMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>,
+  TError,
+  UpdateAppointmentDuplicateDateMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateAppointmentDuplicateDateMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>,
+    UpdateAppointmentDuplicateDateMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAppointmentDuplicateDate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentDuplicateDateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>
+>;
+export type UpdateAppointmentDuplicateDateMutationBody =
+  AppointmentWithDuplicateDate;
+export type UpdateAppointmentDuplicateDateMutationError = unknown;
+export type UpdateAppointmentDuplicateDateMutationVariables = {
+  data: AppointmentWithDuplicateDate;
+};
+
+export const useUpdateAppointmentDuplicateDate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>,
+      TError,
+      UpdateAppointmentDuplicateDateMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointmentDuplicateDate>>,
+  TError,
+  UpdateAppointmentDuplicateDateMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateAppointmentDuplicateDateMutationOptions(options),
+    queryClient,
+  );
+};
+
+export const updateAppointmentReminder = (
+  appointmentId: string,
+  reminderUpdate?: ReminderUpdate,
+  signal?: AbortSignal,
+) => {
+  return customInstance<Appointment>({
+    url: `/appointments/${appointmentId}/reminder`,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateAppointmentReminderRequest(reminderUpdate),
+    signal,
+  }).then(deserializeUpdateAppointmentReminderResponse);
+};
+
+const deserializeUpdateAppointmentReminderResponse = (
+  data: Appointment,
+): Appointment => {
+  if (data == null) return data;
+  data.day = new Date(data.day);
+  data.bookedAt = new Date(data.bookedAt);
+  if (data.reminderOn != null) {
+    data.reminderOn = new Date(data.reminderOn);
+  }
+  for (let i0 = 0; i0 < data.slots.length; i0++) {
+    const item0 = data.slots[i0];
+    item0.start = new Date(item0.start);
+  }
+  return data;
+};
+
+const serializeUpdateAppointmentReminderRequest = (
+  data: ReminderUpdate | undefined,
+): ReminderUpdate | undefined => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if (copy.remindOn != null) {
+    copy.remindOn =
+      copy.remindOn instanceof Date
+        ? (copy.remindOn.toISOString().slice(0, 10) as unknown as Date)
+        : copy.remindOn;
+  }
+  return copy;
+};
+
+export const getUpdateAppointmentReminderMutationKey = () =>
+  ['updateAppointmentReminder'] as const;
+
+export const getUpdateAppointmentReminderMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointmentReminder>>,
+    TError,
+    UpdateAppointmentReminderMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointmentReminder>>,
+  TError,
+  UpdateAppointmentReminderMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateAppointmentReminderMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointmentReminder>>,
+    UpdateAppointmentReminderMutationVariables
+  > = (props) => {
+    const { appointmentId, data } = props ?? {};
+
+    return updateAppointmentReminder(appointmentId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentReminderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointmentReminder>>
+>;
+export type UpdateAppointmentReminderMutationBody = ReminderUpdate | undefined;
+export type UpdateAppointmentReminderMutationError = unknown;
+export type UpdateAppointmentReminderMutationVariables = {
+  appointmentId: string;
+  data?: ReminderUpdate;
+};
+
+export const useUpdateAppointmentReminder = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAppointmentReminder>>,
+      TError,
+      UpdateAppointmentReminderMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointmentReminder>>,
+  TError,
+  UpdateAppointmentReminderMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateAppointmentReminderMutationOptions(options),
+    queryClient,
+  );
+};
