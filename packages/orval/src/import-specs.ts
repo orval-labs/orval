@@ -184,10 +184,13 @@ async function resolveSpec(
  *
  * Honoring the author's evident intent that way is a choice, not a reading of
  * the spec, and it is made everywhere the intent can survive into the emitted
- * type. The one position where it cannot is a direct member of an `allOf`:
- * members are intersected, and `null & { ... }` reduces to `never`, so the null
- * branch is inert there whether it is emitted or not. That case drops the
- * sibling instead. See the two branches below.
+ * type. The one place it cannot is a direct member of an `allOf` whose null
+ * branch the rest of the intersection already absorbs — `null & { marker?: string }`
+ * is `never`, so the branch is inert whether it is emitted or not. There the
+ * sibling is dropped instead. Note that this depends on there *being* something
+ * to absorb it: `allOf: [{ $ref, nullable: true }]` on its own is still
+ * `Base | null`, and is rewritten like any other position. See
+ * `absorbsNullBranch` and the two branches below.
  *
  * Runs before `upgrade()`, which since @scalar/openapi-upgrader@0.2.13 applies
  * the same rewrite without reporting it, and after bundling, so the warning
@@ -196,11 +199,11 @@ async function resolveSpec(
 export function normalizeNullableRefs(
   spec: unknown,
   path: string[] = [],
-  inAllOf: boolean = false,
+  nullAbsorbed: boolean = false,
 ): unknown {
   if (Array.isArray(spec)) {
     return spec.map((item, i) =>
-      normalizeNullableRefs(item, [...path, String(i)], inAllOf),
+      normalizeNullableRefs(item, [...path, String(i)], false),
     );
   }
 
@@ -210,12 +213,12 @@ export function normalizeNullableRefs(
 
   const obj = spec as Record<string, unknown>;
 
-  // Direct member of an `allOf`: drop the sibling instead of rewriting it. Not
-  // because it means any less here than it does elsewhere — it is out of spec in
-  // both positions — but because the union cannot survive this one. The member
-  // is intersected with its siblings, and `null & { marker?: string }` reduces
-  // to `never`, so `(Base | null) & { marker?: string }` and
-  // `Base & { marker?: string }` are the same type. The null branch is inert
+  // A direct `allOf` member whose null branch something else in the intersection
+  // already absorbs (see `absorbsNullBranch`): drop the sibling instead of
+  // rewriting it. Not because it means any less here than elsewhere — it is out
+  // of spec in both positions — but because the union cannot survive this one.
+  // `null & { marker?: string }` is `never`, so `(Base | null) & { marker?: string }`
+  // and `Base & { marker?: string }` are the same type; the null branch is inert
   // whether it is emitted or not.
   //
   // Emitting it anyway costs something real: orval reads through `allOf` members
@@ -224,28 +227,18 @@ export function normalizeNullableRefs(
   // `Pick<Wrapper, 'id'>` to `Pick<Wrapper, Extract<keyof Wrapper, 'id'>>`. The
   // upgrader applies its rewrite with no `allOf` guard as of
   // @scalar/openapi-upgrader@0.2.13, so strip it here and hand it a plain
-  // `$ref`. A nullable composition has to be written with `nullable` on the
-  // composed schema rather than on a member; that form is preserved.
-  if (
-    inAllOf &&
-    '$ref' in obj &&
-    isString(obj.$ref) &&
-    (obj.nullable as boolean | undefined) === true
-  ) {
+  // `$ref`.
+  if (nullAbsorbed && isNullableRef(obj)) {
     delete obj.nullable;
   }
 
-  // Every other position, including below an `allOf` member. Here the union does
-  // survive into the emitted type, so the rewrite is the only way to keep the
-  // `| null` the author meant, and it is worth warning about (#3714). The inert
-  // direct-member position is handled just above.
-  if (
-    !inAllOf &&
-    '$ref' in obj &&
-    isString(obj.$ref) &&
-    (obj.nullable as boolean | undefined) === true
-  ) {
-    const ref = obj.$ref;
+  // Every other position: below an `allOf` member, at a plain property, or in an
+  // `allOf` with nothing to absorb the null (a lone member, or members that are
+  // all themselves nullable). Here the union does survive into the emitted type,
+  // so the rewrite is the only way to keep the `| null` the author meant, and it
+  // is worth warning about (#3714).
+  if (!nullAbsorbed && isNullableRef(obj)) {
+    const ref = obj.$ref as string;
     delete obj.nullable;
     delete obj.$ref;
     const jsonPointer = '#/' + path.join('/');
@@ -262,16 +255,78 @@ export function normalizeNullableRefs(
     };
   }
 
-  // `inAllOf` marks the direct members of an `allOf` array and nothing deeper:
-  // it is set when descending into `allOf` (the array branch then carries it to
-  // each member) and cleared again for every other key. A `$ref` further down,
-  // in a member's `properties` for instance, has no composition to be read
-  // through, so it takes the ordinary rewrite above.
+  // `nullAbsorbed` is set only for the direct members of a real `allOf` array,
+  // and only when the intersection has something to absorb the null with. It is
+  // cleared for every other key, so a `$ref` further down — in a member's
+  // `properties`, for instance — takes the ordinary rewrite above. The
+  // `Array.isArray` check matters: a schema may have a *property* called
+  // `allOf`, which is an ordinary property and not a composition.
   for (const [key, value] of Object.entries(obj)) {
-    obj[key] = normalizeNullableRefs(value, [...path, key], key === 'allOf');
+    if (key === 'allOf' && Array.isArray(value)) {
+      const absorbed = absorbsNullBranch(obj, value);
+      obj[key] = value.map((member, i) =>
+        normalizeNullableRefs(member, [...path, key, String(i)], absorbed),
+      );
+      continue;
+    }
+
+    obj[key] = normalizeNullableRefs(value, [...path, key], false);
   }
 
   return obj;
+}
+
+/** A ReferenceObject carrying the out-of-spec `nullable: true` sibling. */
+function isNullableRef(value: unknown): boolean {
+  if (!isObject(value)) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    '$ref' in obj &&
+    isString(obj.$ref) &&
+    (obj.nullable as boolean | undefined) === true
+  );
+}
+
+/**
+ * Whether the null branch of a nullable `$ref` member is absorbed by the rest of
+ * the intersection, which is the only thing that makes dropping it lossless.
+ *
+ * `allOf` is an intersection, so the branch dies only when something else in it
+ * cannot be null — `null & { marker?: string }` is `never`. That something can
+ * come from either side: another member of the array, or the enclosing schema's
+ * own constraints, since `{ type: 'object', properties: {...}, allOf: [...] }` is
+ * itself an intersection of the two (`NullableParentWrapper` in
+ * regressions.yaml). With neither — a lone `allOf: [{ $ref, nullable: true }]`,
+ * or members that are all themselves nullable — the null survives and has to be
+ * kept.
+ *
+ * The check is deliberately syntactic: a bare `$ref` is not followed, so
+ * `allOf: [{ $ref: A, nullable: true }, { $ref: B }]` keeps the union even though
+ * `B` is usually a non-nullable object. That errs toward emitting a union that
+ * was not strictly needed, which is at worst noisier. Erring the other way would
+ * silently delete a `| null` the API can really return.
+ */
+function absorbsNullBranch(
+  enclosing: Record<string, unknown>,
+  members: unknown[],
+): boolean {
+  return (
+    isNonNullableObjectSchema(enclosing) ||
+    members.some((member) => isNonNullableObjectSchema(member))
+  );
+}
+
+function isNonNullableObjectSchema(value: unknown): boolean {
+  if (!isObject(value)) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  if ((obj.nullable as boolean | undefined) === true) {
+    return false;
+  }
+  return 'properties' in obj || obj.type === 'object';
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────
