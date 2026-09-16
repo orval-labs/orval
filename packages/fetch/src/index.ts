@@ -5,6 +5,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   emitResponseValidation,
+  filterByContentType,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -30,6 +31,7 @@ import {
   type NormalizedOverrideOutput,
   type OpenApiPathItemObject,
   type OpenApiReferenceObject,
+  type OpenApiResponseObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
@@ -79,6 +81,63 @@ const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   return mutator.isHook
     ? `options?: Parameters<ReturnType<typeof ${mutator.name}>>[1]`
     : `options?: Parameters<typeof ${mutator.name}>[1]`;
+};
+
+const getMutatorErrorResponseArgument = (
+  {
+    response,
+    override,
+    mutator,
+    operationName,
+  }: Pick<
+    GeneratorVerbOptions,
+    'response' | 'override' | 'mutator' | 'operationName'
+  >,
+  context: GeneratorOptions['context'],
+) => {
+  if (!override.fetch.includeErrorResponseInMutator) {
+    return '';
+  }
+  if (
+    !override.fetch.includeHttpResponseReturnType ||
+    !override.fetch.forceSuccessResponse ||
+    !mutator ||
+    mutator.isHook ||
+    !mutator.hasThirdArg
+  ) {
+    throw new Error(
+      'includeErrorResponseInMutator requires includeHttpResponseReturnType, forceSuccessResponse, and a non-hook mutator accepting three arguments.',
+    );
+  }
+
+  // Type resolution may supply a default JSON media type or collapse
+  // referenced content. Runtime metadata must preserve the source declaration.
+  const errorResponses = Object.entries(response.originalSchema ?? {})
+    .filter(([key]) => response.types.errors.some((entry) => entry.key === key))
+    .flatMap(([key, declaredResponse]) => {
+      // Range/default responses need a runtime precedence contract. Reject them
+      // in this opt-in mode instead of emitting metadata that cannot match its types.
+      if (!/^[1-5]\d\d$/.test(key)) {
+        throw new Error(
+          `includeErrorResponseInMutator requires explicit error status codes; received ${key} in ${operationName}.`,
+        );
+      }
+      const { schema } = resolveRef<OpenApiResponseObject>(
+        declaredResponse,
+        context,
+      );
+      const contentTypes = Object.keys(schema.content ?? {});
+      const status = Number(key);
+      if (contentTypes.length === 0) {
+        return [{ status, contentType: '' }];
+      }
+      return filterByContentType(
+        contentTypes.map((contentType) => ({ status, contentType })),
+        override.contentType,
+      );
+    });
+
+  return JSON.stringify({ errorResponses });
 };
 
 /**
@@ -706,7 +765,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 `;
   };
   const fetchFnOptions = getFetchFnOptions();
-  const mutatorFetchFnOptions = getFetchFnOptions({ withSchema: true });
+  const errorResponseArgument = getMutatorErrorResponseArgument(
+    { response, override, mutator, operationName },
+    context,
+  );
+  const mutatorFetchFnOptions = `${getFetchFnOptions({ withSchema: true })}${errorResponseArgument ? `, ${errorResponseArgument}` : ''}`;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const fetchResponseType =
     override.fetch.forceSuccessResponse &&

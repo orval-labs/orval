@@ -616,6 +616,31 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     expect(implementation).not.toContain('PetsOutput');
   });
 
+  it('keeps the Zod schema in the second argument alongside error metadata', () => {
+    const operation = makeZodValidationVerbOptions({
+      mutator: {
+        name: 'customFetch',
+        path: './mutator.ts',
+        default: false,
+        hasSecondArg: true,
+        hasThirdArg: true,
+      } as GeneratorVerbOptions['mutator'],
+    });
+    Object.assign(operation.override.fetch, {
+      includeHttpResponseReturnType: true,
+      forceSuccessResponse: true,
+      includeErrorResponseInMutator: true,
+    });
+    const context = makeZodContext();
+    context.output.override.includeZodSchemaInArguments = true;
+    const implementation = generateRequestFunction(
+      operation,
+      makeOptions(context),
+    );
+    expect(implementation).toMatch(/schema: Pets\s*}\s*,/);
+    expect(implementation).toContain(JSON.stringify({ errorResponses: [] }));
+  });
+
   it('keeps the schema (input) type when the schemas output is not zod', () => {
     const implementation = generateRequestFunction(
       makeZodValidationVerbOptions(),
@@ -937,5 +962,134 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     );
 
     expect(implementation).not.toContain('const getHeaders');
+  });
+});
+
+describe('includeErrorResponseInMutator', () => {
+  function operation(enabled = true) {
+    const operation = makeVerbOptions({
+      typeName: 'ListPets',
+      mutator: {
+        name: 'customFetch',
+        path: './mutator.ts',
+        default: false,
+        hasErrorType: true,
+        errorTypeName: 'ErrorType',
+        hasSecondArg: true,
+        hasThirdArg: true,
+        isHook: false,
+      },
+    });
+    Object.assign(operation.override.fetch, {
+      includeHttpResponseReturnType: true,
+      forceSuccessResponse: true,
+      includeErrorResponseInMutator: enabled,
+    });
+    operation.response.originalSchema = {
+      200: { description: 'Success', content: { 'application/json': {} } },
+      404: {
+        description: 'Not found',
+        content: { 'application/json': {} },
+      },
+      422: {
+        description: 'Invalid',
+        content: { 'application/json': {}, 'text/plain': {} },
+      },
+    };
+    operation.response.types = {
+      success: [
+        { key: '200', contentType: 'application/json', value: 'Pet[]' },
+      ],
+      errors: [
+        { key: '404', contentType: 'application/json', value: 'NotFound' },
+        { key: '422', contentType: 'application/json', value: 'Invalid' },
+        { key: '422', contentType: 'text/plain', value: 'string' },
+      ],
+    } as GeneratorVerbOptions['response']['types'];
+    return operation;
+  }
+
+  it('passes declared statuses and media types separately from request options', () => {
+    const result = generateImplementation(
+      operation(),
+      makeOptions(makeContext()),
+    );
+    expect(result).toContain(
+      JSON.stringify({
+        errorResponses: [
+          { status: 404, contentType: 'application/json' },
+          { status: 422, contentType: 'application/json' },
+          { status: 422, contentType: 'text/plain' },
+        ],
+      }),
+    );
+    expect(result).toContain('customFetch<ListPetsResponseSuccess>');
+  });
+
+  it('respects the configured media type filter', () => {
+    const options = operation();
+    options.override.contentType = { include: ['application/json'] };
+    options.response.types.errors = options.response.types.errors.filter(
+      (entry) => entry.contentType === 'application/json',
+    );
+    const result = generateImplementation(options, makeOptions(makeContext()));
+    expect(result).not.toContain('text/plain');
+    expect(result).toContain(
+      JSON.stringify({
+        errorResponses: [
+          { status: 404, contentType: 'application/json' },
+          { status: 422, contentType: 'application/json' },
+        ],
+      }),
+    );
+  });
+
+  it('keeps the existing call when disabled', () => {
+    expect(
+      generateImplementation(operation(false), makeOptions(makeContext())),
+    ).not.toContain('errorResponses');
+  });
+
+  it('passes an empty list when no errors are declared', () => {
+    const options = operation();
+    options.response.types.errors = [];
+    expect(
+      generateImplementation(options, makeOptions(makeContext())),
+    ).toContain(JSON.stringify({ errorResponses: [] }));
+  });
+
+  it.each(['default', '4XX'])('rejects unsupported error status %s', (key) => {
+    const options = operation();
+    options.response.types.errors[0]!.key = key;
+    options.response.originalSchema![key] =
+      options.response.originalSchema!['404']!;
+    expect(() =>
+      generateImplementation(options, makeOptions(makeContext())),
+    ).toThrow(/includeErrorResponseInMutator.*explicit/i);
+  });
+
+  it.each(['includeHttpResponseReturnType', 'forceSuccessResponse'] as const)(
+    'requires %s',
+    (key) => {
+      const options = operation();
+      options.override.fetch[key] = false;
+      expect(() =>
+        generateImplementation(options, makeOptions(makeContext())),
+      ).toThrow(/includeErrorResponseInMutator/);
+    },
+  );
+
+  it('requires a three-argument non-hook mutator', () => {
+    for (const mutator of [
+      undefined,
+      { ...operation().mutator!, hasThirdArg: false },
+      { ...operation().mutator!, isHook: true },
+    ]) {
+      const options = operation();
+      options.mutator = mutator;
+      expect(() =>
+        generateImplementation(options, makeOptions(makeContext())),
+      ).toThrow(/includeErrorResponseInMutator/);
+    }
   });
 });
