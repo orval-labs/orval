@@ -2,8 +2,10 @@ import type {
   ContextSpec,
   GeneratorMutator,
   GeneratorOptions,
+  GeneratorVerbOptions,
   NormalizedMutator,
   ZodVariantOption,
+  OpenApiResponsesObject,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { EnumGeneration, PropertySortOrder } from '@orval/core';
@@ -45,6 +47,7 @@ import {
   generateZod,
   generateZodValidationSchemaDefinition,
   getZodDependencies,
+  isPlainObjectResponseSchema,
   parseZodValidationSchemaDefinition,
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
@@ -14070,5 +14073,85 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
         ),
       ).not.toThrow();
     });
+  });
+});
+
+describe('isPlainObjectResponseSchema', () => {
+  const run = (
+    responses: OpenApiResponsesObject,
+    zod: Partial<ContextSpec['output']['override']['zod']> = {},
+  ) => {
+    const context = makeContextSpec({
+      spec: { paths: { '/x': { get: { operationId: 'getX', responses } } } },
+    });
+    const base = context.output.override.zod;
+    context.output.override.zod = {
+      ...base,
+      generate: { ...base.generate, response: true },
+      ...zod,
+    };
+
+    return isPlainObjectResponseSchema(
+      {
+        verb: 'get',
+        pathRoute: '/x',
+        override: context.output.override,
+      } as GeneratorVerbOptions,
+      context,
+    );
+  };
+  const json = (schema: OpenApiSchemaObject): OpenApiResponsesObject => ({
+    '200': { description: 'ok', content: { 'application/json': { schema } } },
+  });
+  const object: OpenApiSchemaObject = {
+    type: 'object',
+    properties: { a: { type: 'string' } },
+  };
+
+  it('is true only when the response is emitted as a bare zod.object', () => {
+    expect(run(json(object))).toBe(true);
+    expect(run(json({ type: 'array', items: object }))).toBe(false);
+    expect(
+      run(
+        json({
+          type: 'object',
+          oneOf: [object, { type: 'object' }],
+          properties: { id: { type: 'integer' } },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      run(json({ type: 'object', additionalProperties: { type: 'integer' } })),
+    ).toBe(false);
+    expect(run(json({ ...object, nullable: true }))).toBe(false);
+    expect(
+      run({
+        '200': {
+          description: 'ok',
+          content: { 'text/plain': { schema: { type: 'string' } } },
+        },
+      }),
+    ).toBe(false);
+    expect(run({ '204': { description: 'no content' } })).toBe(false);
+  });
+
+  it('is false when the response schema is not emitted or gets wrapped', () => {
+    const base = makeContextSpec().output.override.zod;
+
+    expect(
+      run(json(object), { generate: { ...base.generate, response: false } }),
+    ).toBe(false);
+    expect(run(json(object), { generateEachHttpStatus: true })).toBe(false);
+    expect(
+      run(json(object), {
+        preprocess: {
+          response: {
+            path: './preprocess.ts',
+            name: 'preprocess',
+            default: false,
+          },
+        },
+      }),
+    ).toBe(false);
   });
 });

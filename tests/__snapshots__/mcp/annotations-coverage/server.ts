@@ -22,16 +22,9 @@ import {
   headThingsHandler,
 } from './handlers';
 import {
-  GetThingsResponse,
   CreateThingBody,
-  CreateThingResponse,
   ReplaceThingBody,
-  ReplaceThingResponse,
   PatchThingBody,
-  PatchThingResponse,
-  DeleteThingResponse,
-  OptionsThingsResponse,
-  HeadThingsResponse,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -46,7 +39,6 @@ const createMcpServer = (
   tools.getThings = server.registerTool(
     'getThings',
     {
-      outputSchema: GetThingsResponse,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -64,7 +56,6 @@ const createMcpServer = (
       inputSchema: {
         bodyParams: CreateThingBody.optional(),
       },
-      outputSchema: CreateThingResponse,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -82,7 +73,6 @@ const createMcpServer = (
       inputSchema: {
         bodyParams: ReplaceThingBody.optional(),
       },
-      outputSchema: ReplaceThingResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -100,7 +90,6 @@ const createMcpServer = (
       inputSchema: {
         bodyParams: PatchThingBody.optional(),
       },
-      outputSchema: PatchThingResponse,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -115,7 +104,6 @@ const createMcpServer = (
   tools.deleteThing = server.registerTool(
     'deleteThing',
     {
-      outputSchema: DeleteThingResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (ctx) =>
@@ -130,7 +118,6 @@ const createMcpServer = (
   tools.optionsThings = server.registerTool(
     'optionsThings',
     {
-      outputSchema: OptionsThingsResponse,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -145,7 +132,6 @@ const createMcpServer = (
   tools.headThings = server.registerTool(
     'headThings',
     {
-      outputSchema: HeadThingsResponse,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>

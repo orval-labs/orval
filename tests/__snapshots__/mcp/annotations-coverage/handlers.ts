@@ -42,7 +42,6 @@ export const getThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -75,7 +74,6 @@ export const createThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -108,7 +106,6 @@ export const replaceThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -141,7 +138,6 @@ export const patchThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -167,7 +163,6 @@ export const deleteThingHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -193,7 +188,6 @@ export const optionsThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -219,6 +213,5 @@ export const headThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };

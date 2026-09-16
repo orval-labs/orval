@@ -27,7 +27,11 @@ import {
   type Verbs,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
-import { generateZod, getZodImportSource } from '@orval/zod';
+import {
+  generateZod,
+  getZodImportSource,
+  isPlainObjectResponseSchema,
+} from '@orval/zod';
 
 // Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
 // which transitively references every locale table and cannot be tree-shaken. Matches
@@ -290,8 +294,7 @@ export const ${handlerName} = async (${handlerArgsSignature}options?: RequestIni
         type: 'text' as const,
         text: JSON.stringify(res.data ?? null),
       },
-    ],
-    structuredContent: res.data,
+    ],${isPlainObjectResponseSchema(verbOptions, options.context) ? '\n    structuredContent: res.data,' : ''}
   };
 };`;
 
@@ -321,9 +324,6 @@ export const generateServer = (
   const header = getHeader(output.override.header, info);
 
   const mcpServerOptions = output.override.mcp.server;
-  const hasResponseSchema =
-    output.override.zod.generate.response &&
-    !output.override.zod.generateEachHttpStatus;
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
@@ -343,7 +343,10 @@ export const generateServer = (
           ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      const outputSchemaImplementation = hasResponseSchema
+      const outputSchemaImplementation = isPlainObjectResponseSchema(
+        verbOption,
+        context,
+      )
         ? `\n    outputSchema: ${pascalOperationName}Response,`
         : '';
 
@@ -401,7 +404,8 @@ tools.${verbOption.operationName} = server.registerTool(
         imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
         imports.push(`  ${pascalOperationName}Body`);
-      if (hasResponseSchema) imports.push(`  ${pascalOperationName}Response`);
+      if (isPlainObjectResponseSchema(verbOption, context))
+        imports.push(`  ${pascalOperationName}Response`);
 
       return imports;
     })

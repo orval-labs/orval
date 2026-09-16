@@ -21,8 +21,13 @@ export const customHandler = async (
     };
   }
 
+  const data = res.data;
+
   return {
     content: [{ type: 'text', text }],
-    structuredContent: res.data as Record<string, unknown>,
+    structuredContent:
+      typeof data === 'object' && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : undefined,
   };
 };

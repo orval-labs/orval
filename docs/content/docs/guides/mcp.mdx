@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler
 
-By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and passes the parsed body as `structuredContent`. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
+By default, each generated handler returns the response body as text and marks HTTP status codes of 400 and above as errors. When the operation's success response is a plain JSON object, the tool also declares an `outputSchema` and the handler passes the parsed body as `structuredContent`. Arrays, primitives, unions, records and empty responses get neither, because MCP requires both to be objects. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -168,7 +168,7 @@ export const findPetsByStatusHandler = async (
 };
 ```
 
-Implement the handler with the following signature. Its return value is used as the tool result as is, so return `structuredContent` on success whenever the tool declares an `outputSchema`:
+Implement the handler with the following signature. Its return value is used as the tool result as is. Return `structuredContent` on success only when the body is a plain object: the generated server declares an `outputSchema` for exactly those tools, and MCP rejects arrays and primitives in `structuredContent`.
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -204,9 +204,14 @@ export const customHandler = async (
     };
   }
 
+  const data = res.data;
+
   return {
-    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
-    structuredContent: res.data as Record<string, unknown>,
+    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
+    structuredContent:
+      typeof data === 'object' && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : undefined,
   };
 };
 ```
