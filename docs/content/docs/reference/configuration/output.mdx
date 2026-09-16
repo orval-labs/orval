@@ -3909,6 +3909,32 @@ no pattern matching on strings — and operations without date fields generate
 no extra code. Setting `useDatesTransform: true` implies `useDates: true`.
 This removes the need for the axios interceptor shown under `useDates`.
 
+For request bodies, `format: date` fields are serialized back to a calendar day. A
+`serialize<OperationName>Request` function is generated for every operation whose body
+has exactly one JSON media type declaring one, and wraps the body at the call site:
+
+```ts
+export const updateAppointment = (appointment: Appointment) => {
+  return customInstance<Appointment>({
+    url: `/appointments`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateAppointmentRequest(appointment),
+  }).then(deserializeUpdateAppointmentResponse);
+};
+```
+
+`format: date-time` fields are left alone — `Date.prototype.toJSON()` already renders
+them correctly — and `readOnly` properties are skipped, since OpenAPI `readOnly` means
+the field is response-only; this applies even under `preserveReadonlyRequestBodies:
+'preserve'`, so a preserved `readOnly` `format: date` field keeps going out as a full
+datetime. The serializer copies the objects and arrays it touches, so
+the value you pass in is never modified. A `format: date` value is treated as its UTC
+calendar day, the same convention the mock generator uses for that format: construct it
+with `new Date(Date.UTC(year, month, day))` and read it back with `getUTCFullYear()` /
+`getUTCMonth()` / `getUTCDate()` — a `Date` built from local parts can land on the
+previous day at positive UTC offsets.
+
 Current limitations: a `oneOf`/`anyOf` without an OpenAPI
 [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
 `mapping` is skipped, since there's no static way to tell which variant a
@@ -3917,9 +3943,16 @@ converted, emitting a `switch` on the discriminator property with one `case`
 per mapping key. `additionalProperties` maps are not converted, responses
 with multiple success shapes are skipped, and recursive schemas are left
 untouched entirely — converting only the levels above the cycle would leave
-deeper dates as strings while the generated types claim `Date`. Only the
+deeper dates as strings while the generated types claim `Date`. A request body
+with several media types, several JSON media types, or a blob body generates no
+serializer, since there is no single JSON schema to walk; a schema that is both
+array- and object-shaped (OAS 3.1 `type: ['array', 'object']`, or a stray sibling
+`properties` on a `type: array` schema) also generates no serializer, since the two
+shapes can't be walked together on the request side. Only the
 axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`,
-and `solid-query` with `httpClient: 'axios'`).
+and `solid-query` with `httpClient: 'axios'`). `Date` values in query and
+path parameters are still serialized as full ISO datetimes, so date-only parameters
+are not covered.
 
 ### useBigInt
 
