@@ -36,6 +36,5 @@ export const addHandler = async (args: addArgs, options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };

@@ -78,7 +78,6 @@ export const filterPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -116,7 +115,6 @@ export const findPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -154,7 +152,6 @@ export const findPetsByTagsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -279,7 +276,6 @@ export const deletePetHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -310,7 +306,6 @@ export const getInventoryHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -390,7 +385,6 @@ export const deleteOrderHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -428,7 +422,6 @@ export const loginUserHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -459,7 +452,6 @@ export const logoutUserHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -539,6 +531,5 @@ export const deleteUserHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };

@@ -38,30 +38,21 @@ import {
 import {
   FilterPetsByStatusQueryParams,
   FilterPetsByStatusBody,
-  FilterPetsByStatusResponse,
   FindPetsByStatusQueryParams,
-  FindPetsByStatusResponse,
   FindPetsByTagsQueryParams,
-  FindPetsByTagsResponse,
   GetPetByIdParams,
   GetPetByIdResponse,
   UpdatePetWithFormParams,
   UpdatePetWithFormQueryParams,
   UpdatePetWithFormResponse,
   DeletePetParams,
-  DeletePetResponse,
-  GetInventoryResponse,
   GetOrderByIdParams,
   GetOrderByIdResponse,
   DeleteOrderParams,
-  DeleteOrderResponse,
   LoginUserQueryParams,
-  LoginUserResponse,
-  LogoutUserResponse,
   GetUserByNameParams,
   GetUserByNameResponse,
   DeleteUserParams,
-  DeleteUserResponse,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -83,7 +74,6 @@ const createMcpServer = (
         queryParams: FilterPetsByStatusQueryParams,
         bodyParams: FilterPetsByStatusBody.optional(),
       },
-      outputSchema: FilterPetsByStatusResponse,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -104,7 +94,6 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByStatusQueryParams,
       },
-      outputSchema: FindPetsByStatusResponse,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -125,7 +114,6 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByTagsQueryParams,
       },
-      outputSchema: FindPetsByTagsResponse,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -186,7 +174,6 @@ const createMcpServer = (
       inputSchema: {
         pathParams: DeletePetParams,
       },
-      outputSchema: DeletePetResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -203,7 +190,6 @@ const createMcpServer = (
     {
       title: 'Returns pet inventories by status.',
       description: 'Returns a map of status codes to quantities.',
-      outputSchema: GetInventoryResponse,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -245,7 +231,6 @@ const createMcpServer = (
       inputSchema: {
         pathParams: DeleteOrderParams,
       },
-      outputSchema: DeleteOrderResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -265,7 +250,6 @@ const createMcpServer = (
       inputSchema: {
         queryParams: LoginUserQueryParams,
       },
-      outputSchema: LoginUserResponse,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -282,7 +266,6 @@ const createMcpServer = (
     {
       title: 'Logs out current logged in user session.',
       description: 'Log user out of the system.',
-      outputSchema: LogoutUserResponse,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -322,7 +305,6 @@ const createMcpServer = (
       inputSchema: {
         pathParams: DeleteUserParams,
       },
-      outputSchema: DeleteUserResponse,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>

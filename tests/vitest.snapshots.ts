@@ -13,6 +13,7 @@ export default defineConfig({
       'axios-url-runtime.spec.ts',
       'angular-zod-array-validation.spec.ts',
       'fetch-zod-array-validation.spec.ts',
+      'mcp-runtime.spec.ts',
     ],
     silent: 'passed-only',
   },

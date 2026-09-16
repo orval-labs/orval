@@ -13,7 +13,7 @@ import {
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { addHandler } from './sample.gen';
-import { AddBody, AddResponse } from './tool-schemas.zod.gen';
+import { AddBody } from './tool-schemas.zod.gen';
 
 const createMcpServer = (
   options?: RequestInit,
@@ -30,7 +30,6 @@ const createMcpServer = (
       inputSchema: {
         bodyParams: AddBody.optional(),
       },
-      outputSchema: AddResponse,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>

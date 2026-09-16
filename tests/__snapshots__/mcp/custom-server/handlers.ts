@@ -52,7 +52,6 @@ export const listPetsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -90,7 +89,6 @@ export const createPetsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -129,7 +127,6 @@ export const showPetByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -168,7 +165,6 @@ export const deletePetByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
@@ -198,7 +194,6 @@ export const healthCheckHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
   };
 };
 
