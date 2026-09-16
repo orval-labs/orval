@@ -4,7 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  queryOptions as queryOptionsBuilder,
+  useMutation,
+  useQuery,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -322,11 +327,7 @@ export const getListPetsSuspenseQueryOptions = <
     signal,
   }) => listPets(params, { signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
 };
 
 export type ListPetsSuspenseQueryResult = NonNullable<
@@ -812,11 +813,7 @@ export const getShowPetByIdSuspenseQueryOptions = <
     signal,
   }) => showPetById(petId, { signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
 };
 
 export type ShowPetByIdSuspenseQueryResult = NonNullable<
@@ -1252,11 +1249,7 @@ export const getHealthCheckSuspenseQueryOptions = <
     signal,
   }) => healthCheck({ signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
 };
 
 export type HealthCheckSuspenseQueryResult = NonNullable<
@@ -1603,11 +1596,7 @@ export const getShowPetWithOwnerSuspenseQueryOptions = <
     Awaited<ReturnType<typeof showPetWithOwner>>
   > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof showPetWithOwner>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
 };
 
 export type ShowPetWithOwnerSuspenseQueryResult = NonNullable<

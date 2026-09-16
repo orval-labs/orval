@@ -7,7 +7,7 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
-import { isSuspenseQuery } from '../query-options';
+import { isSuspenseQuery, QueryType } from '../query-options';
 
 export const createReactAdapter = ({
   hasQueryV5,
@@ -66,6 +66,13 @@ export const createReactAdapter = ({
 
   shouldGenerateOverrideTypes(): boolean {
     return hasQueryV5;
+  },
+
+  getQueryOptionsHelperTypes(): readonly (typeof QueryType)[keyof typeof QueryType][] {
+    // Suspense infinite stays on the cast: the user `Partial<…>` override
+    // spread makes `getNextPageParam` optional, which `infiniteQueryOptions()`
+    // rejects (it requires the callback). See #1788.
+    return [QueryType.SUSPENSE_QUERY];
   },
 
   generateMutationImplementation({

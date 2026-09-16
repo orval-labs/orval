@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
+  queryOptions as queryOptionsBuilder,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -481,11 +482,7 @@ export const getListPetsSuspenseQueryOptions = <
     signal,
   }) => listPets(params, version, signal);
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
 };
 
 export type ListPetsSuspenseQueryResult = NonNullable<

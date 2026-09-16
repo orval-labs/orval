@@ -812,6 +812,18 @@ const generateQueryImplementation = ({
 
   const queryFnProperty = getQueryFnProperty({ useSkipToken, params, type });
 
+  // Suspense options go through TanStack's `queryOptions()` builder instead
+  // of an `as` cast so `useSuspenseQueries` accepts the result. v5-only; a
+  // custom `override.query.queryOptions` mutator is left unwrapped because its
+  // generic typing may lose inference through the builder. See #1788.
+  const useQueryOptionsHelper =
+    hasQueryV5 &&
+    !queryOptionsMutator &&
+    (adapter.getQueryOptionsHelperTypes?.() ?? []).includes(type);
+  const queryOptionsHelperName = isInfiniteQuery(type)
+    ? 'infiniteQueryOptionsBuilder'
+    : 'queryOptionsBuilder';
+
   const queryOptionsFnName = camel(
     shouldUseOptionsHook({
       optionsMutator: queryOptionsMutator,
@@ -908,11 +920,15 @@ ${hookOptions}
       }
 
    return  ${
-     queryOptionsMutator
-       ? 'customOptions'
-       : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
+     useQueryOptionsHelper
+       ? // The builder brands the query key and structurally checks the
+         // literal, so no cast is emitted for this branch.
+         `${queryOptionsHelperName}({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`
+       : queryOptionsMutator
+         ? 'customOptions'
+         : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
    }${
-     adapter.shouldCastQueryOptions?.() === false
+     useQueryOptionsHelper || adapter.shouldCastQueryOptions?.() === false
        ? ''
        : ` as ${queryOptionFnReturnType} ${
            adapter.shouldAnnotateQueryKey()

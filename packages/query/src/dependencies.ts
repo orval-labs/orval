@@ -152,6 +152,15 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useSuspenseQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useSuspenseInfiniteQuery', values: true },
+      // Aliased so the generated options functions can keep their local
+      // `const { query: queryOptions } = options ?? {}` destructure without
+      // shadowing the builder. See #1788.
+      { name: 'queryOptions', alias: 'queryOptionsBuilder', values: true },
+      {
+        name: 'infiniteQueryOptions',
+        alias: 'infiniteQueryOptionsBuilder',
+        values: true,
+      },
       { name: 'useMutation', values: true },
       { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
