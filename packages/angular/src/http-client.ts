@@ -523,8 +523,11 @@ export const generateHttpClientImplementation = (
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\w*):\s?${escapeRegExp(body.definition)}`),
-            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+            new RegExp(
+              String.raw`(\w*):\s?${escapeRegExp(body.definition)}(?=,)`,
+            ),
+            (_match, name: string) =>
+              `${name}: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
 

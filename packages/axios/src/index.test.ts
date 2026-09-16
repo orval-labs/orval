@@ -469,40 +469,52 @@ describe('Axios response types', () => {
     );
   });
 
-  it.each([['Pet[]'], ['Pet | Cat'], ['(Pet | Cat)[]']])(
-    'wraps a %s body in the mutator BodyType envelope',
-    (definition) => {
-      const result = generateAxios(
-        createVerbOptions({
-          verb: 'post',
-          operationName: 'createPet',
-          typeName: 'createPet',
-          mutator: { ...mutator, bodyTypeName: 'BodyType' },
-          body: {
-            ...createVerbOptions().body,
-            definition,
-            implementation: 'pet',
-            isOptional: false,
+  it.each([
+    ['Pet'],
+    ['Pet[]'],
+    ['Pet | Cat'],
+    ['(Pet | Cat)[]'],
+    ["'$1' | 'b'"],
+    ["'$&'"],
+  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
+    const result = generateAxios(
+      createVerbOptions({
+        verb: 'post',
+        operationName: 'createPet',
+        typeName: 'createPet',
+        mutator: { ...mutator, bodyTypeName: 'BodyType' },
+        body: {
+          ...createVerbOptions().body,
+          definition,
+          implementation: 'pet',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: PetStatus',
+            implementation: 'petId: PetStatus',
+            default: undefined,
+            required: true,
+            type: GetterPropType.PARAM,
           },
-          props: [
-            {
-              name: 'pet',
-              definition: `pet: ${definition}`,
-              implementation: `pet: ${definition}`,
-              default: undefined,
-              required: true,
-              type: GetterPropType.BODY,
-            },
-          ],
-        }),
-        generatorOptions,
-      );
+          {
+            name: 'pet',
+            definition: `pet: ${definition}`,
+            implementation: `pet: ${definition}`,
+            default: undefined,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+      }),
+      generatorOptions,
+    );
 
-      expect(result.implementation).toContain(
-        `const createPet = (\n    pet: BodyType<${definition}>,\n`,
-      );
-    },
-  );
+    expect(result.implementation).toContain(
+      `const createPet = (\n    petId: PetStatus,\n    pet: BodyType<${definition}>,\n`,
+    );
+  });
 });
 
 describe('getAxiosDependencies (axios-functions mode)', () => {

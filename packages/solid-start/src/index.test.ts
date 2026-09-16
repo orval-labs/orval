@@ -1004,7 +1004,7 @@ describe('generateSolidStart — Content-Type header escaping', () => {
 });
 
 describe('generateSolidStart — mutator body type', () => {
-  it.each([['Pet[]'], ['Pet | Cat']])(
+  it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
     'wraps a %s body in the mutator BodyType envelope',
     async (definition) => {
       const implementation = await generateImplementation(
@@ -1029,6 +1029,14 @@ describe('generateSolidStart — mutator body type', () => {
           },
           props: [
             {
+              name: 'petId',
+              definition: 'petId: PetStatus',
+              implementation: 'petId: PetStatus',
+              default: false,
+              required: true,
+              type: GetterPropType.PARAM,
+            },
+            {
               name: 'pet',
               definition: `pet: ${definition}`,
               implementation: `pet: ${definition}`,
@@ -1041,7 +1049,9 @@ describe('generateSolidStart — mutator body type', () => {
         makeOptions(makeContextWithPathParams()),
       );
 
-      expect(implementation).toContain(`(pet: BodyType<${definition}>,)`);
+      expect(implementation).toContain(
+        `(petId: PetStatus,\n    pet: BodyType<${definition}>,)`,
+      );
     },
   );
 });

@@ -2389,7 +2389,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('ThirdParameter');
     });
 
-    it.each([['Pet'], ['Pet[]'], ['Pet | Cat']])(
+    it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
       'wraps a %s body in the mutator BodyType envelope',
       (definition) => {
         const verbOption = createVerbOption({
@@ -2412,6 +2412,14 @@ describe('angular HttpClient generator', () => {
           },
           props: [
             {
+              name: 'petId',
+              definition: 'petId: PetStatus',
+              implementation: 'petId: PetStatus',
+              default: false,
+              required: true,
+              type: GetterPropType.PARAM,
+            },
+            {
               name: 'pet',
               definition: `pet: ${definition}`,
               implementation: `pet: ${definition}`,
@@ -2427,6 +2435,7 @@ describe('angular HttpClient generator', () => {
           createGeneratorOptions(),
         );
 
+        expect(impl).toContain('petId: PetStatus,');
         expect(impl).toContain(`pet: BodyType<${definition}>,`);
       },
     );
