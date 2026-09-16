@@ -1,3 +1,4 @@
+import { hasNarrowedPropertyNames } from '../getters';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -35,6 +36,110 @@ const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
 const hasNullableType = (schema: OpenApiSchemaObject): boolean =>
   schema.nullable === true ||
   (Array.isArray(schema.type) && schema.type.includes('null'));
+
+/**
+ * True when this schema, or any of its `allOf` branches (recursively,
+ * through `$ref`s), declares its own `properties` — or is itself a `oneOf`/
+ * `anyOf` union whose variants declare theirs. Mirrors `needsObjectCopy`'s
+ * `allOf` recursion, but is asked before that function exists in the file, so
+ * it stays a narrower, standalone check.
+ *
+ * Exists so Rule 1 (below) can mean "does this level declare any keys at
+ * all" rather than "does this exact schema object have a `properties` key"
+ * — an intersection built from `allOf` merges every branch's properties into
+ * the same object, and a discriminated (or undiscriminated) union's variants
+ * are merged into the same level's type by the getter just as surely, so
+ * either is just as unsafe to combine with a map loop as a literal
+ * `properties` block on the schema being asked about directly. A `oneOf`/
+ * `anyOf` reaching this point is a genuine union, not a nullable wrapper:
+ * `normalizeSchema` (called first, below) already unwraps the nullable
+ * spellings (`anyOf: [T, null]`, OAS 3.0 `nullable: true`) to the bare
+ * schema before this check ever sees them, so a nullable map or a nullable
+ * map value is unaffected.
+ */
+const declaresProperties = (
+  schemaOrRef: SchemaOrRef,
+  context: ContextSpec,
+  seenRefs: Set<string> = new Set(),
+): boolean => {
+  const { schema, ref } = normalizeSchema(schemaOrRef, context);
+  if (ref) {
+    if (seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+  }
+  if (schema.properties) return true;
+  if (schema.oneOf || schema.anyOf) return true;
+  return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
+    declaresProperties(branch, context, seenRefs),
+  );
+};
+
+/**
+ * The `additionalProperties` schema when this level of the object is a map
+ * of same-shaped values, or undefined when it is not.
+ *
+ * Several shapes contribute nothing (Rule 2): `additionalProperties: true`
+ * and `additionalProperties: false` are a permissive/forbidding flag, not a
+ * value schema, and an absent `additionalProperties` obviously isn't one
+ * either. An array (`additionalProperties: []`, invalid JSON Schema but seen
+ * in the wild) and a keyless object (`additionalProperties: {}`, the common
+ * "extra keys are allowed, of any shape" idiom) are rejected too: neither
+ * has a format, a `$ref`, or any nested shape this walk could ever turn into
+ * a statement, so treating either as a real map value schema would only
+ * make the items/map conflict check in `buildResolvedStatements` fire on a
+ * purely syntactic `!= null` and silently drop an array walk that used to
+ * run. Only a non-empty object (a schema, possibly a `$ref` to one) counts
+ * as a map's value type.
+ *
+ * A schema that also declares `properties` — directly, via an `allOf`
+ * branch (Rule 1), or as a `oneOf`/`anyOf` union sitting beside
+ * `additionalProperties` — is never walked as a map, full stop:
+ * `additionalProperties` only governs the keys `properties` doesn't name,
+ * and a blind loop over every key would revisit — and, since not every
+ * declared property holds a date, potentially corrupt — the composition's
+ * own declared properties (or, for a union, whichever variant's properties
+ * the discriminator switch just converted). The `allOf` check here only sees
+ * branches nested inside *this* schema's own `allOf` array (`{ allOf: [Base],
+ * additionalProperties }`); the sibling spelling, where this schema is
+ * itself one of a *parent's* `allOf` branches (`allOf: [Base,
+ * { additionalProperties }]`), is caught separately in
+ * `buildResolvedStatements`, which has visibility into the parent's other
+ * branches that this function does not. Distinguishing "the extra keys" from
+ * the named ones would need the full set of sibling property names threaded
+ * through the walk for no real-world payoff, so a schema declaring both is
+ * left to its `properties` statements only. A `oneOf`/`anyOf` whose values
+ * are the map's *value* type (`additionalProperties: { oneOf: [...] }`) is
+ * unaffected — that union lives one object level down, on the schema
+ * `mapValueSchema` returns, not on the schema it's asked about.
+ *
+ * A `propertyNames` that narrows the key type to a finite set of literals
+ * (`enum`, `const`, or a `$ref` to a string enum/const) also disqualifies a
+ * schema from map traversal: `getters/object.ts` (`hasNarrowedPropertyNames`)
+ * types that combination as `Partial<Record<K, V>>`, not an index signature,
+ * so `Object.keys()` (typed `string`) can't index it without a `TS7053`, and
+ * even a correctly-typed key would read a value typed `V | undefined` that
+ * this walk has no way to narrow. Emit nothing rather than code that doesn't
+ * compile. Any other `propertyNames` constraint — `format`, `pattern`,
+ * `minLength`, or none at all — still types as a plain index signature
+ * (`[key: string]: V`), which a blind `Object.keys` loop indexes fine, so
+ * those cases fall through to the traversal below.
+ */
+const mapValueSchema = (
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): SchemaOrRef | undefined => {
+  if (declaresProperties(schema, context)) return undefined;
+  if (schema.propertyNames && hasNarrowedPropertyNames(schema, context)) {
+    return undefined;
+  }
+  const { additionalProperties } = schema;
+  if (!additionalProperties || typeof additionalProperties !== 'object') {
+    return undefined;
+  }
+  if (Array.isArray(additionalProperties)) return undefined;
+  if (Object.keys(additionalProperties).length === 0) return undefined;
+  return additionalProperties as SchemaOrRef;
+};
 
 /**
  * Resolves `$ref`s and unwraps the OAS 3.1 spelling of a nullable schema
@@ -143,6 +248,21 @@ interface BuildParams {
   /** Assignment target when it differs from `accessor` (readOnly properties). */
   writeAccessor?: string;
   mode: DateTransformMode;
+  /**
+   * True when an ancestor's `allOf` composition already declares
+   * `properties` somewhere in it, so this schema's own `additionalProperties`
+   * (if it has one) must not be walked as a map even though, examined in
+   * isolation, it looks like a plain map — see the sibling-`allOf` note on
+   * `mapValueSchema`. Set when recursing into an `allOf` branch, and also
+   * when recursing into a discriminated-union variant: unlike `items`, map
+   * values and object properties (which do start a fresh object level and
+   * leave this unset), a variant is resolved against the very same accessor
+   * as the `switch` itself — that level is guaranteed at runtime to carry
+   * the discriminator property, so a variant that is a bare map is exactly
+   * as unsafe to walk with a blind `Object.keys` loop as an `allOf` branch
+   * sitting beside a properties-declaring sibling is.
+   */
+  mapSuppressed?: boolean;
 }
 
 const buildStatements = ({
@@ -153,6 +273,7 @@ const buildStatements = ({
   depth,
   writeAccessor,
   mode,
+  mapSuppressed,
 }: BuildParams): BuildResult => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
   if (ref) {
@@ -176,6 +297,7 @@ const buildStatements = ({
       depth,
       writeAccessor,
       mode,
+      mapSuppressed,
     });
   } finally {
     if (ref) visitedRefs.delete(ref);
@@ -191,6 +313,7 @@ const buildResolvedStatements = ({
   depth,
   writeAccessor,
   mode,
+  mapSuppressed,
 }: {
   schema: OpenApiSchemaObject;
   ref?: string;
@@ -200,18 +323,44 @@ const buildResolvedStatements = ({
   depth: number;
   writeAccessor?: string;
   mode: DateTransformMode;
+  mapSuppressed?: boolean;
 }): BuildResult => {
   let result: BuildResult;
+  // An ancestor allOf branch declaring `properties` makes a map loop unsafe
+  // at every branch of the composition, including one — like this schema —
+  // that has no properties/allOf of its own to show that on its own account
+  // (the "idiomatic spelling" bypass: `allOf: [Base, { additionalProperties }]`,
+  // where Base is a *sibling* array element, invisible to `mapValueSchema`
+  // when it only looks at the schema it's given). Recomputing it here (rather
+  // than only trusting the inherited flag) also makes this schema's own
+  // `allOf` branches (nested one level deeper) covered without relying on
+  // `mapValueSchema`'s own narrower check.
+  const mapSuppressedHere =
+    mapSuppressed || declaresProperties(schema, context);
+  const mapValue = mapSuppressedHere
+    ? undefined
+    : mapValueSchema(schema, context);
+
   if (mode.isLeaf(schema)) {
     result = {
       statements: [mode.leafStatement(accessor, writeAccessor ?? accessor)],
       cyclicRefs: new Set(),
     };
   } else if (
-    mode.dropArrayObjectConflict &&
     isArrayShaped(schema, context) &&
-    needsObjectCopy(schema, context)
+    ((mode.dropArrayObjectConflict && needsObjectCopy(schema, context)) ||
+      mapValue != null)
   ) {
+    // An array-shaped schema (`items`, directly or through `allOf`) that is
+    // also object-shaped cannot be walked as both, so it emits nothing:
+    // - with `properties`, only the request direction drops it — its copy
+    //   would spread the value as an object and then reassign it via `.map()`
+    //   (a runtime TypeError, or a `const` reassignment at the body root),
+    //   whereas the response walk's in-place loops merely coexist;
+    // - with a map-valued `additionalProperties`, both directions drop it —
+    //   an index-based loop and a key-based loop over the same value cannot
+    //   be combined, and the request copy would turn the array into a plain
+    //   object at runtime.
     result = emptyResult();
   } else {
     // allOf, items and properties are siblings in JSON Schema, not
@@ -227,6 +376,7 @@ const buildResolvedStatements = ({
         depth,
         writeAccessor,
         mode,
+        mapSuppressed: mapSuppressedHere,
       }),
     );
 
@@ -242,6 +392,17 @@ const buildResolvedStatements = ({
     const itemsResult = schema.items
       ? mode.arrayStatements({
           items: schema.items,
+          accessor,
+          context,
+          visitedRefs,
+          depth,
+          mode,
+        })
+      : emptyResult();
+
+    const mapResult = mapValue
+      ? mode.mapStatements({
+          values: mapValue,
           accessor,
           context,
           visitedRefs,
@@ -266,6 +427,7 @@ const buildResolvedStatements = ({
       ...allOfResults,
       unionResult,
       itemsResult,
+      mapResult,
       propertiesResult,
     ]);
   }
@@ -290,17 +452,18 @@ const buildResolvedStatements = ({
  * wrapped in `allOf` or a nullable union) rather than into its properties or
  * elements.
  *
- * Two callers: the response direction's in-place array builder, where such
- * elements must be written back through the array slot (a hoisted `const`
- * would make the generated assignment reassign a const); and the request
- * direction's property builder, where it distinguishes a required date leaf
- * (unguarded — `x instanceof Date ? … : x` already tolerates `undefined`)
- * from a required container (object copy, array `.map`, or union dispatch),
- * which must be null-guarded so an omitted container isn't turned into `{}`
- * or thrown on. Both uses ask the same question — "does this write straight
- * to the accessor, or into something reached through it?" — regardless of
- * which formats a given direction actually converts, so it checks
- * `isDateSchema` directly rather than taking a `mode` parameter.
+ * Callers: the response direction's in-place array and map builders, where
+ * such elements must be written back through the array or map slot (a
+ * hoisted `const` would make the generated assignment reassign a const); and
+ * the request direction's property builder, where it distinguishes a
+ * required date leaf (unguarded — `x instanceof Date ? … : x` already
+ * tolerates `undefined`) from a required container (object copy, array
+ * `.map`, map copy, or union dispatch), which must be null-guarded so an
+ * omitted container isn't turned into `{}` or thrown on. Every use asks the
+ * same question — "does this write straight to the accessor, or into
+ * something reached through it?" — regardless of which formats a given
+ * direction converts, so it checks `isDateSchema` directly rather than taking
+ * a `mode` parameter.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
@@ -345,6 +508,8 @@ interface DateTransformMode {
   ) => string[];
   /** Traversal of an array container. */
   arrayStatements: (params: ArrayStatementsParams) => BuildResult;
+  /** Traversal of an `additionalProperties` map container. */
+  mapStatements: (params: MapStatementsParams) => BuildResult;
   /** Assignment target for a property when it differs from the read accessor. */
   propertyWriteAccessor: (
     accessor: string,
@@ -398,6 +563,16 @@ interface DateTransformMode {
 
 interface ArrayStatementsParams {
   items: SchemaOrRef;
+  accessor: string;
+  context: ContextSpec;
+  visitedRefs: Set<string>;
+  depth: number;
+  mode: DateTransformMode;
+}
+
+interface MapStatementsParams {
+  /** The `additionalProperties` value schema. */
+  values: SchemaOrRef;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
@@ -470,11 +645,81 @@ const buildInPlaceItemsStatements = ({
   };
 };
 
+/**
+ * The response direction's map traversal: an in-place `for...of` loop over
+ * `Object.keys(accessor)`, mirroring `buildInPlaceItemsStatements` with a
+ * key lookup in place of an index. A value that writes to the accessor
+ * itself (a date leaf, or an `allOf`-wrapped one) is written back through
+ * the key slot directly; anything else is hoisted into a `const` so
+ * `!= null` narrowing survives, exactly as the array builder hoists an
+ * object element.
+ */
+const buildInPlaceMapStatements = ({
+  values,
+  accessor,
+  context,
+  visitedRefs,
+  depth,
+  mode,
+}: MapStatementsParams): BuildResult => {
+  const key = `key${depth}`;
+  const { nullable } = normalizeSchema(values, context);
+  const loopHeader = `for (const ${key} of Object.keys(${accessor})) {`;
+
+  if (writesToAccessorItself(values, context)) {
+    const element = `${accessor}[${key}]`;
+    const inner = buildStatements({
+      schema: values,
+      accessor: element,
+      context,
+      visitedRefs,
+      depth: depth + 1,
+      mode,
+    });
+    if (inner.statements.length === 0) return inner;
+
+    const body = nullable
+      ? [`if (${element} != null) {`, ...indent(inner.statements), '}']
+      : inner.statements;
+
+    return {
+      statements: [loopHeader, ...indent(body), '}'],
+      cyclicRefs: inner.cyclicRefs,
+    };
+  }
+
+  const item = `item${depth}`;
+  const inner = buildStatements({
+    schema: values,
+    accessor: item,
+    context,
+    visitedRefs,
+    depth: depth + 1,
+    mode,
+  });
+  if (inner.statements.length === 0) return inner;
+
+  const body = nullable
+    ? [`if (${item} != null) {`, ...indent(inner.statements), '}']
+    : inner.statements;
+
+  return {
+    statements: [
+      loopHeader,
+      `  const ${item} = ${accessor}[${key}];`,
+      ...indent(body),
+      '}',
+    ],
+    cyclicRefs: inner.cyclicRefs,
+  };
+};
+
 const responseMode: DateTransformMode = {
   isLeaf: isDateSchema,
   leafStatement: (read, write) => `${write} = new Date(${read});`,
   objectPrelude: () => [],
   arrayStatements: buildInPlaceItemsStatements,
+  mapStatements: buildInPlaceMapStatements,
   propertyWriteAccessor: (accessor, key, propertySchema) =>
     propertySchema.readOnly
       ? propertyAccessor(mutableCast(accessor), key)
@@ -586,6 +831,15 @@ const buildDiscriminatedUnionStatements = ({
           visitedRefs,
           depth,
           mode,
+          // A variant is resolved against the SAME accessor as the switch
+          // itself, not a fresh one — that accessor is guaranteed at runtime
+          // to carry the discriminator property, exactly like an `allOf`
+          // branch shares its parent's accessor. A variant that is a bare
+          // map (`additionalProperties`, no `properties` of its own) must
+          // not get a blind `Object.keys` loop over that level: it would
+          // revisit, and on the response side overwrite, the discriminator
+          // key the switch just read.
+          mapSuppressed: true,
         });
       } catch {
         // An unresolvable mapping target must not abort generation of the
@@ -762,6 +1016,69 @@ const buildCopyingItemsStatements = ({
   };
 };
 
+/**
+ * The request direction's map traversal. Unlike the response direction, a
+ * request-mode map never needs the `writesToAccessorItself` distinction:
+ * every value is bound to a `let`, so a date leaf reassigns that `let`
+ * exactly the way `buildCopyingItemsStatements` reassigns its own `value`
+ * binding — no in-place key write is ever required.
+ *
+ * The map itself is shallow-copied unconditionally, up front, before the
+ * loop — mirroring the array builder's copy-on-path discipline, but on the
+ * container itself rather than inside a `.map()` callback, since a map has
+ * no built-in traversal that already produces a fresh copy the way `.map`
+ * does for arrays. Each value is then read into its own `let`, optionally
+ * spread-copied when it needs its own writable copy (an object, exactly the
+ * same `needsObjectCopy` check the array builder makes for its elements),
+ * mutated by the recursive walk, and written back through the key.
+ *
+ * A nullable value is skipped with `continue` rather than wrapped in an
+ * `if`: the map has already been copied, so the original (possibly null)
+ * value is already sitting at that key and needs no rewrite.
+ */
+const buildCopyingMapStatements = ({
+  values,
+  accessor,
+  context,
+  visitedRefs,
+  depth,
+  mode,
+}: MapStatementsParams): BuildResult => {
+  const key = `key${depth}`;
+  const value = `value${depth}`;
+  const { nullable } = normalizeSchema(values, context);
+
+  const inner = buildStatements({
+    schema: values,
+    accessor: value,
+    context,
+    visitedRefs,
+    depth: depth + 1,
+    mode,
+  });
+  if (inner.statements.length === 0) return inner;
+
+  const body = [
+    `let ${value} = ${accessor}[${key}];`,
+    ...(nullable ? [`if (${value} == null) continue;`] : []),
+    ...(needsObjectCopy(values, context)
+      ? [`${value} = { ...${value} };`]
+      : []),
+    ...inner.statements,
+    `${accessor}[${key}] = ${value};`,
+  ];
+
+  return {
+    statements: [
+      `${accessor} = { ...${accessor} };`,
+      `for (const ${key} of Object.keys(${accessor})) {`,
+      ...indent(body),
+      '}',
+    ],
+    cyclicRefs: inner.cyclicRefs,
+  };
+};
+
 const requestMode: DateTransformMode = {
   isLeaf: isDateOnlySchema,
   leafStatement: serializeLeafStatement,
@@ -770,6 +1087,7 @@ const requestMode: DateTransformMode = {
       ? [`${accessor} = { ...${accessor} };`]
       : [],
   arrayStatements: buildCopyingItemsStatements,
+  mapStatements: buildCopyingMapStatements,
   // No write accessor is needed in this direction: readOnly properties are
   // skipped outright (see skipProperty below), and every property that is
   // still walked is written into a fresh copy the caller already owns, so a

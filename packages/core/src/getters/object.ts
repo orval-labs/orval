@@ -111,6 +111,23 @@ function getPropertyNamesKeyType(
 }
 
 /**
+ * True when `propertyNames` narrows the key type to a finite set of literals
+ * — an inline `enum`/`const`, or a `$ref` to a string enum/const — the only
+ * cases `getObject` types as `Partial<Record<K, V>>` rather than a plain
+ * index signature. Anything else under `propertyNames` (`format`, `pattern`,
+ * `minLength`, or its absence) types as `[key: string]: V`, which an
+ * `Object.keys` loop can index without a compile error. Callers outside this
+ * module (the date transform's map-traversal gate) should use this instead
+ * of re-deriving the predicate, so both stay in lockstep with `getObject`.
+ */
+export function hasNarrowedPropertyNames(
+  item: OpenApiSchemaObject,
+  context: ContextSpec,
+): boolean {
+  return getPropertyNamesKeyType(item, context) !== undefined;
+}
+
+/**
  * Generate index signature key type based on propertyNames enum or const
  * Returns union type string like "'foo' | 'bar'", "'x'", or 'string' if neither
  */
