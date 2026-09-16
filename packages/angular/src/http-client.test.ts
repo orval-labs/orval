@@ -2389,10 +2389,9 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('ThirdParameter');
     });
 
-    it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
-      'wraps a %s body in the mutator BodyType envelope',
-      (definition) => {
-        const verbOption = createVerbOption({
+    const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
+      generateHttpClientImplementation(
+        createVerbOption({
           verb: Verbs.POST,
           operationName: 'createPet',
           mutator: {
@@ -2413,8 +2412,8 @@ describe('angular HttpClient generator', () => {
           props: [
             {
               name: 'petId',
-              definition: 'petId: PetStatus',
-              implementation: 'petId: PetStatus',
+              definition: `petId: ${petIdType}`,
+              implementation: `petId: ${petIdType}`,
               default: false,
               required: true,
               type: GetterPropType.PARAM,
@@ -2428,17 +2427,25 @@ describe('angular HttpClient generator', () => {
               type: GetterPropType.BODY,
             },
           ],
-        });
+        }),
+        createGeneratorOptions(),
+      );
 
-        const impl = generateHttpClientImplementation(
-          verbOption,
-          createGeneratorOptions(),
-        );
+    it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
+      'wraps a %s body in the mutator BodyType envelope',
+      (definition) => {
+        const impl = generateCreatePet(definition);
 
         expect(impl).toContain('petId: PetStatus,');
         expect(impl).toContain(`pet: BodyType<${definition}>,`);
       },
     );
+
+    it('wraps the body rather than a path param of the same type', () => {
+      expect(generateCreatePet('PetStatus', 'PetStatus')).toContain(
+        'petId: PetStatus,\n    pet: BodyType<PetStatus>,',
+      );
+    });
 
     // ── Return type registry ──────────────────────────────────────────
 

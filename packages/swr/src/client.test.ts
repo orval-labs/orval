@@ -167,4 +167,15 @@ describe('swr mutator body type', () => {
       );
     },
   );
+
+  it('wraps the body rather than a path param of the same type', () => {
+    const implementation = generateSwrRequestFunction(
+      createVerbOptions('PetStatus'),
+      generatorOptions,
+    );
+
+    expect(implementation).toContain(
+      `petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
+    );
+  });
 });

@@ -994,16 +994,8 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
     expect(dateFree).not.toContain('deserializeGetPetResponse');
     expect(dateFree).not.toContain('.then(');
   });
-  it.each([
-    ['Pet'],
-    ['Pet[]'],
-    ['Pet[][]'],
-    ['Pet | Cat'],
-    ['(Pet | Cat)[]'],
-    ["'$1' | 'b'"],
-    ["'$&'"],
-  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
-    const result = generateAxiosRequestFunction(
+  const generateCreatePet = (definition: string, petIdType = 'Pet[]Status') =>
+    generateAxiosRequestFunction(
       createVerbOptions({
         verb: 'post',
         operationName: 'createPet',
@@ -1018,8 +1010,8 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
         props: [
           {
             name: 'petId',
-            definition: 'petId: Pet[]Status',
-            implementation: 'petId: Pet[]Status',
+            definition: `petId: ${petIdType}`,
+            implementation: `petId: ${petIdType}`,
             default: undefined,
             required: true,
             type: GetterPropType.PARAM,
@@ -1038,8 +1030,23 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
       adapter,
     );
 
-    expect(result).toContain(
+  it.each([
+    ['Pet'],
+    ['Pet[]'],
+    ['Pet[][]'],
+    ['Pet | Cat'],
+    ['(Pet | Cat)[]'],
+    ["'$1' | 'b'"],
+    ["'$&'"],
+  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
+    expect(generateCreatePet(definition)).toContain(
       `petId: Pet[]Status,\n    pet: BodyType<${definition}>,\n`,
+    );
+  });
+
+  it('wraps the body rather than a path param of the same type', () => {
+    expect(generateCreatePet('PetStatus', 'PetStatus')).toContain(
+      `petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
     );
   });
 });

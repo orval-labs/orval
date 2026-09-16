@@ -1,6 +1,5 @@
 import {
   type ClientHeaderBuilder,
-  escapeRegExp,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -10,6 +9,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   type GetterResponse,
+  GetterPropType,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   toObjectString,
@@ -94,16 +94,23 @@ const generateAxiosRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
-    const propsImplementation =
-      mutator.bodyTypeName && body.definition
-        ? toObjectString(props, 'implementation').replace(
-            new RegExp(
-              String.raw`(\w*):\s?${escapeRegExp(body.definition)}(?=,)`,
-            ),
-            (_match, name: string) =>
-              `${name}: ${mutator.bodyTypeName}<${body.definition}>`,
-          )
-        : toObjectString(props, 'implementation');
+    const propsImplementation = toObjectString(
+      props.map((prop) =>
+        mutator.bodyTypeName &&
+        body.definition &&
+        prop.type === GetterPropType.BODY &&
+        prop.implementation.endsWith(`: ${body.definition}`)
+          ? {
+              ...prop,
+              implementation: `${prop.implementation.slice(
+                0,
+                -body.definition.length,
+              )}${mutator.bodyTypeName}<${body.definition}>`,
+            }
+          : prop,
+      ),
+      'implementation',
+    );
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(

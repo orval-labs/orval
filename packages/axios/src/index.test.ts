@@ -469,15 +469,8 @@ describe('Axios response types', () => {
     );
   });
 
-  it.each([
-    ['Pet'],
-    ['Pet[]'],
-    ['Pet | Cat'],
-    ['(Pet | Cat)[]'],
-    ["'$1' | 'b'"],
-    ["'$&'"],
-  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
-    const result = generateAxios(
+  const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
+    generateAxios(
       createVerbOptions({
         verb: 'post',
         operationName: 'createPet',
@@ -492,8 +485,8 @@ describe('Axios response types', () => {
         props: [
           {
             name: 'petId',
-            definition: 'petId: PetStatus',
-            implementation: 'petId: PetStatus',
+            definition: `petId: ${petIdType}`,
+            implementation: `petId: ${petIdType}`,
             default: undefined,
             required: true,
             type: GetterPropType.PARAM,
@@ -511,8 +504,24 @@ describe('Axios response types', () => {
       generatorOptions,
     );
 
-    expect(result.implementation).toContain(
+  it.each([
+    ['Pet'],
+    ['Pet[]'],
+    ['Pet | Cat'],
+    ['(Pet | Cat)[]'],
+    ["'$1' | 'b'"],
+    ["'$&'"],
+  ])('wraps a %s body in the mutator BodyType envelope', (definition) => {
+    expect(generateCreatePet(definition).implementation).toContain(
       `const createPet = (\n    petId: PetStatus,\n    pet: BodyType<${definition}>,\n`,
+    );
+  });
+
+  it('wraps the body rather than a path param of the same type', () => {
+    expect(
+      generateCreatePet('PetStatus', 'PetStatus').implementation,
+    ).toContain(
+      `const createPet = (\n    petId: PetStatus,\n    pet: BodyType<PetStatus>,\n`,
     );
   });
 });
