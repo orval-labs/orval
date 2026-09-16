@@ -1,5 +1,6 @@
 import {
   type ClientHeaderBuilder,
+  escapeRegExp,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -96,7 +97,7 @@ const generateAxiosRequestFunction = (
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\w*):\s?${body.definition}`),
+            new RegExp(String.raw`(\w*):\s?${escapeRegExp(body.definition)}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');

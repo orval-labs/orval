@@ -6,7 +6,7 @@ import type {
   NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
-import { GetterPropType } from '@orval/core';
+import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
@@ -2388,6 +2388,48 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('customHttpRequest<TData>');
       expect(impl).not.toContain('ThirdParameter');
     });
+
+    it.each([['Pet'], ['Pet[]'], ['Pet | Cat']])(
+      'wraps a %s body in the mutator BodyType envelope',
+      (definition) => {
+        const verbOption = createVerbOption({
+          verb: Verbs.POST,
+          operationName: 'createPet',
+          mutator: {
+            name: 'customHttpRequest',
+            path: './custom-instance.ts',
+            default: false,
+            hasSecondArg: true,
+            hasThirdArg: false,
+            isHook: false,
+            bodyTypeName: 'BodyType',
+          } as GeneratorVerbOptions['mutator'],
+          body: {
+            ...createVerbOption().body,
+            definition,
+            implementation: 'pet',
+            isOptional: false,
+          },
+          props: [
+            {
+              name: 'pet',
+              definition: `pet: ${definition}`,
+              implementation: `pet: ${definition}`,
+              default: false,
+              required: true,
+              type: GetterPropType.BODY,
+            },
+          ],
+        });
+
+        const impl = generateHttpClientImplementation(
+          verbOption,
+          createGeneratorOptions(),
+        );
+
+        expect(impl).toContain(`pet: BodyType<${definition}>,`);
+      },
+    );
 
     // ── Return type registry ──────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 import {
   camel,
+  escapeRegExp,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -298,7 +299,7 @@ export type ${pascal(typeName)}Result = ${axiosResponse.name}`
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\w*):\s?${body.definition}`),
+            new RegExp(String.raw`(\w*):\s?${escapeRegExp(body.definition)}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');

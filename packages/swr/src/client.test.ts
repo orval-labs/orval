@@ -1,6 +1,12 @@
-import type { GetterProp } from '@orval/core';
-import { GetterPropType } from '@orval/core';
+import type {
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GetterProp,
+} from '@orval/core';
+import { GetterPropType, OutputHttpClient, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
+
+import { generateSwrRequestFunction } from './client';
 
 describe('query parameter type extraction', () => {
   it('extracts type name from query param GetterProp', () => {
@@ -59,4 +65,96 @@ describe('query parameter type extraction', () => {
 
     expect(extractedType).toBe('never');
   });
+});
+
+const createVerbOptions = (definition: string): GeneratorVerbOptions =>
+  ({
+    operationId: 'createPet',
+    operationName: 'createPet',
+    typeName: 'createPet',
+    verb: Verbs.POST,
+    route: '/pets',
+    pathRoute: '/pets',
+    tags: [],
+    summary: '',
+    doc: '',
+    response: {
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      isBlob: false,
+      types: { success: [], errors: [] },
+      contentTypes: ['application/json'],
+      schemas: [],
+    },
+    body: {
+      implementation: 'pet',
+      definition,
+      imports: [],
+      schemas: [],
+      originalSchema: {},
+      contentType: 'application/json',
+      formData: '',
+      formUrlEncoded: '',
+      isOptional: false,
+      isBlob: false,
+    },
+    headers: undefined,
+    queryParams: undefined,
+    params: [],
+    props: [
+      {
+        name: 'pet',
+        definition: `pet: ${definition}`,
+        implementation: `pet: ${definition}`,
+        default: false,
+        required: true,
+        type: GetterPropType.BODY,
+      },
+    ],
+    mutator: {
+      name: 'customInstance',
+      path: './custom-instance',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+      bodyTypeName: 'BodyType',
+    },
+    formData: undefined,
+    formUrlEncoded: undefined,
+    paramsSerializer: undefined,
+    override: {
+      requestOptions: true,
+      formData: { disabled: true, arrayHandling: 'serialize' },
+      formUrlEncoded: true,
+      paramsSerializerOptions: undefined,
+    },
+    originalOperation: {},
+  }) as unknown as GeneratorVerbOptions;
+
+const generatorOptions = {
+  route: '/pets',
+  pathRoute: '/pets',
+  context: {
+    output: {
+      httpClient: OutputHttpClient.AXIOS,
+      tsconfig: { compilerOptions: { allowSyntheticDefaultImports: true } },
+    },
+  },
+} as unknown as GeneratorOptions;
+
+describe('swr mutator body type', () => {
+  it.each([['Pet[]'], ['Pet | Cat']])(
+    'wraps a %s body in the mutator BodyType envelope',
+    (definition) => {
+      const implementation = generateSwrRequestFunction(
+        createVerbOptions(definition),
+        generatorOptions,
+      );
+
+      expect(implementation).toContain(`pet: BodyType<${definition}>,\n`);
+    },
+  );
 });

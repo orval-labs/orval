@@ -8,6 +8,7 @@ import type {
 import {
   EnumGeneration,
   FormDataArrayHandling,
+  GetterPropType,
   NamingConvention,
   OutputClient,
   OutputHttpClient,
@@ -1000,4 +1001,47 @@ describe('generateSolidStart — Content-Type header escaping', () => {
     );
     expect(implementation).not.toContain("'X-Evil': 'injected'");
   });
+});
+
+describe('generateSolidStart — mutator body type', () => {
+  it.each([['Pet[]'], ['Pet | Cat']])(
+    'wraps a %s body in the mutator BodyType envelope',
+    async (definition) => {
+      const implementation = await generateImplementation(
+        makeVerbOptions({
+          verb: Verbs.POST,
+          operationId: 'createPet',
+          operationName: 'createPet',
+          mutator: {
+            name: 'customInstance',
+            path: './custom-instance',
+            default: false,
+            hasSecondArg: false,
+            hasThirdArg: false,
+            isHook: false,
+            bodyTypeName: 'BodyType',
+          } as GeneratorVerbOptions['mutator'],
+          body: {
+            ...makeVerbOptions().body,
+            definition,
+            implementation: 'pet',
+            isOptional: false,
+          },
+          props: [
+            {
+              name: 'pet',
+              definition: `pet: ${definition}`,
+              implementation: `pet: ${definition}`,
+              default: false,
+              required: true,
+              type: GetterPropType.BODY,
+            },
+          ],
+        }),
+        makeOptions(makeContextWithPathParams()),
+      );
+
+      expect(implementation).toContain(`(pet: BodyType<${definition}>,)`);
+    },
+  );
 });

@@ -3,7 +3,11 @@ import type {
   GeneratorVerbOptions,
   GeneratorMutator,
 } from '@orval/core';
-import { getOperationUrlHelperNames, OutputClient } from '@orval/core';
+import {
+  GetterPropType,
+  getOperationUrlHelperNames,
+  OutputClient,
+} from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -464,6 +468,41 @@ describe('Axios response types', () => {
       'export type GetPetResult = getPetResponse',
     );
   });
+
+  it.each([['Pet[]'], ['Pet | Cat'], ['(Pet | Cat)[]']])(
+    'wraps a %s body in the mutator BodyType envelope',
+    (definition) => {
+      const result = generateAxios(
+        createVerbOptions({
+          verb: 'post',
+          operationName: 'createPet',
+          typeName: 'createPet',
+          mutator: { ...mutator, bodyTypeName: 'BodyType' },
+          body: {
+            ...createVerbOptions().body,
+            definition,
+            implementation: 'pet',
+            isOptional: false,
+          },
+          props: [
+            {
+              name: 'pet',
+              definition: `pet: ${definition}`,
+              implementation: `pet: ${definition}`,
+              default: undefined,
+              required: true,
+              type: GetterPropType.BODY,
+            },
+          ],
+        }),
+        generatorOptions,
+      );
+
+      expect(result.implementation).toContain(
+        `const createPet = (\n    pet: BodyType<${definition}>,\n`,
+      );
+    },
+  );
 });
 
 describe('getAxiosDependencies (axios-functions mode)', () => {

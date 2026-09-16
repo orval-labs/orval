@@ -5,6 +5,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  escapeRegExp,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -159,7 +160,7 @@ const generateImplementation = (
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\w*):\s?${body.definition}`),
+            new RegExp(String.raw`(\w*):\s?${escapeRegExp(body.definition)}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');

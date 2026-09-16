@@ -8,6 +8,7 @@ import {
   type GeneratorImport,
   type NormalizedOutputOptions,
   emitResponseValidation,
+  escapeRegExp,
   getZodNamespaceImport,
   getArrayResponseSchema,
   generateBodyOptions,
@@ -522,7 +523,7 @@ export const generateHttpClientImplementation = (
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(String.raw`(\\w*):\\s?${body.definition}`),
+            new RegExp(String.raw`(\w*):\s?${escapeRegExp(body.definition)}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
