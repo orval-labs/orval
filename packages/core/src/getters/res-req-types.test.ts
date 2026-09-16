@@ -1012,6 +1012,119 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       expect(formData).not.toContain('JSON.stringify(createARequestBody.a)');
     });
 
+    it('array property whose items are a pure allOf wrapper (no explicit type: object): JSON.stringifies each item', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              Tag: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              // No explicit `type: object`, only an allOf wrapper.
+              TagRef: {
+                allOf: [{ $ref: '#/components/schemas/Tag' }],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    tags: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/TagRef' },
+                    },
+                  },
+                  required: ['tags'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreateTags', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      expect(formData).toContain(
+        'createTagsRequestBody.tags.forEach(value => formData.append(`tags`, JSON.stringify(value)));',
+      );
+    });
+
+    it('array property whose items are a pure allOf wrapper, EXPLODE arrayHandling: appends the nested item properties', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            ...context.output.override,
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        },
+        spec: {
+          components: {
+            schemas: {
+              Tag: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              TagRef: {
+                allOf: [{ $ref: '#/components/schemas/Tag' }],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    tags: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/TagRef' },
+                    },
+                  },
+                  required: ['tags'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'CreateTags', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      expect(formData).toContain('formData.append(`tags[${index}].name`');
+      expect(formData).not.toContain(
+        'formData.append(`tags[${index}]`, value)',
+      );
+    });
+
     it('allOf wrapping a non-object schema: must not JSON.stringify a scalar value', () => {
       const ctx: ContextSpec = {
         ...context,

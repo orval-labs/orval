@@ -985,7 +985,10 @@ function resolveSchemaPropertiesToFormData({
       const propertyItems = getSchemaItems(property);
       if (propertyItems) {
         const { schema: itemSchema } = resolveSchemaRef(propertyItems, context);
-        if (itemSchema.type === 'object' || itemSchema.type === 'array') {
+        if (
+          isEffectivelyObjectSchema(itemSchema, context) ||
+          itemSchema.type === 'array'
+        ) {
           if (
             context.output.override.formData.arrayHandling ===
             FormDataArrayHandling.EXPLODE
