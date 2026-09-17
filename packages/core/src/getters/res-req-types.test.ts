@@ -21,7 +21,10 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
   type: 'object',
   properties: {
     id: { type: 'integer', readOnly: true },
-    file: { type: 'string', format: 'binary' },
+    file: {
+      type: 'string',
+      contentMediaType: 'application/octet-stream',
+    },
     kind: { type: 'string', enum: ['LOGO', 'CONTENT'] },
   },
   required: ['file'],
@@ -276,8 +279,8 @@ describe('getResReqTypes (content type handling)', () => {
       },
     };
 
-    // Comprehensive schema covering: encoding, contentMediaType, format binary,
-    // base64, object fields, wildcard, arrays, nested properties, $ref
+    // Comprehensive schema covering: encoding, contentMediaType, base64,
+    // object fields, wildcard, arrays, nested properties, $ref
     const reqBody: [string, OpenApiRequestBodyObject][] = [
       [
         'requestBody',
@@ -303,8 +306,11 @@ describe('getResReqTypes (content type handling)', () => {
                     type: 'string',
                     contentMediaType: 'image/png',
                   },
-                  // format: binary → Blob
-                  formatBinary: { type: 'string', format: 'binary' },
+                  // octet-stream contentMediaType → Blob
+                  binaryFile: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   // contentEncoding means base64 string, not file
                   base64Field: {
                     type: 'string',
@@ -340,7 +346,7 @@ describe('getResReqTypes (content type handling)', () => {
                   'cmtBinary',
                   'cmtText',
                   'encOverride',
-                  'formatBinary',
+                  'binaryFile',
                   'base64Field',
                   'metadata',
                   'wildcardFile',
@@ -374,7 +380,7 @@ describe('getResReqTypes (content type handling)', () => {
       // Binary files → Blob | File (filename preserved in multipart, #3662)
       expect(bodySchema?.model).toContain('encBinary: Blob | File;');
       expect(bodySchema?.model).toContain('cmtBinary: Blob | File;');
-      expect(bodySchema?.model).toContain('formatBinary: Blob | File;');
+      expect(bodySchema?.model).toContain('binaryFile: Blob | File;');
       expect(bodySchema?.model).toContain(
         'wildcardFile: Blob | File | string;',
       );
@@ -410,7 +416,7 @@ formData.append(\`encText\`, bodyRequestBody.encText instanceof Blob ? bodyReque
 formData.append(\`cmtBinary\`, bodyRequestBody.cmtBinary);
 formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyRequestBody.cmtText : new Blob([bodyRequestBody.cmtText], { type: 'application/xml' }));
 formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
-formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
+formData.append(\`binaryFile\`, bodyRequestBody.binaryFile);
 formData.append(\`base64Field\`, bodyRequestBody.base64Field);
 formData.append(\`metadata\`, JSON.stringify(bodyRequestBody.metadata));
 formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile instanceof Blob ? bodyRequestBody.wildcardFile : new Blob([bodyRequestBody.wildcardFile], { type: '*/*' }));
@@ -452,8 +458,11 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               schema: {
                 type: 'object',
                 properties: {
-                  // format: binary → would be Blob under multipart
-                  content_file: { type: 'string', format: 'binary' },
+                  // octet-stream contentMediaType → would be Blob under multipart
+                  content_file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   // contentMediaType text file → Blob | string under multipart
                   content_xml: {
                     type: 'string',
@@ -529,7 +538,6 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     petId: { type: 'string' },
                     tags: {
                       type: ['array', 'null'] as unknown as 'array',
-                      nullable: true,
                       items: {
                         type: 'object',
                         required: ['tagId', 'label'],
@@ -578,7 +586,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     {
                       type: 'object',
                       properties: {
-                        content_file: { type: 'string', format: 'binary' },
+                        content_file: {
+                          type: 'string',
+                          contentMediaType: 'application/octet-stream',
+                        },
                       },
                     },
                     {
@@ -736,7 +747,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
-                  logo: { type: 'string', format: 'binary' },
+                  logo: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                 },
                 required: ['name', 'logo'],
               },
@@ -783,7 +797,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               UploadDtoV1: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   metadata: { type: 'string' },
                 },
                 required: ['file'],
@@ -791,7 +808,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               UploadDtoV2: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   metadata: {
                     type: 'object',
                     properties: { name: { type: 'string' } },
@@ -872,7 +892,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     {
                       type: 'object',
                       properties: {
-                        logo: { type: 'string', format: 'binary' },
+                        logo: {
+                          type: 'string',
+                          contentMediaType: 'application/octet-stream',
+                        },
                       },
                       required: ['logo'],
                     },
@@ -1582,7 +1605,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               OptionalBodyDto: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                 },
               },
             },
@@ -1628,7 +1654,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 properties: {
                   files: {
                     type: 'array',
-                    items: { type: 'string', format: 'binary' },
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
                   },
                 },
               },
@@ -1637,7 +1666,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 properties: {
                   files: {
                     type: 'array',
-                    items: { type: 'string', format: 'binary' },
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
                   },
                   tag: { type: 'string' },
                 },

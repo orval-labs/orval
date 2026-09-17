@@ -231,7 +231,10 @@ describe('getBody', () => {
       const requestBody: OpenApiRequestBodyObject = {
         content: {
           [binaryApplicationType]: {
-            schema: { type: 'string', format: 'binary' },
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+            },
           },
         },
         required: true,
@@ -268,11 +271,14 @@ describe('getBody', () => {
       expect(result.isBlob).toBe(false);
     });
 
-    it('sets isBlob to true for text/csv with format: binary schema', () => {
+    it('sets isBlob to true for text/csv with binary schema', () => {
       const requestBody: OpenApiRequestBodyObject = {
         content: {
           'text/csv': {
-            schema: { type: 'string', format: 'binary' },
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+            },
           },
         },
         required: true,
@@ -291,7 +297,10 @@ describe('getBody', () => {
       const requestBody: OpenApiRequestBodyObject = {
         content: {
           'image/png': {
-            schema: { type: 'string', format: 'binary' },
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+            },
           },
         },
         required: true,
@@ -306,11 +315,14 @@ describe('getBody', () => {
       expect(result.isBlob).toBe(true);
     });
 
-    it('sets isBlob to true for */* with inline format: binary schema', () => {
+    it('sets isBlob to true for */* with inline binary schema', () => {
       const requestBody: OpenApiRequestBodyObject = {
         content: {
           '*/*': {
-            schema: { type: 'string', format: 'binary' },
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+            },
           },
         },
         required: true,
@@ -325,13 +337,16 @@ describe('getBody', () => {
       expect(result.isBlob).toBe(true);
     });
 
-    it('sets isBlob to true for $ref to a format: binary schema', () => {
+    it('sets isBlob to true for $ref to a binary schema', () => {
       const context = createContext();
       context.spec.components = {
         ...context.spec.components,
         schemas: {
           ...context.spec.components?.schemas,
-          TestPdfFile: { type: 'string', format: 'binary' },
+          TestPdfFile: {
+            type: 'string',
+            contentMediaType: 'application/octet-stream',
+          },
         },
       };
 
@@ -578,7 +593,10 @@ describe('getBodiesByContentType', () => {
           schema: { type: 'object', properties: { a: { type: 'string' } } },
         },
         'application/octet-stream': {
-          schema: { type: 'string', format: 'binary' },
+          schema: {
+            type: 'string',
+            contentMediaType: 'application/octet-stream',
+          },
         },
       },
       required: true,
