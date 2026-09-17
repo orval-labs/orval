@@ -10,7 +10,7 @@
     "generate-api": "vp exec orval",
     "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit && tsc --noEmit -p tsconfig.suspense.json"
   },
   "dependencies": {
     "@tanstack/react-query": "catalog:react",

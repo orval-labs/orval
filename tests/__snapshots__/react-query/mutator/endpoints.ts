@@ -445,7 +445,19 @@ export const getListPetsSuspenseQueryOptions = <
     signal,
   }) => listPets(params, version, signal);
 
-  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
+  return queryOptionsBuilder({
+    queryKey,
+    queryFn,
+    ...queryOptions,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
 };
 
 export type ListPetsSuspenseQueryResult = NonNullable<
@@ -993,7 +1005,19 @@ export const getShowPetByIdSuspenseQueryOptions = <
     signal,
   }) => showPetById(petId, version, signal);
 
-  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
+  return queryOptionsBuilder({
+    queryKey,
+    queryFn,
+    ...queryOptions,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
 };
 
 export type ShowPetByIdSuspenseQueryResult = NonNullable<
@@ -1343,7 +1367,19 @@ export const getHealthCheckSuspenseQueryOptions = <
     signal,
   }) => healthCheck(version, signal);
 
-  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
+  return queryOptionsBuilder({
+    queryKey,
+    queryFn,
+    ...queryOptions,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
 };
 
 export type HealthCheckSuspenseQueryResult = NonNullable<
@@ -1638,7 +1674,19 @@ export const getShowPetWithOwnerSuspenseQueryOptions = <
     Awaited<ReturnType<typeof showPetWithOwner>>
   > = ({ signal }) => showPetWithOwner(petId, version, signal);
 
-  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
+  return queryOptionsBuilder({
+    queryKey,
+    queryFn,
+    ...queryOptions,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof showPetWithOwner>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
 };
 
 export type ShowPetWithOwnerSuspenseQueryResult = NonNullable<

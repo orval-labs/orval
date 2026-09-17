@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "composite": false,
+    "noUnusedLocals": false
+  },
+  "include": ["src/suspense-options.type-test.ts"]
+}

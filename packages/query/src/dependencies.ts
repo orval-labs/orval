@@ -156,11 +156,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       // `const { query: queryOptions } = options ?? {}` destructure without
       // shadowing the builder. See #1788.
       { name: 'queryOptions', alias: 'queryOptionsBuilder', values: true },
-      {
-        name: 'infiniteQueryOptions',
-        alias: 'infiniteQueryOptionsBuilder',
-        values: true,
-      },
+
       { name: 'useMutation', values: true },
       { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },

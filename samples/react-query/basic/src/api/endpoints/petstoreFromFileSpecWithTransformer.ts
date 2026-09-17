@@ -482,7 +482,19 @@ export const getListPetsSuspenseQueryOptions = <
     signal,
   }) => listPets(params, version, signal);
 
-  return queryOptionsBuilder({ queryKey, queryFn, ...queryOptions });
+  return queryOptionsBuilder({
+    queryKey,
+    queryFn,
+    ...queryOptions,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
 };
 
 export type ListPetsSuspenseQueryResult = NonNullable<

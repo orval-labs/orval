@@ -812,17 +812,14 @@ const generateQueryImplementation = ({
 
   const queryFnProperty = getQueryFnProperty({ useSkipToken, params, type });
 
-  // Suspense options go through TanStack's `queryOptions()` builder instead
-  // of an `as` cast so `useSuspenseQueries` accepts the result. v5-only; a
+  // Validate suspense options with TanStack's `queryOptions()` builder while
+  // retaining the public suspense type and error inference. v5-only; a
   // custom `override.query.queryOptions` mutator is left unwrapped because its
   // generic typing may lose inference through the builder. See #1788.
   const useQueryOptionsHelper =
     hasQueryV5 &&
     !queryOptionsMutator &&
     (adapter.getQueryOptionsHelperTypes?.() ?? []).includes(type);
-  const queryOptionsHelperName = isInfiniteQuery(type)
-    ? 'infiniteQueryOptionsBuilder'
-    : 'queryOptionsBuilder';
 
   const queryOptionsFnName = camel(
     shouldUseOptionsHook({
@@ -921,18 +918,24 @@ ${hookOptions}
 
    return  ${
      useQueryOptionsHelper
-       ? // The builder brands the query key and structurally checks the
-         // literal, so no cast is emitted for this branch.
-         `${queryOptionsHelperName}({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`
+       ? // Validate the literal with the builder, then preserve the existing
+         // suspense surface and selected-data key brand. The inference-only
+         // member carries TError through useSuspenseQueries without allowing
+         // callers to configure or invoke throwOnError.
+         `queryOptionsBuilder({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`
        : queryOptionsMutator
          ? 'customOptions'
          : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
    }${
-     useQueryOptionsHelper || adapter.shouldCastQueryOptions?.() === false
+     adapter.shouldCastQueryOptions?.() === false
        ? ''
        : ` as ${queryOptionFnReturnType} ${
            adapter.shouldAnnotateQueryKey()
              ? `& { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`
+             : ''
+         }${
+           useQueryOptionsHelper
+             ? ` & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }`
              : ''
          }`
    }
