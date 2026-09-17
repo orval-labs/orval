@@ -148,9 +148,10 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
  * Whether a schema accepts `null`.
  *
  * Nullability can sit on the schema itself (`nullable: true` in OpenAPI 3.0,
- * `type: 'null'` or `type: ['string', 'null']` in 3.1) or in a separate
- * `{ type: 'null' }` branch of a `oneOf`/`anyOf`, which is the spelling
- * pydantic and other 3.1 generators emit for an optional field.
+ * `type: 'null'` or `type: ['string', 'null']` in 3.1), on a `null` member of
+ * an `enum`, or in a separate `{ type: 'null' }` branch of a `oneOf`/`anyOf`,
+ * which is the spelling pydantic and other 3.1 generators emit for an optional
+ * field.
  *
  * References are not resolved here, so a `$ref` branch never counts as
  * nullable on its own.
@@ -167,6 +168,14 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
   }
 
   if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    return true;
+  }
+
+  // `enum` narrows whatever `type` allows, so a `null` member is the whole
+  // constraint on nullability — and the only spelling available when there is
+  // no sibling `type` at all (`{ enum: ['foo', null] }`). The member itself is
+  // never emitted into the generated const; it only contributes the ` | null`.
+  if (Array.isArray(schema.enum) && schema.enum.includes(null)) {
     return true;
   }
 

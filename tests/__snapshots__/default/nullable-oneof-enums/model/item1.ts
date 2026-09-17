@@ -5,8 +5,10 @@
  * Test case for issue
  * OpenAPI spec version: 1.0.0
  */
-import type { Item1Hello } from './item1Hello';
+import type { BlankEnum } from './blankEnum';
+import type { HelloEnum } from './helloEnum';
+import type { NullEnum } from './nullEnum';
 
 export interface Item1 {
-  hello?: (typeof Item1Hello)[keyof typeof Item1Hello] | null;
+  hello?: HelloEnum | BlankEnum | NullEnum | null;
 }

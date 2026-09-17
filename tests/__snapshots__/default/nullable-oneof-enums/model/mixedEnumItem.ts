@@ -5,8 +5,10 @@
  * Test case for issue
  * OpenAPI spec version: 1.0.0
  */
-import type { MixedEnumItemMixed } from './mixedEnumItemMixed';
+import type { BlankEnum } from './blankEnum';
+import type { HelloEnum } from './helloEnum';
+import type { NotNullEnum } from './notNullEnum';
 
 export interface MixedEnumItem {
-  mixed?: (typeof MixedEnumItemMixed)[keyof typeof MixedEnumItemMixed] | null;
+  mixed?: HelloEnum | BlankEnum | NotNullEnum | null;
 }

@@ -89,6 +89,15 @@ describe('assertion testing', () => {
       }),
     ).toBeTruthy();
 
+    // OpenAPI 3.1 also spells it as a `null` member of the enum itself, which
+    // is the only spelling available when there is no sibling `type` (#4115).
+    // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+    expect(isSchemaNullable({ enum: ['a', null] })).toBeTruthy();
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      isSchemaNullable({ type: ['string', 'null'], enum: ['a', null] }),
+    ).toBeTruthy();
+
     expect(isSchemaNullable({ type: 'string', enum: ['a', 'b'] })).toBeFalsy();
     expect(
       isSchemaNullable({

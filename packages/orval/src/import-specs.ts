@@ -170,6 +170,11 @@ async function resolveSpec(
     specification = restoreSwagger2FormDataItems(specification, formDataItems);
   }
 
+  // Close the OpenAPI 3.0 syntax the upgrader leaves behind, so what reaches
+  // `importOpenApi` is fully 3.1-shaped (#4115). Runs last so the schemas
+  // restored above are normalized too.
+  specification = normalizeToOpenApi31(specification) as typeof specification;
+
   return specification as OpenApiDocument;
 }
 
@@ -327,6 +332,290 @@ function isNonNullableObjectSchema(value: unknown): boolean {
     return false;
   }
   return 'properties' in obj || obj.type === 'object';
+}
+
+// ─── Residual OpenAPI 3.0 syntax normalization (#4115) ─────────────────────
+
+/**
+ * Keys whose value is a map of *named* subschemas. A key inside one of these is
+ * an arbitrary name — a property name, a definition name — and never a schema
+ * keyword, so a property called `default` is a schema to normalize and not a
+ * default value to leave alone.
+ */
+const NAMED_SCHEMA_MAP_KEYS = new Set([
+  'properties',
+  'patternProperties',
+  '$defs',
+  'definitions',
+]);
+
+/**
+ * Keywords whose value is arbitrary user data rather than a schema. Nothing
+ * below them may be rewritten: an `example` payload that happens to carry a
+ * `nullable` key is data the API really returns, not 3.0 syntax.
+ */
+const DATA_KEYWORDS = new Set([
+  'example',
+  'examples',
+  'default',
+  'const',
+  'enum',
+]);
+
+/** The `format` values 3.1 replaced with `contentMediaType`/`contentEncoding`. */
+const CONTENT_FORMATS = new Set(['binary', 'base64', 'byte']);
+
+/**
+ * Close the OpenAPI 3.0 syntax `upgrade()` leaves behind, so the document handed
+ * to `importOpenApi` is fully 3.1-shaped (#4115).
+ *
+ * `@scalar/openapi-upgrader` bails out of its `nullable` rewrite whenever there
+ * is no sibling `type`, `$ref` or `allOf` to attach the null to — its own source
+ * says so: *"Otherwise there is nothing for `nullable` to attach to, so leave the
+ * schema untouched."* That leaves `nullable` sitting next to `enum`, `anyOf` and
+ * `oneOf`. Two further gaps are consequences of the order its own rules run in,
+ * and one is the upgrader early-returning on a document that already declares
+ * 3.1 while still carrying 3.0 syntax:
+ *
+ * - it widens `type` to `[T, 'null']` without widening a sibling `enum`, and the
+ *   two combine with AND — so `{ type: 'string', enum: ['a'], nullable: true }`
+ *   comes back admitting only `'a'`, with the author's `null` gone and the
+ *   `'null'` in `type` unreachable;
+ * - having widened `type` into an array, its `format: binary | base64 | byte`
+ *   handling no longer matches (it tests `type === 'string'`), so those formats
+ *   survive on nullable string unions;
+ * - a document declaring `3.1` is skipped wholesale, so every 3.0 keyword in one
+ *   reaches us untouched.
+ *
+ * Every rule below therefore stands on its own rather than assuming the upgrader
+ * already handled anything with a `type`.
+ *
+ * Runs *after* `upgrade()`, unlike {@link normalizeNullableRefs}, which has to go
+ * first to keep its diagnostic. Nothing here warns: these specs were valid 3.0,
+ * and the loss is the upgrader's, not the author's.
+ */
+export function normalizeToOpenApi31(
+  spec: unknown,
+  path: string[] = [],
+): unknown {
+  if (Array.isArray(spec)) {
+    return spec.map((item, i) => normalizeToOpenApi31(item, [...path, i + '']));
+  }
+
+  if (!isObject(spec)) {
+    return spec;
+  }
+
+  const obj = normalizeSchemaNode(spec as Record<string, unknown>, path);
+
+  // A data keyword's value is skipped, but only where the keyword is really a
+  // keyword: inside a named-schema map the same word is a member name.
+  const inNamedSchemaMap = isNamedSchemaMap(path);
+  for (const [key, value] of Object.entries(obj)) {
+    if (DATA_KEYWORDS.has(key) && !inNamedSchemaMap) {
+      continue;
+    }
+    obj[key] = normalizeToOpenApi31(value, [...path, key]);
+  }
+
+  return obj;
+}
+
+/** Apply every 3.0-residue rule to one node. May return a replacement node. */
+function normalizeSchemaNode(
+  obj: Record<string, unknown>,
+  path: string[],
+): Record<string, unknown> {
+  const withoutNullable = resolveNullable(obj);
+  widenEnumForNullableType(withoutNullable);
+  convertContentFormat(withoutNullable, path);
+  normalizeExclusiveBounds(withoutNullable);
+  return withoutNullable;
+}
+
+/**
+ * Attach a `nullable: true` to whatever sits beside it, in the 3.1 form for that
+ * shape, and remove the keyword either way — 3.1 has no `nullable`, so leaving it
+ * is never right.
+ *
+ * `allOf` is the one shape that cannot simply gain a `{ type: 'null' }` member:
+ * `allOf` is an intersection, so null intersected with the rest is `never` and
+ * the schema would admit nothing. It has to be wrapped in a union instead.
+ */
+function resolveNullable(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!('nullable' in obj)) {
+    return obj;
+  }
+
+  const nullable = obj.nullable === true;
+  delete obj.nullable;
+
+  if (!nullable) {
+    return obj;
+  }
+
+  // A sibling `type` takes the null directly, as a type union.
+  if (obj.type !== undefined) {
+    const members = Array.isArray(obj.type) ? obj.type : [obj.type];
+    obj.type = members.includes('null') ? members : [...members, 'null'];
+    return obj;
+  }
+
+  // A reference cannot carry the null itself, so the union moves outside it.
+  // `$dynamicRef` resolves at validation time and behaves the same way here.
+  const refKey = isString(obj.$ref)
+    ? '$ref'
+    : isString(obj.$dynamicRef)
+      ? '$dynamicRef'
+      : undefined;
+  if (refKey) {
+    const ref = obj[refKey];
+    delete obj[refKey];
+    return { ...obj, anyOf: [{ [refKey]: ref }, { type: 'null' }] };
+  }
+
+  // A union just gains a null branch.
+  for (const key of ['anyOf', 'oneOf'] as const) {
+    const branches = obj[key];
+    if (Array.isArray(branches)) {
+      if (!branches.some(isNullBranch)) {
+        branches.push({ type: 'null' });
+      }
+      return obj;
+    }
+  }
+
+  // An intersection has to be wrapped, never appended to. A single member is
+  // unwrapped so the union reads `anyOf: [<member>, { type: 'null' }]`, matching
+  // what the upgrader emits for the same shape.
+  if (Array.isArray(obj.allOf)) {
+    const { allOf, ...rest } = obj;
+    const base = allOf.length === 1 ? allOf[0] : { allOf };
+    return { ...rest, anyOf: [base, { type: 'null' }] };
+  }
+
+  // A bare `enum` carries the null as a member: with no sibling `type` the enum
+  // is the whole constraint.
+  if (Array.isArray(obj.enum)) {
+    if (!obj.enum.includes(null)) {
+      obj.enum.push(null);
+    }
+    return obj;
+  }
+
+  // Nothing to attach to. Dropping the keyword loses nothing: a schema with no
+  // `type` already admits every type, `null` included.
+  return obj;
+}
+
+/**
+ * Repair the widening `upgrade()` does by halves. `type` and `enum` combine with
+ * AND, so a type union admitting null next to an enum that does not list it
+ * makes the null unreachable — which is never what the author of the 3.0 spec
+ * wrote, since `nullable: true` is the only way that pairing arises.
+ */
+function widenEnumForNullableType(obj: Record<string, unknown>): void {
+  if (
+    Array.isArray(obj.type) &&
+    obj.type.includes('null') &&
+    Array.isArray(obj.enum) &&
+    !obj.enum.includes(null)
+  ) {
+    obj.enum.push(null);
+  }
+}
+
+/**
+ * Apply the 3.1 replacements for the string `format`s that became content
+ * keywords. The upgrader does this too, but only for a bare `type: 'string'`,
+ * and its own `nullable` rule has already turned that into `['string', 'null']`
+ * by the time the check runs.
+ */
+function convertContentFormat(
+  obj: Record<string, unknown>,
+  path: string[],
+): void {
+  if (!isString(obj.format) || !CONTENT_FORMATS.has(obj.format)) {
+    return;
+  }
+
+  const types = Array.isArray(obj.type) ? obj.type : [obj.type];
+  if (!types.includes('string')) {
+    return;
+  }
+
+  const format = obj.format;
+  delete obj.format;
+
+  if (format === 'binary') {
+    obj.contentMediaType = 'application/octet-stream';
+    return;
+  }
+
+  obj.contentEncoding = 'base64';
+
+  // `byte` was base64 *of* the surrounding media type, so carry that over when
+  // the schema sits under a Media Type Object.
+  if (format === 'byte') {
+    const mediaType = path[path.indexOf('content') + 1];
+    if (path.includes('content') && mediaType !== undefined) {
+      obj.contentMediaType = mediaType;
+    }
+  }
+}
+
+/**
+ * 3.0's boolean `exclusiveMinimum`/`exclusiveMaximum` modified a sibling
+ * `minimum`/`maximum`; 3.1's holds the bound itself. The upgrader converts them,
+ * but assigns `schema.minimum` unconditionally — so a spec with the flag and no
+ * bound ends up with the key present and holding `undefined`, which is still not
+ * a valid 3.1 schema.
+ */
+function normalizeExclusiveBounds(obj: Record<string, unknown>): void {
+  for (const [flag, bound] of [
+    ['exclusiveMinimum', 'minimum'],
+    ['exclusiveMaximum', 'maximum'],
+  ] as const) {
+    if (!(flag in obj)) {
+      continue;
+    }
+
+    const value = obj[flag];
+
+    if (value === true) {
+      if (typeof obj[bound] === 'number') {
+        obj[flag] = obj[bound];
+      } else {
+        delete obj[flag];
+      }
+      delete obj[bound];
+      continue;
+    }
+
+    // `false` meant "not exclusive", so the sibling bound stands as written.
+    // `undefined` is the upgrader's own leftover.
+    if (value === false || value === undefined) {
+      delete obj[flag];
+    }
+  }
+}
+
+function isNullBranch(value: unknown): boolean {
+  return isObject(value) && (value as Record<string, unknown>).type === 'null';
+}
+
+/** Whether the node at `path` is a map of named subschemas rather than a schema. */
+function isNamedSchemaMap(path: string[]): boolean {
+  const last = path.at(-1);
+  if (last === undefined) {
+    return false;
+  }
+  if (last === 'schemas' && path.at(-2) === 'components') {
+    return true;
+  }
+  return NAMED_SCHEMA_MAP_KEYS.has(last);
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────
