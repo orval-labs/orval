@@ -38,6 +38,15 @@ const hasNullableType = (schema: OpenApiSchemaObject): boolean =>
   (Array.isArray(schema.type) && schema.type.includes('null'));
 
 /**
+ * True when the schema itself names at least one property. An empty
+ * `properties: {}` names none: the object getter types it — alongside a
+ * schema-valued `additionalProperties` — as the same index signature as a bare
+ * map, so it must not count as declaring keys or as needing an object copy.
+ */
+const hasOwnProperties = (schema: OpenApiSchemaObject): boolean =>
+  schema.properties != null && Object.keys(schema.properties).length > 0;
+
+/**
  * True when this schema, or any of its `allOf` branches (recursively,
  * through `$ref`s), declares its own `properties` — or is itself a `oneOf`/
  * `anyOf` union whose variants declare theirs. Mirrors `needsObjectCopy`'s
@@ -67,7 +76,7 @@ const declaresProperties = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (schema.properties) return true;
+  if (hasOwnProperties(schema)) return true;
   if (schema.oneOf || schema.anyOf) return true;
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
     declaresProperties(branch, context, seenRefs),
@@ -940,7 +949,7 @@ const needsObjectCopy = (
     seenRefs.add(ref);
   }
   if (isDateOnlySchema(schema)) return false;
-  if (schema.properties || schema.discriminator) return true;
+  if (hasOwnProperties(schema) || schema.discriminator) return true;
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
     needsObjectCopy(branch, context, seenRefs),
   );

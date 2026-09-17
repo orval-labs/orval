@@ -3895,3 +3895,85 @@ describe('review comment fixes — allOf array/object conflicts and required con
     expect('pets' in output).toBe(false);
   });
 });
+
+describe('additionalProperties maps beside an empty `properties: {}`', () => {
+  // The object getter types `properties: {}` + a schema-valued
+  // `additionalProperties` as the same index signature as a bare map, so an
+  // empty `properties` block declares no keys and must not suppress the map.
+  const withEmptyProperties = (): OpenApiSchemaObject => ({
+    type: 'object',
+    required: ['m'],
+    properties: {
+      m: {
+        type: 'object',
+        properties: {},
+        additionalProperties: { type: 'string', format: 'date' },
+      },
+    },
+  });
+  const withoutProperties = (): OpenApiSchemaObject => ({
+    type: 'object',
+    required: ['m'],
+    properties: {
+      m: {
+        type: 'object',
+        additionalProperties: { type: 'string', format: 'date' },
+      },
+    },
+  });
+
+  it('walks the map in the response direction', () => {
+    expect(
+      buildDateTransformStatements({
+        schema: withEmptyProperties(),
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (const key0 of Object.keys(data.m)) {',
+      '  data.m[key0] = new Date(data.m[key0]);',
+      '}',
+    ]);
+  });
+
+  it('walks the map in the request direction exactly as for a bare map, copying it once', () => {
+    const statements = buildRequestDateSerializeStatements({
+      schema: withEmptyProperties(),
+      accessor: 'copy',
+      context: makeContext(),
+    });
+
+    expect(statements).toEqual(
+      buildRequestDateSerializeStatements({
+        schema: withoutProperties(),
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    );
+    expect(
+      statements.filter((line) => line.includes('copy.m = { ...copy.m };')),
+    ).toHaveLength(1);
+  });
+
+  it('does not treat an array with an empty `properties` block as array-and-object shaped', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: {
+          type: 'array',
+          properties: {},
+          items: { type: 'string', format: 'date' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toContain('copy.days = copy.days.map((item0) => {');
+  });
+});
