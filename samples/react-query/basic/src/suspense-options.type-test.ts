@@ -27,12 +27,12 @@ export function useSuspenseOptionsTypeRegression() {
   const exactError: Equal<typeof multiple.error, CustomError | null> = true;
   const exactData: Equal<typeof multiple.data, string[]> = true;
   // @ts-expect-error Suspense options must not expose enabled.
-  options.enabled;
+  void options.enabled;
   // @ts-expect-error The inference-only member cannot configure throwOnError.
-  options.throwOnError = () => true;
+  void (options.throwOnError = () => true);
   // @ts-expect-error The inference-only member cannot be called.
-  options.throwOnError?.(new CustomError());
+  void options.throwOnError?.(new CustomError());
   // @ts-expect-error Suspense options must not expose placeholderData.
-  options.placeholderData;
+  void options.placeholderData;
   return { data, singleData, error, hookKey, exactError, exactData };
 }
