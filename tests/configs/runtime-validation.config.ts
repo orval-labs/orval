@@ -88,4 +88,53 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // #4136/#4137: react-query and swr reuse the fetch request function but build
+  // their own import list, so the `Schema.parse()` it emits landed next to an
+  // `import type` and the `XOutput` alias naming the declared response type was
+  // never imported. The spec covers the named-schema, inline-array, named-array
+  // and primitive-array responses in one pass; `tests` typechecks everything
+  // under `generated/`, which is what turns the TS1361 into a failing build.
+  reactQueryFetchValidation: {
+    output: {
+      target:
+        '../generated/runtime-validation/react-query-fetch/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/react-query-fetch/model',
+        type: 'zod',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
+  swrFetchValidation: {
+    output: {
+      target: '../generated/runtime-validation/swr-fetch/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/swr-fetch/model',
+        type: 'zod',
+      },
+      client: 'swr',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
 });

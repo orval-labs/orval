@@ -13,6 +13,7 @@ import {
   type QueryOptions,
   rewriteImportsForResponseValidation,
 } from '@orval/core';
+import { getFetchResponseValidationImports } from '@orval/fetch';
 
 import { getQueryHeader } from './client';
 import {
@@ -100,81 +101,64 @@ export const generateQuery: ClientBuilder = async (
     queryVersion: verbOptions.override.query.version,
   });
 
+  // Every non-Angular framework delegates its request function to the fetch (or
+  // axios) generator, so what the response imports have to look like is that
+  // generator's answer to give — `override.query.runtimeValidation` only drives
+  // the Angular HttpClient pipeline built below (#4136, #4137).
+  const fetchValidationImports =
+    !adapter.isAngularHttp &&
+    options.context.output.httpClient === OutputHttpClient.FETCH
+      ? getFetchResponseValidationImports(verbOptions, options)
+      : undefined;
+
   const isZodOutput =
     typeof options.context.output.schemas === 'object' &&
     options.context.output.schemas.type === 'zod';
   const responseType = verbOptions.response.definition.success;
-  const hasValidatableResponse =
-    isZodOutput &&
-    !isPrimitiveResponseType(responseType) &&
-    hasSchemaImport(verbOptions.response.imports, responseType);
   // A custom mutator skips the generated parse entirely, so its schema
   // import stays type-only and no rewrite is needed.
   const shouldUseRuntimeValidation =
+    adapter.isAngularHttp &&
     verbOptions.override.query.runtimeValidation?.enabled &&
     !verbOptions.mutator &&
-    hasValidatableResponse;
-  // ...unless the fetch request function hands the schema to the mutator
-  // (`includeZodSchemaInArguments`), which needs it imported as a value.
-  // Mirrors the conditions the fetch generator emits `schema:` under.
-  const passesSchemaToMutator =
-    !!verbOptions.mutator &&
-    options.context.output.httpClient === OutputHttpClient.FETCH &&
-    options.context.output.override.includeZodSchemaInArguments &&
-    verbOptions.override.fetch.runtimeValidation.enabled &&
-    !verbOptions.response.contentTypes.some(
-      (contentType) =>
-        contentType === 'application/nd-json' ||
-        contentType === 'application/x-ndjson',
-    );
-  const shouldImportSchemaValue =
-    passesSchemaToMutator && hasValidatableResponse;
+    isZodOutput &&
+    !isPrimitiveResponseType(responseType) &&
+    hasSchemaImport(verbOptions.response.imports, responseType);
   // An inline array response resolves to `Item[]`, which the exact-name check
-  // above never matches. The Angular HttpClient request function validates it
-  // through `zod.array(Item)`, and the fetch request function hands that same
-  // expression to the mutator, so the element becomes the value import. Only
-  // the Angular parse contributes the `Output` alias (#3718, #4106).
+  // above never matches: the Angular HttpClient request function validates it
+  // through `zod.array(Item)`, so the element becomes the value import and
+  // contributes the `Output` alias (#3718, #4106).
   const responseArraySchema =
     isZodOutput &&
-    ((adapter.isAngularHttp &&
-      verbOptions.override.query.runtimeValidation?.enabled &&
-      !verbOptions.mutator) ||
-      passesSchemaToMutator)
+    adapter.isAngularHttp &&
+    verbOptions.override.query.runtimeValidation?.enabled &&
+    !verbOptions.mutator
       ? getArrayResponseSchema(verbOptions.response.imports, responseType)
       : undefined;
 
-  const normalizedVerbOptions =
-    shouldUseRuntimeValidation || shouldImportSchemaValue
-      ? {
-          ...verbOptions,
-          response: {
-            ...verbOptions.response,
-            imports: rewriteImportsForResponseValidation(
-              verbOptions.response.imports,
-              responseType,
-              // Only the Angular HttpClient request function switches its
-              // declared type to the `XOutput` alias (#3941); other frameworks
-              // delegate to their http-client generator.
-              {
-                includeOutputType:
-                  shouldUseRuntimeValidation && adapter.isAngularHttp,
-              },
-            ),
-          },
-        }
+  const validatedResponseImports = fetchValidationImports
+    ? fetchValidationImports.imports
+    : shouldUseRuntimeValidation
+      ? rewriteImportsForResponseValidation(
+          verbOptions.response.imports,
+          responseType,
+        )
       : responseArraySchema
-        ? {
-            ...verbOptions,
-            response: {
-              ...verbOptions.response,
-              imports: rewriteImportsForResponseValidation(
-                verbOptions.response.imports,
-                responseArraySchema.elementName,
-                { includeOutputType: !verbOptions.mutator },
-              ),
-            },
-          }
-        : verbOptions;
+        ? rewriteImportsForResponseValidation(
+            verbOptions.response.imports,
+            responseArraySchema.elementName,
+          )
+        : undefined;
+
+  const normalizedVerbOptions = validatedResponseImports
+    ? {
+        ...verbOptions,
+        response: {
+          ...verbOptions.response,
+          imports: validatedResponseImports,
+        },
+      }
+    : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = adapter.generateRequestFunction(
@@ -200,7 +184,7 @@ export const generateQuery: ClientBuilder = async (
     imports: [
       ...imports,
       ...hookImports,
-      ...(responseArraySchema
+      ...(responseArraySchema || fetchValidationImports?.composesZodArray
         ? [getZodNamespaceImport(options.context.output.override)]
         : []),
     ],

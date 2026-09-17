@@ -14,6 +14,7 @@ import {
   type GetterProps,
   GetterPropType,
   type GetterResponse,
+  getZodNamespaceImport,
   jsDoc,
   OutputHttpClient,
   pascal,
@@ -22,6 +23,7 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
+import { getFetchResponseValidationImports } from '@orval/fetch';
 
 import {
   AXIOS_DEPENDENCIES,
@@ -901,19 +903,39 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) => {
 };
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
-  const functionImplementation = generateSwrRequestFunction(
-    verbOptions,
-    options,
-  );
-  const hookImplementation = generateSwrHook(verbOptions, options);
-
   const isFetchHttpClient =
     options.context.output.httpClient !== OutputHttpClient.AXIOS;
+  // The request function is the fetch generator's, so the Zod references it
+  // emits decide which response imports have to become values (#4136, #4137).
+  const fetchValidationImports = isFetchHttpClient
+    ? getFetchResponseValidationImports(verbOptions, options)
+    : undefined;
+
+  const normalizedVerbOptions = fetchValidationImports
+    ? {
+        ...verbOptions,
+        response: {
+          ...verbOptions.response,
+          imports: fetchValidationImports.imports,
+        },
+      }
+    : verbOptions;
+
+  const imports = generateVerbImports(normalizedVerbOptions);
+  const functionImplementation = generateSwrRequestFunction(
+    normalizedVerbOptions,
+    options,
+  );
+  const hookImplementation = generateSwrHook(normalizedVerbOptions, options);
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
-    imports,
+    imports: [
+      ...imports,
+      ...(fetchValidationImports?.composesZodArray
+        ? [getZodNamespaceImport(options.context.output.override)]
+        : []),
+    ],
     ...(isFetchHttpClient && { docComment: '' }),
   };
 };

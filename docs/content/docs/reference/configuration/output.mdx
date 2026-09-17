@@ -1743,7 +1743,9 @@ Force a specific version for generated hooks.
 **Type:** `boolean | { strategy: 'throw' | 'both' }`
 **Default:** `false`
 
-Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
+Enable Zod runtime validation for `angular-query` responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
+
+This option only drives the Angular `HttpClient` pipeline that `angular-query` generates. `react-query`, `vue-query`, `svelte-query` and `solid-query` issue their requests through the fetch client, so they enable validation through `override.fetch.runtimeValidation` with `httpClient: 'fetch'` instead — as does `swr`.
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
@@ -2777,6 +2779,8 @@ Custom JSON reviver function (useful for date parsing).
 **Default:** `false`
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
+
+This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for primitive response types (`number`, `string`, `boolean`) and for ndjson streams, neither of which has a generated schema to parse against.
 
 The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 

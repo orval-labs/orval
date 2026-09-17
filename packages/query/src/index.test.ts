@@ -329,3 +329,171 @@ describe('generateQuery — angular-query runtimeValidation of an inline array r
     );
   });
 });
+
+describe('generateQuery — fetch runtimeValidation outside Angular (#4136, #4137)', () => {
+  const makeVerbOptions = ({
+    definition,
+    imports,
+    type,
+    runtimeValidation = true,
+  }: {
+    definition: string;
+    imports: { name: string }[];
+    type: string;
+    runtimeValidation?: boolean;
+  }): GeneratorVerbOptions =>
+    ({
+      verb: 'get',
+      route: '/items',
+      pathRoute: '/items',
+      operationId: 'listItems',
+      operationName: 'listItems',
+      typeName: 'listItems',
+      doc: '',
+      tags: [],
+      response: {
+        definition: { success: definition, errors: '' },
+        imports,
+        types: {
+          success: [
+            {
+              key: '200',
+              value: definition,
+              contentType: 'application/json',
+              hasReadonlyProps: false,
+              imports,
+              isEnum: false,
+              isRef: type !== 'array',
+              schemas: [],
+              type,
+              dependencies: [],
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+        schemas: [],
+        isBlob: false,
+      },
+      body: {
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: '',
+        isOptional: true,
+        originalSchema: {},
+        isBlob: false,
+      },
+      params: [],
+      props: [],
+      override: {
+        formData: { disabled: false, arrayHandling: 'serialize' },
+        formUrlEncoded: false,
+        requestOptions: true,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: {
+            enabled: runtimeValidation,
+            strategy: 'throw',
+          },
+        },
+        query: {
+          useQuery: true,
+          useMutation: false,
+          useInfinite: false,
+          useSuspenseQuery: false,
+          useSuspenseInfiniteQuery: false,
+          usePrefetch: false,
+          useInvalidate: false,
+          shouldExportKeys: true,
+          shouldExportHttpClient: true,
+          shouldExportMutatorHooks: true,
+          signal: false,
+          version: 5,
+        },
+      },
+      originalOperation: {},
+    }) as unknown as GeneratorVerbOptions;
+
+  const options = {
+    route: '/items',
+    pathRoute: '/items',
+    override: { operations: {} },
+    output: '',
+    context: createTestContextSpec({
+      output: {
+        client: OutputClient.REACT_QUERY,
+        httpClient: OutputHttpClient.FETCH,
+        schemas: { path: './model', type: 'zod', splitByTags: false },
+      },
+    }),
+  } as unknown as GeneratorOptions;
+
+  it('imports the schema as a value and the Output alias it declares', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions({
+        definition: 'Item',
+        imports: [{ name: 'Item' }],
+        type: 'object',
+      }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain('Item.parse(parsedBody)');
+    expect(implementation).toContain('): Promise<ItemOutput> =>');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'Item', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'ItemOutput' }),
+    );
+  });
+
+  it('imports the element schema and zod for an inline array response', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions({
+        definition: 'Item[]',
+        imports: [{ name: 'Item' }],
+        type: 'array',
+      }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain('zod.array(Item).parse(parsedBody)');
+    expect(implementation).toContain('): Promise<ItemOutput[]> =>');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'Item', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'ItemOutput' }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'zod', namespaceImport: true }),
+    );
+  });
+
+  it('keeps the schema import type-only when runtimeValidation is off', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions({
+        definition: 'Item',
+        imports: [{ name: 'Item' }],
+        type: 'object',
+        runtimeValidation: false,
+      }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).not.toContain('Item.parse(');
+    expect(imports).toContainEqual({ name: 'Item' });
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'ItemOutput' }),
+    );
+  });
+});
