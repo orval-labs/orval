@@ -289,15 +289,25 @@ export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };`;
 
   const handlersImplementation = [

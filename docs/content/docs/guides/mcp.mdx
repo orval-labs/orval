@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler
 
-By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and returns the body as `structuredContent` while the tool declares a matching `outputSchema`. The body is first validated with the operation's response schema, which drops fields that are not in the spec, so `structuredContent` always satisfies the declared schema. MCP requires both to be objects, so a plain JSON object is passed as is and any other body (array, primitive, union) is wrapped as `{ result: body }`. Empty responses get neither, and so do responses that contain `allOf` (or `oneOf` with sibling properties) anywhere: their JSON Schema becomes an `allOf` of closed objects that no value satisfies, which would make the tool unusable. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
+By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and returns the body as `structuredContent` while the tool declares a matching `outputSchema`. The body is first validated with the operation's response schema, which drops fields that are not in the spec, so `structuredContent` always satisfies the declared schema. When the body does not match the schema, the handler returns the raw body together with the validation error as an `isError` result, so the agent still sees what the API returned. MCP requires both to be objects, so a plain JSON object is passed as is and any other body (array, primitive, union) is wrapped as `{ result: body }`. Empty responses get neither, and so do responses that contain `allOf` (or `oneOf` with sibling properties) anywhere: their JSON Schema becomes an `allOf` of closed objects that no value satisfies, which would make the tool unusable. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -232,7 +232,7 @@ export const customHandler = async (
 
 `ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`.
 
-`toStructuredContent` validates the body with the operation's response schema, dropping fields that are not in the spec, and returns it as is when the response is a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`.
+`toStructuredContent` validates the body with the operation's response schema, dropping fields that are not in the spec, and returns it as is when the response is a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. It throws a `ZodError` when the body does not match the schema; catch it if you want to return the raw body alongside the error instead of the SDK's generic error result.
 
 <Callout type="info">
 Place the custom handler file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.

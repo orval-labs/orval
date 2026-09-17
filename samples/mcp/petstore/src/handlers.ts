@@ -72,15 +72,25 @@ export const filterPetsByStatusHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -111,15 +121,25 @@ export const findPetsByStatusHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -150,15 +170,25 @@ export const findPetsByTagsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -191,15 +221,25 @@ export const getPetByIdHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -237,15 +277,25 @@ export const updatePetWithFormHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -278,15 +328,25 @@ export const deletePetHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -312,15 +372,25 @@ export const getInventoryHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -353,15 +423,25 @@ export const getOrderByIdHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -394,15 +474,25 @@ export const deleteOrderHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -433,15 +523,25 @@ export const loginUserHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -467,15 +567,25 @@ export const logoutUserHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -508,15 +618,25 @@ export const getUserByNameHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -549,13 +669,23 @@ export const deleteUserHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };

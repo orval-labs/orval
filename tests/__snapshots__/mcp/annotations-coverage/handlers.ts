@@ -38,15 +38,25 @@ export const getThingsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export type createThingArgs = {
@@ -72,15 +82,25 @@ export const createThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export type replaceThingArgs = {
@@ -106,15 +126,25 @@ export const replaceThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export type patchThingArgs = {
@@ -140,15 +170,25 @@ export const patchThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export const deleteThingHandler = async (
@@ -169,15 +209,25 @@ export const deleteThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export const optionsThingsHandler = async (
@@ -198,15 +248,25 @@ export const optionsThingsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 export const headThingsHandler = async (
@@ -227,13 +287,23 @@ export const headThingsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };

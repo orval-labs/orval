@@ -46,15 +46,25 @@ export const listPetsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -85,15 +95,25 @@ export const createPetsHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -125,15 +145,25 @@ export const showPetByIdHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -165,15 +195,25 @@ export const deletePetByIdHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -198,15 +238,25 @@ export const healthCheckHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
 
 /**
@@ -238,13 +288,23 @@ export const showPetWithOwnerHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+
+  try {
+    return {
+      content: [{ type: 'text' as const, text }],
+      structuredContent: toStructuredContent(res.data),
+    };
+  } catch (error) {
+    return {
+      content: [
+        { type: 'text' as const, text },
+        {
+          type: 'text' as const,
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      isError: true,
+    };
+  }
 };
