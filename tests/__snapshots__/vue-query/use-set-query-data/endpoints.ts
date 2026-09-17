@@ -208,9 +208,10 @@ export const setListPetsQueryData = (
     | ((
         old: Awaited<ReturnType<typeof listPets>> | undefined,
       ) => Awaited<ReturnType<typeof listPets>> | undefined),
+  $exactMatch: boolean = true,
 ) => {
   queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
-    { queryKey: getListPetsQueryKey(params) },
+    { exact: $exactMatch, queryKey: getListPetsQueryKey(params) },
     updater,
   );
 };
@@ -505,9 +506,10 @@ export const setShowPetByIdQueryData = (
     | ((
         old: Awaited<ReturnType<typeof showPetById>> | undefined,
       ) => Awaited<ReturnType<typeof showPetById>> | undefined),
+  $exactMatch: boolean = true,
 ) => {
   queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
-    { queryKey: getShowPetByIdQueryKey(petId) },
+    { exact: $exactMatch, queryKey: getShowPetByIdQueryKey(petId) },
     updater,
   );
 };
@@ -760,9 +762,10 @@ export const setHealthCheckQueryData = (
     | ((
         old: Awaited<ReturnType<typeof healthCheck>> | undefined,
       ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
+  $exactMatch: boolean = true,
 ) => {
   queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
-    { queryKey: getHealthCheckQueryKey() },
+    { exact: $exactMatch, queryKey: getHealthCheckQueryKey() },
     updater,
   );
 };
@@ -915,9 +918,10 @@ export const setShowPetWithOwnerQueryData = (
     | ((
         old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
       ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
+  $exactMatch: boolean = true,
 ) => {
   queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
-    { queryKey: getShowPetWithOwnerQueryKey(petId) },
+    { exact: $exactMatch, queryKey: getShowPetWithOwnerQueryKey(petId) },
     updater,
   );
 };

@@ -298,6 +298,11 @@ export const resolveUseSkipToken = (
  * setter) or a plain function taking `queryClient`. Both shapes share the
  * same body and signature, so this collapses what would otherwise be two
  * near-identical template literals.
+ *
+ * A trailing `$exactMatch: boolean = true` parameter is emitted here, after
+ * `propsSig`, so both shapes stay in sync; `body` is expected to read it (as
+ * `{ exact: $exactMatch, ... }`). The `$` prefix keeps it from colliding with
+ * a spec-derived prop name.
  */
 const renderSetQueryDataHelper = ({
   doc,
@@ -316,12 +321,12 @@ const renderSetQueryDataHelper = ({
   if (isReactQuery) {
     return `${docPrefix}export const ${fnName} = () => {
   const queryClient = useQueryClient();
-  return (${propsSig}) => {
+  return (${propsSig}, $exactMatch: boolean = true) => {
     ${body}
   };
 }\n`;
   }
-  return `${docPrefix}export const ${fnName} = (queryClient: QueryClient, ${propsSig}) => {
+  return `${docPrefix}export const ${fnName} = (queryClient: QueryClient, ${propsSig}, $exactMatch: boolean = true) => {
   ${body}
 }\n`;
 };
@@ -1043,12 +1048,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   // that any user-applied prefix (e.g. tenant) is honoured. Without this,
   // `setQueriesData` and `invalidateQueries` would target different keys.
   const setQueryDataKeyExpr = applyQueryOptionsMutator(buildBaseQueryKeyExpr());
-  // `setQueriesData` matches by query-key prefix, so non-path props (query
+  // `setQueriesData` can match by query-key prefix, so non-path props (query
   // params, body) are widened to `T | undefined` — passing `undefined`
-  // updates every cached entry sharing the path prefix, matching what
-  // `getXxxQueryKey()` already allows. `T | undefined` is used instead of
-  // `?:` because the `updater` parameter follows and TS1016 forbids a
-  // required parameter after an optional one.
+  // together with `$exactMatch: false` updates every cached entry sharing the
+  // path prefix, matching what `getXxxQueryKey()` already allows. Note the
+  // helper defaults to `$exactMatch: true`, so `undefined` on its own matches
+  // only the entry cached without that argument. `T | undefined` is used
+  // instead of `?:` because the `updater` parameter follows and TS1016
+  // forbids a required parameter after an optional one.
   const setQueryDataProps = buildKeyShapedProps({
     props,
     body,
@@ -1137,7 +1144,7 @@ ${
         isReactQuery,
         fnName: setQueryDataFnName,
         propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)`,
-        body: `queryClient.setQueriesData<${TData}>({ queryKey: ${setQueryDataKeyExpr} }, updater);`,
+        body: `queryClient.setQueriesData<${TData}>({ exact: $exactMatch, queryKey: ${setQueryDataKeyExpr} }, updater);`,
       })
     : ''
 }

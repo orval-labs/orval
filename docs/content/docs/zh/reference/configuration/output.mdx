@@ -1241,7 +1241,7 @@ export default defineConfig({
 
 生成类型安全的 helper，用于通过 [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) 更新缓存中的 query data。
 
-Query keys 通过前缀匹配，因此 query params 和 body 参数会被放宽为可接受 `undefined`。传入 `undefined` 时，会更新所有共享同一路径的缓存条目。
+这些 helper 的最后一个参数是 `$exactMatch`，默认值为 `true`，因此默认只会更新 query key 完全一致的那一条缓存。query params 和 body 参数会被放宽为可接受 `undefined`：同时传入 `undefined` 与 `$exactMatch: false` 时，会更新所有共享同一路径前缀的缓存条目。
 
 ### useGetQueryData
 
