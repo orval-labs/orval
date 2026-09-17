@@ -573,6 +573,7 @@ export const generateMutationHook = async ({
     httpClient,
     mutator,
     override.fetch.forceSuccessResponse,
+    override.fetch.includeHttpErrorResponse,
   );
 
   const operationReferenceName = getMutationOperationReferenceName(

@@ -23,6 +23,7 @@ import {
   getHooksOptionImplementation,
   getQueryArgumentsRequestType,
   getQueryHeader,
+  getQueryErrorType,
   getQueryOptions,
   getSignalDefinition,
 } from './client';
@@ -1329,5 +1330,67 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
 
     expect(implementation).toContain('): Promise<Pets> =>');
     expect(implementation).not.toContain('PetsOutput');
+  });
+});
+
+describe('getQueryErrorType with response envelopes', () => {
+  const response = {
+    definition: { success: 'Pet', errors: 'NotFound | Invalid' },
+    types: { success: [], errors: [{ key: '404' }, { key: '422' }] },
+  } as unknown as GeneratorVerbOptions['response'];
+  const mutator = { hasErrorType: true, default: false } as GeneratorMutator;
+
+  it('keeps body unions by default', () => {
+    expect(
+      getQueryErrorType(
+        'ListPets',
+        response,
+        OutputHttpClient.FETCH,
+        mutator,
+        true,
+      ),
+    ).toBe('ErrorType<NotFound | Invalid>');
+  });
+
+  it.each([false, true])(
+    'passes the response union with default export %s',
+    (isDefault) => {
+      expect(
+        getQueryErrorType(
+          'ListPets',
+          response,
+          OutputHttpClient.FETCH,
+          { ...mutator, default: isDefault },
+          true,
+          true,
+        ),
+      ).toBe(`${isDefault ? 'ListPets' : ''}ErrorType<ListPetsResponseError>`);
+    },
+  );
+
+  it('uses never when no error responses are declared', () => {
+    expect(
+      getQueryErrorType(
+        'Health',
+        { ...response, types: { success: [], errors: [] } },
+        OutputHttpClient.FETCH,
+        mutator,
+        true,
+        true,
+      ),
+    ).toBe('ErrorType<never>');
+  });
+
+  it('does not change axios error types', () => {
+    expect(
+      getQueryErrorType(
+        'ListPets',
+        response,
+        OutputHttpClient.AXIOS,
+        mutator,
+        true,
+        true,
+      ),
+    ).toBe('ErrorType<NotFound | Invalid>');
   });
 });

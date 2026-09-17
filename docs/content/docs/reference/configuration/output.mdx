@@ -2685,6 +2685,59 @@ produce `status: 200` and `status: Exclude<HTTPStatusCode2xx, 200>`.
 
 Throw on error responses instead of returning them.
 
+### includeHttpErrorResponse
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Pass operation-specific error response information to a custom fetch mutator. Requires `includeHttpResponseReturnType: true`, `forceSuccessResponse: true`, and a non-hook mutator accepting three arguments.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    input: './openapi.yaml',
+    output: {
+      target: './api.ts',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: { path: './mutator.ts', name: 'customFetch' },
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: true,
+          includeHttpErrorResponse: true,
+        },
+      },
+    },
+  },
+});
+```
+
+For Query clients, a mutator exporting `ErrorType<T>` receives the generated error response union as `T`, preserving the relationship between `status` and `data` for both queries and mutations:
+
+```ts
+// With this option enabled:
+type GetItemQueryError = ErrorType<GetItemResponseError>;
+// Without it, T remains the union of error response bodies.
+```
+
+Operations with no declared error responses pass `never` to `ErrorType`, so the mutator can still add transport or unexpected-response errors to its error type.
+
+At runtime, the generated function passes the declared error statuses and media types in a separate third argument:
+
+```ts
+customFetch(url, options, {
+  errorResponses: [
+    { status: 404, contentType: 'application/json' },
+    { status: 422, contentType: 'application/json' },
+  ],
+});
+```
+
+The mutator's third parameter can use `{ errorResponses: readonly { status: number; contentType: string }[] }`. The list respects `override.contentType` and is empty when no errors are declared. Responses without a body use an empty `contentType`. The second argument remains the request options, including `schema` when `includeZodSchemaInArguments` is enabled.
+
+The mutator owns parsing, validation, and error handling. Matching the supplied status and media type does not validate the response body. Named and default mutator exports are supported; hook mutators are not. Only explicit error status codes are supported among the responses retained by `override.contentType`. A retained `default` or range such as `4XX` causes generation to fail. Responses excluded by the filter are omitted from both the generated error types and metadata and do not prevent generation.
+
 ### serializeResponseHeaders
 
 **Type:** `Boolean`
