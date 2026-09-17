@@ -41,7 +41,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 

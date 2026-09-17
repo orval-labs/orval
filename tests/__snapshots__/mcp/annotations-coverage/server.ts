@@ -22,7 +22,7 @@ import {
   headThingsHandler,
 } from './handlers';
 import {
-  GetThingsResponse,
+  GetThingsOutput,
   CreateThingBody,
   ReplaceThingBody,
   PatchThingBody,
@@ -40,7 +40,7 @@ const createMcpServer = (
   tools.getThings = server.registerTool(
     'getThings',
     {
-      outputSchema: { result: GetThingsResponse },
+      outputSchema: GetThingsOutput,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -51,7 +51,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        (data: unknown) => ({ result: GetThingsResponse.parse(data) }),
+        (data: unknown) => GetThingsOutput.safeParse({ result: data }),
       ),
   );
 
@@ -72,7 +72,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -93,7 +93,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -114,7 +114,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -131,7 +131,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -148,7 +148,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -165,7 +165,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 

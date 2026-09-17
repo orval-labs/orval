@@ -261,7 +261,7 @@ ${handlerArgsTypes.join('\n')}
   const customHandler = options.override.mcp.handler;
   const handlerImplementation = customHandler
     ? `
-export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>, toStructuredContent: (data: unknown) => Record<string, unknown> | undefined) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>, toStructuredContent: (data: unknown) => { success: true; data: Record<string, unknown> | undefined } | { success: false; error: { message: string } }) => {
   const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{
     ...options,
     ...overrides,
@@ -274,7 +274,7 @@ export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit
   return ${customHandler.name ?? 'customHandler'}(fetcher, ctx, toStructuredContent);
 };`
     : `
-export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, toStructuredContent: (data: unknown) => Record<string, unknown> | undefined) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, toStructuredContent: (data: unknown) => { success: true; data: Record<string, unknown> | undefined } | { success: false; error: { message: string } }) => {
   const res = await ${verbOptions.operationName}(${fetchArgs}options);
 
   if (res.status >= 400) {
@@ -290,24 +290,17 @@ export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? { content: [{ type: 'text' as const, text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };`;
 
   const handlersImplementation = [
@@ -355,20 +348,22 @@ export const generateServer = (
           ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      // `outputSchema` and `toStructuredContent` are derived together so the
+      // `outputSchema` and `toStructuredContent` use the same schema so the
       // structured content always matches the declared schema. Parsing drops
       // fields that are not in the spec, which the SDK's JSON Schema rejects.
-      const responseSchema = `${pascalOperationName}Response`;
-      const outputSchemaImplementation = hasResponseSchema(verbOption, context)
+      const outputSchema = hasResponseSchema(verbOption, context)
         ? isObjectResponseSchema(verbOption, context)
-          ? `\n    outputSchema: ${responseSchema},`
-          : `\n    outputSchema: { result: ${responseSchema} },`
+          ? `${pascalOperationName}Response`
+          : `${pascalOperationName}Output`
+        : undefined;
+      const outputSchemaImplementation = outputSchema
+        ? `\n    outputSchema: ${outputSchema},`
         : '';
-      const toStructuredContent = hasResponseSchema(verbOption, context)
-        ? isObjectResponseSchema(verbOption, context)
-          ? `(data: unknown) => ${responseSchema}.parse(data)`
-          : `(data: unknown) => ({ result: ${responseSchema}.parse(data) })`
-        : '() => undefined';
+      const toStructuredContent = !outputSchema
+        ? '() => ({ success: true as const, data: undefined })'
+        : isObjectResponseSchema(verbOption, context)
+          ? `(data: unknown) => ${outputSchema}.safeParse(data)`
+          : `(data: unknown) => ${outputSchema}.safeParse({ result: data })`;
 
       const annotationsValue = getAnnotations(verbOption.verb);
       const annotationsImplementation = annotationsValue
@@ -425,7 +420,9 @@ tools.${verbOption.operationName} = server.registerTool(
       if (verbOption.body.definition)
         imports.push(`  ${pascalOperationName}Body`);
       if (hasResponseSchema(verbOption, context))
-        imports.push(`  ${pascalOperationName}Response`);
+        imports.push(
+          `  ${pascalOperationName}${isObjectResponseSchema(verbOption, context) ? 'Response' : 'Output'}`,
+        );
 
       return imports;
     })
@@ -552,6 +549,23 @@ const generateZodFiles = async (
   const zodPath = path.join(dirname, `tool-schemas.zod${extension}`);
 
   content += zods.map((zod) => zod.implementation).join('\n');
+
+  // Non-object responses are exposed to MCP wrapped as `{ result }`; the
+  // wrapping schema is emitted here so server.ts can use it for both
+  // `outputSchema` and `structuredContent` validation.
+  const outputs = Object.values(verbOptions)
+    .filter(
+      (verbOption) =>
+        hasResponseSchema(verbOption, context) &&
+        !isObjectResponseSchema(verbOption, context),
+    )
+    .map(
+      (verbOption) =>
+        `export const ${pascal(verbOption.typeName)}Output = zod.object({ result: ${pascal(verbOption.typeName)}Response });`,
+    );
+  if (outputs.length > 0) {
+    content += `\n${outputs.join('\n\n')}\n`;
+  }
 
   return [
     {

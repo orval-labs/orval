@@ -30,7 +30,11 @@ export type listPetsArgs = {
 export const listPetsHandler = async (
   args: listPetsArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await listPets(args.queryParams, options);
 
@@ -47,24 +51,20 @@ export const listPetsHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 /**
@@ -79,7 +79,11 @@ export type createPetsArgs = {
 export const createPetsHandler = async (
   args: createPetsArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await createPets(args.bodyParams, args.queryParams, options);
 
@@ -96,24 +100,20 @@ export const createPetsHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 /**
@@ -129,7 +129,11 @@ export type showPetByIdArgs = {
 export const showPetByIdHandler = async (
   args: showPetByIdArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await showPetById(args.pathParams.petId, options);
 
@@ -146,24 +150,20 @@ export const showPetByIdHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 /**
@@ -179,7 +179,11 @@ export type deletePetByIdArgs = {
 export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await deletePetById(args.pathParams.petId, options);
 
@@ -196,24 +200,20 @@ export const deletePetByIdHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 /**
@@ -222,7 +222,11 @@ export const deletePetByIdHandler = async (
 
 export const healthCheckHandler = async (
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await healthCheck(options);
 
@@ -239,24 +243,20 @@ export const healthCheckHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 /**
@@ -272,7 +272,11 @@ export type showPetWithOwnerArgs = {
 export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await showPetWithOwner(args.pathParams.petId, options);
 
@@ -289,22 +293,18 @@ export const showPetWithOwnerHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };

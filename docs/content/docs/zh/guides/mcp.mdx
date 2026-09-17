@@ -153,7 +153,11 @@ export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
@@ -174,13 +178,13 @@ tools.findPetsByStatus = server.registerTool(
   'findPetsByStatus',
   {
     inputSchema: { queryParams: FindPetsByStatusQueryParams },
-    outputSchema: { result: FindPetsByStatusResponse },
+    outputSchema: FindPetsByStatusOutput,
     annotations: { readOnlyHint: true },
   },
   (args, ctx) =>
-    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) => ({
-      result: FindPetsByStatusResponse.parse(data),
-    })),
+    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) =>
+      FindPetsByStatusOutput.safeParse({ result: data }),
+    ),
 );
 ```
 
@@ -199,7 +203,11 @@ export const customHandler = async (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
     headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
@@ -221,10 +229,18 @@ export const customHandler = async (
     };
   }
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 
@@ -232,7 +248,7 @@ export const customHandler = async (
 
 `ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。
 
-`toStructuredContent` 会用该操作的响应 schema 校验响应体并移除 spec 中不存在的字段；在响应是普通对象时原样返回，对其他响应返回 `{ result: body }`，在工具未声明 `outputSchema` 时返回 `undefined`。当响应体不符合 schema 时它会抛出 `ZodError`；如果你希望连同原始响应体一起返回错误而不是 SDK 的通用错误结果，请自行捕获。
+`toStructuredContent` 会用该操作的响应 schema 校验响应体并返回 `safeParse` 的结果。成功时，`data` 在响应是普通对象时为原样的响应体（spec 中不存在的字段已移除），对其他响应为 `{ result: body }`，在工具未声明 `outputSchema` 时为 `undefined`。失败时，`error.message` 描述了不匹配之处；请连同原始响应体一起返回，这样 Agent 仍然能看到 API 实际返回的内容。
 
 <Callout type="info">
 请把自定义 handler 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。

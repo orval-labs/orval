@@ -153,7 +153,11 @@ export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
@@ -174,13 +178,13 @@ tools.findPetsByStatus = server.registerTool(
   'findPetsByStatus',
   {
     inputSchema: { queryParams: FindPetsByStatusQueryParams },
-    outputSchema: { result: FindPetsByStatusResponse },
+    outputSchema: FindPetsByStatusOutput,
     annotations: { readOnlyHint: true },
   },
   (args, ctx) =>
-    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) => ({
-      result: FindPetsByStatusResponse.parse(data),
-    })),
+    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) =>
+      FindPetsByStatusOutput.safeParse({ result: data }),
+    ),
 );
 ```
 
@@ -199,7 +203,11 @@ export const customHandler = async (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
     headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
@@ -221,10 +229,18 @@ export const customHandler = async (
     };
   }
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 
@@ -232,7 +248,7 @@ export const customHandler = async (
 
 `ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`.
 
-`toStructuredContent` validates the body with the operation's response schema, dropping fields that are not in the spec, and returns it as is when the response is a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. It throws a `ZodError` when the body does not match the schema; catch it if you want to return the raw body alongside the error instead of the SDK's generic error result.
+`toStructuredContent` validates the body with the operation's response schema and returns the `safeParse` result. On success, `data` is the body as is when the response is a plain object (with fields that are not in the spec dropped), `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. On failure, `error.message` describes the mismatch; return it together with the raw body so the agent still sees what the API returned.
 
 <Callout type="info">
 Place the custom handler file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.

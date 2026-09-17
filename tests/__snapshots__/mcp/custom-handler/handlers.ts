@@ -38,7 +38,11 @@ export const listPetsHandler = async (
   args: listPetsArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     listPets(args.queryParams, {
@@ -66,7 +70,11 @@ export const createPetsHandler = async (
   args: createPetsArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     createPets(args.bodyParams, args.queryParams, {
@@ -95,7 +103,11 @@ export const showPetByIdHandler = async (
   args: showPetByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetById(args.pathParams.petId, {
@@ -124,7 +136,11 @@ export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deletePetById(args.pathParams.petId, {
@@ -146,7 +162,11 @@ export const deletePetByIdHandler = async (
 export const healthCheckHandler = async (
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     healthCheck({
@@ -175,7 +195,11 @@ export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetWithOwner(args.pathParams.petId, {

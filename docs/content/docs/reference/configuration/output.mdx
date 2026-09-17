@@ -2572,7 +2572,7 @@ export const customServer = (
 
 **Type:** `Object`
 
-Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function built in `server.ts` for that operation. It validates the body with the response schema (dropping fields that are not in the spec) and returns it as is for a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. The return value is used as the tool result as is.
+Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function built in `server.ts` for that operation. It validates the body with the response schema and returns the `safeParse` result: on success `data` is the body as is for a plain object (fields not in the spec dropped), `{ result: body }` for any other response, or `undefined` when the tool declares no `outputSchema`; on failure `error.message` describes the mismatch. The return value is used as the tool result as is.
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -2587,7 +2587,11 @@ export const customHandler = async (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher();
 
@@ -2598,10 +2602,18 @@ export const customHandler = async (
     };
   }
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 

@@ -26,7 +26,7 @@ import {
   CreatePetsBody,
   ShowPetByIdParams,
   DeletePetByIdParams,
-  HealthCheckResponse,
+  HealthCheckOutput,
   ShowPetWithOwnerParams,
 } from './tool-schemas.zod';
 
@@ -59,7 +59,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -84,7 +84,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -108,7 +108,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -132,7 +132,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -141,7 +141,7 @@ const createMcpServer = (
     {
       title: 'health check',
       description: 'health check',
-      outputSchema: { result: HealthCheckResponse },
+      outputSchema: HealthCheckOutput,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -153,7 +153,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        (data: unknown) => ({ result: HealthCheckResponse.parse(data) }),
+        (data: unknown) => HealthCheckOutput.safeParse({ result: data }),
       ),
   );
 
@@ -177,7 +177,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 

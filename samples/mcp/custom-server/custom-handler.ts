@@ -10,11 +10,16 @@ export const customHandler = async (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
     headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
   });
+  const text = JSON.stringify(res.data ?? null);
 
   if (res.status >= 400) {
     return {
@@ -32,8 +37,15 @@ export const customHandler = async (
     };
   }
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(res.data ?? null) }],
-    structuredContent: toStructuredContent(res.data),
-  };
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };

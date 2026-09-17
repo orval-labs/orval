@@ -17,7 +17,11 @@ export type addArgs = {
 export const addHandler = async (
   args: addArgs,
   options: RequestInit,
-  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await add(args.bodyParams, options);
 
@@ -34,22 +38,18 @@ export const addHandler = async (
   }
 
   const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  try {
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: toStructuredContent(res.data),
-    };
-  } catch (error) {
-    return {
-      content: [
-        { type: 'text' as const, text },
-        {
-          type: 'text' as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };

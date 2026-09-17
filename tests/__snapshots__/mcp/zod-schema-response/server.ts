@@ -26,7 +26,7 @@ import {
   CreatePetsBody,
   ShowPetByIdParams,
   DeletePetByIdParams,
-  HealthCheckResponse,
+  HealthCheckOutput,
   ShowPetWithOwnerParams,
 } from './tool-schemas.zod';
 
@@ -58,7 +58,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -82,7 +82,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -105,7 +105,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -128,7 +128,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -137,7 +137,7 @@ const createMcpServer = (
     {
       title: 'health check',
       description: 'health check',
-      outputSchema: { result: HealthCheckResponse },
+      outputSchema: HealthCheckOutput,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -148,7 +148,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        (data: unknown) => ({ result: HealthCheckResponse.parse(data) }),
+        (data: unknown) => HealthCheckOutput.safeParse({ result: data }),
       ),
   );
 
@@ -171,7 +171,7 @@ const createMcpServer = (
             ? AbortSignal.any([options.signal, ctx.signal])
             : ctx.signal,
         },
-        () => undefined,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
