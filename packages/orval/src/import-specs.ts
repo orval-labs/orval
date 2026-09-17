@@ -337,33 +337,100 @@ function isNonNullableObjectSchema(value: unknown): boolean {
 // ─── Residual OpenAPI 3.0 syntax normalization (#4115) ─────────────────────
 
 /**
- * Keys whose value is a map of *named* subschemas. A key inside one of these is
- * an arbitrary name — a property name, a definition name — and never a schema
- * keyword, so a property called `default` is a schema to normalize and not a
- * default value to leave alone.
+ * What kind of node the traversal is standing on.
+ *
+ * Everything this pass rewrites is a Schema Object keyword, so the rules may
+ * only run on a `schema`. The distinction matters in both directions: a key
+ * spelled `nullable` is a keyword on a schema but a member name inside
+ * `properties`, and a key spelled `default` is a data value on a schema but a
+ * status code inside `responses`. Tracking the kind structurally, rather than
+ * guessing from the spelling of a path segment, is the only way to tell them
+ * apart — a schema can have a property named `content`, `responses` or
+ * `example` just as legitimately as it can have one named `id`.
  */
-const NAMED_SCHEMA_MAP_KEYS = new Set([
-  'properties',
-  'patternProperties',
+type NodeKind =
+  /** A Schema Object. The rules below apply here and nowhere else. */
+  | 'schema'
+  /** A map of names to Schema Objects (`properties`, `$defs`, `schemas`). */
+  | 'schemaMap'
+  /** A map of names to non-schema OpenAPI objects (`responses`, `content`). */
+  | 'oasMap'
+  /** Any other OpenAPI object, whose field names are fixed by the spec. */
+  | 'oas';
+
+/** Schema keywords holding a map of named subschemas. */
+const SCHEMA_MAP_KEYWORDS = new Set([
   '$defs',
   'definitions',
+  'dependentSchemas',
+  'patternProperties',
+  'properties',
+]);
+
+/** Schema keywords holding a subschema, or an array of them. */
+const SUBSCHEMA_KEYWORDS = new Set([
+  'additionalItems',
+  'additionalProperties',
+  'allOf',
+  'anyOf',
+  'contains',
+  'else',
+  'if',
+  'items',
+  'not',
+  'oneOf',
+  'prefixItems',
+  'propertyNames',
+  'then',
+  'unevaluatedItems',
+  'unevaluatedProperties',
 ]);
 
 /**
- * Keywords whose value is arbitrary user data rather than a schema. Nothing
- * below them may be rewritten: an `example` payload that happens to carry a
- * `nullable` key is data the API really returns, not 3.0 syntax.
+ * OpenAPI fields holding a map keyed by an arbitrary name — a status code, a
+ * media type, a header name, a path. Their keys are never keywords, so a
+ * `default` response or a header called `example` must still be traversed.
  */
-const DATA_KEYWORDS = new Set([
-  'example',
-  'examples',
-  'default',
-  'const',
-  'enum',
+const OAS_MAP_KEYWORDS = new Set([
+  'callbacks',
+  'content',
+  'encoding',
+  'headers',
+  'links',
+  'mapping',
+  'parameters',
+  'pathItems',
+  'paths',
+  'requestBodies',
+  'responses',
+  'scopes',
+  'securitySchemes',
+  'variables',
+  'webhooks',
 ]);
 
+/**
+ * Schema keywords whose value is arbitrary user data. Nothing below them may be
+ * rewritten: an `example` payload that happens to carry a `nullable` key is
+ * data the API really returns, not 3.0 syntax.
+ */
+const SCHEMA_DATA_KEYWORDS = new Set([
+  'const',
+  'default',
+  'enum',
+  'example',
+  'examples',
+]);
+
+/**
+ * The same, for the non-schema objects that also carry data: a Parameter,
+ * Header or Media Type Object has `example`/`examples`, and
+ * `components/examples` is a map of Example Objects that holds no schemas.
+ */
+const OAS_DATA_KEYWORDS = new Set(['example', 'examples']);
+
 /** The `format` values 3.1 replaced with `contentMediaType`/`contentEncoding`. */
-const CONTENT_FORMATS = new Set(['binary', 'base64', 'byte']);
+const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
 
 /**
  * Close the OpenAPI 3.0 syntax `upgrade()` leaves behind, so the document handed
@@ -393,42 +460,135 @@ const CONTENT_FORMATS = new Set(['binary', 'base64', 'byte']);
  * Runs *after* `upgrade()`, unlike {@link normalizeNullableRefs}, which has to go
  * first to keep its diagnostic. Nothing here warns: these specs were valid 3.0,
  * and the loss is the upgrader's, not the author's.
+ *
+ * @param spec - Node to normalize, mutated in place where possible.
+ * @param kind - What `spec` is. Defaults to a whole OpenAPI document; pass
+ *   `'schema'` to normalize a bare Schema Object.
  */
 export function normalizeToOpenApi31(
   spec: unknown,
-  path: string[] = [],
+  kind: NodeKind = 'oas',
 ): unknown {
-  if (Array.isArray(spec)) {
-    return spec.map((item, i) => normalizeToOpenApi31(item, [...path, i + '']));
+  return normalizeNode(spec, { kind });
+}
+
+interface NodeContext {
+  kind: NodeKind;
+  /** Whether an `oasMap` is a Content Object, whose keys are media types. */
+  isContent?: boolean;
+  /** Media type of the enclosing Media Type Object, for `format: 'byte'`. */
+  mediaType?: string;
+}
+
+function normalizeNode(node: unknown, context: NodeContext): unknown {
+  if (Array.isArray(node)) {
+    const memberContext = arrayMemberContext(context);
+    return node.map((item) => normalizeNode(item, memberContext));
   }
 
-  if (!isObject(spec)) {
-    return spec;
+  if (!isObject(node)) {
+    return node;
   }
 
-  const obj = normalizeSchemaNode(spec as Record<string, unknown>, path);
+  // The rules are Schema Object keywords, so they run on a schema and nowhere
+  // else. On a map of names they would consume member names: a property called
+  // `nullable` is a field the API has, not a keyword to resolve.
+  const obj =
+    context.kind === 'schema'
+      ? normalizeSchemaNode(node as Record<string, unknown>, context.mediaType)
+      : (node as Record<string, unknown>);
 
-  // A data keyword's value is skipped, but only where the keyword is really a
-  // keyword: inside a named-schema map the same word is a member name.
-  const inNamedSchemaMap = isNamedSchemaMap(path);
   for (const [key, value] of Object.entries(obj)) {
-    if (DATA_KEYWORDS.has(key) && !inNamedSchemaMap) {
+    if (holdsData(context.kind, key)) {
       continue;
     }
-    obj[key] = normalizeToOpenApi31(value, [...path, key]);
+    obj[key] = normalizeNode(value, childContext(context, key));
   }
 
   return obj;
 }
 
-/** Apply every 3.0-residue rule to one node. May return a replacement node. */
+/**
+ * Whether `key` names arbitrary user data rather than a schema. Only true where
+ * the key is really a keyword — inside a map the same word is a name, which is
+ * what keeps a `default` response and a header called `example` reachable.
+ */
+function holdsData(kind: NodeKind, key: string): boolean {
+  if (kind === 'schema') {
+    return SCHEMA_DATA_KEYWORDS.has(key);
+  }
+  if (kind === 'oas') {
+    return OAS_DATA_KEYWORDS.has(key);
+  }
+  return false;
+}
+
+/** What the members of an array at this position are. */
+function arrayMemberContext(context: NodeContext): NodeContext {
+  switch (context.kind) {
+    // `allOf` and friends arrive here already marked as schema positions.
+    case 'schema':
+    case 'schemaMap': {
+      return { ...context, kind: 'schema' };
+    }
+    // `parameters` is an array on an Operation and a map under `components`;
+    // either way its members are Parameter Objects.
+    default: {
+      return { ...context, kind: 'oas' };
+    }
+  }
+}
+
+/** What the value held under `key` is, given what the current node is. */
+function childContext(context: NodeContext, key: string): NodeContext {
+  switch (context.kind) {
+    case 'schemaMap': {
+      return { ...context, kind: 'schema' };
+    }
+
+    case 'oasMap': {
+      // A Content Object is keyed by media type, which `format: 'byte'` needs.
+      // It stays on the context so a schema nested below still sees it.
+      return context.isContent
+        ? { kind: 'oas', mediaType: key }
+        : { ...context, kind: 'oas', isContent: false };
+    }
+
+    case 'schema': {
+      if (SCHEMA_MAP_KEYWORDS.has(key)) {
+        return { ...context, kind: 'schemaMap', isContent: false };
+      }
+      if (SUBSCHEMA_KEYWORDS.has(key)) {
+        return { ...context, kind: 'schema', isContent: false };
+      }
+      // `discriminator`, `xml`, `externalDocs`, `x-` extensions: no schemas of
+      // their own, and not data either.
+      return { ...context, kind: 'oas', isContent: false };
+    }
+
+    default: {
+      if (key === 'schema') {
+        return { ...context, kind: 'schema', isContent: false };
+      }
+      if (key === 'schemas') {
+        return { ...context, kind: 'schemaMap', isContent: false };
+      }
+      if (OAS_MAP_KEYWORDS.has(key)) {
+        return { ...context, kind: 'oasMap', isContent: key === 'content' };
+      }
+      return { ...context, kind: 'oas', isContent: false };
+    }
+  }
+}
+
+/** Apply every 3.0-residue rule to one schema. May return a replacement node. */
 function normalizeSchemaNode(
   obj: Record<string, unknown>,
-  path: string[],
+  mediaType: string | undefined,
 ): Record<string, unknown> {
   const withoutNullable = resolveNullable(obj);
   widenEnumForNullableType(withoutNullable);
-  convertContentFormat(withoutNullable, path);
+  convertContentFormat(withoutNullable, mediaType);
   normalizeExclusiveBounds(withoutNullable);
   return withoutNullable;
 }
@@ -535,7 +695,7 @@ function widenEnumForNullableType(obj: Record<string, unknown>): void {
  */
 function convertContentFormat(
   obj: Record<string, unknown>,
-  path: string[],
+  mediaType: string | undefined,
 ): void {
   if (!isString(obj.format) || !CONTENT_FORMATS.has(obj.format)) {
     return;
@@ -558,11 +718,8 @@ function convertContentFormat(
 
   // `byte` was base64 *of* the surrounding media type, so carry that over when
   // the schema sits under a Media Type Object.
-  if (format === 'byte') {
-    const mediaType = path[path.indexOf('content') + 1];
-    if (path.includes('content') && mediaType !== undefined) {
-      obj.contentMediaType = mediaType;
-    }
+  if (format === 'byte' && mediaType !== undefined) {
+    obj.contentMediaType = mediaType;
   }
 }
 
@@ -604,18 +761,6 @@ function normalizeExclusiveBounds(obj: Record<string, unknown>): void {
 
 function isNullBranch(value: unknown): boolean {
   return isObject(value) && (value as Record<string, unknown>).type === 'null';
-}
-
-/** Whether the node at `path` is a map of named subschemas rather than a schema. */
-function isNamedSchemaMap(path: string[]): boolean {
-  const last = path.at(-1);
-  if (last === undefined) {
-    return false;
-  }
-  if (last === 'schemas' && path.at(-2) === 'components') {
-    return true;
-  }
-  return NAMED_SCHEMA_MAP_KEYS.has(last);
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────

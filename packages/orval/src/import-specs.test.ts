@@ -3532,7 +3532,7 @@ describe('normalizeNullableRefs', () => {
 
 describe('normalizeToOpenApi31', () => {
   const normalize = (input: unknown) =>
-    normalizeToOpenApi31(input) as Record<string, unknown>;
+    normalizeToOpenApi31(input, 'schema') as Record<string, unknown>;
 
   describe('residual `nullable` left behind by the upgrader', () => {
     it('should append a null branch to a nullable anyOf', () => {
@@ -3719,13 +3719,13 @@ describe('normalizeToOpenApi31', () => {
     });
 
     it('should carry the enclosing media type onto a converted format: byte', () => {
-      const result = normalize({
+      const result = normalizeToOpenApi31({
         content: {
           'image/png': {
             schema: { type: ['string', 'null'], format: 'byte' },
           },
         },
-      });
+      }) as Record<string, unknown>;
       expect(
         (result.content as Record<string, Record<string, unknown>>)['image/png']
           .schema,
@@ -4069,6 +4069,108 @@ describe('normalizeToOpenApi31', () => {
       });
       expect((result.components as Record<string, unknown>).schemas).toEqual({
         example: { type: ['string', 'null'] },
+      });
+    });
+
+    it('should keep a schema property literally named `nullable`', () => {
+      // Inside a `properties` map every key is a member name, so `nullable`
+      // there is a field the API really has — not a keyword to consume.
+      const result = normalize({
+        type: 'object',
+        properties: { nullable: { type: 'boolean' } },
+      });
+      expect(result.properties).toEqual({ nullable: { type: 'boolean' } });
+    });
+
+    it('should keep a component schema literally named `nullable`', () => {
+      const result = normalizeToOpenApi31({
+        components: { schemas: { nullable: { type: 'string' } } },
+      }) as Record<string, Record<string, unknown>>;
+      expect(result.components.schemas).toEqual({
+        nullable: { type: 'string' },
+      });
+    });
+
+    it('should normalize the schema of a `default` response', () => {
+      // `responses` is keyed by status code, so `default` there is a status
+      // key and not the schema keyword whose value must be left alone.
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                default: {
+                  content: {
+                    'application/json': {
+                      schema: { enum: ['a'], nullable: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                default: {
+                  content: {
+                    'application/json': { schema: { enum: ['a', null] } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should normalize the schema of a header named after a data keyword', () => {
+      const result = normalizeToOpenApi31({
+        components: {
+          headers: {
+            example: { schema: { type: 'string', nullable: true } },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          headers: { example: { schema: { type: ['string', 'null'] } } },
+        },
+      });
+    });
+
+    it('should not invent a media type from a property named `content`', () => {
+      // A schema may have an ordinary property called `content`. Only a real
+      // Content Object supplies the media type that `format: 'byte'` carries
+      // over, so this one must contribute nothing.
+      const result = normalize({
+        type: 'object',
+        properties: {
+          content: {
+            type: 'object',
+            properties: {
+              data: { type: ['string', 'null'], format: 'byte' },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        type: 'object',
+        properties: {
+          content: {
+            type: 'object',
+            properties: {
+              data: { type: ['string', 'null'], contentEncoding: 'base64' },
+            },
+          },
+        },
       });
     });
 
