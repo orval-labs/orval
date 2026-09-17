@@ -227,7 +227,7 @@ function generateTargetTags(
   return currentAcc;
 }
 
-export function generateTargetForTags(
+export async function generateTargetForTags(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
 ) {
@@ -256,14 +256,14 @@ export function generateTargetForTags(
 
         const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
-        const titles = builder.title({
+        const titles = await builder.title({
           outputClient: options.client,
           title: pascal(tag),
           customTitleFunc: options.override.title,
           output: options,
         });
 
-        const footer = builder.footer({
+        const footer = await builder.footer({
           outputClient: options.client,
           operationNames: operationNames.map(
             ({ operationName }) => operationName,
@@ -275,7 +275,7 @@ export function generateTargetForTags(
           output: options,
         });
 
-        const header = builder.header({
+        const header = await builder.header({
           outputClient: options.client,
           isRequestOptions: options.override.requestOptions !== false,
           isMutator,

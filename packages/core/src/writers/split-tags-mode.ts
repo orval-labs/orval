@@ -63,7 +63,7 @@ export async function writeSplitTagsMode({
     extension: output.fileExtension,
   });
 
-  const target = generateTargetForTags(builder, output);
+  const target = await generateTargetForTags(builder, output);
 
   const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
     output.tsconfig,
@@ -211,7 +211,7 @@ export async function writeSplitTagsMode({
           schemaOutputPlan,
         );
 
-        implementationData += generateClientImports({
+        implementationData += await generateClientImports({
           builder,
           output,
           implementation,

@@ -20,11 +20,6 @@ import {
   resolveRef,
 } from '@orval/core';
 import {
-  dedupeStrictMockTypeDeclarations,
-  generateMockImports,
-} from '@orval/mock';
-
-import {
   generateClientFooter,
   generateClientHeader,
   generateClientImports,
@@ -32,6 +27,12 @@ import {
   generateExtraFiles,
   generateOperations,
 } from './client';
+
+// API construction only needs Mock when an output actually emits mocks. Keep
+// the resolved module for later projects without making it part of startup.
+let mockModuleCache: Promise<typeof import('@orval/mock')> | undefined;
+
+const loadMockModule = () => (mockModuleCache ??= import('@orval/mock'));
 
 export async function getApiBuilder({
   input,
@@ -48,6 +49,10 @@ export async function getApiBuilder({
    */
   componentSchemas: GeneratorSchema[];
 }): Promise<GeneratorApiBuilder> {
+  // The fallback callbacks preserve the builder contract for non-mock outputs
+  // while avoiding an unnecessary dynamic import.
+  const mock =
+    output.mock.generators.length > 0 ? await loadMockModule() : undefined;
   const pathEntries: Array<{
     pathRoute: string;
     route: string;
@@ -217,8 +222,8 @@ export async function getApiBuilder({
     header: generateClientHeader,
     footer: generateClientFooter,
     imports: generateClientImports,
-    importsMock: generateMockImports,
-    finalizeMockImplementation: dedupeStrictMockTypeDeclarations,
+    importsMock: mock?.generateMockImports ?? (() => ''),
+    finalizeMockImplementation: mock?.dedupeStrictMockTypeDeclarations,
     extraFiles,
   };
 }

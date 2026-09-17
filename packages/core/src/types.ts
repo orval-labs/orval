@@ -2424,7 +2424,7 @@ export type GeneratorClientTitle = (data: {
   title: string;
   customTitleFunc?: (title: string) => string;
   output: NormalizedOutputOptions;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientHeader = (data: {
   outputClient?: OutputClient | OutputClientFunc;
@@ -2439,7 +2439,7 @@ export type GeneratorClientHeader = (data: {
   tag?: string;
   isDefaultTagBucket?: boolean;
   clientImplementation: string;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientFooter = (data: {
   outputClient: OutputClient | OutputClientFunc;
@@ -2449,7 +2449,7 @@ export type GeneratorClientFooter = (data: {
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
   output: NormalizedOutputOptions;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientImports = (data: {
   client: OutputClient | OutputClientFunc;
@@ -2463,7 +2463,7 @@ export type GeneratorClientImports = (data: {
   hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
   output: NormalizedOutputOptions;
-}) => string;
+}) => Promise<string>;
 
 export type GenerateMockImports = (data: {
   implementation: string;

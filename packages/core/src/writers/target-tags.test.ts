@@ -21,20 +21,20 @@ const builderWith = (operations: Record<string, unknown>): WriteSpecBuilder =>
     operations,
   }) as unknown as WriteSpecBuilder;
 
-const bucketsOf = (result: ReturnType<typeof generateTargetForTags>) =>
+const bucketsOf = (result: Awaited<ReturnType<typeof generateTargetForTags>>) =>
   new Map(Object.entries(result));
 
-const generate = (operations: Record<string, unknown>) =>
+const generate = async (operations: Record<string, unknown>) =>
   bucketsOf(
-    generateTargetForTags(
+    await generateTargetForTags(
       builderWith(operations),
       createSplitModeOutput('petstore.ts', { mode: OutputMode.TAGS }),
     ),
   );
 
 describe('generateTargetForTags — tags that collide with Object.prototype', () => {
-  it('buckets an operation tagged `constructor`', () => {
-    const buckets = generate({
+  it('buckets an operation tagged `constructor`', async () => {
+    const buckets = await generate({
       listPets: createSplitModeOperation({
         tags: ['constructor'],
         operationName: 'listPets',
@@ -47,8 +47,8 @@ describe('generateTargetForTags — tags that collide with Object.prototype', ()
     expect(buckets.get('constructor')?.imports).toEqual([]);
   });
 
-  it('merges two operations that share the `constructor` tag', () => {
-    const buckets = generate({
+  it('merges two operations that share the `constructor` tag', async () => {
+    const buckets = await generate({
       listPets: createSplitModeOperation({
         tags: ['Constructor'],
         operationName: 'listPets',
@@ -67,8 +67,8 @@ describe('generateTargetForTags — tags that collide with Object.prototype', ()
     expect(implementation).toContain('getPet');
   });
 
-  it('still buckets ordinary tags', () => {
-    const buckets = generate({
+  it('still buckets ordinary tags', async () => {
+    const buckets = await generate({
       listPets: createSplitModeOperation({
         tags: ['pets'],
         operationName: 'listPets',

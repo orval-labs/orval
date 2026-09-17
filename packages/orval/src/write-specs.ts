@@ -39,7 +39,6 @@ import {
   writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
-import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
@@ -55,14 +54,15 @@ import {
   reconcileWorkspaceBarrel,
 } from './utils';
 import { namesAFile } from './utils/options';
-import {
-  generateZodSchemasInline,
-  writeZodSchemas,
-  writeZodSchemasSingle,
-  writeZodSchemasFromVerbs,
-  writeZodSchemaRoutesBarrel,
-  writeZodSchemaTagsSplitBarrel,
-} from './write-zod-specs';
+
+// The Zod writers form a self-contained chunk. Load them only for Zod schema
+// output so ordinary client generation does not evaluate their dependencies.
+let zodWritersModuleCache:
+  | Promise<typeof import('./write-zod-specs')>
+  | undefined;
+
+const loadZodWriters = () =>
+  (zodWritersModuleCache ??= import('./write-zod-specs'));
 
 async function runExternalFormatter(
   bin: string,
@@ -329,7 +329,11 @@ async function writeFakerSchemaMocks(
     imports,
     strictMockSchemaTypeNames,
     strictMockSchemaKinds,
-  } = generateFakerForSchemas(schemasWithDef, context, fakerEntry);
+  } = (await import('@orval/mock')).generateFakerForSchemas(
+    schemasWithDef,
+    context,
+    fakerEntry,
+  );
 
   if (!implementation.trim()) {
     return undefined;
@@ -604,6 +608,7 @@ async function writeSpecsInternal(
     }
 
     if (isZodSchemas) {
+      const zodWriters = await loadZodWriters();
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
       const fileExtension = output.schemaFileExtension;
@@ -629,7 +634,7 @@ async function writeSpecsInternal(
         : undefined;
 
       if (singleZodFile) {
-        await writeZodSchemasSingle(
+        await zodWriters.writeZodSchemasSingle(
           builder,
           builder.verbOptions,
           schemasPath,
@@ -640,7 +645,7 @@ async function writeSpecsInternal(
           schemasParamsMutator,
         );
       } else if (shouldSplitSchemasByTags) {
-        const componentDirs = await writeZodSchemas(
+        const componentDirs = await zodWriters.writeZodSchemas(
           builder,
           schemasPath,
           fileExtension,
@@ -651,7 +656,7 @@ async function writeSpecsInternal(
           schemaOutputPlan,
         );
 
-        const verbDirs = await writeZodSchemasFromVerbs(
+        const verbDirs = await zodWriters.writeZodSchemasFromVerbs(
           builder.verbOptions,
           schemasPath,
           fileExtension,
@@ -669,7 +674,7 @@ async function writeSpecsInternal(
 
         if (output.indexFiles) {
           if (schemaOutputPlan) {
-            await writeZodSchemaRoutesBarrel(
+            await zodWriters.writeZodSchemaRoutesBarrel(
               schemaOutputPlan,
               fileExtension,
               header,
@@ -678,7 +683,7 @@ async function writeSpecsInternal(
               output.tsconfig,
             );
           } else {
-            await writeZodSchemaTagsSplitBarrel(
+            await zodWriters.writeZodSchemaTagsSplitBarrel(
               schemasPath,
               fileExtension,
               header,
@@ -690,7 +695,7 @@ async function writeSpecsInternal(
           }
         }
       } else {
-        const componentDirs = await writeZodSchemas(
+        const componentDirs = await zodWriters.writeZodSchemas(
           builder,
           schemasPath,
           fileExtension,
@@ -701,7 +706,7 @@ async function writeSpecsInternal(
           schemaOutputPlan,
         );
 
-        const verbDirs = await writeZodSchemasFromVerbs(
+        const verbDirs = await zodWriters.writeZodSchemasFromVerbs(
           builder.verbOptions,
           schemasPath,
           fileExtension,
@@ -718,7 +723,7 @@ async function writeSpecsInternal(
         );
 
         if (schemaOutputPlan && output.indexFiles) {
-          await writeZodSchemaRoutesBarrel(
+          await zodWriters.writeZodSchemaRoutesBarrel(
             schemaOutputPlan,
             fileExtension,
             header,
@@ -902,6 +907,9 @@ async function writeSpecsInternal(
     // With no operations at all, even in `single` mode the file builder has
     // no operation mutators to lean on, so we still emit.
     const includeParamsImport = !hasOperations || isSchemasInSeparateFile;
+    const zodWriters = needZodSchemasInline
+      ? await loadZodWriters()
+      : undefined;
 
     implementationPaths = await writeMode({
       builder,
@@ -914,7 +922,7 @@ async function writeSpecsInternal(
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
         ? () =>
-            generateZodSchemasInline(
+            zodWriters!.generateZodSchemasInline(
               builder,
               output,
               includeZodImport,

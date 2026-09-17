@@ -58,7 +58,7 @@ export async function writeTagsMode({
     extension: output.fileExtension,
   });
 
-  const target = generateTargetForTags(builder, output);
+  const target = await generateTargetForTags(builder, output);
 
   const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
     output.tsconfig,
@@ -157,7 +157,7 @@ export async function writeTagsMode({
           schemaOutputPlan,
         );
 
-        data += generateClientImports({
+        data += await generateClientImports({
           builder,
           output,
           implementation,

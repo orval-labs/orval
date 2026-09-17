@@ -28,16 +28,16 @@ export interface GeneratorTargetWithFull extends GeneratorTarget {
   mockOutputsFull: GeneratorMockOutputFull[];
 }
 
-export function generateTarget(
+export async function generateTarget(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): GeneratorTargetWithFull {
+): Promise<GeneratorTargetWithFull> {
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
   const isAngularClient = options.client === OutputClient.ANGULAR;
 
-  const titles = builder.title({
+  const titles = await builder.title({
     outputClient: options.client,
     title: pascal(builder.info.title),
     customTitleFunc: options.override.title,
@@ -128,7 +128,7 @@ export function generateTarget(
 
       const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
-      const header = builder.header({
+      const header = await builder.header({
         outputClient: options.client,
         isRequestOptions: options.override.requestOptions !== false,
         isMutator,
@@ -151,7 +151,7 @@ export function generateTarget(
       target.implementation =
         inlinedSharedTypes + header.implementation + target.implementation;
 
-      const footer = builder.footer({
+      const footer = await builder.footer({
         outputClient: options.client,
         operationNames,
         operations,

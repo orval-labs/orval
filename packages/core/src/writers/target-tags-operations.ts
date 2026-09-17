@@ -148,10 +148,10 @@ function addDefaultTagIfEmpty(operation: GeneratorOperation) {
  * becomes the tag's shared `helpers` block, written once per tag and
  * imported by every operation file in that tag instead of being duplicated.
  */
-export function generateTargetForTagsOperations(
+export async function generateTargetForTagsOperations(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): Record<string, GeneratorTagOperationsTarget> {
+): Promise<Record<string, GeneratorTagOperationsTarget>> {
   const isAngularClient = options.client === OutputClient.ANGULAR;
   const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
@@ -179,14 +179,14 @@ export function generateTargetForTagsOperations(
       isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
     );
 
-    const titles = builder.title({
+    const titles = await builder.title({
       outputClient: options.client,
       title: pascal(tag),
       customTitleFunc: options.override.title,
       output: options,
     });
 
-    const footer = builder.footer({
+    const footer = await builder.footer({
       outputClient: options.client,
       operationNames: tagOperations.map(({ operationName }) => operationName),
       operations: tagOperations,
@@ -196,7 +196,7 @@ export function generateTargetForTagsOperations(
       output: options,
     });
 
-    const header = builder.header({
+    const header = await builder.header({
       outputClient: options.client,
       isRequestOptions: options.override.requestOptions !== false,
       isMutator,

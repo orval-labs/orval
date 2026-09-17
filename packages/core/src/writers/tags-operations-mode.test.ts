@@ -101,7 +101,9 @@ describe('writeTagsOperationsMode', () => {
               'export const useGetPet = (): Error => ({}) as Error;\n',
           }),
         },
-        imports: (args: { imports: readonly { dependency: string }[] }) => {
+        imports: async (args: {
+          imports: readonly { dependency: string }[];
+        }) => {
           importsCalls.push(args);
           return '';
         },
@@ -207,7 +209,7 @@ describe('writeTagsOperationsMode', () => {
       ...baseProps,
       builder: {
         ...baseProps.builder,
-        header: () => ({
+        header: async () => ({
           implementation: 'type AwaitedInput<T> = PromiseLike<T> | T;\n',
           implementationMock: '',
         }),
@@ -257,7 +259,7 @@ describe('writeTagsOperationsMode', () => {
       ...baseProps,
       builder: {
         ...baseProps.builder,
-        header: () => ({
+        header: async () => ({
           implementation:
             'const withQueryKey = (query, queryKey) => ({ ...query, queryKey });\n',
           implementationMock: '',
@@ -368,11 +370,14 @@ describe('writeTagsOperationsMode', () => {
       ...baseProps,
       builder: {
         ...baseProps.builder,
-        header: () => ({
+        header: async () => ({
           implementation: '',
           implementationMock: 'export const getPetsMock = () => [\n',
         }),
-        footer: () => ({ implementation: '', implementationMock: '\n]\n' }),
+        footer: async () => ({
+          implementation: '',
+          implementationMock: '\n]\n',
+        }),
         operations: {
           listPets: createSplitModeOperation({
             tags: ['pets'],
