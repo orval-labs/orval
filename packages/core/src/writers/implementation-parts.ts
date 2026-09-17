@@ -34,7 +34,7 @@ export function filterImportsUsedInImplementation(
 }
 
 /** The client's import header for one implementation file. */
-export function generateClientImports({
+export async function generateClientImports({
   builder,
   output,
   implementation,
@@ -48,8 +48,8 @@ export function generateClientImports({
   imports: readonly GeneratorDependency[];
   projectName?: string;
   isAllowSyntheticDefaultImports: boolean;
-}): string {
-  return builder.imports({
+}): Promise<string> {
+  return await builder.imports({
     client: output.client,
     implementation,
     imports,

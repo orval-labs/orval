@@ -64,14 +64,21 @@ import {
   upath,
   type ZodOptions,
 } from '@orval/core';
-import { getDefaultMockOptionsForType } from '@orval/mock';
-
 import pkg from '../../package.json';
 import { logger } from '../logger';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
 
 const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
+
+// Defaults are only required while normalizing a configured mock output.
+// Caching the promise also coalesces the MSW and Faker default lookups.
+let mockModuleCache: Promise<typeof import('@orval/mock')> | undefined;
+
+const getDefaultMockOptionsForType = async (type: OutputMockType) =>
+  (
+    await (mockModuleCache ??= import('@orval/mock'))
+  ).getDefaultMockOptionsForType(type);
 /**
  * Type helper to make it easier to use orval.config.ts
  * accepts a direct {@link ConfigExternal} object.
@@ -571,8 +578,8 @@ export async function normalizeOptions(
       indexMockFiles: false,
       inline: false,
       generators: [
-        getDefaultMockOptionsForType(OutputMockType.MSW),
-        getDefaultMockOptionsForType(OutputMockType.FAKER),
+        await getDefaultMockOptionsForType(OutputMockType.MSW),
+        await getDefaultMockOptionsForType(OutputMockType.FAKER),
       ],
     };
   } else if (isFunction(mocksOption)) {
@@ -593,17 +600,19 @@ export async function normalizeOptions(
       indexMockFiles: mocksOption.indexMockFiles ?? false,
       path: sharedMockPath,
       inline: mocksOption.inline ?? false,
-      generators: mocksOption.generators.map((m) =>
-        isFunction(m)
-          ? m
-          : ({
-              ...getDefaultMockOptionsForType(m.type),
-              ...m,
-              path:
-                m.path && isString(m.path)
-                  ? normalizePath(m.path, outputWorkspace)
-                  : sharedMockPath,
-            } as GlobalMockOptions),
+      generators: await Promise.all(
+        mocksOption.generators.map(async (m) =>
+          isFunction(m)
+            ? m
+            : ({
+                ...(await getDefaultMockOptionsForType(m.type)),
+                ...m,
+                path:
+                  m.path && isString(m.path)
+                    ? normalizePath(m.path, outputWorkspace)
+                    : sharedMockPath,
+              } as GlobalMockOptions),
+        ),
       ),
     };
   }

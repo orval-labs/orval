@@ -87,7 +87,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
         implementation: 'export type ListPetsResponse = Pet;',
       }),
     };
-    builder.imports = ({
+    builder.imports = async ({
       imports,
     }: {
       imports: readonly GeneratorDependency[];
@@ -343,7 +343,7 @@ describe('writeSplitTagsMode — schemas import extension follows tsconfig modul
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -380,7 +380,7 @@ describe('writeSplitTagsMode — schemas import extension follows tsconfig modul
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -581,7 +581,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
       ...baseProps,
       builder: {
         ...baseProps.builder,
-        header: () => ({
+        header: async () => ({
           implementation: '',
           implementationMock: '',
           sharedTypes: [

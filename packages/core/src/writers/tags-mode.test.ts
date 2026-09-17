@@ -403,7 +403,7 @@ describe('writeTagsMode — inline mocks upgrade schema imports used at runtime'
             ],
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -464,7 +464,7 @@ describe('writeTagsMode — schemas import extension follows tsconfig module', (
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -501,7 +501,7 @@ describe('writeTagsMode — schemas import extension follows tsconfig module', (
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },

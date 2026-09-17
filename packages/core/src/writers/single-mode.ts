@@ -57,7 +57,7 @@ export async function writeSingleMode({
       extension: output.fileExtension,
     });
 
-    const target = generateTarget(builder, output);
+    const target = await generateTarget(builder, output);
 
     const { imports, mockOutputs: rawMockOutputs, implementation } = target;
 
@@ -143,7 +143,7 @@ export async function writeSingleMode({
           '.',
         );
 
-    data += generateClientImports({
+    data += await generateClientImports({
       builder,
       output,
       implementation,

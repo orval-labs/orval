@@ -340,7 +340,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -377,7 +377,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
             implementation: 'export const listPets = (): Pet | null => null;',
           }),
         },
-        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+        imports: async (args: { imports: readonly GeneratorDependency[] }) => {
           importsCalls.push(args);
           return '';
         },
@@ -413,7 +413,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
         implementation: 'export type ListPetsResponse = Pet;',
       }),
     };
-    builder.imports = ({
+    builder.imports = async ({
       imports,
     }: {
       imports: readonly GeneratorDependency[];
