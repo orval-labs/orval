@@ -464,15 +464,18 @@ const buildResolvedStatements = ({
  * Callers: the response direction's in-place array and map builders, where
  * such elements must be written back through the array or map slot (a
  * hoisted `const` would make the generated assignment reassign a const); and
- * the request direction's property builder, where it distinguishes a
- * required date leaf (unguarded — `x instanceof Date ? … : x` already
- * tolerates `undefined`) from a required container (object copy, array
- * `.map`, map copy, or union dispatch), which must be null-guarded so an
- * omitted container isn't turned into `{}` or thrown on. Every use asks the
- * same question — "does this write straight to the accessor, or into
- * something reached through it?" — regardless of which formats a given
- * direction converts, so it checks `isDateSchema` directly rather than taking
- * a `mode` parameter.
+ * the shared property builder (both directions), where it distinguishes a
+ * required date leaf (unguarded — a response's `new Date(undefined)` degrades
+ * to `Invalid Date` rather than throwing, and a request's
+ * `x instanceof Date ? … : x` already tolerates `undefined`) from a required
+ * container (object copy or shallow mutation, array `.map` or in-place loop,
+ * map copy or key loop, or union dispatch), which must be null-guarded in
+ * both directions so an omitted container isn't turned into `{}`, thrown on,
+ * or dereferenced before the caller can handle it. Every use asks the same
+ * question — "does this write straight to the accessor, or into something
+ * reached through it?" — regardless of which formats a given direction
+ * converts, so it checks `isDateSchema` directly rather than taking a `mode`
+ * parameter.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
@@ -551,23 +554,6 @@ interface DateTransformMode {
    * schemas: emit nothing rather than wrong code.
    */
   dropArrayObjectConflict: boolean;
-  /**
-   * When true, a required (and non-nullable) property whose statements write
-   * through a container — an object copy, an array `.map` reassignment, or a
-   * discriminated-union switch — is still wrapped in an `!= null` guard, the
-   * same as an optional property would be. The response direction leaves a
-   * required container unguarded (`false`): it mutates a payload the server
-   * already sent, where a required field is expected to be present. The
-   * request direction (`true`) cannot make that assumption — a required
-   * container is exactly what a caller is most likely to accidentally omit —
-   * and without the guard an omitted object is spread into `{}` (a key the
-   * caller never sent), while an omitted array throws calling `.map` on
-   * `undefined`. A required property that instead writes a date leaf
-   * directly to the accessor is unaffected either way: `x instanceof Date ?
-   * … : x` already tolerates `undefined`, so guarding it would only churn
-   * the output for no behavioural benefit.
-   */
-  guardRequiredContainers: boolean;
 }
 
 interface ArrayStatementsParams {
@@ -735,7 +721,6 @@ const responseMode: DateTransformMode = {
       : undefined,
   skipProperty: () => false,
   dropArrayObjectConflict: false,
-  guardRequiredContainers: false,
 };
 
 const buildPropertiesStatements = ({
@@ -788,8 +773,7 @@ const buildPropertiesStatements = ({
       const needsGuard =
         !requiredSet.has(key) ||
         nullable ||
-        (mode.guardRequiredContainers &&
-          !writesToAccessorItself(property, context));
+        !writesToAccessorItself(property, context);
       if (!needsGuard) return { ...inner, statements };
 
       return {
@@ -1104,7 +1088,6 @@ const requestMode: DateTransformMode = {
   propertyWriteAccessor: () => undefined,
   skipProperty: (schema) => schema.readOnly === true,
   dropArrayObjectConflict: true,
-  guardRequiredContainers: true,
 };
 
 export interface BuildRequestDateSerializeParams {
