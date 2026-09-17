@@ -90,3 +90,51 @@ export const HTTP_STATUS_CODE_SHARED_TYPES: SharedTypeDeclaration[] = [
 
 export const needsHttpStatusCodeTypes = (implementation: string) =>
   /HTTPStatusCode[1-5]xx|<HTTPStatusCodes,/.test(implementation);
+
+/**
+ * Builds a boolean expression that is true when `accessor` holds a status
+ * matching the OpenAPI response `key`, given every key the operation declares.
+ *
+ * A wildcard (`2XX`) excludes exact statuses declared in the same class, since
+ * those have their own responses; `default` is the negation of every other
+ * declared key. Exact and wildcard keys go through
+ * `assertSafeResponseStatusKey`, because the result is emitted as live code.
+ */
+export const getResponseStatusCondition = ({
+  key,
+  declaredKeys,
+  accessor,
+}: {
+  key: string;
+  declaredKeys: readonly string[];
+  accessor: string;
+}): string => {
+  const exactStatuses = declaredKeys.filter((declared) =>
+    EXACT_STATUS_CODE_REGEX.test(declared),
+  );
+
+  const conditionFor = (statusKey: string) => {
+    if (WILDCARD_STATUS_CODE_REGEX.test(statusKey)) {
+      const start = Number(statusKey[0]) * 100;
+      const exclusions = exactStatuses
+        .filter((status) => status[0] === statusKey[0])
+        .map((status) => `${accessor} !== ${status}`)
+        .join(' && ');
+      return `${accessor} >= ${start} && ${accessor} < ${start + 100}${
+        exclusions ? ` && ${exclusions}` : ''
+      }`;
+    }
+    return `${accessor} === ${assertSafeResponseStatusKey(statusKey)}`;
+  };
+
+  if (key === 'default') {
+    const declaredConditions = declaredKeys
+      .filter((declared) => declared !== 'default')
+      .map(conditionFor);
+    return declaredConditions.length
+      ? `!(${declaredConditions.join(' || ')})`
+      : 'true';
+  }
+
+  return conditionFor(key);
+};
