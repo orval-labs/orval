@@ -4174,6 +4174,70 @@ describe('normalizeToOpenApi31', () => {
       });
     });
 
+    it('should leave a schema-shaped `x-` extension value alone', () => {
+      // A Specification Extension value is unrestricted, so it is the user's
+      // data and not ours to rewrite — even when it happens to look like a
+      // schema. Nothing orval reads from an extension is a schema.
+      const result = normalize({
+        type: 'object',
+        'x-custom': { schema: { enum: ['a'], nullable: true } },
+      });
+
+      expect(result['x-custom']).toEqual({
+        schema: { enum: ['a'], nullable: true },
+      });
+    });
+
+    it('should leave an `x-` extension on a non-schema object alone', () => {
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              'x-custom': { schema: { type: 'string', nullable: true } },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              'x-custom': { schema: { type: 'string', nullable: true } },
+            },
+          },
+        },
+      });
+    });
+
+    it('should normalize a property whose name begins with `x-`', () => {
+      // Inside `properties` the key is a field name, so `x-legacy-id` is a
+      // field the API has and its schema still has to be normalized.
+      const result = normalize({
+        type: 'object',
+        properties: { 'x-legacy-id': { type: 'string', nullable: true } },
+      });
+
+      expect(result.properties).toEqual({
+        'x-legacy-id': { type: ['string', 'null'] },
+      });
+    });
+
+    it('should normalize the schema of a header whose name begins with `x-`', () => {
+      const result = normalizeToOpenApi31({
+        components: {
+          headers: {
+            'x-request-id': { schema: { type: 'string', nullable: true } },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          headers: { 'x-request-id': { schema: { type: ['string', 'null'] } } },
+        },
+      });
+    });
     it('should pass through non-object types unchanged', () => {
       expect(normalizeToOpenApi31('string')).toBe('string');
       expect(normalizeToOpenApi31(null)).toBe(null);

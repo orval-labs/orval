@@ -515,12 +515,30 @@ function normalizeNode(node: unknown, context: NodeContext): unknown {
  */
 function holdsData(kind: NodeKind, key: string): boolean {
   if (kind === 'schema') {
-    return SCHEMA_DATA_KEYWORDS.has(key);
+    return isExtension(key) || SCHEMA_DATA_KEYWORDS.has(key);
   }
   if (kind === 'oas') {
-    return OAS_DATA_KEYWORDS.has(key);
+    return isExtension(key) || OAS_DATA_KEYWORDS.has(key);
   }
+  // A map's keys are names, so one may legitimately begin with `x-`: a property
+  // called `x-legacy-id`, a header called `x-request-id`. Those are not
+  // extensions and the schemas under them still have to be normalized.
   return false;
+}
+
+/**
+ * Whether `key` is a Specification Extension.
+ *
+ * An extension's value is explicitly unrestricted, so it is the user's data and
+ * not ours to rewrite — even when it happens to be schema-shaped. Nothing orval
+ * reads out of an extension is a schema: `x-enumNames`, `x-enum-varnames` and
+ * `x-enumDescriptions` hold arrays of strings, `x-codegen-request-body-name`
+ * holds a string, `x-orval-property-overrides` is written by the Zod generator
+ * well after this pass, and `x-ext` is consumed and removed by
+ * `dereferenceExternalRef` before the upgrade runs.
+ */
+function isExtension(key: string): boolean {
+  return key.startsWith('x-');
 }
 
 /** What the members of an array at this position are. */
