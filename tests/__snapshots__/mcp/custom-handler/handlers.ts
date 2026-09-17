@@ -38,6 +38,7 @@ export const listPetsHandler = async (
   args: listPetsArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     listPets(args.queryParams, {
@@ -49,7 +50,7 @@ export const listPetsHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -65,6 +66,7 @@ export const createPetsHandler = async (
   args: createPetsArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     createPets(args.bodyParams, args.queryParams, {
@@ -76,7 +78,7 @@ export const createPetsHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -93,6 +95,7 @@ export const showPetByIdHandler = async (
   args: showPetByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetById(args.pathParams.petId, {
@@ -104,7 +107,7 @@ export const showPetByIdHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -121,6 +124,7 @@ export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deletePetById(args.pathParams.petId, {
@@ -132,7 +136,7 @@ export const deletePetByIdHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -142,6 +146,7 @@ export const deletePetByIdHandler = async (
 export const healthCheckHandler = async (
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     healthCheck({
@@ -153,7 +158,7 @@ export const healthCheckHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -170,6 +175,7 @@ export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     showPetWithOwner(args.pathParams.petId, {
@@ -181,9 +187,5 @@ export const showPetWithOwnerHandler = async (
       },
     });
 
-  return customHandler(
-    fetcher,
-    ctx,
-    (data: unknown) => data as Record<string, unknown>,
-  );
+  return customHandler(fetcher, ctx, toStructuredContent);
 };

@@ -2572,7 +2572,7 @@ export const customServer = (
 
 **Type:** `Object`
 
-Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function that shapes the body for that operation (as is for a plain object, `{ result: body }` for any other response, `undefined` when the tool declares no `outputSchema`). The return value is used as the tool result as is.
+Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function built in `server.ts` for that operation. It validates the body with the response schema (dropping fields that are not in the spec) and returns it as is for a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. The return value is used as the tool result as is.
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';

@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler（自定义 Handler）
 
-默认情况下，每个生成的 handler 会把响应体作为文本返回，将 400 及以上的 HTTP 状态码标记为错误，并把解析后的响应体作为 `structuredContent` 返回，同时工具会声明对应的 `outputSchema`。MCP 要求两者都必须是对象，因此普通的 JSON 对象会原样传递，其他响应体（数组、基本类型、联合类型）会被包装为 `{ result: body }`。空响应两者都不会生成；使用 `allOf`（或带有同级属性的 `oneOf`）组合的响应也不会生成，因为它们的 JSON Schema 会变成由封闭对象组成的 `allOf`，没有任何值能够满足，这会导致工具无法使用。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
+默认情况下，每个生成的 handler 会把响应体作为文本返回，将 400 及以上的 HTTP 状态码标记为错误，并把响应体作为 `structuredContent` 返回，同时工具会声明对应的 `outputSchema`。响应体会先经过该操作的响应 schema 校验，校验会移除 spec 中不存在的字段，因此 `structuredContent` 始终满足所声明的 schema。MCP 要求两者都必须是对象，因此普通的 JSON 对象会原样传递，其他响应体（数组、基本类型、联合类型）会被包装为 `{ result: body }`。空响应两者都不会生成；任何位置包含 `allOf`（或带有同级属性的 `oneOf`）的响应也不会生成，因为它们的 JSON Schema 会变成由封闭对象组成的 `allOf`，没有任何值能够满足，这会导致工具无法使用。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-设置后，每个生成的 handler 会把工具参数绑定到一个 `fetcher`，并连同工具调用上下文和一个 `toStructuredContent` 函数一起委托给你的函数。该函数会为对应操作应用上面的包装规则：
+设置后，每个生成的 handler 会把工具参数绑定到一个 `fetcher`，并连同工具调用上下文和 `toStructuredContent` 函数一起委托给你的函数。该函数由 `server.ts` 在对应工具的 `outputSchema` 旁边为该操作构建：
 
 ```ts title="src/handlers.ts (generated)"
 import { customHandler } from '../custom-handler';
@@ -153,6 +153,7 @@ export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
@@ -164,8 +165,23 @@ export const findPetsByStatusHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
+```
+
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    inputSchema: { queryParams: FindPetsByStatusQueryParams },
+    outputSchema: { result: FindPetsByStatusResponse },
+    annotations: { readOnlyHint: true },
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) => ({
+      result: FindPetsByStatusResponse.parse(data),
+    })),
+);
 ```
 
 请按下面的签名实现 handler。它的返回值会直接作为工具结果使用。请把响应体交给 `toStructuredContent` 处理，这样 `structuredContent` 才能与生成的 server 为该工具声明的 `outputSchema` 一致。
@@ -216,7 +232,7 @@ export const customHandler = async (
 
 `ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。
 
-`toStructuredContent` 在操作的响应是普通对象时原样返回响应体，对其他响应返回 `{ result: body }`，在工具未声明 `outputSchema` 时返回 `undefined`。
+`toStructuredContent` 会用该操作的响应 schema 校验响应体并移除 spec 中不存在的字段；在响应是普通对象时原样返回，对其他响应返回 `{ result: body }`，在工具未声明 `outputSchema` 时返回 `undefined`。
 
 <Callout type="info">
 请把自定义 handler 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。

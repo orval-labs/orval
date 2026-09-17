@@ -2328,7 +2328,7 @@ export const customServer = (
 
 **类型：** `Object`
 
-自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它、工具调用上下文以及一个 `toStructuredContent` 函数一起传给你的函数。该函数会按操作整形响应体（普通对象原样返回，其他响应返回 `{ result: body }`，工具未声明 `outputSchema` 时返回 `undefined`）。返回值会直接作为工具结果使用。
+自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它、工具调用上下文以及由 `server.ts` 为该操作构建的 `toStructuredContent` 函数一起传给你的函数。该函数会用响应 schema 校验响应体（移除 spec 中不存在的字段），普通对象原样返回，其他响应返回 `{ result: body }`，工具未声明 `outputSchema` 时返回 `undefined`。返回值会直接作为工具结果使用。
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';

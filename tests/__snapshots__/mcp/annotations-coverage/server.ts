@@ -44,12 +44,15 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
-      getThingsHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      getThingsHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: GetThingsResponse.parse(data) }),
+      ),
   );
 
   tools.createThing = server.registerTool(
@@ -61,12 +64,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
-      createThingHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      createThingHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.replaceThing = server.registerTool(
@@ -78,12 +85,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
-      replaceThingHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      replaceThingHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.patchThing = server.registerTool(
@@ -95,12 +106,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
-      patchThingHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      patchThingHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.deleteThing = server.registerTool(
@@ -109,12 +124,15 @@ const createMcpServer = (
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (ctx) =>
-      deleteThingHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      deleteThingHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.optionsThings = server.registerTool(
@@ -123,12 +141,15 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
-      optionsThingsHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      optionsThingsHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.headThings = server.registerTool(
@@ -137,12 +158,15 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
-      headThingsHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      headThingsHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   return { server, tools };

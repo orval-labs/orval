@@ -29,7 +29,8 @@ export type listPetsArgs = {
 
 export const listPetsHandler = async (
   args: listPetsArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await listPets(args.queryParams, options);
 
@@ -52,7 +53,7 @@ export const listPetsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -67,7 +68,8 @@ export type createPetsArgs = {
 
 export const createPetsHandler = async (
   args: createPetsArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await createPets(args.bodyParams, args.queryParams, options);
 
@@ -90,6 +92,7 @@ export const createPetsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -105,7 +108,8 @@ export type showPetByIdArgs = {
 
 export const showPetByIdHandler = async (
   args: showPetByIdArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await showPetById(args.pathParams.petId, options);
 
@@ -128,6 +132,7 @@ export const showPetByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -143,7 +148,8 @@ export type deletePetByIdArgs = {
 
 export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await deletePetById(args.pathParams.petId, options);
 
@@ -166,6 +172,7 @@ export const deletePetByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -173,7 +180,10 @@ export const deletePetByIdHandler = async (
  * @summary health check
  */
 
-export const healthCheckHandler = async (options?: RequestInit) => {
+export const healthCheckHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await healthCheck(options);
 
   if (res.status >= 400) {
@@ -195,7 +205,7 @@ export const healthCheckHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -211,7 +221,8 @@ export type showPetWithOwnerArgs = {
 
 export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await showPetWithOwner(args.pathParams.petId, options);
 
@@ -234,6 +245,6 @@ export const showPetWithOwnerHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
+    structuredContent: toStructuredContent(res.data),
   };
 };

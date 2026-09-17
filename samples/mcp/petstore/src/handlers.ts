@@ -51,7 +51,8 @@ export type filterPetsByStatusArgs = {
 
 export const filterPetsByStatusHandler = async (
   args: filterPetsByStatusArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await filterPetsByStatus(
     args.queryParams,
@@ -78,7 +79,7 @@ export const filterPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -93,7 +94,8 @@ export type findPetsByStatusArgs = {
 
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await findPetsByStatus(args.queryParams, options);
 
@@ -116,7 +118,7 @@ export const findPetsByStatusHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -131,7 +133,8 @@ export type findPetsByTagsArgs = {
 
 export const findPetsByTagsHandler = async (
   args: findPetsByTagsArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await findPetsByTags(args.queryParams, options);
 
@@ -154,7 +157,7 @@ export const findPetsByTagsHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -171,7 +174,8 @@ export type getPetByIdArgs = {
 
 export const getPetByIdHandler = async (
   args: getPetByIdArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await getPetById(args.pathParams.petId, options);
 
@@ -194,7 +198,7 @@ export const getPetByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -212,7 +216,8 @@ export type updatePetWithFormArgs = {
 
 export const updatePetWithFormHandler = async (
   args: updatePetWithFormArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await updatePetWithForm(
     args.pathParams.petId,
@@ -239,7 +244,7 @@ export const updatePetWithFormHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -256,7 +261,8 @@ export type deletePetArgs = {
 
 export const deletePetHandler = async (
   args: deletePetArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await deletePet(args.pathParams.petId, options);
 
@@ -279,6 +285,7 @@ export const deletePetHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -287,7 +294,10 @@ export const deletePetHandler = async (
  * @summary Returns pet inventories by status.
  */
 
-export const getInventoryHandler = async (options?: RequestInit) => {
+export const getInventoryHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await getInventory(options);
 
   if (res.status >= 400) {
@@ -309,7 +319,7 @@ export const getInventoryHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -326,7 +336,8 @@ export type getOrderByIdArgs = {
 
 export const getOrderByIdHandler = async (
   args: getOrderByIdArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await getOrderById(args.pathParams.orderId, options);
 
@@ -349,7 +360,7 @@ export const getOrderByIdHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -366,7 +377,8 @@ export type deleteOrderArgs = {
 
 export const deleteOrderHandler = async (
   args: deleteOrderArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await deleteOrder(args.pathParams.orderId, options);
 
@@ -389,6 +401,7 @@ export const deleteOrderHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -403,7 +416,8 @@ export type loginUserArgs = {
 
 export const loginUserHandler = async (
   args: loginUserArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await loginUser(args.queryParams, options);
 
@@ -426,7 +440,7 @@ export const loginUserHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -435,7 +449,10 @@ export const loginUserHandler = async (
  * @summary Logs out current logged in user session.
  */
 
-export const logoutUserHandler = async (options?: RequestInit) => {
+export const logoutUserHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await logoutUser(options);
 
   if (res.status >= 400) {
@@ -457,6 +474,7 @@ export const logoutUserHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -473,7 +491,8 @@ export type getUserByNameArgs = {
 
 export const getUserByNameHandler = async (
   args: getUserByNameArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await getUserByName(args.pathParams.username, options);
 
@@ -496,7 +515,7 @@ export const getUserByNameHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: res.data,
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -513,7 +532,8 @@ export type deleteUserArgs = {
 
 export const deleteUserHandler = async (
   args: deleteUserArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await deleteUser(args.pathParams.username, options);
 
@@ -536,5 +556,6 @@ export const deleteUserHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };

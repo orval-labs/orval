@@ -54,6 +54,7 @@ export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
@@ -65,7 +66,7 @@ export const findPetsByStatusHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -81,6 +82,7 @@ export const findPetsByTagsHandler = async (
   args: findPetsByTagsArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByTags(args.queryParams, {
@@ -92,7 +94,7 @@ export const findPetsByTagsHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -110,6 +112,7 @@ export const getPetByIdHandler = async (
   args: getPetByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     getPetById(args.pathParams.petId, {
@@ -121,11 +124,7 @@ export const getPetByIdHandler = async (
       },
     });
 
-  return customHandler(
-    fetcher,
-    ctx,
-    (data: unknown) => data as Record<string, unknown>,
-  );
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -144,6 +143,7 @@ export const updatePetWithFormHandler = async (
   args: updatePetWithFormArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     updatePetWithForm(args.pathParams.petId, args.queryParams, {
@@ -155,11 +155,7 @@ export const updatePetWithFormHandler = async (
       },
     });
 
-  return customHandler(
-    fetcher,
-    ctx,
-    (data: unknown) => data as Record<string, unknown>,
-  );
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -177,6 +173,7 @@ export const deletePetHandler = async (
   args: deletePetArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deletePet(args.pathParams.petId, {
@@ -188,7 +185,7 @@ export const deletePetHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -199,6 +196,7 @@ export const deletePetHandler = async (
 export const getInventoryHandler = async (
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     getInventory({
@@ -210,7 +208,7 @@ export const getInventoryHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -228,6 +226,7 @@ export const getOrderByIdHandler = async (
   args: getOrderByIdArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     getOrderById(args.pathParams.orderId, {
@@ -239,11 +238,7 @@ export const getOrderByIdHandler = async (
       },
     });
 
-  return customHandler(
-    fetcher,
-    ctx,
-    (data: unknown) => data as Record<string, unknown>,
-  );
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -261,6 +256,7 @@ export const deleteOrderHandler = async (
   args: deleteOrderArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deleteOrder(args.pathParams.orderId, {
@@ -272,7 +268,7 @@ export const deleteOrderHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -288,6 +284,7 @@ export const loginUserHandler = async (
   args: loginUserArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     loginUser(args.queryParams, {
@@ -299,7 +296,7 @@ export const loginUserHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -310,6 +307,7 @@ export const loginUserHandler = async (
 export const logoutUserHandler = async (
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     logoutUser({
@@ -321,7 +319,7 @@ export const logoutUserHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -339,6 +337,7 @@ export const getUserByNameHandler = async (
   args: getUserByNameArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     getUserByName(args.pathParams.username, {
@@ -350,11 +349,7 @@ export const getUserByNameHandler = async (
       },
     });
 
-  return customHandler(
-    fetcher,
-    ctx,
-    (data: unknown) => data as Record<string, unknown>,
-  );
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 
 /**
@@ -372,6 +367,7 @@ export const deleteUserHandler = async (
   args: deleteUserArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     deleteUser(args.pathParams.username, {
@@ -383,5 +379,5 @@ export const deleteUserHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, () => undefined);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };

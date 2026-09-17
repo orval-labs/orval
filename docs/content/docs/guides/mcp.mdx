@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler
 
-By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and returns the parsed body as `structuredContent` while the tool declares a matching `outputSchema`. MCP requires both to be objects, so a plain JSON object is passed as is and any other body (array, primitive, union) is wrapped as `{ result: body }`. Empty responses get neither, and so do responses composed with `allOf` (or `oneOf` with sibling properties): their JSON Schema becomes an `allOf` of closed objects that no value satisfies, which would make the tool unusable. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
+By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and returns the body as `structuredContent` while the tool declares a matching `outputSchema`. The body is first validated with the operation's response schema, which drops fields that are not in the spec, so `structuredContent` always satisfies the declared schema. MCP requires both to be objects, so a plain JSON object is passed as is and any other body (array, primitive, union) is wrapped as `{ result: body }`. Empty responses get neither, and so do responses that contain `allOf` (or `oneOf` with sibling properties) anywhere: their JSON Schema becomes an `allOf` of closed objects that no value satisfies, which would make the tool unusable. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-When set, every generated handler binds the tool arguments to a `fetcher` and delegates to your function together with the tool call context and a `toStructuredContent` function that applies the wrapping rule above for that operation:
+When set, every generated handler binds the tool arguments to a `fetcher` and delegates to your function together with the tool call context and the `toStructuredContent` function that `server.ts` builds for that operation, next to its `outputSchema`:
 
 ```ts title="src/handlers.ts (generated)"
 import { customHandler } from '../custom-handler';
@@ -153,6 +153,7 @@ export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
   ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
@@ -164,8 +165,23 @@ export const findPetsByStatusHandler = async (
       },
     });
 
-  return customHandler(fetcher, ctx, (data: unknown) => ({ result: data }));
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
+```
+
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    inputSchema: { queryParams: FindPetsByStatusQueryParams },
+    outputSchema: { result: FindPetsByStatusResponse },
+    annotations: { readOnlyHint: true },
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) => ({
+      result: FindPetsByStatusResponse.parse(data),
+    })),
+);
 ```
 
 Implement the handler with the following signature. Its return value is used as the tool result as is. Pass the body through `toStructuredContent` so that `structuredContent` matches the `outputSchema` the generated server declares for the tool.
@@ -216,7 +232,7 @@ export const customHandler = async (
 
 `ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`.
 
-`toStructuredContent` returns the body as is when the operation's response is a plain object, `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`.
+`toStructuredContent` validates the body with the operation's response schema, dropping fields that are not in the spec, and returns it as is when the response is a plain object, as `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`.
 
 <Callout type="info">
 Place the custom handler file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.

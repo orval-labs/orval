@@ -14,7 +14,11 @@ export type addArgs = {
   bodyParams?: Form;
 };
 
-export const addHandler = async (args: addArgs, options?: RequestInit) => {
+export const addHandler = async (
+  args: addArgs,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await add(args.bodyParams, options);
 
   if (res.status >= 400) {
@@ -36,5 +40,6 @@ export const addHandler = async (args: addArgs, options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };

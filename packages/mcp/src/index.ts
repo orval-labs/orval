@@ -258,24 +258,10 @@ ${handlerArgsTypes.join('\n')}
     handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : '';
   const fetchArgs = fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : '';
 
-  const toStructuredContent = isObjectResponseSchema(
-    verbOptions,
-    options.context,
-  )
-    ? '(data: unknown) => data as Record<string, unknown>'
-    : hasResponseSchema(verbOptions, options.context)
-      ? '(data: unknown) => ({ result: data })'
-      : '() => undefined';
-  const structuredContent = isObjectResponseSchema(verbOptions, options.context)
-    ? '\n    structuredContent: res.data,'
-    : hasResponseSchema(verbOptions, options.context)
-      ? '\n    structuredContent: { result: res.data },'
-      : '';
-
   const customHandler = options.override.mcp.handler;
   const handlerImplementation = customHandler
     ? `
-export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>, toStructuredContent: (data: unknown) => Record<string, unknown> | undefined) => {
   const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{
     ...options,
     ...overrides,
@@ -285,10 +271,10 @@ export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit
     },
   });
 
-  return ${customHandler.name ?? 'customHandler'}(fetcher, ctx, ${toStructuredContent});
+  return ${customHandler.name ?? 'customHandler'}(fetcher, ctx, toStructuredContent);
 };`
     : `
-export const ${handlerName} = async (${handlerArgsSignature}options?: RequestInit) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, toStructuredContent: (data: unknown) => Record<string, unknown> | undefined) => {
   const res = await ${verbOptions.operationName}(${fetchArgs}options);
 
   if (res.status >= 400) {
@@ -309,7 +295,8 @@ export const ${handlerName} = async (${handlerArgsSignature}options?: RequestIni
         type: 'text' as const,
         text: JSON.stringify(res.data ?? null),
       },
-    ],${structuredContent}
+    ],
+    structuredContent: toStructuredContent(res.data),
   };
 };`;
 
@@ -358,14 +345,20 @@ export const generateServer = (
           ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      const outputSchemaImplementation = isObjectResponseSchema(
-        verbOption,
-        context,
-      )
-        ? `\n    outputSchema: ${pascalOperationName}Response,`
-        : hasResponseSchema(verbOption, context)
-          ? `\n    outputSchema: { result: ${pascalOperationName}Response },`
-          : '';
+      // `outputSchema` and `toStructuredContent` are derived together so the
+      // structured content always matches the declared schema. Parsing drops
+      // fields that are not in the spec, which the SDK's JSON Schema rejects.
+      const responseSchema = `${pascalOperationName}Response`;
+      const outputSchemaImplementation = hasResponseSchema(verbOption, context)
+        ? isObjectResponseSchema(verbOption, context)
+          ? `\n    outputSchema: ${responseSchema},`
+          : `\n    outputSchema: { result: ${responseSchema} },`
+        : '';
+      const toStructuredContent = hasResponseSchema(verbOption, context)
+        ? isObjectResponseSchema(verbOption, context)
+          ? `(data: unknown) => ${responseSchema}.parse(data)`
+          : `(data: unknown) => ({ result: ${responseSchema}.parse(data) })`
+        : '() => undefined';
 
       const annotationsValue = getAnnotations(verbOption.verb);
       const annotationsImplementation = annotationsValue
@@ -393,8 +386,8 @@ export const generateServer = (
       const ctxArgument = output.override.mcp.handler ? ', ctx' : '';
       const handlerCallImplementation =
         inputSchemaTypes.length > 0
-          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal}${ctxArgument})`
-          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal}${ctxArgument})`;
+          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`
+          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`;
 
       const toolImplementation = `
 tools.${verbOption.operationName} = server.registerTool(

@@ -20,7 +20,10 @@ import {
   headThings,
 } from './http-client';
 
-export const getThingsHandler = async (options?: RequestInit) => {
+export const getThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await getThings(options);
 
   if (res.status >= 400) {
@@ -42,7 +45,7 @@ export const getThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
-    structuredContent: { result: res.data },
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -52,7 +55,8 @@ export type createThingArgs = {
 
 export const createThingHandler = async (
   args: createThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await createThing(args.bodyParams, options);
 
@@ -75,6 +79,7 @@ export const createThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -84,7 +89,8 @@ export type replaceThingArgs = {
 
 export const replaceThingHandler = async (
   args: replaceThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await replaceThing(args.bodyParams, options);
 
@@ -107,6 +113,7 @@ export const replaceThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
@@ -116,7 +123,8 @@ export type patchThingArgs = {
 
 export const patchThingHandler = async (
   args: patchThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
 ) => {
   const res = await patchThing(args.bodyParams, options);
 
@@ -139,10 +147,14 @@ export const patchThingHandler = async (
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
-export const deleteThingHandler = async (options?: RequestInit) => {
+export const deleteThingHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await deleteThing(options);
 
   if (res.status >= 400) {
@@ -164,10 +176,14 @@ export const deleteThingHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
-export const optionsThingsHandler = async (options?: RequestInit) => {
+export const optionsThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await optionsThings(options);
 
   if (res.status >= 400) {
@@ -189,10 +205,14 @@ export const optionsThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };
 
-export const headThingsHandler = async (options?: RequestInit) => {
+export const headThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (data: unknown) => Record<string, unknown> | undefined,
+) => {
   const res = await headThings(options);
 
   if (res.status >= 400) {
@@ -214,5 +234,6 @@ export const headThingsHandler = async (options?: RequestInit) => {
         text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: toStructuredContent(res.data),
   };
 };

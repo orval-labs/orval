@@ -14162,6 +14162,22 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
       noSchema,
     );
     expect(
+      run(
+        json({
+          type: 'array',
+          items: { allOf: [object, { type: 'object' }] },
+        }),
+      ),
+    ).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'object',
+          properties: { nested: { allOf: [object, { type: 'object' }] } },
+        }),
+      ),
+    ).toEqual({ object: true, has: false });
+    expect(
       run(json(object), { generate: { ...base.generate, response: false } }),
     ).toEqual(noSchema);
     expect(run(json(object), { generateEachHttpStatus: true })).toEqual(

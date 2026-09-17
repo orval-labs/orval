@@ -87,6 +87,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => ({ result: FindPetsByStatusResponse.parse(data) }),
       ),
   );
 
@@ -112,6 +113,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => ({ result: FindPetsByTagsResponse.parse(data) }),
       ),
   );
 
@@ -136,6 +138,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetPetByIdResponse.parse(data),
       ),
   );
 
@@ -161,6 +164,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => UpdatePetWithFormResponse.parse(data),
       ),
   );
 
@@ -184,6 +188,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => undefined,
       ),
   );
 
@@ -204,6 +209,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => ({ result: GetInventoryResponse.parse(data) }),
       ),
   );
 
@@ -229,6 +235,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetOrderByIdResponse.parse(data),
       ),
   );
 
@@ -253,6 +260,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => undefined,
       ),
   );
 
@@ -277,6 +285,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => ({ result: LoginUserResponse.parse(data) }),
       ),
   );
 
@@ -296,6 +305,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => undefined,
       ),
   );
 
@@ -320,6 +330,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetUserByNameResponse.parse(data),
       ),
   );
 
@@ -343,6 +354,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => undefined,
       ),
   );
 

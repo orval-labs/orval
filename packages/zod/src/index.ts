@@ -3374,15 +3374,25 @@ export const hasResponseSchema = (
   if (context.output.override.zod.generateEachHttpStatus) return false;
 
   const { input, isArray } = parseResponseSchema(verbOptions, context);
-  if (isArray) return true;
-
-  const [root] = input.functions;
   // No schema is emitted as `zod.void()` / `zod.unknown()`, and `void` cannot
   // even be converted to JSON Schema.
-  if (root === undefined) return false;
+  if (!isArray && input.functions.length === 0) return false;
+
   // `allOf` (also `oneOf` with sibling properties) renders as `.and()`, which
-  // becomes a JSON Schema `allOf` of closed objects that rejects every value.
-  return root[0] !== 'allOf';
+  // becomes a JSON Schema `allOf` of closed objects that rejects every value,
+  // wherever it appears in the schema.
+  const containsAllOf = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsAllOf);
+    if (!isObject(value)) return false;
+    if (Array.isArray(value.functions)) {
+      return (value.functions as [string, unknown][]).some(
+        ([fn, args]) => fn === 'allOf' || containsAllOf(args),
+      );
+    }
+    return Object.values(value).some(containsAllOf);
+  };
+
+  return !containsAllOf(input);
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */

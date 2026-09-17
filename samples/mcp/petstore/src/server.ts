@@ -83,12 +83,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
-      filterPetsByStatusHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      filterPetsByStatusHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: FilterPetsByStatusResponse.parse(data) }),
+      ),
   );
 
   tools.findPetsByStatus = server.registerTool(
@@ -104,12 +108,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      findPetsByStatusHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      findPetsByStatusHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: FindPetsByStatusResponse.parse(data) }),
+      ),
   );
 
   tools.findPetsByTags = server.registerTool(
@@ -125,12 +133,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      findPetsByTagsHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      findPetsByTagsHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: FindPetsByTagsResponse.parse(data) }),
+      ),
   );
 
   tools.getPetById = server.registerTool(
@@ -145,12 +157,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      getPetByIdHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      getPetByIdHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => GetPetByIdResponse.parse(data),
+      ),
   );
 
   tools.updatePetWithForm = server.registerTool(
@@ -166,12 +182,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
-      updatePetWithFormHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      updatePetWithFormHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => UpdatePetWithFormResponse.parse(data),
+      ),
   );
 
   tools.deletePet = server.registerTool(
@@ -185,12 +205,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
-      deletePetHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      deletePetHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.getInventory = server.registerTool(
@@ -202,12 +226,15 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
-      getInventoryHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      getInventoryHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: GetInventoryResponse.parse(data) }),
+      ),
   );
 
   tools.getOrderById = server.registerTool(
@@ -223,12 +250,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      getOrderByIdHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      getOrderByIdHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => GetOrderByIdResponse.parse(data),
+      ),
   );
 
   tools.deleteOrder = server.registerTool(
@@ -243,12 +274,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
-      deleteOrderHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      deleteOrderHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.loginUser = server.registerTool(
@@ -263,12 +298,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      loginUserHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      loginUserHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => ({ result: LoginUserResponse.parse(data) }),
+      ),
   );
 
   tools.logoutUser = server.registerTool(
@@ -279,12 +318,15 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
-      logoutUserHandler({
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      logoutUserHandler(
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   tools.getUserByName = server.registerTool(
@@ -299,12 +341,16 @@ const createMcpServer = (
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
-      getUserByNameHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      getUserByNameHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        (data: unknown) => GetUserByNameResponse.parse(data),
+      ),
   );
 
   tools.deleteUser = server.registerTool(
@@ -318,12 +364,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
-      deleteUserHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      deleteUserHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => undefined,
+      ),
   );
 
   return { server, tools };
