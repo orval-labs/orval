@@ -182,8 +182,16 @@ tools.findPetsByStatus = server.registerTool(
     annotations: { readOnlyHint: true },
   },
   (args, ctx) =>
-    findPetsByStatusHandler(args, { ...options, signal: ctx.signal }, ctx, (data: unknown) =>
-      FindPetsByStatusOutput.safeParse({ result: data }),
+    findPetsByStatusHandler(
+      args,
+      {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      },
+      ctx,
+      (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
     ),
 );
 ```
