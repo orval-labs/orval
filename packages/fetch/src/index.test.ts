@@ -1267,4 +1267,54 @@ describe('generateRequestFunction — useDatesTransform', () => {
     );
     expect(implementation).toContain('body: JSON.stringify(appointment)');
   });
+
+  const MUTATOR = {
+    name: 'customFetch',
+    path: './mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook: false,
+  } as GeneratorVerbOptions['mutator'];
+
+  it('guards a normal mutator response on its status', () => {
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = MUTATOR;
+    expect(generate(verbOptions)).toContain(
+      '.then((res) => {\n    if (res.status === 200) {\n      deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+    );
+  });
+
+  it('converts a normal mutator response directly without the response wrapper', () => {
+    const verbOptions = datedVerbOptions({
+      fetch: { includeHttpResponseReturnType: false },
+    });
+    verbOptions.mutator = MUTATOR;
+    expect(generate(verbOptions)).toContain(
+      '.then(deserializeUpdateAppointmentResponse)',
+    );
+  });
+
+  it('casts a hook mutator result once and returns the cast value', () => {
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    expect(generate(verbOptions)).toContain(
+      '.then((value) => {\n    const res = value as updateAppointmentResponse;\n    if (res.status === 200) {\n      deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+    );
+  });
+
+  it('gives an inferred mutator no response transform but still serializes the body', () => {
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = { ...MUTATOR!, inferred: true };
+    const implementation = generate(verbOptions);
+    expect(implementation).not.toContain('.then(');
+    expect(implementation).not.toContain(
+      'deserializeUpdateAppointmentResponse',
+    );
+    expect(implementation).toContain(
+      'serializeUpdateAppointmentRequest(appointment)',
+    );
+  });
 });

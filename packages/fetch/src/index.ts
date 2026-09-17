@@ -486,8 +486,13 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
   // core deserializer's content-type check accepts.
   const isDatesTransformEnabled =
     override.useDatesTransform && context.output.client !== OutputClient.MCP;
+  // An inferred mutator's return type is unknown to orval — it may not even be
+  // a promise — so its response cannot be converted. Skipping the deserializer
+  // entirely (rather than generating it and simply never wiring it up) keeps
+  // the output free of an unreferenced const, which `tsc --noUnusedLocals`
+  // rejects. The request serializer still applies below regardless.
   const dateDeserializer =
-    isDatesTransformEnabled && !isNdJson
+    isDatesTransformEnabled && !isNdJson && !mutator?.inferred
       ? generateResponseDateDeserializer({ operationName, response, context })
       : undefined;
   const successStatusCondition = dateDeserializer
@@ -927,7 +932,31 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : 'return data'
   }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions});`;
+  // A custom mutator issues the request itself, so the conversion is chained
+  // onto its promise. `dateDeserializer` is already `undefined` for an
+  // inferred mutator (see above), so this naturally emits nothing there. The
+  // hook path calls the fetcher without a type argument, which loses the
+  // return-type inference a bare `return customFetcher(…)` relies on, so its
+  // value is cast once and the cast value is what gets returned.
+  const mutatorResponseTransform = (isHook: boolean) => {
+    if (!dateDeserializer) return '';
+    if (!override.fetch.includeHttpResponseReturnType) {
+      return isHook
+        ? `.then((value) => ${dateDeserializer.name}(value as ${response.definition.success}))`
+        : `.then(${dateDeserializer.name})`;
+    }
+    const head = isHook
+      ? `.then((value) => {\n    const res = value as ${fetchResponseType};`
+      : '.then((res) => {';
+    return `${head}
+    if (${successStatusCondition}) {
+      ${dateDeserializer.name}(res.data as ${response.definition.success});
+    }
+    return res;
+  })`;
+  };
+
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions})${mutatorResponseTransform(false)};`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -949,7 +978,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${mutatorFetchFnOptions});
+        return ${fetchExportName}(${mutatorFetchFnOptions})${mutatorResponseTransform(true)};
       }
   `;
   }
