@@ -420,6 +420,7 @@ export const generateClientFooter: GeneratorClientFooter = async ({
         title: titles.implementation,
         hasMutator,
         hasAwaitedType,
+        output,
       });
     }
   } catch {
@@ -429,6 +430,7 @@ export const generateClientFooter: GeneratorClientFooter = async ({
       title: titles.implementation,
       hasMutator,
       hasAwaitedType,
+      output,
     });
   }
 
