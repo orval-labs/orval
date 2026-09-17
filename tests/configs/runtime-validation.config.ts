@@ -137,4 +137,21 @@ export default defineConfig({
       target: '../specifications/fetch-zod-inline-array.yaml',
     },
   },
+  fetchDatesTransform: {
+    output: {
+      target: '../generated/runtime-validation/fetch-dates-transform/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/fetch-dates-transform/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        fetch: { runtimeValidation: true },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
 });

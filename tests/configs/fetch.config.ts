@@ -1226,4 +1226,63 @@ export default defineConfig({
       target: '../specifications/inferred-mutator/petstore.yaml',
     },
   },
+  datesTransform: {
+    output: {
+      target: '../generated/fetch/dates-transform/endpoints.ts',
+      schemas: '../generated/fetch/dates-transform/model',
+      client: 'fetch',
+      override: { useDatesTransform: true },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
+  datesTransformNoHttpResponse: {
+    output: {
+      target: '../generated/fetch/dates-transform-no-http-response/endpoints.ts',
+      schemas: '../generated/fetch/dates-transform-no-http-response/model',
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
+  datesTransformMutator: {
+    output: {
+      target: '../generated/fetch/dates-transform-mutator/endpoints.ts',
+      schemas: '../generated/fetch/dates-transform-mutator/model',
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        mutator: { path: '../mutators/custom-fetch.ts', name: 'customFetch' },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
+  datesTransformHookMutator: {
+    output: {
+      target: '../generated/fetch/dates-transform-hook-mutator/endpoints.ts',
+      schemas: '../generated/fetch/dates-transform-hook-mutator/model',
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        mutator: {
+          path: '../mutators/use-custom-fetch.ts',
+          name: 'useCustomFetch',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
 });

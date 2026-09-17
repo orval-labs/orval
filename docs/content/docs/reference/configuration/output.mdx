@@ -2773,6 +2773,9 @@ export default defineConfig({
 
 Custom JSON reviver function (useful for date parsing).
 
+When `useDatesTransform` is also enabled, it converts only the schema-declared
+`format: date`/`date-time` fields instead of every string the reviver sees.
+
 ### runtimeValidation
 
 **Type:** `boolean | { strategy: 'throw' | 'both' }`
@@ -4012,11 +4015,22 @@ a schema that is both array- and object-shaped (OAS 3.1 `type: ['array',
 'object']`, or a stray sibling `properties` on a `type: array` schema) also
 generates no serializer, since the two shapes can't be walked together on the
 request side — the same conflict with a map-valued `additionalProperties` in
-place of `properties` drops both the serializer and the deserializer. Only the
-axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`, and
-`solid-query` with `httpClient: 'axios'`). `Date` values in query and path
-parameters are still serialized as full ISO datetimes, so date-only parameters
-are not covered.
+place of `properties` drops both the serializer and the deserializer. Wired
+clients: the axios-based query clients (`react-query`, `vue-query`,
+`svelte-query`, and `solid-query` with `httpClient: 'axios'`), and
+`client: 'fetch'` plus `react-query`, `vue-query`, `svelte-query`,
+`solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. With
+`fetch`, only the declared success status is converted — error bodies are
+returned untouched. The one exception is a custom mutator combined with
+`includeHttpResponseReturnType: false`: the mutator resolves with the body
+alone, so the status is not visible to the generated code and whatever the
+mutator resolves with is converted. An inferred custom mutator gets no response
+conversion at all — its return type is unknown to orval and may not even be
+a promise, so there's nothing to chain the conversion onto; its request body
+is still serialized. The `mcp` client is not transformed. `Date` values in
+query and path parameters are still serialized as full ISO datetimes, so
+date-only parameters are not
+covered.
 
 ### useBigInt
 

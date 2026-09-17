@@ -1305,6 +1305,16 @@ describe('generateRequestFunction — useDatesTransform', () => {
     );
   });
 
+  it('casts a hook mutator result once without the response wrapper', () => {
+    const verbOptions = datedVerbOptions({
+      fetch: { includeHttpResponseReturnType: false },
+    });
+    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    expect(generate(verbOptions)).toContain(
+      '.then((value) => deserializeUpdateAppointmentResponse(value as Appointment))',
+    );
+  });
+
   it('gives an inferred mutator no response transform but still serializes the body', () => {
     const verbOptions = datedVerbOptions();
     verbOptions.mutator = { ...MUTATOR!, inferred: true };
