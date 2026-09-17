@@ -10,6 +10,7 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorDependency,
+  type GeneratorImport,
   getArrayResponseSchema,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -944,50 +945,92 @@ export const fetchResponseTypeName = (
     : definitionSuccessResponse;
 };
 
-/** Builds the full fetch client output (imports + implementation) for one verb. */
-export const generateClient: ClientBuilder = (verbOptions, options) => {
+/**
+ * The response-import rewrite a Zod-validated fetch response requires, together
+ * with the flag telling the caller whether the emitted expression composes
+ * `zod.array(...)` and so needs the `zod` namespace in scope.
+ */
+export interface FetchResponseValidationImports {
+  /** `response.imports` rewritten for the emitted `parse`/`schema:` reference. */
+  imports: GeneratorImport[];
+  /** Set when the validated response is an inline array (`zod.array(Item)`). */
+  composesZodArray: boolean;
+}
+
+/**
+ * Resolves how a verb's response imports have to change for what
+ * {@link generateRequestFunction} emits for that verb, or `undefined` when it
+ * emits no Zod reference at all and the imports stay type-only.
+ *
+ * Exported because the fetch request function is reused verbatim by generators
+ * that assemble their own import list — `@orval/query` for every non-Angular
+ * framework, and `@orval/swr`. Deriving those imports independently of what
+ * this module emits is what left `User.parse()` sitting next to
+ * `import type { User }`, with the `UserOutput` alias naming the declared
+ * response type never imported at all (#4136, #4137).
+ */
+export const getFetchResponseValidationImports = (
+  { response, mutator, override }: GeneratorVerbOptions,
+  { context }: GeneratorOptions,
+): FetchResponseValidationImports | undefined => {
   const isZodOutput =
-    typeof options.context.output.schemas === 'object' &&
-    options.context.output.schemas.type === 'zod';
-  const responseType = verbOptions.response.definition.success;
-  const isNdJsonResponse = verbOptions.response.contentTypes.some(
+    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  if (!isZodOutput || !override.fetch.runtimeValidation.enabled) {
+    return undefined;
+  }
+
+  const responseType = response.definition.success;
+  if (isPrimitiveResponseType(responseType)) return undefined;
+
+  // ndjson streams skip the generated parse entirely, so their schema import
+  // stays type-only and no Output alias is needed.
+  const isNdJsonResponse = response.contentTypes.some(
     (contentType) =>
       contentType === 'application/nd-json' ||
       contentType === 'application/x-ndjson',
   );
+  if (isNdJsonResponse) return undefined;
+
+  // A custom mutator issues the request itself, so the generated parse never
+  // runs there: the schema is referenced — and so has to be a value import —
+  // only when `includeZodSchemaInArguments` hands it to the mutator, and the
+  // declared types keep the schema (input) name in that case.
+  if (mutator && !context.output.override.includeZodSchemaInArguments) {
+    return undefined;
+  }
+
   // An inline array response is validated through its element schema, so it is
   // the element that becomes a value import and contributes the `Output` alias
   // — `Item[]` is not an import name at all (#4106).
-  const schemaImportName = hasSchemaImport(
-    verbOptions.response.imports,
-    responseType,
-  )
+  const isNamedSchema = hasSchemaImport(response.imports, responseType);
+  const schemaImportName = isNamedSchema
     ? responseType
-    : getArrayResponseSchema(verbOptions.response.imports, responseType)
-        ?.elementName;
-  // ndjson streams skip the generated parse entirely, so their schema import
-  // stays type-only and no Output alias is needed.
-  const shouldUseRuntimeValidation =
-    verbOptions.override.fetch.runtimeValidation.enabled &&
-    isZodOutput &&
-    !isNdJsonResponse &&
-    !isPrimitiveResponseType(responseType) &&
-    schemaImportName !== undefined;
+    : getArrayResponseSchema(response.imports, responseType)?.elementName;
+  if (schemaImportName === undefined) return undefined;
 
-  const normalizedVerbOptions = shouldUseRuntimeValidation
+  return {
+    imports: rewriteImportsForResponseValidation(
+      response.imports,
+      schemaImportName,
+      { includeOutputType: !mutator },
+    ),
+    composesZodArray: !isNamedSchema,
+  };
+};
+
+/** Builds the full fetch client output (imports + implementation) for one verb. */
+export const generateClient: ClientBuilder = (verbOptions, options) => {
+  const responseValidationImports = getFetchResponseValidationImports(
+    verbOptions,
+    options,
+  );
+
+  const normalizedVerbOptions = responseValidationImports
     ? {
         ...verbOptions,
         response: {
           ...verbOptions.response,
-          imports: rewriteImportsForResponseValidation(
-            verbOptions.response.imports,
-            schemaImportName,
-            // A mutator skips the generated parse (it issues the request
-            // itself), so the declared types keep the schema (input) name and
-            // no Output alias import is needed — but the schema value import
-            // stays, for `includeZodSchemaInArguments`.
-            { includeOutputType: !verbOptions.mutator },
-          ),
+          imports: responseValidationImports.imports,
         },
       }
     : verbOptions;

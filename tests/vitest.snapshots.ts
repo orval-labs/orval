@@ -13,6 +13,7 @@ export default defineConfig({
       'axios-url-runtime.spec.ts',
       'angular-zod-array-validation.spec.ts',
       'fetch-zod-array-validation.spec.ts',
+      'query-swr-zod-validation.spec.ts',
       'dates-transform-request.spec.ts',
     ],
     silent: 'passed-only',
