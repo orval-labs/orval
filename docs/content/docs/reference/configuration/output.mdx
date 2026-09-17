@@ -1386,7 +1386,7 @@ Generate query invalidation helpers.
 
 Generate type-safe helpers that update cached query data via [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata).
 
-Query keys are matched by prefix, so query params and body arguments are widened to accept `undefined`. Passing `undefined` updates every cached entry that shares the same path.
+The helpers take a trailing `$exactMatch` argument that defaults to `true`, so only the cache entry whose key matches exactly is updated. Query params and body arguments are widened to accept `undefined`: passing `undefined` together with `$exactMatch: false` updates every cached entry that shares the same path.
 
 ### useGetQueryData
 

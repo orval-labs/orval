@@ -156,21 +156,23 @@ export const useSetListPetsQueryData = () => {
 };
 ```
 
-The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys can be matched by prefix. Pass $exactMatch = false to match and set data for all cached entries sharing the given path.
+The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys can be matched by prefix. Pass `$exactMatch: false` to match and update every cached entry sharing the given path prefix.
+For endpoints with query params or a body, those args are widened to accept `undefined` — pass `undefined` (together with `$exactMatch: false`) to update every cached entry sharing the same path; the updater is invoked once per matched entry.
 
 <Callout type="warn">
   Prior to 8.11.0, the helper called `setQueryData`, which writes (and creates) a single exact-key entry.
-  After this change, the helper calls `setQueriesData`, which only updates entries that already exist and match exactly by default. $exactMatch: false can be passed to allow the helper to match by prefix instead.
-  Review existing call sites when upgrading to match expected behavior
+  Since 8.11.0 the helper calls `setQueriesData`, which only updates entries that already exist (it never creates one), and as of this change it matches the key exactly by default. Pass `$exactMatch: false` to match by prefix instead.
+  Review existing call sites when upgrading to confirm they still behave as expected.
 </Callout>
 
-Pass `undefined` for query params or body, and set $exactMatch to false to update every cached entry that shares the same path — useful when a mutation should patch a record across all filter/pagination variants:
+Pass `undefined` for query params or body, and set `$exactMatch` to `false`, to update every cached entry that shares the same path — useful when a mutation should patch a record across all filter/pagination variants:
 
 ```ts
 const updatePetList = useSetListPetsQueryData();
-updatePetList(undefined, (old) =>
+updatePetList(
+  undefined,
   // invoked once per matched cache entry — return the new shape for that entry
-  old?.map((pet) => (pet.id === updated.id ? updated : pet)),
+  (old) => old?.map((pet) => (pet.id === updated.id ? updated : pet)),
   false,
 );
 ```

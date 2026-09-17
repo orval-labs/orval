@@ -181,13 +181,13 @@ export const setShowPetByIdQueryData = (
 };
 ```
 
-The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys can be matched by prefix. Pass $exactMatch = false to match and set data for all cached entries sharing the given path.
-For endpoints with query params or a body, those args are widened to accept `undefined` — pass `undefined` (with $exactMatch = false) to update every cached entry sharing the same path; the updater is invoked once per matched entry.
+The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys can be matched by prefix. Pass `$exactMatch: false` to match and update every cached entry sharing the given path prefix.
+For endpoints with query params or a body, those args are widened to accept `undefined` — pass `undefined` (together with `$exactMatch: false`) to update every cached entry sharing the same path; the updater is invoked once per matched entry.
 
 <Callout type="warn">
   Prior to 8.11.0, the helper called `setQueryData`, which writes (and creates) a single exact-key entry.
-  After this change, the helper calls `setQueriesData`, which only updates entries that already exist and match exactly by default. $exactMatch: false can be passed to allow the helper to match by prefix instead.
-  Review existing call sites when upgrading to match expected behavior
+  Since 8.11.0 the helper calls `setQueriesData`, which only updates entries that already exist (it never creates one), and as of this change it matches the key exactly by default. Pass `$exactMatch: false` to match by prefix instead.
+  Review existing call sites when upgrading to confirm they still behave as expected.
 </Callout>
 
 ## Get Query Data
