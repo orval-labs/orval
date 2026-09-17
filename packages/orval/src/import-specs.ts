@@ -355,6 +355,8 @@ type NodeKind =
   | 'schemaMap'
   /** A map of names to non-schema OpenAPI objects (`responses`, `content`). */
   | 'oasMap'
+  /** A Link Object, whose `parameters` and `requestBody` hold literal values. */
+  | 'link'
   /** Any other OpenAPI object, whose field names are fixed by the spec. */
   | 'oas';
 
@@ -429,6 +431,16 @@ const SCHEMA_DATA_KEYWORDS = new Set([
  */
 const OAS_DATA_KEYWORDS = new Set(['example', 'examples']);
 
+/**
+ * The same, for a Link Object. The spec types both of these as
+ * `Any | {expression}` — the literal value or runtime expression to send when
+ * following the link, not an OpenAPI object. `parameters` in particular is a map
+ * of names to values, unlike `parameters` everywhere else in the document.
+ *
+ * @see https://spec.openapis.org/oas/v3.1.2.html#link-object
+ */
+const LINK_DATA_KEYWORDS = new Set(['parameters', 'requestBody']);
+
 /** The `format` values 3.1 replaced with `contentMediaType`/`contentEncoding`. */
 const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
 
@@ -474,8 +486,8 @@ export function normalizeToOpenApi31(
 
 interface NodeContext {
   kind: NodeKind;
-  /** Whether an `oasMap` is a Content Object, whose keys are media types. */
-  isContent?: boolean;
+  /** The keyword that introduced an `oasMap`, which decides what its members are. */
+  mapKeyword?: string;
   /** Media type of the enclosing Media Type Object, for `format: 'byte'`. */
   mediaType?: string;
 }
@@ -514,16 +526,28 @@ function normalizeNode(node: unknown, context: NodeContext): unknown {
  * what keeps a `default` response and a header called `example` reachable.
  */
 function holdsData(kind: NodeKind, key: string): boolean {
-  if (kind === 'schema') {
-    return isExtension(key) || SCHEMA_DATA_KEYWORDS.has(key);
+  // A map's keys are names, so one may legitimately be spelled like a keyword —
+  // a `default` response, a property called `x-legacy-id`, a header called
+  // `x-request-id`. The schemas under those all have to stay reachable.
+  if (kind === 'schemaMap' || kind === 'oasMap') {
+    return false;
   }
-  if (kind === 'oas') {
-    return isExtension(key) || OAS_DATA_KEYWORDS.has(key);
+
+  if (isExtension(key)) {
+    return true;
   }
-  // A map's keys are names, so one may legitimately begin with `x-`: a property
-  // called `x-legacy-id`, a header called `x-request-id`. Those are not
-  // extensions and the schemas under them still have to be normalized.
-  return false;
+
+  switch (kind) {
+    case 'schema': {
+      return SCHEMA_DATA_KEYWORDS.has(key);
+    }
+    case 'link': {
+      return LINK_DATA_KEYWORDS.has(key);
+    }
+    default: {
+      return OAS_DATA_KEYWORDS.has(key);
+    }
+  }
 }
 
 /**
@@ -565,36 +589,47 @@ function childContext(context: NodeContext, key: string): NodeContext {
     }
 
     case 'oasMap': {
-      // A Content Object is keyed by media type, which `format: 'byte'` needs.
-      // It stays on the context so a schema nested below still sees it.
-      return context.isContent
-        ? { kind: 'oas', mediaType: key }
-        : { ...context, kind: 'oas', isContent: false };
+      switch (context.mapKeyword) {
+        // A Content Object is keyed by media type, which `format: 'byte'` needs.
+        // It stays on the context so a schema nested below still sees it.
+        case 'content': {
+          return { kind: 'oas', mediaType: key };
+        }
+        case 'links': {
+          return { ...context, kind: 'link', mapKeyword: undefined };
+        }
+        default: {
+          return { ...context, kind: 'oas', mapKeyword: undefined };
+        }
+      }
     }
 
     case 'schema': {
       if (SCHEMA_MAP_KEYWORDS.has(key)) {
-        return { ...context, kind: 'schemaMap', isContent: false };
+        return { ...context, kind: 'schemaMap', mapKeyword: undefined };
       }
       if (SUBSCHEMA_KEYWORDS.has(key)) {
-        return { ...context, kind: 'schema', isContent: false };
+        return { ...context, kind: 'schema', mapKeyword: undefined };
       }
-      // `discriminator`, `xml`, `externalDocs`, `x-` extensions: no schemas of
-      // their own, and not data either.
-      return { ...context, kind: 'oas', isContent: false };
+      // `discriminator`, `xml`, `externalDocs`: no schemas of their own, and not
+      // data either.
+      return { ...context, kind: 'oas', mapKeyword: undefined };
     }
 
+    // An `oas` node and a `link` choose their children the same way. A Link's
+    // own data fields never reach here — `holdsData` has already skipped them —
+    // so all that is left of one is `server`.
     default: {
       if (key === 'schema') {
-        return { ...context, kind: 'schema', isContent: false };
+        return { ...context, kind: 'schema', mapKeyword: undefined };
       }
       if (key === 'schemas') {
-        return { ...context, kind: 'schemaMap', isContent: false };
+        return { ...context, kind: 'schemaMap', mapKeyword: undefined };
       }
       if (OAS_MAP_KEYWORDS.has(key)) {
-        return { ...context, kind: 'oasMap', isContent: key === 'content' };
+        return { ...context, kind: 'oasMap', mapKeyword: key };
       }
-      return { ...context, kind: 'oas', isContent: false };
+      return { ...context, kind: 'oas', mapKeyword: undefined };
     }
   }
 }

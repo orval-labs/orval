@@ -171,11 +171,21 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
     return true;
   }
 
-  // `enum` narrows whatever `type` allows, so a `null` member is the whole
-  // constraint on nullability — and the only spelling available when there is
-  // no sibling `type` at all (`{ enum: ['foo', null] }`). The member itself is
-  // never emitted into the generated const; it only contributes the ` | null`.
-  if (Array.isArray(schema.enum) && schema.enum.includes(null)) {
+  // With no `type` at all, a `null` member of the `enum` is the whole constraint
+  // on nullability — and the only spelling available for that case
+  // (`{ enum: ['foo', null] }`). The member itself is never emitted into the
+  // generated const; it only contributes the ` | null`.
+  //
+  // A sibling `type` settles the question on its own, so this deliberately does
+  // not look at the enum when one is present. `type` and `enum` are independent
+  // assertions combined with AND: a `type` that admits null has already
+  // returned above, and one that does not makes the enum's `null` unreachable,
+  // so honoring it would emit a `| null` the schema rejects.
+  if (
+    schema.type === undefined &&
+    Array.isArray(schema.enum) &&
+    schema.enum.includes(null)
+  ) {
     return true;
   }
 

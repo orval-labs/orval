@@ -4238,6 +4238,109 @@ describe('normalizeToOpenApi31', () => {
         },
       });
     });
+    it('should leave a Link Object `requestBody` literal alone', () => {
+      // A Link Object's `requestBody` is `Any | {expression}` — the literal
+      // value to send, not an OpenAPI object, so it is the user's data.
+      const result = normalizeToOpenApi31({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              requestBody: { schema: { enum: ['a'], nullable: true } },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              requestBody: { schema: { enum: ['a'], nullable: true } },
+            },
+          },
+        },
+      });
+    });
+
+    it('should leave Link Object `parameters` literals alone', () => {
+      // `parameters` on a Link is a map of names to `Any | {expression}`, not
+      // to Parameter Objects.
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  links: {
+                    GetPet: {
+                      operationId: 'getPet',
+                      parameters: {
+                        petId: { schema: { type: 'string', nullable: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  links: {
+                    GetPet: {
+                      operationId: 'getPet',
+                      parameters: {
+                        petId: { schema: { type: 'string', nullable: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should still normalize a Link Object`s `server` variables', () => {
+      // Everything on a Link that really is an OpenAPI object stays reachable.
+      const result = normalizeToOpenApi31({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              server: {
+                url: 'http://localhost',
+                'x-custom': { schema: { type: 'string', nullable: true } },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              server: {
+                url: 'http://localhost',
+                'x-custom': { schema: { type: 'string', nullable: true } },
+              },
+            },
+          },
+        },
+      });
+    });
+
     it('should pass through non-object types unchanged', () => {
       expect(normalizeToOpenApi31('string')).toBe('string');
       expect(normalizeToOpenApi31(null)).toBe(null);

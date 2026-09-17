@@ -99,6 +99,17 @@ describe('assertion testing', () => {
     ).toBeTruthy();
 
     expect(isSchemaNullable({ type: 'string', enum: ['a', 'b'] })).toBeFalsy();
+    // `type` and `enum` are independent assertions that combine with AND, so a
+    // `type` refusing null makes the enum's `null` unreachable rather than the
+    // schema nullable.
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
+      isSchemaNullable({ type: 'string', enum: ['a', null] }),
+    ).toBeFalsy();
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
+      isSchemaNullable({ type: ['string'], enum: ['a', null] }),
+    ).toBeFalsy();
     expect(
       isSchemaNullable({
         anyOf: [{ type: 'string' }, { type: 'number' }],
