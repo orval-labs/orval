@@ -8,10 +8,13 @@ import {
   filterByContentType,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
+  generateRequestDateSerializer,
+  generateResponseDateDeserializer,
   generateVerbImports,
   type GeneratorDependency,
   type GeneratorImport,
   getArrayResponseSchema,
+  getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getStatusCodeType,
@@ -34,6 +37,7 @@ import {
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
+  OutputClient,
   pascal,
   resolveRef,
   stringify,
@@ -475,6 +479,45 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
   );
   const isBlob = response.isBlob;
 
+  // `useDatesTransform` converts only JSON bodies. MCP handlers forward the
+  // result to the model as JSON, where a `Date` adds nothing and re-serializes
+  // a `format: date` value as a full datetime, so MCP gets no transform.
+  // ndjson is excluded explicitly: its media type contains `json`, which the
+  // core deserializer's content-type check accepts.
+  const isDatesTransformEnabled =
+    override.useDatesTransform && context.output.client !== OutputClient.MCP;
+  const dateDeserializer =
+    isDatesTransformEnabled && !isNdJson
+      ? generateResponseDateDeserializer({ operationName, response, context })
+      : undefined;
+  const successStatusCondition = dateDeserializer
+    ? getResponseStatusCondition({
+        key: response.types.success[0].key,
+        declaredKeys: [...response.types.success, ...response.types.errors].map(
+          ({ key }) => key,
+        ),
+        accessor: 'res.status',
+      })
+    : undefined;
+  const requestSerializer = isDatesTransformEnabled
+    ? generateRequestDateSerializer({ operationName, body, context })
+    : undefined;
+  // Error responses are returned rather than thrown by default, so the parsed
+  // body is converted only when the status is the declared success one. The
+  // core deserializer mutates in place; `body` guards the `{}` fallback of an
+  // empty response, and the JSON check skips a non-JSON body under mixed
+  // content types.
+  const convertParsedBody = (
+    expression: string,
+    { checkContentType }: { checkContentType: boolean },
+  ) =>
+    dateDeserializer
+      ? `
+  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
+    ${dateDeserializer.name}(${expression} as ${response.definition.success});
+  }`
+      : '';
+
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
     .filter(Boolean);
@@ -722,7 +765,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `headers: { ${headersToAdd.join(',')}${isRequestOptions ? ', ...getHeaders(options?.headers)' : ''} }`
       : '';
   const requestBodyParams = generateBodyOptions(
-    body,
+    requestSerializer
+      ? {
+          ...body,
+          implementation: `${requestSerializer.name}(${body.implementation})`,
+        }
+      : body,
     isFormData,
     isFormUrlEncoded,
   );
@@ -862,18 +910,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? hasMixedSuccessContentTypes
-        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+      ? hasMixedSuccessContentTypes || successAlwaysJson
+        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
   const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
-        : successAlwaysJson
-          ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
-  const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
-          : `const parsedBody = body !== null ? body : ''
+        : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
-        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
+        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: true })}`
         : successAlwaysJson
-          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
+          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: false })}`
           : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
   ${
@@ -923,10 +968,16 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   `;
   }
 
+  const dateTransformImplementations = [dateDeserializer, requestSerializer]
+    .filter((helper) => helper !== undefined)
+    .map(({ implementation }) => `\n${implementation}`)
+    .join('');
+
   return (
     responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
-    `${doc}${fetchImplementation}\n`
+    `${doc}${fetchImplementation}\n` +
+    dateTransformImplementations
   );
 };
 
