@@ -14081,9 +14081,11 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
   const run = (
     responses: OpenApiResponsesObject,
     zod: Partial<ContextSpec['output']['override']['zod']> = {},
+    override: Partial<ContextSpec['output']['override']> = {},
   ) => {
     const context = makeContextSpec({
       spec: { paths: { '/x': { get: { operationId: 'getX', responses } } } },
+      override,
     });
     const base = context.output.override.zod;
     context.output.override.zod = {
@@ -14177,6 +14179,14 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
         }),
       ),
     ).toEqual({ object: true, has: false });
+    expect(
+      run(
+        json({ type: 'string', format: 'date-time' }),
+        {},
+        { useDates: true },
+      ),
+    ).toEqual(noSchema);
+    expect(run(json({ type: 'string', format: 'binary' }))).toEqual(noSchema);
     expect(
       run(json(object), { generate: { ...base.generate, response: false } }),
     ).toEqual(noSchema);

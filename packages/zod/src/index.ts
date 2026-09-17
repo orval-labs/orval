@@ -3378,21 +3378,23 @@ export const hasResponseSchema = (
   // even be converted to JSON Schema.
   if (!isArray && input.functions.length === 0) return false;
 
+  // Wherever they appear in the schema, these cannot be exposed as JSON Schema:
   // `allOf` (also `oneOf` with sibling properties) renders as `.and()`, which
-  // becomes a JSON Schema `allOf` of closed objects that rejects every value,
-  // wherever it appears in the schema.
-  const containsAllOf = (value: unknown): boolean => {
-    if (Array.isArray(value)) return value.some(containsAllOf);
+  // becomes an `allOf` of closed objects that rejects every value; `date`
+  // (`useDates`) and `instanceof` (binary bodies) make the conversion throw.
+  const unsupported = new Set(['allOf', 'date', 'instanceof']);
+  const containsUnsupported = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsUnsupported);
     if (!isObject(value)) return false;
     if (Array.isArray(value.functions)) {
       return (value.functions as [string, unknown][]).some(
-        ([fn, args]) => fn === 'allOf' || containsAllOf(args),
+        ([fn, args]) => unsupported.has(fn) || containsUnsupported(args),
       );
     }
-    return Object.values(value).some(containsAllOf);
+    return Object.values(value).some(containsUnsupported);
   };
 
-  return !containsAllOf(input);
+  return !containsUnsupported(input);
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */

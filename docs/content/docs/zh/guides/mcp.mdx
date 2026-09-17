@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler（自定义 Handler）
 
-默认情况下，每个生成的 handler 会把响应体作为文本返回，将 400 及以上的 HTTP 状态码标记为错误，并把响应体作为 `structuredContent` 返回，同时工具会声明对应的 `outputSchema`。响应体会先经过该操作的响应 schema 校验，校验会移除 spec 中不存在的字段，因此 `structuredContent` 始终满足所声明的 schema。当响应体不符合 schema 时，handler 会把原始响应体和校验错误一起作为 `isError` 结果返回，这样 Agent 仍然能看到 API 实际返回的内容。MCP 要求两者都必须是对象，因此普通的 JSON 对象会原样传递，其他响应体（数组、基本类型、联合类型）会被包装为 `{ result: body }`。空响应两者都不会生成；任何位置包含 `allOf`（或带有同级属性的 `oneOf`）的响应也不会生成，因为它们的 JSON Schema 会变成由封闭对象组成的 `allOf`，没有任何值能够满足，这会导致工具无法使用。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
+默认情况下，每个生成的 handler 会把响应体作为文本返回，将 400 及以上的 HTTP 状态码标记为错误，并把响应体作为 `structuredContent` 返回，同时工具会声明对应的 `outputSchema`。响应体会先经过该操作的响应 schema 校验，校验会移除 spec 中不存在的字段，因此 `structuredContent` 始终满足所声明的 schema。当响应体不符合 schema 时，handler 会把原始响应体和校验错误一起作为 `isError` 结果返回，这样 Agent 仍然能看到 API 实际返回的内容。MCP 要求两者都必须是对象，因此普通的 JSON 对象会原样传递，其他响应体（数组、基本类型、联合类型）会被包装为 `{ result: body }`。空响应两者都不会生成；无法表示为 JSON Schema 的响应也不会生成：任何位置包含 `allOf`（或带有同级属性的 `oneOf`）的响应，其 JSON Schema 会变成由封闭对象组成的 `allOf`，没有任何值能够满足；包含 `Date`（启用 `useDates` 时）或二进制响应体的响应，则没有对应的 JSON Schema 表示。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
