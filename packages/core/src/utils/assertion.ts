@@ -184,7 +184,8 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
   if (
     schema.type === undefined &&
     Array.isArray(schema.enum) &&
-    schema.enum.includes(null)
+    schema.enum.includes(null) &&
+    !someAllOfBranchRejectsNull(schema.allOf)
   ) {
     return true;
   }
@@ -200,6 +201,45 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
     }
 
     return isSchemaNullable(variant as OpenApiSchemaObject);
+  });
+}
+
+/**
+ * Whether any member of an `allOf` rules `null` out.
+ *
+ * `allOf` is an intersection, so one branch refusing null is enough to make an
+ * enclosing enum's `null` member unreachable:
+ * `{ enum: ['a', null], allOf: [{ type: 'string' }] }` admits only `'a'`.
+ *
+ * Only a branch that *definitely* rejects null counts. A branch constraining
+ * nothing permits it, and a `$ref` is not resolved here, so neither is read as
+ * rejecting — erring toward a `| null` that was not strictly needed rather than
+ * dropping one the API can really return.
+ *
+ * @param allOf - Value of the enclosing schema's `allOf`, if it has one.
+ */
+function someAllOfBranchRejectsNull(allOf: unknown): boolean {
+  if (!Array.isArray(allOf)) {
+    return false;
+  }
+
+  return allOf.some((branch) => {
+    if (!isObject(branch) || isReference(branch)) {
+      return false;
+    }
+
+    const { type, enum: members } = branch as OpenApiSchemaObject;
+
+    if (type !== undefined) {
+      const admitsNull = Array.isArray(type)
+        ? type.includes('null')
+        : type === 'null';
+      if (!admitsNull) {
+        return true;
+      }
+    }
+
+    return Array.isArray(members) && !members.includes(null);
   });
 }
 
