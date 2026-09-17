@@ -6,7 +6,14 @@ import type {
   OverrideOutputContentType,
 } from '@orval/core';
 import ts from 'typescript';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils/options';
@@ -115,176 +122,203 @@ export function mutation(error: SaveMutationError) {
 export function health(error: HealthQueryError) { const unexpected: Error = error; return unexpected; }
 `;
 
-describe('custom fetch error responses (#4111)', () => {
-  it.each([false, true])(
-    'generates usable query/mutation types and metadata (default export: %s)',
-    async (defaultExport) => {
+describe.each([false, true])(
+  'custom fetch error responses (#4111, default export: %s)',
+  (defaultExport) => {
+    let workspace: string;
+
+    beforeEach(async () => {
       // Resolve the real React Query dependency already installed for this sample.
-      const workspace = await mkdtemp(
+      workspace = await mkdtemp(
         path.resolve(
           import.meta.dirname,
           '../../../samples/react-query/custom-fetch/.orval-errors-',
         ),
       );
-      try {
-        await writeFile(
-          path.join(workspace, 'mutator.ts'),
-          mutator + (defaultExport ? '\nexport default request;\n' : ''),
-        );
-        await writeFile(path.join(workspace, 'consumer.ts'), consumer);
-        async function generate(
-          enabled: boolean,
-          input = spec,
-          contentType?: OverrideOutputContentType,
-        ) {
-          const options = await normalizeOptions(
-            {
-              input: { target: input },
-              output: {
-                target: './client.ts',
-                client: 'react-query',
-                httpClient: 'fetch',
-                override: {
-                  header: false,
-                  contentType,
-                  mutator: {
-                    path: './mutator.ts',
-                    ...(defaultExport ? {} : { name: 'request' }),
-                  },
-                  fetch: {
-                    includeErrorResponseInMutator: enabled,
-                    forceSuccessResponse: true,
-                  },
-                },
+      await writeFile(
+        path.join(workspace, 'mutator.ts'),
+        mutator + (defaultExport ? '\nexport default request;\n' : ''),
+      );
+      await writeFile(path.join(workspace, 'consumer.ts'), consumer);
+    });
+
+    afterEach(async () => {
+      vi.unstubAllGlobals();
+      await rm(workspace, { recursive: true, force: true });
+    });
+
+    async function generate(
+      enabled: boolean,
+      input = spec,
+      contentType?: OverrideOutputContentType,
+    ) {
+      const options = await normalizeOptions(
+        {
+          input: { target: input },
+          output: {
+            target: './client.ts',
+            client: 'react-query',
+            httpClient: 'fetch',
+            override: {
+              header: false,
+              contentType,
+              mutator: {
+                path: './mutator.ts',
+                ...(defaultExport ? {} : { name: 'request' }),
+              },
+              fetch: {
+                includeErrorResponseInMutator: enabled,
+                forceSuccessResponse: true,
               },
             },
-            workspace,
-          );
-          await generateSpec(workspace, options);
-          return readFile(path.join(workspace, 'client.ts'), 'utf8');
-        }
-        function diagnostics() {
-          const program = ts.createProgram(
-            [path.join(workspace, 'consumer.ts')],
-            {
-              strict: true,
-              noEmit: true,
-              skipLibCheck: true,
-              types: [],
-              module: ts.ModuleKind.ESNext,
-              moduleResolution: ts.ModuleResolutionKind.Bundler,
-              target: ts.ScriptTarget.ES2022,
-            },
-          );
-          return ts
-            .getPreEmitDiagnostics(program)
-            .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-        }
-        const baseline = await generate(false);
-        expect(baseline).not.toContain('"errorResponses"');
-        expect(
-          diagnostics().some((message) =>
-            message.includes("Property 'status' does not exist"),
-          ),
-        ).toBe(true);
-        const enabled = await generate(true);
-        expect(diagnostics()).toEqual([]);
-        expect(await generate(true)).toBe(enabled);
+          },
+        },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      return readFile(path.join(workspace, 'client.ts'), 'utf8');
+    }
 
-        const client = (await import(
-          /* @vite-ignore */ path.join(workspace, 'client.ts')
-        )) as {
-          load: () => Promise<unknown>;
-          save: () => Promise<unknown>;
-          health: () => Promise<unknown>;
-          emptyError: () => Promise<unknown>;
-          referencedError: () => Promise<unknown>;
-        };
-        for (const request of [client.load, client.save]) {
-          vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue(
-              new Response(JSON.stringify({ fields: ['name'] }), {
-                status: 422,
-                headers: { 'content-type': 'application/json; charset=utf-8' },
-              }),
-            ),
-          );
-          await expect(request()).rejects.toMatchObject({
-            status: 422,
-            data: { fields: ['name'] },
-          });
-          vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue(
-              new Response('{}', {
-                status: 502,
-                headers: { 'content-type': 'application/json' },
-              }),
-            ),
-          );
-          await expect(request()).rejects.toThrow('Unexpected response');
-          vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue(
-              new Response('{}', {
-                status: 422,
-                headers: { 'content-type': 'text/plain' },
-              }),
-            ),
-          );
-          await expect(request()).rejects.toThrow('Unexpected response');
-        }
+    function diagnostics() {
+      const program = ts.createProgram([path.join(workspace, 'consumer.ts')], {
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+        types: [],
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        target: ts.ScriptTarget.ES2022,
+      });
+      return ts
+        .getPreEmitDiagnostics(program)
+        .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+    }
+
+    it('omits response metadata and status narrowing when disabled', async () => {
+      const baseline = await generate(false);
+      expect(baseline).not.toContain('"errorResponses"');
+      expect(
+        diagnostics().some((message) =>
+          message.includes("Property 'status' does not exist"),
+        ),
+      ).toBe(true);
+    });
+
+    it('generates narrowing and exhaustive error types deterministically', async () => {
+      const enabled = await generate(true);
+      expect(diagnostics()).toEqual([]);
+      expect(await generate(true)).toBe(enabled);
+    });
+
+    it('passes error metadata to the mutator at runtime', async () => {
+      await generate(true);
+      const client = (await import(
+        /* @vite-ignore */ path.join(workspace, 'client.ts')
+      )) as {
+        load: () => Promise<unknown>;
+        save: () => Promise<unknown>;
+        health: () => Promise<unknown>;
+        emptyError: () => Promise<unknown>;
+        referencedError: () => Promise<unknown>;
+      };
+      for (const request of [client.load, client.save]) {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ fields: ['name'] }), {
+              status: 422,
+              headers: { 'content-type': 'application/json; charset=utf-8' },
+            }),
+          ),
+        );
+        await expect(request()).rejects.toMatchObject({
+          status: 422,
+          data: { fields: ['name'] },
+        });
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue(
+            new Response('{}', {
+              status: 502,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        );
+        await expect(request()).rejects.toThrow('Unexpected response');
         vi.stubGlobal(
           'fetch',
           vi.fn().mockResolvedValue(
             new Response('{}', {
               status: 422,
-              headers: { 'content-type': 'application/json' },
-            }),
-          ),
-        );
-        await expect(client.health()).rejects.toThrow('Unexpected response');
-        vi.stubGlobal(
-          'fetch',
-          vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
-        );
-        await expect(client.emptyError()).rejects.toMatchObject({
-          status: 404,
-          data: undefined,
-        });
-        vi.stubGlobal(
-          'fetch',
-          vi.fn().mockResolvedValue(
-            new Response('Missing', {
-              status: 404,
               headers: { 'content-type': 'text/plain' },
             }),
           ),
         );
-        await expect(client.referencedError()).rejects.toMatchObject({
-          status: 404,
-          data: 'Missing',
-        });
-        for (const key of ['default', '4XX']) {
-          await expect(
-            generate(true, {
-              ...spec,
-              paths: {
-                '/unsupported': {
-                  get: {
-                    operationId: 'unsupported',
-                    responses: {
-                      ...responses,
-                      [key]: responses[404],
-                    },
+        await expect(request()).rejects.toThrow('Unexpected response');
+      }
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response('{}', {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+          }),
+        ),
+      );
+      await expect(client.health()).rejects.toThrow('Unexpected response');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+      );
+      await expect(client.emptyError()).rejects.toMatchObject({
+        status: 404,
+        data: undefined,
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response('Missing', {
+            status: 404,
+            headers: { 'content-type': 'text/plain' },
+          }),
+        ),
+      );
+      await expect(client.referencedError()).rejects.toMatchObject({
+        status: 404,
+        data: 'Missing',
+      });
+    });
+
+    it.each(['default', '4XX'])(
+      'rejects retained %s error responses',
+      async (key) => {
+        await expect(
+          generate(true, {
+            ...spec,
+            paths: {
+              '/unsupported': {
+                get: {
+                  operationId: 'unsupported',
+                  responses: {
+                    ...responses,
+                    [key]: responses[404],
                   },
                 },
               },
-            }),
-          ).rejects.toThrow(
-            /includeErrorResponseInMutator requires explicit error status codes/,
-          );
+            },
+          }),
+        ).rejects.toThrow(
+          /includeErrorResponseInMutator requires explicit error status codes/,
+        );
+      },
+    );
+
+    it.each([{ include: ['application/json'] }, { exclude: ['text/plain'] }])(
+      'ignores excluded error responses with %j',
+      async (filter) => {
+        const expected = await generate(true, spec, filter);
+        expect(diagnostics()).toEqual([]);
+        for (const key of ['default', '4XX']) {
           const filteredSpec: OpenApiDocument = {
             ...spec,
             paths: {
@@ -304,20 +338,10 @@ describe('custom fetch error responses (#4111)', () => {
               },
             },
           };
-          for (const filter of [
-            { include: ['application/json'] },
-            { exclude: ['text/plain'] },
-          ]) {
-            const expected = await generate(true, spec, filter);
-            // Excluded responses affect neither the generated types nor metadata.
-            expect(await generate(true, filteredSpec, filter)).toBe(expected);
-            expect(diagnostics()).toEqual([]);
-          }
+          // Identical source shares the baseline's type-check result.
+          expect(await generate(true, filteredSpec, filter)).toBe(expected);
         }
-      } finally {
-        vi.unstubAllGlobals();
-        await rm(workspace, { recursive: true, force: true });
-      }
-    },
-  );
-});
+      },
+    );
+  },
+);
