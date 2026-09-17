@@ -170,8 +170,8 @@ Pass `undefined` for query params or body, and set $exactMatch to false to updat
 const updatePetList = useSetListPetsQueryData();
 updatePetList(undefined, (old) =>
   // invoked once per matched cache entry — return the new shape for that entry
-  old?.map((pet) => (pet.id === updated.id ? updated : pet),
-  false),
+  old?.map((pet) => (pet.id === updated.id ? updated : pet)),
+  false,
 );
 ```
 
