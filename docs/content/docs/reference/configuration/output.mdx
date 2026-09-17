@@ -2685,7 +2685,7 @@ produce `status: 200` and `status: Exclude<HTTPStatusCode2xx, 200>`.
 
 Throw on error responses instead of returning them.
 
-### includeErrorResponseInMutator
+### includeHttpErrorResponse
 
 **Type:** `Boolean`
 **Default:** `false`
@@ -2705,7 +2705,7 @@ export default defineConfig({
         fetch: {
           includeHttpResponseReturnType: true,
           forceSuccessResponse: true,
-          includeErrorResponseInMutator: true,
+          includeHttpErrorResponse: true,
         },
       },
     },

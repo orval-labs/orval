@@ -629,7 +629,7 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     Object.assign(operation.override.fetch, {
       includeHttpResponseReturnType: true,
       forceSuccessResponse: true,
-      includeErrorResponseInMutator: true,
+      includeHttpErrorResponse: true,
     });
     const context = makeZodContext();
     context.output.override.includeZodSchemaInArguments = true;
@@ -965,7 +965,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
   });
 });
 
-describe('includeErrorResponseInMutator', () => {
+describe('includeHttpErrorResponse', () => {
   function operation(enabled = true) {
     const operation = makeVerbOptions({
       typeName: 'ListPets',
@@ -983,7 +983,7 @@ describe('includeErrorResponseInMutator', () => {
     Object.assign(operation.override.fetch, {
       includeHttpResponseReturnType: true,
       forceSuccessResponse: true,
-      includeErrorResponseInMutator: enabled,
+      includeHttpErrorResponse: enabled,
     });
     operation.response.originalSchema = {
       200: { description: 'Success', content: { 'application/json': {} } },
@@ -1065,7 +1065,7 @@ describe('includeErrorResponseInMutator', () => {
       options.response.originalSchema!['404']!;
     expect(() =>
       generateImplementation(options, makeOptions(makeContext())),
-    ).toThrow(/includeErrorResponseInMutator.*explicit/i);
+    ).toThrow(/includeHttpErrorResponse.*explicit/i);
   });
 
   it.each(['includeHttpResponseReturnType', 'forceSuccessResponse'] as const)(
@@ -1075,7 +1075,7 @@ describe('includeErrorResponseInMutator', () => {
       options.override.fetch[key] = false;
       expect(() =>
         generateImplementation(options, makeOptions(makeContext())),
-      ).toThrow(/includeErrorResponseInMutator/);
+      ).toThrow(/includeHttpErrorResponse/);
     },
   );
 
@@ -1089,7 +1089,7 @@ describe('includeErrorResponseInMutator', () => {
       options.mutator = mutator;
       expect(() =>
         generateImplementation(options, makeOptions(makeContext())),
-      ).toThrow(/includeErrorResponseInMutator/);
+      ).toThrow(/includeHttpErrorResponse/);
     }
   });
 });

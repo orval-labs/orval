@@ -556,7 +556,7 @@ const generateQueryImplementation = ({
   hasSignal,
   useRuntimeFetcher,
   forceSuccessResponse,
-  includeErrorResponseInMutator,
+  includeHttpErrorResponse,
   route,
   doc,
   deprecated,
@@ -596,7 +596,7 @@ const generateQueryImplementation = ({
   hasSignal: boolean;
   useRuntimeFetcher?: boolean;
   forceSuccessResponse?: boolean;
-  includeErrorResponseInMutator?: boolean;
+  includeHttpErrorResponse?: boolean;
   route: string;
   doc?: string;
   deprecated?: boolean;
@@ -706,7 +706,7 @@ const generateQueryImplementation = ({
     httpClient,
     mutator,
     forceSuccessResponse,
-    includeErrorResponseInMutator,
+    includeHttpErrorResponse,
   );
 
   const dataType = mutator?.isHook
@@ -1478,8 +1478,7 @@ ${queryKeyFns}`;
         }),
         useRuntimeFetcher: override.fetch.useRuntimeFetcher,
         forceSuccessResponse: override.fetch.forceSuccessResponse,
-        includeErrorResponseInMutator:
-          override.fetch.includeErrorResponseInMutator,
+        includeHttpErrorResponse: override.fetch.includeHttpErrorResponse,
         queryOptionsMutator,
         queryKeyMutator,
         route,

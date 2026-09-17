@@ -167,7 +167,7 @@ describe.each([false, true])(
                 ...(defaultExport ? {} : { name: 'request' }),
               },
               fetch: {
-                includeErrorResponseInMutator: enabled,
+                includeHttpErrorResponse: enabled,
                 forceSuccessResponse: true,
               },
             },
@@ -308,7 +308,7 @@ describe.each([false, true])(
             },
           }),
         ).rejects.toThrow(
-          /includeErrorResponseInMutator requires explicit error status codes/,
+          /includeHttpErrorResponse requires explicit error status codes/,
         );
       },
     );

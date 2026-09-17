@@ -95,7 +95,7 @@ const getMutatorErrorResponseArgument = (
   >,
   context: GeneratorOptions['context'],
 ) => {
-  if (!override.fetch.includeErrorResponseInMutator) {
+  if (!override.fetch.includeHttpErrorResponse) {
     return '';
   }
   if (
@@ -106,7 +106,7 @@ const getMutatorErrorResponseArgument = (
     !mutator.hasThirdArg
   ) {
     throw new Error(
-      'includeErrorResponseInMutator requires includeHttpResponseReturnType, forceSuccessResponse, and a non-hook mutator accepting three arguments.',
+      'includeHttpErrorResponse requires includeHttpResponseReturnType, forceSuccessResponse, and a non-hook mutator accepting three arguments.',
     );
   }
 
@@ -119,7 +119,7 @@ const getMutatorErrorResponseArgument = (
       // in this opt-in mode instead of emitting metadata that cannot match its types.
       if (!/^[1-5]\d\d$/.test(key)) {
         throw new Error(
-          `includeErrorResponseInMutator requires explicit error status codes; received ${key} in ${operationName}.`,
+          `includeHttpErrorResponse requires explicit error status codes; received ${key} in ${operationName}.`,
         );
       }
       const { schema } = resolveRef<OpenApiResponseObject>(

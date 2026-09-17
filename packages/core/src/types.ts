@@ -1490,7 +1490,7 @@ export interface AxiosOptions {
 export interface NormalizedFetchOptions {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
-  includeErrorResponseInMutator?: boolean;
+  includeHttpErrorResponse?: boolean;
   serializeResponseHeaders: boolean;
   jsonReviver?: Mutator;
   runtimeValidation: NormalizedRuntimeValidation;
@@ -1517,7 +1517,7 @@ export interface FetchOptions {
    *
    * @default false
    */
-  includeErrorResponseInMutator?: boolean;
+  includeHttpErrorResponse?: boolean;
   /**
    * Return response `headers` as a plain `Record<string, string>` instead of a
    * `Headers` instance, so the response stays serializable. Keys are lowercased
