@@ -1743,7 +1743,9 @@ Force a specific version for generated hooks.
 **Type:** `boolean | { strategy: 'throw' | 'both' }`
 **Default:** `false`
 
-Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
+Enable Zod runtime validation for `angular-query` responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
+
+This option only drives the Angular `HttpClient` pipeline that `angular-query` generates. `react-query`, `vue-query`, `svelte-query` and `solid-query` issue their requests through the fetch client, so they enable validation through `override.fetch.runtimeValidation` with `httpClient: 'fetch'` instead — as does `swr`.
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
@@ -2685,6 +2687,59 @@ produce `status: 200` and `status: Exclude<HTTPStatusCode2xx, 200>`.
 
 Throw on error responses instead of returning them.
 
+### includeHttpErrorResponse
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Pass operation-specific error response information to a custom fetch mutator. Requires `includeHttpResponseReturnType: true`, `forceSuccessResponse: true`, and a non-hook mutator accepting three arguments.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    input: './openapi.yaml',
+    output: {
+      target: './api.ts',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: { path: './mutator.ts', name: 'customFetch' },
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: true,
+          includeHttpErrorResponse: true,
+        },
+      },
+    },
+  },
+});
+```
+
+For Query clients, a mutator exporting `ErrorType<T>` receives the generated error response union as `T`, preserving the relationship between `status` and `data` for both queries and mutations:
+
+```ts
+// With this option enabled:
+type GetItemQueryError = ErrorType<GetItemResponseError>;
+// Without it, T remains the union of error response bodies.
+```
+
+Operations with no declared error responses pass `never` to `ErrorType`, so the mutator can still add transport or unexpected-response errors to its error type.
+
+At runtime, the generated function passes the declared error statuses and media types in a separate third argument:
+
+```ts
+customFetch(url, options, {
+  errorResponses: [
+    { status: 404, contentType: 'application/json' },
+    { status: 422, contentType: 'application/json' },
+  ],
+});
+```
+
+The mutator's third parameter can use `{ errorResponses: readonly { status: number; contentType: string }[] }`. The list respects `override.contentType` and is empty when no errors are declared. Responses without a body use an empty `contentType`. The second argument remains the request options, including `schema` when `includeZodSchemaInArguments` is enabled.
+
+The mutator owns parsing, validation, and error handling. Matching the supplied status and media type does not validate the response body. Named and default mutator exports are supported; hook mutators are not. Only explicit error status codes are supported among the responses retained by `override.contentType`. A retained `default` or range such as `4XX` causes generation to fail. Responses excluded by the filter are omitted from both the generated error types and metadata and do not prevent generation.
+
 ### serializeResponseHeaders
 
 **Type:** `Boolean`
@@ -2724,6 +2779,8 @@ Custom JSON reviver function (useful for date parsing).
 **Default:** `false`
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
+
+This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for primitive response types (`number`, `string`, `boolean`) and for ndjson streams, neither of which has a generated schema to parse against.
 
 The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 
@@ -3935,23 +3992,30 @@ with `new Date(Date.UTC(year, month, day))` and read it back with `getUTCFullYea
 `getUTCMonth()` / `getUTCDate()` — a `Date` built from local parts can land on the
 previous day at positive UTC offsets.
 
-Current limitations: a `oneOf`/`anyOf` without an OpenAPI
+A `oneOf`/`anyOf` without an OpenAPI
 [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
 `mapping` is skipped, since there's no static way to tell which variant a
 given payload matched; a discriminated union with an explicit `mapping` is
 converted, emitting a `switch` on the discriminator property with one `case`
-per mapping key. `additionalProperties` maps are not converted, responses
-with multiple success shapes are skipped, and recursive schemas are left
-untouched entirely — converting only the levels above the cycle would leave
-deeper dates as strings while the generated types claim `Date`. A request body
-with several media types, several JSON media types, or a blob body generates no
-serializer, since there is no single JSON schema to walk; a schema that is both
-array- and object-shaped (OAS 3.1 `type: ['array', 'object']`, or a stray sibling
-`properties` on a `type: array` schema) also generates no serializer, since the two
-shapes can't be walked together on the request side. Only the
-axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`,
-and `solid-query` with `httpClient: 'axios'`). `Date` values in query and
-path parameters are still serialized as full ISO datetimes, so date-only parameters
+per mapping key. `additionalProperties` maps are converted with a loop over
+`Object.keys`, unless the schema also declares `properties` — directly, via
+`allOf`, or a sibling `oneOf`/`anyOf` — or declares a `propertyNames` that
+narrows the keys to an enumerable set (`enum` or `const`, inline or via
+`$ref`), in which case those take precedence and it is never walked as a map.
+
+Current limitations: responses with multiple success shapes are skipped, and
+recursive schemas are left untouched entirely — converting only the levels above
+the cycle would leave deeper dates as strings while the generated types claim
+`Date`. A request body with several media types, several JSON media types, or a
+blob body generates no serializer, since there is no single JSON schema to walk;
+a schema that is both array- and object-shaped (OAS 3.1 `type: ['array',
+'object']`, or a stray sibling `properties` on a `type: array` schema) also
+generates no serializer, since the two shapes can't be walked together on the
+request side — the same conflict with a map-valued `additionalProperties` in
+place of `properties` drops both the serializer and the deserializer. Only the
+axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`, and
+`solid-query` with `httpClient: 'axios'`). `Date` values in query and path
+parameters are still serialized as full ISO datetimes, so date-only parameters
 are not covered.
 
 ### useBigInt

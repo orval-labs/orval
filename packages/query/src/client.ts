@@ -727,12 +727,19 @@ export const getQueryErrorType = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
   forceSuccessResponse?: boolean,
+  includeHttpErrorResponse?: boolean,
 ) => {
   const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
 
   if (mutator) {
+    const errorTypeArgument =
+      httpClient === OutputHttpClient.FETCH && includeHttpErrorResponse
+        ? response.types.errors.length > 0
+          ? `${operationName}ResponseError`
+          : 'never'
+        : errorsType;
     return mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorsType}>`
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorTypeArgument}>`
       : errorsType;
   }
 

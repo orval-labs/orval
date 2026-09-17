@@ -149,6 +149,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Appointment'
+  /shelters/{shelterId}/intake:
+    put:
+      operationId: updateShelterIntake
+      parameters:
+        - name: shelterId
+          in: path
+          required: true
+          schema: { type: string }
+      # `pets` is a dictionary keyed by pet id whose values are a
+      # DISCRIMINATED oneOf. The map schema itself declares no sibling
+      # `properties` (Rule 1), so it stays eligible for map traversal; the
+      # other fields live on the body root instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShelterIntake'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelterIntake'
 components:
   schemas:
     Cat:
@@ -252,3 +277,35 @@ components:
               type: string
               format: date
               description: 're-declared to add a description'
+    ShelterIntake:
+      type: object
+      required: [shelterId, pets]
+      properties:
+        shelterId: { type: string }
+        # A clean map: additionalProperties with NO sibling properties on
+        # this schema, so it is walked as a map rather than skipped by Rule 1.
+        pets:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/IntakePet'
+    IntakePet:
+      oneOf:
+        - $ref: '#/components/schemas/IntakeCat'
+        - $ref: '#/components/schemas/IntakeDog'
+      discriminator:
+        propertyName: petType
+        mapping:
+          cat: '#/components/schemas/IntakeCat'
+          dog: '#/components/schemas/IntakeDog'
+    IntakeCat:
+      type: object
+      required: [petType, arrivedOn]
+      properties:
+        petType: { type: string, enum: [cat] }
+        arrivedOn: { type: string, format: date }
+    IntakeDog:
+      type: object
+      required: [petType, vaccinatedAt]
+      properties:
+        petType: { type: string, enum: [dog] }
+        vaccinatedAt: { type: string, format: date-time }

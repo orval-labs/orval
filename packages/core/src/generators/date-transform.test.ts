@@ -238,8 +238,12 @@ describe('buildDateTransformStatements', () => {
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
-      'data.createdBy.at = new Date(data.createdBy.at);',
-      'data.updatedBy.at = new Date(data.updatedBy.at);',
+      'if (data.createdBy != null) {',
+      '  data.createdBy.at = new Date(data.createdBy.at);',
+      '}',
+      'if (data.updatedBy != null) {',
+      '  data.updatedBy.at = new Date(data.updatedBy.at);',
+      '}',
     ]);
   });
 
@@ -582,6 +586,53 @@ describe('buildDateTransformStatements — discriminated unions', () => {
         '}',
       ].join('\n'),
     );
+  });
+
+  it('does not emit a blind Object.keys loop for a discriminated-union variant that is a bare map', () => {
+    // A variant that is only `additionalProperties` (no `properties` of its
+    // own) sits at the very accessor the discriminator switch has just
+    // guarded on — that level is guaranteed to carry the discriminator key at
+    // runtime, so a blind key loop there would revisit (and corrupt) it, the
+    // same hazard `mapSuppressed` already guards against for an `allOf`
+    // branch. With nothing else to convert, the "extras" case contributes no
+    // statements and is dropped from the switch entirely, in both
+    // directions — see the mirror of this test in the
+    // `buildRequestDateSerializeStatements` describe block below.
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: { vaccinatedAt: { type: 'string', format: 'date-time' } },
+      },
+      Extras: {
+        type: 'object',
+        additionalProperties: { type: 'string', format: 'date-time' },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [
+        { $ref: '#/components/schemas/Cat' },
+        { $ref: '#/components/schemas/Extras' },
+      ],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          cat: '#/components/schemas/Cat',
+          extras: '#/components/schemas/Extras',
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.kind) {',
+      '  case "cat": {',
+      '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+      '    break;',
+      '  }',
+      '}',
+    ]);
   });
 });
 
@@ -958,6 +1009,863 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
         context: makeContext(),
       }),
     ).toEqual([]);
+  });
+});
+
+describe('buildDateTransformStatements — additionalProperties maps', () => {
+  it('writes date-only map values back through the key', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date' },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.days != null) {',
+      '  for (const key0 of Object.keys(data.days)) {',
+      '    data.days[key0] = new Date(data.days[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('hoists map values holding an object into a const', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['fills'],
+      properties: {
+        fills: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            required: ['recordedOn'],
+            properties: {
+              recordedOn: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.fills != null) {',
+      '  for (const key0 of Object.keys(data.fills)) {',
+      '    const item0 = data.fills[key0];',
+      '    item0.recordedOn = new Date(item0.recordedOn);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('runs the discriminated-union switch inside the map loop', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: { vaccinatedAt: { type: 'string', format: 'date-time' } },
+      },
+      Dog: {
+        type: 'object',
+        properties: {
+          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: {
+            oneOf: [
+              { $ref: '#/components/schemas/Cat' },
+              { $ref: '#/components/schemas/Dog' },
+            ],
+            discriminator: {
+              propertyName: 'petType',
+              mapping: {
+                cat: '#/components/schemas/Cat',
+                dog: '#/components/schemas/Dog',
+              },
+            },
+          } as OpenApiSchemaObject,
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    const item0 = data.pets[key0];',
+      '    switch (item0.petType) {',
+      '      case "cat": {',
+      '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+      '        break;',
+      '      }',
+      '      case "dog": {',
+      '        if (item0.adoptedAt != null) {',
+      '          item0.adoptedAt = new Date(item0.adoptedAt);',
+      '        }',
+      '        break;',
+      '      }',
+      '    }',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('emits nothing for a map whose values are an undiscriminated union', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: {
+            anyOf: [
+              {
+                type: 'object',
+                properties: { at: { type: 'string', format: 'date-time' } },
+              },
+              {
+                type: 'object',
+                properties: { on: { type: 'string', format: 'date' } },
+              },
+            ],
+          } as OpenApiSchemaObject,
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('suppresses the map when a oneOf/discriminator union sits beside additionalProperties, leaving the switch unaffected', () => {
+    // The idiomatic discriminated-union spelling: `oneOf` + `discriminator`
+    // directly beside `additionalProperties`, no `allOf`, no direct
+    // `properties`. Each variant declares its own properties at this same
+    // level (merged as a union by the getter's type), so a blind
+    // Object.keys loop is exactly as unsafe here as with `properties` or an
+    // `allOf` branch — it would revisit (and corrupt) the discriminator key
+    // and whatever the switch just converted.
+    const context = makeContext({
+      A: {
+        type: 'object',
+        required: ['at'],
+        properties: { at: { type: 'string', format: 'date-time' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      oneOf: [{ $ref: '#/components/schemas/A' }],
+      discriminator: {
+        propertyName: 'type',
+        mapping: { a: '#/components/schemas/A' },
+      },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.type) {',
+      '  case "a": {',
+      '    data.at = new Date(data.at);',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('suppresses the map when an anyOf/discriminator union sits beside additionalProperties', () => {
+    const context = makeContext({
+      A: {
+        type: 'object',
+        required: ['at'],
+        properties: { at: { type: 'string', format: 'date-time' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      anyOf: [{ $ref: '#/components/schemas/A' }],
+      discriminator: {
+        propertyName: 'type',
+        mapping: { a: '#/components/schemas/A' },
+      },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.type) {',
+      '  case "a": {',
+      '    data.at = new Date(data.at);',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('still walks a map that is a property of a union variant, one level inside the switch case (must not regress)', () => {
+    // The variant's own accessor (guarded by the discriminator) suppresses a
+    // map loop directly on itself, but a property nested one level inside
+    // that variant starts a fresh object level — exactly like an `allOf`
+    // branch's own nested properties — and must still be walked as a map.
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['fills'],
+        properties: {
+          fills: {
+            type: 'object',
+            additionalProperties: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Cat' }],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { cat: '#/components/schemas/Cat' },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'switch (data.kind) {',
+      '  case "cat": {',
+      '    if (data.fills != null) {',
+      '      for (const key0 of Object.keys(data.fills)) {',
+      '        data.fills[key0] = new Date(data.fills[key0]);',
+      '      }',
+      '    }',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('still guards a nullable map spelled as an OAS 3.1 anyOf null branch (must not regress)', () => {
+    // `mapValueSchema`/`declaresProperties` must not mistake the wrapper's
+    // own `anyOf` (unwrapped by `normalizeSchema` before this decision is
+    // made) for a union sitting beside `additionalProperties`.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        labels: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: { type: 'string', format: 'date-time' },
+            },
+            { type: 'null' },
+          ],
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.labels != null) {',
+      '  for (const key0 of Object.keys(data.labels)) {',
+      '    data.labels[key0] = new Date(data.labels[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('walks only the declared properties when a schema has both properties and additionalProperties (Rule 1)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['createdAt'],
+      properties: { createdAt: { type: 'string', format: 'date-time' } },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+  });
+
+  it('emits nothing for additionalProperties: true or additionalProperties: false (Rule 2)', () => {
+    expect(
+      buildDateTransformStatements({
+        schema: { type: 'object', additionalProperties: true },
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+    expect(
+      buildDateTransformStatements({
+        schema: { type: 'object', additionalProperties: false },
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('guards a nullable map and nullable map values', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        labels: {
+          type: 'object',
+          nullable: true,
+          additionalProperties: {
+            type: 'string',
+            format: 'date-time',
+            nullable: true,
+          },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.labels != null) {',
+      '  for (const key0 of Object.keys(data.labels)) {',
+      '    if (data.labels[key0] != null) {',
+      '      data.labels[key0] = new Date(data.labels[key0]);',
+      '    }',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('emits nothing for a recursive map, like every other cyclic shape', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/Node' },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('names key/item locals by depth so a map inside an array inside a map does not shadow', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['outer'],
+      properties: {
+        outer: {
+          type: 'object',
+          additionalProperties: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.outer != null) {',
+      '  for (const key0 of Object.keys(data.outer)) {',
+      '    const item0 = data.outer[key0];',
+      '    for (let i1 = 0; i1 < item0.length; i1++) {',
+      '      const item1 = item0[i1];',
+      '      for (const key2 of Object.keys(item1)) {',
+      '        item1[key2] = new Date(item1[key2]);',
+      '      }',
+      '    }',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('suppresses the map when additionalProperties sits inside an allOf branch beside a properties-declaring one', () => {
+    // The idiomatic "extend a base, allow extra typed keys" spelling:
+    // `allOf: [Base, { additionalProperties }]`. Base's properties are
+    // merged into the same object by the intersection type, so a blind
+    // Object.keys loop from the additionalProperties branch would also
+    // revisit and corrupt them.
+    const context = makeContext({
+      AuditFields: {
+        type: 'object',
+        required: ['createdAt'],
+        properties: {
+          createdAt: { type: 'string', format: 'date-time' },
+          label: { type: 'string' },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/AuditFields' },
+        {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            required: ['recordedOn'],
+            properties: {
+              recordedOn: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      ],
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+  });
+
+  it('suppresses the map when additionalProperties sits beside an allOf whose branch declares properties', () => {
+    // The sibling spelling: `{ allOf: [Base], additionalProperties }` on the
+    // very same schema object.
+    const context = makeContext({
+      AuditFields: {
+        type: 'object',
+        required: ['createdAt'],
+        properties: { createdAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/AuditFields' }],
+      additionalProperties: {
+        type: 'object',
+        required: ['recordedOn'],
+        properties: { recordedOn: { type: 'string', format: 'date-time' } },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+  });
+
+  it('still walks the map when allOf branches declare no properties of their own', () => {
+    // The case a careless "any allOf means suppress" fix would over-suppress:
+    // no branch anywhere in the composition declares properties, so the map
+    // is exactly as safe to walk as if allOf weren't there at all.
+    const context = makeContext({
+      Taggable: { type: 'object', description: 'marker, no properties' },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/Taggable' }],
+      additionalProperties: { type: 'string', format: 'date-time' },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'for (const key0 of Object.keys(data)) {',
+      '  data[key0] = new Date(data[key0]);',
+      '}',
+    ]);
+  });
+
+  it('emits nothing when propertyNames narrows the keys alongside additionalProperties', () => {
+    // getters/object.ts types this as Partial<Record<K, V>>, not an index
+    // signature — Object.keys() (typed string) can't index it without a
+    // TS7053, and even a correctly-typed key would read V | undefined.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { enum: ['a', 'b'] },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when propertyNames narrows the keys via a const', () => {
+    // Same rationale as the enum case above: getters/object.ts also types a
+    // single-literal `const` as `Partial<Record<K, V>>`.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { const: 'a' },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when propertyNames is a $ref to a string enum component', () => {
+    // The case a hand-rolled "does propertyNames narrow?" check would most
+    // likely miss: the narrowing isn't inline, it's resolved through a
+    // $ref. getters/object.ts (getPropertyNamesKeyType) still types this as
+    // Partial<Record<SomeStringEnum, V>>, so the map must stay suppressed —
+    // proving the date transform reuses that same resolution rather than
+    // re-deriving its own, narrower predicate.
+    const context = makeContext({
+      SomeStringEnum: { type: 'string', enum: ['a', 'b'] },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
+      additionalProperties: { type: 'string', format: 'date-time' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([]);
+  });
+
+  it('walks the map when propertyNames only constrains format, not enumerable keys', () => {
+    // getters/object.ts types `propertyNames: { format: 'uuid' }` as a plain
+    // index signature ([key: string]: V), not Partial<Record<...>> — the
+    // narrowing predicate only fires for enum/const/$ref-to-string-enum.
+    // Object.keys() indexes a plain index signature fine, so this map must
+    // still be walked.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['ids'],
+      properties: {
+        ids: {
+          type: 'object',
+          propertyNames: { format: 'uuid' },
+          additionalProperties: { type: 'string', format: 'date' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.ids != null) {',
+      '  for (const key0 of Object.keys(data.ids)) {',
+      '    data.ids[key0] = new Date(data.ids[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('walks the map when propertyNames only constrains a pattern, not enumerable keys', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['headers'],
+      properties: {
+        headers: {
+          type: 'object',
+          propertyNames: { pattern: '^x-' },
+          additionalProperties: { type: 'string', format: 'date-time' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.headers != null) {',
+      '  for (const key0 of Object.keys(data.headers)) {',
+      '    data.headers[key0] = new Date(data.headers[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('walks a uuid-keyed map: additionalProperties + propertyNames: { format: uuid }, values a discriminated oneOf, wrapped in a nullable anyOf', () => {
+    // A nullable map keyed by uuid whose values are a discriminated union:
+    //   pets:
+    //     anyOf:
+    //       - type: object
+    //         additionalProperties: { oneOf: [IntakeCat, IntakeDog], discriminator: {...} }
+    //         propertyNames: { format: uuid }
+    //       - type: null
+    // orval types the non-null branch as a plain index signature (uuid keys
+    // don't narrow), so this must be walked end to end: unwrap the anyOf
+    // null spelling, guard the nullable property, loop the map, and run the
+    // discriminator switch inside it.
+    const context = makeContext({
+      IntakeCat: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+      IntakeDog: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: { vaccinatedAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: {
+                oneOf: [
+                  { $ref: '#/components/schemas/IntakeCat' },
+                  { $ref: '#/components/schemas/IntakeDog' },
+                ],
+                discriminator: {
+                  propertyName: 'petType',
+                  mapping: {
+                    cat: '#/components/schemas/IntakeCat',
+                    dog: '#/components/schemas/IntakeDog',
+                  },
+                },
+              } as OpenApiSchemaObject,
+              propertyNames: { format: 'uuid' },
+            },
+            { type: 'null' },
+          ],
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({ schema, accessor: 'data', context }),
+    ).toEqual([
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    const item0 = data.pets[key0];',
+      '    switch (item0.petType) {',
+      '      case "dog": {',
+      '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+      '        break;',
+      '      }',
+      '    }',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('still converts the array when additionalProperties is the empty-object "extra keys allowed" idiom (must not regress)', () => {
+    // `additionalProperties: {}` is the common "any extra keys are fine"
+    // idiom, not a value schema for a real map — it has no keys of its own
+    // to contribute a conversion for. It must not be mistaken for a
+    // map-shaped sibling of `items` and trigger the array/map conflict drop
+    // below.
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      additionalProperties: {},
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.length; i0++) {',
+      '  data[i0] = new Date(data[i0]);',
+      '}',
+    ]);
+  });
+
+  it('still converts the array when additionalProperties is an empty array (must not regress)', () => {
+    const schema = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      additionalProperties: [],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'for (let i0 = 0; i0 < data.length; i0++) {',
+      '  data[i0] = new Date(data[i0]);',
+      '}',
+    ]);
+  });
+
+  it('emits nothing for a schema that is both array-shaped and map-shaped', () => {
+    // Nonsensical JSON Schema, but orval still types it, so without a guard
+    // both an index loop and a key loop would be emitted over `data`. Unlike
+    // the empty-object/empty-array idioms above, this `additionalProperties`
+    // is a genuine value schema (it has its own `properties`), so the
+    // conflict guard must still fire.
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date-time' },
+      additionalProperties: {
+        type: 'object',
+        required: ['recordedOn'],
+        properties: { recordedOn: { type: 'string', format: 'date-time' } },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when a schema is array-shaped through allOf and also carries a map-valued additionalProperties', () => {
+    // c190412d6 taught isArrayShaped to look through allOf for `items`, not
+    // just a sibling `items` key. The array/object conflict guard reuses
+    // that same isArrayShaped call for the map case, so a schema that is
+    // array-shaped only via an allOf branch must still be caught — in both
+    // directions, since the map branch of the conflict guard (unlike the
+    // dropArrayObjectConflict branch) is not gated by mode.
+    const context = makeContext({
+      ArrayBase: { type: 'array', items: { type: 'string', format: 'date' } },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/ArrayBase' }],
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('guards a required map property in the response direction too', () => {
+    // The response direction now null-guards required containers the same
+    // way the request direction always has (the guardRequiredContainers mode
+    // seam was removed) — a required map property's in-place key loop must
+    // be wrapped in an `if (<accessor> != null)` guard.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date' },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    data.pets[key0] = new Date(data.pets[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('executes the guarded deserializer at runtime for an omitted required map property', () => {
+    // Executed counterpart to the statement-level test above, mirroring the
+    // request direction's own "omitted required map property" runtime test:
+    // build a real deserializer for a body with a required
+    // `additionalProperties` map, strip the TS-only annotations, run it on a
+    // payload that omits the map, and confirm it neither throws nor
+    // fabricates the key.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date' },
+        },
+      },
+    };
+
+    const result = generateResponseDateDeserializer({
+      operationName: 'updateShelterIntake',
+      response: makeResponse({ successTypes: [{ originalSchema: schema }] }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation.replace(
+      /\(data: [^)]*\): [^=]*=>/,
+      '(data) =>',
+    );
+
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => Record<string, unknown>;
+
+    const input = {};
+
+    expect(() => fn(input)).not.toThrow();
+    const output = fn(input);
+    expect(output).toEqual({});
+    expect('pets' in output).toBe(false);
   });
 });
 
@@ -1550,6 +2458,51 @@ describe('buildRequestDateSerializeStatements', () => {
     );
   });
 
+  it('does not emit a blind Object.keys loop for a discriminated-union variant that is a bare map', () => {
+    // Mirrors the response-direction test of the same name above: a variant
+    // that is only `additionalProperties` (no `properties` of its own) must
+    // not get a blind key loop over the discriminator-carrying accessor.
+    const context = makeContext({
+      Variant: {
+        type: 'object',
+        required: ['madeOn'],
+        properties: { madeOn: { type: 'string', format: 'date' } },
+      },
+      Extras: {
+        type: 'object',
+        additionalProperties: { type: 'string', format: 'date' },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [
+        { $ref: '#/components/schemas/Variant' },
+        { $ref: '#/components/schemas/Extras' },
+      ],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          v: '#/components/schemas/Variant',
+          extras: '#/components/schemas/Extras',
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'switch (copy.kind) {',
+      '  case "v": {',
+      '    copy.madeOn = copy.madeOn instanceof Date ? (copy.madeOn.toISOString().slice(0, 10) as unknown as Date) : copy.madeOn;',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
   it('emits nothing for a root schema that is both array- and object-shaped', () => {
     // OAS 3.1 `type: ['array', 'object']`, or a hand-maintained spec with a
     // stray sibling `properties`. `.map` already builds the new array; a
@@ -1619,6 +2572,826 @@ describe('buildRequestDateSerializeStatements', () => {
       '  data.count = new Date(data.count);',
       '}',
     ]);
+  });
+});
+
+describe('buildRequestDateSerializeStatements — additionalProperties maps', () => {
+  it('serializes date-only map values in place after copying the map', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date' },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.days != null) {',
+        '  copy.days = { ...copy.days };',
+        '  for (const key0 of Object.keys(copy.days)) {',
+        '    let value0 = copy.days[key0];',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    copy.days[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('copies each map value holding an object before writing into it', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['fills'],
+      properties: {
+        fills: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            required: ['recordedOn'],
+            properties: { recordedOn: { type: 'string', format: 'date' } },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.fills != null) {',
+        '  copy.fills = { ...copy.fills };',
+        '  for (const key0 of Object.keys(copy.fills)) {',
+        '    let value0 = copy.fills[key0];',
+        '    value0 = { ...value0 };',
+        '    value0.recordedOn = value0.recordedOn instanceof Date ? (value0.recordedOn.toISOString().slice(0, 10) as unknown as Date) : value0.recordedOn;',
+        '    copy.fills[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('runs the discriminated-union switch inside the map loop', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedOn'],
+        properties: { vaccinatedOn: { type: 'string', format: 'date' } },
+      },
+      Dog: {
+        type: 'object',
+        properties: {
+          adoptedOn: { type: 'string', format: 'date', nullable: true },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: {
+            oneOf: [
+              { $ref: '#/components/schemas/Cat' },
+              { $ref: '#/components/schemas/Dog' },
+            ],
+            discriminator: {
+              propertyName: 'petType',
+              mapping: {
+                cat: '#/components/schemas/Cat',
+                dog: '#/components/schemas/Dog',
+              },
+            },
+          } as OpenApiSchemaObject,
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.pets != null) {',
+        '  copy.pets = { ...copy.pets };',
+        '  for (const key0 of Object.keys(copy.pets)) {',
+        '    let value0 = copy.pets[key0];',
+        '    value0 = { ...value0 };',
+        '    switch (value0.petType) {',
+        '      case "cat": {',
+        '        value0.vaccinatedOn = value0.vaccinatedOn instanceof Date ? (value0.vaccinatedOn.toISOString().slice(0, 10) as unknown as Date) : value0.vaccinatedOn;',
+        '        break;',
+        '      }',
+        '      case "dog": {',
+        '        if (value0.adoptedOn != null) {',
+        '          value0.adoptedOn = value0.adoptedOn instanceof Date ? (value0.adoptedOn.toISOString().slice(0, 10) as unknown as Date) : value0.adoptedOn;',
+        '        }',
+        '        break;',
+        '      }',
+        '    }',
+        '    copy.pets[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing for a map whose values are an undiscriminated union', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: {
+            anyOf: [
+              {
+                type: 'object',
+                properties: { at: { type: 'string', format: 'date' } },
+              },
+              {
+                type: 'object',
+                properties: { on: { type: 'string', format: 'date' } },
+              },
+            ],
+          } as OpenApiSchemaObject,
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('suppresses the map when a oneOf/discriminator union sits beside additionalProperties, leaving the switch unaffected', () => {
+    const context = makeContext({
+      A: {
+        type: 'object',
+        required: ['madeOn'],
+        properties: { madeOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      oneOf: [{ $ref: '#/components/schemas/A' }],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { a: '#/components/schemas/A' },
+      },
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'switch (copy.kind) {',
+      '  case "a": {',
+      '    copy.madeOn = copy.madeOn instanceof Date ? (copy.madeOn.toISOString().slice(0, 10) as unknown as Date) : copy.madeOn;',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('suppresses the map when an anyOf/discriminator union sits beside additionalProperties', () => {
+    const context = makeContext({
+      A: {
+        type: 'object',
+        required: ['madeOn'],
+        properties: { madeOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      anyOf: [{ $ref: '#/components/schemas/A' }],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { a: '#/components/schemas/A' },
+      },
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'switch (copy.kind) {',
+      '  case "a": {',
+      '    copy.madeOn = copy.madeOn instanceof Date ? (copy.madeOn.toISOString().slice(0, 10) as unknown as Date) : copy.madeOn;',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('still walks a map that is a property of a union variant, one level inside the switch case (must not regress)', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['fills'],
+        properties: {
+          fills: {
+            type: 'object',
+            additionalProperties: { type: 'string', format: 'date' },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Cat' }],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: { cat: '#/components/schemas/Cat' },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'switch (copy.kind) {',
+      '  case "cat": {',
+      '    if (copy.fills != null) {',
+      '      copy.fills = { ...copy.fills };',
+      '      for (const key0 of Object.keys(copy.fills)) {',
+      '        let value0 = copy.fills[key0];',
+      '        value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+      '        copy.fills[key0] = value0;',
+      '      }',
+      '    }',
+      '    break;',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('still guards a nullable map spelled as an OAS 3.1 anyOf null branch (must not regress)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        labels: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: { type: 'string', format: 'date' },
+            },
+            { type: 'null' },
+          ],
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.labels != null) {',
+        '  copy.labels = { ...copy.labels };',
+        '  for (const key0 of Object.keys(copy.labels)) {',
+        '    let value0 = copy.labels[key0];',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    copy.labels[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('walks only the declared properties when a schema has both properties and additionalProperties (Rule 1)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startOn'],
+      properties: { startOn: { type: 'string', format: 'date' } },
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'copy.startOn = copy.startOn instanceof Date ? (copy.startOn.toISOString().slice(0, 10) as unknown as Date) : copy.startOn;',
+    ]);
+  });
+
+  it('emits nothing for additionalProperties: true or additionalProperties: false (Rule 2)', () => {
+    expect(
+      buildRequestDateSerializeStatements({
+        schema: { type: 'object', additionalProperties: true },
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+    expect(
+      buildRequestDateSerializeStatements({
+        schema: { type: 'object', additionalProperties: false },
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('guards a nullable map and nullable map values, continuing past a null value', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        labels: {
+          type: 'object',
+          nullable: true,
+          additionalProperties: {
+            type: 'string',
+            format: 'date',
+            nullable: true,
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.labels != null) {',
+        '  copy.labels = { ...copy.labels };',
+        '  for (const key0 of Object.keys(copy.labels)) {',
+        '    let value0 = copy.labels[key0];',
+        '    if (value0 == null) continue;',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    copy.labels[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing for a recursive map, like every other cyclic shape', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/Node' },
+      },
+    });
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('names key/value locals by depth so a map inside an array inside a map does not shadow', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['outer'],
+      properties: {
+        outer: {
+          type: 'object',
+          additionalProperties: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: { type: 'string', format: 'date' },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.outer != null) {',
+        '  copy.outer = { ...copy.outer };',
+        '  for (const key0 of Object.keys(copy.outer)) {',
+        '    let value0 = copy.outer[key0];',
+        '    value0 = value0.map((item1) => {',
+        '      let value1 = item1;',
+        '      value1 = { ...value1 };',
+        '      for (const key2 of Object.keys(value1)) {',
+        '        let value2 = value1[key2];',
+        '        value2 = value2 instanceof Date ? (value2.toISOString().slice(0, 10) as unknown as Date) : value2;',
+        '        value1[key2] = value2;',
+        '      }',
+        '      return value1;',
+        '    });',
+        '    copy.outer[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('suppresses the map when additionalProperties sits inside an allOf branch beside a properties-declaring one', () => {
+    const context = makeContext({
+      AuditFields: {
+        type: 'object',
+        required: ['createdOn'],
+        properties: {
+          createdOn: { type: 'string', format: 'date' },
+          label: { type: 'string' },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/AuditFields' },
+        {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            required: ['recordedOn'],
+            properties: { recordedOn: { type: 'string', format: 'date' } },
+          },
+        },
+      ],
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'copy.createdOn = copy.createdOn instanceof Date ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date) : copy.createdOn;',
+    ]);
+  });
+
+  it('suppresses the map when additionalProperties sits beside an allOf whose branch declares properties', () => {
+    const context = makeContext({
+      AuditFields: {
+        type: 'object',
+        required: ['createdOn'],
+        properties: { createdOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/AuditFields' }],
+      additionalProperties: {
+        type: 'object',
+        required: ['recordedOn'],
+        properties: { recordedOn: { type: 'string', format: 'date' } },
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([
+      'copy.createdOn = copy.createdOn instanceof Date ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date) : copy.createdOn;',
+    ]);
+  });
+
+  it('still walks the map when allOf branches declare no properties of their own', () => {
+    const context = makeContext({
+      Taggable: { type: 'object', description: 'marker, no properties' },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/Taggable' }],
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }).join('\n'),
+    ).toBe(
+      [
+        'copy = { ...copy };',
+        'for (const key0 of Object.keys(copy)) {',
+        '  let value0 = copy[key0];',
+        '  value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '  copy[key0] = value0;',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing when propertyNames narrows the keys alongside additionalProperties', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { enum: ['a', 'b'] },
+      additionalProperties: { type: 'string', format: 'date' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when propertyNames narrows the keys via a const', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { const: 'a' },
+      additionalProperties: { type: 'string', format: 'date' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when propertyNames is a $ref to a string enum component', () => {
+    // The case a hand-rolled predicate would miss: the narrowing is
+    // resolved through a $ref, not spelled out inline. Proves this reuses
+    // getters/object.ts's own resolution instead of a re-derived check.
+    const context = makeContext({
+      SomeStringEnum: { type: 'string', enum: ['a', 'b'] },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
+      additionalProperties: { type: 'string', format: 'date' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('maps the map when propertyNames only constrains format, not enumerable keys', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['ids'],
+      properties: {
+        ids: {
+          type: 'object',
+          propertyNames: { format: 'uuid' },
+          additionalProperties: { type: 'string', format: 'date' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.ids != null) {',
+        '  copy.ids = { ...copy.ids };',
+        '  for (const key0 of Object.keys(copy.ids)) {',
+        '    let value0 = copy.ids[key0];',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    copy.ids[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('maps the map when propertyNames only constrains a pattern, not enumerable keys', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['headers'],
+      properties: {
+        headers: {
+          type: 'object',
+          propertyNames: { pattern: '^x-' },
+          additionalProperties: { type: 'string', format: 'date' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.headers != null) {',
+        '  copy.headers = { ...copy.headers };',
+        '  for (const key0 of Object.keys(copy.headers)) {',
+        '    let value0 = copy.headers[key0];',
+        '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+        '    copy.headers[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('maps a uuid-keyed map: additionalProperties + propertyNames: { format: uuid }, values a discriminated oneOf, wrapped in a nullable anyOf', () => {
+    const context = makeContext({
+      IntakeCat: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+      IntakeDog: {
+        type: 'object',
+        required: ['arrivedOn'],
+        properties: { arrivedOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: {
+                oneOf: [
+                  { $ref: '#/components/schemas/IntakeCat' },
+                  { $ref: '#/components/schemas/IntakeDog' },
+                ],
+                discriminator: {
+                  propertyName: 'petType',
+                  mapping: {
+                    cat: '#/components/schemas/IntakeCat',
+                    dog: '#/components/schemas/IntakeDog',
+                  },
+                },
+              } as OpenApiSchemaObject,
+              propertyNames: { format: 'uuid' },
+            },
+            { type: 'null' },
+          ],
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }).join('\n'),
+    ).toBe(
+      [
+        'if (copy.pets != null) {',
+        '  copy.pets = { ...copy.pets };',
+        '  for (const key0 of Object.keys(copy.pets)) {',
+        '    let value0 = copy.pets[key0];',
+        '    value0 = { ...value0 };',
+        '    switch (value0.petType) {',
+        '      case "dog": {',
+        '        value0.arrivedOn = value0.arrivedOn instanceof Date ? (value0.arrivedOn.toISOString().slice(0, 10) as unknown as Date) : value0.arrivedOn;',
+        '        break;',
+        '      }',
+        '    }',
+        '    copy.pets[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('still maps the array when additionalProperties is the empty-object "extra keys allowed" idiom (must not regress)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      additionalProperties: {},
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'copy = copy.map((item0) => {',
+      '  let value0 = item0;',
+      '  value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+      '  return value0;',
+      '});',
+    ]);
+  });
+
+  it('still maps the array when additionalProperties is an empty array (must not regress)', () => {
+    const schema = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      additionalProperties: [],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'copy = copy.map((item0) => {',
+      '  let value0 = item0;',
+      '  value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
+      '  return value0;',
+      '});',
+    ]);
+  });
+
+  it('emits nothing for a schema that is both array-shaped and map-shaped', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      additionalProperties: {
+        type: 'object',
+        required: ['recordedOn'],
+        properties: { recordedOn: { type: 'string', format: 'date' } },
+      },
+    } as OpenApiSchemaObject;
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when a schema is array-shaped through allOf and also carries a map-valued additionalProperties', () => {
+    // Mirrors the response-direction pin above: the array/object conflict
+    // guard's map branch fires on isArrayShaped regardless of mode, so an
+    // array shape reached only through an allOf branch (rather than a
+    // sibling `items`) must be caught here too.
+    const context = makeContext({
+      ArrayBase: { type: 'array', items: { type: 'string', format: 'date' } },
+    });
+    const schema: OpenApiSchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/ArrayBase' }],
+      additionalProperties: { type: 'string', format: 'date' },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context,
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -1928,12 +3701,16 @@ describe('review comment fixes — allOf array/object conflicts and required con
     ).toBeUndefined();
   });
 
-  it('leaves the response direction for the allOf array/object conflict schema unchanged', () => {
+  it('leaves the response direction array/object-conflict handling unchanged, but now guards the required property', () => {
     // Pinned against today's (pre-fix) behaviour: the response direction
     // never applies the array/object-conflict guard (`dropArrayObjectConflict`
     // is false there), so it freely combines the in-place array loop from
-    // one allOf branch with the property write from the other. This must
-    // stay byte-for-byte identical after the request-side fix.
+    // one allOf branch with the property write from the other — that part of
+    // this must stay byte-for-byte identical after the request-side fix.
+    // What does change: `x` is a required container (writes through its own
+    // elements/properties, not the accessor itself), so the response
+    // direction now null-guards it the same as the request direction always
+    // has, closing the crash this whole fix addresses.
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['x'],
@@ -1948,10 +3725,12 @@ describe('review comment fixes — allOf array/object conflicts and required con
       }).join('\n'),
     ).toBe(
       [
-        'for (let i0 = 0; i0 < data.x.length; i0++) {',
-        '  data.x[i0] = new Date(data.x[i0]);',
+        'if (data.x != null) {',
+        '  for (let i0 = 0; i0 < data.x.length; i0++) {',
+        '    data.x[i0] = new Date(data.x[i0]);',
+        '  }',
+        '  data.x.d = new Date(data.x.d);',
         '}',
-        'data.x.d = new Date(data.x.d);',
       ].join('\n'),
     );
   });
@@ -2052,11 +3831,13 @@ describe('review comment fixes — allOf array/object conflicts and required con
     );
   });
 
-  it('leaves the response direction for required object and array containers unchanged', () => {
-    // Pinned against today's (pre-fix) behaviour: the response direction
-    // never guards required containers (`guardRequiredContainers` is false
-    // there), and must stay that way — the response mutates a payload it
-    // just parsed, and every date field is expected to be present.
+  it('now guards required object and array containers in the response direction too', () => {
+    // Previously pinned against the pre-fix asymmetry (response left required
+    // containers unguarded while request guarded them); that asymmetry was
+    // exactly this bug — the response mutates a payload it just parsed, but a
+    // server can omit a `required` field despite its own contract, and an
+    // unguarded container threw before the caller could handle it. Both
+    // directions now guard required containers identically.
     const objectSchema: OpenApiSchemaObject = {
       type: 'object',
       required: ['nested'],
@@ -2075,7 +3856,11 @@ describe('review comment fixes — allOf array/object conflicts and required con
         accessor: 'data',
         context: makeContext(),
       }),
-    ).toEqual(['data.nested.day = new Date(data.nested.day);']);
+    ).toEqual([
+      'if (data.nested != null) {',
+      '  data.nested.day = new Date(data.nested.day);',
+      '}',
+    ]);
 
     const arraySchema: OpenApiSchemaObject = {
       type: 'object',
@@ -2092,8 +3877,10 @@ describe('review comment fixes — allOf array/object conflicts and required con
         context: makeContext(),
       }),
     ).toEqual([
-      'for (let i0 = 0; i0 < data.days.length; i0++) {',
-      '  data.days[i0] = new Date(data.days[i0]);',
+      'if (data.days != null) {',
+      '  for (let i0 = 0; i0 < data.days.length; i0++) {',
+      '    data.days[i0] = new Date(data.days[i0]);',
+      '  }',
       '}',
     ]);
   });
@@ -2145,5 +3932,322 @@ describe('review comment fixes — allOf array/object conflicts and required con
 
     expect(() => fn(input)).not.toThrow();
     expect(fn(input)).toEqual({ day: '2026-07-01' });
+  });
+
+  it('executes the guarded serializer at runtime for an omitted required map property', () => {
+    // Comment 2, executed, map variant: a required `additionalProperties`
+    // map is a container exactly like the object/array cases above — the
+    // guard must keep an omitted map out of the payload rather than adding
+    // it as `{}`.
+    const result = generateRequestDateSerializer({
+      operationName: 'updateShelter',
+      body: makeJsonBody({
+        type: 'object',
+        required: ['pets'],
+        properties: {
+          pets: {
+            type: 'object',
+            additionalProperties: { type: 'string', format: 'date' },
+          },
+        },
+      }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation
+      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
+      .replace(/ as unknown as [\w<>[\] |]+/g, '');
+
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => Record<string, unknown>;
+
+    const input = {};
+
+    expect(() => fn(input)).not.toThrow();
+    const output = fn(input);
+    expect(output).toEqual({});
+    expect('pets' in output).toBe(false);
+  });
+});
+
+describe('additionalProperties maps beside an empty `properties: {}`', () => {
+  // The object getter types `properties: {}` + a schema-valued
+  // `additionalProperties` as the same index signature as a bare map, so an
+  // empty `properties` block declares no keys and must not suppress the map.
+  const withEmptyProperties = (): OpenApiSchemaObject => ({
+    type: 'object',
+    required: ['m'],
+    properties: {
+      m: {
+        type: 'object',
+        properties: {},
+        additionalProperties: { type: 'string', format: 'date' },
+      },
+    },
+  });
+  const withoutProperties = (): OpenApiSchemaObject => ({
+    type: 'object',
+    required: ['m'],
+    properties: {
+      m: {
+        type: 'object',
+        additionalProperties: { type: 'string', format: 'date' },
+      },
+    },
+  });
+
+  it('walks the map in the response direction', () => {
+    expect(
+      buildDateTransformStatements({
+        schema: withEmptyProperties(),
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.m != null) {',
+      '  for (const key0 of Object.keys(data.m)) {',
+      '    data.m[key0] = new Date(data.m[key0]);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('walks the map in the request direction exactly as for a bare map, copying it once', () => {
+    const statements = buildRequestDateSerializeStatements({
+      schema: withEmptyProperties(),
+      accessor: 'copy',
+      context: makeContext(),
+    });
+
+    expect(statements).toEqual(
+      buildRequestDateSerializeStatements({
+        schema: withoutProperties(),
+        accessor: 'copy',
+        context: makeContext(),
+      }),
+    );
+    expect(
+      statements.filter((line) => line.includes('copy.m = { ...copy.m };')),
+    ).toHaveLength(1);
+  });
+
+  it('does not treat an array with an empty `properties` block as array-and-object shaped', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['days'],
+      properties: {
+        days: {
+          type: 'array',
+          properties: {},
+          items: { type: 'string', format: 'date' },
+        } as OpenApiSchemaObject,
+      },
+    };
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema,
+        accessor: 'copy',
+        context: makeContext(),
+      }).join('\n'),
+    ).toContain('copy.days = copy.days.map((item0) => {');
+  });
+});
+
+describe('response direction — required container guards', () => {
+  // The response direction used to leave required, non-nullable containers
+  // unguarded (see "leaves the response direction ... unchanged" pins
+  // above, now updated): a server omitting a required array or object threw
+  // a TypeError inside the generated deserializer, before the caller could
+  // handle it. Containers are now guarded the same as the request
+  // direction; a required *date leaf* stays unguarded either way, since
+  // `new Date(undefined)` degrades to `Invalid Date` instead of throwing.
+  it('guards a response-side required object property containing a date', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['a'],
+      properties: {
+        a: {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date-time' } },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.a != null) {',
+      '  data.a.day = new Date(data.a.day);',
+      '}',
+    ]);
+  });
+
+  it('guards a response-side required array of objects containing a date', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['slots'],
+      properties: {
+        slots: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date-time' } },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.slots != null) {',
+      '  for (let i0 = 0; i0 < data.slots.length; i0++) {',
+      '    const item0 = data.slots[i0];',
+      '    item0.start = new Date(item0.start);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('guards a response-side required discriminated-union property', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: {
+          vaccinatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Dog: {
+        type: 'object',
+        properties: {
+          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pet'],
+      properties: {
+        pet: {
+          oneOf: [
+            { $ref: '#/components/schemas/Cat' },
+            { $ref: '#/components/schemas/Dog' },
+          ],
+          discriminator: {
+            propertyName: 'petType',
+            mapping: {
+              cat: '#/components/schemas/Cat',
+              dog: '#/components/schemas/Dog',
+            },
+          },
+        },
+      },
+    };
+
+    const statements = buildDateTransformStatements({
+      schema,
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if (data.pet != null) {',
+        '  switch (data.pet.petType) {',
+        '    case "cat": {',
+        '      data.pet.vaccinatedAt = new Date(data.pet.vaccinatedAt);',
+        '      break;',
+        '    }',
+        '    case "dog": {',
+        '      if (data.pet.adoptedAt != null) {',
+        '        data.pet.adoptedAt = new Date(data.pet.adoptedAt);',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves a response-side required date leaf unguarded', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: { day: { type: 'string', format: 'date-time' } },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual(['data.day = new Date(data.day);']);
+  });
+
+  it('executes the guarded deserializer at runtime without throwing when required containers are omitted', () => {
+    // Executed version of the two statement-level tests above: build a real
+    // `deserialize...Response` function for a body with a required object
+    // and a required array, strip the TS-only parameter/return annotations,
+    // run it on a payload that omits both, and confirm it neither throws nor
+    // fabricates keys the payload never had — matching the request
+    // direction's own runtime test above.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['a', 'slots'],
+      properties: {
+        a: {
+          type: 'object',
+          required: ['start'],
+          properties: { start: { type: 'string', format: 'date-time' } },
+        },
+        slots: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date-time' } },
+          },
+        },
+      },
+    };
+
+    const result = generateResponseDateDeserializer({
+      operationName: 'getAppointment',
+      response: makeResponse({ successTypes: [{ originalSchema: schema }] }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation.replace(
+      /\(data: [^)]*\): [^=]*=>/,
+      '(data) =>',
+    );
+
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => unknown;
+
+    const input = {};
+
+    expect(() => fn(input)).not.toThrow();
+    expect(fn(input)).toEqual({});
   });
 });

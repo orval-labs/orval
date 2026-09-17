@@ -1490,6 +1490,7 @@ export interface AxiosOptions {
 export interface NormalizedFetchOptions {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
+  includeHttpErrorResponse?: boolean;
   serializeResponseHeaders: boolean;
   jsonReviver?: Mutator;
   runtimeValidation: NormalizedRuntimeValidation;
@@ -1508,6 +1509,15 @@ export interface NormalizedFetchOptions {
 export interface FetchOptions {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
+  /**
+   * Pass full error response types to a custom mutator's ErrorType and declared
+   * error statuses/media types in its third argument. Requires response envelopes,
+   * forceSuccessResponse, and a non-hook mutator accepting three arguments.
+   * Only explicit error status codes are supported after content-type filtering.
+   *
+   * @default false
+   */
+  includeHttpErrorResponse?: boolean;
   /**
    * Return response `headers` as a plain `Record<string, string>` instead of a
    * `Headers` instance, so the response stays serializable. Keys are lowercased
@@ -2424,7 +2434,7 @@ export type GeneratorClientTitle = (data: {
   title: string;
   customTitleFunc?: (title: string) => string;
   output: NormalizedOutputOptions;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientHeader = (data: {
   outputClient?: OutputClient | OutputClientFunc;
@@ -2439,7 +2449,7 @@ export type GeneratorClientHeader = (data: {
   tag?: string;
   isDefaultTagBucket?: boolean;
   clientImplementation: string;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientFooter = (data: {
   outputClient: OutputClient | OutputClientFunc;
@@ -2449,7 +2459,7 @@ export type GeneratorClientFooter = (data: {
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
   output: NormalizedOutputOptions;
-}) => GeneratorClientExtra;
+}) => Promise<GeneratorClientExtra>;
 
 export type GeneratorClientImports = (data: {
   client: OutputClient | OutputClientFunc;
@@ -2463,7 +2473,7 @@ export type GeneratorClientImports = (data: {
   hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
   output: NormalizedOutputOptions;
-}) => string;
+}) => Promise<string>;
 
 export type GenerateMockImports = (data: {
   implementation: string;

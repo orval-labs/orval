@@ -5,6 +5,7 @@ import {
   updateAppointment,
   updateAppointmentDuplicateDate,
   updateAppointmentReminder,
+  updateShelterIntake,
 } from './generated/react-query/dates-transform/endpoints';
 import { AXIOS_INSTANCE } from './mutators/custom-instance';
 
@@ -18,10 +19,33 @@ const captureRequest = (): { config?: AxiosRequestConfig } => {
   const captured: { config?: AxiosRequestConfig } = {};
   AXIOS_INSTANCE.defaults.adapter = async (config) => {
     captured.config = config;
-    // The response deserializer unconditionally iterates `data.slots`, so the
-    // mock body needs an (empty) array there to survive `.then(deserialize...)`.
     return {
-      data: { slots: [] },
+      data: {},
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    };
+  };
+  return captured;
+};
+
+// The mock response body is populated with one entry per discriminated
+// variant (rather than left empty or omitted) so the response-side map
+// traversal actually runs its loop body at least once; an empty map would let
+// the deserializer's `Object.keys` loop iterate zero times and prove nothing.
+const captureShelterIntakeRequest = (): { config?: AxiosRequestConfig } => {
+  const captured: { config?: AxiosRequestConfig } = {};
+  AXIOS_INSTANCE.defaults.adapter = async (config) => {
+    captured.config = config;
+    return {
+      data: {
+        shelterId: 'shelter-1',
+        pets: {
+          whiskers: { petType: 'cat', arrivedOn: '2026-07-01' },
+          rex: { petType: 'dog', vaccinatedAt: '2026-07-01T09:30:00.000Z' },
+        },
+      },
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -120,4 +144,153 @@ test('does not throw and omits the key when a required array body field is left 
   const body = JSON.parse(String(captured.config?.data));
 
   expect(body).not.toHaveProperty('slots');
+});
+
+test('serializes format: date values inside an additionalProperties map, leaving format: date-time values alone', async () => {
+  const captured = captureShelterIntakeRequest();
+
+  // `pets` is a dictionary keyed by pet id whose values are a
+  // discriminated union: `IntakeCat.arrivedOn` is `format: date` and
+  // must serialize to a calendar day; `IntakeDog.vaccinatedAt` is
+  // `format: date-time` and must keep its full instant.
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets: {
+      whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      rex: {
+        petType: 'dog',
+        vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+      },
+    },
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.pets.whiskers.arrivedOn).toBe('2026-07-01');
+  expect(body.pets.rex.vaccinatedAt).toBe('2026-07-01T09:30:00.000Z');
+});
+
+test('does not mutate the caller map or its value objects when serializing an additionalProperties map', async () => {
+  captureShelterIntakeRequest();
+
+  // Object-identity checks, not just value checks: a shallow copy of the
+  // map that reused the original value objects would still let the wire
+  // serialization mutate `cat`/`dog` in place, and a
+  // missing copy of the map itself would still overwrite `whiskers`/`rex` on
+  // the caller's own map object even if each value were copied.
+  const cat = {
+    petType: 'cat' as const,
+    arrivedOn: new Date('2026-07-01'),
+  };
+  const dog = {
+    petType: 'dog' as const,
+    vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+  };
+  const pets = { whiskers: cat, rex: dog };
+
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets,
+  });
+
+  expect(pets.whiskers).toBe(cat);
+  expect(pets.rex).toBe(dog);
+  expect(cat.arrivedOn).toBeInstanceOf(Date);
+  expect(cat.arrivedOn.toISOString().slice(0, 10)).toBe('2026-07-01');
+  expect(dog.vaccinatedAt).toBeInstanceOf(Date);
+  expect(dog.vaccinatedAt.toISOString()).toBe(
+    '2026-07-01T09:30:00.000Z',
+  );
+});
+
+test('deserializes format: date and format: date-time values inside an additionalProperties map in the response', async () => {
+  // The mock response body (see captureShelterIntakeRequest) has one
+  // `cat` entry and one `dog` entry, so this exercises the
+  // deserializer's `Object.keys` loop over an actually-populated map,
+  // not the zero-iteration case.
+  captureShelterIntakeRequest();
+
+  const response = await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets: {
+      whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      rex: {
+        petType: 'dog',
+        vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+      },
+    },
+  });
+
+  const cat = response.pets.whiskers;
+  const dog = response.pets.rex;
+
+  if (cat.petType !== 'cat') {
+    throw new Error(`expected a cat, got petType: ${cat.petType}`);
+  }
+  if (dog.petType !== 'dog') {
+    throw new Error(
+      `expected a dog, got petType: ${dog.petType}`,
+    );
+  }
+
+  expect(cat.arrivedOn).toBeInstanceOf(Date);
+  expect(cat.arrivedOn.toISOString().slice(0, 10)).toBe('2026-07-01');
+  expect(dog.vaccinatedAt).toBeInstanceOf(Date);
+  expect(dog.vaccinatedAt.toISOString()).toBe('2026-07-01T09:30:00.000Z');
+});
+
+test('does not throw and omits the key when a required additionalProperties map body field is left out', async () => {
+  // `ShelterIntake.pets` is required and non-nullable, same as
+  // `Appointment.slots` above. Before the request-side container guard was
+  // extended to map-valued additionalProperties, an omitted `pets` would
+  // either be spread into `{}` or throw inside the generated serializer's
+  // `Object.keys` loop.
+  const captured = captureShelterIntakeRequest();
+
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+  } as unknown as Parameters<typeof updateShelterIntake>[1]);
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body).not.toHaveProperty('pets');
+});
+
+test('does not throw when the response omits the required slots array', async () => {
+  // `Appointment.slots` is required and non-nullable on the response side
+  // too. Before the response-side container guard, a server response that
+  // omitted it threw `TypeError: Cannot read properties of undefined
+  // (reading 'length')` inside the generated deserializer, before this
+  // promise could ever resolve.
+  captureRequest();
+
+  await expect(
+    updateAppointment({
+      day: new Date('2026-07-01'),
+      bookedAt: new Date('2026-07-01T09:30:00.000Z'),
+      slots: [{ start: new Date('2026-07-02'), label: 'morning' }],
+    }),
+  ).resolves.not.toHaveProperty('slots');
+});
+
+test('does not throw when the response omits the required pets map', async () => {
+  // `ShelterIntake.pets` is required and non-nullable on the response side
+  // too. Without the response-side container guard, a response omitting it
+  // threw inside the generated deserializer's `Object.keys(data.pets)` loop.
+  AXIOS_INSTANCE.defaults.adapter = async (config) => ({
+    data: { shelterId: 'shelter-1' },
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config,
+  });
+
+  await expect(
+    updateShelterIntake('shelter-1', {
+      shelterId: 'shelter-1',
+      pets: {
+        whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      },
+    }),
+  ).resolves.not.toHaveProperty('pets');
 });

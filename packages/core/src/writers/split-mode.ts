@@ -66,7 +66,7 @@ export async function writeSplitMode({
       extension: output.fileExtension,
     });
 
-    const target = generateTarget(builder, output);
+    const target = await generateTarget(builder, output);
 
     const { imports, implementation, mockOutputsFull } = target;
 
@@ -129,7 +129,7 @@ export async function writeSplitMode({
       schemaOutputPlan,
     );
 
-    implementationData += generateClientImports({
+    implementationData += await generateClientImports({
       builder,
       output,
       implementation,

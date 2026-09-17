@@ -556,6 +556,7 @@ const generateQueryImplementation = ({
   hasSignal,
   useRuntimeFetcher,
   forceSuccessResponse,
+  includeHttpErrorResponse,
   route,
   doc,
   deprecated,
@@ -595,6 +596,7 @@ const generateQueryImplementation = ({
   hasSignal: boolean;
   useRuntimeFetcher?: boolean;
   forceSuccessResponse?: boolean;
+  includeHttpErrorResponse?: boolean;
   route: string;
   doc?: string;
   deprecated?: boolean;
@@ -704,6 +706,7 @@ const generateQueryImplementation = ({
     httpClient,
     mutator,
     forceSuccessResponse,
+    includeHttpErrorResponse,
   );
 
   const dataType = mutator?.isHook
@@ -812,6 +815,15 @@ const generateQueryImplementation = ({
 
   const queryFnProperty = getQueryFnProperty({ useSkipToken, params, type });
 
+  // Validate suspense options with TanStack's `queryOptions()` builder while
+  // retaining the public suspense type and error inference. v5-only; a
+  // custom `override.query.queryOptions` mutator is left unwrapped because its
+  // generic typing may lose inference through the builder. See #1788.
+  const useQueryOptionsHelper =
+    hasQueryV5 &&
+    !queryOptionsMutator &&
+    (adapter.getQueryOptionsHelperTypes?.() ?? []).includes(type);
+
   const queryOptionsFnName = camel(
     shouldUseOptionsHook({
       optionsMutator: queryOptionsMutator,
@@ -908,15 +920,25 @@ ${hookOptions}
       }
 
    return  ${
-     queryOptionsMutator
-       ? 'customOptions'
-       : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
+     useQueryOptionsHelper
+       ? // Validate the literal with the builder, then preserve the existing
+         // suspense surface and selected-data key brand. The inference-only
+         // member carries TError through useSuspenseQueries without allowing
+         // callers to configure or invoke throwOnError.
+         `queryOptionsBuilder({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`
+       : queryOptionsMutator
+         ? 'customOptions'
+         : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
    }${
      adapter.shouldCastQueryOptions?.() === false
        ? ''
        : ` as ${queryOptionFnReturnType} ${
            adapter.shouldAnnotateQueryKey()
              ? `& { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`
+             : ''
+         }${
+           useQueryOptionsHelper
+             ? ` & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }`
              : ''
          }`
    }
@@ -1475,6 +1497,7 @@ ${queryKeyFns}`;
         }),
         useRuntimeFetcher: override.fetch.useRuntimeFetcher,
         forceSuccessResponse: override.fetch.forceSuccessResponse,
+        includeHttpErrorResponse: override.fetch.includeHttpErrorResponse,
         queryOptionsMutator,
         queryKeyMutator,
         route,
