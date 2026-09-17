@@ -5,6 +5,7 @@ import {
   updateAppointment,
   updateAppointmentDuplicateDate,
   updateAppointmentReminder,
+  updateShelterIntake,
 } from './generated/react-query/dates-transform/endpoints';
 import { AXIOS_INSTANCE } from './mutators/custom-instance';
 
@@ -22,6 +23,35 @@ const captureRequest = (): { config?: AxiosRequestConfig } => {
     // mock body needs an (empty) array there to survive `.then(deserialize...)`.
     return {
       data: { slots: [] },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    };
+  };
+  return captured;
+};
+
+// `updateShelterIntake`'s response deserializer unconditionally iterates
+// `Object.keys(data.pets)` (the property is required, not
+// nullable), so — same reasoning as `captureRequest` above — the mock body
+// needs `pets` present or the `.then(deserialize...)` throws. It is
+// populated with one entry per discriminated variant (rather than left
+// empty) so the response-side map traversal actually runs its loop body at
+// least once; an empty map would let the deserializer's `Object.keys` loop
+// iterate zero times and prove nothing.
+const captureShelterIntakeRequest = (): { config?: AxiosRequestConfig } => {
+  const captured: { config?: AxiosRequestConfig } = {};
+  AXIOS_INSTANCE.defaults.adapter = async (config) => {
+    captured.config = config;
+    return {
+      data: {
+        shelterId: 'shelter-1',
+        pets: {
+          whiskers: { petType: 'cat', arrivedOn: '2026-07-01' },
+          rex: { petType: 'dog', vaccinatedAt: '2026-07-01T09:30:00.000Z' },
+        },
+      },
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -120,4 +150,117 @@ test('does not throw and omits the key when a required array body field is left 
   const body = JSON.parse(String(captured.config?.data));
 
   expect(body).not.toHaveProperty('slots');
+});
+
+test('serializes format: date values inside an additionalProperties map, leaving format: date-time values alone', async () => {
+  const captured = captureShelterIntakeRequest();
+
+  // `pets` is a dictionary keyed by pet id whose values are a
+  // discriminated union: `IntakeCat.arrivedOn` is `format: date` and
+  // must serialize to a calendar day; `IntakeDog.vaccinatedAt` is
+  // `format: date-time` and must keep its full instant.
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets: {
+      whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      rex: {
+        petType: 'dog',
+        vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+      },
+    },
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.pets.whiskers.arrivedOn).toBe('2026-07-01');
+  expect(body.pets.rex.vaccinatedAt).toBe('2026-07-01T09:30:00.000Z');
+});
+
+test('does not mutate the caller map or its value objects when serializing an additionalProperties map', async () => {
+  captureShelterIntakeRequest();
+
+  // Object-identity checks, not just value checks: a shallow copy of the
+  // map that reused the original value objects would still let the wire
+  // serialization mutate `cat`/`dog` in place, and a
+  // missing copy of the map itself would still overwrite `whiskers`/`rex` on
+  // the caller's own map object even if each value were copied.
+  const cat = {
+    petType: 'cat' as const,
+    arrivedOn: new Date('2026-07-01'),
+  };
+  const dog = {
+    petType: 'dog' as const,
+    vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+  };
+  const pets = { whiskers: cat, rex: dog };
+
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets,
+  });
+
+  expect(pets.whiskers).toBe(cat);
+  expect(pets.rex).toBe(dog);
+  expect(cat.arrivedOn).toBeInstanceOf(Date);
+  expect(cat.arrivedOn.toISOString().slice(0, 10)).toBe('2026-07-01');
+  expect(dog.vaccinatedAt).toBeInstanceOf(Date);
+  expect(dog.vaccinatedAt.toISOString()).toBe(
+    '2026-07-01T09:30:00.000Z',
+  );
+});
+
+test('deserializes format: date and format: date-time values inside an additionalProperties map in the response', async () => {
+  // The mock response body (see captureShelterIntakeRequest) has one
+  // `cat` entry and one `dog` entry, so this exercises the
+  // deserializer's `Object.keys` loop over an actually-populated map,
+  // not the zero-iteration case.
+  captureShelterIntakeRequest();
+
+  const response = await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+    pets: {
+      whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      rex: {
+        petType: 'dog',
+        vaccinatedAt: new Date('2026-07-01T09:30:00.000Z'),
+      },
+    },
+  });
+
+  const cat = response.pets.whiskers;
+  const dog = response.pets.rex;
+
+  if (cat.petType !== 'cat') {
+    throw new Error(`expected a cat, got petType: ${cat.petType}`);
+  }
+  if (dog.petType !== 'dog') {
+    throw new Error(
+      `expected a dog, got petType: ${dog.petType}`,
+    );
+  }
+
+  expect(cat.arrivedOn).toBeInstanceOf(Date);
+  expect(cat.arrivedOn.toISOString().slice(0, 10)).toBe('2026-07-01');
+  expect(dog.vaccinatedAt).toBeInstanceOf(Date);
+  expect(dog.vaccinatedAt.toISOString()).toBe('2026-07-01T09:30:00.000Z');
+});
+
+test('does not throw and omits the key when a required additionalProperties map body field is left out', async () => {
+  // `ShelterIntake.pets` is required and non-nullable, same as
+  // `Appointment.slots` above. Before the request-side container guard was
+  // extended to map-valued additionalProperties, an omitted `pets` would
+  // either be spread into `{}` or throw inside the generated serializer's
+  // `Object.keys` loop. The mock response body still needs `pets` present
+  // (see the comment on `captureShelterIntakeRequest`) — the response
+  // deserializer does not guard required containers, only the request side
+  // does.
+  const captured = captureShelterIntakeRequest();
+
+  await updateShelterIntake('shelter-1', {
+    shelterId: 'shelter-1',
+  } as unknown as Parameters<typeof updateShelterIntake>[1]);
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body).not.toHaveProperty('pets');
 });
