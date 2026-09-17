@@ -187,6 +187,9 @@ export interface FrameworkAdapter {
   /** Whether to cast the query options return type. Solid Query needs this to be false for proper initialData discrimination. */
   shouldCastQueryOptions?(): boolean;
 
+  /** Query types whose standalone options function should return through the TanStack Query `queryOptions()` builder before preserving the suspense return contract, so the value is structurally checked and `useSuspenseQueries` accepts it. Only honoured on v5+, where the builder exists. See #1788. */
+  getQueryOptionsHelperTypes?(): readonly (typeof QueryType)[keyof typeof QueryType][];
+
   /**
    * Declares which `options.query` keys the caller must supply (`require`) and
    * which are dropped from the accepted type (`exclude`). A `require` key also
