@@ -238,8 +238,12 @@ describe('buildDateTransformStatements', () => {
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
-      'data.createdBy.at = new Date(data.createdBy.at);',
-      'data.updatedBy.at = new Date(data.updatedBy.at);',
+      'if (data.createdBy != null) {',
+      '  data.createdBy.at = new Date(data.createdBy.at);',
+      '}',
+      'if (data.updatedBy != null) {',
+      '  data.updatedBy.at = new Date(data.updatedBy.at);',
+      '}',
     ]);
   });
 
@@ -1028,8 +1032,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.days)) {',
-      '  data.days[key0] = new Date(data.days[key0]);',
+      'if (data.days != null) {',
+      '  for (const key0 of Object.keys(data.days)) {',
+      '    data.days[key0] = new Date(data.days[key0]);',
+      '  }',
       '}',
     ]);
   });
@@ -1059,9 +1065,11 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.fills)) {',
-      '  const item0 = data.fills[key0];',
-      '  item0.recordedOn = new Date(item0.recordedOn);',
+      'if (data.fills != null) {',
+      '  for (const key0 of Object.keys(data.fills)) {',
+      '    const item0 = data.fills[key0];',
+      '    item0.recordedOn = new Date(item0.recordedOn);',
+      '  }',
       '}',
     ]);
   });
@@ -1106,18 +1114,20 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.pets)) {',
-      '  const item0 = data.pets[key0];',
-      '  switch (item0.petType) {',
-      '    case "cat": {',
-      '      item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
-      '      break;',
-      '    }',
-      '    case "dog": {',
-      '      if (item0.adoptedAt != null) {',
-      '        item0.adoptedAt = new Date(item0.adoptedAt);',
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    const item0 = data.pets[key0];',
+      '    switch (item0.petType) {',
+      '      case "cat": {',
+      '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+      '        break;',
       '      }',
-      '      break;',
+      '      case "dog": {',
+      '        if (item0.adoptedAt != null) {',
+      '          item0.adoptedAt = new Date(item0.adoptedAt);',
+      '        }',
+      '        break;',
+      '      }',
       '    }',
       '  }',
       '}',
@@ -1252,8 +1262,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'switch (data.kind) {',
       '  case "cat": {',
-      '    for (const key0 of Object.keys(data.fills)) {',
-      '      data.fills[key0] = new Date(data.fills[key0]);',
+      '    if (data.fills != null) {',
+      '      for (const key0 of Object.keys(data.fills)) {',
+      '        data.fills[key0] = new Date(data.fills[key0]);',
+      '      }',
       '    }',
       '    break;',
       '  }',
@@ -1404,12 +1416,14 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.outer)) {',
-      '  const item0 = data.outer[key0];',
-      '  for (let i1 = 0; i1 < item0.length; i1++) {',
-      '    const item1 = item0[i1];',
-      '    for (const key2 of Object.keys(item1)) {',
-      '      item1[key2] = new Date(item1[key2]);',
+      'if (data.outer != null) {',
+      '  for (const key0 of Object.keys(data.outer)) {',
+      '    const item0 = data.outer[key0];',
+      '    for (let i1 = 0; i1 < item0.length; i1++) {',
+      '      const item1 = item0[i1];',
+      '      for (const key2 of Object.keys(item1)) {',
+      '        item1[key2] = new Date(item1[key2]);',
+      '      }',
       '    }',
       '  }',
       '}',
@@ -1581,8 +1595,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.ids)) {',
-      '  data.ids[key0] = new Date(data.ids[key0]);',
+      'if (data.ids != null) {',
+      '  for (const key0 of Object.keys(data.ids)) {',
+      '    data.ids[key0] = new Date(data.ids[key0]);',
+      '  }',
       '}',
     ]);
   });
@@ -1607,8 +1623,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.headers)) {',
-      '  data.headers[key0] = new Date(data.headers[key0]);',
+      'if (data.headers != null) {',
+      '  for (const key0 of Object.keys(data.headers)) {',
+      '    data.headers[key0] = new Date(data.headers[key0]);',
+      '  }',
       '}',
     ]);
   });
@@ -1776,11 +1794,11 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([]);
   });
 
-  it('pins the response direction: a required map property stays unguarded (must not regress)', () => {
-    // Response direction never guards required containers
-    // (guardRequiredContainers is false for responseMode) — only the request
-    // direction gained the guard from c190412d6. A required map property's
-    // in-place key loop must remain unwrapped.
+  it('guards a required map property in the response direction too', () => {
+    // The response direction now null-guards required containers the same
+    // way the request direction always has (the guardRequiredContainers mode
+    // seam was removed) — a required map property's in-place key loop must
+    // be wrapped in an `if (<accessor> != null)` guard.
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['pets'],
@@ -1799,10 +1817,55 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.pets)) {',
-      '  data.pets[key0] = new Date(data.pets[key0]);',
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    data.pets[key0] = new Date(data.pets[key0]);',
+      '  }',
       '}',
     ]);
+  });
+
+  it('executes the guarded deserializer at runtime for an omitted required map property', () => {
+    // Executed counterpart to the statement-level test above, mirroring the
+    // request direction's own "omitted required map property" runtime test:
+    // build a real deserializer for a body with a required
+    // `additionalProperties` map, strip the TS-only annotations, run it on a
+    // payload that omits the map, and confirm it neither throws nor
+    // fabricates the key.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pets'],
+      properties: {
+        pets: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date' },
+        },
+      },
+    };
+
+    const result = generateResponseDateDeserializer({
+      operationName: 'updateShelterIntake',
+      response: makeResponse({ successTypes: [{ originalSchema: schema }] }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation.replace(
+      /\(data: [^)]*\): [^=]*=>/,
+      '(data) =>',
+    );
+
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => Record<string, unknown>;
+
+    const input = {};
+
+    expect(() => fn(input)).not.toThrow();
+    const output = fn(input);
+    expect(output).toEqual({});
+    expect('pets' in output).toBe(false);
   });
 });
 
@@ -3638,12 +3701,16 @@ describe('review comment fixes — allOf array/object conflicts and required con
     ).toBeUndefined();
   });
 
-  it('leaves the response direction for the allOf array/object conflict schema unchanged', () => {
+  it('leaves the response direction array/object-conflict handling unchanged, but now guards the required property', () => {
     // Pinned against today's (pre-fix) behaviour: the response direction
     // never applies the array/object-conflict guard (`dropArrayObjectConflict`
     // is false there), so it freely combines the in-place array loop from
-    // one allOf branch with the property write from the other. This must
-    // stay byte-for-byte identical after the request-side fix.
+    // one allOf branch with the property write from the other — that part of
+    // this must stay byte-for-byte identical after the request-side fix.
+    // What does change: `x` is a required container (writes through its own
+    // elements/properties, not the accessor itself), so the response
+    // direction now null-guards it the same as the request direction always
+    // has, closing the crash this whole fix addresses.
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['x'],
@@ -3658,10 +3725,12 @@ describe('review comment fixes — allOf array/object conflicts and required con
       }).join('\n'),
     ).toBe(
       [
-        'for (let i0 = 0; i0 < data.x.length; i0++) {',
-        '  data.x[i0] = new Date(data.x[i0]);',
+        'if (data.x != null) {',
+        '  for (let i0 = 0; i0 < data.x.length; i0++) {',
+        '    data.x[i0] = new Date(data.x[i0]);',
+        '  }',
+        '  data.x.d = new Date(data.x.d);',
         '}',
-        'data.x.d = new Date(data.x.d);',
       ].join('\n'),
     );
   });
@@ -3762,11 +3831,13 @@ describe('review comment fixes — allOf array/object conflicts and required con
     );
   });
 
-  it('leaves the response direction for required object and array containers unchanged', () => {
-    // Pinned against today's (pre-fix) behaviour: the response direction
-    // never guards required containers (`guardRequiredContainers` is false
-    // there), and must stay that way — the response mutates a payload it
-    // just parsed, and every date field is expected to be present.
+  it('now guards required object and array containers in the response direction too', () => {
+    // Previously pinned against the pre-fix asymmetry (response left required
+    // containers unguarded while request guarded them); that asymmetry was
+    // exactly this bug — the response mutates a payload it just parsed, but a
+    // server can omit a `required` field despite its own contract, and an
+    // unguarded container threw before the caller could handle it. Both
+    // directions now guard required containers identically.
     const objectSchema: OpenApiSchemaObject = {
       type: 'object',
       required: ['nested'],
@@ -3785,7 +3856,11 @@ describe('review comment fixes — allOf array/object conflicts and required con
         accessor: 'data',
         context: makeContext(),
       }),
-    ).toEqual(['data.nested.day = new Date(data.nested.day);']);
+    ).toEqual([
+      'if (data.nested != null) {',
+      '  data.nested.day = new Date(data.nested.day);',
+      '}',
+    ]);
 
     const arraySchema: OpenApiSchemaObject = {
       type: 'object',
@@ -3802,8 +3877,10 @@ describe('review comment fixes — allOf array/object conflicts and required con
         context: makeContext(),
       }),
     ).toEqual([
-      'for (let i0 = 0; i0 < data.days.length; i0++) {',
-      '  data.days[i0] = new Date(data.days[i0]);',
+      'if (data.days != null) {',
+      '  for (let i0 = 0; i0 < data.days.length; i0++) {',
+      '    data.days[i0] = new Date(data.days[i0]);',
+      '  }',
       '}',
     ]);
   });
@@ -3930,8 +4007,10 @@ describe('additionalProperties maps beside an empty `properties: {}`', () => {
         context: makeContext(),
       }),
     ).toEqual([
-      'for (const key0 of Object.keys(data.m)) {',
-      '  data.m[key0] = new Date(data.m[key0]);',
+      'if (data.m != null) {',
+      '  for (const key0 of Object.keys(data.m)) {',
+      '    data.m[key0] = new Date(data.m[key0]);',
+      '  }',
       '}',
     ]);
   });
@@ -3975,5 +4054,200 @@ describe('additionalProperties maps beside an empty `properties: {}`', () => {
         context: makeContext(),
       }).join('\n'),
     ).toContain('copy.days = copy.days.map((item0) => {');
+  });
+});
+
+describe('response direction — required container guards', () => {
+  // The response direction used to leave required, non-nullable containers
+  // unguarded (see "leaves the response direction ... unchanged" pins
+  // above, now updated): a server omitting a required array or object threw
+  // a TypeError inside the generated deserializer, before the caller could
+  // handle it. Containers are now guarded the same as the request
+  // direction; a required *date leaf* stays unguarded either way, since
+  // `new Date(undefined)` degrades to `Invalid Date` instead of throwing.
+  it('guards a response-side required object property containing a date', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['a'],
+      properties: {
+        a: {
+          type: 'object',
+          required: ['day'],
+          properties: { day: { type: 'string', format: 'date-time' } },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.a != null) {',
+      '  data.a.day = new Date(data.a.day);',
+      '}',
+    ]);
+  });
+
+  it('guards a response-side required array of objects containing a date', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['slots'],
+      properties: {
+        slots: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date-time' } },
+          },
+        },
+      },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual([
+      'if (data.slots != null) {',
+      '  for (let i0 = 0; i0 < data.slots.length; i0++) {',
+      '    const item0 = data.slots[i0];',
+      '    item0.start = new Date(item0.start);',
+      '  }',
+      '}',
+    ]);
+  });
+
+  it('guards a response-side required discriminated-union property', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        required: ['vaccinatedAt'],
+        properties: {
+          vaccinatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Dog: {
+        type: 'object',
+        properties: {
+          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['pet'],
+      properties: {
+        pet: {
+          oneOf: [
+            { $ref: '#/components/schemas/Cat' },
+            { $ref: '#/components/schemas/Dog' },
+          ],
+          discriminator: {
+            propertyName: 'petType',
+            mapping: {
+              cat: '#/components/schemas/Cat',
+              dog: '#/components/schemas/Dog',
+            },
+          },
+        },
+      },
+    };
+
+    const statements = buildDateTransformStatements({
+      schema,
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if (data.pet != null) {',
+        '  switch (data.pet.petType) {',
+        '    case "cat": {',
+        '      data.pet.vaccinatedAt = new Date(data.pet.vaccinatedAt);',
+        '      break;',
+        '    }',
+        '    case "dog": {',
+        '      if (data.pet.adoptedAt != null) {',
+        '        data.pet.adoptedAt = new Date(data.pet.adoptedAt);',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves a response-side required date leaf unguarded', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: { day: { type: 'string', format: 'date-time' } },
+    };
+
+    expect(
+      buildDateTransformStatements({
+        schema,
+        accessor: 'data',
+        context: makeContext(),
+      }),
+    ).toEqual(['data.day = new Date(data.day);']);
+  });
+
+  it('executes the guarded deserializer at runtime without throwing when required containers are omitted', () => {
+    // Executed version of the two statement-level tests above: build a real
+    // `deserialize...Response` function for a body with a required object
+    // and a required array, strip the TS-only parameter/return annotations,
+    // run it on a payload that omits both, and confirm it neither throws nor
+    // fabricates keys the payload never had — matching the request
+    // direction's own runtime test above.
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['a', 'slots'],
+      properties: {
+        a: {
+          type: 'object',
+          required: ['start'],
+          properties: { start: { type: 'string', format: 'date-time' } },
+        },
+        slots: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['start'],
+            properties: { start: { type: 'string', format: 'date-time' } },
+          },
+        },
+      },
+    };
+
+    const result = generateResponseDateDeserializer({
+      operationName: 'getAppointment',
+      response: makeResponse({ successTypes: [{ originalSchema: schema }] }),
+      context: makeContext(),
+    });
+
+    expect(result).toBeDefined();
+
+    const runnable = result!.implementation.replace(
+      /\(data: [^)]*\): [^=]*=>/,
+      '(data) =>',
+    );
+
+    const fn = vm.runInThisContext(
+      `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
+    ) as (data: Record<string, unknown>) => unknown;
+
+    const input = {};
+
+    expect(() => fn(input)).not.toThrow();
+    expect(fn(input)).toEqual({});
   });
 });

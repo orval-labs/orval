@@ -19,10 +19,8 @@ const captureRequest = (): { config?: AxiosRequestConfig } => {
   const captured: { config?: AxiosRequestConfig } = {};
   AXIOS_INSTANCE.defaults.adapter = async (config) => {
     captured.config = config;
-    // The response deserializer unconditionally iterates `data.slots`, so the
-    // mock body needs an (empty) array there to survive `.then(deserialize...)`.
     return {
-      data: { slots: [] },
+      data: {},
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -32,14 +30,10 @@ const captureRequest = (): { config?: AxiosRequestConfig } => {
   return captured;
 };
 
-// `updateShelterIntake`'s response deserializer unconditionally iterates
-// `Object.keys(data.pets)` (the property is required, not
-// nullable), so — same reasoning as `captureRequest` above — the mock body
-// needs `pets` present or the `.then(deserialize...)` throws. It is
-// populated with one entry per discriminated variant (rather than left
-// empty) so the response-side map traversal actually runs its loop body at
-// least once; an empty map would let the deserializer's `Object.keys` loop
-// iterate zero times and prove nothing.
+// The mock response body is populated with one entry per discriminated
+// variant (rather than left empty or omitted) so the response-side map
+// traversal actually runs its loop body at least once; an empty map would let
+// the deserializer's `Object.keys` loop iterate zero times and prove nothing.
 const captureShelterIntakeRequest = (): { config?: AxiosRequestConfig } => {
   const captured: { config?: AxiosRequestConfig } = {};
   AXIOS_INSTANCE.defaults.adapter = async (config) => {
@@ -250,10 +244,7 @@ test('does not throw and omits the key when a required additionalProperties map 
   // `Appointment.slots` above. Before the request-side container guard was
   // extended to map-valued additionalProperties, an omitted `pets` would
   // either be spread into `{}` or throw inside the generated serializer's
-  // `Object.keys` loop. The mock response body still needs `pets` present
-  // (see the comment on `captureShelterIntakeRequest`) — the response
-  // deserializer does not guard required containers, only the request side
-  // does.
+  // `Object.keys` loop.
   const captured = captureShelterIntakeRequest();
 
   await updateShelterIntake('shelter-1', {
@@ -263,4 +254,43 @@ test('does not throw and omits the key when a required additionalProperties map 
   const body = JSON.parse(String(captured.config?.data));
 
   expect(body).not.toHaveProperty('pets');
+});
+
+test('does not throw when the response omits the required slots array', async () => {
+  // `Appointment.slots` is required and non-nullable on the response side
+  // too. Before the response-side container guard, a server response that
+  // omitted it threw `TypeError: Cannot read properties of undefined
+  // (reading 'length')` inside the generated deserializer, before this
+  // promise could ever resolve.
+  captureRequest();
+
+  await expect(
+    updateAppointment({
+      day: new Date('2026-07-01'),
+      bookedAt: new Date('2026-07-01T09:30:00.000Z'),
+      slots: [{ start: new Date('2026-07-02'), label: 'morning' }],
+    }),
+  ).resolves.not.toHaveProperty('slots');
+});
+
+test('does not throw when the response omits the required pets map', async () => {
+  // `ShelterIntake.pets` is required and non-nullable on the response side
+  // too. Without the response-side container guard, a response omitting it
+  // threw inside the generated deserializer's `Object.keys(data.pets)` loop.
+  AXIOS_INSTANCE.defaults.adapter = async (config) => ({
+    data: { shelterId: 'shelter-1' },
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config,
+  });
+
+  await expect(
+    updateShelterIntake('shelter-1', {
+      shelterId: 'shelter-1',
+      pets: {
+        whiskers: { petType: 'cat', arrivedOn: new Date('2026-07-01') },
+      },
+    }),
+  ).resolves.not.toHaveProperty('pets');
 });

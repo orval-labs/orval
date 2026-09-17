@@ -69,11 +69,13 @@ const deserializeGetOrderDetailsResponse = (
   if (data.lastViewedAt != null) {
     data.lastViewedAt = new Date(data.lastViewedAt);
   }
-  for (let i0 = 0; i0 < data.events.length; i0++) {
-    const item0 = data.events[i0];
-    item0.createdAt = new Date(item0.createdAt);
-    if (item0.resolvedAt != null) {
-      item0.resolvedAt = new Date(item0.resolvedAt);
+  if (data.events != null) {
+    for (let i0 = 0; i0 < data.events.length; i0++) {
+      const item0 = data.events[i0];
+      item0.createdAt = new Date(item0.createdAt);
+      if (item0.resolvedAt != null) {
+        item0.resolvedAt = new Date(item0.resolvedAt);
+      }
     }
   }
   return data;
@@ -384,8 +386,10 @@ const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
   (
     data as { -readonly [K in keyof typeof data]: (typeof data)[K] }
   ).recordedAt = new Date(data.recordedAt);
-  for (let i0 = 0; i0 < data.stamps.length; i0++) {
-    data.stamps[i0] = new Date(data.stamps[i0]);
+  if (data.stamps != null) {
+    for (let i0 = 0; i0 < data.stamps.length; i0++) {
+      data.stamps[i0] = new Date(data.stamps[i0]);
+    }
   }
   if (data.entries != null) {
     for (let i0 = 0; i0 < data.entries.length; i0++) {
@@ -843,9 +847,11 @@ const deserializeUpdateAppointmentResponse = (
   if (data.reminderOn != null) {
     data.reminderOn = new Date(data.reminderOn);
   }
-  for (let i0 = 0; i0 < data.slots.length; i0++) {
-    const item0 = data.slots[i0];
-    item0.start = new Date(item0.start);
+  if (data.slots != null) {
+    for (let i0 = 0; i0 < data.slots.length; i0++) {
+      const item0 = data.slots[i0];
+      item0.start = new Date(item0.start);
+    }
   }
   return data;
 };
@@ -1081,9 +1087,11 @@ const deserializeUpdateAppointmentReminderResponse = (
   if (data.reminderOn != null) {
     data.reminderOn = new Date(data.reminderOn);
   }
-  for (let i0 = 0; i0 < data.slots.length; i0++) {
-    const item0 = data.slots[i0];
-    item0.start = new Date(item0.start);
+  if (data.slots != null) {
+    for (let i0 = 0; i0 < data.slots.length; i0++) {
+      const item0 = data.slots[i0];
+      item0.start = new Date(item0.start);
+    }
   }
   return data;
 };
@@ -1195,16 +1203,18 @@ const deserializeUpdateShelterIntakeResponse = (
   data: ShelterIntake,
 ): ShelterIntake => {
   if (data == null) return data;
-  for (const key0 of Object.keys(data.pets)) {
-    const item0 = data.pets[key0];
-    switch (item0.petType) {
-      case 'cat': {
-        item0.arrivedOn = new Date(item0.arrivedOn);
-        break;
-      }
-      case 'dog': {
-        item0.vaccinatedAt = new Date(item0.vaccinatedAt);
-        break;
+  if (data.pets != null) {
+    for (const key0 of Object.keys(data.pets)) {
+      const item0 = data.pets[key0];
+      switch (item0.petType) {
+        case 'cat': {
+          item0.arrivedOn = new Date(item0.arrivedOn);
+          break;
+        }
+        case 'dog': {
+          item0.vaccinatedAt = new Date(item0.vaccinatedAt);
+          break;
+        }
       }
     }
   }
