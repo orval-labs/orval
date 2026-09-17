@@ -357,11 +357,11 @@ export const useSetCreatePetsQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof createPets>> | undefined,
         ) => Awaited<ReturnType<typeof createPets>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof createPets>>>(
       {
-        exact: exactMatch,
+        exact: $exactMatch,
         queryKey: getCreatePetsQueryKey(createPetsBody, params),
       },
       updater,

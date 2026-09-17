@@ -280,10 +280,10 @@ export const useSetListPetsQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
-      { exact: exactMatch, queryKey: getListPetsQueryKey(params) },
+      { exact: $exactMatch, queryKey: getListPetsQueryKey(params) },
       updater,
     );
   };
@@ -637,10 +637,10 @@ export const useSetShowPetByIdQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof showPetById>> | undefined,
         ) => Awaited<ReturnType<typeof showPetById>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
-      { exact: exactMatch, queryKey: getShowPetByIdQueryKey(petId) },
+      { exact: $exactMatch, queryKey: getShowPetByIdQueryKey(petId) },
       updater,
     );
   };
@@ -947,10 +947,10 @@ export const useSetHealthCheckQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof healthCheck>> | undefined,
         ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
-      { exact: exactMatch, queryKey: getHealthCheckQueryKey() },
+      { exact: $exactMatch, queryKey: getHealthCheckQueryKey() },
       updater,
     );
   };
@@ -1167,10 +1167,10 @@ export const useSetShowPetWithOwnerQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
         ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
-      { exact: exactMatch, queryKey: getShowPetWithOwnerQueryKey(petId) },
+      { exact: $exactMatch, queryKey: getShowPetWithOwnerQueryKey(petId) },
       updater,
     );
   };

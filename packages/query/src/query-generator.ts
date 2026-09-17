@@ -316,12 +316,12 @@ const renderSetQueryDataHelper = ({
   if (isReactQuery) {
     return `${docPrefix}export const ${fnName} = () => {
   const queryClient = useQueryClient();
-  return (${propsSig}) => {
+  return (${propsSig}, $exactMatch: boolean = true) => {
     ${body}
   };
 }\n`;
   }
-  return `${docPrefix}export const ${fnName} = (queryClient: QueryClient, ${propsSig}) => {
+  return `${docPrefix}export const ${fnName} = (queryClient: QueryClient, ${propsSig}, $exactMatch: boolean = true) => {
   ${body}
 }\n`;
 };
@@ -1114,8 +1114,8 @@ ${
         doc,
         isReactQuery,
         fnName: setQueryDataFnName,
-        propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined), exactMatch: boolean = true`,
-        body: `queryClient.setQueriesData<${TData}>({ exact: exactMatch, queryKey: ${setQueryDataKeyExpr} }, updater);`,
+        propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)`,
+        body: `queryClient.setQueriesData<${TData}>({ exact: $exactMatch, queryKey: ${setQueryDataKeyExpr} }, updater);`,
       })
     : ''
 }

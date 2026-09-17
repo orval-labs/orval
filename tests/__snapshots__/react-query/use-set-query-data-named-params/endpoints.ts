@@ -305,10 +305,13 @@ export const useSetListPetsQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
-      { exact: exactMatch, queryKey: getListPetsQueryKey({ version }, params) },
+      {
+        exact: $exactMatch,
+        queryKey: getListPetsQueryKey({ version }, params),
+      },
       updater,
     );
   };
@@ -680,11 +683,11 @@ export const useSetShowPetByIdQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof showPetById>> | undefined,
         ) => Awaited<ReturnType<typeof showPetById>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
       {
-        exact: exactMatch,
+        exact: $exactMatch,
         queryKey: getShowPetByIdQueryKey({ version, petId }),
       },
       updater,
@@ -1017,10 +1020,10 @@ export const useSetHealthCheckQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof healthCheck>> | undefined,
         ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
-      { exact: exactMatch, queryKey: getHealthCheckQueryKey({ version }) },
+      { exact: $exactMatch, queryKey: getHealthCheckQueryKey({ version }) },
       updater,
     );
   };
@@ -1252,11 +1255,11 @@ export const useSetShowPetWithOwnerQueryData = () => {
       | ((
           old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
         ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
-    exactMatch: boolean = true,
+    $exactMatch: boolean = true,
   ) => {
     queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
       {
-        exact: exactMatch,
+        exact: $exactMatch,
         queryKey: getShowPetWithOwnerQueryKey({ version, petId }),
       },
       updater,
