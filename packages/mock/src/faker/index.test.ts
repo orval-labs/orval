@@ -945,3 +945,55 @@ describe('schema-scoped overrides are preserved through factory delegation', () 
     expect(result.implementation).toContain('apple: { ...getAppleMock() }');
   });
 });
+
+// An inherited `format` used to resolve to the prototype member itself, so the
+// generated file carried `function Object() { [native code] }` (orval still
+// exited 0 and the victim's `tsc` failed on it), and the same value as a direct
+// `allOf` member crashed the generator on `.startsWith`.
+describe('generateFakerForSchemas inherited format keys', () => {
+  const context = createTestContextSpec({});
+
+  it('emits a compilable property mock', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Pet',
+          model: 'Pet',
+          imports: [],
+          schema: {
+            type: 'object',
+            required: ['foo'],
+            properties: { foo: { type: 'string', format: 'constructor' } },
+          },
+        } as GeneratorSchema,
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).not.toContain('native code');
+    expect(result.implementation).toContain('foo: faker.string.alpha(');
+  });
+
+  it('does not crash when the scalar is a direct allOf member', () => {
+    expect(() =>
+      generateFakerForSchemas(
+        [
+          {
+            name: 'Pet',
+            model: 'Pet',
+            imports: [],
+            schema: {
+              allOf: [
+                { type: 'object', properties: { a: { type: 'string' } } },
+                { type: 'string', format: 'constructor' },
+              ],
+            },
+          } as GeneratorSchema,
+        ],
+        context,
+        { type: OutputMockType.FAKER, schemas: true },
+      ),
+    ).not.toThrow();
+  });
+});
