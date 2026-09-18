@@ -517,8 +517,8 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<EnumWrapper, 'id'>>");
   });
 
-  // A `$ref` member can carry union-producing siblings (`nullable: true`,
-  // `type: ['object', 'null']`) that the resolver merges into the emission
+  // OAS 3.1 allows a `$ref` to carry siblings, and a union-producing one
+  // (`type: ['object', 'null']`) is merged into the emission by the resolver
   // (`Wrapper = Base | null`), so the ref-site object must pass the same
   // union guard as inline nodes before dereferencing.
   it('keeps Extract guard when a nested $ref member carries a nullable sibling', () => {
@@ -536,7 +536,10 @@ describe('combineSchemas (allOf required handling)', () => {
             },
             RefSiteWrapper: {
               allOf: [
-                { $ref: '#/components/schemas/RefSiteBase', nullable: true },
+                {
+                  $ref: '#/components/schemas/RefSiteBase',
+                  type: ['object', 'null'],
+                },
               ],
             },
           },
@@ -1365,7 +1368,7 @@ describe('combineSchemas (allOf required handling)', () => {
               allOf: [
                 {
                   $ref: '#/components/schemas/NullableAllOfMemberBase',
-                  nullable: true,
+                  type: ['object', 'null'],
                 },
                 {
                   type: 'object',
@@ -1427,7 +1430,7 @@ describe('combineSchemas (allOf required handling)', () => {
               allOf: [
                 {
                   $ref: '#/components/schemas/NullableParentBase',
-                  nullable: true,
+                  type: ['object', 'null'],
                 },
               ],
             },
@@ -1605,7 +1608,7 @@ describe('combineSchemas (allOf required handling)', () => {
 
   it('uses Extract guard for required ghost keys missing from all subschema properties', () => {
     const schema: OpenApiSchemaObject = {
-      nullable: true,
+      type: ['object', 'null'],
       allOf: [{ $ref: '#/components/schemas/TagMetadataItem' }],
     };
 

@@ -492,9 +492,9 @@ describe('generateSchemasDefinition', () => {
         enum: [true, false],
       },
       NumberEnumNullable: {
-        nullable: true,
-        type: 'number',
-        enum: [1.5, 2.5, 3.5],
+        type: ['number', 'null'],
+        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+        enum: [1.5, 2.5, 3.5, null],
       },
       NumberEnumNotNull: {
         type: 'number',
