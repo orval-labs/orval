@@ -5,12 +5,14 @@
  * Test case for issue
  * OpenAPI spec version: 1.0.0
  */
-import type { Item3Hello } from './item3Hello';
-import type { Item3Optional } from './item3Optional';
-import type { Item3World } from './item3World';
+import type { BlankEnum } from './blankEnum';
+import type { BooleanEnum } from './booleanEnum';
+import type { HelloEnum } from './helloEnum';
+import type { NullEnum } from './nullEnum';
+import type { NumberEnum } from './numberEnum';
 
 export interface Item3 {
-  hello?: (typeof Item3Hello)[keyof typeof Item3Hello] | null;
-  world?: (typeof Item3World)[keyof typeof Item3World] | null;
-  optional?: (typeof Item3Optional)[keyof typeof Item3Optional] | null;
+  hello?: HelloEnum | BlankEnum | NullEnum | null;
+  world?: NumberEnum | BooleanEnum | null;
+  optional?: HelloEnum | BlankEnum | null;
 }

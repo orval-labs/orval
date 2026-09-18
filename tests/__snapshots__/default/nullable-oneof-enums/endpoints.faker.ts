@@ -26,8 +26,9 @@ export const getGetItemsResponseMock = (): Item1[] =>
         faker.helpers.arrayElement(Object.values(HelloEnum)),
         faker.helpers.arrayElement(Object.values(BlankEnum)),
         faker.helpers.arrayElement([] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -41,22 +42,25 @@ export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
         faker.helpers.arrayElement(Object.values(HelloEnum)),
         faker.helpers.arrayElement(Object.values(BlankEnum)),
         faker.helpers.arrayElement([] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     world: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement([1, 2, 3] as const),
         faker.helpers.arrayElement([true, false] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     optional: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement(Object.values(HelloEnum)),
         faker.helpers.arrayElement(Object.values(BlankEnum)),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -72,15 +76,17 @@ export const getGetNestedItemsResponseMock = (): NestedItem[] =>
             faker.helpers.arrayElement(Object.values(HelloEnum)),
             faker.helpers.arrayElement(Object.values(BlankEnum)),
             faker.helpers.arrayElement([] as const),
+            null,
           ]),
-          null,
+          undefined,
         ]),
         world: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.helpers.arrayElement([1, 2, 3] as const),
             faker.helpers.arrayElement([true, false] as const),
+            null,
           ]),
-          null,
+          undefined,
         ]),
       },
       undefined,
@@ -97,8 +103,9 @@ export const getGetMixedEnumItemsResponseMock = (): MixedEnumItem[] =>
         faker.helpers.arrayElement(Object.values(HelloEnum)),
         faker.helpers.arrayElement(Object.values(BlankEnum)),
         faker.helpers.arrayElement(Object.values(NotNullEnum)),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -111,28 +118,32 @@ export const getGetMixedTypeEnumsResponseMock = (): MixedTypeEnums[] =>
       faker.helpers.arrayElement([
         faker.helpers.arrayElement(Object.values(HelloEnum)),
         faker.helpers.arrayElement(Object.values(BlankEnum)),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     numberEnum: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement([1.5, 2.5, 3.5] as const),
         faker.helpers.arrayElement([100.1, 200.2] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     integerEnum: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement([10, 20, 30] as const),
         faker.helpers.arrayElement([1000, 2000] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     booleanEnum: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement([true, false] as const),
         faker.helpers.arrayElement([true] as const),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));

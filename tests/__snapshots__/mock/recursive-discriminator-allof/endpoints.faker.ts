@@ -22,7 +22,10 @@ export const getGetDerived1ResponseDerived2Mock = (
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([undefined, null]),
+        Parent: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([null]),
+          undefined,
+        ]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },
@@ -48,8 +51,9 @@ export const getGetDerived1ResponseDerived1Mock = (
         Parent: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             { ...getGetDerived1ResponseDerived2Mock() },
+            null,
           ]),
-          null,
+          undefined,
         ]),
       },
       ...{ Derived1Prop: faker.number.int() },
@@ -74,8 +78,9 @@ export const getGetDerived1ResponseMock = (): Derived1 => ({
         faker.helpers.arrayElement([
           { ...getGetDerived1ResponseDerived1Mock() },
           { ...getGetDerived1ResponseDerived2Mock() },
+          null,
         ]),
-        null,
+        undefined,
       ]),
     },
     ...{ Derived1Prop: faker.number.int() },
@@ -97,7 +102,10 @@ export const getGetDerived2ResponseDerived2Mock = (
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([undefined, null]),
+        Parent: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([null]),
+          undefined,
+        ]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },
@@ -123,8 +131,9 @@ export const getGetDerived2ResponseDerived1Mock = (
         Parent: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             { ...getGetDerived2ResponseDerived2Mock() },
+            null,
           ]),
-          null,
+          undefined,
         ]),
       },
       ...{ Derived1Prop: faker.number.int() },
@@ -149,8 +158,9 @@ export const getGetDerived2ResponseMock = (): Derived2 => ({
         faker.helpers.arrayElement([
           { ...getGetDerived2ResponseDerived1Mock() },
           { ...getGetDerived2ResponseDerived2Mock() },
+          null,
         ]),
-        null,
+        undefined,
       ]),
     },
     ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },

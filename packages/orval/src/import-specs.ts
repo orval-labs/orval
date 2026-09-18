@@ -170,6 +170,11 @@ async function resolveSpec(
     specification = restoreSwagger2FormDataItems(specification, formDataItems);
   }
 
+  // Close the OpenAPI 3.0 syntax the upgrader leaves behind, so what reaches
+  // `importOpenApi` is fully 3.1-shaped (#4115). Runs last so the schemas
+  // restored above are normalized too.
+  specification = normalizeToOpenApi31(specification) as typeof specification;
+
   return specification as OpenApiDocument;
 }
 
@@ -327,6 +332,488 @@ function isNonNullableObjectSchema(value: unknown): boolean {
     return false;
   }
   return 'properties' in obj || obj.type === 'object';
+}
+
+// ─── Residual OpenAPI 3.0 syntax normalization (#4115) ─────────────────────
+
+/**
+ * What kind of node the traversal is standing on.
+ *
+ * Everything this pass rewrites is a Schema Object keyword, so the rules may
+ * only run on a `schema`. The distinction matters in both directions: a key
+ * spelled `nullable` is a keyword on a schema but a member name inside
+ * `properties`, and a key spelled `default` is a data value on a schema but a
+ * status code inside `responses`. Tracking the kind structurally, rather than
+ * guessing from the spelling of a path segment, is the only way to tell them
+ * apart — a schema can have a property named `content`, `responses` or
+ * `example` just as legitimately as it can have one named `id`.
+ */
+type NodeKind =
+  /** A Schema Object. The rules below apply here and nowhere else. */
+  | 'schema'
+  /** A map of names to Schema Objects (`properties`, `$defs`, `schemas`). */
+  | 'schemaMap'
+  /** A map of names to non-schema OpenAPI objects (`responses`, `content`). */
+  | 'oasMap'
+  /** A Link Object, whose `parameters` and `requestBody` hold literal values. */
+  | 'link'
+  /** Any other OpenAPI object, whose field names are fixed by the spec. */
+  | 'oas';
+
+/** Schema keywords holding a map of named subschemas. */
+const SCHEMA_MAP_KEYWORDS = new Set([
+  '$defs',
+  'definitions',
+  'dependentSchemas',
+  'patternProperties',
+  'properties',
+]);
+
+/** Schema keywords holding a subschema, or an array of them. */
+const SUBSCHEMA_KEYWORDS = new Set([
+  'additionalItems',
+  'additionalProperties',
+  'allOf',
+  'anyOf',
+  'contains',
+  'else',
+  'if',
+  'items',
+  'not',
+  'oneOf',
+  'prefixItems',
+  'propertyNames',
+  'then',
+  'unevaluatedItems',
+  'unevaluatedProperties',
+]);
+
+/**
+ * OpenAPI fields holding a map keyed by an arbitrary name — a status code, a
+ * media type, a header name, a path. Their keys are never keywords, so a
+ * `default` response or a header called `example` must still be traversed.
+ */
+const OAS_MAP_KEYWORDS = new Set([
+  'callbacks',
+  'content',
+  'encoding',
+  'headers',
+  'links',
+  'mapping',
+  'parameters',
+  'pathItems',
+  'paths',
+  'requestBodies',
+  'responses',
+  'scopes',
+  'securitySchemes',
+  'variables',
+  'webhooks',
+]);
+
+/**
+ * Schema keywords whose value is arbitrary user data. Nothing below them may be
+ * rewritten: an `example` payload that happens to carry a `nullable` key is
+ * data the API really returns, not 3.0 syntax.
+ */
+const SCHEMA_DATA_KEYWORDS = new Set([
+  'const',
+  'default',
+  'enum',
+  'example',
+  'examples',
+]);
+
+/**
+ * The same, for the non-schema objects that also carry data: a Parameter,
+ * Header or Media Type Object has `example`/`examples`, and
+ * `components/examples` is a map of Example Objects that holds no schemas.
+ */
+const OAS_DATA_KEYWORDS = new Set(['example', 'examples']);
+
+/**
+ * The same, for a Link Object. The spec types both of these as
+ * `Any | {expression}` — the literal value or runtime expression to send when
+ * following the link, not an OpenAPI object. `parameters` in particular is a map
+ * of names to values, unlike `parameters` everywhere else in the document.
+ *
+ * @see https://spec.openapis.org/oas/v3.1.2.html#link-object
+ */
+const LINK_DATA_KEYWORDS = new Set(['parameters', 'requestBody']);
+
+/** The `format` values 3.1 replaced with `contentMediaType`/`contentEncoding`. */
+const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
+
+/**
+ * Close the OpenAPI 3.0 syntax `upgrade()` leaves behind, so the document handed
+ * to `importOpenApi` is fully 3.1-shaped (#4115).
+ *
+ * `@scalar/openapi-upgrader` bails out of its `nullable` rewrite whenever there
+ * is no sibling `type`, `$ref` or `allOf` to attach the null to — its own source
+ * says so: *"Otherwise there is nothing for `nullable` to attach to, so leave the
+ * schema untouched."* That leaves `nullable` sitting next to `enum`, `anyOf` and
+ * `oneOf`. Two further gaps are consequences of the order its own rules run in,
+ * and one is the upgrader early-returning on a document that already declares
+ * 3.1 while still carrying 3.0 syntax:
+ *
+ * - it widens `type` to `[T, 'null']` without widening a sibling `enum`, and the
+ *   two combine with AND — so `{ type: 'string', enum: ['a'], nullable: true }`
+ *   comes back admitting only `'a'`, with the author's `null` gone and the
+ *   `'null'` in `type` unreachable;
+ * - having widened `type` into an array, its `format: binary | base64 | byte`
+ *   handling no longer matches (it tests `type === 'string'`), so those formats
+ *   survive on nullable string unions;
+ * - a document declaring `3.1` is skipped wholesale, so every 3.0 keyword in one
+ *   reaches us untouched.
+ *
+ * Every rule below therefore stands on its own rather than assuming the upgrader
+ * already handled anything with a `type`.
+ *
+ * Runs *after* `upgrade()`, unlike {@link normalizeNullableRefs}, which has to go
+ * first to keep its diagnostic. Nothing here warns: these specs were valid 3.0,
+ * and the loss is the upgrader's, not the author's.
+ *
+ * @param spec - Node to normalize, mutated in place where possible.
+ * @param kind - What `spec` is. Defaults to a whole OpenAPI document; pass
+ *   `'schema'` to normalize a bare Schema Object.
+ */
+export function normalizeToOpenApi31(
+  spec: unknown,
+  kind: NodeKind = 'oas',
+): unknown {
+  return normalizeNode(spec, { kind });
+}
+
+interface NodeContext {
+  kind: NodeKind;
+  /** The keyword that introduced an `oasMap`, which decides what its members are. */
+  mapKeyword?: string;
+  /** Media type of the enclosing Media Type Object, for `format: 'byte'`. */
+  mediaType?: string;
+}
+
+function normalizeNode(node: unknown, context: NodeContext): unknown {
+  if (Array.isArray(node)) {
+    const memberContext = arrayMemberContext(context);
+    return node.map((item) => normalizeNode(item, memberContext));
+  }
+
+  if (!isObject(node)) {
+    return node;
+  }
+
+  // The rules are Schema Object keywords, so they run on a schema and nowhere
+  // else. On a map of names they would consume member names: a property called
+  // `nullable` is a field the API has, not a keyword to resolve.
+  const obj =
+    context.kind === 'schema'
+      ? normalizeSchemaNode(node as Record<string, unknown>, context.mediaType)
+      : (node as Record<string, unknown>);
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (holdsData(context.kind, key)) {
+      continue;
+    }
+    obj[key] = normalizeNode(value, childContext(context, key));
+  }
+
+  return obj;
+}
+
+/**
+ * Whether `key` names arbitrary user data rather than a schema. Only true where
+ * the key is really a keyword — inside a map the same word is a name, which is
+ * what keeps a `default` response and a header called `example` reachable.
+ */
+function holdsData(kind: NodeKind, key: string): boolean {
+  // A map's keys are names, so one may legitimately be spelled like a keyword —
+  // a `default` response, a property called `x-legacy-id`, a header called
+  // `x-request-id`. The schemas under those all have to stay reachable.
+  if (kind === 'schemaMap' || kind === 'oasMap') {
+    return false;
+  }
+
+  if (isExtension(key)) {
+    return true;
+  }
+
+  switch (kind) {
+    case 'schema': {
+      return SCHEMA_DATA_KEYWORDS.has(key);
+    }
+    case 'link': {
+      return LINK_DATA_KEYWORDS.has(key);
+    }
+    default: {
+      return OAS_DATA_KEYWORDS.has(key);
+    }
+  }
+}
+
+/**
+ * Whether `key` is a Specification Extension.
+ *
+ * An extension's value is explicitly unrestricted, so it is the user's data and
+ * not ours to rewrite — even when it happens to be schema-shaped. Nothing orval
+ * reads out of an extension is a schema: `x-enumNames`, `x-enum-varnames` and
+ * `x-enumDescriptions` hold arrays of strings, `x-codegen-request-body-name`
+ * holds a string, `x-orval-property-overrides` is written by the Zod generator
+ * well after this pass, and `x-ext` is consumed and removed by
+ * `dereferenceExternalRef` before the upgrade runs.
+ */
+function isExtension(key: string): boolean {
+  return key.startsWith('x-');
+}
+
+/** What the members of an array at this position are. */
+function arrayMemberContext(context: NodeContext): NodeContext {
+  switch (context.kind) {
+    // `allOf` and friends arrive here already marked as schema positions.
+    case 'schema':
+    case 'schemaMap': {
+      return { ...context, kind: 'schema' };
+    }
+    // `parameters` is an array on an Operation and a map under `components`;
+    // either way its members are Parameter Objects.
+    default: {
+      return { ...context, kind: 'oas' };
+    }
+  }
+}
+
+/** What the value held under `key` is, given what the current node is. */
+function childContext(context: NodeContext, key: string): NodeContext {
+  switch (context.kind) {
+    case 'schemaMap': {
+      return { ...context, kind: 'schema' };
+    }
+
+    case 'oasMap': {
+      switch (context.mapKeyword) {
+        // A Content Object is keyed by media type, which `format: 'byte'` needs.
+        // It stays on the context so a schema nested below still sees it.
+        case 'content': {
+          return { kind: 'oas', mediaType: key };
+        }
+        case 'links': {
+          return { ...context, kind: 'link', mapKeyword: undefined };
+        }
+        default: {
+          return { ...context, kind: 'oas', mapKeyword: undefined };
+        }
+      }
+    }
+
+    case 'schema': {
+      if (SCHEMA_MAP_KEYWORDS.has(key)) {
+        return { ...context, kind: 'schemaMap', mapKeyword: undefined };
+      }
+      if (SUBSCHEMA_KEYWORDS.has(key)) {
+        return { ...context, kind: 'schema', mapKeyword: undefined };
+      }
+      // `discriminator`, `xml`, `externalDocs`: no schemas of their own, and not
+      // data either.
+      return { ...context, kind: 'oas', mapKeyword: undefined };
+    }
+
+    // An `oas` node and a `link` choose their children the same way. A Link's
+    // own data fields never reach here — `holdsData` has already skipped them —
+    // so all that is left of one is `server`.
+    default: {
+      if (key === 'schema') {
+        return { ...context, kind: 'schema', mapKeyword: undefined };
+      }
+      if (key === 'schemas') {
+        return { ...context, kind: 'schemaMap', mapKeyword: undefined };
+      }
+      if (OAS_MAP_KEYWORDS.has(key)) {
+        return { ...context, kind: 'oasMap', mapKeyword: key };
+      }
+      return { ...context, kind: 'oas', mapKeyword: undefined };
+    }
+  }
+}
+
+/** Apply every 3.0-residue rule to one schema. May return a replacement node. */
+function normalizeSchemaNode(
+  obj: Record<string, unknown>,
+  mediaType: string | undefined,
+): Record<string, unknown> {
+  const withoutNullable = resolveNullable(obj);
+  widenEnumForNullableType(withoutNullable);
+  convertContentFormat(withoutNullable, mediaType);
+  normalizeExclusiveBounds(withoutNullable);
+  return withoutNullable;
+}
+
+/**
+ * Attach a `nullable: true` to whatever sits beside it, in the 3.1 form for that
+ * shape, and remove the keyword either way — 3.1 has no `nullable`, so leaving it
+ * is never right.
+ *
+ * `allOf` is the one shape that cannot simply gain a `{ type: 'null' }` member:
+ * `allOf` is an intersection, so null intersected with the rest is `never` and
+ * the schema would admit nothing. It has to be wrapped in a union instead.
+ */
+function resolveNullable(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!('nullable' in obj)) {
+    return obj;
+  }
+
+  const nullable = obj.nullable === true;
+  delete obj.nullable;
+
+  if (!nullable) {
+    return obj;
+  }
+
+  // A sibling `type` takes the null directly, as a type union.
+  if (obj.type !== undefined) {
+    const members = Array.isArray(obj.type) ? obj.type : [obj.type];
+    obj.type = members.includes('null') ? members : [...members, 'null'];
+    return obj;
+  }
+
+  // A reference cannot carry the null itself, so the union moves outside it.
+  // `$dynamicRef` resolves at validation time and behaves the same way here.
+  const refKey = isString(obj.$ref)
+    ? '$ref'
+    : isString(obj.$dynamicRef)
+      ? '$dynamicRef'
+      : undefined;
+  if (refKey) {
+    const ref = obj[refKey];
+    delete obj[refKey];
+    return { ...obj, anyOf: [{ [refKey]: ref }, { type: 'null' }] };
+  }
+
+  // A union just gains a null branch.
+  for (const key of ['anyOf', 'oneOf'] as const) {
+    const branches = obj[key];
+    if (Array.isArray(branches)) {
+      if (!branches.some(isNullBranch)) {
+        branches.push({ type: 'null' });
+      }
+      return obj;
+    }
+  }
+
+  // An intersection has to be wrapped, never appended to. A single member is
+  // unwrapped so the union reads `anyOf: [<member>, { type: 'null' }]`, matching
+  // what the upgrader emits for the same shape.
+  if (Array.isArray(obj.allOf)) {
+    const { allOf, ...rest } = obj;
+    const base = allOf.length === 1 ? allOf[0] : { allOf };
+    return { ...rest, anyOf: [base, { type: 'null' }] };
+  }
+
+  // A bare `enum` carries the null as a member: with no sibling `type` the enum
+  // is the whole constraint.
+  if (Array.isArray(obj.enum)) {
+    if (!obj.enum.includes(null)) {
+      obj.enum.push(null);
+    }
+    return obj;
+  }
+
+  // Nothing to attach to. Dropping the keyword loses nothing: a schema with no
+  // `type` already admits every type, `null` included.
+  return obj;
+}
+
+/**
+ * Repair the widening `upgrade()` does by halves. `type` and `enum` combine with
+ * AND, so a type union admitting null next to an enum that does not list it
+ * makes the null unreachable — which is never what the author of the 3.0 spec
+ * wrote, since `nullable: true` is the only way that pairing arises.
+ */
+function widenEnumForNullableType(obj: Record<string, unknown>): void {
+  if (
+    Array.isArray(obj.type) &&
+    obj.type.includes('null') &&
+    Array.isArray(obj.enum) &&
+    !obj.enum.includes(null)
+  ) {
+    obj.enum.push(null);
+  }
+}
+
+/**
+ * Apply the 3.1 replacements for the string `format`s that became content
+ * keywords. The upgrader does this too, but only for a bare `type: 'string'`,
+ * and its own `nullable` rule has already turned that into `['string', 'null']`
+ * by the time the check runs.
+ */
+function convertContentFormat(
+  obj: Record<string, unknown>,
+  mediaType: string | undefined,
+): void {
+  if (!isString(obj.format) || !CONTENT_FORMATS.has(obj.format)) {
+    return;
+  }
+
+  const types = Array.isArray(obj.type) ? obj.type : [obj.type];
+  if (!types.includes('string')) {
+    return;
+  }
+
+  const format = obj.format;
+  delete obj.format;
+
+  if (format === 'binary') {
+    obj.contentMediaType = 'application/octet-stream';
+    return;
+  }
+
+  obj.contentEncoding = 'base64';
+
+  // `byte` was base64 *of* the surrounding media type, so carry that over when
+  // the schema sits under a Media Type Object.
+  if (format === 'byte' && mediaType !== undefined) {
+    obj.contentMediaType = mediaType;
+  }
+}
+
+/**
+ * 3.0's boolean `exclusiveMinimum`/`exclusiveMaximum` modified a sibling
+ * `minimum`/`maximum`; 3.1's holds the bound itself. The upgrader converts them,
+ * but assigns `schema.minimum` unconditionally — so a spec with the flag and no
+ * bound ends up with the key present and holding `undefined`, which is still not
+ * a valid 3.1 schema.
+ */
+function normalizeExclusiveBounds(obj: Record<string, unknown>): void {
+  for (const [flag, bound] of [
+    ['exclusiveMinimum', 'minimum'],
+    ['exclusiveMaximum', 'maximum'],
+  ] as const) {
+    if (!(flag in obj)) {
+      continue;
+    }
+
+    const value = obj[flag];
+
+    if (value === true) {
+      if (typeof obj[bound] === 'number') {
+        obj[flag] = obj[bound];
+      } else {
+        delete obj[flag];
+      }
+      delete obj[bound];
+      continue;
+    }
+
+    // `false` meant "not exclusive", so the sibling bound stands as written.
+    // `undefined` is the upgrader's own leftover.
+    if (value === false || value === undefined) {
+      delete obj[flag];
+    }
+  }
+}
+
+function isNullBranch(value: unknown): boolean {
+  return isObject(value) && (value as Record<string, unknown>).type === 'null';
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────

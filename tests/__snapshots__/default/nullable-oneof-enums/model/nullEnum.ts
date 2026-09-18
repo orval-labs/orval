@@ -6,6 +6,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
+export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum] | null;
 
 export const NullEnum = {} as const;

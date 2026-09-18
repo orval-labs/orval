@@ -5,20 +5,17 @@
  * Test case for issue
  * OpenAPI spec version: 1.0.0
  */
+import type { BlankEnum } from './blankEnum';
 import type { BooleanEnumNullable } from './booleanEnumNullable';
-import type { MixedTypeEnumsIntegerEnum } from './mixedTypeEnumsIntegerEnum';
-import type { MixedTypeEnumsNumberEnum } from './mixedTypeEnumsNumberEnum';
-import type { MixedTypeEnumsStringEnum } from './mixedTypeEnumsStringEnum';
+import type { HelloEnum } from './helloEnum';
+import type { IntegerEnumNotNull } from './integerEnumNotNull';
+import type { IntegerEnumNullable } from './integerEnumNullable';
+import type { NumberEnumNotNull } from './numberEnumNotNull';
+import type { NumberEnumNullable } from './numberEnumNullable';
 
 export interface MixedTypeEnums {
-  stringEnum?:
-    | (typeof MixedTypeEnumsStringEnum)[keyof typeof MixedTypeEnumsStringEnum]
-    | null;
-  numberEnum?:
-    | (typeof MixedTypeEnumsNumberEnum)[keyof typeof MixedTypeEnumsNumberEnum]
-    | null;
-  integerEnum?:
-    | (typeof MixedTypeEnumsIntegerEnum)[keyof typeof MixedTypeEnumsIntegerEnum]
-    | null;
+  stringEnum?: HelloEnum | BlankEnum | null;
+  numberEnum?: NumberEnumNullable | null | NumberEnumNotNull;
+  integerEnum?: IntegerEnumNullable | null | IntegerEnumNotNull;
   booleanEnum?: BooleanEnumNullable | null | true;
 }
