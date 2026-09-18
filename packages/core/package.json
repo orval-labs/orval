@@ -32,8 +32,7 @@
     "jiti": "^2.6.1",
     "jsesc": "^3.0.0",
     "remeda": "^2.33.6",
-    "tinyglobby": "^0.2.16",
-    "typedoc": "^0.28.19"
+    "tinyglobby": "^0.2.16"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
@@ -41,14 +40,19 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
+    "typedoc": "^0.28.19",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@faker-js/faker": ">=8"
+    "@faker-js/faker": ">=8",
+    "typedoc": "^0.28.19"
   },
   "peerDependenciesMeta": {
     "@faker-js/faker": {
+      "optional": true
+    },
+    "typedoc": {
       "optional": true
     }
   }

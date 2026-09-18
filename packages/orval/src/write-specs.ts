@@ -106,6 +106,22 @@ export async function runFormatter(
 const DOCS_MARKDOWN_PLUGIN = 'typedoc-plugin-markdown';
 const DOCS_MARKDOWN_THEME = 'markdown';
 
+/**
+ * `typedoc` and `typedoc-plugin-markdown` are optional peer dependencies: only
+ * `output.docs` needs them, so projects that never generate docs don't have to
+ * install or resolve them.
+ */
+async function importTypedoc(): Promise<typeof import('typedoc')> {
+  try {
+    return await import('typedoc');
+  } catch (error) {
+    throw new Error(
+      `Install \`typedoc\` and \`${DOCS_MARKDOWN_PLUGIN}\` to use the \`docs\` output option.`,
+      { cause: error },
+    );
+  }
+}
+
 export function getDocsTypedocOptions(
   entryPoints: string[],
   config: Partial<TypeDocOptions>,
@@ -1110,7 +1126,7 @@ async function writeSpecsInternal(
       }
 
       const { Application, PackageJsonReader, TSConfigReader, TypeDocReader } =
-        await import('typedoc');
+        await importTypedoc();
       const app = await Application.bootstrapWithPlugins(
         getDocsTypedocOptions(
           paths.map((x) => upath.toUnix(x)),

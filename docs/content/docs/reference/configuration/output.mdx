@@ -919,7 +919,13 @@ export default defineConfig({
 **Type:** `Boolean | Object`
 **Default:** `false`
 
-Generate API docs using [TypeDoc](https://typedoc.org/):
+Generate API docs using [TypeDoc](https://typedoc.org/).
+
+TypeDoc is an optional peer dependency, so install it alongside the markdown plugin (and any other TypeDoc plugin you configure) before enabling this option:
+
+```sh
+npm install typedoc typedoc-plugin-markdown -D
+```
 
 ```ts title="orval.config.ts"
 export default defineConfig({
