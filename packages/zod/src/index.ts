@@ -3378,17 +3378,21 @@ export const hasResponseSchema = (
   // even be converted to JSON Schema.
   if (!isArray && input.functions.length === 0) return false;
 
-  // Wherever they appear in the schema, these cannot be exposed as JSON Schema:
-  // `allOf` (also `oneOf` with sibling properties) renders as `.and()`, which
-  // becomes an `allOf` of closed objects that rejects every value; `date`
-  // (`useDates`) and `instanceof` (binary bodies) make the conversion throw.
-  const unsupported = new Set(['allOf', 'date', 'instanceof']);
+  // Wherever they appear in the schema, these root types cannot be exposed as
+  // JSON Schema: `allOf` (also `oneOf` with sibling properties) renders as
+  // `.and()`, which becomes an `allOf` of closed objects that rejects every
+  // value; `zod.date()` (`useDates`) and `zod.instanceof()` (binary bodies)
+  // make the conversion throw. Only the first function is the type: a later
+  // `date` is the string `.date()` format validator.
+  const unsupportedTypes = new Set(['allOf', 'date', 'instanceof']);
   const containsUnsupported = (value: unknown): boolean => {
     if (Array.isArray(value)) return value.some(containsUnsupported);
     if (!isObject(value)) return false;
     if (Array.isArray(value.functions)) {
-      return (value.functions as [string, unknown][]).some(
-        ([fn, args]) => unsupported.has(fn) || containsUnsupported(args),
+      const functions = value.functions as [string, unknown][];
+      return (
+        (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
+        functions.some(([, args]) => containsUnsupported(args))
       );
     }
     return Object.values(value).some(containsUnsupported);

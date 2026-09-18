@@ -14126,6 +14126,10 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
       run(json({ type: 'object', additionalProperties: { type: 'integer' } })),
     ).toEqual(valueSchema);
     expect(run(json({ ...object, nullable: true }))).toEqual(valueSchema);
+    expect(run(json({ type: 'string', format: 'date' }))).toEqual(valueSchema);
+    expect(
+      run(json({ type: 'string', format: 'date' }), { version: 3 }),
+    ).toEqual(valueSchema);
     expect(
       run({
         '200': {
@@ -14185,6 +14189,9 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
         {},
         { useDates: true },
       ),
+    ).toEqual(noSchema);
+    expect(
+      run(json({ type: 'string', format: 'date' }), {}, { useDates: true }),
     ).toEqual(noSchema);
     expect(run(json({ type: 'string', format: 'binary' }))).toEqual(noSchema);
     expect(
