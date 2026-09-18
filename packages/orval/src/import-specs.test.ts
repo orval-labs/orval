@@ -12,6 +12,7 @@ import {
   dereferenceExternalRef,
   importSpecs,
   normalizeNullableRefs,
+  normalizeToOpenApi31,
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
@@ -3526,6 +3527,826 @@ describe('normalizeNullableRefs', () => {
     expect(normalizeNullableRefs(null)).toBe(null);
     expect(normalizeNullableRefs(42)).toBe(42);
     expect(normalizeNullableRefs([1, 2, 3])).toEqual([1, 2, 3]);
+  });
+});
+
+describe('normalizeToOpenApi31', () => {
+  const normalize = (input: unknown) =>
+    normalizeToOpenApi31(input, 'schema') as Record<string, unknown>;
+
+  describe('residual `nullable` left behind by the upgrader', () => {
+    it('should append a null branch to a nullable anyOf', () => {
+      expect(
+        normalize({
+          anyOf: [{ type: 'string' }, { type: 'number' }],
+          nullable: true,
+        }),
+      ).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }],
+      });
+    });
+
+    it('should append a null branch to a nullable oneOf', () => {
+      expect(
+        normalize({
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+          nullable: true,
+        }),
+      ).toEqual({
+        oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }],
+      });
+    });
+
+    it('should not add a second null branch when the combinator already has one', () => {
+      expect(
+        normalize({
+          anyOf: [{ type: 'string' }, { type: 'null' }],
+          nullable: true,
+        }),
+      ).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'null' }],
+      });
+    });
+
+    it('should add null to a nullable enum that has no sibling type', () => {
+      expect(normalize({ enum: ['foo', 'bar'], nullable: true })).toEqual({
+        enum: ['foo', 'bar', null],
+      });
+    });
+
+    it('should not add a second null to a nullable enum that already lists it', () => {
+      expect(normalize({ enum: ['foo', null], nullable: true })).toEqual({
+        enum: ['foo', null],
+      });
+    });
+
+    it('should widen a nullable type into a type union', () => {
+      expect(normalize({ type: 'string', nullable: true })).toEqual({
+        type: ['string', 'null'],
+      });
+    });
+
+    it('should widen a nullable type that is already an array', () => {
+      expect(normalize({ type: ['string'], nullable: true })).toEqual({
+        type: ['string', 'null'],
+      });
+    });
+
+    it('should rewrite a nullable $ref into an anyOf, keeping other siblings', () => {
+      expect(
+        normalize({
+          $ref: '#/components/schemas/Pet',
+          nullable: true,
+          description: 'a pet',
+        }),
+      ).toEqual({
+        description: 'a pet',
+        anyOf: [{ $ref: '#/components/schemas/Pet' }, { type: 'null' }],
+      });
+    });
+
+    it('should rewrite a nullable $dynamicRef into an anyOf', () => {
+      expect(normalize({ $dynamicRef: '#meta', nullable: true })).toEqual({
+        anyOf: [{ $dynamicRef: '#meta' }, { type: 'null' }],
+      });
+    });
+
+    it('should unwrap a single-member nullable allOf into an anyOf', () => {
+      expect(
+        normalize({
+          allOf: [{ $ref: '#/components/schemas/Pet' }],
+          nullable: true,
+        }),
+      ).toEqual({
+        anyOf: [{ $ref: '#/components/schemas/Pet' }, { type: 'null' }],
+      });
+    });
+
+    it('should wrap a multi-member nullable allOf rather than appending null to it', () => {
+      // Appending `{ type: 'null' }` to the `allOf` array would be
+      // unsatisfiable: `allOf` is an intersection, and null intersected with an
+      // object schema is `never`.
+      expect(
+        normalize({
+          allOf: [{ type: 'object' }, { $ref: '#/components/schemas/Pet' }],
+          nullable: true,
+        }),
+      ).toEqual({
+        anyOf: [
+          { allOf: [{ type: 'object' }, { $ref: '#/components/schemas/Pet' }] },
+          { type: 'null' },
+        ],
+      });
+    });
+
+    it('should drop a nullable that has nothing to attach to', () => {
+      // No `type` in 3.1 already admits every type, `null` included.
+      expect(normalize({ nullable: true, description: 'anything' })).toEqual({
+        description: 'anything',
+      });
+    });
+
+    it('should drop `nullable: false`', () => {
+      expect(normalize({ type: 'string', nullable: false })).toEqual({
+        type: 'string',
+      });
+    });
+  });
+
+  describe('enum widening the upgrader misses', () => {
+    it('should add null to an enum whose type union admits null', () => {
+      // What `upgrade()` emits for `{ type: 'string', enum: [...], nullable:
+      // true }`: it widens `type` but not `enum`, and the two combine with AND,
+      // so the author's `null` is gone and the `'null'` in `type` is unreachable.
+      expect(normalize({ type: ['string', 'null'], enum: ['a', 'b'] })).toEqual(
+        {
+          type: ['string', 'null'],
+          enum: ['a', 'b', null],
+        },
+      );
+    });
+
+    it('should widen both type and enum for a nullable typed enum', () => {
+      expect(
+        normalize({ type: 'string', enum: ['a', 'b'], nullable: true }),
+      ).toEqual({
+        type: ['string', 'null'],
+        enum: ['a', 'b', null],
+      });
+    });
+
+    it('should leave an enum alone when the type union does not admit null', () => {
+      expect(normalize({ type: ['string', 'number'], enum: ['a'] })).toEqual({
+        type: ['string', 'number'],
+        enum: ['a'],
+      });
+    });
+  });
+
+  describe('binary formats the upgrader misses on type unions', () => {
+    it('should convert format: binary on a nullable string union', () => {
+      // `upgrade()` widens `type` first, and its own `format` handling only
+      // fires for `type === 'string'`, so the union keeps `format: 'binary'`.
+      expect(normalize({ type: ['string', 'null'], format: 'binary' })).toEqual(
+        {
+          type: ['string', 'null'],
+          contentMediaType: 'application/octet-stream',
+        },
+      );
+    });
+
+    it('should convert format: binary on a plain string schema', () => {
+      expect(normalize({ type: 'string', format: 'binary' })).toEqual({
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should convert format: base64 on a nullable string union', () => {
+      expect(normalize({ type: ['string', 'null'], format: 'base64' })).toEqual(
+        {
+          type: ['string', 'null'],
+          contentEncoding: 'base64',
+        },
+      );
+    });
+
+    it('should convert format: byte on a nullable string union', () => {
+      expect(normalize({ type: ['string', 'null'], format: 'byte' })).toEqual({
+        type: ['string', 'null'],
+        contentEncoding: 'base64',
+      });
+    });
+
+    it('should carry the enclosing media type onto a converted format: byte', () => {
+      const result = normalizeToOpenApi31({
+        content: {
+          'image/png': {
+            schema: { type: ['string', 'null'], format: 'byte' },
+          },
+        },
+      }) as Record<string, unknown>;
+      expect(
+        (result.content as Record<string, Record<string, unknown>>)['image/png']
+          .schema,
+      ).toEqual({
+        type: ['string', 'null'],
+        contentEncoding: 'base64',
+        contentMediaType: 'image/png',
+      });
+    });
+
+    it('should leave a non-string format alone', () => {
+      expect(normalize({ type: 'integer', format: 'int64' })).toEqual({
+        type: 'integer',
+        format: 'int64',
+      });
+    });
+  });
+
+  describe('exclusive bounds', () => {
+    it('should convert a boolean exclusiveMinimum into the numeric form', () => {
+      expect(
+        normalize({ type: 'number', minimum: 1, exclusiveMinimum: true }),
+      ).toEqual({ type: 'number', exclusiveMinimum: 1 });
+    });
+
+    it('should convert a boolean exclusiveMaximum into the numeric form', () => {
+      expect(
+        normalize({ type: 'number', maximum: 9, exclusiveMaximum: true }),
+      ).toEqual({ type: 'number', exclusiveMaximum: 9 });
+    });
+
+    it('should drop a boolean exclusive bound with no bound to attach to', () => {
+      expect(
+        normalize({ type: 'number', exclusiveMinimum: true }),
+      ).not.toHaveProperty('exclusiveMinimum');
+    });
+
+    it('should drop the undefined exclusiveMinimum the upgrader leaves behind', () => {
+      // `upgrade()` assigns `exclusiveMinimum = schema.minimum` unconditionally,
+      // so a spec with no `minimum` ends up with the key present and undefined.
+      expect(
+        normalize({ type: 'number', exclusiveMinimum: undefined }),
+      ).not.toHaveProperty('exclusiveMinimum');
+    });
+
+    it('should drop exclusiveMaximum: false', () => {
+      expect(
+        normalize({ type: 'number', maximum: 9, exclusiveMaximum: false }),
+      ).toEqual({ type: 'number', maximum: 9 });
+    });
+
+    it('should leave a numeric exclusiveMinimum alone', () => {
+      expect(normalize({ type: 'number', exclusiveMinimum: 1 })).toEqual({
+        type: 'number',
+        exclusiveMinimum: 1,
+      });
+    });
+  });
+
+  describe('resolveSpec boundary', () => {
+    // A 3.0 document carrying one of every residual case, run through the real
+    // pipeline. `importSpecs` hands back the document `importOpenApi` was given,
+    // which is the boundary this issue is about (#4115).
+    const RESIDUAL_30_SPEC = {
+      openapi: '3.0.3',
+      info: { title: 'Residual', version: '1.0.0' },
+      paths: {
+        '/things': {
+          post: {
+            operationId: 'createThing',
+            requestBody: {
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      file: {
+                        type: 'string',
+                        format: 'binary',
+                        nullable: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Thing' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Base: { type: 'object', properties: { id: { type: 'string' } } },
+          UntypedEnum: { enum: ['foo', null], nullable: true },
+          TypedEnum: { type: 'string', enum: ['a', 'b'], nullable: true },
+          AnyOfNullable: {
+            anyOf: [{ type: 'string' }, { type: 'number' }],
+            nullable: true,
+          },
+          OneOfNullable: {
+            oneOf: [{ type: 'string' }, { type: 'number' }],
+            nullable: true,
+          },
+          AllOfNullable: {
+            allOf: [
+              { $ref: '#/components/schemas/Base' },
+              { type: 'object', properties: { extra: { type: 'string' } } },
+            ],
+            nullable: true,
+          },
+          NullableBinary: { type: 'string', format: 'binary', nullable: true },
+          Bounds: {
+            type: 'number',
+            minimum: 1,
+            exclusiveMinimum: true,
+            maximum: 9,
+            exclusiveMaximum: true,
+          },
+          UnboundedExclusive: { type: 'number', exclusiveMinimum: true },
+          Thing: {
+            type: 'object',
+            properties: {
+              untypedEnum: { $ref: '#/components/schemas/UntypedEnum' },
+              typedEnum: { $ref: '#/components/schemas/TypedEnum' },
+              anyOfNullable: { $ref: '#/components/schemas/AnyOfNullable' },
+              oneOfNullable: { $ref: '#/components/schemas/OneOfNullable' },
+              allOfNullable: { $ref: '#/components/schemas/AllOfNullable' },
+              nullableBinary: { $ref: '#/components/schemas/NullableBinary' },
+              bounds: { $ref: '#/components/schemas/Bounds' },
+            },
+          },
+        },
+      },
+    };
+
+    /**
+     * Every OpenAPI 3.0 keyword that must not survive `resolveSpec`, as a
+     * predicate over one node. The walk below is deliberately exhaustive — it
+     * visits data values too, which is why the fixture holds no `example`
+     * payloads; preserving those is covered by the traversal tests above.
+     */
+    const RESIDUAL_30_KEYWORDS: {
+      label: string;
+      found: (node: Record<string, unknown>) => boolean;
+    }[] = [
+      { label: 'nullable', found: (node) => 'nullable' in node },
+      {
+        label: 'boolean or undefined exclusiveMinimum',
+        found: (node) =>
+          'exclusiveMinimum' in node &&
+          typeof node.exclusiveMinimum !== 'number',
+      },
+      {
+        label: 'boolean or undefined exclusiveMaximum',
+        found: (node) =>
+          'exclusiveMaximum' in node &&
+          typeof node.exclusiveMaximum !== 'number',
+      },
+      {
+        label: 'content format',
+        found: (node) =>
+          node.format === 'binary' ||
+          node.format === 'base64' ||
+          node.format === 'byte',
+      },
+    ];
+
+    function findResidual30Keywords(
+      node: unknown,
+      path: string[] = [],
+    ): string[] {
+      if (Array.isArray(node)) {
+        return node.flatMap((item, i) =>
+          findResidual30Keywords(item, [...path, i + '']),
+        );
+      }
+      if (typeof node !== 'object' || node === null) {
+        return [];
+      }
+
+      const record = node as Record<string, unknown>;
+      const here = RESIDUAL_30_KEYWORDS.filter((k) => k.found(record)).map(
+        (k) => `${k.label} at #/${path.join('/')}`,
+      );
+
+      return [
+        ...here,
+        ...Object.entries(record).flatMap(([key, value]) =>
+          findResidual30Keywords(value, [...path, key]),
+        ),
+      ];
+    }
+
+    async function resolveResidualSpec() {
+      const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-oas31-'));
+      const specPath = path.join(workspace, 'spec.json');
+      try {
+        await writeFile(specPath, JSON.stringify(RESIDUAL_30_SPEC), 'utf8');
+        const normalizedOptions = await normalizeOptions(
+          { output: { target: '' }, input: { target: specPath } },
+          workspace,
+          {},
+        );
+        const { spec } = await importSpecs(workspace, normalizedOptions);
+        return spec;
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    }
+
+    it('should leave no OpenAPI 3.0 keyword in the document handed to importOpenApi', async () => {
+      const spec = await resolveResidualSpec();
+
+      expect(findResidual30Keywords(spec)).toEqual([]);
+    });
+
+    it('should carry each residual 3.0 shape into its 3.1 equivalent', async () => {
+      const spec = await resolveResidualSpec();
+      const schemas = spec.components?.schemas as Record<string, unknown>;
+
+      expect(schemas.UntypedEnum).toEqual({ enum: ['foo', null] });
+      expect(schemas.TypedEnum).toEqual({
+        type: ['string', 'null'],
+        enum: ['a', 'b', null],
+      });
+      expect(schemas.AnyOfNullable).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }],
+      });
+      expect(schemas.OneOfNullable).toEqual({
+        oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }],
+      });
+      expect(schemas.AllOfNullable).toEqual({
+        anyOf: [
+          {
+            allOf: [
+              { $ref: '#/components/schemas/Base' },
+              { type: 'object', properties: { extra: { type: 'string' } } },
+            ],
+          },
+          { type: 'null' },
+        ],
+      });
+      expect(schemas.NullableBinary).toEqual({
+        type: ['string', 'null'],
+        contentMediaType: 'application/octet-stream',
+      });
+      expect(schemas.Bounds).toEqual({
+        type: 'number',
+        exclusiveMinimum: 1,
+        exclusiveMaximum: 9,
+      });
+      expect(schemas.UnboundedExclusive).toEqual({ type: 'number' });
+    });
+  });
+
+  describe('traversal', () => {
+    it('should normalize schemas nested anywhere in the document', () => {
+      const result = normalize({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                200: {
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'array',
+                        items: { enum: ['foo'], nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                200: {
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'array',
+                        items: { enum: ['foo', null] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should not touch a schema-shaped value held by `example`', () => {
+      const result = normalize({
+        type: 'object',
+        example: { nullable: true, enum: ['foo'] },
+      });
+      expect(result.example).toEqual({ nullable: true, enum: ['foo'] });
+    });
+
+    it('should not touch a schema-shaped value held by `default`', () => {
+      const result = normalize({
+        type: 'object',
+        default: { nullable: true },
+      });
+      expect(result.default).toEqual({ nullable: true });
+    });
+
+    it('should normalize a property that happens to be named `default`', () => {
+      const result = normalize({
+        type: 'object',
+        properties: { default: { type: 'string', nullable: true } },
+      });
+      expect(result.properties).toEqual({
+        default: { type: ['string', 'null'] },
+      });
+    });
+
+    it('should normalize a schema named `example` under components', () => {
+      const result = normalize({
+        components: {
+          schemas: { example: { type: 'string', nullable: true } },
+        },
+      });
+      expect((result.components as Record<string, unknown>).schemas).toEqual({
+        example: { type: ['string', 'null'] },
+      });
+    });
+
+    it('should keep a schema property literally named `nullable`', () => {
+      // Inside a `properties` map every key is a member name, so `nullable`
+      // there is a field the API really has — not a keyword to consume.
+      const result = normalize({
+        type: 'object',
+        properties: { nullable: { type: 'boolean' } },
+      });
+      expect(result.properties).toEqual({ nullable: { type: 'boolean' } });
+    });
+
+    it('should keep a component schema literally named `nullable`', () => {
+      const result = normalizeToOpenApi31({
+        components: { schemas: { nullable: { type: 'string' } } },
+      }) as Record<string, Record<string, unknown>>;
+      expect(result.components.schemas).toEqual({
+        nullable: { type: 'string' },
+      });
+    });
+
+    it('should normalize the schema of a `default` response', () => {
+      // `responses` is keyed by status code, so `default` there is a status
+      // key and not the schema keyword whose value must be left alone.
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                default: {
+                  content: {
+                    'application/json': {
+                      schema: { enum: ['a'], nullable: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                default: {
+                  content: {
+                    'application/json': { schema: { enum: ['a', null] } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should normalize the schema of a header named after a data keyword', () => {
+      const result = normalizeToOpenApi31({
+        components: {
+          headers: {
+            example: { schema: { type: 'string', nullable: true } },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          headers: { example: { schema: { type: ['string', 'null'] } } },
+        },
+      });
+    });
+
+    it('should not invent a media type from a property named `content`', () => {
+      // A schema may have an ordinary property called `content`. Only a real
+      // Content Object supplies the media type that `format: 'byte'` carries
+      // over, so this one must contribute nothing.
+      const result = normalize({
+        type: 'object',
+        properties: {
+          content: {
+            type: 'object',
+            properties: {
+              data: { type: ['string', 'null'], format: 'byte' },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        type: 'object',
+        properties: {
+          content: {
+            type: 'object',
+            properties: {
+              data: { type: ['string', 'null'], contentEncoding: 'base64' },
+            },
+          },
+        },
+      });
+    });
+
+    it('should leave a schema-shaped `x-` extension value alone', () => {
+      // A Specification Extension value is unrestricted, so it is the user's
+      // data and not ours to rewrite — even when it happens to look like a
+      // schema. Nothing orval reads from an extension is a schema.
+      const result = normalize({
+        type: 'object',
+        'x-custom': { schema: { enum: ['a'], nullable: true } },
+      });
+
+      expect(result['x-custom']).toEqual({
+        schema: { enum: ['a'], nullable: true },
+      });
+    });
+
+    it('should leave an `x-` extension on a non-schema object alone', () => {
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              'x-custom': { schema: { type: 'string', nullable: true } },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              'x-custom': { schema: { type: 'string', nullable: true } },
+            },
+          },
+        },
+      });
+    });
+
+    it('should normalize a property whose name begins with `x-`', () => {
+      // Inside `properties` the key is a field name, so `x-legacy-id` is a
+      // field the API has and its schema still has to be normalized.
+      const result = normalize({
+        type: 'object',
+        properties: { 'x-legacy-id': { type: 'string', nullable: true } },
+      });
+
+      expect(result.properties).toEqual({
+        'x-legacy-id': { type: ['string', 'null'] },
+      });
+    });
+
+    it('should normalize the schema of a header whose name begins with `x-`', () => {
+      const result = normalizeToOpenApi31({
+        components: {
+          headers: {
+            'x-request-id': { schema: { type: 'string', nullable: true } },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          headers: { 'x-request-id': { schema: { type: ['string', 'null'] } } },
+        },
+      });
+    });
+    it('should leave a Link Object `requestBody` literal alone', () => {
+      // A Link Object's `requestBody` is `Any | {expression}` — the literal
+      // value to send, not an OpenAPI object, so it is the user's data.
+      const result = normalizeToOpenApi31({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              requestBody: { schema: { enum: ['a'], nullable: true } },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              requestBody: { schema: { enum: ['a'], nullable: true } },
+            },
+          },
+        },
+      });
+    });
+
+    it('should leave Link Object `parameters` literals alone', () => {
+      // `parameters` on a Link is a map of names to `Any | {expression}`, not
+      // to Parameter Objects.
+      const result = normalizeToOpenApi31({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  links: {
+                    GetPet: {
+                      operationId: 'getPet',
+                      parameters: {
+                        petId: { schema: { type: 'string', nullable: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  links: {
+                    GetPet: {
+                      operationId: 'getPet',
+                      parameters: {
+                        petId: { schema: { type: 'string', nullable: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should still normalize a Link Object`s `server` variables', () => {
+      // Everything on a Link that really is an OpenAPI object stays reachable.
+      const result = normalizeToOpenApi31({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              server: {
+                url: 'http://localhost',
+                'x-custom': { schema: { type: 'string', nullable: true } },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        components: {
+          links: {
+            GetPet: {
+              operationId: 'getPet',
+              server: {
+                url: 'http://localhost',
+                'x-custom': { schema: { type: 'string', nullable: true } },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should pass through non-object types unchanged', () => {
+      expect(normalizeToOpenApi31('string')).toBe('string');
+      expect(normalizeToOpenApi31(null)).toBe(null);
+      expect(normalizeToOpenApi31(42)).toBe(42);
+      expect(normalizeToOpenApi31([1, 2, 3])).toEqual([1, 2, 3]);
+    });
   });
 });
 

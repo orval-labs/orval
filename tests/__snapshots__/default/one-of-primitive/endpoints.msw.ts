@@ -23,8 +23,9 @@ export const getGetPetsResponseMock = (): Pets[] =>
           null,
         ]),
         faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 

@@ -89,7 +89,66 @@ describe('assertion testing', () => {
       }),
     ).toBeTruthy();
 
+    // OpenAPI 3.1 also spells it as a `null` member of the enum itself, which
+    // is the only spelling available when there is no sibling `type` (#4115).
+    // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+    expect(isSchemaNullable({ enum: ['a', null] })).toBeTruthy();
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      isSchemaNullable({ type: ['string', 'null'], enum: ['a', null] }),
+    ).toBeTruthy();
+
     expect(isSchemaNullable({ type: 'string', enum: ['a', 'b'] })).toBeFalsy();
+    // `type` and `enum` are independent assertions that combine with AND, so a
+    // `type` refusing null makes the enum's `null` unreachable rather than the
+    // schema nullable.
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
+      isSchemaNullable({ type: 'string', enum: ['a', null] }),
+    ).toBeFalsy();
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
+      isSchemaNullable({ type: ['string'], enum: ['a', null] }),
+    ).toBeFalsy();
+    // `allOf` is an intersection, so one branch refusing null is enough to make
+    // the enum's `null` unreachable.
+    expect(
+      isSchemaNullable({
+        // eslint-disable-next-line unicorn/no-null -- a null the branch rejects
+        enum: ['a', null],
+        allOf: [{ type: 'string' }],
+      }),
+    ).toBeFalsy();
+    expect(
+      isSchemaNullable({
+        // eslint-disable-next-line unicorn/no-null -- a null the branch rejects
+        enum: ['a', null],
+        allOf: [{ enum: ['a'] }],
+      }),
+    ).toBeFalsy();
+    // A branch that admits null, or constrains nothing, leaves it reachable.
+    expect(
+      isSchemaNullable({
+        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+        enum: ['a', null],
+        allOf: [{ type: ['string', 'null'] }],
+      }),
+    ).toBeTruthy();
+    expect(
+      isSchemaNullable({
+        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+        enum: ['a', null],
+        allOf: [{ description: 'unconstrained' }],
+      }),
+    ).toBeTruthy();
+    // A reference is not resolved here, so it cannot rule null out either.
+    expect(
+      isSchemaNullable({
+        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+        enum: ['a', null],
+        allOf: [{ $ref: '#/components/schemas/Base' }],
+      }),
+    ).toBeTruthy();
     expect(
       isSchemaNullable({
         anyOf: [{ type: 'string' }, { type: 'number' }],

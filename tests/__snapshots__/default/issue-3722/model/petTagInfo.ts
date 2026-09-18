@@ -11,10 +11,5 @@ import type { TagMetadataItem } from './tagMetadataItem';
 export interface PetTagInfo {
   id: number;
   name: string;
-  tagMetadata:
-    | (TagMetadataItem &
-        Required<
-          Pick<TagMetadataItem, Extract<keyof TagMetadataItem, 'tagId'>>
-        >)
-    | null;
+  tagMetadata: TagMetadataItem | null;
 }

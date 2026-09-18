@@ -9,22 +9,35 @@ import * as zod from 'zod';
 
 export const GetItemsResponseItem = zod.object({
   hello: zod
-    .union([zod.enum(['HI', 'OHA']), zod.enum(['']), zod.literal(null)])
-    .nullish(),
+    .union([
+      zod.enum(['HI', 'OHA']),
+      zod.enum(['']),
+      zod.literal(null),
+      zod.null(),
+    ])
+    .optional(),
 });
 export const GetItemsResponse = zod.array(GetItemsResponseItem);
 
 export const GetItemsWithMultiplePropsResponseItem = zod.object({
   hello: zod
-    .union([zod.enum(['HI', 'OHA']), zod.enum(['']), zod.literal(null)])
-    .nullish(),
+    .union([
+      zod.enum(['HI', 'OHA']),
+      zod.enum(['']),
+      zod.literal(null),
+      zod.null(),
+    ])
+    .optional(),
   world: zod
     .union([
       zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]),
       zod.union([zod.literal(true), zod.literal(false)]),
+      zod.null(),
     ])
-    .nullish(),
-  optional: zod.union([zod.enum(['HI', 'OHA']), zod.enum([''])]).nullish(),
+    .optional(),
+  optional: zod
+    .union([zod.enum(['HI', 'OHA']), zod.enum(['']), zod.null()])
+    .optional(),
 });
 export const GetItemsWithMultiplePropsResponse = zod.array(
   GetItemsWithMultiplePropsResponseItem,
@@ -34,14 +47,20 @@ export const GetNestedItemsResponseItem = zod.object({
   nested: zod
     .object({
       hello: zod
-        .union([zod.enum(['HI', 'OHA']), zod.enum(['']), zod.literal(null)])
-        .nullish(),
+        .union([
+          zod.enum(['HI', 'OHA']),
+          zod.enum(['']),
+          zod.literal(null),
+          zod.null(),
+        ])
+        .optional(),
       world: zod
         .union([
           zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]),
           zod.union([zod.literal(true), zod.literal(false)]),
+          zod.null(),
         ])
-        .nullish(),
+        .optional(),
     })
     .optional(),
 });
@@ -53,35 +72,55 @@ export const GetMixedEnumItemsResponseItem = zod.object({
       zod.enum(['HI', 'OHA']),
       zod.enum(['']),
       zod.enum(['ALWAYS', 'NEVER']),
+      zod.null(),
     ])
-    .nullish(),
+    .optional(),
 });
 export const GetMixedEnumItemsResponse = zod.array(
   GetMixedEnumItemsResponseItem,
 );
 
 export const GetMixedTypeEnumsResponseItem = zod.object({
-  stringEnum: zod.union([zod.enum(['HI', 'OHA']), zod.enum([''])]).nullish(),
+  stringEnum: zod
+    .union([zod.enum(['HI', 'OHA']), zod.enum(['']), zod.null()])
+    .optional(),
   numberEnum: zod
     .union([
       zod
-        .union([zod.literal(1.5), zod.literal(2.5), zod.literal(3.5)])
+        .union([
+          zod.literal(1.5),
+          zod.literal(2.5),
+          zod.literal(3.5),
+          zod.literal(null),
+        ])
         .nullable(),
       zod.union([zod.literal(100.1), zod.literal(200.2)]),
+      zod.null(),
     ])
-    .nullish(),
+    .optional(),
   integerEnum: zod
     .union([
-      zod.union([zod.literal(10), zod.literal(20), zod.literal(30)]).nullable(),
+      zod
+        .union([
+          zod.literal(10),
+          zod.literal(20),
+          zod.literal(30),
+          zod.literal(null),
+        ])
+        .nullable(),
       zod.union([zod.literal(1000), zod.literal(2000)]),
+      zod.null(),
     ])
-    .nullish(),
+    .optional(),
   booleanEnum: zod
     .union([
-      zod.union([zod.literal(true), zod.literal(false)]).nullable(),
+      zod
+        .union([zod.literal(true), zod.literal(false), zod.literal(null)])
+        .nullable(),
       zod.literal(true),
+      zod.null(),
     ])
-    .nullish(),
+    .optional(),
 });
 export const GetMixedTypeEnumsResponse = zod.array(
   GetMixedTypeEnumsResponseItem,

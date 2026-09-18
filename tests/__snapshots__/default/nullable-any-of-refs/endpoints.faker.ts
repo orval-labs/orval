@@ -29,8 +29,9 @@ export const getGetPetsResponseMock = (): Pets[] =>
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -50,8 +51,9 @@ export const getGetAnimalsResponseMock = (): Animals[] =>
           null,
         ]),
         faker.helpers.arrayElement([faker.string.uuid(), null]),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     secondaryId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
@@ -63,8 +65,9 @@ export const getGetAnimalsResponseMock = (): Animals[] =>
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -86,8 +89,9 @@ export const getGetNestedAnimalsResponseMock = (): NestedAnimals[] =>
               null,
             ]),
             faker.helpers.arrayElement([faker.string.uuid(), null]),
+            null,
           ]),
-          null,
+          undefined,
         ]),
         petId: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
@@ -99,8 +103,9 @@ export const getGetNestedAnimalsResponseMock = (): NestedAnimals[] =>
               faker.string.alpha({ length: { min: 10, max: 20 } }),
               null,
             ]),
+            null,
           ]),
-          null,
+          undefined,
         ]),
       },
       undefined,
@@ -123,8 +128,9 @@ export const getGetMixedNullableResponseMock = (): MixedNullable[] =>
           null,
         ]),
         faker.string.uuid(),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
 
@@ -145,15 +151,17 @@ export const getGetMixedTypesResponseMock = (): MixedTypes[] =>
         ]),
         faker.helpers.arrayElement([faker.number.int(), null]),
         faker.datatype.boolean(),
+        null,
       ]),
-      null,
+      undefined,
     ]),
     mixedTypesNotNull: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.number.float({ fractionDigits: 2 }),
         faker.number.int(),
         faker.string.uuid(),
+        null,
       ]),
-      null,
+      undefined,
     ]),
   }));
