@@ -2328,7 +2328,7 @@ export const customServer = (
 
 **类型：** `Object`
 
-自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它和工具调用上下文一起传给你的函数。返回值会直接作为工具结果使用。仅当响应体是普通对象时才返回 `structuredContent`：生成的 server 只会为这些工具声明 `outputSchema`，而 MCP 会拒绝 `structuredContent` 中的数组和基本类型。
+自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它、工具调用上下文以及由 `server.ts` 为该操作构建的 `toStructuredContent` 函数一起传给你的函数。该函数会用响应 schema 校验响应体并返回 `safeParse` 的结果：成功时 `data` 对普通对象为原样的响应体（已移除 spec 中不存在的字段），对其他响应为 `{ result: body }`，工具未声明 `outputSchema` 时为 `undefined`；失败时 `error.message` 描述了不匹配之处。返回值会直接作为工具结果使用。
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -2342,7 +2342,12 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher();
 
@@ -2353,15 +2358,18 @@ export const customHandler = async (
     };
   }
 
-  const data = res.data;
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
-  };
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 

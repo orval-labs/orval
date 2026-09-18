@@ -2574,7 +2574,7 @@ export const customServer = (
 
 **Type:** `Object`
 
-Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it and the tool call context. The return value is used as the tool result as is. Return `structuredContent` only when the response body is a plain object: the generated server declares an `outputSchema` for exactly those tools, and MCP rejects arrays and primitives in `structuredContent`.
+Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function built in `server.ts` for that operation. It validates the body with the response schema and returns the `safeParse` result: on success `data` is the body as is for a plain object (fields not in the spec dropped), `{ result: body }` for any other response, or `undefined` when the tool declares no `outputSchema`; on failure `error.message` describes the mismatch. The return value is used as the tool result as is.
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -2588,7 +2588,12 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher();
 
@@ -2599,15 +2604,18 @@ export const customHandler = async (
     };
   }
 
-  const data = res.data;
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
-  };
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 

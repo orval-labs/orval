@@ -3303,50 +3303,102 @@ const getSingleResponse = (
   );
 };
 
-/**
- * Whether the success response is emitted as a plain `zod.object(...)`.
- * MCP requires `outputSchema` and `structuredContent` to be objects, so the
- * MCP generator emits them only when this returns true.
- */
-export const isPlainObjectResponseSchema = (
+// Parses the success response exactly as `generateZodRoute` does, so the
+// predicates below describe the `<Operation>Response` that is actually emitted.
+const parseResponseSchema = (
   {
     verb,
     pathRoute,
     override,
   }: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
   context: ContextSpec,
-): boolean => {
-  // Per-status mode emits `<Operation><Status>Response` names instead.
-  if (context.output.override.zod.generateEachHttpStatus) return false;
-  // `zod.preprocess(...)` wraps the object schema.
-  if (override.zod.preprocess?.response) return false;
+) => {
   const isZodV4 = resolveIsZodV4(
     context.output.override.zod.version,
     context.output.packageJson,
   );
-  // zod v3 `.brand()` yields a `ZodBranded` wrapper; v4 keeps the object.
-  if (override.zod.useBrandedTypes && !isZodV4) return false;
 
-  const { input, isArray } = parseBodyAndResponse({
-    data: getSingleResponse(context.spec.paths?.[pathRoute]?.[verb]?.responses),
-    context,
-    name: 'response',
-    strict: override.zod.strict.response,
-    generate: override.zod.generate.response,
+  return {
     isZodV4,
-    parseType: 'response',
-  });
-  if (isArray) return false;
+    ...parseBodyAndResponse({
+      data: getSingleResponse(
+        context.spec.paths?.[pathRoute]?.[verb]?.responses,
+      ),
+      context,
+      name: 'response',
+      strict: override.zod.strict.response,
+      generate: override.zod.generate.response,
+      isZodV4,
+      parseType: 'response',
+    }),
+  };
+};
+
+/** The success response is emitted as a plain `zod.object(...)`. */
+export const isObjectResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray, isZodV4 } = parseResponseSchema(verbOptions, context);
+  const [root, ...modifiers] = input.functions;
+  if (isArray || root === undefined) return false;
+  // `zod.preprocess(...)` and zod v3 `.brand()` wrap the object.
+  if (
+    verbOptions.override.zod.preprocess?.response ||
+    (verbOptions.override.zod.useBrandedTypes && !isZodV4)
+  ) {
+    return false;
+  }
 
   const objectRoots = new Set(['object', 'looseObject', 'strictObject']);
   const objectModifiers = new Set(['strict', 'passthrough', 'describe']);
 
-  const [root, ...modifiers] = input.functions;
   return (
-    root !== undefined &&
     objectRoots.has(root[0]) &&
     modifiers.every(([fn]) => objectModifiers.has(fn))
   );
+};
+
+/**
+ * A `<Operation>Response` schema that can be converted to JSON Schema is
+ * emitted for the success response.
+ */
+export const hasResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray } = parseResponseSchema(verbOptions, context);
+  // No schema is emitted as `zod.void()` / `zod.unknown()`, and `void` cannot
+  // even be converted to JSON Schema.
+  if (!isArray && input.functions.length === 0) return false;
+
+  // Wherever they appear in the schema, these root types cannot be exposed as
+  // JSON Schema: `allOf` (also `oneOf` with sibling properties) renders as
+  // `.and()`, which becomes an `allOf` of closed objects that rejects every
+  // value; `zod.date()` (`useDates`) and `zod.instanceof()` (binary bodies)
+  // make the conversion throw. Only the first function is the type: a later
+  // `date` is the string `.date()` format validator.
+  const unsupportedTypes = new Set(['allOf', 'date', 'instanceof']);
+  const containsUnsupported = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsUnsupported);
+    if (!isObject(value)) return false;
+    if (Array.isArray(value.functions)) {
+      const functions = value.functions as [string, unknown][];
+      return (
+        (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
+        functions.some(([, args]) => containsUnsupported(args))
+      );
+    }
+    return Object.values(value).some(containsUnsupported);
+  };
+
+  return !containsUnsupported(input);
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */

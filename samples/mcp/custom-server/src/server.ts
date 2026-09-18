@@ -36,17 +36,21 @@ import {
 } from './handlers';
 import {
   FindPetsByStatusQueryParams,
+  FindPetsByStatusOutput,
   FindPetsByTagsQueryParams,
+  FindPetsByTagsOutput,
   GetPetByIdParams,
   GetPetByIdResponse,
   UpdatePetWithFormParams,
   UpdatePetWithFormQueryParams,
   UpdatePetWithFormResponse,
   DeletePetParams,
+  GetInventoryOutput,
   GetOrderByIdParams,
   GetOrderByIdResponse,
   DeleteOrderParams,
   LoginUserQueryParams,
+  LoginUserOutput,
   GetUserByNameParams,
   GetUserByNameResponse,
   DeleteUserParams,
@@ -70,6 +74,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByStatusQueryParams,
       },
+      outputSchema: FindPetsByStatusOutput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -82,6 +87,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
       ),
   );
 
@@ -94,6 +100,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: FindPetsByTagsQueryParams,
       },
+      outputSchema: FindPetsByTagsOutput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -106,6 +113,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => FindPetsByTagsOutput.safeParse({ result: data }),
       ),
   );
 
@@ -130,6 +138,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetPetByIdResponse.safeParse(data),
       ),
   );
 
@@ -155,6 +164,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => UpdatePetWithFormResponse.safeParse(data),
       ),
   );
 
@@ -178,6 +188,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -186,6 +197,7 @@ const createMcpServer = (
     {
       title: 'Returns pet inventories by status.',
       description: 'Returns a map of status codes to quantities.',
+      outputSchema: GetInventoryOutput,
       annotations: { readOnlyHint: true },
     },
     (ctx) =>
@@ -197,6 +209,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetInventoryOutput.safeParse({ result: data }),
       ),
   );
 
@@ -222,6 +235,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetOrderByIdResponse.safeParse(data),
       ),
   );
 
@@ -246,6 +260,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -257,6 +272,7 @@ const createMcpServer = (
       inputSchema: {
         queryParams: LoginUserQueryParams,
       },
+      outputSchema: LoginUserOutput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -269,6 +285,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => LoginUserOutput.safeParse({ result: data }),
       ),
   );
 
@@ -288,6 +305,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 
@@ -312,6 +330,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        (data: unknown) => GetUserByNameResponse.safeParse(data),
       ),
   );
 
@@ -335,6 +354,7 @@ const createMcpServer = (
             : ctx.signal,
         },
         ctx,
+        () => ({ success: true as const, data: undefined }),
       ),
   );
 

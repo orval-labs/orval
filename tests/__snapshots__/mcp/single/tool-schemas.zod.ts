@@ -211,3 +211,5 @@ export const ShowPetWithOwnerResponse = zod.object({
     zod.null(),
   ]),
 });
+
+export const HealthCheckOutput = zod.object({ result: HealthCheckResponse });
