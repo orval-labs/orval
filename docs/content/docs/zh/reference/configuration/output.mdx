@@ -816,7 +816,13 @@ export default defineConfig({
 **类型：** `Boolean | Object`
 **默认值：** `false`
 
-使用 [TypeDoc](https://typedoc.org/) 生成 API 文档：
+使用 [TypeDoc](https://typedoc.org/) 生成 API 文档。
+
+TypeDoc 是可选的 peer 依赖，因此在启用该选项前，请先安装它以及 markdown 插件（还有你配置的其他 TypeDoc 插件）：
+
+```sh
+npm install typedoc typedoc-plugin-markdown -D
+```
 
 ```ts title="orval.config.ts"
 export default defineConfig({

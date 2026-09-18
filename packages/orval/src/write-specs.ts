@@ -106,6 +106,22 @@ export async function runFormatter(
 const DOCS_MARKDOWN_PLUGIN = 'typedoc-plugin-markdown';
 const DOCS_MARKDOWN_THEME = 'markdown';
 
+/**
+ * `typedoc` and `typedoc-plugin-markdown` are optional peer dependencies: only
+ * `output.docs` needs them, so projects that never generate docs don't have to
+ * install or resolve them.
+ */
+async function importTypedoc(): Promise<typeof import('typedoc')> {
+  try {
+    return await import('typedoc');
+  } catch (error) {
+    throw new Error(
+      `Install \`typedoc\` and \`${DOCS_MARKDOWN_PLUGIN}\` to use the \`docs\` output option.`,
+      { cause: error },
+    );
+  }
+}
+
 export function getDocsTypedocOptions(
   entryPoints: string[],
   config: Partial<TypeDocOptions>,
@@ -1103,14 +1119,18 @@ async function writeSpecsInternal(
       let config: Partial<TypeDocOptions> = {};
       let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath, ...config } = output.docs);
+        const { configPath: docsConfigPath, ...docsOptions } = output.docs;
+        configPath = docsConfigPath as string | undefined;
+        // `OutputDocsOptions` is typed structurally so `@orval/core`'s
+        // declarations stay free of `typedoc`; the values are TypeDoc's own.
+        config = docsOptions as Partial<TypeDocOptions>;
         if (configPath) {
           config.options = configPath;
         }
       }
 
       const { Application, PackageJsonReader, TSConfigReader, TypeDocReader } =
-        await import('typedoc');
+        await importTypedoc();
       const app = await Application.bootstrapWithPlugins(
         getDocsTypedocOptions(
           paths.map((x) => upath.toUnix(x)),
