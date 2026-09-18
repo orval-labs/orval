@@ -8,6 +8,7 @@ import type {
 import {
   EnumGeneration,
   FormDataArrayHandling,
+  GetterPropType,
   NamingConvention,
   OutputClient,
   OutputHttpClient,
@@ -1091,5 +1092,268 @@ describe('includeHttpErrorResponse', () => {
         generateImplementation(options, makeOptions(makeContext())),
       ).toThrow(/includeHttpErrorResponse/);
     }
+  });
+});
+
+describe('generateRequestFunction — useDatesTransform', () => {
+  const DATED = {
+    type: 'object',
+    required: ['day'],
+    properties: { day: { type: 'string', format: 'date' } },
+  };
+
+  const entry = (key: string, value: string, originalSchema: object) =>
+    ({
+      key,
+      value,
+      contentType: 'application/json',
+      originalSchema,
+      hasReadonlyProps: false,
+      imports: [],
+      isEnum: false,
+      isRef: true,
+      schemas: [],
+      type: 'object',
+      dependencies: [],
+    }) as unknown as GeneratorVerbOptions['response']['types']['success'][number];
+
+  function datedVerbOptions({
+    successKey = '200',
+    errorKeys = [] as string[],
+    contentTypes = ['application/json'],
+    fetch = {},
+    useDatesTransform = true,
+  } = {}): GeneratorVerbOptions {
+    const base = makeVerbOptions();
+    return {
+      ...base,
+      verb: Verbs.PUT,
+      operationName: 'updateAppointment',
+      typeName: 'updateAppointment',
+      response: {
+        definition: {
+          success: 'Appointment',
+          errors: errorKeys.length ? 'Error' : '',
+        },
+        imports: [],
+        types: {
+          success: [entry(successKey, 'Appointment', DATED)],
+          errors: errorKeys.map((key) =>
+            entry(key, 'Error', { type: 'object' }),
+          ),
+        },
+        contentTypes,
+        schemas: [],
+        isBlob: false,
+      } as unknown as GeneratorVerbOptions['response'],
+      body: {
+        definition: 'Appointment',
+        implementation: 'appointment',
+        imports: [],
+        schemas: [],
+        contentType: 'application/json',
+        isOptional: false,
+        isBlob: false,
+        originalSchema: { content: { 'application/json': { schema: DATED } } },
+      } as unknown as GeneratorVerbOptions['body'],
+      props: [
+        {
+          name: 'appointment',
+          definition: 'appointment: Appointment',
+          implementation: 'appointment: Appointment',
+          default: undefined,
+          required: true,
+          type: GetterPropType.BODY,
+        },
+      ] as GeneratorVerbOptions['props'],
+      override: {
+        ...base.override,
+        useDatesTransform,
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
+          ...fetch,
+        },
+      } as GeneratorVerbOptions['override'],
+    } as GeneratorVerbOptions;
+  }
+
+  const generate = (
+    verbOptions: GeneratorVerbOptions,
+    context = makeContext(),
+  ) => generateRequestFunction(verbOptions, makeOptions(context));
+
+  it('serializes the JSON request body', () => {
+    expect(generate(datedVerbOptions())).toContain(
+      'body: JSON.stringify(serializeUpdateAppointmentRequest(appointment))',
+    );
+  });
+
+  it('converts the parsed body only for the declared success status', () => {
+    const implementation = generate(datedVerbOptions({ errorKeys: ['400'] }));
+    expect(implementation).toContain(
+      'if (body && (res.status === 200)) {\n    data = deserializeUpdateAppointmentResponse(data as Appointment);\n  }',
+    );
+  });
+
+  it('assigns the conversion back through a mutable binding', () => {
+    // The deserializer both mutates in place and returns the value, and only
+    // the return value carries a root-scalar date (`data = new Date(data)`
+    // inside the deserializer never escapes it). Discarding the result left
+    // such a response a raw string typed `Date`, which still compiled.
+    const implementation = generate(datedVerbOptions());
+    expect(implementation).toContain(
+      "let data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {}",
+    );
+    expect(implementation).toContain(
+      'data = deserializeUpdateAppointmentResponse(data as Appointment);',
+    );
+  });
+
+  it('leaves the parsed body a const with the flag off', () => {
+    // The mutable binding is emitted only alongside a deserializer, so
+    // `useDatesTransform`-off output stays byte-identical.
+    const implementation = generate(
+      datedVerbOptions({ useDatesTransform: false }),
+    );
+    expect(implementation).toContain(
+      "const data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {}",
+    );
+    expect(implementation).not.toContain('let data');
+  });
+
+  it('builds the guard from a wildcard success key', () => {
+    expect(generate(datedVerbOptions({ successKey: '2XX' }))).toContain(
+      'if (body && (res.status >= 200 && res.status < 300)) {',
+    );
+  });
+
+  it('converts before runtime validation parses the body', () => {
+    const context = makeContext();
+    (context.output as { schemas: unknown }).schemas = {
+      path: './model',
+      type: 'zod',
+    };
+    const verbOptions = datedVerbOptions({
+      fetch: { runtimeValidation: { enabled: true, strategy: 'throw' } },
+    });
+    verbOptions.response.imports = [
+      { name: 'Appointment', schemaName: 'Appointment', values: true },
+    ] as GeneratorVerbOptions['response']['imports'];
+
+    const implementation = generate(verbOptions, context);
+    const conversion = implementation.indexOf(
+      'parsedBody = deserializeUpdateAppointmentResponse(parsedBody as Appointment)',
+    );
+    const parse = implementation.indexOf('Appointment.parse(parsedBody)');
+    expect(conversion).toBeGreaterThan(-1);
+    expect(parse).toBeGreaterThan(conversion);
+  });
+
+  it('emits the helpers after the operation', () => {
+    const implementation = generate(datedVerbOptions());
+    const operation = implementation.indexOf('export const updateAppointment');
+    expect(operation).toBeGreaterThan(-1);
+    expect(
+      implementation.indexOf('const deserializeUpdateAppointmentResponse'),
+    ).toBeGreaterThan(operation);
+    expect(
+      implementation.indexOf('const serializeUpdateAppointmentRequest'),
+    ).toBeGreaterThan(operation);
+  });
+
+  it('emits nothing for the mcp client', () => {
+    const context = makeContext();
+    context.output.client = OutputClient.MCP;
+    const implementation = generate(datedVerbOptions(), context);
+    expect(implementation).not.toContain('serializeUpdateAppointmentRequest');
+    expect(implementation).not.toContain(
+      'deserializeUpdateAppointmentResponse',
+    );
+  });
+
+  it('emits no response conversion for an ndjson response', () => {
+    const verbOptions = datedVerbOptions({
+      contentTypes: ['application/x-ndjson'],
+    });
+    verbOptions.response.types.success[0].contentType = 'application/x-ndjson';
+    expect(generate(verbOptions)).not.toContain(
+      'deserializeUpdateAppointmentResponse',
+    );
+  });
+
+  it('emits no transform and leaves the body untouched with the flag off', () => {
+    const implementation = generate(
+      datedVerbOptions({ useDatesTransform: false }),
+    );
+    expect(implementation).not.toContain('serializeUpdateAppointmentRequest');
+    expect(implementation).not.toContain(
+      'deserializeUpdateAppointmentResponse',
+    );
+    expect(implementation).toContain('body: JSON.stringify(appointment)');
+  });
+
+  const MUTATOR = {
+    name: 'customFetch',
+    path: './mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook: false,
+  } as GeneratorVerbOptions['mutator'];
+
+  it('guards a normal mutator response on its status', () => {
+    // The conversion is assigned back onto the wrapper for the same
+    // root-scalar reason as the built-in path, in the same shape the axios
+    // client already emits (`res.data = deserialize…(res.data)`).
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = MUTATOR;
+    expect(generate(verbOptions)).toContain(
+      '.then((res) => {\n    if (res.status === 200) {\n      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+    );
+  });
+
+  it('converts a normal mutator response directly without the response wrapper', () => {
+    const verbOptions = datedVerbOptions({
+      fetch: { includeHttpResponseReturnType: false },
+    });
+    verbOptions.mutator = MUTATOR;
+    expect(generate(verbOptions)).toContain(
+      '.then(deserializeUpdateAppointmentResponse)',
+    );
+  });
+
+  it('casts a hook mutator result once and returns the cast value', () => {
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    expect(generate(verbOptions)).toContain(
+      '.then((value) => {\n    const res = value as updateAppointmentResponse;\n    if (res.status === 200) {\n      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+    );
+  });
+
+  it('casts a hook mutator result once without the response wrapper', () => {
+    const verbOptions = datedVerbOptions({
+      fetch: { includeHttpResponseReturnType: false },
+    });
+    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    expect(generate(verbOptions)).toContain(
+      '.then((value) => deserializeUpdateAppointmentResponse(value as Appointment))',
+    );
+  });
+
+  it('gives an inferred mutator no response transform but still serializes the body', () => {
+    const verbOptions = datedVerbOptions();
+    verbOptions.mutator = { ...MUTATOR!, inferred: true };
+    const implementation = generate(verbOptions);
+    expect(implementation).not.toContain('.then(');
+    expect(implementation).not.toContain(
+      'deserializeUpdateAppointmentResponse',
+    );
+    expect(implementation).toContain(
+      'serializeUpdateAppointmentRequest(appointment)',
+    );
   });
 });

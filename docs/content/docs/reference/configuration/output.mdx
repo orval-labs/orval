@@ -2773,6 +2773,12 @@ export default defineConfig({
 
 Custom JSON reviver function (useful for date parsing).
 
+`useDatesTransform` does not replace or disable this reviver. With both enabled
+the two run in sequence: the fetch client still passes the reviver to
+`JSON.parse`, and the generated `deserialize<OperationName>Response` then runs
+over the result. The reviver sees every string in the body; the deserializer
+touches only the schema-declared `format: date`/`date-time` fields.
+
 ### runtimeValidation
 
 **Type:** `boolean | { strategy: 'throw' | 'both' }`
@@ -3961,6 +3967,34 @@ export const getOrderDetails = (orderId: string) => {
 };
 ```
 
+That is the axios shape. `client: 'fetch'` has no promise to chain onto, so the
+conversion is inlined into the request function, guarded by the declared
+success status:
+
+```ts
+export const getOrderDetails = async (
+  orderId: string,
+  options?: RequestInit,
+): Promise<getOrderDetailsResponse> => {
+  const res = await fetch(getGetOrderDetailsUrl(orderId), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: getOrderDetailsResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeGetOrderDetailsResponse(data as OrderDetails);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getOrderDetailsResponse;
+};
+```
+
 Only schema-declared date fields are converted — no response-wide traversal,
 no pattern matching on strings — and operations without date fields generate
 no extra code. Setting `useDatesTransform: true` implies `useDates: true`.
@@ -4012,11 +4046,27 @@ a schema that is both array- and object-shaped (OAS 3.1 `type: ['array',
 'object']`, or a stray sibling `properties` on a `type: array` schema) also
 generates no serializer, since the two shapes can't be walked together on the
 request side — the same conflict with a map-valued `additionalProperties` in
-place of `properties` drops both the serializer and the deserializer. Only the
-axios-based clients are wired (`react-query`, `vue-query`, `svelte-query`, and
-`solid-query` with `httpClient: 'axios'`). `Date` values in query and path
-parameters are still serialized as full ISO datetimes, so date-only parameters
-are not covered.
+place of `properties` drops both the serializer and the deserializer. `Date`
+values in query and path parameters are still serialized as full ISO datetimes,
+so date-only parameters are not covered, and the `mcp` client is not
+transformed.
+
+Wired clients:
+
+- the axios-based query clients — `react-query`, `vue-query`, `svelte-query`
+  and `solid-query` with `httpClient: 'axios'`;
+- `client: 'fetch'`, plus `react-query`, `vue-query`, `svelte-query`,
+  `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`.
+
+Under `fetch`, only the declared success status is converted — error bodies are
+returned untouched. The one exception is a custom mutator combined with
+`includeHttpResponseReturnType: false`: the mutator resolves with the body
+alone, so the status is not visible to the generated code and whatever the
+mutator resolves with is converted. An inferred custom mutator gets no response
+conversion at all — its return type is unknown to orval and may not even be a
+promise, so there's nothing to chain the conversion onto; its request body is
+still serialized. ndjson and blob responses are not converted either: a stream
+is handed to the caller unparsed, and a blob has no parsed fields to walk.
 
 ### useBigInt
 

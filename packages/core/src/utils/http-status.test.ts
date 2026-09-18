@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { assertSafeResponseStatusKey, getStatusCodeType } from './http-status';
+import {
+  assertSafeResponseStatusKey,
+  getResponseStatusCondition,
+  getStatusCodeType,
+} from './http-status';
 
 /**
  * A response key reaches generated source in unquoted positions — a TypeScript
@@ -73,5 +77,57 @@ describe('getStatusCodeType', () => {
     expect(() => getStatusCodeType('2 || (globalThis.x = 1)', ['2XX'])).toThrow(
       /not a status code/,
     );
+  });
+});
+
+describe('getResponseStatusCondition', () => {
+  it('matches an exact status', () => {
+    expect(
+      getResponseStatusCondition({
+        key: '200',
+        declaredKeys: ['200', '400'],
+        accessor: 'res.status',
+      }),
+    ).toBe('res.status === 200');
+  });
+
+  it('matches a wildcard range, excluding exact statuses declared in the same class', () => {
+    expect(
+      getResponseStatusCondition({
+        key: '2XX',
+        declaredKeys: ['2XX', '204', '404'],
+        accessor: 'res.status',
+      }),
+    ).toBe('res.status >= 200 && res.status < 300 && res.status !== 204');
+  });
+
+  it('negates every other declared status for default', () => {
+    expect(
+      getResponseStatusCondition({
+        key: 'default',
+        declaredKeys: ['default', '400', '5XX'],
+        accessor: 'res.status',
+      }),
+    ).toBe('!(res.status === 400 || res.status >= 500 && res.status < 600)');
+  });
+
+  it('is true for default when nothing else is declared', () => {
+    expect(
+      getResponseStatusCondition({
+        key: 'default',
+        declaredKeys: ['default'],
+        accessor: 'res.status',
+      }),
+    ).toBe('true');
+  });
+
+  it('refuses a key that is not a status code', () => {
+    expect(() =>
+      getResponseStatusCondition({
+        key: '2 || process.exit()',
+        declaredKeys: ['2 || process.exit()'],
+        accessor: 'res.status',
+      }),
+    ).toThrow(/not a status code/);
   });
 });

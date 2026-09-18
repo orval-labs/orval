@@ -77,6 +77,26 @@ paths:
           in: path
           required: true
           schema: { type: string }
+  /shelters/{shelterId}/last-inspection:
+    get:
+      operationId: getShelterLastInspection
+      parameters:
+        - name: shelterId
+          in: path
+          required: true
+          schema: { type: string }
+      # The response root is the date itself, with nothing wrapping it. The
+      # walk has no property, index or key to write the `new Date(...)`
+      # through, so the conversion reaches the caller only through the
+      # deserializer's return value — a client that calls the deserializer as
+      # a statement hands back the raw string typed `Date`.
+      responses:
+        '200':
+          description: the response root is itself a date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LastInspection'
   /orders:
     get:
       operationId: listOrderNumbers
@@ -188,6 +208,12 @@ components:
       properties:
         petType: { type: string, enum: [dog] }
         adoptedAt: { type: string, format: date-time, nullable: true }
+    # Named rather than inline: an unnamed primitive response would be
+    # emitted as a model called after its type (`Date`), which shadows the
+    # global of the same name in the generated barrel.
+    LastInspection:
+      type: string
+      format: date-time
     OrderDetails:
       type: object
       required: [placedAt, events]

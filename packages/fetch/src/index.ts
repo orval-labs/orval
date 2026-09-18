@@ -8,10 +8,13 @@ import {
   filterByContentType,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
+  generateRequestDateSerializer,
+  generateResponseDateDeserializer,
   generateVerbImports,
   type GeneratorDependency,
   type GeneratorImport,
   getArrayResponseSchema,
+  getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getStatusCodeType,
@@ -34,6 +37,7 @@ import {
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
+  OutputClient,
   pascal,
   resolveRef,
   stringify,
@@ -475,6 +479,62 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
   );
   const isBlob = response.isBlob;
 
+  // `useDatesTransform` converts only JSON bodies. MCP handlers forward the
+  // result to the model as JSON, where a `Date` adds nothing and re-serializes
+  // a `format: date` value as a full datetime, so MCP gets no transform.
+  // ndjson is excluded explicitly: its media type contains `json`, which the
+  // core deserializer's content-type check accepts.
+  const isDatesTransformEnabled =
+    override.useDatesTransform && context.output.client !== OutputClient.MCP;
+  // An inferred mutator's return type is unknown to orval — it may not even be
+  // a promise — so its response cannot be converted. Skipping the deserializer
+  // entirely (rather than generating it and simply never wiring it up) keeps
+  // the output free of an unreferenced const, which `tsc --noUnusedLocals`
+  // rejects. The request serializer still applies below regardless.
+  const dateDeserializer =
+    isDatesTransformEnabled && !isNdJson && !mutator?.inferred
+      ? generateResponseDateDeserializer({ operationName, response, context })
+      : undefined;
+  const successStatusCondition = dateDeserializer
+    ? getResponseStatusCondition({
+        key: response.types.success[0].key,
+        declaredKeys: [...response.types.success, ...response.types.errors].map(
+          ({ key }) => key,
+        ),
+        accessor: 'res.status',
+      })
+    : undefined;
+  const requestSerializer = isDatesTransformEnabled
+    ? generateRequestDateSerializer({ operationName, body, context })
+    : undefined;
+  // Error responses are returned rather than thrown by default, so the parsed
+  // body is converted only when the status is the declared success one.
+  // `body` guards the `{}` fallback of an empty response, and the JSON check
+  // skips a non-JSON body under mixed content types.
+  //
+  // The core deserializer both mutates in place and returns the value, and the
+  // result is assigned back rather than discarded: a response whose root is
+  // itself a date has no property, index or key to write `new Date(...)`
+  // through, so the conversion escapes the deserializer only via its return
+  // value. Discarding it handed the caller the raw string typed `Date`, which
+  // still compiles. This mirrors the axios client's
+  // `res.data = deserialize…(res.data)`.
+  const convertParsedBody = (
+    expression: string,
+    { checkContentType }: { checkContentType: boolean },
+  ) =>
+    dateDeserializer
+      ? `
+  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
+    ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
+  }`
+      : '';
+
+  // Reassigning the converted body needs a mutable binding, but only when a
+  // deserializer is actually emitted — otherwise the `useDatesTransform`-off
+  // output would change.
+  const parsedBodyBinding = dateDeserializer ? 'let' : 'const';
+
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
     .filter(Boolean);
@@ -722,7 +782,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `headers: { ${headersToAdd.join(',')}${isRequestOptions ? ', ...getHeaders(options?.headers)' : ''} }`
       : '';
   const requestBodyParams = generateBodyOptions(
-    body,
+    requestSerializer
+      ? {
+          ...body,
+          implementation: `${requestSerializer.name}(${body.implementation})`,
+        }
+      : body,
     isFormData,
     isFormUrlEncoded,
   );
@@ -862,18 +927,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? hasMixedSuccessContentTypes
-        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+      ? hasMixedSuccessContentTypes || successAlwaysJson
+        ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
   const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
-        : successAlwaysJson
-          ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
-  const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
-          : `const parsedBody = body !== null ? body : ''
+        : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
-        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
+        ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: true })}`
         : successAlwaysJson
-          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
+          ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: false })}`
           : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
   ${
@@ -882,7 +944,31 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : 'return data'
   }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions});`;
+  // A custom mutator issues the request itself, so the conversion is chained
+  // onto its promise. `dateDeserializer` is already `undefined` for an
+  // inferred mutator (see above), so this naturally emits nothing there. The
+  // hook path calls the fetcher without a type argument, which loses the
+  // return-type inference a bare `return customFetcher(…)` relies on, so its
+  // value is cast once and the cast value is what gets returned.
+  const mutatorResponseTransform = (isHook: boolean) => {
+    if (!dateDeserializer) return '';
+    if (!override.fetch.includeHttpResponseReturnType) {
+      return isHook
+        ? `.then((value) => ${dateDeserializer.name}(value as ${response.definition.success}))`
+        : `.then(${dateDeserializer.name})`;
+    }
+    const head = isHook
+      ? `.then((value) => {\n    const res = value as ${fetchResponseType};`
+      : '.then((res) => {';
+    return `${head}
+    if (${successStatusCondition}) {
+      res.data = ${dateDeserializer.name}(res.data as ${response.definition.success});
+    }
+    return res;
+  })`;
+  };
+
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions})${mutatorResponseTransform(false)};`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -904,7 +990,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${mutatorFetchFnOptions});
+        return ${fetchExportName}(${mutatorFetchFnOptions})${mutatorResponseTransform(true)};
       }
   `;
   }
@@ -923,10 +1009,16 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   `;
   }
 
+  const dateTransformImplementations = [dateDeserializer, requestSerializer]
+    .filter((helper) => helper !== undefined)
+    .map(({ implementation }) => `\n${implementation}`)
+    .join('');
+
   return (
     responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
-    `${doc}${fetchImplementation}\n`
+    `${doc}${fetchImplementation}\n` +
+    dateTransformImplementations
   );
 };
 
