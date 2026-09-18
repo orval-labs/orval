@@ -202,7 +202,13 @@ export function getMockScalar({
       nullWrapped,
     };
   }
-  if (item.format && ALL_FORMAT[item.format]) {
+  // `item.format` is a free-form annotation straight from the spec, so a plain
+  // index would resolve inherited members: `format: constructor` returns the
+  // Object constructor and `format: __proto__` returns Object.prototype, both
+  // truthy non-strings that get interpolated into the generated mock (emitting
+  // uncompilable TypeScript) or crash the `.startsWith` check in combine.ts.
+  // Mirrors the guard on the media-type map in core's `body.ts`.
+  if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];
 
     const dateFormats = ['date', 'date-time'];
