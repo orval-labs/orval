@@ -40,19 +40,14 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
-    "typedoc": "^0.28.19",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@faker-js/faker": ">=8",
-    "typedoc": "^0.28.19"
+    "@faker-js/faker": ">=8"
   },
   "peerDependenciesMeta": {
     "@faker-js/faker": {
-      "optional": true
-    },
-    "typedoc": {
       "optional": true
     }
   }

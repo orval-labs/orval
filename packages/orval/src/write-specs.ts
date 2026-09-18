@@ -1119,7 +1119,11 @@ async function writeSpecsInternal(
       let config: Partial<TypeDocOptions> = {};
       let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath, ...config } = output.docs);
+        const { configPath: docsConfigPath, ...docsOptions } = output.docs;
+        configPath = docsConfigPath as string | undefined;
+        // `OutputDocsOptions` is typed structurally so `@orval/core`'s
+        // declarations stay free of `typedoc`; the values are TypeDoc's own.
+        config = docsOptions as Partial<TypeDocOptions>;
         if (configPath) {
           config.options = configPath;
         }
