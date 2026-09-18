@@ -10,6 +10,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  LastInspection,
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
@@ -39,7 +40,7 @@ export const getOrderDetails = async (
     method: 'GET',
   }).then((res) => {
     if (res.status === 200) {
-      deserializeGetOrderDetailsResponse(res.data as OrderDetails);
+      res.data = deserializeGetOrderDetailsResponse(res.data as OrderDetails);
     }
     return res;
   });
@@ -91,7 +92,7 @@ export const getPetProfile = async (
     method: 'GET',
   }).then((res) => {
     if (res.status === 200) {
-      deserializeGetPetProfileResponse(res.data as Cat | Dog);
+      res.data = deserializeGetPetProfileResponse(res.data as Cat | Dog);
     }
     return res;
   });
@@ -137,7 +138,7 @@ export const getAuditRecord = async (
     method: 'GET',
   }).then((res) => {
     if (res.status === 200) {
-      deserializeGetAuditRecordResponse(res.data as AuditRecord);
+      res.data = deserializeGetAuditRecordResponse(res.data as AuditRecord);
     }
     return res;
   });
@@ -190,7 +191,7 @@ export const listShelterPets = async (
     },
   ).then((res) => {
     if (res.status === 200) {
-      deserializeListShelterPetsResponse(res.data as Cat | Dog);
+      res.data = deserializeListShelterPetsResponse(res.data as Cat | Dog);
     }
     return res;
   });
@@ -210,6 +211,50 @@ const deserializeListShelterPetsResponse = (data: Cat | Dog): Cat | Dog => {
       break;
     }
   }
+  return data;
+};
+
+export type getShelterLastInspectionResponse200 = {
+  data: LastInspection;
+  status: 200;
+};
+
+export type getShelterLastInspectionResponseSuccess =
+  getShelterLastInspectionResponse200 & {
+    headers: Headers;
+  };
+export type getShelterLastInspectionResponse =
+  getShelterLastInspectionResponseSuccess;
+
+export const getGetShelterLastInspectionUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/last-inspection`;
+};
+
+export const getShelterLastInspection = async (
+  shelterId: string,
+  options?: Parameters<typeof customFetch>[1],
+): Promise<getShelterLastInspectionResponse> => {
+  return customFetch<getShelterLastInspectionResponse>(
+    getGetShelterLastInspectionUrl(shelterId),
+    {
+      ...options,
+      method: 'GET',
+    },
+  ).then((res) => {
+    if (res.status === 200) {
+      res.data = deserializeGetShelterLastInspectionResponse(
+        res.data as LastInspection,
+      );
+    }
+    return res;
+  });
+};
+
+const deserializeGetShelterLastInspectionResponse = (
+  data: LastInspection,
+): LastInspection => {
+  if (data == null) return data;
+  data = new Date(data);
   return data;
 };
 
@@ -285,7 +330,7 @@ export const updateAppointment = async (
     body: JSON.stringify(serializeUpdateAppointmentRequest(appointment)),
   }).then((res) => {
     if (res.status === 200) {
-      deserializeUpdateAppointmentResponse(res.data as Appointment);
+      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);
     }
     return res;
   });
@@ -394,7 +439,7 @@ export const updateAppointmentDuplicateDate = async (
     },
   ).then((res) => {
     if (res.status === 200) {
-      deserializeUpdateAppointmentDuplicateDateResponse(
+      res.data = deserializeUpdateAppointmentDuplicateDateResponse(
         res.data as AppointmentWithDuplicateDate,
       );
     }
@@ -484,7 +529,9 @@ export const updateAppointmentReminder = async (
     },
   ).then((res) => {
     if (res.status === 200) {
-      deserializeUpdateAppointmentReminderResponse(res.data as Appointment);
+      res.data = deserializeUpdateAppointmentReminderResponse(
+        res.data as Appointment,
+      );
     }
     return res;
   });
@@ -576,7 +623,9 @@ export const updateShelterIntake = async (
     },
   ).then((res) => {
     if (res.status === 200) {
-      deserializeUpdateShelterIntakeResponse(res.data as ShelterIntake);
+      res.data = deserializeUpdateShelterIntakeResponse(
+        res.data as ShelterIntake,
+      );
     }
     return res;
   });

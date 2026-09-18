@@ -97,8 +97,15 @@ export const needsHttpStatusCodeTypes = (implementation: string) =>
  *
  * A wildcard (`2XX`) excludes exact statuses declared in the same class, since
  * those have their own responses; `default` is the negation of every other
- * declared key. Exact and wildcard keys go through
- * `assertSafeResponseStatusKey`, because the result is emitted as live code.
+ * declared key.
+ *
+ * The result is emitted as live code, so no key reaches it unvalidated, but
+ * the two branches get there differently: an exact key is passed through
+ * `assertSafeResponseStatusKey`, while a wildcard key is matched by
+ * `WILDCARD_STATUS_CODE_REGEX` and never emitted itself — only its leading
+ * digit is read, to build a numeric range. The statuses a wildcard excludes
+ * are the `EXACT_STATUS_CODE_REGEX` matches among `declaredKeys` that fall in
+ * the wildcard's own class (same leading digit).
  */
 export const getResponseStatusCondition = ({
   key,

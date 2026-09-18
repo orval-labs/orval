@@ -16,6 +16,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  LastInspection,
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
@@ -46,9 +47,9 @@ export const getOrderDetails = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getOrderDetailsResponse['data'] = body ? JSON.parse(body) : {};
+  let data: getOrderDetailsResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeGetOrderDetailsResponse(data as OrderDetails);
+    data = deserializeGetOrderDetailsResponse(data as OrderDetails);
   }
   return {
     data,
@@ -143,9 +144,9 @@ export const getPetProfile = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getPetProfileResponse['data'] = body ? JSON.parse(body) : {};
+  let data: getPetProfileResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeGetPetProfileResponse(data as Cat | Dog);
+    data = deserializeGetPetProfileResponse(data as Cat | Dog);
   }
   return {
     data,
@@ -234,9 +235,9 @@ export const getAuditRecord = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getAuditRecordResponse['data'] = body ? JSON.parse(body) : {};
+  let data: getAuditRecordResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeGetAuditRecordResponse(data as AuditRecord);
+    data = deserializeGetAuditRecordResponse(data as AuditRecord);
   }
   return {
     data,
@@ -329,9 +330,9 @@ export const listShelterPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listShelterPetsResponse['data'] = body ? JSON.parse(body) : {};
+  let data: listShelterPetsResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeListShelterPetsResponse(data as Cat | Dog);
+    data = deserializeListShelterPetsResponse(data as Cat | Dog);
   }
   return {
     data,
@@ -384,6 +385,94 @@ export const useListShelterPets = <TError = Promise<unknown>>(
     swrOptions?.swrKey ??
     (() => (isEnabled ? getListShelterPetsKey(shelterId) : null));
   const swrFn = () => listShelterPets(shelterId, fetchOptions);
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
+    swrKey,
+    swrFn,
+    swrOptions,
+  );
+
+  return {
+    swrKey,
+    ...query,
+  };
+};
+
+export type getShelterLastInspectionResponse200 = {
+  data: LastInspection;
+  status: 200;
+};
+
+export type getShelterLastInspectionResponseSuccess =
+  getShelterLastInspectionResponse200 & {
+    headers: Headers;
+  };
+export type getShelterLastInspectionResponse =
+  getShelterLastInspectionResponseSuccess;
+
+export const getGetShelterLastInspectionUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/last-inspection`;
+};
+
+export const getShelterLastInspection = async (
+  shelterId: string,
+  options?: RequestInit,
+): Promise<getShelterLastInspectionResponse> => {
+  const res = await fetch(getGetShelterLastInspectionUrl(shelterId), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: getShelterLastInspectionResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  if (body && res.status === 200) {
+    data = deserializeGetShelterLastInspectionResponse(data as LastInspection);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getShelterLastInspectionResponse;
+};
+
+const deserializeGetShelterLastInspectionResponse = (
+  data: LastInspection,
+): LastInspection => {
+  if (data == null) return data;
+  data = new Date(data);
+  return data;
+};
+
+export const getGetShelterLastInspectionKey = (shelterId: string) =>
+  [`/shelters/${shelterId}/last-inspection`] as const;
+
+export type GetShelterLastInspectionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShelterLastInspection>>
+>;
+
+export const useGetShelterLastInspection = <TError = Promise<unknown>>(
+  shelterId: string,
+  options?: {
+    swr?: SWRConfiguration<
+      Awaited<ReturnType<typeof getShelterLastInspection>>,
+      TError
+    > & { swrKey?: Key; enabled?: boolean };
+    fetch?: RequestInit;
+  },
+) => {
+  const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
+
+  const isEnabled =
+    swrOptions?.enabled !== false &&
+    shelterId !== null &&
+    shelterId !== undefined;
+  const swrKey =
+    swrOptions?.swrKey ??
+    (() => (isEnabled ? getGetShelterLastInspectionKey(shelterId) : null));
+  const swrFn = () => getShelterLastInspection(shelterId, fetchOptions);
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
     swrKey,
@@ -512,9 +601,9 @@ export const updateAppointment = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {};
+  let data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeUpdateAppointmentResponse(data as Appointment);
+    data = deserializeUpdateAppointmentResponse(data as Appointment);
   }
   return {
     data,
@@ -659,11 +748,11 @@ export const updateAppointmentDuplicateDate = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateAppointmentDuplicateDateResponse['data'] = body
+  let data: updateAppointmentDuplicateDateResponse['data'] = body
     ? JSON.parse(body)
     : {};
   if (body && res.status === 200) {
-    deserializeUpdateAppointmentDuplicateDateResponse(
+    data = deserializeUpdateAppointmentDuplicateDateResponse(
       data as AppointmentWithDuplicateDate,
     );
   }
@@ -795,11 +884,11 @@ export const updateAppointmentReminder = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateAppointmentReminderResponse['data'] = body
+  let data: updateAppointmentReminderResponse['data'] = body
     ? JSON.parse(body)
     : {};
   if (body && res.status === 200) {
-    deserializeUpdateAppointmentReminderResponse(data as Appointment);
+    data = deserializeUpdateAppointmentReminderResponse(data as Appointment);
   }
   return {
     data,
@@ -940,11 +1029,9 @@ export const updateShelterIntake = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateShelterIntakeResponse['data'] = body
-    ? JSON.parse(body)
-    : {};
+  let data: updateShelterIntakeResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeUpdateShelterIntakeResponse(data as ShelterIntake);
+    data = deserializeUpdateShelterIntakeResponse(data as ShelterIntake);
   }
   return {
     data,

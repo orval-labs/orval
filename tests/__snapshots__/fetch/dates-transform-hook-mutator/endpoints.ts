@@ -10,6 +10,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  LastInspection,
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
@@ -45,7 +46,7 @@ export const useGetOrderDetailsHook = (): ((
     }).then((value) => {
       const res = value as getOrderDetailsResponse;
       if (res.status === 200) {
-        deserializeGetOrderDetailsResponse(res.data as OrderDetails);
+        res.data = deserializeGetOrderDetailsResponse(res.data as OrderDetails);
       }
       return res;
     });
@@ -104,7 +105,7 @@ export const useGetPetProfileHook = (): ((
     }).then((value) => {
       const res = value as getPetProfileResponse;
       if (res.status === 200) {
-        deserializeGetPetProfileResponse(res.data as Cat | Dog);
+        res.data = deserializeGetPetProfileResponse(res.data as Cat | Dog);
       }
       return res;
     });
@@ -157,7 +158,7 @@ export const useGetAuditRecordHook = (): ((
     }).then((value) => {
       const res = value as getAuditRecordResponse;
       if (res.status === 200) {
-        deserializeGetAuditRecordResponse(res.data as AuditRecord);
+        res.data = deserializeGetAuditRecordResponse(res.data as AuditRecord);
       }
       return res;
     });
@@ -214,7 +215,7 @@ export const useListShelterPetsHook = (): ((
     }).then((value) => {
       const res = value as listShelterPetsResponse;
       if (res.status === 200) {
-        deserializeListShelterPetsResponse(res.data as Cat | Dog);
+        res.data = deserializeListShelterPetsResponse(res.data as Cat | Dog);
       }
       return res;
     });
@@ -235,6 +236,54 @@ const deserializeListShelterPetsResponse = (data: Cat | Dog): Cat | Dog => {
       break;
     }
   }
+  return data;
+};
+
+export type getShelterLastInspectionResponse200 = {
+  data: LastInspection;
+  status: 200;
+};
+
+export type getShelterLastInspectionResponseSuccess =
+  getShelterLastInspectionResponse200 & {
+    headers: Headers;
+  };
+export type getShelterLastInspectionResponse =
+  getShelterLastInspectionResponseSuccess;
+
+export const getGetShelterLastInspectionUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/last-inspection`;
+};
+
+export const useGetShelterLastInspectionHook = (): ((
+  shelterId: string,
+  options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
+) => Promise<getShelterLastInspectionResponse>) => {
+  const customFetcher = useCustomFetch();
+  return (
+    shelterId: string,
+    options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
+  ) => {
+    return customFetcher(getGetShelterLastInspectionUrl(shelterId), {
+      ...options,
+      method: 'GET',
+    }).then((value) => {
+      const res = value as getShelterLastInspectionResponse;
+      if (res.status === 200) {
+        res.data = deserializeGetShelterLastInspectionResponse(
+          res.data as LastInspection,
+        );
+      }
+      return res;
+    });
+  };
+};
+
+const deserializeGetShelterLastInspectionResponse = (
+  data: LastInspection,
+): LastInspection => {
+  if (data == null) return data;
+  data = new Date(data);
   return data;
 };
 
@@ -320,7 +369,9 @@ export const useUpdateAppointmentHook = (): ((
     }).then((value) => {
       const res = value as updateAppointmentResponse;
       if (res.status === 200) {
-        deserializeUpdateAppointmentResponse(res.data as Appointment);
+        res.data = deserializeUpdateAppointmentResponse(
+          res.data as Appointment,
+        );
       }
       return res;
     });
@@ -434,7 +485,7 @@ export const useUpdateAppointmentDuplicateDateHook = (): ((
     }).then((value) => {
       const res = value as updateAppointmentDuplicateDateResponse;
       if (res.status === 200) {
-        deserializeUpdateAppointmentDuplicateDateResponse(
+        res.data = deserializeUpdateAppointmentDuplicateDateResponse(
           res.data as AppointmentWithDuplicateDate,
         );
       }
@@ -530,7 +581,9 @@ export const useUpdateAppointmentReminderHook = (): ((
     }).then((value) => {
       const res = value as updateAppointmentReminderResponse;
       if (res.status === 200) {
-        deserializeUpdateAppointmentReminderResponse(res.data as Appointment);
+        res.data = deserializeUpdateAppointmentReminderResponse(
+          res.data as Appointment,
+        );
       }
       return res;
     });
@@ -628,7 +681,9 @@ export const useUpdateShelterIntakeHook = (): ((
     }).then((value) => {
       const res = value as updateShelterIntakeResponse;
       if (res.status === 200) {
-        deserializeUpdateShelterIntakeResponse(res.data as ShelterIntake);
+        res.data = deserializeUpdateShelterIntakeResponse(
+          res.data as ShelterIntake,
+        );
       }
       return res;
     });

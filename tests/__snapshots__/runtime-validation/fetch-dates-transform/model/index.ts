@@ -16,6 +16,7 @@ export * from './dog.zod';
 export * from './intakeCat.zod';
 export * from './intakeDog.zod';
 export * from './intakePet.zod';
+export * from './lastInspection.zod';
 export * from './orderDetails.zod';
 export * from './orderEvent.zod';
 export * from './reminderUpdate.zod';

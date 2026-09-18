@@ -1193,8 +1193,34 @@ describe('generateRequestFunction — useDatesTransform', () => {
   it('converts the parsed body only for the declared success status', () => {
     const implementation = generate(datedVerbOptions({ errorKeys: ['400'] }));
     expect(implementation).toContain(
-      'if (body && (res.status === 200)) {\n    deserializeUpdateAppointmentResponse(data as Appointment);\n  }',
+      'if (body && (res.status === 200)) {\n    data = deserializeUpdateAppointmentResponse(data as Appointment);\n  }',
     );
+  });
+
+  it('assigns the conversion back through a mutable binding', () => {
+    // The deserializer both mutates in place and returns the value, and only
+    // the return value carries a root-scalar date (`data = new Date(data)`
+    // inside the deserializer never escapes it). Discarding the result left
+    // such a response a raw string typed `Date`, which still compiled.
+    const implementation = generate(datedVerbOptions());
+    expect(implementation).toContain(
+      "let data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {}",
+    );
+    expect(implementation).toContain(
+      'data = deserializeUpdateAppointmentResponse(data as Appointment);',
+    );
+  });
+
+  it('leaves the parsed body a const with the flag off', () => {
+    // The mutable binding is emitted only alongside a deserializer, so
+    // `useDatesTransform`-off output stays byte-identical.
+    const implementation = generate(
+      datedVerbOptions({ useDatesTransform: false }),
+    );
+    expect(implementation).toContain(
+      "const data: updateAppointmentResponse['data'] = body ? JSON.parse(body) : {}",
+    );
+    expect(implementation).not.toContain('let data');
   });
 
   it('builds the guard from a wildcard success key', () => {
@@ -1218,7 +1244,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
 
     const implementation = generate(verbOptions, context);
     const conversion = implementation.indexOf(
-      'deserializeUpdateAppointmentResponse(parsedBody as Appointment)',
+      'parsedBody = deserializeUpdateAppointmentResponse(parsedBody as Appointment)',
     );
     const parse = implementation.indexOf('Appointment.parse(parsedBody)');
     expect(conversion).toBeGreaterThan(-1);
@@ -1280,10 +1306,13 @@ describe('generateRequestFunction — useDatesTransform', () => {
   } as GeneratorVerbOptions['mutator'];
 
   it('guards a normal mutator response on its status', () => {
+    // The conversion is assigned back onto the wrapper for the same
+    // root-scalar reason as the built-in path, in the same shape the axios
+    // client already emits (`res.data = deserialize…(res.data)`).
     const verbOptions = datedVerbOptions();
     verbOptions.mutator = MUTATOR;
     expect(generate(verbOptions)).toContain(
-      '.then((res) => {\n    if (res.status === 200) {\n      deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+      '.then((res) => {\n    if (res.status === 200) {\n      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
     );
   });
 
@@ -1301,7 +1330,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     const verbOptions = datedVerbOptions();
     verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
     expect(generate(verbOptions)).toContain(
-      '.then((value) => {\n    const res = value as updateAppointmentResponse;\n    if (res.status === 200) {\n      deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
+      '.then((value) => {\n    const res = value as updateAppointmentResponse;\n    if (res.status === 200) {\n      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
     );
   });
 

@@ -8,6 +8,7 @@ import {
   Appointment,
   AppointmentWithDuplicateDate,
   AuditRecord,
+  LastInspection,
   OrderDetails,
   ShelterIntake,
 } from './model';
@@ -17,6 +18,7 @@ import type {
   AuditRecordOutput,
   Cat,
   Dog,
+  LastInspectionOutput,
   OrderDetailsOutput,
   ReminderUpdate,
   ShelterIntakeOutput,
@@ -48,13 +50,13 @@ export const getOrderDetails = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeGetOrderDetailsResponse(parsedBody as OrderDetails);
+    parsedBody = deserializeGetOrderDetailsResponse(parsedBody as OrderDetails);
   }
   const data = contentType.includes('json')
     ? OrderDetails.parse(parsedBody)
@@ -114,9 +116,9 @@ export const getPetProfile = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getPetProfileResponse['data'] = body ? JSON.parse(body) : {};
+  let data: getPetProfileResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeGetPetProfileResponse(data as Cat | Dog);
+    data = deserializeGetPetProfileResponse(data as Cat | Dog);
   }
   return {
     data,
@@ -168,13 +170,13 @@ export const getAuditRecord = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeGetAuditRecordResponse(parsedBody as AuditRecord);
+    parsedBody = deserializeGetAuditRecordResponse(parsedBody as AuditRecord);
   }
   const data = contentType.includes('json')
     ? AuditRecord.parse(parsedBody)
@@ -232,9 +234,9 @@ export const listShelterPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listShelterPetsResponse['data'] = body ? JSON.parse(body) : {};
+  let data: listShelterPetsResponse['data'] = body ? JSON.parse(body) : {};
   if (body && res.status === 200) {
-    deserializeListShelterPetsResponse(data as Cat | Dog);
+    data = deserializeListShelterPetsResponse(data as Cat | Dog);
   }
   return {
     data,
@@ -257,6 +259,62 @@ const deserializeListShelterPetsResponse = (data: Cat | Dog): Cat | Dog => {
       break;
     }
   }
+  return data;
+};
+
+export type getShelterLastInspectionResponse200 = {
+  data: LastInspectionOutput;
+  status: 200;
+};
+
+export type getShelterLastInspectionResponseSuccess =
+  getShelterLastInspectionResponse200 & {
+    headers: Headers;
+  };
+export type getShelterLastInspectionResponse =
+  getShelterLastInspectionResponseSuccess;
+
+export const getGetShelterLastInspectionUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/last-inspection`;
+};
+
+export const getShelterLastInspection = async (
+  shelterId: string,
+  options?: RequestInit,
+): Promise<getShelterLastInspectionResponse> => {
+  const res = await fetch(getGetShelterLastInspectionUrl(shelterId), {
+    ...options,
+    method: 'GET',
+  });
+
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  if (body && contentType.includes('json') && res.status === 200) {
+    parsedBody = deserializeGetShelterLastInspectionResponse(
+      parsedBody as LastInspection,
+    );
+  }
+  const data = contentType.includes('json')
+    ? LastInspection.parse(parsedBody)
+    : parsedBody;
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getShelterLastInspectionResponse;
+};
+
+const deserializeGetShelterLastInspectionResponse = (
+  data: LastInspection,
+): LastInspection => {
+  if (data == null) return data;
+  data = new Date(data);
   return data;
 };
 
@@ -344,13 +402,15 @@ export const updateAppointment = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeUpdateAppointmentResponse(parsedBody as Appointment);
+    parsedBody = deserializeUpdateAppointmentResponse(
+      parsedBody as Appointment,
+    );
   }
   const data = contentType.includes('json')
     ? Appointment.parse(parsedBody)
@@ -465,13 +525,13 @@ export const updateAppointmentDuplicateDate = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeUpdateAppointmentDuplicateDateResponse(
+    parsedBody = deserializeUpdateAppointmentDuplicateDateResponse(
       parsedBody as AppointmentWithDuplicateDate,
     );
   }
@@ -567,13 +627,15 @@ export const updateAppointmentReminder = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeUpdateAppointmentReminderResponse(parsedBody as Appointment);
+    parsedBody = deserializeUpdateAppointmentReminderResponse(
+      parsedBody as Appointment,
+    );
   }
   const data = contentType.includes('json')
     ? Appointment.parse(parsedBody)
@@ -671,13 +733,15 @@ export const updateShelterIntake = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
+  let parsedBody = body
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
     : {};
   if (body && contentType.includes('json') && res.status === 200) {
-    deserializeUpdateShelterIntakeResponse(parsedBody as ShelterIntake);
+    parsedBody = deserializeUpdateShelterIntakeResponse(
+      parsedBody as ShelterIntake,
+    );
   }
   const data = contentType.includes('json')
     ? ShelterIntake.parse(parsedBody)

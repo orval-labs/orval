@@ -508,10 +508,17 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
     ? generateRequestDateSerializer({ operationName, body, context })
     : undefined;
   // Error responses are returned rather than thrown by default, so the parsed
-  // body is converted only when the status is the declared success one. The
-  // core deserializer mutates in place; `body` guards the `{}` fallback of an
-  // empty response, and the JSON check skips a non-JSON body under mixed
-  // content types.
+  // body is converted only when the status is the declared success one.
+  // `body` guards the `{}` fallback of an empty response, and the JSON check
+  // skips a non-JSON body under mixed content types.
+  //
+  // The core deserializer both mutates in place and returns the value, and the
+  // result is assigned back rather than discarded: a response whose root is
+  // itself a date has no property, index or key to write `new Date(...)`
+  // through, so the conversion escapes the deserializer only via its return
+  // value. Discarding it handed the caller the raw string typed `Date`, which
+  // still compiles. This mirrors the axios client's
+  // `res.data = deserialize…(res.data)`.
   const convertParsedBody = (
     expression: string,
     { checkContentType }: { checkContentType: boolean },
@@ -519,9 +526,14 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
     dateDeserializer
       ? `
   if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
-    ${dateDeserializer.name}(${expression} as ${response.definition.success});
+    ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
   }`
       : '';
+
+  // Reassigning the converted body needs a mutable binding, but only when a
+  // deserializer is actually emitted — otherwise the `useDatesTransform`-off
+  // output would change.
+  const parsedBodyBinding = dateDeserializer ? 'let' : 'const';
 
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
@@ -916,14 +928,14 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? hasMixedSuccessContentTypes || successAlwaysJson
-        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
+        ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
   const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
-        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: true })}`
+        ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: true })}`
         : successAlwaysJson
-          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: false })}`
+          ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: false })}`
           : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
   ${
@@ -950,7 +962,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : '.then((res) => {';
     return `${head}
     if (${successStatusCondition}) {
-      ${dateDeserializer.name}(res.data as ${response.definition.success});
+      res.data = ${dateDeserializer.name}(res.data as ${response.definition.success});
     }
     return res;
   })`;

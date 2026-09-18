@@ -21,6 +21,7 @@ export * from './intakeCatPetType';
 export * from './intakeDog';
 export * from './intakeDogPetType';
 export * from './intakePet';
+export * from './lastInspection';
 export * from './orderDetails';
 export * from './orderEvent';
 export * from './reminderUpdate';

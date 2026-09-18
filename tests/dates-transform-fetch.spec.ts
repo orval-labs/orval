@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import {
+  getShelterLastInspection as fetchGetShelterLastInspection,
   updateAppointment as fetchUpdateAppointment,
   updateShelterIntake as fetchUpdateShelterIntake,
 } from './generated/fetch/dates-transform/endpoints';
@@ -83,6 +84,23 @@ test('converts a successful response and keeps date-time as an instant', async (
   expect(data.day).toBeInstanceOf(Date);
   expect(data.day.toISOString()).toBe('2026-07-01T00:00:00.000Z');
   expect(data.bookedAt.toISOString()).toBe('2026-07-01T09:30:00.000Z');
+});
+
+test('converts a response whose root is itself a date', async () => {
+  // Every other response here is an object, whose dates the deserializer
+  // converts in place through `data.x = new Date(data.x)`. A bare date root
+  // has no property, index or key to write through — the walk emits
+  // `data = new Date(data)`, which never escapes the deserializer — so the
+  // conversion reaches the caller only through its RETURN value. Calling the
+  // deserializer as a statement and discarding it left `data` the raw string
+  // while the type said `Date`, so `tsc` stayed green and only `.getTime()`
+  // gave it away.
+  respondWith(200, '2026-07-01T09:30:00.000Z');
+
+  const response = await fetchGetShelterLastInspection('shelter-1');
+
+  expect(response.data).toBeInstanceOf(Date);
+  expect(response.data.getTime()).toBe(Date.UTC(2026, 6, 1, 9, 30, 0));
 });
 
 test('returns an error body untouched', async () => {
