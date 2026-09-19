@@ -32,7 +32,7 @@ describe('generateMSW', () => {
       target: 'test',
       workspace: '',
       spec: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: { title: 'Test', version: '1.0.0' },
         paths: {},
       },
@@ -319,7 +319,7 @@ describe('generateMSW', () => {
       );
     });
 
-    it('should generate Blob mock for $ref to a format: binary schema', () => {
+    it('should generate Blob mock for $ref to a binary schema', () => {
       const refBinaryVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -331,7 +331,10 @@ describe('generateMSW', () => {
                 key: '200',
                 value: 'TestPdfFile',
                 contentType: '*/*',
-                originalSchema: { type: 'string', format: 'binary' },
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
                 imports: [{ name: 'TestPdfFile' }],
                 schemas: [],
                 type: 'string',
@@ -369,7 +372,10 @@ describe('generateMSW', () => {
                 key: '200',
                 value: '__TestPdfFile',
                 contentType: '*/*',
-                originalSchema: { type: 'string', format: 'binary' },
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
                 imports: [{ name: 'TestPdfFile', alias: '__TestPdfFile' }],
                 schemas: [],
                 type: 'string',
@@ -416,7 +422,10 @@ describe('generateMSW', () => {
                 key: '200',
                 value: 'Blob',
                 contentType: 'application/octet-stream',
-                originalSchema: { type: 'string', format: 'binary' },
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
                 imports: [],
                 schemas: [],
                 type: 'string',
@@ -605,7 +614,8 @@ describe('generateMSW', () => {
         mock: { preferredContentType: 'application/octet-stream' },
       } as unknown as GeneratorOptions);
 
-      // Should NOT force binary path — the object schema is not binary (no format: binary)
+      // Should NOT force binary path — the object schema is not binary (no
+      // octet-stream contentMediaType)
       expect(result.implementation.handler).not.toContain(
         'new HttpResponse(binaryBody',
       );
@@ -980,14 +990,20 @@ describe('generateMSW', () => {
                 key: '200',
                 value: 'Blob',
                 contentType: 'application/octet-stream',
-                originalSchema: { type: 'string', format: 'binary' },
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
                 imports: [],
               },
               {
                 key: '200',
                 value: 'Blob',
                 contentType: 'image/png',
-                originalSchema: { type: 'string', format: 'binary' },
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
                 imports: [],
               },
             ],
@@ -1778,7 +1794,7 @@ describe('arrayItems option', () => {
     target: 'test',
     workspace: '',
     spec: {
-      openapi: '3.0.3',
+      openapi: '3.1.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
       components: {
@@ -1899,7 +1915,7 @@ describe('strict mock types (#3525)', () => {
       properties: {
         id: { type: 'integer' },
         name: { type: 'string' },
-        tag: { type: 'string', nullable: true },
+        tag: { type: ['string', 'null'] },
       },
     },
     imports: [{ name: 'Pet', values: false }],
@@ -1942,7 +1958,7 @@ describe('strict mock types (#3525)', () => {
       target: 'test',
       workspace: '',
       spec: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: { title: 'Test', version: '1.0.0' },
         paths: {},
       },
@@ -2097,7 +2113,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
         target: 'test',
         workspace: '',
         spec: {
-          openapi: '3.0.0',
+          openapi: '3.1.0',
           info: { title: 'Test', version: '1.0.0' },
           paths: {},
           components: { schemas },
@@ -2166,8 +2182,10 @@ describe('recursion guards for cyclic allOf schemas', () => {
         properties: {
           kind: { type: 'string' },
           parent: {
-            allOf: [{ $ref: '#/components/schemas/XElement' }],
-            nullable: true,
+            anyOf: [
+              { $ref: '#/components/schemas/XElement' },
+              { type: 'null' },
+            ],
           },
         },
       },
@@ -2207,7 +2225,7 @@ describe('response status key safety', () => {
       target: 'test',
       workspace: '',
       spec: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: { title: 'Test', version: '1.0.0' },
         paths: {},
       },

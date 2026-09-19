@@ -48,7 +48,7 @@ const baseOptions = {
     target: 'test',
     workspace: '',
     spec: {
-      openapi: '3.0.0',
+      openapi: '3.1.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
     },
@@ -368,7 +368,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
             properties: {
               id: { type: 'integer' },
               name: { type: 'string' },
-              tag: { type: 'string', nullable: true },
+              tag: { type: ['string', 'null'] },
             },
           },
         },

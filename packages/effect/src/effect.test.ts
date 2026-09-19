@@ -215,8 +215,7 @@ describe('enums and literals', () => {
 describe('nullable and optional', () => {
   it('wraps with S.NullOr when nullable', () => {
     const { effect } = gen({
-      type: 'string',
-      nullable: true,
+      type: ['string', 'null'],
     } as OpenApiSchemaObject);
     expect(effect).toContain('S.NullOr(S.String)');
   });
@@ -249,7 +248,7 @@ describe('nullable and optional', () => {
   it('leaves a nullish property as S.optional even with exactOptional (nullish admits undefined; only .optional() narrows)', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      properties: { name: { type: 'string', nullable: true } },
+      properties: { name: { type: ['string', 'null'] } },
     };
     expect(gen(schema, { exactOptional: true }).effect).toContain(
       '"name": S.optional(S.NullOr(S.String))',
