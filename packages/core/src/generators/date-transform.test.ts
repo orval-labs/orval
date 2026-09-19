@@ -269,7 +269,7 @@ describe('buildDateTransformStatements', () => {
     ]);
   });
 
-  it('returns [] for date-free, oneOf, and circular schemas', () => {
+  it('returns [] for date-free and circular schemas', () => {
     const context = makeContext({
       Node: {
         type: 'object',
@@ -286,6 +286,22 @@ describe('buildDateTransformStatements', () => {
     ).toEqual([]);
     expect(
       buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  // Pinned against pre-fix behaviour: a bare `oneOf` with a single
+  // object-shaped variant and no discriminator at all used to return [] —
+  // the old rule skipped every undiscriminated union outright. The
+  // structural walk now converts it like any other single-variant union.
+  it('walks a bare oneOf with a single object variant structurally', () => {
+    const context = makeContext();
+
+    expect(
+      buildDateTransformStatements({
         schema: {
           oneOf: [
             {
@@ -297,14 +313,11 @@ describe('buildDateTransformStatements', () => {
         accessor: 'data',
         context,
       }),
-    ).toEqual([]);
-    expect(
-      buildDateTransformStatements({
-        schema: { $ref: '#/components/schemas/Node' },
-        accessor: 'data',
-        context,
-      }),
-    ).toEqual([]);
+    ).toEqual([
+      'if ("at" in data && data.at != null) {',
+      '  data.at = new Date(data.at);',
+      '}',
+    ]);
   });
 });
 
@@ -481,7 +494,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     ).toEqual([]);
   });
 
-  it('returns [] for oneOf with a discriminator but no mapping', () => {
+  it('walks a discriminator without a mapping structurally', () => {
     const context = makeUnionContext();
     const schema: OpenApiSchemaObject = {
       oneOf: [{ $ref: '#/components/schemas/Cat' }],
@@ -491,8 +504,16 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     };
 
     expect(
-      buildDateTransformStatements({ schema, accessor: 'data', context }),
-    ).toEqual([]);
+      buildDateTransformStatements({ schema, accessor: 'data', context }).join(
+        '\n',
+      ),
+    ).toBe(
+      [
+        'if ("vaccinatedAt" in data && data.vaccinatedAt != null) {',
+        '  data.vaccinatedAt = new Date(data.vaccinatedAt);',
+        '}',
+      ].join('\n'),
+    );
   });
 
   it('wraps a discriminated union nested under an optional property in the property guard', () => {
@@ -633,6 +654,1723 @@ describe('buildDateTransformStatements — discriminated unions', () => {
       '  }',
       '}',
     ]);
+  });
+});
+
+describe('buildDateTransformStatements — undiscriminated unions', () => {
+  const makeRecordContext = () =>
+    makeContext({
+      VisitRecord: {
+        type: 'object',
+        required: ['recordType', 'visitedOn'],
+        properties: {
+          recordType: { type: 'string', enum: ['visit'] },
+          visitedOn: { type: 'string', format: 'date' },
+          seenBy: { type: 'string' },
+        },
+      },
+      VisitSeriesRecord: {
+        type: 'object',
+        required: ['recordType', 'entries'],
+        properties: {
+          recordType: { type: 'string', enum: ['visit'] },
+          entries: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/VisitRecord' },
+          },
+        },
+      },
+      WeightRecord: {
+        type: 'object',
+        required: ['recordType', 'kilograms'],
+        properties: {
+          recordType: { type: 'string', enum: ['weight'] },
+          kilograms: { type: 'number' },
+        },
+      },
+      TreatmentRecord: {
+        type: 'object',
+        required: ['recordType', 'administeredAt'],
+        properties: {
+          recordType: { type: 'string', enum: ['treatment'] },
+          administeredAt: { type: 'string', format: 'date-time' },
+          visitedOn: { type: 'string', format: 'date' },
+        },
+      },
+      LegacyVisitRecord: {
+        type: 'object',
+        properties: {
+          visitedOn: { type: 'string', format: 'date-time' },
+          closedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ConflictVisitRecord: {
+        type: 'object',
+        properties: {
+          visitedOn: { type: 'string' },
+          closedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ArrayVisitRecord: {
+        type: 'object',
+        properties: {
+          visitedOn: {
+            type: 'array',
+            items: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    });
+
+  it('guards each variant property on its presence', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/VisitRecord' },
+          { $ref: '#/components/schemas/WeightRecord' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("visitedOn" in data && data.visitedOn != null) {',
+        '  data.visitedOn = new Date(data.visitedOn);',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits one block for a property two variants treat identically', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/VisitRecord' },
+          { $ref: '#/components/schemas/TreatmentRecord' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("visitedOn" in data && data.visitedOn != null) {',
+        '  data.visitedOn = new Date(data.visitedOn);',
+        '}',
+        'if ("administeredAt" in data && data.administeredAt != null) {',
+        '  data.administeredAt = new Date(data.administeredAt);',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('skips only the property whose variants disagree', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/LegacyVisitRecord' },
+          { $ref: '#/components/schemas/ConflictVisitRecord' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("closedAt" in data && data.closedAt != null) {',
+        '  data.closedAt = new Date(data.closedAt);',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // The comparator must catch disagreement even when BOTH variants produce
+  // non-empty statements for the property — not only the "one converts, one
+  // doesn't" case above. Here `visitedOn` is a scalar `date-time` in one
+  // variant and an array of `date-time` in the other: both convert, but to
+  // textually different code, so the property is still dropped.
+  it('drops a property when both variants convert it, but differently', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/LegacyVisitRecord' },
+          { $ref: '#/components/schemas/ArrayVisitRecord' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("closedAt" in data && data.closedAt != null) {',
+        '  data.closedAt = new Date(data.closedAt);',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('reaches dates nested in an array inside a variant', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/VisitSeriesRecord' },
+          { $ref: '#/components/schemas/WeightRecord' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("entries" in data && data.entries != null) {',
+        '  for (let i0 = 0; i0 < data.entries.length; i0++) {',
+        '    const item0 = data.entries[i0];',
+        '    item0.visitedOn = new Date(item0.visitedOn);',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('emits nothing when a variant is not object-shaped', () => {
+    const context = makeRecordContext();
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/VisitRecord' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+        },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('emits nothing when no variant carries a date', () => {
+    const context = makeRecordContext();
+    expect(
+      buildDateTransformStatements({
+        schema: { anyOf: [{ $ref: '#/components/schemas/WeightRecord' }] },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  it('walks a union used as a map value', () => {
+    const context = makeRecordContext();
+    const statements = buildDateTransformStatements({
+      schema: {
+        type: 'object',
+        additionalProperties: {
+          anyOf: [
+            { $ref: '#/components/schemas/VisitRecord' },
+            { $ref: '#/components/schemas/WeightRecord' },
+          ],
+        },
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'for (const key0 of Object.keys(data)) {',
+        '  const item0 = data[key0];',
+        '  if ("visitedOn" in item0 && item0.visitedOn != null) {',
+        '    item0.visitedOn = new Date(item0.visitedOn);',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // CRITICAL fix-round-1 regression, expectation corrected in fix-round-2: a
+  // variant resolved through a fresh, call-local `normalizeSchema` (rather
+  // than through the same `visitedRefs` bookkeeping `buildStatements` uses
+  // everywhere else) never registered its own `$ref`, so a variant that
+  // refers back to an ancestor already being walked resolved successfully
+  // every time and recursed forever — this schema overflowed the stack.
+  //
+  // The fix-round-1 patch stopped the overflow but returned a plain
+  // `emptyResult()` on the cycle, which only dropped the union itself
+  // (`child`) while leaving `at` converted — but the generated model types
+  // `child.at` as `Date` too, so a caller reading it would call
+  // `.toISOString()` on a string and throw at runtime. Every OTHER recursive
+  // shape in this file emits nothing for the WHOLE subtree once a cycle
+  // closes (see `'emits nothing for a recursive schema rather than
+  // converting only its first level'` below), and the discriminated-union
+  // spelling of this same schema (`buildMappedUnionStatements`, which
+  // propagates `inner.cyclicRefs`) already followed that rule — the
+  // structural path now does too: the cycle is signalled via `cyclicRefs`,
+  // so Node's own `buildStatements` call sees its own ref come back and
+  // drops `at` as well.
+  it('emits nothing for the whole schema when a union variant recursively refers back to an ancestor', () => {
+    const context = makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            anyOf: [
+              { $ref: '#/components/schemas/Node' },
+              { $ref: '#/components/schemas/Leaf' },
+            ],
+          },
+        },
+      },
+      Leaf: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    });
+
+    expect(() =>
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context,
+      }),
+    ).not.toThrow();
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+
+    // The discriminated-union spelling of the identical schema (mapping
+    // `child`'s two variants instead of leaving them undiscriminated) must
+    // agree: both are "a union variant recursively refers back to an
+    // ancestor," and both must drop the whole schema, not just the union.
+    const mappedContext = makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Node' },
+              { $ref: '#/components/schemas/Leaf' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                node: '#/components/schemas/Node',
+                leaf: '#/components/schemas/Leaf',
+              },
+            },
+          },
+        },
+      },
+      Leaf: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context: mappedContext,
+      }),
+    ).toEqual([]);
+  });
+
+  // ALSO FIX, fix-round-2: registering every variant's ref for the whole
+  // union body (rather than one at a time) made a reference from one
+  // variant to an unrelated SIBLING variant look identical to a genuine
+  // cycle — `Dog`'s ref was still active from resolving it as `anyOf`'s
+  // second member while `Cat.pal: { $ref: Dog }` was being walked, so
+  // `pal`'s conversion was silently dropped even though nothing here is
+  // recursive. This walked fine before the fix-round-1 amend; pinning it so
+  // it can't regress again.
+  it('walks a property that references a sibling variant of the same union', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        properties: {
+          vaccinatedOn: { type: 'string', format: 'date-time' },
+          pal: { $ref: '#/components/schemas/Dog' },
+        },
+      },
+      Dog: {
+        type: 'object',
+        properties: {
+          adoptedOn: { type: 'string', format: 'date-time' },
+        },
+      },
+    });
+
+    const statements = buildDateTransformStatements({
+      schema: {
+        anyOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if ("vaccinatedOn" in data && data.vaccinatedOn != null) {',
+        '  data.vaccinatedOn = new Date(data.vaccinatedOn);',
+        '}',
+        'if ("pal" in data && data.pal != null) {',
+        '  if (data.pal.adoptedOn != null) {',
+        '    data.pal.adoptedOn = new Date(data.pal.adoptedOn);',
+        '  }',
+        '}',
+        'if ("adoptedOn" in data && data.adoptedOn != null) {',
+        '  data.adoptedOn = new Date(data.adoptedOn);',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // IMPORTANT fix-round-3 regression: fix-round-2 restored the recursion
+  // rule for a variant referring DIRECTLY back to an ancestor, but two
+  // separate leaks still swallowed the `cyclicRefs` signal for every other
+  // shape of cycle, so the structural and mapped spellings of an otherwise
+  // identical schema could disagree — which is exactly the defect this
+  // whole area exists to prevent. All three regressions below assert
+  // equivalence between the two spellings directly, rather than only
+  // pinning a literal string, since that equivalence is the property that
+  // broke.
+  //
+  // Leak A: a cycle detected *below* a variant's own ref (not at the ref
+  // itself — here, one property removed, through a `Wrapper`) surfaced as
+  // an empty-statements result that still carried `cyclicRefs`, and the
+  // cross-variant comparator's early returns (`first.statements.length ===
+  // 0`, and the "variants disagree" branch) both discarded it by returning
+  // a fresh `emptyResult()` instead of propagating it.
+  it('emits nothing for the whole schema when a union variant refers back to an ancestor through an intermediate schema', () => {
+    const buildContext = () =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: {
+              anyOf: [
+                { $ref: '#/components/schemas/Wrapper' },
+                { $ref: '#/components/schemas/Leaf' },
+              ],
+            },
+          },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: '#/components/schemas/Node' } },
+        },
+        Leaf: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context: buildContext(),
+      }),
+    ).toEqual([]);
+
+    // The mapped spelling of the identical shape (`child` as `oneOf` +
+    // `discriminator.mapping` instead of a bare `anyOf`) must agree.
+    const mappedContext = makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/Leaf' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                leaf: '#/components/schemas/Leaf',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Node' } },
+      },
+      Leaf: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Node' },
+        accessor: 'data',
+        context: mappedContext,
+      }),
+    ).toEqual([]);
+  });
+
+  // Leak B: when the union itself is what registered the cyclic ref (a
+  // root-level union, or any union whose variant ref isn't already on an
+  // ancestor's stack), nobody above the union ever checks
+  // `cyclicRefs.has(ref)` for it — the ordinary `buildResolvedStatements`
+  // pairing of "register a ref, then check for it in the merged result" was
+  // only half-applied: the union registered the ref but never performed the
+  // matching check-and-drop for its own variants.
+  it('emits nothing for a root-level union whose own variant refers back to itself', () => {
+    const buildContext = () =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            self: { $ref: '#/components/schemas/Node' },
+          },
+        },
+        Leaf: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      });
+
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/Node' },
+            { $ref: '#/components/schemas/Leaf' },
+          ],
+        },
+        accessor: 'data',
+        context: buildContext(),
+      }),
+    ).toEqual([]);
+
+    // The mapped spelling of the identical root union must agree.
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          oneOf: [
+            { $ref: '#/components/schemas/Node' },
+            { $ref: '#/components/schemas/Leaf' },
+          ],
+          discriminator: {
+            propertyName: 'kind',
+            mapping: {
+              node: '#/components/schemas/Node',
+              leaf: '#/components/schemas/Leaf',
+            },
+          },
+        },
+        accessor: 'data',
+        context: buildContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  // Both leaks together: A and B are mutually recursive through each other
+  // (not self-referential individually), so neither the ancestor-registers
+  // path nor the union-registers-its-own-ref path alone would have caught
+  // this — both fixes are needed, or this over-converts (before the fix,
+  // this schema converted `data.x.at` AND `data.at`, neither of which is
+  // safe once the model's declared type is considered).
+  it('emits nothing for a root-level union of mutually recursive variants', () => {
+    const buildContext = () =>
+      makeContext({
+        A: {
+          type: 'object',
+          properties: { x: { $ref: '#/components/schemas/B' } },
+        },
+        B: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            a: { $ref: '#/components/schemas/A' },
+          },
+        },
+      });
+
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/A' },
+            { $ref: '#/components/schemas/B' },
+          ],
+        },
+        accessor: 'data',
+        context: buildContext(),
+      }),
+    ).toEqual([]);
+
+    // The mapped spelling of the identical root union must agree.
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          oneOf: [
+            { $ref: '#/components/schemas/A' },
+            { $ref: '#/components/schemas/B' },
+          ],
+          discriminator: {
+            propertyName: 'kind',
+            mapping: {
+              a: '#/components/schemas/A',
+              b: '#/components/schemas/B',
+            },
+          },
+        },
+        accessor: 'data',
+        context: buildContext(),
+      }),
+    ).toEqual([]);
+  });
+
+  // IMPORTANT fix-round-1 regression: `isObjectVariant` resolved a variant's
+  // `$ref` unguarded, so a variant pointing at a schema that doesn't exist
+  // threw out of `buildDateTransformStatements` (and every caller, none of
+  // which catch). An unresolvable variant must mean the union — like a
+  // discriminated union's own unresolvable mapping target — contributes
+  // nothing, not that generation dies.
+  it('emits nothing rather than throwing when a variant ref is unresolvable', () => {
+    const context = makeRecordContext();
+
+    expect(() =>
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/VisitRecord' },
+            { $ref: '#/components/schemas/DoesNotExist' },
+          ],
+        },
+        accessor: 'data',
+        context,
+      }),
+    ).not.toThrow();
+
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/VisitRecord' },
+            { $ref: '#/components/schemas/DoesNotExist' },
+          ],
+        },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  // IMPORTANT fix-round-1 ruling: an `allOf` variant's inherited properties
+  // are never merged into `.properties` by the key-collection step, so
+  // admitting it here would silently under-convert instead of correctly
+  // disqualifying the union. `isObjectVariant` now requires own `properties`,
+  // so any `allOf` variant disqualifies the whole union — exactly the
+  // pre-structural-walk behaviour for these unions, hence no regression.
+  it('disqualifies the union when a variant is allOf-shaped rather than a plain object', () => {
+    const context = makeContext({
+      Base: {
+        type: 'object',
+        required: ['visitedOn'],
+        properties: { visitedOn: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { allOf: [{ $ref: '#/components/schemas/Base' }] },
+            {
+              type: 'object',
+              properties: { on: { type: 'string', format: 'date' } },
+            },
+          ],
+        },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  // ALSO FIX fix-round-2, regression guard added fix-round-3: the previous
+  // test for "not object-shaped" uses a pure array variant (`type: 'array'`,
+  // no `properties`), which `hasOwnProperties` alone already rejects — that
+  // test would still pass even with the `items`/`type: 'array'`
+  // short-circuit deleted from `isObjectVariant`. This variant declares BOTH
+  // `items` and `properties`, so only the short-circuit itself (checked
+  // before `hasOwnProperties`) disqualifies it.
+  it('disqualifies the union when a variant declares both items and properties', () => {
+    const context = makeContext({
+      WeightRecord: {
+        type: 'object',
+        required: ['recordType', 'kilograms'],
+        properties: {
+          recordType: { type: 'string', enum: ['weight'] },
+          kilograms: { type: 'number' },
+        },
+      },
+    });
+
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/WeightRecord' },
+            {
+              type: 'array',
+              items: { type: 'string' },
+              properties: { at: { type: 'string', format: 'date-time' } },
+            } as OpenApiSchemaObject,
+          ],
+        },
+        accessor: 'data',
+        context,
+      }),
+    ).toEqual([]);
+  });
+
+  // ---------------------------------------------------------------------
+  // Fix round 4: every exit of the union walk must carry what it already
+  // learned.
+  //
+  // Three early returns in the variant loop used to abandon the union
+  // mid-walk and return a result built from nothing but the variant that
+  // tripped them — an unresolvable sibling, a non-object sibling, or a
+  // sibling whose ref an ancestor was already expanding — discarding every
+  // `cyclicRefs` entry the variants walked before it had collected. And
+  // when the tripping variant came FIRST, the cycle reachable only through
+  // a later variant was never discovered at all, so the same shape
+  // converted or didn't depending on the order the spec happened to list
+  // its variants in. Both orderings are asserted in each test below for
+  // that reason.
+  //
+  // In all four shapes an ancestor (`Node`, or `Outer`) is recursive
+  // through one variant, so the standing rule covers the whole schema:
+  // emit nothing rather than convert the levels above the cycle and leave
+  // the deeper dates as strings while the generated model types them
+  // `Date`. The discriminated-with-mapping spelling is the reference
+  // implementation of that rule, so each test asserts that spelling of the
+  // same cycle beside the structural one — and, so that `[]` can never be
+  // mistaken for "nothing here could ever convert", asserts that the same
+  // mapped union with the cycle broken does emit a real switch.
+  // ---------------------------------------------------------------------
+
+  const nodeStatements = (context: ContextSpec) =>
+    buildDateTransformStatements({
+      schema: { $ref: '#/components/schemas/Node' },
+      accessor: 'data',
+      context,
+    });
+
+  // `child`'s cycle-carrying variant spelled with a discriminator mapping
+  // instead of walked structurally. Its sibling is a named object schema
+  // because a mapping key can only target one — the sibling's shape is what
+  // the structural walk trips over, not what makes the schema unsafe, and
+  // the cycle both spellings have to find, `Wrapper.back` -> `Node`, is
+  // identical.
+  const makeMappedCyclicNodeContext = () =>
+    makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/Plain' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                plain: '#/components/schemas/Plain',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Node' } },
+      },
+      Plain: {
+        type: 'object',
+        properties: { seenAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+  // The same mapped union with the cycle broken — `Wrapper.back` points at
+  // the date-carrying `Plain` instead of back at `Node` — and nothing else
+  // changed. Every `[]` below is the cycle's doing, not an inert schema.
+  const makeMappedAcyclicNodeContext = () =>
+    makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/Plain' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                plain: '#/components/schemas/Plain',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Plain' } },
+      },
+      Plain: {
+        type: 'object',
+        properties: { seenAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+  const mappedAcyclicNodeOutput = [
+    'if (data.at != null) {',
+    '  data.at = new Date(data.at);',
+    '}',
+    'if (data.child != null) {',
+    '  switch (data.child.kind) {',
+    '    case "wrapper": {',
+    '      if (data.child.back != null) {',
+    '        if (data.child.back.seenAt != null) {',
+    '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+    '        }',
+    '      }',
+    '      break;',
+    '    }',
+    '    case "plain": {',
+    '      if (data.child.seenAt != null) {',
+    '        data.child.seenAt = new Date(data.child.seenAt);',
+    '      }',
+    '      break;',
+    '    }',
+    '  }',
+    '}',
+  ].join('\n');
+
+  it('emits nothing when a cycle sits behind one variant and a scalar variant disqualifies the union', () => {
+    const makeScalarSiblingContext = (
+      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+    ) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: variants },
+          },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: '#/components/schemas/Node' } },
+        },
+      });
+
+    // Walking `Wrapper` collects the `Node` cycle; the scalar sibling then
+    // disqualifies the union. The cycle has to survive that either way
+    // round, so `data.at` — typed `Date` at every depth of the recursion —
+    // is never converted on its own.
+    expect(
+      nodeStatements(
+        makeScalarSiblingContext([
+          { $ref: '#/components/schemas/Wrapper' },
+          { type: 'string' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeScalarSiblingContext([
+          { type: 'string' },
+          { $ref: '#/components/schemas/Wrapper' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(nodeStatements(makeMappedCyclicNodeContext())).toEqual([]);
+
+    expect(nodeStatements(makeMappedAcyclicNodeContext()).join('\n')).toBe(
+      mappedAcyclicNodeOutput,
+    );
+  });
+
+  it('emits nothing when a cycle sits behind one variant and an array variant disqualifies the union', () => {
+    const makeArraySiblingContext = (
+      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+    ) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: variants },
+          },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: '#/components/schemas/Node' } },
+        },
+      });
+
+    expect(
+      nodeStatements(
+        makeArraySiblingContext([
+          { $ref: '#/components/schemas/Wrapper' },
+          { type: 'array', items: { type: 'string' } },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeArraySiblingContext([
+          { type: 'array', items: { type: 'string' } },
+          { $ref: '#/components/schemas/Wrapper' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(nodeStatements(makeMappedCyclicNodeContext())).toEqual([]);
+
+    expect(nodeStatements(makeMappedAcyclicNodeContext()).join('\n')).toBe(
+      mappedAcyclicNodeOutput,
+    );
+  });
+
+  it('emits nothing when a cycle sits behind one variant and an unresolvable variant disqualifies the union', () => {
+    const makeBrokenSiblingContext = (
+      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+    ) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: variants },
+          },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: '#/components/schemas/Node' } },
+        },
+      });
+
+    expect(
+      nodeStatements(
+        makeBrokenSiblingContext([
+          { $ref: '#/components/schemas/Wrapper' },
+          { $ref: '#/components/schemas/DoesNotExist' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeBrokenSiblingContext([
+          { $ref: '#/components/schemas/DoesNotExist' },
+          { $ref: '#/components/schemas/Wrapper' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    // Here the mapped spelling is the identical schema, mapping the very
+    // same two variants: the broken target is skipped, the good one finds
+    // the cycle, and the whole schema drops.
+    const mappedContext = makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/DoesNotExist' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                gone: '#/components/schemas/DoesNotExist',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Node' } },
+      },
+    });
+
+    expect(nodeStatements(mappedContext)).toEqual([]);
+
+    // Same mapped schema, cycle broken (`Wrapper.back` -> `Plain`), broken
+    // mapping target left in place: a real switch, with the one resolvable
+    // case in it.
+    const acyclicMappedContext = makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/DoesNotExist' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                gone: '#/components/schemas/DoesNotExist',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Plain' } },
+      },
+      Plain: {
+        type: 'object',
+        properties: { seenAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+    expect(nodeStatements(acyclicMappedContext).join('\n')).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "wrapper": {',
+        '      if (data.child.back != null) {',
+        '        if (data.child.back.seenAt != null) {',
+        '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+        '        }',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('reports a cycle closing on a further-out ancestor when another variant is the nearer ancestor ref', () => {
+    // `Node` is a variant of its own union, so walking that variant hands
+    // back `Node` — which `Node` itself then consumes. The cycle that
+    // matters is the other one: `Wrapper.back` -> `Outer`, two levels out.
+    // Returning only `{ Node }` from the variant loop left `Outer`
+    // converting `oat` while everything under `node` stayed a string.
+    const makeOuterContext = (
+      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+    ) =>
+      makeContext({
+        Outer: {
+          type: 'object',
+          properties: {
+            oat: { type: 'string', format: 'date-time' },
+            node: { $ref: '#/components/schemas/Node' },
+          },
+        },
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: variants },
+          },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: '#/components/schemas/Outer' } },
+        },
+      });
+
+    const outerStatements = (context: ContextSpec) =>
+      buildDateTransformStatements({
+        schema: { $ref: '#/components/schemas/Outer' },
+        accessor: 'data',
+        context,
+      });
+
+    expect(
+      outerStatements(
+        makeOuterContext([
+          { $ref: '#/components/schemas/Wrapper' },
+          { $ref: '#/components/schemas/Node' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(
+      outerStatements(
+        makeOuterContext([
+          { $ref: '#/components/schemas/Node' },
+          { $ref: '#/components/schemas/Wrapper' },
+        ]),
+      ),
+    ).toEqual([]);
+
+    // The identical schema with `child` spelled as a mapped union.
+    const mappedContext = makeContext({
+      Outer: {
+        type: 'object',
+        properties: {
+          oat: { type: 'string', format: 'date-time' },
+          node: { $ref: '#/components/schemas/Node' },
+        },
+      },
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/Node' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                node: '#/components/schemas/Node',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Outer' } },
+      },
+    });
+
+    expect(outerStatements(mappedContext)).toEqual([]);
+
+    // Both cycles broken — `Wrapper.back` -> `Plain` and the self-mapped
+    // `Node` case replaced by `Plain` — and the same mapped union emits a
+    // real switch three levels deep.
+    const acyclicMappedContext = makeContext({
+      Outer: {
+        type: 'object',
+        properties: {
+          oat: { type: 'string', format: 'date-time' },
+          node: { $ref: '#/components/schemas/Node' },
+        },
+      },
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: {
+            oneOf: [
+              { $ref: '#/components/schemas/Wrapper' },
+              { $ref: '#/components/schemas/Plain' },
+            ],
+            discriminator: {
+              propertyName: 'kind',
+              mapping: {
+                wrapper: '#/components/schemas/Wrapper',
+                plain: '#/components/schemas/Plain',
+              },
+            },
+          },
+        },
+      },
+      Wrapper: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Plain' } },
+      },
+      Plain: {
+        type: 'object',
+        properties: { seenAt: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+    expect(outerStatements(acyclicMappedContext).join('\n')).toBe(
+      [
+        'if (data.oat != null) {',
+        '  data.oat = new Date(data.oat);',
+        '}',
+        'if (data.node != null) {',
+        '  if (data.node.at != null) {',
+        '    data.node.at = new Date(data.node.at);',
+        '  }',
+        '  if (data.node.child != null) {',
+        '    switch (data.node.child.kind) {',
+        '      case "wrapper": {',
+        '        if (data.node.child.back != null) {',
+        '          if (data.node.child.back.seenAt != null) {',
+        '            data.node.child.back.seenAt = new Date(data.node.child.back.seenAt);',
+        '          }',
+        '        }',
+        '        break;',
+        '      }',
+        '      case "plain": {',
+        '        if (data.node.child.seenAt != null) {',
+        '          data.node.child.seenAt = new Date(data.node.child.seenAt);',
+        '        }',
+        '        break;',
+        '      }',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('walks a disqualifying variant anyway, so a cycle only it can reach still drops the schema', () => {
+    // The one variant is both array- and object-shaped, which disqualifies
+    // the union outright — but its `properties` are where the cycle back to
+    // `Node` lives. Judging the variant and walking it have to be separate
+    // steps for this to be found at all: a walk that skipped every variant
+    // it had already disqualified would convert `data.at` and leave
+    // `data.child.back.at`, typed `Date` by the model, a string.
+    const makeHybridContext = (back: string) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: [{ $ref: '#/components/schemas/Hybrid' }] },
+          },
+        },
+        Hybrid: {
+          type: 'array',
+          items: { type: 'string' },
+          properties: { back: { $ref: back } },
+        } as OpenApiSchemaObject,
+        Plain: {
+          type: 'object',
+          properties: { seenAt: { type: 'string', format: 'date-time' } },
+        },
+      });
+
+    expect(
+      nodeStatements(makeHybridContext('#/components/schemas/Node')),
+    ).toEqual([]);
+
+    // The mapped spelling of the identical schema agrees: it walks the
+    // mapping target whatever shape it is, finds the same cycle, and drops
+    // the whole schema.
+    const makeMappedHybridContext = (back: string) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: {
+              oneOf: [{ $ref: '#/components/schemas/Hybrid' }],
+              discriminator: {
+                propertyName: 'kind',
+                mapping: { hybrid: '#/components/schemas/Hybrid' },
+              },
+            },
+          },
+        },
+        Hybrid: {
+          type: 'array',
+          items: { type: 'string' },
+          properties: { back: { $ref: back } },
+        } as OpenApiSchemaObject,
+        Plain: {
+          type: 'object',
+          properties: { seenAt: { type: 'string', format: 'date-time' } },
+        },
+      });
+
+    expect(
+      nodeStatements(makeMappedHybridContext('#/components/schemas/Node')),
+    ).toEqual([]);
+
+    // Cycle broken, everything else identical: a real switch.
+    expect(
+      nodeStatements(
+        makeMappedHybridContext('#/components/schemas/Plain'),
+      ).join('\n'),
+    ).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "hybrid": {',
+        '      if (data.child.back != null) {',
+        '        if (data.child.back.seenAt != null) {',
+        '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+        '        }',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it("emits nothing when the only path to a cycle runs through a disqualifying variant's items", () => {
+    // The array variant disqualifies the union, and the cycle back to `Node`
+    // is inside that variant's `items` — a place the per-property walk never
+    // reads. A disqualified union emits nothing either way, so it walks its
+    // variants the way the mapped spelling does (statements discarded, refs
+    // kept); without that, `data.at` converted while every `back.at` under
+    // `data.child`, typed `Date` by the model, stayed a string.
+    const makeItemsCycleContext = (
+      back: string,
+      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+    ) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: { anyOf: variants },
+          },
+        },
+        Obj: {
+          type: 'object',
+          properties: { seenAt: { type: 'string', format: 'date-time' } },
+        },
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: back } },
+        },
+        Plain: {
+          type: 'object',
+          properties: { pickedAt: { type: 'string', format: 'date-time' } },
+        },
+      });
+
+    const objVariant = { $ref: '#/components/schemas/Obj' };
+    const arrayVariant = {
+      type: 'array',
+      items: { $ref: '#/components/schemas/Wrapper' },
+    } as OpenApiSchemaObject;
+
+    expect(
+      nodeStatements(
+        makeItemsCycleContext('#/components/schemas/Node', [
+          objVariant,
+          arrayVariant,
+        ]),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeItemsCycleContext('#/components/schemas/Node', [
+          arrayVariant,
+          objVariant,
+        ]),
+      ),
+    ).toEqual([]);
+
+    // Same schema, cycle broken (`Wrapper.back` -> `Plain`): the union is
+    // still disqualified and still contributes nothing, but `data.at`
+    // converts again — so the `[]` above is the cycle's doing, not the
+    // disqualification's.
+    expect(
+      nodeStatements(
+        makeItemsCycleContext('#/components/schemas/Plain', [
+          objVariant,
+          arrayVariant,
+        ]),
+      ).join('\n'),
+    ).toBe(
+      ['if (data.at != null) {', '  data.at = new Date(data.at);', '}'].join(
+        '\n',
+      ),
+    );
+
+    // The identical schema with `child` spelled as a mapped union: the array
+    // variant becomes a named schema, which is the only difference.
+    const makeMappedItemsCycleContext = (back: string) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            child: {
+              oneOf: [
+                { $ref: '#/components/schemas/Obj' },
+                { $ref: '#/components/schemas/Arr' },
+              ],
+              discriminator: {
+                propertyName: 'kind',
+                mapping: {
+                  obj: '#/components/schemas/Obj',
+                  arr: '#/components/schemas/Arr',
+                },
+              },
+            },
+          },
+        },
+        Obj: {
+          type: 'object',
+          properties: { seenAt: { type: 'string', format: 'date-time' } },
+        },
+        Arr: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Wrapper' },
+        } as OpenApiSchemaObject,
+        Wrapper: {
+          type: 'object',
+          properties: { back: { $ref: back } },
+        },
+        Plain: {
+          type: 'object',
+          properties: { pickedAt: { type: 'string', format: 'date-time' } },
+        },
+      });
+
+    expect(
+      nodeStatements(makeMappedItemsCycleContext('#/components/schemas/Node')),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeMappedItemsCycleContext('#/components/schemas/Plain'),
+      ).join('\n'),
+    ).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "obj": {',
+        '      if (data.child.seenAt != null) {',
+        '        data.child.seenAt = new Date(data.child.seenAt);',
+        '      }',
+        '      break;',
+        '    }',
+        '    case "arr": {',
+        '      for (let i0 = 0; i0 < data.child.length; i0++) {',
+        '        const item0 = data.child[i0];',
+        '        if (item0.back != null) {',
+        '          if (item0.back.pickedAt != null) {',
+        '            item0.back.pickedAt = new Date(item0.back.pickedAt);',
+        '          }',
+        '        }',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // ---------------------------------------------------------------------
+  // Fix round 5: detect the cycle without converting.
+  //
+  // A variant that declares its own `properties` is *admitted* — the union
+  // is not disqualified and does convert — but the per-property walk reads
+  // `variantSchema.properties` and nothing else, so an `allOf` branch or a
+  // nested union sitting beside those properties is never looked at. A
+  // cycle hiding there was invisible to this spelling while the mapped
+  // spelling of the same schema walked the branch, found it and dropped the
+  // whole subtree. Those branches are now walked for their refs alone,
+  // their statements discarded: the union stops converting when a cycle is
+  // reachable through a branch it may not convert, and keeps converting its
+  // own properties when there is none — `Base.inherited` below is never
+  // converted by this spelling either way, which is the standing ruling
+  // that an `allOf` variant's properties are not merged.
+  // ---------------------------------------------------------------------
+
+  const unwalkedBranchUnions = {
+    structural: {
+      anyOf: [
+        { $ref: '#/components/schemas/V1' },
+        { $ref: '#/components/schemas/V2' },
+      ],
+    } as OpenApiSchemaObject,
+    mapped: {
+      oneOf: [
+        { $ref: '#/components/schemas/V1' },
+        { $ref: '#/components/schemas/V2' },
+      ],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          v1: '#/components/schemas/V1',
+          v2: '#/components/schemas/V2',
+        },
+      },
+    } as OpenApiSchemaObject,
+  };
+
+  // `V1` is the admitted variant carrying the unwalked branch; the branch
+  // points at `Cyc` (which closes a cycle back to `Node`) or at `Base`
+  // (which does not).
+  const makeUnwalkedBranchContext = (
+    union: OpenApiSchemaObject,
+    v1: OpenApiSchemaObject,
+  ) =>
+    makeContext({
+      Node: {
+        type: 'object',
+        properties: {
+          at: { type: 'string', format: 'date-time' },
+          child: union,
+        },
+      },
+      V1: v1,
+      V2: {
+        type: 'object',
+        properties: { p: { type: 'string', format: 'date-time' } },
+      },
+      Cyc: {
+        type: 'object',
+        properties: { back: { $ref: '#/components/schemas/Node' } },
+      },
+      Base: {
+        type: 'object',
+        properties: { inherited: { type: 'string', format: 'date-time' } },
+      },
+    });
+
+  const convertsNodeAndVariantProperty = [
+    'if (data.at != null) {',
+    '  data.at = new Date(data.at);',
+    '}',
+    'if (data.child != null) {',
+    '  if ("p" in data.child && data.child.p != null) {',
+    '    data.child.p = new Date(data.child.p);',
+    '  }',
+    '}',
+  ].join('\n');
+
+  it("emits nothing when a cycle is reachable only through an admitted variant's allOf branch", () => {
+    const v1 = (branch: string): OpenApiSchemaObject => ({
+      type: 'object',
+      properties: { p: { type: 'string', format: 'date-time' } },
+      allOf: [{ $ref: branch }],
+    });
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.structural,
+          v1('#/components/schemas/Cyc'),
+        ),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.mapped,
+          v1('#/components/schemas/Cyc'),
+        ),
+      ),
+    ).toEqual([]);
+
+    // Cycle removed, nothing else changed: the mapped spelling emits a real
+    // switch (and converts the `allOf`-inherited property, which is its
+    // business, not this spelling's)…
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.mapped,
+          v1('#/components/schemas/Base'),
+        ),
+      ).join('\n'),
+    ).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "v1": {',
+        '      if (data.child.inherited != null) {',
+        '        data.child.inherited = new Date(data.child.inherited);',
+        '      }',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '    case "v2": {',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+
+    // …and the structural spelling goes back to converting the union's own
+    // declared properties, while still never converting `inherited`: the
+    // branch is read for cycles, never for statements.
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.structural,
+          v1('#/components/schemas/Base'),
+        ),
+      ).join('\n'),
+    ).toBe(convertsNodeAndVariantProperty);
+  });
+
+  it("emits nothing when a cycle is reachable only through a nested union beside a variant's own properties", () => {
+    const v1 = (branch: string): OpenApiSchemaObject => ({
+      type: 'object',
+      properties: { p: { type: 'string', format: 'date-time' } },
+      anyOf: [{ $ref: branch }],
+    });
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.structural,
+          v1('#/components/schemas/Cyc'),
+        ),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.mapped,
+          v1('#/components/schemas/Cyc'),
+        ),
+      ),
+    ).toEqual([]);
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.mapped,
+          v1('#/components/schemas/Base'),
+        ),
+      ).join('\n'),
+    ).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "v1": {',
+        '      if ("inherited" in data.child && data.child.inherited != null) {',
+        '        data.child.inherited = new Date(data.child.inherited);',
+        '      }',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '    case "v2": {',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(
+          unwalkedBranchUnions.structural,
+          v1('#/components/schemas/Base'),
+        ),
+      ).join('\n'),
+    ).toBe(convertsNodeAndVariantProperty);
+  });
+
+  it('keeps converting an admitted variant whose additionalProperties hide a cycle, exactly as the mapped spelling does', () => {
+    // Rule 1 suppresses a map that sits beside declared properties for every
+    // path in this file, the mapped spelling included, so neither spelling
+    // ever walks these values and neither sees the cycle under them. They
+    // agree, which is the property this walk is responsible for; pinning it
+    // so a later "detect everywhere" change cannot make this spelling alone
+    // start dropping the schema without the disagreement being noticed.
+    const v1: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { p: { type: 'string', format: 'date-time' } },
+      additionalProperties: { $ref: '#/components/schemas/Cyc' },
+    };
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(unwalkedBranchUnions.structural, v1),
+      ).join('\n'),
+    ).toBe(convertsNodeAndVariantProperty);
+
+    expect(
+      nodeStatements(
+        makeUnwalkedBranchContext(unwalkedBranchUnions.mapped, v1),
+      ).join('\n'),
+    ).toBe(
+      [
+        'if (data.at != null) {',
+        '  data.at = new Date(data.at);',
+        '}',
+        'if (data.child != null) {',
+        '  switch (data.child.kind) {',
+        '    case "v1": {',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '    case "v2": {',
+        '      if (data.child.p != null) {',
+        '        data.child.p = new Date(data.child.p);',
+        '      }',
+        '      break;',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
   });
 });
 
@@ -1134,7 +2872,12 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ]);
   });
 
-  it('emits nothing for a map whose values are an undiscriminated union', () => {
+  // Pinned against pre-fix behaviour: an undiscriminated union used to
+  // contribute nothing at all. Each variant here declares a different,
+  // non-overlapping property, so both convert — each guarded by its own
+  // presence check, exactly as a property only one variant declares does
+  // wherever it appears in the structural walk.
+  it('walks a map whose values are an undiscriminated union structurally', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
@@ -1162,7 +2905,19 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         accessor: 'data',
         context: makeContext(),
       }),
-    ).toEqual([]);
+    ).toEqual([
+      'if (data.pets != null) {',
+      '  for (const key0 of Object.keys(data.pets)) {',
+      '    const item0 = data.pets[key0];',
+      '    if ("at" in item0 && item0.at != null) {',
+      '      item0.at = new Date(item0.at);',
+      '    }',
+      '    if ("on" in item0 && item0.on != null) {',
+      '      item0.on = new Date(item0.on);',
+      '    }',
+      '  }',
+      '}',
+    ]);
   });
 
   it('suppresses the map when a oneOf/discriminator union sits beside additionalProperties, leaving the switch unaffected', () => {
@@ -2714,7 +4469,10 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
     );
   });
 
-  it('emits nothing for a map whose values are an undiscriminated union', () => {
+  // Pinned against pre-fix behaviour: see the response-direction rewrite of
+  // this test above. Both variants declare a different date-only property,
+  // so both now serialize, each guarded by its own presence check.
+  it('walks a map whose values are an undiscriminated union structurally', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
@@ -2742,7 +4500,22 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         accessor: 'copy',
         context: makeContext(),
       }),
-    ).toEqual([]);
+    ).toEqual([
+      'if (copy.pets != null) {',
+      '  copy.pets = { ...copy.pets };',
+      '  for (const key0 of Object.keys(copy.pets)) {',
+      '    let value0 = copy.pets[key0];',
+      '    value0 = { ...value0 };',
+      '    if ("at" in value0 && value0.at != null) {',
+      '      value0.at = value0.at instanceof Date ? (value0.at.toISOString().slice(0, 10) as unknown as Date) : value0.at;',
+      '    }',
+      '    if ("on" in value0 && value0.on != null) {',
+      '      value0.on = value0.on instanceof Date ? (value0.on.toISOString().slice(0, 10) as unknown as Date) : value0.on;',
+      '    }',
+      '    copy.pets[key0] = value0;',
+      '  }',
+      '}',
+    ]);
   });
 
   it('suppresses the map when a oneOf/discriminator union sits beside additionalProperties, leaving the switch unaffected', () => {
@@ -3395,6 +5168,111 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
   });
 });
 
+// CRITICAL fix-round-1 regression: an undiscriminated union that writes into
+// the accessor's own properties must get the same defensive copy a
+// discriminated union already gets (`needsObjectCopy` also true for
+// `schema.oneOf`/`schema.anyOf`, not just `schema.discriminator`). Without
+// it, the generated request serializer wrote straight into the caller's own
+// object, silently turning their `Date` into a string in place. The map-value
+// case is pinned above (`'walks a map whose values are an undiscriminated
+// union structurally'`); these two pin the other two nested positions.
+describe('buildRequestDateSerializeStatements — undiscriminated unions need a defensive copy', () => {
+  it('copies an object property before an undiscriminated union writes into it', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        properties: { vaccinatedOn: { type: 'string', format: 'date' } },
+      },
+      Dog: {
+        type: 'object',
+        properties: { adoptedOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        pet: {
+          anyOf: [
+            { $ref: '#/components/schemas/Cat' },
+            { $ref: '#/components/schemas/Dog' },
+          ],
+        },
+      },
+    };
+
+    const statements = buildRequestDateSerializeStatements({
+      schema,
+      accessor: 'copy',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if (copy.pet != null) {',
+        '  copy.pet = { ...copy.pet };',
+        '  if ("vaccinatedOn" in copy.pet && copy.pet.vaccinatedOn != null) {',
+        '    copy.pet.vaccinatedOn = copy.pet.vaccinatedOn instanceof Date ? (copy.pet.vaccinatedOn.toISOString().slice(0, 10) as unknown as Date) : copy.pet.vaccinatedOn;',
+        '  }',
+        '  if ("adoptedOn" in copy.pet && copy.pet.adoptedOn != null) {',
+        '    copy.pet.adoptedOn = copy.pet.adoptedOn instanceof Date ? (copy.pet.adoptedOn.toISOString().slice(0, 10) as unknown as Date) : copy.pet.adoptedOn;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('copies each array item before an undiscriminated union writes into it', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        properties: { vaccinatedOn: { type: 'string', format: 'date' } },
+      },
+      Dog: {
+        type: 'object',
+        properties: { adoptedOn: { type: 'string', format: 'date' } },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        pets: {
+          type: 'array',
+          items: {
+            anyOf: [
+              { $ref: '#/components/schemas/Cat' },
+              { $ref: '#/components/schemas/Dog' },
+            ],
+          },
+        },
+      },
+    };
+
+    const statements = buildRequestDateSerializeStatements({
+      schema,
+      accessor: 'copy',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if (copy.pets != null) {',
+        '  copy.pets = copy.pets.map((item0) => {',
+        '    let value0 = item0;',
+        '    value0 = { ...value0 };',
+        '    if ("vaccinatedOn" in value0 && value0.vaccinatedOn != null) {',
+        '      value0.vaccinatedOn = value0.vaccinatedOn instanceof Date ? (value0.vaccinatedOn.toISOString().slice(0, 10) as unknown as Date) : value0.vaccinatedOn;',
+        '    }',
+        '    if ("adoptedOn" in value0 && value0.adoptedOn != null) {',
+        '      value0.adoptedOn = value0.adoptedOn instanceof Date ? (value0.adoptedOn.toISOString().slice(0, 10) as unknown as Date) : value0.adoptedOn;',
+        '    }',
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+});
+
 const makeJsonBody = (
   schema: OpenApiSchemaObject,
   definition = 'Item',
@@ -3429,6 +5307,55 @@ describe('generateRequestDateSerializer', () => {
   if (data == null) return data;
   const copy = { ...data };
   copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;
+  return copy;
+};
+`,
+    );
+  });
+
+  // CRITICAL fix-round-2 coverage: the root position is the fourth place an
+  // undiscriminated union's writes need a defensive copy (map value, array
+  // item and object property are pinned elsewhere) — `needsObjectCopy(schema,
+  // context)` governs this `declaration` line too, so `data` itself must be
+  // shallow-copied into `copy` before the union writes into it, exactly as a
+  // root-level discriminated union already gets.
+  it('copies the root object before a root-level undiscriminated union writes into it', () => {
+    const context = makeContext({
+      Cat: {
+        type: 'object',
+        properties: { vaccinatedOn: { type: 'string', format: 'date' } },
+      },
+      Dog: {
+        type: 'object',
+        properties: { adoptedOn: { type: 'string', format: 'date' } },
+      },
+    });
+
+    const result = generateRequestDateSerializer({
+      operationName: 'putPet',
+      body: makeJsonBody(
+        {
+          anyOf: [
+            { $ref: '#/components/schemas/Cat' },
+            { $ref: '#/components/schemas/Dog' },
+          ],
+        },
+        'Pet',
+      ),
+      context,
+    });
+
+    expect(result?.name).toBe('serializePutPetRequest');
+    expect(result?.implementation).toBe(
+      `const serializePutPetRequest = (data: Pet): Pet => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if ("vaccinatedOn" in copy && copy.vaccinatedOn != null) {
+    copy.vaccinatedOn = copy.vaccinatedOn instanceof Date ? (copy.vaccinatedOn.toISOString().slice(0, 10) as unknown as Date) : copy.vaccinatedOn;
+  }
+  if ("adoptedOn" in copy && copy.adoptedOn != null) {
+    copy.adoptedOn = copy.adoptedOn instanceof Date ? (copy.adoptedOn.toISOString().slice(0, 10) as unknown as Date) : copy.adoptedOn;
+  }
   return copy;
 };
 `,
