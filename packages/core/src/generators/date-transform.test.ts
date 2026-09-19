@@ -4251,3 +4251,40 @@ describe('response direction — required container guards', () => {
     expect(fn(input)).toEqual({});
   });
 });
+
+describe('buildDateTransformStatements — property guards are unchanged', () => {
+  it('leaves a required non-nullable date leaf unguarded', () => {
+    const context = makeContext({});
+    const statements = buildDateTransformStatements({
+      schema: {
+        type: 'object',
+        required: ['seenOn'],
+        properties: { seenOn: { type: 'string', format: 'date-time' } },
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe('data.seenOn = new Date(data.seenOn);');
+  });
+
+  it('guards an optional date leaf on null only', () => {
+    const context = makeContext({});
+    const statements = buildDateTransformStatements({
+      schema: {
+        type: 'object',
+        properties: { seenOn: { type: 'string', format: 'date-time' } },
+      },
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(
+      [
+        'if (data.seenOn != null) {',
+        '  data.seenOn = new Date(data.seenOn);',
+        '}',
+      ].join('\n'),
+    );
+  });
+});

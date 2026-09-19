@@ -731,6 +731,7 @@ const buildPropertiesStatements = ({
   visitedRefs,
   depth,
   mode,
+  presenceGuarded,
 }: {
   properties: Record<string, SchemaOrRef>;
   required: string[] | undefined;
@@ -739,6 +740,7 @@ const buildPropertiesStatements = ({
   visitedRefs: Set<string>;
   depth: number;
   mode: DateTransformMode;
+  presenceGuarded?: boolean;
 }): BuildResult => {
   const requiredSet = new Set(required ?? []);
   return mergeResults(
@@ -770,14 +772,24 @@ const buildPropertiesStatements = ({
         ...inner.statements,
       ];
 
+      // Under an undiscriminated union the accessor's type is the whole
+      // union, so a property only some variants declare cannot be read
+      // without narrowing first. `'key' in accessor` is what narrows it,
+      // and it is needed even for a required, non-nullable leaf — required
+      // in one variant says nothing about the others.
       const needsGuard =
+        presenceGuarded ||
         !requiredSet.has(key) ||
         nullable ||
         !writesToAccessorItself(property, context);
       if (!needsGuard) return { ...inner, statements };
 
+      const condition = presenceGuarded
+        ? `${JSON.stringify(key)} in ${accessor} && ${target} != null`
+        : `${target} != null`;
+
       return {
-        statements: [`if (${target} != null) {`, ...indent(statements), '}'],
+        statements: [`if (${condition}) {`, ...indent(statements), '}'],
         cyclicRefs: inner.cyclicRefs,
       };
     }),
