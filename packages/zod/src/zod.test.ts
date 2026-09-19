@@ -2332,8 +2332,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     it('generates nullish + default for a non-required nullable schema with default', () => {
       const schemaWithNullableDefault: OpenApiSchemaObject = {
-        type: 'string',
-        nullable: true,
+        type: ['string', 'null'],
         default: 'hello',
       };
 
@@ -4371,8 +4370,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         type: 'object',
         properties: {
           checklist: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
             additionalProperties: { type: 'object' },
           },
           available_indexes: {
@@ -7302,7 +7300,7 @@ const formDataSchema = {
                       },
                       catImage: {
                         type: 'string',
-                        format: 'binary',
+                        contentMediaType: 'application/octet-stream',
                       },
                     },
                   },
@@ -7452,7 +7450,7 @@ const formUrlEncodedBinarySchema = {
                       },
                       attachment: {
                         type: 'string',
-                        format: 'binary',
+                        contentMediaType: 'application/octet-stream',
                       },
                     },
                   },
@@ -7508,7 +7506,7 @@ const formUrlEncodedNestedBinarySchema = {
                         type: 'array',
                         items: {
                           type: 'string',
-                          format: 'binary',
+                          contentMediaType: 'application/octet-stream',
                         },
                       },
                       // binary nested inside allOf composition
@@ -7519,7 +7517,7 @@ const formUrlEncodedNestedBinarySchema = {
                             properties: {
                               blob: {
                                 type: 'string',
-                                format: 'binary',
+                                contentMediaType: 'application/octet-stream',
                               },
                             },
                           },
@@ -7929,8 +7927,7 @@ const schemaWithRequiredDefaults = {
                 default: 10,
               },
               nullableString: {
-                type: 'string',
-                nullable: true,
+                type: ['string', 'null'],
                 default: 'hello',
               },
             },
@@ -8234,8 +8231,10 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         {
           $ref: '#/components/schemas/CatId',
         },
+        {
+          type: 'null',
+        },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8268,9 +8267,12 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     const uniqueConstNames = new Set(constNames);
     expect(uniqueConstNames.size).toBe(constNames.length);
 
-    // Verify the structure contains union
+    // Verify the structure contains union. In 3.1 the null lives in the
+    // union as its own branch, so the property is only `.optional()` --
+    // there is no `.nullish()` modifier left to carry it.
     expect(parsed.zod).toContain('union');
-    expect(parsed.zod).toContain('nullish');
+    expect(parsed.zod).toContain('zod.null()');
+    expect(parsed.zod).toMatch(/\.optional\(\)$/);
   });
 
   it('should generate unique schema names for nullable refs in oneOf', () => {
@@ -8293,8 +8295,10 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         {
           $ref: '#/components/schemas/BirdId',
         },
+        {
+          type: 'null',
+        },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8339,15 +8343,21 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     } as unknown as ContextSpec;
 
     const schemaWithAllOfNullableRefs: OpenApiSchemaObject = {
-      allOf: [
+      anyOf: [
         {
-          $ref: '#/components/schemas/BaseSchema',
+          allOf: [
+            {
+              $ref: '#/components/schemas/BaseSchema',
+            },
+            {
+              $ref: '#/components/schemas/ExtendedSchema',
+            },
+          ],
         },
         {
-          $ref: '#/components/schemas/ExtendedSchema',
+          type: 'null',
         },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8392,18 +8402,19 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     } as unknown as ContextSpec;
 
     const schemaWithAllOfAndProperties: OpenApiSchemaObject = {
-      allOf: [
+      properties: {
+        additionalProp: {
+          type: ['string', 'null'],
+        },
+      },
+      anyOf: [
         {
           $ref: '#/components/schemas/BaseSchema',
         },
-      ],
-      properties: {
-        additionalProp: {
-          type: 'string',
-          nullable: true,
+        {
+          type: 'null',
         },
-      },
-      nullable: true,
+      ],
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8453,11 +8464,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { $ref: '#/components/schemas/HelloEnum' },
             { $ref: '#/components/schemas/BlankEnum' },
             { $ref: '#/components/schemas/NullEnum' },
+            { type: 'null' },
           ],
         },
       },
@@ -8467,11 +8478,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { $ref: '#/components/schemas/HelloEnum' },
             { $ref: '#/components/schemas/BlankEnum' },
             { $ref: '#/components/schemas/NullEnum' },
+            { type: 'null' },
           ],
         },
       },
@@ -8540,8 +8551,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
         { $ref: '#/components/schemas/BirdId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8585,15 +8596,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
             { $ref: '#/components/schemas/BirdId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
         secondaryId: {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8645,8 +8656,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8658,8 +8669,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8713,7 +8724,6 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         world: {
-          nullable: true,
           oneOf: [
             {
               type: 'integer',
@@ -8723,6 +8733,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
               type: 'boolean',
               enum: [true, false],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -8771,26 +8782,26 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
             // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
+            { type: 'null' },
           ],
         },
         world: {
-          nullable: true,
           oneOf: [
             { type: 'integer', enum: [1, 2, 3] },
             { type: 'boolean', enum: [true, false] },
+            { type: 'null' },
           ],
         },
         optional: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
+            { type: 'null' },
           ],
         },
       },
@@ -8842,12 +8853,12 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
             // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
+            { type: 'null' },
           ],
         },
       },
@@ -8913,16 +8924,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       anyOf: [
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const schemaOptional: OpenApiSchemaObject = {
       anyOf: [
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const resultRequired = generateZodValidationSchemaDefinition(
@@ -8959,9 +8970,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       false,
     );
 
-    // Required should have nullable, optional should have nullish
-    expect(parsedRequired.zod).toContain('nullable');
-    expect(parsedOptional.zod).toContain('nullish');
+    // Both carry the null as a union branch; the modifier now expresses only
+    // requiredness, so the required one takes none and the optional one
+    // takes `.optional()`.
+    expect(parsedRequired.zod).toContain('zod.null()');
+    expect(parsedOptional.zod).toContain('zod.null()');
+    expect(parsedRequired.zod).not.toContain('.optional()');
+    expect(parsedOptional.zod).toMatch(/\.optional\(\)$/);
   });
 
   it('should generate unique names for anyOf mixing nullable and not-null refs', () => {
@@ -8979,8 +8994,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/DogId' }, // nullable
         { $ref: '#/components/schemas/CatId' }, // nullable
         { $ref: '#/components/schemas/BirdIdNotNull' }, // not null
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9026,11 +9041,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         mixed: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] }, // nullable enum
             { type: 'string', enum: [''] }, // nullable enum
             { type: 'string', enum: ['ALWAYS', 'NEVER'] }, // not null enum
+            { type: 'null' },
           ],
         },
       },
@@ -9087,15 +9102,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
                 { $ref: '#/components/schemas/BirdId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
             petId: {
               anyOf: [
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
           },
         },
@@ -9151,19 +9166,19 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           type: 'object',
           properties: {
             hello: {
-              nullable: true,
               oneOf: [
                 { type: 'string', enum: ['HI', 'OHA'] },
                 { type: 'string', enum: [''] },
                 // eslint-disable-next-line unicorn/no-null
                 { enum: [null] },
+                { type: 'null' },
               ],
             },
             world: {
-              nullable: true,
               oneOf: [
                 { type: 'integer', enum: [1, 2, 3] },
                 { type: 'boolean', enum: [true, false] },
+                { type: 'null' },
               ],
             },
           },
@@ -9223,8 +9238,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
               anyOf: [
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
           },
         },
@@ -9290,8 +9305,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
                     { $ref: '#/components/schemas/DogId' },
                     { $ref: '#/components/schemas/CatId' },
                     { $ref: '#/components/schemas/BirdId' },
+                    { type: 'null' },
                   ],
-                  nullable: true,
                 },
               },
             },
@@ -9341,11 +9356,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
 
     // Test case: allOf with mixed nullable and not-null refs
     const schemaWithMixedAllOf: OpenApiSchemaObject = {
-      allOf: [
-        { $ref: '#/components/schemas/DogId' }, // nullable
-        { $ref: '#/components/schemas/FishIdNotNull' }, // not null
+      anyOf: [
+        {
+          allOf: [
+            { $ref: '#/components/schemas/DogId' }, // nullable
+            { $ref: '#/components/schemas/FishIdNotNull' }, // not null
+          ],
+        },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9393,8 +9412,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/NumberId' }, // number
         { $ref: '#/components/schemas/IntegerId' }, // integer
         { $ref: '#/components/schemas/BooleanFlag' }, // boolean
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9441,8 +9460,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/NumberIdNotNull' }, // number
         { $ref: '#/components/schemas/IntegerIdNotNull' }, // integer
         { $ref: '#/components/schemas/BirdIdNotNull' }, // string
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9488,17 +9507,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         numberEnum: {
-          nullable: true,
           oneOf: [
             {
-              type: 'number',
-              nullable: true,
-              enum: [1.5, 2.5, 3.5],
+              type: ['number', 'null'],
+              enum: [1.5, 2.5, 3.5, null],
             },
             {
               type: 'number',
               enum: [100.1, 200.2],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -9548,17 +9566,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         integerEnum: {
-          nullable: true,
           oneOf: [
             {
-              type: 'integer',
-              nullable: true,
-              enum: [10, 20, 30],
+              type: ['integer', 'null'],
+              enum: [10, 20, 30, null],
             },
             {
               type: 'integer',
               enum: [1000, 2000],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -9608,31 +9625,31 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         stringEnum: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
+            { type: 'null' },
           ],
         },
         numberEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'number', nullable: true, enum: [1.5, 2.5, 3.5] },
+            { type: ['number', 'null'], enum: [1.5, 2.5, 3.5, null] },
             { type: 'number', enum: [100.1, 200.2] },
+            { type: 'null' },
           ],
         },
         integerEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'integer', nullable: true, enum: [10, 20, 30] },
+            { type: ['integer', 'null'], enum: [10, 20, 30, null] },
             { type: 'integer', enum: [1000, 2000] },
+            { type: 'null' },
           ],
         },
         booleanEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'boolean', nullable: true, enum: [true, false] },
+            { type: ['boolean', 'null'], enum: [true, false, null] },
             { type: 'boolean', enum: [true] },
+            { type: 'null' },
           ],
         },
       },
@@ -9689,8 +9706,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
             { $ref: '#/components/schemas/DogId' }, // string
             { $ref: '#/components/schemas/NumberId' }, // number
             { $ref: '#/components/schemas/IntegerId' }, // integer
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     });
@@ -9850,7 +9867,10 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                             type: 'string',
                             contentMediaType: 'image/png',
                           },
-                          formatBinary: { type: 'string', format: 'binary' },
+                          formatBinary: {
+                            type: 'string',
+                            contentMediaType: 'application/octet-stream',
+                          },
                           base64Field: {
                             type: 'string',
                             contentMediaType: 'image/png',
@@ -9962,7 +9982,10 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                             type: 'string',
                             contentMediaType: 'image/png',
                           },
-                          formatBinary: { type: 'string', format: 'binary' },
+                          formatBinary: {
+                            type: 'string',
+                            contentMediaType: 'application/octet-stream',
+                          },
                           base64Field: {
                             type: 'string',
                             contentMediaType: 'image/png',
@@ -14125,7 +14148,9 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
     expect(
       run(json({ type: 'object', additionalProperties: { type: 'integer' } })),
     ).toEqual(valueSchema);
-    expect(run(json({ ...object, nullable: true }))).toEqual(valueSchema);
+    expect(run(json({ ...object, type: ['object', 'null'] }))).toEqual(
+      valueSchema,
+    );
     expect(run(json({ type: 'string', format: 'date' }))).toEqual(valueSchema);
     expect(
       run(json({ type: 'string', format: 'date' }), { version: 3 }),
@@ -14193,7 +14218,14 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
     expect(
       run(json({ type: 'string', format: 'date' }), {}, { useDates: true }),
     ).toEqual(noSchema);
-    expect(run(json({ type: 'string', format: 'binary' }))).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'string',
+          contentMediaType: 'application/octet-stream',
+        }),
+      ),
+    ).toEqual(noSchema);
     expect(
       run(json(object), { generate: { ...base.generate, response: false } }),
     ).toEqual(noSchema);
