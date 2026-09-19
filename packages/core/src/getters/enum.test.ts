@@ -5,6 +5,7 @@ import {
   NamingConvention,
   type OpenApiSchemaObject,
 } from '../types';
+import { isSchemaNullable } from '../utils/assertion';
 import {
   getEnum,
   getEnumImplementation,
@@ -184,15 +185,16 @@ describe('getEnumMembers', () => {
 
   it('should generate a nullable const enum', () => {
     const schema = {
-      nullable: true,
-      type: 'integer',
-      enum: [10, 20, 30],
+      type: ['integer', 'null'],
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      enum: [10, 20, 30, null],
     } as unknown as OpenApiSchemaObject;
 
     const result = getEnum(
       getEnumMembers(schema),
       'IntegerEnumNullable',
-      schema.nullable,
+      // How `schema-definition.ts` and `resolvers/object.ts` derive the flag.
+      isSchemaNullable(schema),
       EnumGeneration.CONST,
     );
 
@@ -469,18 +471,34 @@ describe('getEnumMembers', () => {
     );
   });
 
-  it('should not add null to enum members for a nullable enum', () => {
+  // OAS 3.1 carries the nullability inside `enum` itself, so `null` *is* a
+  // member here. The guarantee that survives the dialect change is that the
+  // emitted const object never gets a `null` key.
+  it('should keep null out of the implementation of a nullable enum', () => {
     const schema = {
-      nullable: true,
-      type: 'integer',
-      enum: [10, 20, 30],
+      type: ['integer', 'null'],
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      enum: [10, 20, 30, null],
     } as unknown as OpenApiSchemaObject;
 
-    expect(getEnumMembers(schema)).toEqual([
+    const members = getEnumMembers(schema);
+
+    expect(members).toEqual([
       { value: 10 },
       { value: 20 },
       { value: 30 },
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      { value: null },
     ]);
+
+    const result = getEnumImplementation(members, {
+      enumGenerationType: EnumGeneration.CONST,
+    });
+
+    expect(result).toContain('10: 10');
+    expect(result).toContain('20: 20');
+    expect(result).toContain('30: 30');
+    expect(result).not.toContain('null');
   });
 
   it('should handle names and descriptions together', () => {

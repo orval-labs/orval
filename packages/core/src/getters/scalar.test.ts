@@ -317,10 +317,10 @@ describe('getScalar integer enum + const (#3758)', () => {
 
   it('preserves nullable suffix when const is present', () => {
     const schema: OpenApiSchemaObject = {
-      type: 'integer',
-      enum: [1],
+      type: ['integer', 'null'],
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      enum: [1, null],
       const: 1,
-      nullable: true,
     };
 
     const result = getScalar({ item: schema, name: 'flag', context });
@@ -370,9 +370,8 @@ describe('getScalar (const/enum type confusion)', () => {
 
   it('keeps the nullable suffix outside the literal', () => {
     const schema = {
-      type: 'number',
+      type: ['number', 'null'],
       const: payload,
-      nullable: true,
     } as OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'field', context });
@@ -429,6 +428,10 @@ describe('getScalar (string-schema const presence and nullability)', () => {
     );
   });
 
+  // The 3.0 spelling cannot reach getScalar through the CLI pipeline — the
+  // upgrade in `resolveSpec` rewrites it to the type array above. This case
+  // pins the `nullable === true` fallback that `getScalar` still keeps for
+  // programmatic callers; it goes away with the branch itself (#4119).
   it('keeps the nullable suffix for a nullable: true const', () => {
     const schema = {
       type: 'string',
