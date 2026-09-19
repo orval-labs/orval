@@ -126,10 +126,6 @@ function isAmbiguousInlineItemContext(
 }
 
 function isNullableArrayItem(schema: OpenApiSchemaObject): boolean {
-  if (schema.nullable === true) {
-    return true;
-  }
-
   return Array.isArray(schema.type) && schema.type.includes('null');
 }
 
