@@ -61,9 +61,8 @@ const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
  * Recursively resolves a `$ref` in an OpenAPI document, following
  * nested schema refs and collecting imports along the way.
  *
- * Handles OpenAPI 3.0 `nullable` and 3.1 type-array hints on direct refs.
+ * Handles type-array hints on direct refs.
  *
- * @see https://spec.openapis.org/oas/v3.0.3#reference-object
  * @see https://spec.openapis.org/oas/v3.1.0#reference-object
  */
 export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
@@ -335,17 +334,6 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
   let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject | undefined =
     schemaByRefPaths;
-
-  // Handle OpenAPI 3.0 nullable property
-  // Bridge assertion: schema properties are `any` due to AnyOtherAttribute
-  if (isObject(currentSchema) && 'nullable' in schema) {
-    const nullable = schema.nullable as boolean | undefined;
-    const currentSchemaObject = currentSchema as Record<string, unknown>;
-    currentSchema = {
-      ...currentSchemaObject,
-      nullable,
-    } as OpenApiSchemaObject | OpenApiReferenceObject;
-  }
 
   // Handle OpenAPI 3.1 type array (e.g., type: ["object", "null"])
   // This preserves nullable information when using direct $ref with types array

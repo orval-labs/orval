@@ -246,10 +246,7 @@ function generateSchemaDefinitions(
 
   const schemaType = schema.type as string | string[] | undefined;
   const nullable =
-    (Array.isArray(schemaType) && schemaType.includes('null')) ||
-    schema.nullable === true
-      ? ' | null'
-      : '';
+    Array.isArray(schemaType) && schemaType.includes('null') ? ' | null' : '';
 
   const alias = extractBoundAliasInfo(schema, context);
   if (alias) {

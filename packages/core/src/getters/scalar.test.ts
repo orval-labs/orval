@@ -465,22 +465,6 @@ describe('getScalar (string-schema const presence and nullability)', () => {
     );
   });
 
-  // The 3.0 spelling cannot reach getScalar through the CLI pipeline — the
-  // upgrade in `resolveSpec` rewrites it to the type array above. This case
-  // pins the `nullable === true` fallback that `getScalar` still keeps for
-  // programmatic callers; it goes away with the branch itself (#4119).
-  it('keeps the nullable suffix for a nullable: true const', () => {
-    const schema = {
-      type: 'string',
-      const: 'x',
-      nullable: true,
-    } as OpenApiSchemaObject;
-
-    expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
-      "'x' | null",
-    );
-  });
-
   it('leaves a schema without a const alone', () => {
     expect(
       getScalar({

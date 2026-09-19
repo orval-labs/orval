@@ -34,8 +34,7 @@ const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
 };
 
 const hasNullableType = (schema: OpenApiSchemaObject): boolean =>
-  schema.nullable === true ||
-  (Array.isArray(schema.type) && schema.type.includes('null'));
+  Array.isArray(schema.type) && schema.type.includes('null');
 
 /**
  * True when the schema itself names at least one property. An empty
@@ -62,7 +61,7 @@ const hasOwnProperties = (schema: OpenApiSchemaObject): boolean =>
  * `properties` block on the schema being asked about directly. A `oneOf`/
  * `anyOf` reaching this point is a genuine union, not a nullable wrapper:
  * `normalizeSchema` (called first, below) already unwraps the nullable
- * spellings (`anyOf: [T, null]`, OAS 3.0 `nullable: true`) to the bare
+ * spellings (`anyOf: [T, null]`, `type: [T, 'null']`) to the bare
  * schema before this check ever sees them, so a nullable map or a nullable
  * map value is unaffected.
  */

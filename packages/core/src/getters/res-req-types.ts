@@ -1044,8 +1044,7 @@ function resolveSchemaPropertiesToFormData({
             hasNonPrimitiveChild = true;
             const itemType = getSchemaType(itemSchema);
             const body =
-              itemSchema.nullable ||
-              (Array.isArray(itemType) && itemType.includes('null'))
+              Array.isArray(itemType) && itemType.includes('null')
                 ? `if (value !== null && value !== undefined) {\n ${resolvedValue} }\n`
                 : resolvedValue;
             formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
@@ -1123,7 +1122,6 @@ function resolveSchemaPropertiesToFormData({
 
     const propType = getSchemaType(property);
     if (
-      property.nullable ||
       (Array.isArray(propType) && propType.includes('null')) ||
       existSubSchemaNullable
     ) {
