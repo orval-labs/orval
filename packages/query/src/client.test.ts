@@ -719,7 +719,7 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
       target: 'query-test',
       workspace: '/tmp',
       spec: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: { title: 'Pets', version: '1.0.0' },
         paths: {},
         components: {},

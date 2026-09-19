@@ -22,7 +22,7 @@ const createContextWithArrayItems = (
       },
     },
     spec: {
-      openapi: '3.0.3',
+      openapi: '3.1.0',
       components: {
         schemas: {
           TenantResponseModelDto: {
@@ -131,7 +131,7 @@ describe('extractArrayItemMock', () => {
         },
       },
       spec: {
-        openapi: '3.0.3',
+        openapi: '3.1.0',
         components: {
           schemas: {
             TenantResponseModelDto: {
@@ -448,8 +448,7 @@ describe('extractArrayItemMock', () => {
 
     const call = extractArrayItemMock({
       items: {
-        type: 'object',
-        nullable: true,
+        type: ['object', 'null'],
         properties: { id: { type: 'string' } },
       },
       propertyName: 'rows',

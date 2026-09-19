@@ -145,7 +145,7 @@ const LARGE_ROUTED_SCHEMA_SPEC: OpenApiDocument = {
         required: ['line1', 'city', 'country'],
         properties: {
           line1: { type: 'string', minLength: 1 },
-          line2: { type: 'string', nullable: true },
+          line2: { type: ['string', 'null'] },
           city: { type: 'string' },
           region: { type: 'string' },
           postalCode: { type: 'string' },
@@ -195,7 +195,7 @@ const LARGE_ROUTED_SCHEMA_SPEC: OpenApiDocument = {
         properties: {
           sku: { type: 'string' },
           name: { type: 'string' },
-          description: { type: 'string', nullable: true },
+          description: { type: ['string', 'null'] },
           price: { type: 'number', minimum: 0 },
           currency: { $ref: '#/components/schemas/PaymentCurrency' },
           dimensions: {
@@ -255,7 +255,7 @@ const LARGE_ROUTED_SCHEMA_SPEC: OpenApiDocument = {
                 unitPrice: { type: 'number', minimum: 0 },
                 subtotal: { type: 'number', minimum: 0 },
                 discount: { type: 'number', minimum: 0 },
-                notes: { type: 'string', nullable: true },
+                notes: { type: ['string', 'null'] },
               },
             },
           },
