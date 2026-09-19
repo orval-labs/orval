@@ -396,7 +396,7 @@ const isPlainObjectSchema = (
 // `title` and `description` only annotate, and `not` is not translated into
 // anything by this generator today, so a branch carrying one renders as bare
 // `zod.unknown()` either way. Anything outside this set — `enum`, `const`,
-// `additionalProperties`, `nullable`, `default`, … — already renders to
+// `additionalProperties`, `default`, … — already renders to
 // something meaningful on its own and must be left alone.
 const SHAPELESS_MEMBER_KEYS = new Set([
   'required',
@@ -598,14 +598,13 @@ export const generateZodValidationSchemaDefinition = (
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
-  const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
+  const CHAINABLE_SIBLINGS = new Set(['default', 'description']);
   const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
 
   const applyChainableSiblings = (
     functions: [string, unknown][],
     consts: string[],
     siblingSchema: OpenApiSchemaObject & {
-      nullable?: boolean;
       default?: unknown;
       description?: string;
     },
@@ -613,11 +612,7 @@ export const generateZodValidationSchemaDefinition = (
     const refRequired = rules?.required ?? false;
     const refHasDefault = siblingSchema.default !== undefined;
 
-    if (!refRequired && siblingSchema.nullable) {
-      functions.push(['nullish', undefined]);
-    } else if (siblingSchema.nullable) {
-      functions.push(['nullable', undefined]);
-    } else if (!refRequired && !refHasDefault) {
+    if (!refRequired && !refHasDefault) {
       functions.push(['optional', undefined]);
     }
 
@@ -669,7 +664,6 @@ export const generateZodValidationSchemaDefinition = (
         consts,
         schema as OpenApiSchemaObject & {
           $ref: string;
-          nullable?: boolean;
           default?: unknown;
           description?: string;
         },
@@ -715,7 +709,6 @@ export const generateZodValidationSchemaDefinition = (
             consts,
             schema as OpenApiSchemaObject & {
               $dynamicRef: string;
-              nullable?: boolean;
               default?: unknown;
               description?: string;
             },
@@ -813,35 +806,17 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable =
-    // changing to ?? here changes behavior - so don't
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    ('nullable' in schema && schema.nullable) ||
-    (Array.isArray(schema.type) && schema.type.includes('null'));
+  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
-  // Handle exclusiveMinimum and exclusiveMaximum (OpenAPI 3.0 vs 3.1 compatibility)
-  // OpenAPI 3.0: exclusiveMinimum/exclusiveMaximum are booleans indicating if minimum/maximum is exclusive
-  // OpenAPI 3.1: exclusiveMinimum/exclusiveMaximum are numbers (the value itself)
-  const exclusiveMinRaw =
+  // `exclusiveMinimum`/`exclusiveMaximum` are the bound itself, not a boolean
+  // flag on `minimum`/`maximum`: `resolveSpec` rewrites the OpenAPI 3.0
+  // boolean form before the document reaches here.
+  const exclusiveMin =
     'exclusiveMinimum' in schema ? schema.exclusiveMinimum : undefined;
-  const exclusiveMaxRaw =
+  const exclusiveMax =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
-
-  // Convert boolean to number if using OpenAPI 3.0 format. `false` means
-  // "not exclusive" and must normalize to undefined (not linger as the
-  // boolean `false`), or downstream code mistakes it for a constraint value.
-  const exclusiveMin = isBoolean(exclusiveMinRaw)
-    ? exclusiveMinRaw
-      ? min
-      : undefined
-    : exclusiveMinRaw;
-  const exclusiveMax = isBoolean(exclusiveMaxRaw)
-    ? exclusiveMaxRaw
-      ? max
-      : undefined
-    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
