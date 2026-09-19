@@ -146,10 +146,10 @@ describe('getMockObject', () => {
       'faker.helpers.arrayElement([{id: faker.helpers.arrayElement([faker.string.alpha(), undefined])},null,])',
     );
     expect(result.value).toMatch(/^faker\.helpers\.arrayElement\(\[\{/);
-    // That branch returns without `nullWrapped`, unlike the 3.0 path, which
-    // sets it in `wrapRootNullableObjectValue`. See #4141 -- pinned to current
-    // behaviour so a fix has to come back through this assertion.
-    expect(result.nullWrapped).toBeUndefined();
+    // The branch reports the null it rendered, so a caller holding this value
+    // -- the object property loop -- knows not to wrap it a second time. The
+    // 3.0 path reports the same thing from `wrapRootNullableObjectValue`.
+    expect(result.nullWrapped).toBe(true);
   });
 
   it('wraps nullable object schemas without properties at the root', () => {
@@ -159,9 +159,8 @@ describe('getMockObject', () => {
     });
 
     expect(result.value).toBe('faker.helpers.arrayElement([{}, null])');
-    // Same gap as above: the propertyless `['object', 'null']` early return
-    // builds the right value but reports no `nullWrapped`. See #4141.
-    expect(result.nullWrapped).toBeUndefined();
+    // Same as above for the propertyless early return.
+    expect(result.nullWrapped).toBe(true);
   });
 
   it('wraps optional nullable properties with null by default', () => {
@@ -343,23 +342,6 @@ describe('getMockObject', () => {
     expect(result.value).not.toMatch(
       /faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
     );
-  });
-
-  it('reports nullWrapped for a nullable object at the root (OpenAPI 3.1)', () => {
-    expect(
-      getObjectMock({
-        name: 'nullableWidget',
-        type: ['object', 'null'],
-        properties: { id: { type: 'string' } },
-      }).nullWrapped,
-    ).toBe(true);
-
-    expect(
-      getObjectMock({
-        name: 'nullableWidget',
-        type: ['object', 'null'],
-      }).nullWrapped,
-    ).toBe(true);
   });
 
   it('still omits with undefined for an optional non-nullable field', () => {
