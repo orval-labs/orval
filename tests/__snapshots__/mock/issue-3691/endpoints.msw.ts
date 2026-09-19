@@ -15,14 +15,11 @@ export const getGetExampleResponseMock = (
   overrideResponse: Partial<Extract<Example, object>> = {},
 ): Example => ({
   point: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      [
-        faker.number.float({ fractionDigits: 2 }),
-        faker.number.float({ fractionDigits: 2 }),
-      ],
-      null,
-    ]),
-    undefined,
+    [
+      faker.number.float({ fractionDigits: 2 }),
+      faker.number.float({ fractionDigits: 2 }),
+    ],
+    null,
   ]),
   plainPoint: [
     faker.number.float({ fractionDigits: 2 }),

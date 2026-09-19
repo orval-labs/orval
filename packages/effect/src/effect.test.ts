@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createTestContextSpec } from '../../core/src/test-utils/context';
 import {
   generateEffectValidationSchemaDefinition,
+  generateFormDataEffectSchema,
   parseEffectValidationSchemaDefinition,
 } from '.';
 
@@ -410,5 +411,51 @@ describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
     } as OpenApiSchemaObject);
     expect(effect).toContain(String.raw`S.Literal('C:\\logs\\')`);
     expect(effect).toContain('S.Literal(1)');
+  });
+});
+
+// The multipart file-part override replaces the whole property definition, so
+// it has to carry nullability itself. It did not, so a nullable part validated
+// as non-null while the type generator emitted `Blob | File | null` (#4141).
+describe('multipart file parts', () => {
+  const formDataSchema: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['catImage'],
+    properties: {
+      catImage: {
+        type: ['string', 'null'],
+        contentMediaType: 'application/octet-stream',
+      },
+      thumbnail: {
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+      },
+      notes: { type: ['string', 'null'] },
+    },
+  } as unknown as OpenApiSchemaObject;
+
+  const render = () => {
+    const context = makeContext();
+    const definition = generateFormDataEffectSchema(
+      formDataSchema,
+      context,
+      'test',
+      false,
+      { notes: { contentType: 'text/csv' } },
+    );
+    return parseEffectValidationSchemaDefinition(definition, context, false)
+      .effect;
+  };
+
+  it('keeps a required nullable file part nullable', () => {
+    expect(render()).toContain('"catImage": S.NullOr(S.instanceOf(File))');
+  });
+
+  it('leaves a non-nullable optional file part as-is', () => {
+    expect(render()).toContain('"thumbnail": S.optional(S.instanceOf(File))');
+  });
+
+  it('keeps an optional nullable text part nullish', () => {
+    expect(render()).toContain('"notes": S.optional(S.NullOr(');
   });
 });

@@ -1,0 +1,113 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Nullable Binary Parts
+  description: >-
+    OAS 3.0 input on purpose. `resolveSpec` upgrades it, deleting `nullable` and
+    rewriting `format: binary`, so every schema below reaches the generators in
+    its 3.1 spelling. Generator branches that read only the 3.0 keywords are
+    dead by then, which is what this specification pins (#4141).
+  license:
+    name: MIT
+servers:
+  - url: http://localhost
+paths:
+  /uploads:
+    post:
+      summary: Upload a document with an optional replacement file
+      operationId: createUpload
+      tags:
+        - uploads
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - attachment
+              properties:
+                name:
+                  type: string
+                # Becomes `{ type: ['string','null'], contentMediaType:
+                # 'application/octet-stream' }`. The file-part classifier used
+                # to reject the union, so this degraded to `string | null`
+                # while zod still emitted an `instanceof Blob` check.
+                attachment:
+                  type: string
+                  format: binary
+                  nullable: true
+                # The non-nullable sibling, so the two are comparable.
+                thumbnail:
+                  type: string
+                  format: binary
+                # A nullable text part carried by encoding.contentType rather
+                # than by the schema.
+                notes:
+                  type: string
+                  nullable: true
+            encoding:
+              notes:
+                contentType: text/csv
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload'
+  /uploads/latest:
+    get:
+      summary: The most recent upload, or nothing yet
+      operationId: getLatestUpload
+      tags:
+        - uploads
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatestUpload'
+components:
+  schemas:
+    Upload:
+      type: object
+      required:
+        - id
+        - owner
+      properties:
+        id:
+          type: string
+        # An optional nullable scalar: the omission value should be `null`,
+        # and the value must not end up wrapped twice.
+        label:
+          type: string
+          nullable: true
+        # A required nullable object property, delegated or inlined.
+        owner:
+          $ref: '#/components/schemas/Owner'
+    # Nullable at the target, reached through a `$ref`. With faker schema
+    # factories on, the delegated `getOwnerMock()` call has to keep a null
+    # branch or the mock can never produce the `| null` the type promises.
+    Owner:
+      type: object
+      nullable: true
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+    LatestUpload:
+      type: object
+      required:
+        - upload
+      properties:
+        upload:
+          allOf:
+            - $ref: '#/components/schemas/Upload'
+          nullable: true

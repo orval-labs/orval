@@ -5,6 +5,7 @@ import {
   getKey,
   getRefInfo,
   isReference,
+  isSchemaNullable,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -221,11 +222,16 @@ export function getMockObject({
         value: 'faker.helpers.arrayElement([{}, null])',
         imports: [],
         name: schemaItem.name,
+        // The null branch is already in the value, so callers must not add a
+        // second one. The 3.0 path reports this via
+        // `wrapRootNullableObjectValue`; omitting it here made a nested
+        // nullable object come out double-wrapped (#4141).
+        nullWrapped: true,
       };
     }
 
     const baseItem = schemaItem as Record<string, unknown>;
-    return combineSchemasMock({
+    const combined = combineSchemasMock({
       item: {
         anyOf: nonNullTypes.map((type) => ({
           ...baseItem,
@@ -244,6 +250,13 @@ export function getMockObject({
       existingReferencedAllOfRefs,
       splitMockImplementations,
     });
+
+    // The `null` member of the union became one of the `anyOf` branches above,
+    // so the value already randomizes to null. Say so, or the property loop
+    // wraps it a second time (#4141).
+    return nonNullTypes.includes('null')
+      ? { ...combined, nullWrapped: true }
+      : combined;
   }
 
   if (itemProperties) {
@@ -274,7 +287,11 @@ export function getMockObject({
             mockOptions?.required ??
             (Array.isArray(itemRequired) ? itemRequired : []).includes(key);
 
-          const hasNullable = 'nullable' in prop && prop.nullable === true;
+          // Reading `nullable` directly made this dead in the CLI pipeline --
+          // `resolveSpec` deletes the keyword -- so an optional nullable
+          // property could never pick `null` as its omission value (#4141).
+          const hasNullable =
+            !isReference(prop) && isSchemaNullable(prop as OpenApiSchemaObject);
 
           const refName = isReference(prop)
             ? getReferenceName(prop.$ref, context)
@@ -370,6 +387,14 @@ export function getMockObject({
           const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
+            // A value that already carries its own null branch randomizes
+            // between the value and `null` on its own; wrapping it again would
+            // nest one `arrayElement` inside another. This is the shape the
+            // 3.0 spelling has always produced, since its scalars are not
+            // null-wrapped further down.
+            if (resolvedValue.nullWrapped) {
+              return `${keyDefinition}: ${resolvedValue.value}`;
+            }
             const omitValue =
               mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;

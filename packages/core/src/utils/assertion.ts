@@ -145,6 +145,32 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
 }
 
 /**
+ * Whether a schema is dispatched as a string by {@link getScalar}.
+ *
+ * True for a bare `type: 'string'` and for the OAS 3.1 nullable union
+ * `['string', 'null']`, which is what `resolveSpec` produces from a 3.0
+ * `{ type: 'string', nullable: true }`. A union that also admits some other
+ * type is not string-like: `getScalar` renders it as a union rather than
+ * through `case 'string'`, so the string-only treatments (file parts, binary
+ * coercion) must not claim it.
+ *
+ * @param schema - Schema to test.
+ */
+export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
+  const type = schema.type;
+
+  if (type === 'string') {
+    return true;
+  }
+
+  return (
+    Array.isArray(type) &&
+    type.includes('string') &&
+    type.every((member) => member === 'string' || member === 'null')
+  );
+}
+
+/**
  * Whether a schema accepts `null`.
  *
  * Nullability can sit on the schema itself (`nullable: true` in OpenAPI 3.0,

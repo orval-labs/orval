@@ -571,6 +571,11 @@ export function getMockScalar({
         value: 'null',
         imports: [],
         name: item.name,
+        // The value *is* null, so it already covers both "nullable" and
+        // "omitted". Without this the object property loop wrapped it into
+        // `arrayElement([null, null])` — a random choice between null and
+        // null (#4141).
+        nullWrapped: true,
       };
     }
 

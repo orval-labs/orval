@@ -23,6 +23,7 @@ import {
   isDynamicReference,
   isNumber,
   isObject,
+  isSchemaNullable,
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
@@ -3041,12 +3042,22 @@ export const generateFormDataZodSchema = (
 
       if (fileType) {
         const isRequired = schema.required?.includes(key);
+        // This override replaces the whole property definition, so the usual
+        // nullable/nullish handling never runs for it. A nullable part would
+        // otherwise validate as non-null while the type generator emits
+        // `Blob | File | null` (#4141). Same precedence as the main path.
+        const isNullable =
+          !!resolvedPropSchema && isSchemaNullable(resolvedPropSchema);
         const fileFunctions: [string, unknown][] = [
           fileType === 'binary'
             ? ['instanceof', 'Blob']
             : ['fileOrString', undefined],
         ];
-        if (!isRequired) {
+        if (!isRequired && isNullable) {
+          fileFunctions.push(['nullish', undefined]);
+        } else if (isNullable) {
+          fileFunctions.push(['nullable', undefined]);
+        } else if (!isRequired) {
           fileFunctions.push(['optional', undefined]);
         }
         propertyOverrides[key] = { functions: fileFunctions, consts: [] };

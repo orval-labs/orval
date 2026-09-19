@@ -8,6 +8,7 @@ import type {
   ScalarValue,
 } from '../types';
 import { toJsLiteral } from '../utils';
+import { isStringLikeSchema } from '../utils/assertion';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -29,16 +30,7 @@ type SchemaEnumValue = string | number | boolean | null;
  * normalizes those into `case 'string':` before invoking this predicate.
  */
 export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
-  const schemaType = schema.type as
-    | OpenApiSchemaObjectType
-    | OpenApiSchemaObjectType[]
-    | undefined;
-  const isStringLike =
-    schemaType === 'string' ||
-    (isArray(schemaType) &&
-      schemaType.includes('string') &&
-      schemaType.every((type) => type === 'string' || type === 'null'));
-  if (!isStringLike) {
+  if (!isStringLikeSchema(schema)) {
     return false;
   }
   if (schema.format === 'binary') {
