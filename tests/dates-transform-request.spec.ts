@@ -5,7 +5,9 @@ import {
   updateAppointment,
   updateAppointmentDuplicateDate,
   updateAppointmentReminder,
+  updateAppointmentWindow,
   updateShelterIntake,
+  updateShelterRecords,
 } from './generated/react-query/dates-transform/endpoints';
 import { AXIOS_INSTANCE } from './mutators/custom-instance';
 
@@ -293,4 +295,84 @@ test('does not throw when the response omits the required pets map', async () =>
       },
     }),
   ).resolves.not.toHaveProperty('pets');
+});
+
+// NOTE ON TEST STYLE BELOW: `serializeUpdateShelterRecordsRequest` and
+// `serializeUpdateAppointmentWindowRequest` are not exported from the
+// generated module — every generated `serialize*Request`/`deserialize*Response`
+// function in this codebase is a module-private `const`, matching every test
+// above this point, which drives the request through the public endpoint
+// function and inspects the wire body captured by the mocked axios adapter.
+// The three tests below follow that same established pattern rather than
+// importing the private serializers directly.
+
+test('serializes dates inside an undiscriminated union map value', async () => {
+  // Would regress to sending a full ISO datetime if the structural union
+  // walk stopped emitting, which is what every orval release before this
+  // one did for a union with no discriminator mapping.
+  const captured = captureRequest();
+
+  const records = {
+    'record-1': {
+      recordType: 'visit' as const,
+      visitedOn: new Date('2026-07-01T09:30:00.000Z'),
+      seenBy: 'Dr. Ada',
+    },
+    'record-2': { recordType: 'weight' as const, kilograms: 4.2 },
+  };
+
+  await updateShelterRecords('shelter-1', { records });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.records['record-1'].visitedOn).toBe('2026-07-01');
+  // The non-date variant must come through untouched.
+  expect(body.records['record-2'].kilograms).toBe(4.2);
+  // The input must not be mutated — the request direction copies.
+  expect(records['record-1'].visitedOn).toBeInstanceOf(Date);
+});
+
+test('reaches dates nested in an array inside a union variant', async () => {
+  // Pins that the walk descends through `entries`, whose items are
+  // themselves union variants.
+  const captured = captureRequest();
+
+  await updateShelterRecords('shelter-1', {
+    records: {
+      'record-1': {
+        recordType: 'visit' as const,
+        entries: [
+          {
+            recordType: 'visit' as const,
+            visitedOn: new Date('2026-07-02T23:45:00.000Z'),
+          },
+        ],
+      },
+    },
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.records['record-1'].entries[0].visitedOn).toBe('2026-07-02');
+});
+
+test('skips a property whose union variants disagree in shape, converts the one they agree on', async () => {
+  // `openedOn` is an array of calendar days in one variant (`LegacyWindow`)
+  // and a scalar calendar day in the other (`CalendarWindow`): both shapes
+  // produce a real, non-empty conversion statement, but the two statements
+  // differ, so it is the comparator itself — not an empty-vs-non-empty
+  // shortcut — that skips the property. `closedAt` is `format: date` in
+  // both variants and must still serialize to a UTC calendar day.
+  const captured = captureRequest();
+
+  await updateAppointmentWindow('appt-1', {
+    openedOn: new Date('2026-07-01T09:30:00.000Z'),
+    closedAt: new Date('2026-07-05T12:00:00.000Z'),
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.closedAt).toBe('2026-07-05');
+  // Left alone entirely — not converted in either direction.
+  expect(body.openedOn).toBe('2026-07-01T09:30:00.000Z');
 });

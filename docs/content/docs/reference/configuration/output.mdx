@@ -3992,12 +3992,18 @@ with `new Date(Date.UTC(year, month, day))` and read it back with `getUTCFullYea
 `getUTCMonth()` / `getUTCDate()` — a `Date` built from local parts can land on the
 previous day at positive UTC offsets.
 
-A `oneOf`/`anyOf` without an OpenAPI
+A `oneOf`/`anyOf` with an explicit OpenAPI
 [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
-`mapping` is skipped, since there's no static way to tell which variant a
-given payload matched; a discriminated union with an explicit `mapping` is
-converted, emitting a `switch` on the discriminator property with one `case`
-per mapping key. `additionalProperties` maps are converted with a loop over
+`mapping` is converted by emitting a `switch` on the discriminator property
+with one `case` per mapping key. Any other union whose variants are all
+object-shaped is converted structurally instead: each property a variant
+declares is guarded by its presence on the value (`'key' in value`), which is
+also what lets TypeScript narrow the union. A property the variants treat
+differently is skipped, while the rest of the union still converts — because
+the response direction converts every date format identically, a
+`date`-versus-`date-time` disagreement between variants only affects the
+request direction. A union that mixes object variants with array or scalar
+ones is skipped entirely. `additionalProperties` maps are converted with a loop over
 `Object.keys`, unless the schema also declares `properties` — directly, via
 `allOf`, or a sibling `oneOf`/`anyOf` — or declares a `propertyNames` that
 narrows the keys to an enumerable set (`enum` or `const`, inline or via
