@@ -427,3 +427,57 @@ describe('nullable oneOf variant split into its own factory', () => {
     expect(result.value).toBe('{...getGetPetResponseVariantMock()}');
   });
 });
+
+// `isNullableSchema` knew only the 3.0 `nullable` keyword and the 3.1 type
+// union, so a component nullable by any of the other 3.1 spellings reported
+// `nullWrapped: false` from the delegated call. The caller then has no way to
+// know the factory can already return null, and adds a redundant wrapper.
+// Core's `isSchemaNullable` is the predicate that knows all four. (#4141)
+describe('nullable $ref targets spelled other ways', () => {
+  const makeContext = (schemas: Record<string, unknown>) => {
+    const context = createTestContextSpec({
+      spec: { components: { schemas: schemas as never } },
+    });
+    context.output.schemas = 'schemas';
+    context.output.mock.generators = [
+      { type: OutputMockType.FAKER, schemas: true } as never,
+    ];
+    return context;
+  };
+
+  const resolveRef = (schemas: Record<string, unknown>, name: string) =>
+    resolveMockValue({
+      schema: { $ref: `#/components/schemas/${name}` } as MockSchema,
+      operationId: 'getThing',
+      tags: [],
+      context: makeContext(schemas),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  const objectBranch = {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'string' } },
+  };
+
+  it.each([
+    ['a oneOf null branch', { oneOf: [objectBranch, { type: 'null' }] }],
+    ['an anyOf null branch', { anyOf: [objectBranch, { type: 'null' }] }],
+    ['a bare type: null', { type: 'null' }],
+    // eslint-disable-next-line unicorn/no-null
+    ['a null enum member', { enum: ['a', null] }],
+  ])(
+    'reports nullWrapped for a target nullable through %s',
+    (_label, Thing) => {
+      expect(resolveRef({ Thing }, 'Thing').nullWrapped).toBe(true);
+    },
+  );
+
+  it('still reports false for a target that is not nullable', () => {
+    expect(resolveRef({ Thing: objectBranch }, 'Thing').nullWrapped).toBe(
+      false,
+    );
+  });
+});

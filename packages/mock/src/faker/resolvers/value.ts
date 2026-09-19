@@ -6,6 +6,7 @@ import {
   getStringLiteralType,
   isFunction,
   isReference,
+  isSchemaNullable,
   type MockOptions,
   type OpenApiSchemaObject,
   OutputMockType,
@@ -115,18 +116,24 @@ export function resolveRefTarget(
   ) as Partial<OpenApiSchemaObject> | undefined;
 }
 
-/** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
+/**
+ * Whether a schema accepts `null`, in any of the spellings orval sees.
+ *
+ * Delegates to core's {@link isSchemaNullable} rather than keeping a second,
+ * narrower copy: this one knew only the 3.0 `nullable` keyword and a 3.1 `type`
+ * union, so a schema nullable through a bare `type: 'null'`, a `null` member of
+ * an `enum`, or a `{ type: 'null' }` branch of a `oneOf`/`anyOf` read as
+ * non-nullable here while the type generator emitted `| null` (#4141).
+ *
+ * Kept as a thin wrapper because callers pass `unknown` — resolved `$ref`
+ * targets and mock schemas that are not typed as Schema Objects.
+ */
 export function isNullableSchema(schema: unknown): boolean {
   if (!schema || typeof schema !== 'object') {
     return false;
   }
 
-  const { type, nullable } = schema as {
-    type?: unknown;
-    nullable?: unknown;
-  };
-
-  return nullable === true || (Array.isArray(type) && type.includes('null'));
+  return isSchemaNullable(schema as OpenApiSchemaObject);
 }
 
 /** When `nonNullableOption` is true (`override.mock.nonNullable`), omit the null branch. */
