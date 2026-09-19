@@ -15,10 +15,6 @@ import {
 type Item = OpenApiSchemaObject & { name: string; path?: string };
 
 describe('isNullableSchema', () => {
-  it('detects OpenAPI 3.0 nullable', () => {
-    expect(isNullableSchema({ type: 'string', nullable: true })).toBe(true);
-  });
-
   it('detects OpenAPI 3.1 null type unions', () => {
     expect(isNullableSchema({ type: ['string', 'null'] })).toBe(true);
   });

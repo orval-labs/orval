@@ -108,9 +108,6 @@ describe('mock-types', () => {
 
   describe('isSchemaNullableAtRoot', () => {
     it('detects nullable object schemas', () => {
-      expect(isSchemaNullableAtRoot({ type: 'object', nullable: true })).toBe(
-        true,
-      );
       expect(isSchemaNullableAtRoot({ type: ['object', 'null'] })).toBe(true);
       expect(isSchemaNullableAtRoot({ type: 'object' })).toBe(false);
     });

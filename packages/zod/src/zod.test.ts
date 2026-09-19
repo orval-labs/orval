@@ -4856,212 +4856,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
     });
 
-    describe('OpenAPI 3.0 (exclusiveMinimum/exclusiveMaximum as booleans)', () => {
-      it('generates .gt() when exclusiveMinimum=true with minimum value', () => {
-        const schema = {
-          type: 'number',
-          minimum: 10,
-          exclusiveMinimum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMinOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['gt', 'testNumberExclusiveMinOAS30ExclusiveMin'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMinOAS30ExclusiveMin = 10;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().gt(testNumberExclusiveMinOAS30ExclusiveMin).optional()',
-        );
-      });
-
-      it('generates .lt() when exclusiveMaximum=true with maximum value', () => {
-        const schema = {
-          type: 'number',
-          maximum: 100,
-          exclusiveMaximum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMaxOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['lt', 'testNumberExclusiveMaxOAS30ExclusiveMax'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().lt(testNumberExclusiveMaxOAS30ExclusiveMax).optional()',
-        );
-      });
-
-      it('generates .min() when exclusiveMinimum=false with minimum value', () => {
-        const schema = {
-          type: 'number',
-          minimum: 10,
-          exclusiveMinimum: false,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMinFalseOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['min', 'testNumberExclusiveMinFalseOAS30Min'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMinFalseOAS30Min = 10;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().min(testNumberExclusiveMinFalseOAS30Min).optional()',
-        );
-      });
-
-      it('generates .max() when exclusiveMaximum=false with maximum value', () => {
-        const schema = {
-          type: 'number',
-          maximum: 100,
-          exclusiveMaximum: false,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMaxFalseOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['max', 'testNumberExclusiveMaxFalseOAS30Max'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMaxFalseOAS30Max = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().max(testNumberExclusiveMaxFalseOAS30Max).optional()',
-        );
-      });
-
-      it('generates .gt() and .lt() when both exclusiveMinimum and exclusiveMaximum are true', () => {
-        const schema = {
-          type: 'number',
-          minimum: 5,
-          maximum: 100,
-          exclusiveMinimum: true,
-          exclusiveMaximum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveBothOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['gt', 'testNumberExclusiveBothOAS30ExclusiveMin'],
-            ['lt', 'testNumberExclusiveBothOAS30ExclusiveMax'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveBothOAS30ExclusiveMin = 5;',
-            'export const testNumberExclusiveBothOAS30ExclusiveMax = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().gt(testNumberExclusiveBothOAS30ExclusiveMin).lt(testNumberExclusiveBothOAS30ExclusiveMax).optional()',
-        );
-      });
-    });
-
     it('generates an number with max and max', () => {
       const schema: OpenApiSchemaObject = {
         type: 'number',
@@ -5750,24 +5544,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
     });
 
-    it('chains .nullable() for nullable: true on a $ref', () => {
-      const context = makeContextSpec({
-        spec: { components: { schemas: { Pet: { type: 'object' } } } },
-      });
-      const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', nullable: true } as never,
-        context,
-        'someField',
-        false,
-        false,
-        { required: true, useReusableSchemas: true },
-      );
-      expect(result.functions).toEqual([
-        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['nullable', undefined],
-      ]);
-    });
-
     it('chains .describe(...) for a description sibling on a $ref', () => {
       const context = makeContextSpec({
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
@@ -5870,24 +5646,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(fnNames).toContain('namedRef');
       expect(fnNames).toContain('default');
       expect(fnNames).not.toContain('optional');
-    });
-
-    it('emits .nullish() when nullable and not required', () => {
-      const context = makeContextSpec({
-        spec: { components: { schemas: { Pet: { type: 'object' } } } },
-      });
-      const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', nullable: true } as never,
-        context,
-        'someField',
-        false,
-        false,
-        { required: false, useReusableSchemas: true },
-      );
-      expect(result.functions).toEqual([
-        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['nullish', undefined],
-      ]);
     });
 
     it('falls back to inlining when a $ref has non-chainable siblings (e.g. example)', () => {
@@ -6013,7 +5771,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ]);
     });
 
-    it('emits namedRef for $dynamicRef with nullable sibling', () => {
+    it('emits namedRef for $dynamicRef with a chainable sibling', () => {
       const context = makeContextSpec({
         spec: {
           components: {
@@ -6029,7 +5787,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#Pet', nullable: true } as never,
+        { $dynamicRef: '#Pet', description: 'a friend' } as never,
         context,
         'friends',
         false,
@@ -6041,7 +5799,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'namedRef',
         { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
-      expect(result.functions[1]).toEqual(['nullish', undefined]);
+      expect(result.functions[1]).toEqual(['optional', undefined]);
+      expect(result.functions[2]).toEqual(['describe', "'a friend'"]);
     });
 
     it('falls back to empty for unresolvable $dynamicRef with useReusableSchemas', () => {
@@ -10237,7 +9996,7 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('"_type"');
   });
 
-  it('preserves nullable sibling fields on dereferenced refs', () => {
+  it('preserves a nullable type sibling on dereferenced refs', () => {
     const dereferenceContext = {
       ...context,
       spec: {
@@ -10260,7 +10019,7 @@ describe('zod split mode regressions', () => {
     const resolvedSchema = dereference(
       {
         $ref: '#/components/schemas/RefPet',
-        nullable: true,
+        type: ['object', 'null'],
       } as unknown as OpenApiSchemaObject,
       dereferenceContext,
     );
@@ -10581,7 +10340,7 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('zod.unknown()');
   });
 
-  it('resolves nullable $ref property with schema suffix (OAS 3.0)', () => {
+  it('resolves nullable $ref property with schema suffix', () => {
     const suffixContext = {
       output: {
         override: {
@@ -10614,7 +10373,7 @@ describe('zod split mode regressions', () => {
         properties: {
           optionalPosition: {
             $ref: '#/components/schemas/Position',
-            nullable: true,
+            type: ['object', 'null'],
           } as unknown as OpenApiSchemaObject,
         },
       },
@@ -13530,7 +13289,11 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     ],
     ['enum', { enum: ['x', 'y'] }, "zod.enum(['x', 'y'])"],
     ['const', { const: 'x' }, 'zod.literal("x")'],
-    ['nullable', { nullable: true }, 'zod.unknown().nullable()'],
+    [
+      'a nullable type union',
+      { type: ['string', 'null'] },
+      'zod.string().nullable()',
+    ],
   ])('leaves a member carrying %s alone', (_label, extra, expected) => {
     const zod = render({
       type: 'object',

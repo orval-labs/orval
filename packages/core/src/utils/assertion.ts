@@ -173,8 +173,8 @@ export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
 /**
  * Whether a schema accepts `null`.
  *
- * Nullability can sit on the schema itself (`nullable: true` in OpenAPI 3.0,
- * `type: 'null'` or `type: ['string', 'null']` in 3.1), on a `null` member of
+ * Nullability can sit on the schema itself (`type: 'null'` or
+ * `type: ['string', 'null']`), on a `null` member of
  * an `enum`, or in a separate `{ type: 'null' }` branch of a `oneOf`/`anyOf`,
  * which is the spelling pydantic and other 3.1 generators emit for an optional
  * field.
@@ -185,10 +185,6 @@ export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
  * @param schema - Schema to test.
  */
 export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
-  if (schema.nullable === true) {
-    return true;
-  }
-
   if (schema.type === 'null') {
     return true;
   }

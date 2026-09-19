@@ -268,7 +268,6 @@ export function resolveMockValue({
     const schemaReference = schema as MockSchema & {
       path?: string;
       required?: string[];
-      nullable?: boolean;
     };
     const schemaRefPath = typeof schema.$ref === 'string' ? schema.$ref : '';
     const { name, refPaths } = getRefInfo(schemaRefPath, context);
@@ -284,13 +283,9 @@ export function resolveMockValue({
         ...((schemaRef?.required as string[] | undefined) ?? []),
         ...getRequiredKeys(schemaReference, name),
       ],
-      ...(schemaReference.nullable === undefined
-        ? {}
-        : { nullable: schemaReference.nullable }),
-      // A 3.1 reference site spells its nullability as a `type` array beside
-      // the `$ref` rather than as a `nullable` sibling. `core/src/resolvers/
-      // ref.ts` deliberately propagates both onto the resolved schema, so the
-      // type generator honours the hint; carrying only the 3.0 spelling here
+      // A reference site spells its nullability as a `type` array beside the
+      // `$ref`. `core/src/resolvers/ref.ts` propagates it onto the resolved
+      // schema so the type generator honours the hint; not carrying it here
       // left the mock unable to produce the `null` the type promises (#4141).
       ...(Array.isArray(schemaReference.type)
         ? { type: schemaReference.type }

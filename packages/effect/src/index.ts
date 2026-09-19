@@ -177,31 +177,17 @@ export const generateEffectValidationSchemaDefinition = (
   const type = resolveEffectType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable =
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    ('nullable' in schema && schema.nullable) ||
-    (Array.isArray(schema.type) && schema.type.includes('null'));
+  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
-  const exclusiveMinRaw =
+  // `exclusiveMinimum`/`exclusiveMaximum` are the bound itself, not a boolean
+  // flag on `minimum`/`maximum`: `resolveSpec` rewrites the OpenAPI 3.0
+  // boolean form before the document reaches here.
+  const exclusiveMin =
     'exclusiveMinimum' in schema ? schema.exclusiveMinimum : undefined;
-  const exclusiveMaxRaw =
+  const exclusiveMax =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
-
-  // `false` means "not exclusive" and must normalize to undefined (not
-  // linger as the boolean `false`), or downstream code mistakes it for a
-  // constraint value.
-  const exclusiveMin = isBoolean(exclusiveMinRaw)
-    ? exclusiveMinRaw
-      ? min
-      : undefined
-    : exclusiveMinRaw;
-  const exclusiveMax = isBoolean(exclusiveMaxRaw)
-    ? exclusiveMaxRaw
-      ? max
-      : undefined
-    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;

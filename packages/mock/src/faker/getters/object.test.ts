@@ -204,64 +204,11 @@ describe('getMockObject', () => {
     expect(result.value).toMatch(/tag: faker\.string\.alpha/);
   });
 
-  it('does not double-wrap optional OpenAPI 3.0 nullable fields on defaults', () => {
-    const result = getObjectMock({
-      name: 'Pet',
-      type: 'object' as const,
-      properties: {
-        tag: { type: 'string', nullable: true },
-      },
-    });
-
-    expect(result.value).toBe(
-      '{tag: faker.helpers.arrayElement([faker.string.alpha(), null])}',
-    );
-    expect(result.value).not.toMatch(
-      /tag: faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
-    );
-  });
-
-  it('does not null-randomize required OpenAPI 3.0 nullable fields on defaults', () => {
-    const result = getObjectMock({
-      name: 'Pet',
-      type: 'object' as const,
-      required: ['tag'],
-      properties: {
-        tag: { type: 'string', nullable: true },
-      },
-    });
-
-    expect(result.value).toBe('{tag: faker.string.alpha()}');
-    expect(result.value).not.toContain(', null]');
-  });
-
-  it('does not null-randomize OpenAPI 3.0 nullable array items on defaults', () => {
-    const result = getObjectMock({
-      name: 'Pet',
-      type: 'object' as const,
-      properties: {
-        names: {
-          type: 'array',
-          items: { type: 'string', nullable: true },
-        },
-      },
-    });
-
-    expect(result.value).toMatch(
-      /\.map\(\(\) => \(faker\.string\.alpha\(\)\)\)/,
-    );
-    expect(result.value).not.toMatch(
-      /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
-    );
-  });
-
-  // `resolveSpec` rewrites `nullable: true` to a type union, so the 3.0-only
-  // `hasNullable` check that picks the omission value was dead in the CLI
-  // pipeline: an optional nullable property fell back to `undefined` and, since
-  // `getMockScalar` had already wrapped the value for the 3.1 spelling, the
-  // result nested one `arrayElement` inside another. Both dialects should land
-  // on the same single-wrapped output. (#4141)
-  it('mocks an optional OpenAPI 3.1 nullable field the same as the 3.0 spelling', () => {
+  // An optional nullable property used to fall back to `undefined` through a
+  // `hasNullable` check that only knew the 3.0 keyword, and since
+  // `getMockScalar` had already wrapped the value for the type-union spelling,
+  // the result nested one `arrayElement` inside another. (#4141)
+  it('mocks an optional nullable field as a single null union', () => {
     const result = getObjectMock({
       name: 'Pet',
       type: 'object' as const,
@@ -289,10 +236,9 @@ describe('getMockObject', () => {
     );
   });
 
-  // The 3.1 branches of `getMockObject` build their own `[..., null]` union but
-  // returned no `nullWrapped`, so the `!resolvedValue.nullWrapped` guard in the
-  // property loop could not see it and added a second wrapper. The 3.0 path
-  // reports it via `wrapRootNullableObjectValue`, so the dialects disagreed.
+  // The type-union branches of `getMockObject` build their own `[..., null]`
+  // union but returned no `nullWrapped`, so the `!resolvedValue.nullWrapped`
+  // guard in the property loop could not see it and added a second wrapper.
   it('does not double-wrap a required OpenAPI 3.1 nullable object property', () => {
     const result = getObjectMock({
       name: 'Parent',
@@ -372,29 +318,6 @@ describe('getMockObject', () => {
 
     expect(result.value).toMatch(
       /\.map\(\(\) => \(faker\.helpers\.arrayElement\(\[faker\.string\.alpha\(\), null\]\)\)\)/,
-    );
-  });
-
-  it('does not randomize OpenAPI 3.0 nullable array items to null when nonNullable is true', () => {
-    const result = getObjectMock(
-      {
-        name: 'Pet',
-        type: 'object' as const,
-        properties: {
-          names: {
-            type: 'array',
-            items: { type: 'string', nullable: true },
-          },
-        },
-      },
-      { nonNullable: true },
-    );
-
-    expect(result.value).toMatch(
-      /\.map\(\(\) => \(faker\.string\.alpha\(\)\)\)/,
-    );
-    expect(result.value).not.toMatch(
-      /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
     );
   });
 

@@ -68,7 +68,7 @@ describe('resolveRef', () => {
     });
   });
 
-  it('preserves nullable and OpenAPI 3.1 type array hints from a direct ref', () => {
+  it('preserves OpenAPI 3.1 type array hints from a direct ref', () => {
     const context = createContext({
       openapi: '3.1.0',
       components: {
@@ -85,19 +85,14 @@ describe('resolveRef', () => {
 
     const refWithHints = {
       $ref: '#/components/schemas/MaybePosition',
-      nullable: true,
       type: ['object', 'null'],
     } as unknown as OpenApiReferenceObject;
 
     const { schema } = resolveRef(refWithHints, context);
 
-    const withNullable = schema as OpenApiSchemaObject & {
-      nullable?: boolean;
-      type?: string[];
-    };
+    const withTypeHint = schema as OpenApiSchemaObject & { type?: string[] };
 
-    expect(withNullable.nullable).toBe(true);
-    expect(withNullable.type).toEqual(['object', 'null']);
+    expect(withTypeHint.type).toEqual(['object', 'null']);
   });
 
   it('resolves nested schema refs and example refs in schema-like containers', () => {

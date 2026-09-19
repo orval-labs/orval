@@ -251,14 +251,6 @@ describe('combineSchemas (allOf required handling)', () => {
       },
     },
     {
-      label: 'nullable: true',
-      wrapper: {
-        type: 'object',
-        nullable: true,
-        allOf: [{ type: 'object' }],
-      },
-    },
-    {
       label: "type: 'null'",
       wrapper: {
         type: 'null',

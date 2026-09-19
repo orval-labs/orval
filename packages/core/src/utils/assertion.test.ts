@@ -73,7 +73,6 @@ describe('assertion testing', () => {
   });
 
   it('checks whether a schema allows null', () => {
-    expect(isSchemaNullable({ type: 'string', nullable: true })).toBeTruthy();
     expect(isSchemaNullable({ type: 'null' })).toBeTruthy();
     expect(isSchemaNullable({ type: ['string', 'null'] })).toBeTruthy();
 
