@@ -1,4 +1,5 @@
 import type { OpenApiSchemaObject } from '@orval/core';
+import { OutputMockType } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
@@ -271,5 +272,158 @@ describe('misplaced boolean `required` (#3719)', () => {
     expect(() =>
       resolve({ $ref: '#/components/schemas/Item', required: ['name'] }),
     ).not.toThrow();
+  });
+});
+
+// `resolveSpec` deletes `nullable` and spells nullability as a type union, so
+// `Boolean(newSchema.nullable)` was dead in the CLI pipeline: a nullable
+// component schema delegated to `get<X>Mock()` never produced a null branch,
+// while the generated type still said `| null`. (#4141)
+describe('nullable $ref delegated to a schema factory', () => {
+  const makeContext = (schemas: Record<string, unknown>) => {
+    const context = createTestContextSpec({
+      spec: { components: { schemas: schemas as never } },
+    });
+    context.output.schemas = 'schemas';
+    context.output.mock.generators = [
+      { type: OutputMockType.FAKER, schemas: true } as never,
+    ];
+    return context;
+  };
+
+  const resolve = (schema: unknown, context: ReturnType<typeof makeContext>) =>
+    resolveMockValue({
+      schema: schema as MockSchema,
+      operationId: 'getPet',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  const nullablePet = {
+    Pet: {
+      type: ['object', 'null'],
+      required: ['id'],
+      properties: { id: { type: 'string' } },
+    },
+  };
+
+  // `getPetMock()` already returns `Pet | null` when the target is nullable, so
+  // the call has to stay bare. Spreading it drops the null and widens every
+  // required property to optional, which the composed type rejects (TS2322) --
+  // the shape the CLI build caught before this branch reported nullability.
+  it('calls the factory bare when the target is nullable', () => {
+    const result = resolve(
+      { $ref: '#/components/schemas/Pet' },
+      makeContext(nullablePet),
+    );
+
+    expect(result.value).toBe('getPetMock()');
+    expect(result.nullWrapped).toBe(true);
+  });
+
+  it('honours nonNullable over a nullable target', () => {
+    const context = makeContext(nullablePet);
+    const result = resolveMockValue({
+      schema: { $ref: '#/components/schemas/Pet' } as MockSchema,
+      operationId: 'getPet',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      mockOptions: { nonNullable: true },
+    });
+
+    expect(result.value).toBe('getPetMock()');
+    expect(result.nullWrapped).toBe(false);
+  });
+
+  it('leaves a non-nullable target unwrapped', () => {
+    const result = resolve(
+      { $ref: '#/components/schemas/Pet' },
+      makeContext({
+        Pet: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+      }),
+    );
+
+    expect(result.value).toBe('{ ...getPetMock() }');
+    expect(result.nullWrapped).toBe(false);
+  });
+
+  // `core/src/resolvers/ref.ts` propagates both the 3.0 `nullable` sibling and
+  // a 3.1 `type`-array sibling from the reference site, so the type generator
+  // honours this hint. The mock generator carried only the 3.0 spelling. (#4141)
+  it('honours a 3.1 type-array nullability hint on the reference site', () => {
+    const result = resolve(
+      { $ref: '#/components/schemas/Pet', type: ['object', 'null'] },
+      makeContext({
+        Pet: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+      }),
+    );
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([{ ...getPetMock() }, null])',
+    );
+    expect(result.nullWrapped).toBe(true);
+  });
+});
+
+// The split oneOf-variant factory emits a bare call for a nullable variant and
+// a spread otherwise, because spreading a factory that can return `null`
+// collapses it to `{}`. `newSchema.nullable` is deleted by `resolveSpec`, so
+// the guard only ever chose the spread. Reachable via the `allOf` arm of the
+// enclosing `type === 'object' || allOf` condition. (#4141)
+describe('nullable oneOf variant split into its own factory', () => {
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          Variant: {
+            allOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
+          },
+        },
+      } as never,
+    },
+  });
+
+  const resolveVariant = (schema: unknown) => {
+    const splitMockImplementations: string[] = [];
+    const result = resolveMockValue({
+      schema: schema as MockSchema,
+      operationId: 'getPet',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations,
+      combine: { separator: 'oneOf', includedProperties: [] },
+    });
+    return result;
+  };
+
+  it('emits a bare factory call for a nullable variant', () => {
+    const result = resolveVariant({
+      $ref: '#/components/schemas/Variant',
+      type: ['object', 'null'],
+    });
+
+    expect(result.value).toBe('getGetPetResponseVariantMock()');
+  });
+
+  it('still spreads a non-nullable variant', () => {
+    const result = resolveVariant({ $ref: '#/components/schemas/Variant' });
+
+    expect(result.value).toBe('{...getGetPetResponseVariantMock()}');
   });
 });

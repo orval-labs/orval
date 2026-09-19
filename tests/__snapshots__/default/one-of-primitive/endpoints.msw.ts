@@ -18,14 +18,11 @@ export const getGetPetsResponseMock = (): Pets[] =>
   ).map(() => ({
     petId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
         faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
     ]),
   }));
 

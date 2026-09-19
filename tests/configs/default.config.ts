@@ -933,4 +933,16 @@ export default defineConfig({
       },
     },
   },
+  // A nullable multipart file part must type as `Blob | File | null`, not
+  // `string | null`: the file-part classifier only saw a bare
+  // `type: 'string'`, and `resolveSpec` hands it `['string','null']` (#4141).
+  'nullable-binary-parts': {
+    input: '../specifications/nullable-binary-parts.yaml',
+    output: {
+      target: '../generated/default/nullable-binary-parts/endpoints.ts',
+      schemas: '../generated/default/nullable-binary-parts/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

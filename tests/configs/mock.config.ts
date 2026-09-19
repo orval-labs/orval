@@ -1229,4 +1229,25 @@ export default defineConfig({
       target: '../specifications/issue-3691.yaml',
     },
   },
+  // A nullable component schema delegated to `get<X>Mock()` has to keep its
+  // null branch, and an optional nullable property has to omit with `null`
+  // rather than `undefined` — both read `nullable`, which is gone by then (#4141).
+  'nullable-binary-parts': {
+    output: {
+      target: '../generated/mock/nullable-binary-parts/endpoints.ts',
+      schemas: '../generated/mock/nullable-binary-parts/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/nullable-binary-parts.yaml',
+    },
+  },
 });

@@ -7337,6 +7337,60 @@ const formDataSchema = {
   },
 } as unknown as GeneratorOptions;
 
+// The 3.1 spelling of a nullable multipart part. `resolveSpec` produces this
+// from `{ type: 'string', format: 'binary', nullable: true }`.
+const formDataNullableBinarySchema = {
+  pathRoute: '/cats',
+  context: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    required: ['catImage'],
+                    properties: {
+                      catImage: {
+                        type: ['string', 'null'],
+                        contentMediaType: 'application/octet-stream',
+                      },
+                      thumbnail: {
+                        type: 'string',
+                        contentMediaType: 'application/octet-stream',
+                      },
+                      notes: {
+                        type: ['string', 'null'],
+                      },
+                    },
+                  },
+                  encoding: {
+                    notes: { contentType: 'text/csv' },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': { description: 'ok' },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
+
 describe('generateFormData', () => {
   it('Only generate request body', async () => {
     const result = await generateZod(
@@ -7379,6 +7433,62 @@ describe('generateFormData', () => {
     );
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(Blob).optional()\n})\n\n',
+    );
+  });
+
+  // The file-part override replaces the whole property definition, so it has
+  // to carry nullability itself. It did not, so a nullable part validated as
+  // non-null while the generated TS type said `Blob | File | null` (#4141).
+  it('keeps a nullable file part nullable', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      formDataNullableBinarySchema,
+      testOutput,
+    );
+
+    // required + nullable -> .nullable(); optional + nullable -> .nullish();
+    // optional + non-nullable -> .optional(), unchanged.
+    expect(result.implementation).toContain(
+      '"catImage": zod.instanceof(Blob).nullable()',
+    );
+    expect(result.implementation).toContain(
+      '"thumbnail": zod.instanceof(Blob).optional()',
+    );
+    expect(result.implementation).toContain(
+      '"notes": zod.instanceof(Blob).or(zod.string()).nullish()',
     );
   });
 });

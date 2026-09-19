@@ -16,11 +16,8 @@ export const getGetWidgetResponseMock = (
 ): WidgetMock => ({
   id: faker.number.int(),
   label: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
   ...overrideResponse,
 });

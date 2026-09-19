@@ -22,13 +22,10 @@ export const getGetItemsResponseMock = (): Item1[] =>
     (_, i) => i + 1,
   ).map(() => ({
     hello: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement(Object.values(HelloEnum)),
-        faker.helpers.arrayElement(Object.values(BlankEnum)),
-        faker.helpers.arrayElement([] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement(Object.values(HelloEnum)),
+      faker.helpers.arrayElement(Object.values(BlankEnum)),
+      faker.helpers.arrayElement([] as const),
+      null,
     ]),
   }));
 
@@ -38,29 +35,20 @@ export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
     (_, i) => i + 1,
   ).map(() => ({
     hello: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement(Object.values(HelloEnum)),
-        faker.helpers.arrayElement(Object.values(BlankEnum)),
-        faker.helpers.arrayElement([] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement(Object.values(HelloEnum)),
+      faker.helpers.arrayElement(Object.values(BlankEnum)),
+      faker.helpers.arrayElement([] as const),
+      null,
     ]),
     world: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement([1, 2, 3] as const),
-        faker.helpers.arrayElement([true, false] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement([1, 2, 3] as const),
+      faker.helpers.arrayElement([true, false] as const),
+      null,
     ]),
     optional: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement(Object.values(HelloEnum)),
-        faker.helpers.arrayElement(Object.values(BlankEnum)),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement(Object.values(HelloEnum)),
+      faker.helpers.arrayElement(Object.values(BlankEnum)),
+      null,
     ]),
   }));
 
@@ -72,21 +60,15 @@ export const getGetNestedItemsResponseMock = (): NestedItem[] =>
     nested: faker.helpers.arrayElement([
       {
         hello: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.helpers.arrayElement(Object.values(HelloEnum)),
-            faker.helpers.arrayElement(Object.values(BlankEnum)),
-            faker.helpers.arrayElement([] as const),
-            null,
-          ]),
-          undefined,
+          faker.helpers.arrayElement(Object.values(HelloEnum)),
+          faker.helpers.arrayElement(Object.values(BlankEnum)),
+          faker.helpers.arrayElement([] as const),
+          null,
         ]),
         world: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.helpers.arrayElement([1, 2, 3] as const),
-            faker.helpers.arrayElement([true, false] as const),
-            null,
-          ]),
-          undefined,
+          faker.helpers.arrayElement([1, 2, 3] as const),
+          faker.helpers.arrayElement([true, false] as const),
+          null,
         ]),
       },
       undefined,
@@ -99,13 +81,10 @@ export const getGetMixedEnumItemsResponseMock = (): MixedEnumItem[] =>
     (_, i) => i + 1,
   ).map(() => ({
     mixed: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement(Object.values(HelloEnum)),
-        faker.helpers.arrayElement(Object.values(BlankEnum)),
-        faker.helpers.arrayElement(Object.values(NotNullEnum)),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement(Object.values(HelloEnum)),
+      faker.helpers.arrayElement(Object.values(BlankEnum)),
+      faker.helpers.arrayElement(Object.values(NotNullEnum)),
+      null,
     ]),
   }));
 
@@ -115,35 +94,23 @@ export const getGetMixedTypeEnumsResponseMock = (): MixedTypeEnums[] =>
     (_, i) => i + 1,
   ).map(() => ({
     stringEnum: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement(Object.values(HelloEnum)),
-        faker.helpers.arrayElement(Object.values(BlankEnum)),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement(Object.values(HelloEnum)),
+      faker.helpers.arrayElement(Object.values(BlankEnum)),
+      null,
     ]),
     numberEnum: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement([1.5, 2.5, 3.5] as const),
-        faker.helpers.arrayElement([100.1, 200.2] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement([1.5, 2.5, 3.5] as const),
+      faker.helpers.arrayElement([100.1, 200.2] as const),
+      null,
     ]),
     integerEnum: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement([10, 20, 30] as const),
-        faker.helpers.arrayElement([1000, 2000] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement([10, 20, 30] as const),
+      faker.helpers.arrayElement([1000, 2000] as const),
+      null,
     ]),
     booleanEnum: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.arrayElement([true, false] as const),
-        faker.helpers.arrayElement([true] as const),
-        null,
-      ]),
-      undefined,
+      faker.helpers.arrayElement([true, false] as const),
+      faker.helpers.arrayElement([true] as const),
+      null,
     ]),
   }));

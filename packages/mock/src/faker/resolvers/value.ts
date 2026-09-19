@@ -280,6 +280,14 @@ export function resolveMockValue({
       ...(schemaReference.nullable === undefined
         ? {}
         : { nullable: schemaReference.nullable }),
+      // A 3.1 reference site spells its nullability as a `type` array beside
+      // the `$ref` rather than as a `nullable` sibling. `core/src/resolvers/
+      // ref.ts` deliberately propagates both onto the resolved schema, so the
+      // type generator honours the hint; carrying only the 3.0 spelling here
+      // left the mock unable to produce the `null` the type promises (#4141).
+      ...(Array.isArray(schemaReference.type)
+        ? { type: schemaReference.type }
+        : {}),
     } as MockSchemaObject;
 
     // When a discriminator parent ($ref-loaded schema with both `discriminator`
@@ -412,10 +420,20 @@ export function resolveMockValue({
         values: true,
         schemaFactory: true,
       };
+      // Where the nullability sits decides the call shape. A nullable *target*
+      // makes `get<X>Mock()` return `X | null` already, so the call must stay
+      // bare: spreading it drops the null and widens every required property
+      // to optional, which the composed type rejects (TS2322). A nullability
+      // hint on the *reference site* leaves the factory non-null, so that one
+      // is spread as usual and wrapped below. (#4141)
+      const targetNullable = !!schemaRef && isNullableSchema(schemaRef);
+      const siteNullable = isNullableSchema(schemaReference);
+
       const isObjectLike =
-        newSchema.type === 'object' ||
-        !!newSchema.allOf ||
-        resolvesToObjectLike(newSchema, context);
+        !targetNullable &&
+        (newSchema.type === 'object' ||
+          !!newSchema.allOf ||
+          resolvesToObjectLike(newSchema, context));
       const mockTypeName = getStrictMockTypeName(pascal(name));
       const strictMockTypeImport: GeneratorImport | undefined =
         isStrictMock(mockOptions) && isObjectLike
@@ -441,10 +459,17 @@ export function resolveMockValue({
         ? `{ ...${factoryName}()${strictObjectCast} }`
         : `${factoryName}()`;
 
+      // `resolveSpec` deletes `nullable`, so reading it directly made this
+      // branch dead in the CLI pipeline and the delegated factory call could
+      // never be null — while the emitted type still said `X | null` (#4141).
+      // Only a site-level hint needs a wrapper: a nullable target already
+      // randomizes to null inside its own factory.
+      const delegatesNullable = targetNullable || siteNullable;
+
       return {
         value: getNullable(
           callValue,
-          Boolean(newSchema.nullable),
+          siteNullable && !targetNullable,
           mockOptions?.nonNullable,
         ),
         imports: strictMockTypeImport
@@ -452,7 +477,7 @@ export function resolveMockValue({
           : [factoryImport],
         name: newSchema.name,
         type: getType(newSchema),
-        nullWrapped: Boolean(newSchema.nullable) && !mockOptions?.nonNullable,
+        nullWrapped: delegatesNullable && !mockOptions?.nonNullable,
       };
     }
 
@@ -519,7 +544,13 @@ export function resolveMockValue({
         splitMockImplementations.push(func);
       }
 
-      scalar.value = newSchema.nullable
+      // A factory that can return `null` must be called bare: spreading it
+      // would collapse the null to `{}`. Reading `nullable` directly made this
+      // dead post-`resolveSpec`, so every nullable variant took the spread
+      // (#4141). Only the `allOf` arm of the guard above reaches here with a
+      // nullable schema -- a plain `type: ['object', 'null']` fails the
+      // `type === 'object'` test -- but the predicate covers both spellings.
+      scalar.value = isNullableSchema(newSchema)
         ? `${funcName}()`
         : `{...${funcName}()}`;
 
