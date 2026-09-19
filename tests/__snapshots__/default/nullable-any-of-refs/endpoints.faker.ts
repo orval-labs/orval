@@ -21,17 +21,14 @@ export const getGetPetsResponseMock = (): Pets[] =>
   ).map(() => ({
     petId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
     ]),
   }));
 
@@ -42,32 +39,26 @@ export const getGetAnimalsResponseMock = (): Animals[] =>
   ).map(() => ({
     animalId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([faker.string.uuid(), null]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      faker.helpers.arrayElement([faker.string.uuid(), null]),
+      null,
     ]),
     secondaryId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
     ]),
   }));
 
@@ -80,32 +71,26 @@ export const getGetNestedAnimalsResponseMock = (): NestedAnimals[] =>
       {
         animalId: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            faker.helpers.arrayElement([faker.string.uuid(), null]),
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
             null,
           ]),
-          undefined,
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          faker.helpers.arrayElement([faker.string.uuid(), null]),
+          null,
         ]),
         petId: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
             null,
           ]),
-          undefined,
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
         ]),
       },
       undefined,
@@ -119,18 +104,15 @@ export const getGetMixedNullableResponseMock = (): MixedNullable[] =>
   ).map(() => ({
     mixedId: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.string.uuid(),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      faker.string.uuid(),
+      null,
     ]),
   }));
 
@@ -141,27 +123,21 @@ export const getGetMixedTypesResponseMock = (): MixedTypes[] =>
   ).map(() => ({
     mixedAnyOf: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        faker.helpers.arrayElement([
-          faker.number.float({ fractionDigits: 2 }),
-          null,
-        ]),
-        faker.helpers.arrayElement([faker.number.int(), null]),
-        faker.datatype.boolean(),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
-      undefined,
-    ]),
-    mixedTypesNotNull: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.number.float({ fractionDigits: 2 }),
-        faker.number.int(),
-        faker.string.uuid(),
         null,
       ]),
-      undefined,
+      faker.helpers.arrayElement([faker.number.int(), null]),
+      faker.datatype.boolean(),
+      null,
+    ]),
+    mixedTypesNotNull: faker.helpers.arrayElement([
+      faker.number.float({ fractionDigits: 2 }),
+      faker.number.int(),
+      faker.string.uuid(),
+      null,
     ]),
   }));

@@ -3,6 +3,7 @@ import {
   type GeneratorImport,
   getRefInfo,
   isReference,
+  isSchemaNullable,
   type MockOptions,
 } from '@orval/core';
 
@@ -318,5 +319,10 @@ export function combineSchemasMock({
     imports: combineImports,
     name: item.name,
     includedProperties,
+    // A `{ type: 'null' }` branch has already been rendered as one member of
+    // the union, so the value randomizes to null on its own. Saying so stops
+    // the object property loop adding a second `arrayElement([..., null])`
+    // around it (#4141).
+    nullWrapped: isSchemaNullable(item) && !mockOptions?.nonNullable,
   };
 }

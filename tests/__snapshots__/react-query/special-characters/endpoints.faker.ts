@@ -20,11 +20,8 @@ export const getListPetsResponseMock = (): _PetsArrAy =>
       undefined,
     ]),
     tag: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
-        null,
-      ]),
-      undefined,
+      faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
+      null,
     ]),
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     callingCode: faker.helpers.arrayElement([
@@ -55,11 +52,8 @@ export const getListPetsNestedArrayResponseMock = (
         undefined,
       ]),
       tag: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
-          null,
-        ]),
-        undefined,
+        faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
+        null,
       ]),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
@@ -89,11 +83,8 @@ export const getShowPetByIdResponseMock = (
     undefined,
   ]),
   tag: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
-      null,
-    ]),
-    undefined,
+    faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
+    null,
   ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   callingCode: faker.helpers.arrayElement([

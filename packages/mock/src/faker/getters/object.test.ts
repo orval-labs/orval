@@ -146,10 +146,10 @@ describe('getMockObject', () => {
       'faker.helpers.arrayElement([{id: faker.helpers.arrayElement([faker.string.alpha(), undefined])},null,])',
     );
     expect(result.value).toMatch(/^faker\.helpers\.arrayElement\(\[\{/);
-    // That branch returns without `nullWrapped`, unlike the 3.0 path, which
-    // sets it in `wrapRootNullableObjectValue`. See #4141 -- pinned to current
-    // behaviour so a fix has to come back through this assertion.
-    expect(result.nullWrapped).toBeUndefined();
+    // The branch reports the null it rendered, so a caller holding this value
+    // -- the object property loop -- knows not to wrap it a second time. The
+    // 3.0 path reports the same thing from `wrapRootNullableObjectValue`.
+    expect(result.nullWrapped).toBe(true);
   });
 
   it('wraps nullable object schemas without properties at the root', () => {
@@ -159,9 +159,8 @@ describe('getMockObject', () => {
     });
 
     expect(result.value).toBe('faker.helpers.arrayElement([{}, null])');
-    // Same gap as above: the propertyless `['object', 'null']` early return
-    // builds the right value but reports no `nullWrapped`. See #4141.
-    expect(result.nullWrapped).toBeUndefined();
+    // Same as above for the propertyless early return.
+    expect(result.nullWrapped).toBe(true);
   });
 
   it('wraps optional nullable properties with null by default', () => {
@@ -253,6 +252,109 @@ describe('getMockObject', () => {
     );
     expect(result.value).not.toMatch(
       /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
+    );
+  });
+
+  // `resolveSpec` rewrites `nullable: true` to a type union, so the 3.0-only
+  // `hasNullable` check that picks the omission value was dead in the CLI
+  // pipeline: an optional nullable property fell back to `undefined` and, since
+  // `getMockScalar` had already wrapped the value for the 3.1 spelling, the
+  // result nested one `arrayElement` inside another. Both dialects should land
+  // on the same single-wrapped output. (#4141)
+  it('mocks an optional OpenAPI 3.1 nullable field the same as the 3.0 spelling', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        tag: { type: ['string', 'null'] },
+      },
+    });
+
+    expect(result.value).toBe(
+      '{tag: faker.helpers.arrayElement([faker.string.alpha(), null])}',
+    );
+  });
+
+  it('does not double-wrap an optional OpenAPI 3.1 nullable field', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        tag: { type: ['string', 'null'] },
+      },
+    });
+
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
+    );
+  });
+
+  // The 3.1 branches of `getMockObject` build their own `[..., null]` union but
+  // returned no `nullWrapped`, so the `!resolvedValue.nullWrapped` guard in the
+  // property loop could not see it and added a second wrapper. The 3.0 path
+  // reports it via `wrapRootNullableObjectValue`, so the dialects disagreed.
+  it('does not double-wrap a required OpenAPI 3.1 nullable object property', () => {
+    const result = getObjectMock({
+      name: 'Parent',
+      type: 'object' as const,
+      required: ['child'],
+      properties: {
+        child: {
+          type: ['object', 'null'],
+          properties: { id: { type: 'string' } },
+        },
+      },
+    });
+
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
+    );
+    expect(result.value).toContain('null');
+  });
+
+  // A `{ type: 'null' }` branch of a `oneOf`/`anyOf` is the third 3.1 spelling
+  // of nullability. `combineSchemasMock` renders it as a union member but did
+  // not report `nullWrapped`, so the property loop wrapped it again.
+  it('does not double-wrap an optional property nulled through anyOf', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        age: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
+      },
+    });
+
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
+    );
+    expect(result.value).toContain('null');
+  });
+
+  it('does not double-wrap an optional property nulled through oneOf', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        address: { oneOf: [{ type: 'string' }, { type: 'null' }] },
+      },
+    });
+
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
+    );
+  });
+
+  it('still omits with undefined for an optional non-nullable field', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        tag: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toBe(
+      '{tag: faker.helpers.arrayElement([faker.string.alpha(), undefined])}',
     );
   });
 
@@ -459,5 +561,30 @@ describe('getMockObject recursive reference terminators', () => {
     const result = buildNode({ ...nodeSchema, required: [] });
 
     expect(result.value).toBe('{}');
+  });
+});
+
+// A value that is literally `null` already satisfies both "nullable" and
+// "omitted", so wrapping it produced `arrayElement([null, null])` — a random
+// choice between null and null. (#4141)
+describe('getMockObject (degenerate null values)', () => {
+  const context: ContextSpec = createTestContextSpec();
+
+  it('does not randomize a property whose mock is already null', () => {
+    const result = getMockObject({
+      item: {
+        name: 'Container',
+        type: 'object' as const,
+        properties: { timeStep: { type: 'null' } },
+      },
+      operationId: 'getContainer',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe('{timeStep: null}');
   });
 });
