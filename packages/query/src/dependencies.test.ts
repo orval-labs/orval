@@ -2,6 +2,7 @@ import { generateDependencyImports, type PackageJson } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  getAngularQueryDependencies,
   getVueQueryDependencies,
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -207,5 +208,76 @@ describe('vue reactivity imports tree-shake from the declared superset', () => {
     expect(result).toMatch(/\bcomputed\b/);
     expect(result).not.toMatch(/\btoValue\b/);
     expect(result).not.toMatch(/\bMaybeRefOrGetter\b/);
+  });
+});
+
+// `QueryClient` is a value in Angular output only where DI injects it, which
+// happens only for mutation invalidation (`const queryClient =
+// inject(QueryClient)`). The prefetch helpers name it in parameter and return
+// annotations only, so a `usePrefetch`-without-invalidation output that
+// imports it as a value trips `consistent-type-imports` in the consumer's
+// linter — and in this repo's own, whose autofix then rewrites the committed
+// snapshot out from under the generator.
+describe('getAngularQueryDependencies', () => {
+  const angularQueryImports = (
+    implementation: string,
+    override?: Parameters<typeof getAngularQueryDependencies>[5],
+  ) =>
+    generateDependencyImports(
+      implementation,
+      getAngularQueryDependencies(
+        false,
+        false,
+        undefined,
+        undefined,
+        false,
+        override,
+      ).filter(
+        (dep) => dep.dependency === '@tanstack/angular-query-experimental',
+      ),
+      undefined,
+      false,
+      false,
+    );
+
+  const withInvalidates = {
+    query: {
+      mutationInvalidates: [
+        { onMutations: ['createPet'], invalidates: ['listPets'] },
+      ],
+    },
+    operations: {},
+    tags: {},
+  } as unknown as Parameters<typeof getAngularQueryDependencies>[5];
+
+  it('imports QueryClient as a type when nothing injects it', () => {
+    const result = angularQueryImports(
+      'export const prefetch = async (queryClient: QueryClient): Promise<QueryClient> => {};',
+    );
+
+    expect(result).toContain('import type');
+    expect(result).toMatch(/import type \{[^}]*\bQueryClient\b/s);
+    expect(result).not.toMatch(/import \{[^}]*\bQueryClient\b/s);
+  });
+
+  it('imports QueryClient as a value when a mutation invalidates', () => {
+    const result = angularQueryImports(
+      'const queryClient = inject(QueryClient);',
+      withInvalidates,
+    );
+
+    expect(result).toMatch(/import \{[^}]*\bQueryClient\b/s);
+  });
+
+  it('keeps QueryClient a value for the prefetch types too once injected', () => {
+    // One file can hold both uses; the value import covers the annotations.
+    const result = angularQueryImports(
+      'const queryClient = inject(QueryClient);\n' +
+        'export const prefetch = async (qc: QueryClient): Promise<QueryClient> => {};',
+      withInvalidates,
+    );
+
+    expect(result).toMatch(/import \{[^}]*\bQueryClient\b/s);
+    expect(result).not.toMatch(/import type \{[^}]*\bQueryClient\b/s);
   });
 });
