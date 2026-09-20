@@ -61,7 +61,7 @@ const createMcpServer = (
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: 'swaggerPetstoreOpenAPI30Server',
-    version: '1.0.0',
+    version: '1.0.27-SNAPSHOT',
   });
   const tools: Record<string, RegisteredTool> = {};
 

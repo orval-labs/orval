@@ -455,7 +455,7 @@ tools.${verbOption.operationName} = server.registerTool(
 const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: '${camel(info.title)}Server',
-    version: '1.0.0',
+    version: '${jsStringEscape(info.version ?? '1.0.0')}',
   });
   const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}

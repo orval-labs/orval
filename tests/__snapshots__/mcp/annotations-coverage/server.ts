@@ -33,7 +33,7 @@ const createMcpServer = (
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: 'annotationsServer',
-    version: '1.0.0',
+    version: '1',
   });
   const tools: Record<string, RegisteredTool> = {};
 
