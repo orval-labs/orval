@@ -2,6 +2,7 @@ import { generateDependencyImports, type PackageJson } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  getAngularQueryDependencies,
   getVueQueryDependencies,
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -207,5 +208,62 @@ describe('vue reactivity imports tree-shake from the declared superset', () => {
     expect(result).toMatch(/\bcomputed\b/);
     expect(result).not.toMatch(/\btoValue\b/);
     expect(result).not.toMatch(/\bMaybeRefOrGetter\b/);
+  });
+});
+
+// `QueryClient` is a value in Angular output only where DI injects it, which
+// the generator emits as `const queryClient = inject(QueryClient)` for a
+// mutation that invalidates. Everywhere else it is named in parameter and
+// return annotations only, so a value import there trips
+// `consistent-type-imports` in the consumer's linter — and in this repo's own,
+// whose autofix then rewrites the committed snapshot out from under the
+// generator.
+//
+// The question is per file, not per config: with `tags-split` one tag can
+// invalidate while its sibling emits no mutation at all, and an override can
+// name an operation the spec does not have, so neither answers it. The
+// emitted implementation does, the same way `addDependency` already decides
+// which names to keep.
+describe('getAngularQueryDependencies', () => {
+  const angularQueryImports = (implementation: string) =>
+    generateDependencyImports(
+      implementation,
+      getAngularQueryDependencies(
+        false,
+        false,
+        undefined,
+        undefined,
+        false,
+        undefined,
+        implementation,
+      ).filter(
+        (dep) => dep.dependency === '@tanstack/angular-query-experimental',
+      ),
+      undefined,
+      false,
+      false,
+    );
+
+  // Only `QueryClient` is referenced, so the filtered dependency emits a
+  // single import and the whole result is it.
+  const prefetchOnly =
+    'export const prefetch = async (queryClient: QueryClient): Promise<QueryClient> => {};';
+
+  it('imports QueryClient as a type when nothing injects it', () => {
+    const result = angularQueryImports(prefetchOnly);
+
+    expect(result).toContain('QueryClient');
+    expect(result).toContain('import type {');
+    expect(result).not.toContain('import {');
+  });
+
+  it('imports QueryClient as a value when the file injects it', () => {
+    const result = angularQueryImports(
+      'const queryClient = inject(QueryClient);' + prefetchOnly,
+    );
+
+    expect(result).toContain('QueryClient');
+    expect(result).toContain('import {');
+    expect(result).not.toContain('import type {');
   });
 });

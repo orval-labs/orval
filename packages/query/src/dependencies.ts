@@ -2,6 +2,7 @@ import {
   type ClientDependenciesBuilder,
   compareVersions,
   type GeneratorDependency,
+  type NormalizedOverrideOutput,
   OutputHttpClient,
   type PackageJson,
 } from '@orval/core';
@@ -359,7 +360,29 @@ const getSolidQueryImports = (
   ];
 };
 
-const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+/**
+ * Angular Query imports.
+ *
+ * `QueryClient` is the one export whose kind depends on the output. Angular
+ * DI resolves it by class token, so `const queryClient = inject(QueryClient)`
+ * needs it at runtime — but that line is emitted only for mutation
+ * invalidation. Everywhere else it is named in annotations alone
+ * (`queryClient: QueryClient`, `Promise<QueryClient>` in the prefetch
+ * helpers), where a value import makes the generated file trip
+ * `consistent-type-imports` in the consumer's linter.
+ *
+ * The question is per file, not per config. With `tags-split` one tag can
+ * invalidate while its sibling emits no mutation at all, and an override can
+ * name an operation the spec does not have, so reading `mutationInvalidates`
+ * answers a different question than the one asked. The emitted implementation
+ * answers this one exactly, which is also what decides every other import in
+ * the file.
+ *
+ * @param injectsQueryClient - Whether this file emits `inject(QueryClient)`.
+ */
+const getAngularQueryImports = (
+  injectsQueryClient: boolean,
+): GeneratorDependency[] => [
   {
     exports: [
       { name: 'injectQuery', values: true },
@@ -379,7 +402,7 @@ const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
-      { name: 'QueryClient', values: true },
+      { name: 'QueryClient', values: injectsQueryClient },
       { name: 'InvalidateOptions' },
       { name: 'matchQuery', values: true },
     ],
@@ -443,11 +466,17 @@ export const getSolidQueryDependencies: ClientDependenciesBuilder = (
   ];
 };
 
+/** The one line that needs Angular's `QueryClient` at runtime. */
+const QUERY_CLIENT_INJECTION = 'inject(QueryClient)';
+
 export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
   packageJson,
   httpClient?: OutputHttpClient,
+  hasTagsMutator?: boolean,
+  override?: NormalizedOverrideOutput,
+  implementation?: string,
 ) => {
   // Always use Angular HTTP dependencies for Angular httpClient
   // Previously skipped for mutators, but we now inject http everywhere
@@ -458,7 +487,9 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
     ...(useAngularHttp ? ANGULAR_HTTP_DEPENDENCIES : []),
     ...(useAxios ? AXIOS_DEPENDENCIES : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...ANGULAR_QUERY_DEPENDENCIES,
+    ...getAngularQueryImports(
+      implementation?.includes(QUERY_CLIENT_INJECTION) ?? false,
+    ),
   ];
 };
 
