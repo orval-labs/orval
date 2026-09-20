@@ -26,8 +26,6 @@ import type {
   ListItemsParams,
 } from './model';
 
-import { map } from 'rxjs';
-
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
   headers?:

@@ -17,8 +17,6 @@ import type {
 import { inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
-import { map } from 'rxjs';
-
 import { PETSTORE_API_BASE_URL } from '../endpoints.base-url';
 
 export interface OrvalHttpResourceRequestExtension {

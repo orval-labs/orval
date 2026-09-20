@@ -7,7 +7,6 @@
 import type {
   CreatePetsBody,
   CreatePetsParams,
-  Error,
   ListPetsParams,
   Pet,
   PetWithTag,

@@ -246,11 +246,46 @@ type AddDependencyFromIdentifiersOptions = Omit<
   referencedIdentifiers: ReadonlySet<string>;
 };
 
+const IDENTIFIER_PATTERN = /[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu;
+
+/**
+ * Whether the identifier starting at `start` is a member name — the `map` of
+ * `value.map(...)` — rather than a reference to a binding in scope.
+ *
+ * A member name is never the import: an imported binding that the code really
+ * uses has to appear bare somewhere (`map(...)`, `{ map }`, `Pet`), because a
+ * name after a dot is a property of the object on its left. Reading one as a
+ * reference kept imports alive that nothing used — the rxjs `map` that every
+ * generated Angular `httpResource` file carried came from the `.map((item) =>`
+ * in its own query-param serializer (#4143).
+ *
+ * `...spread` is not a member access even though a `.` sits in front of it, so
+ * a dot that is itself preceded by a dot does not count. Optional chaining
+ * (`value?.map`) does.
+ */
+function isMemberName(source: string, start: number): boolean {
+  let index = start - 1;
+
+  while (index >= 0 && /\s/.test(source[index])) {
+    index--;
+  }
+
+  return index >= 0 && source[index] === '.' && source[index - 1] !== '.';
+}
+
 function getReferencedIdentifiers(implementation: string): Set<string> {
-  return new Set(
-    implementation.match(/[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu) ??
-      [],
-  );
+  const identifiers = new Set<string>();
+
+  for (const match of implementation.matchAll(IDENTIFIER_PATTERN)) {
+    if (
+      match.index !== undefined &&
+      !isMemberName(implementation, match.index)
+    ) {
+      identifiers.add(match[0]);
+    }
+  }
+
+  return identifiers;
 }
 
 function addDependencyFromIdentifiers({

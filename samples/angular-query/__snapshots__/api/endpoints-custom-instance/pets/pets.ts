@@ -21,8 +21,6 @@ import type {
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
-import { map } from 'rxjs/operators';
-
 import type {
   CreatePetsBody,
   Error,
