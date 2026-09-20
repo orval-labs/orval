@@ -274,6 +274,13 @@ export type MyError = Error;
           importMap('const all = [...map, ...items.map(Number)];'),
         ).toContain("from 'rxjs'");
       });
+
+      it('does not import a name read off a numeric literal', () => {
+        // `1..map` is valid: the first dot ends the numeric literal `1.` and
+        // the second is the member access. Only the third dot of `...map`
+        // makes a preceding dot a spread token.
+        expect(importMap('const out = 1..map;')).toBe('');
+      });
     });
   });
 

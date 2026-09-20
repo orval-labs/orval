@@ -260,8 +260,10 @@ const IDENTIFIER_PATTERN = /[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu;
  * in its own query-param serializer (#4143).
  *
  * `...spread` is not a member access even though a `.` sits in front of it, so
- * a dot that is itself preceded by a dot does not count. Optional chaining
- * (`value?.map`) does.
+ * the third dot of a spread token does not count. Two dots are not enough to
+ * recognize one: `1..map` is valid, where the first dot ends the numeric
+ * literal `1.` and the second is the member access. Optional chaining
+ * (`value?.map`) is a member access like any other.
  */
 function isMemberName(source: string, start: number): boolean {
   let index = start - 1;
@@ -270,7 +272,13 @@ function isMemberName(source: string, start: number): boolean {
     index--;
   }
 
-  return index >= 0 && source[index] === '.' && source[index - 1] !== '.';
+  if (index < 0 || source[index] !== '.') {
+    return false;
+  }
+
+  const isSpread = source[index - 1] === '.' && source[index - 2] === '.';
+
+  return !isSpread;
 }
 
 function getReferencedIdentifiers(implementation: string): Set<string> {
