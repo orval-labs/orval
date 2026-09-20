@@ -559,9 +559,6 @@ export const generateOperations = (
           }),
       );
 
-      // The MCP target only contains tool handlers; the HTTP calls, and so the
-      // mutators, live in the http-client file the mcp generator emits itself.
-      const isMcp = outputClient === OutputClient.MCP;
       const hasImplementation = client.implementation.trim().length > 0;
       const preferredOperationKey = verbOption.operationName;
       const baseOperationKey = verbOption.operationId
@@ -584,15 +581,15 @@ export const generateOperations = (
         imports: [...baseUrlImports, ...client.imports],
         mockOutputs,
         tags: verbOption.tags,
-        mutator: isMcp ? undefined : verbOption.mutator,
+        mutator: verbOption.mutator,
         clientMutators: client.mutators,
-        formData: isMcp ? undefined : verbOption.formData,
-        formUrlEncoded: isMcp ? undefined : verbOption.formUrlEncoded,
-        paramsSerializer: isMcp ? undefined : verbOption.paramsSerializer,
-        paramsFilter: isMcp ? undefined : verbOption.paramsFilter,
+        formData: verbOption.formData,
+        formUrlEncoded: verbOption.formUrlEncoded,
+        paramsSerializer: verbOption.paramsSerializer,
+        paramsFilter: verbOption.paramsFilter,
         operationName: verbOption.operationName,
         urlHelperName: verbOption.urlHelperName,
-        fetchReviver: isMcp ? undefined : verbOption.fetchReviver,
+        fetchReviver: verbOption.fetchReviver,
         ...(client.returnType
           ? { types: { result: client.returnType } }
           : undefined),

@@ -259,5 +259,14 @@ export type MyError = Error;
 
       expect(imports).toBe("import { customInstance } from '@scope/axios';\n");
     });
+
+    it('skips a mutator the implementation does not reference', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('@scope/axios')],
+        implementation: 'export const listPets = () => fetch("/pets");',
+      });
+
+      expect(imports).toBe('');
+    });
   });
 });
