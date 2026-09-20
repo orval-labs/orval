@@ -18,10 +18,6 @@ import type {
   HttpResourceRequest
 } from '@angular/common/http';
 
-import type {
-  HttpResponse as AngularHttpResponse
-} from '@angular/common/http';
-
 import {
   Injectable,
   inject
@@ -44,9 +40,9 @@ import type {
   Pets
 } from './model';
 
-import {
-  map
-} from 'rxjs';
+import type {
+  HttpResponse as AngularHttpResponse
+} from '@angular/common/http';
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */

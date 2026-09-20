@@ -24,7 +24,7 @@ import type {
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 
-import { map, takeUntil } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 
 import type {
   CreatePetsBody,

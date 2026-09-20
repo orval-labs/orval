@@ -191,7 +191,7 @@ export type MyError = Error;
 
   describe('generateDependencyImports', () => {
     it('indexes referenced identifiers once for all dependency groups', () => {
-      const match = vi.spyOn(String.prototype, 'match');
+      const matchAll = vi.spyOn(String.prototype, 'matchAll');
 
       try {
         const result = generateDependencyImports(
@@ -213,10 +213,74 @@ export type MyError = Error;
 
         expect(result).toContain("{\n  Foo\n} from 'foo';");
         expect(result).toContain("{\n  Bar\n} from 'bar';");
-        expect(match).toHaveBeenCalledTimes(1);
+        expect(matchAll).toHaveBeenCalledTimes(1);
       } finally {
-        match.mockRestore();
+        matchAll.mockRestore();
       }
+    });
+
+    // A name after a dot is a property of the object on its left, never the
+    // imported binding: code that really uses an import names it bare
+    // somewhere. Reading a member name as a reference kept imports alive that
+    // nothing used (#4143).
+    describe('member names are not references', () => {
+      const importMap = (implementation: string) =>
+        generateDependencyImports(
+          implementation,
+          [{ dependency: 'rxjs', exports: [{ name: 'map', values: true }] }],
+          undefined,
+          true,
+          true,
+        );
+
+      it('does not import a name used only as a method call', () => {
+        expect(importMap('const out = items.map((item) => item);')).toBe('');
+      });
+
+      it('does not import a name used only through optional chaining', () => {
+        expect(importMap('const out = items?.map((item) => item);')).toBe('');
+      });
+
+      it('does not import a name reached across a line break', () => {
+        expect(importMap('const out = items\n  .map((item) => item);')).toBe(
+          '',
+        );
+      });
+
+      it('does not import a name used only as a qualified type', () => {
+        expect(importMap('let value: Operators.map;')).toBe('');
+      });
+
+      it('imports a name called bare', () => {
+        expect(importMap('source.pipe(map((data) => data));')).toContain(
+          "from 'rxjs'",
+        );
+      });
+
+      it('imports a name used in shorthand', () => {
+        expect(importMap('const operators = { map };')).toContain(
+          "from 'rxjs'",
+        );
+      });
+
+      it('imports a name that is spread, despite the leading dots', () => {
+        // `...map` is a reference; the `.` in front of it belongs to the
+        // spread token, not to a member access.
+        expect(importMap('const all = [...map];')).toContain("from 'rxjs'");
+      });
+
+      it('imports a name that is both spread and a member elsewhere', () => {
+        expect(
+          importMap('const all = [...map, ...items.map(Number)];'),
+        ).toContain("from 'rxjs'");
+      });
+
+      it('does not import a name read off a numeric literal', () => {
+        // `1..map` is valid: the first dot ends the numeric literal `1.` and
+        // the second is the member access. Only the third dot of `...map`
+        // makes a preceding dot a spread token.
+        expect(importMap('const out = 1..map;')).toBe('');
+      });
     });
   });
 
