@@ -933,6 +933,18 @@ export default defineConfig({
       },
     },
   },
+  // A multipart part whose `type` the upgrader dropped, leaving only
+  // `contentMediaType`/`contentEncoding`: both annotate a string, so the part
+  // has to keep its file typing rather than degrade to `unknown` (#4157).
+  'typeless-content-keywords': {
+    input: '../specifications/typeless-content-keywords.yaml',
+    output: {
+      target: '../generated/default/typeless-content-keywords/endpoints.ts',
+      schemas: '../generated/default/typeless-content-keywords/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   // A nullable multipart file part must type as `Blob | File | null`, not
   // `string | null`: the file-part classifier only saw a bare
   // `type: 'string'`, and `resolveSpec` hands it `['string','null']` (#4141).

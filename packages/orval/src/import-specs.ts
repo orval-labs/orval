@@ -445,6 +445,61 @@ const LINK_DATA_KEYWORDS = new Set(['parameters', 'requestBody']);
 const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
 
 /**
+ * Assertions that can only be satisfied by something other than a string, so
+ * {@link inferStringForContentKeywords} leaves the schema alone rather than
+ * narrowing away instances it admits.
+ *
+ * Deliberately a list of assertions and not of every keyword: annotations
+ * (`description`, `title`, `example`, `deprecated`, ...) and the string
+ * assertions (`pattern`, `minLength`, `maxLength`, `format`) say nothing
+ * against a string, and a part documented with a `description` is the common
+ * case the inference exists for.
+ */
+const NON_STRING_ASSERTIONS = new Set([
+  // Resolved elsewhere, so what they admit is not visible here.
+  '$ref',
+  '$dynamicRef',
+  // Applicators: the branches carry the types, not this schema.
+  'allOf',
+  'anyOf',
+  'oneOf',
+  'not',
+  'if',
+  'then',
+  'else',
+  // Value assertions that enumerate the admitted instances themselves.
+  'enum',
+  'const',
+  // Object assertions.
+  'properties',
+  'patternProperties',
+  'additionalProperties',
+  'unevaluatedProperties',
+  'propertyNames',
+  'required',
+  'dependentRequired',
+  'dependentSchemas',
+  'minProperties',
+  'maxProperties',
+  // Array assertions.
+  'items',
+  'prefixItems',
+  'unevaluatedItems',
+  'contains',
+  'minContains',
+  'maxContains',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  // Numeric assertions.
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+]);
+
+/**
  * Close the OpenAPI 3.0 syntax `upgrade()` leaves behind, so the document handed
  * to `importOpenApi` is fully 3.1-shaped (#4115).
  *
@@ -465,6 +520,9 @@ const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
  *   survive on nullable string unions;
  * - a document declaring `3.1` is skipped wholesale, so every 3.0 keyword in one
  *   reaches us untouched.
+ * - from 0.2.16 it writes `contentMediaType`/`contentEncoding` in place of a
+ *   `format` but drops the `type: 'string'` that carried it, leaving a part
+ *   that describes a string with no type at all (#4157).
  *
  * Every rule below therefore stands on its own rather than assuming the upgrader
  * already handled anything with a `type`.
@@ -639,6 +697,12 @@ function normalizeSchemaNode(
   obj: Record<string, unknown>,
   mediaType: string | undefined,
 ): Record<string, unknown> {
+  // Runs first so `resolveNullable` has the `type` it needs to attach a
+  // sibling `nullable: true` to. The other way round it finds nothing to
+  // attach to, drops the keyword as harmless — which it is only while the
+  // schema stays typeless — and the `type` added afterwards then excludes the
+  // null the author asked for.
+  inferStringForContentKeywords(obj);
   const withoutNullable = resolveNullable(obj);
   widenEnumForNullableType(withoutNullable);
   convertContentFormat(withoutNullable, mediaType);
@@ -774,6 +838,47 @@ function convertContentFormat(
   if (format === 'byte' && mediaType !== undefined) {
     obj.contentMediaType = mediaType;
   }
+}
+
+/**
+ * Give a schema that carries only `contentMediaType`/`contentEncoding` the
+ * `type: 'string'` those keywords describe (#4157).
+ *
+ * Both are string-only annotations — JSON Schema says they are ignored for any
+ * other instance type — so a schema asserting one and no `type` describes a
+ * string, and reading it as "any type" is what made the field come out
+ * `unknown`. `@scalar/openapi-upgrader` produces exactly that shape from
+ * `>= 0.2.16`: converting a Swagger 2.0 `type: file` parameter, or any
+ * `{ type: 'string', format: 'binary' }`, it writes the content keyword and
+ * drops the `type` that carried it. orval's binary detection is gated on a
+ * string-like `type`, so the part lost its `Blob | File` in the model, its
+ * `instanceof Blob` in the zod and effect validators, and its file value in
+ * the mocks.
+ *
+ * Only a schema that asserts nothing a string cannot satisfy is narrowed. A
+ * `$ref` or a composition carrying a content keyword describes whatever the
+ * reference or the branches describe, and an object, array or numeric assertion
+ * says outright that some admitted instance is not a string; annotating `type`
+ * there would drop those instances, so {@link NON_STRING_ASSERTIONS} leaves the
+ * schema as authored. Annotations do not block it, so a documented part still
+ * gets its type.
+ */
+function inferStringForContentKeywords(obj: Record<string, unknown>): void {
+  if (obj.type !== undefined) {
+    return;
+  }
+
+  if (!isString(obj.contentMediaType) && !isString(obj.contentEncoding)) {
+    return;
+  }
+
+  for (const keyword of NON_STRING_ASSERTIONS) {
+    if (keyword in obj) {
+      return;
+    }
+  }
+
+  obj.type = 'string';
 }
 
 /**

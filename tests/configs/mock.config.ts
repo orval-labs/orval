@@ -1229,6 +1229,26 @@ export default defineConfig({
       target: '../specifications/issue-3691.yaml',
     },
   },
+  // The mocks' view of the typeless parts: a restored `type: 'string'` has to
+  // reach the faker binary branch too, not fall back to an empty value (#4157).
+  'typeless-content-keywords': {
+    output: {
+      target: '../generated/mock/typeless-content-keywords/endpoints.ts',
+      schemas: '../generated/mock/typeless-content-keywords/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typeless-content-keywords.yaml',
+    },
+  },
   // A nullable component schema delegated to `get<X>Mock()` has to keep its
   // null branch, and an optional nullable property has to omit with `null`
   // rather than `undefined` — both read `nullable`, which is gone by then (#4141).
