@@ -2372,6 +2372,140 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
       ].join('\n'),
     );
   });
+
+  // A property named after an `Object.prototype` member is a realistic field
+  // name (`constructor` most of all), and it used to take the whole
+  // generation down: the keys were collected with `Object.keys` (own keys
+  // only) but the declaring-variant filter asked
+  // `variantSchema.properties?.[key] !== undefined`, which walks the
+  // prototype chain. The variant that never declared `constructor` answered
+  // `Object.prototype.constructor`, passed the filter, and the per-key map —
+  // which really does only hold own keys — handed back `undefined`, throwing
+  // `Cannot read properties of undefined (reading 'cyclicRefs')` for the
+  // whole spec. The results are now read from the per-key map itself, so
+  // there is only one source of truth about which variants declared a key.
+  const makePrototypeNameContext = (
+    declared: OpenApiSchemaObject,
+  ): ContextSpec =>
+    makeContext({
+      Vehicle: {
+        type: 'object',
+        properties: {
+          constructor: declared,
+          registeredOn: { type: 'string', format: 'date' },
+        },
+      },
+      Trailer: {
+        type: 'object',
+        properties: { registeredOn: { type: 'string', format: 'date' } },
+      },
+    });
+
+  const prototypeNameUnion: OpenApiSchemaObject = {
+    anyOf: [
+      { $ref: '#/components/schemas/Vehicle' },
+      { $ref: '#/components/schemas/Trailer' },
+    ],
+  };
+
+  const convertsRegisteredOn = [
+    'if ("registeredOn" in data && data.registeredOn != null) {',
+    '  data.registeredOn = new Date(data.registeredOn);',
+    '}',
+  ].join('\n');
+
+  it('does not crash when only one variant declares a property named after an Object.prototype member', () => {
+    const context = makePrototypeNameContext({ type: 'string' });
+
+    expect(
+      buildDateTransformStatements({
+        schema: prototypeNameUnion,
+        accessor: 'data',
+        context,
+      }).join('\n'),
+    ).toBe(convertsRegisteredOn);
+
+    // Variant order must not matter either: the undeclaring variant passed
+    // the old prototype-chain filter whichever side of the union it sat on.
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          anyOf: [
+            { $ref: '#/components/schemas/Trailer' },
+            { $ref: '#/components/schemas/Vehicle' },
+          ],
+        },
+        accessor: 'data',
+        context,
+      }).join('\n'),
+    ).toBe(convertsRegisteredOn);
+
+    expect(
+      buildRequestDateSerializeStatements({
+        schema: prototypeNameUnion,
+        accessor: 'data',
+        context,
+      }).join('\n'),
+    ).toBe(
+      [
+        'if ("registeredOn" in data && data.registeredOn != null) {',
+        '  data.registeredOn = data.registeredOn instanceof Date ? (data.registeredOn.toISOString().slice(0, 10) as unknown as Date) : data.registeredOn;',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  // With the crash gone, such a key must still emit nothing, because the
+  // guard the structural walk is obliged to use is `'key' in accessor` —
+  // the only form TypeScript narrows the union by — and `in` walks the
+  // prototype chain, so `'constructor' in payload` is true for a `Trailer`
+  // that never carried the field. The conversion would then run on the
+  // inherited `Object` function and write `Invalid Date` over it. The rest
+  // of the union has to keep converting.
+  it('emits nothing for a date property named after an Object.prototype member, and still converts its siblings', () => {
+    const context = makePrototypeNameContext({
+      type: 'string',
+      format: 'date',
+    });
+
+    const statements = buildDateTransformStatements({
+      schema: prototypeNameUnion,
+      accessor: 'data',
+      context,
+    });
+
+    expect(statements.join('\n')).toBe(convertsRegisteredOn);
+    expect(statements.join('\n')).not.toContain('constructor');
+
+    // Not a "only one variant declares it" special case either: every
+    // variant declaring the property changes nothing, since `in` is no more
+    // truthful about it.
+    const bothDeclare = makeContext({
+      Vehicle: {
+        type: 'object',
+        properties: {
+          toString: { type: 'string', format: 'date' },
+          registeredOn: { type: 'string', format: 'date' },
+        },
+      },
+      Trailer: {
+        type: 'object',
+        properties: {
+          toString: { type: 'string', format: 'date' },
+          registeredOn: { type: 'string', format: 'date' },
+        },
+      },
+    });
+
+    const shared = buildDateTransformStatements({
+      schema: prototypeNameUnion,
+      accessor: 'data',
+      context: bothDeclare,
+    });
+
+    expect(shared.join('\n')).toBe(convertsRegisteredOn);
+    expect(shared.join('\n')).not.toContain('toString');
+  });
 });
 
 const makeResponse = (

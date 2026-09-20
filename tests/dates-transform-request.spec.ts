@@ -303,7 +303,7 @@ test('does not throw when the response omits the required pets map', async () =>
 // function in this codebase is a module-private `const`, matching every test
 // above this point, which drives the request through the public endpoint
 // function and inspects the wire body captured by the mocked axios adapter.
-// The three tests below follow that same established pattern rather than
+// The four tests below follow that same established pattern rather than
 // importing the private serializers directly.
 
 test('serializes dates inside an undiscriminated union map value', async () => {
@@ -326,15 +326,25 @@ test('serializes dates inside an undiscriminated union map value', async () => {
   const body = JSON.parse(String(captured.config?.data));
 
   expect(body.records['record-1'].visitedOn).toBe('2026-07-01');
-  // The non-date variant must come through untouched.
-  expect(body.records['record-2'].kilograms).toBe(4.2);
+  // The non-date variant must come through untouched, asserted on the whole
+  // record rather than on `kilograms` alone: a wrongly emitted conversion
+  // reads `kilograms instanceof Date ? … : kilograms` and leaves `4.2`
+  // exactly as it was, so a `kilograms` check can never fail. What can fail
+  // is an extra key on the wire — the presence guards are the only thing
+  // keeping `visitedOn`, `entries` and `administeredAt` off a variant that
+  // never declared them.
+  expect(body.records['record-2']).toEqual({
+    recordType: 'weight',
+    kilograms: 4.2,
+  });
   // The input must not be mutated — the request direction copies.
   expect(records['record-1'].visitedOn).toBeInstanceOf(Date);
 });
 
 test('reaches dates nested in an array inside a union variant', async () => {
-  // Pins that the walk descends through `entries`, whose items are
-  // themselves union variants.
+  // Pins that the walk descends through `entries`: an array inside a union
+  // variant, whose items are a single `$ref` to `VisitRecord` rather than a
+  // union of their own.
   const captured = captureRequest();
 
   await updateShelterRecords('shelter-1', {
@@ -354,6 +364,77 @@ test('reaches dates nested in an array inside a union variant', async () => {
   const body = JSON.parse(String(captured.config?.data));
 
   expect(body.records['record-1'].entries[0].visitedOn).toBe('2026-07-02');
+});
+
+test('deserializes dates inside an undiscriminated union map value in the response', async () => {
+  // The RESPONSE direction of the structural walk. Every other
+  // `updateShelterRecords` test above drives the endpoint through
+  // `captureRequest()`, whose mock adapter answers `data: {}`, so the
+  // generated deserializer's `Object.keys(data.records)` loop iterates zero
+  // times and the response walk is pinned by snapshot text and `tsc` alone.
+  // This is the undiscriminated equivalent of the populated-mock response
+  // test the discriminated twin already has above: one entry per shape, so
+  // the loop body really runs.
+  AXIOS_INSTANCE.defaults.adapter = async (config) => ({
+    data: {
+      records: {
+        'record-1': {
+          recordType: 'visit',
+          visitedOn: '2026-07-01',
+          seenBy: 'Dr. Ada',
+        },
+        'record-2': {
+          recordType: 'visit',
+          entries: [{ recordType: 'visit', visitedOn: '2026-07-02' }],
+        },
+        'record-3': { recordType: 'weight', kilograms: 4.2 },
+      },
+    },
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config,
+  });
+
+  const response = await updateShelterRecords('shelter-1', {
+    records: {
+      'record-1': {
+        recordType: 'visit',
+        visitedOn: new Date('2026-07-01'),
+        seenBy: 'Dr. Ada',
+      },
+    },
+  });
+
+  const visit = response.records['record-1'];
+  const series = response.records['record-2'];
+  const weight = response.records['record-3'];
+
+  if (!('visitedOn' in visit)) {
+    throw new Error('expected a record carrying visitedOn');
+  }
+  if (!('entries' in series)) {
+    throw new Error('expected a record carrying entries');
+  }
+  if (!('kilograms' in weight)) {
+    throw new Error('expected a record carrying kilograms');
+  }
+
+  expect(visit.visitedOn).toBeInstanceOf(Date);
+  expect(visit.visitedOn.toISOString()).toBe('2026-07-01T00:00:00.000Z');
+
+  // The nested array inside a union variant, reached through the same walk.
+  expect(series.entries[0].visitedOn).toBeInstanceOf(Date);
+  expect(series.entries[0].visitedOn.toISOString()).toBe(
+    '2026-07-02T00:00:00.000Z',
+  );
+
+  // A variant that declares no date is left exactly as the server sent it:
+  // `kilograms` stays a number, and the presence guards keep the other
+  // variants' keys off it.
+  expect(weight.kilograms).toBe(4.2);
+  expect(weight).not.toHaveProperty('visitedOn');
+  expect(weight).not.toHaveProperty('entries');
 });
 
 test('skips a property whose union variants disagree in shape, converts the one they agree on', async () => {

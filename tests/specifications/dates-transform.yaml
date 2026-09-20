@@ -187,8 +187,9 @@ paths:
       # — VisitRecord and VisitSeriesRecord share the tag value `visit` and
       # differ only by which fields they carry. Pins the structural walk:
       # `visitedOn` is declared identically by two variants and must collapse
-      # to one guarded block, `entries` reaches dates nested in an array of a
-      # further union, and WeightRecord contributes nothing.
+      # to one guarded block, `entries` reaches dates nested in an array
+      # inside a union variant (its items are a single $ref to VisitRecord,
+      # not a union of their own), and WeightRecord contributes nothing.
       requestBody:
         required: true
         content:

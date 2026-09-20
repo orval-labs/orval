@@ -394,7 +394,7 @@ const buildResolvedStatements = ({
       }),
     );
 
-    const unionResult = buildDiscriminatedUnionStatements({
+    const unionResult = buildUnionStatements({
       schema,
       accessor,
       context,
@@ -745,6 +745,11 @@ const buildPropertiesStatements = ({
   visitedRefs: Set<string>;
   depth: number;
   mode: DateTransformMode;
+  /**
+   * Set when the accessor is typed as a whole undiscriminated union, so each
+   * property must first narrow it with `'key' in accessor` (see the guard
+   * below).
+   */
   presenceGuarded?: boolean;
 }): BuildResult => {
   const requiredSet = new Set(required ?? []);
@@ -884,14 +889,13 @@ const buildMappedUnionStatements = ({
  * A union's variant must declare its own `properties` for the structural
  * walk: it reads properties off the union accessor, which an array or
  * scalar variant has none of, and an `allOf` variant's inherited properties
- * are never merged into `.properties` by the key-collection step below —
- * admitting an `allOf` variant here (an earlier version of this predicate
- * did, via `(schema.allOf ?? []).length > 0`) would silently under-convert
- * it: its inherited properties would contribute no keys at all, so a plain
- * string re-declared at this level could get converted while a real nested
- * date is never reached. Requiring own `properties` disqualifies the whole
- * union instead, which is exactly today's (pre-structural-walk) behaviour
- * for a union with an `allOf` variant, so this is not a regression.
+ * are never merged into `.properties` by the key-collection step below. An
+ * `allOf` variant admitted here would therefore be silently under-converted:
+ * its inherited properties contribute no keys at all, so a plain string
+ * re-declared at this level could get converted while a real nested date is
+ * never reached. Requiring own `properties` disqualifies the whole union
+ * instead, which is exactly today's (pre-structural-walk) behaviour for a
+ * union with an `allOf` variant, so this is not a regression.
  *
  * `items` (or `type: 'array'`) is checked first and disqualifies the variant
  * outright, even when it also declares `properties`: `needsObjectCopy`
@@ -975,14 +979,36 @@ const classifyUnionVariant = (
  * schema recursive?" answered identically in both spellings, whatever each
  * then chooses to convert.
  *
- * Only called for a union that is already disqualified and so emits no
- * statements of its own: nothing learned here can change what converts, it
- * can only make a recursive schema drop, which is this file's standing
- * rule. A throw — an unresolvable `$ref` nested somewhere inside the
- * variant — means this variant has nothing to teach; a union that converts
- * nothing anyway must not turn a broken corner of a spec into a failed
- * generation, and `buildStatements` restores `visitedRefs` through its own
- * `finally` before the throw gets here.
+ * ## Two callers, with different stakes
+ *
+ * The first caller is a union that is *already disqualified* and so emits no
+ * statements of its own. There, nothing learned can change what that union
+ * converts — it converts nothing either way — and the refs only travel
+ * upwards, where at most they make a recursive ancestor drop its subtree,
+ * which is this file's standing rule.
+ *
+ * The second caller is an *admitted* variant of a *qualified* union, walked
+ * for the branches the per-property walk never reads (`hasUnwalkedBranches`:
+ * an `allOf`, or a nested union beside the variant's own `properties`).
+ * There what is learned very much does change what converts: the returned
+ * refs become that variant's `branchRefs`, and `branchRefs.has(variantRef)`
+ * is half of the variant's own cycle-closing check — a hit wipes every
+ * statement the variant contributed. The statements this function throws
+ * away are still never emitted; it is the *refs* that carry weight on that
+ * path.
+ *
+ * A throw — an unresolvable `$ref` nested somewhere inside the variant —
+ * yields an empty set, so the caller proceeds as if the walk found no cycle.
+ * `buildStatements` restores `visitedRefs` through its own `finally` before
+ * the throw gets here, so the caller's bookkeeping is intact either way.
+ * That choice matches how the rest of the file treats a broken corner of a
+ * spec — `buildMappedUnionStatements` around a mapping target,
+ * `classifyUnionVariant` around a variant's own `$ref` — rather than turning
+ * it into a failed generation of the whole document. It is not free on the
+ * second caller: a cycle reachable only *past* the unresolvable ref goes
+ * unreported, and the variant keeps converting its own properties. It is the
+ * same trade the other two catches already make, over a spec that cannot be
+ * resolved as written.
  */
 const discoverVariantCycles = ({
   variant,
@@ -1059,18 +1085,17 @@ const hasUnwalkedBranches = (schema: OpenApiSchemaObject): boolean =>
  * already disqualified the union. Only afterwards is it decided whether the
  * collected statements are emitted at all.
  *
- * Deciding and walking in a single interleaved pass, as earlier versions of
- * this function did, makes the union's answer depend on the order the spec
- * happens to list its variants in: a disqualifying variant (unresolvable,
- * not object-shaped, or one an ancestor is already expanding) abandoned the
- * loop, so a cycle reachable only through a *later* variant was never
- * discovered, and an ancestor holding the cyclic ref converted its own
- * levels while everything under the union silently stayed a string. The
- * discriminated spelling of that same schema walks every mapping target
- * regardless, finds the cycle and drops the whole subtree — so the two
- * spellings disagreed on whether a schema was safe to convert. Splitting
- * classification from walking is what makes the two passes independent of
- * variant order.
+ * Deciding and walking in a single interleaved pass would make the union's
+ * answer depend on the order the spec happens to list its variants in: a
+ * disqualifying variant (unresolvable, not object-shaped, or one an ancestor
+ * is already expanding) would abandon the loop, so a cycle reachable only
+ * through a *later* variant would never be discovered, and an ancestor
+ * holding the cyclic ref would convert its own levels while everything under
+ * the union silently stayed a string. The discriminated spelling of that same
+ * schema walks every mapping target regardless, finds the cycle and drops the
+ * whole subtree — so the two spellings would disagree on whether a schema is
+ * safe to convert. Splitting classification from walking is what makes the
+ * two passes independent of variant order.
  *
  * ## What each variant contributes
  *
@@ -1281,20 +1306,37 @@ const buildUndiscriminatedUnionStatements = ({
   // Property order follows the spec's own declaration order: each variant's
   // own properties, in the order the variants themselves appear in the
   // `oneOf`/`anyOf` array.
+  //
+  // A property named after an `Object.prototype` member (`constructor`,
+  // `toString`, `valueOf`, `hasOwnProperty`, `__proto__`, …) is dropped
+  // outright. The emitted guard has to be `'key' in accessor` — that is the
+  // only form TypeScript narrows the union by, and `Object.hasOwn`, which
+  // would answer correctly at runtime, narrows nothing — but `in` walks the
+  // prototype chain, so `'constructor' in payload` is true for every object
+  // alive. Emitting a block for such a key would run the conversion on a
+  // payload of a variant that never declared it and overwrite the inherited
+  // member with `Invalid Date`. There is no guard that both narrows and
+  // tells the truth here, so the union converts nothing for that name and
+  // every other property still converts.
   const keys: string[] = [];
   for (const { schema: variantSchema } of perVariant) {
     for (const key of Object.keys(variantSchema.properties ?? {})) {
+      if (Object.hasOwn(Object.prototype, key)) continue;
       if (!keys.includes(key)) keys.push(key);
     }
   }
 
   const results = keys.map((key): BuildResult => {
-    const declaringResults = perVariant
-      .filter(
-        ({ schema: variantSchema }) =>
-          variantSchema.properties?.[key] !== undefined,
-      )
-      .map(({ perKey }) => perKey.get(key)!);
+    // Which variants declared this key is read from `perKey` itself, never
+    // re-derived from `variantSchema.properties[key]`: that lookup walks the
+    // prototype chain, so for an `Object.prototype`-named key a variant that
+    // never declared it would answer as though it had, and `perKey` — keyed
+    // by `Object.keys`, own keys only — would then hand back `undefined`.
+    // One source of truth, and no unsound non-null assertion.
+    const declaringResults = perVariant.flatMap(({ perKey }) => {
+      const result = perKey.get(key);
+      return result ? [result] : [];
+    });
 
     // Every declaring variant's cyclicRefs propagate regardless of whether
     // this property ends up converting: a cycle detected below a variant's
@@ -1316,10 +1358,15 @@ const buildUndiscriminatedUnionStatements = ({
     return { statements: agreed ? first.statements : [], cyclicRefs };
   });
 
-  // `learned` is redundant on this exit — with nothing disqualified, every
-  // walked result is one of `results` — but merging it keeps both exits
-  // spelled the same way, so neither can be changed into one that returns
-  // without what the walk learned.
+  // `learned` is required on this exit, not merely symmetrical with the
+  // disqualified one. `results` is built from `perKey` alone, so the refs a
+  // variant's unwalked branches uncovered (`branchRefs`) reach the caller
+  // through `learned` and through nothing else — as do the refs of a key
+  // dropped above for being named after an `Object.prototype` member.
+  // Returning `results` by itself would hide a recursive schema from the
+  // ancestor holding its ref, which would then convert its own levels while
+  // this subtree stayed a string: exactly the partial conversion the
+  // two-pass walk exists to prevent.
   return mergeResults([learned, ...results]);
 };
 
@@ -1331,7 +1378,7 @@ const buildUndiscriminatedUnionStatements = ({
  * but no `mapping` takes the structural path too — the mapping is what the
  * `switch` needs, not the property name.
  */
-const buildDiscriminatedUnionStatements = (params: {
+const buildUnionStatements = (params: {
   schema: OpenApiSchemaObject;
   accessor: string;
   context: ContextSpec;
