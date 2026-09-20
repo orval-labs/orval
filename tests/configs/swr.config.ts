@@ -438,4 +438,15 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  datesTransform: {
+    output: {
+      target: '../generated/swr/dates-transform/endpoints.ts',
+      schemas: '../generated/swr/dates-transform/model',
+      client: 'swr',
+      override: { useDatesTransform: true },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
 });

@@ -20,7 +20,14 @@ import {
   headThings,
 } from './http-client';
 
-export const getThingsHandler = async (options?: RequestInit) => {
+export const getThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
+) => {
   const res = await getThings(options);
 
   if (res.status >= 400) {
@@ -35,14 +42,21 @@ export const getThingsHandler = async (options?: RequestInit) => {
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 export type createThingArgs = {
@@ -51,7 +65,12 @@ export type createThingArgs = {
 
 export const createThingHandler = async (
   args: createThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await createThing(args.bodyParams, options);
 
@@ -67,14 +86,21 @@ export const createThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 export type replaceThingArgs = {
@@ -83,7 +109,12 @@ export type replaceThingArgs = {
 
 export const replaceThingHandler = async (
   args: replaceThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await replaceThing(args.bodyParams, options);
 
@@ -99,14 +130,21 @@ export const replaceThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
 export type patchThingArgs = {
@@ -115,7 +153,12 @@ export type patchThingArgs = {
 
 export const patchThingHandler = async (
   args: patchThingArgs,
-  options?: RequestInit,
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const res = await patchThing(args.bodyParams, options);
 
@@ -131,17 +174,31 @@ export const patchThingHandler = async (
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
-export const deleteThingHandler = async (options?: RequestInit) => {
+export const deleteThingHandler = async (
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
+) => {
   const res = await deleteThing(options);
 
   if (res.status >= 400) {
@@ -156,17 +213,31 @@ export const deleteThingHandler = async (options?: RequestInit) => {
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
-export const optionsThingsHandler = async (options?: RequestInit) => {
+export const optionsThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
+) => {
   const res = await optionsThings(options);
 
   if (res.status >= 400) {
@@ -181,17 +252,31 @@ export const optionsThingsHandler = async (options?: RequestInit) => {
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 
-export const headThingsHandler = async (options?: RequestInit) => {
+export const headThingsHandler = async (
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
+) => {
   const res = await headThings(options);
 
   if (res.status >= 400) {
@@ -206,12 +291,19 @@ export const headThingsHandler = async (options?: RequestInit) => {
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };

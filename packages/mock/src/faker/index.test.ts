@@ -48,7 +48,7 @@ const baseOptions = {
     target: 'test',
     workspace: '',
     spec: {
-      openapi: '3.0.0',
+      openapi: '3.1.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
     },
@@ -368,7 +368,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
             properties: {
               id: { type: 'integer' },
               name: { type: 'string' },
-              tag: { type: 'string', nullable: true },
+              tag: { type: ['string', 'null'] },
             },
           },
         },
@@ -943,5 +943,57 @@ describe('schema-scoped overrides are preserved through factory delegation', () 
     // Factory carries the override; Basket delegates to it.
     expect(result.implementation).toContain(`color: (${String(appleColor)})()`);
     expect(result.implementation).toContain('apple: { ...getAppleMock() }');
+  });
+});
+
+// An inherited `format` used to resolve to the prototype member itself, so the
+// generated file carried `function Object() { [native code] }` (orval still
+// exited 0 and the victim's `tsc` failed on it), and the same value as a direct
+// `allOf` member crashed the generator on `.startsWith`.
+describe('generateFakerForSchemas inherited format keys', () => {
+  const context = createTestContextSpec({});
+
+  it('emits a compilable property mock', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Pet',
+          model: 'Pet',
+          imports: [],
+          schema: {
+            type: 'object',
+            required: ['foo'],
+            properties: { foo: { type: 'string', format: 'constructor' } },
+          },
+        } as GeneratorSchema,
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).not.toContain('native code');
+    expect(result.implementation).toContain('foo: faker.string.alpha(');
+  });
+
+  it('does not crash when the scalar is a direct allOf member', () => {
+    expect(() =>
+      generateFakerForSchemas(
+        [
+          {
+            name: 'Pet',
+            model: 'Pet',
+            imports: [],
+            schema: {
+              allOf: [
+                { type: 'object', properties: { a: { type: 'string' } } },
+                { type: 'string', format: 'constructor' },
+              ],
+            },
+          } as GeneratorSchema,
+        ],
+        context,
+        { type: OutputMockType.FAKER, schemas: true },
+      ),
+    ).not.toThrow();
   });
 });

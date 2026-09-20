@@ -27,6 +27,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  LastInspection,
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
@@ -687,6 +688,172 @@ export function useListShelterPets<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getListShelterPetsQueryOptions(shelterId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getShelterLastInspection = (
+  shelterId: string,
+  signal?: AbortSignal,
+) => {
+  return customInstance<LastInspection>({
+    url: `/shelters/${shelterId}/last-inspection`,
+    method: 'GET',
+    signal,
+  }).then(deserializeGetShelterLastInspectionResponse);
+};
+
+const deserializeGetShelterLastInspectionResponse = (
+  data: LastInspection,
+): LastInspection => {
+  if (data == null) return data;
+  data = new Date(data);
+  return data;
+};
+
+export const getGetShelterLastInspectionQueryKey = (shelterId: string) => {
+  return [`/shelters/${shelterId}/last-inspection`] as const;
+};
+
+export const getGetShelterLastInspectionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
+  TError = unknown,
+>(
+  shelterId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getShelterLastInspection>>,
+        TError,
+        TData
+      >
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetShelterLastInspectionQueryKey(shelterId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShelterLastInspection>>
+  > = ({ signal }) => getShelterLastInspection(shelterId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: shelterId !== null && shelterId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShelterLastInspection>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetShelterLastInspectionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShelterLastInspection>>
+>;
+export type GetShelterLastInspectionQueryError = unknown;
+
+export function useGetShelterLastInspection<
+  TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
+  TError = unknown,
+>(
+  shelterId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getShelterLastInspection>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getShelterLastInspection>>,
+          TError,
+          Awaited<ReturnType<typeof getShelterLastInspection>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetShelterLastInspection<
+  TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
+  TError = unknown,
+>(
+  shelterId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getShelterLastInspection>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getShelterLastInspection>>,
+          TError,
+          Awaited<ReturnType<typeof getShelterLastInspection>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetShelterLastInspection<
+  TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
+  TError = unknown,
+>(
+  shelterId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getShelterLastInspection>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGetShelterLastInspection<
+  TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
+  TError = unknown,
+>(
+  shelterId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getShelterLastInspection>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetShelterLastInspectionQueryOptions(
+    shelterId,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,

@@ -22,7 +22,7 @@ const makeContext = (
     target: 'core-test',
     workspace: '/tmp',
     spec: {
-      openapi: '3.0.0',
+      openapi: '3.1.0',
       info: { title: 'test', version: '1.0.0' },
       paths: {},
       components: { schemas },
@@ -37,7 +37,7 @@ describe('buildDateTransformStatements', () => {
       required: ['startTime'],
       properties: {
         startTime: { type: 'string', format: 'date-time' },
-        endTime: { type: 'string', format: 'date-time', nullable: true },
+        endTime: { type: ['string', 'null'], format: 'date-time' },
       },
     };
 
@@ -154,7 +154,7 @@ describe('buildDateTransformStatements', () => {
   it('guards nullable date-string array elements', () => {
     const schema: OpenApiSchemaObject = {
       type: 'array',
-      items: { type: 'string', format: 'date-time', nullable: true },
+      items: { type: ['string', 'null'], format: 'date-time' },
     };
 
     expect(
@@ -183,8 +183,7 @@ describe('buildDateTransformStatements', () => {
     const schema = {
       type: 'array',
       items: {
-        allOf: [{ $ref: '#/components/schemas/LogEvent' }],
-        nullable: true,
+        anyOf: [{ $ref: '#/components/schemas/LogEvent' }, { type: 'null' }],
       },
     } as OpenApiSchemaObject;
 
@@ -334,7 +333,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
       Dog: {
         type: 'object',
         properties: {
-          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+          adoptedAt: { type: ['string', 'null'], format: 'date-time' },
         },
       },
     });
@@ -2956,7 +2955,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       Dog: {
         type: 'object',
         properties: {
-          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+          adoptedAt: { type: ['string', 'null'], format: 'date-time' },
         },
       },
     });
@@ -3235,12 +3234,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       type: 'object',
       properties: {
         labels: {
-          type: 'object',
-          nullable: true,
+          type: ['object', 'null'],
           additionalProperties: {
-            type: 'string',
+            type: ['string', 'null'],
             format: 'date-time',
-            nullable: true,
           },
         },
       },
@@ -3797,7 +3794,7 @@ describe('generateResponseDateDeserializer', () => {
       Dog: {
         type: 'object',
         properties: {
-          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+          adoptedAt: { type: ['string', 'null'], format: 'date-time' },
         },
       },
     });
@@ -4100,8 +4097,7 @@ describe('buildRequestDateSerializeStatements', () => {
         periods: {
           type: 'array',
           items: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
             required: ['start'],
             properties: { start: { type: 'string', format: 'date' } },
           },
@@ -4544,7 +4540,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       Dog: {
         type: 'object',
         properties: {
-          adoptedOn: { type: 'string', format: 'date', nullable: true },
+          adoptedOn: { type: ['string', 'null'], format: 'date' },
         },
       },
     });
@@ -4841,12 +4837,10 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       type: 'object',
       properties: {
         labels: {
-          type: 'object',
-          nullable: true,
+          type: ['object', 'null'],
           additionalProperties: {
-            type: 'string',
+            type: ['string', 'null'],
             format: 'date',
-            nullable: true,
           },
         },
       },
@@ -6196,7 +6190,7 @@ describe('response direction — required container guards', () => {
       Dog: {
         type: 'object',
         properties: {
-          adoptedAt: { type: 'string', format: 'date-time', nullable: true },
+          adoptedAt: { type: ['string', 'null'], format: 'date-time' },
         },
       },
     });

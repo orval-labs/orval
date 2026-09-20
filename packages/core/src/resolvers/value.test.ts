@@ -55,7 +55,7 @@ describe('resolveValue', () => {
   // `import { Schema } from './model'` referencing an undeclared type.
   it('inlines a path-based ref instead of emitting a broken import', () => {
     const context = createContext({
-      openapi: '3.0.3',
+      openapi: '3.1.0',
       paths: {
         '/{id}': {
           get: {
@@ -103,7 +103,7 @@ describe('resolveValue', () => {
     const selfRef =
       '#/paths/~1self/get/responses/200/content/application~1json/schema';
     const context = createContext({
-      openapi: '3.0.3',
+      openapi: '3.1.0',
       paths: {
         '/self': {
           get: {

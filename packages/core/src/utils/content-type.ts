@@ -1,4 +1,5 @@
 import type { OpenApiSchemaObject } from '../types';
+import { isStringLikeSchema } from './assertion';
 
 // Known binary application/* types — add new entries here as needed
 const binaryApplicationTypes = new Set([
@@ -38,8 +39,12 @@ export function getFormDataFieldFileType(
   resolvedSchema: OpenApiSchemaObject,
   partContentType: string | undefined,
 ): 'binary' | 'text' | undefined {
-  // Only override string fields - objects/arrays with encoding are just serialized
-  if (resolvedSchema.type !== 'string') {
+  // Only override string fields - objects/arrays with encoding are just
+  // serialized. The OAS 3.1 nullable union ['string', 'null'] counts: that is
+  // what `resolveSpec` makes of a 3.0 `{ type: 'string', nullable: true }`
+  // part, and rejecting it left nullable file fields typed `string | null`
+  // while the zod/effect validators still emitted `instanceof Blob` (#4141).
+  if (!isStringLikeSchema(resolvedSchema)) {
     return undefined;
   }
 

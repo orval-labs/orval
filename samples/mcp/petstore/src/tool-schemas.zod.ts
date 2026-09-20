@@ -267,3 +267,19 @@ export const DeleteUserParams = zod.object({
 });
 
 export const DeleteUserResponse = zod.unknown();
+
+export const FilterPetsByStatusOutput = zod.object({
+  result: FilterPetsByStatusResponse,
+});
+
+export const FindPetsByStatusOutput = zod.object({
+  result: FindPetsByStatusResponse,
+});
+
+export const FindPetsByTagsOutput = zod.object({
+  result: FindPetsByTagsResponse,
+});
+
+export const GetInventoryOutput = zod.object({ result: GetInventoryResponse });
+
+export const LoginUserOutput = zod.object({ result: LoginUserResponse });

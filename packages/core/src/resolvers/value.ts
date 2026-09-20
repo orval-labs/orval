@@ -362,7 +362,6 @@ export function resolveValue({
     const schemaType = schemaObject.type as string | string[] | undefined;
     const nullable =
       (Array.isArray(schemaType) && schemaType.includes('null')) ||
-      schemaObject.nullable === true ||
       isAnyOfNullable
         ? ' | null'
         : '';

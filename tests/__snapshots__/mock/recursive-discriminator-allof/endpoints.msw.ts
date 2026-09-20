@@ -25,7 +25,7 @@ export const getGetDerived1ResponseDerived2Mock = (
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([undefined, null]),
+        Parent: faker.helpers.arrayElement([null]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },
@@ -49,9 +49,7 @@ export const getGetDerived1ResponseDerived1Mock = (
           null,
         ]),
         Parent: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            { ...getGetDerived1ResponseDerived2Mock() },
-          ]),
+          { ...getGetDerived1ResponseDerived2Mock() },
           null,
         ]),
       },
@@ -74,10 +72,8 @@ export const getGetDerived1ResponseMock = (): Derived1 => ({
         null,
       ]),
       Parent: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          { ...getGetDerived1ResponseDerived1Mock() },
-          { ...getGetDerived1ResponseDerived2Mock() },
-        ]),
+        { ...getGetDerived1ResponseDerived1Mock() },
+        { ...getGetDerived1ResponseDerived2Mock() },
         null,
       ]),
     },
@@ -100,7 +96,7 @@ export const getGetDerived2ResponseDerived2Mock = (
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([undefined, null]),
+        Parent: faker.helpers.arrayElement([null]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },
@@ -124,9 +120,7 @@ export const getGetDerived2ResponseDerived1Mock = (
           null,
         ]),
         Parent: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            { ...getGetDerived2ResponseDerived2Mock() },
-          ]),
+          { ...getGetDerived2ResponseDerived2Mock() },
           null,
         ]),
       },
@@ -149,10 +143,8 @@ export const getGetDerived2ResponseMock = (): Derived2 => ({
         null,
       ]),
       Parent: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          { ...getGetDerived2ResponseDerived1Mock() },
-          { ...getGetDerived2ResponseDerived2Mock() },
-        ]),
+        { ...getGetDerived2ResponseDerived1Mock() },
+        { ...getGetDerived2ResponseDerived2Mock() },
         null,
       ]),
     },

@@ -8,6 +8,7 @@ import type {
   ScalarValue,
 } from '../types';
 import { toJsLiteral } from '../utils';
+import { isStringLikeSchema } from '../utils/assertion';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -29,16 +30,7 @@ type SchemaEnumValue = string | number | boolean | null;
  * normalizes those into `case 'string':` before invoking this predicate.
  */
 export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
-  const schemaType = schema.type as
-    | OpenApiSchemaObjectType
-    | OpenApiSchemaObjectType[]
-    | undefined;
-  const isStringLike =
-    schemaType === 'string' ||
-    (isArray(schemaType) &&
-      schemaType.includes('string') &&
-      schemaType.every((type) => type === 'string' || type === 'null'));
-  if (!isStringLike) {
+  if (!isStringLikeSchema(schema)) {
     return false;
   }
   if (schema.format === 'binary') {
@@ -86,13 +78,9 @@ export function getScalar({
   >[0];
   const schemaConst = item.const as unknown;
   const schemaFormat = item.format as string | undefined;
-  const schemaNullable = item.nullable as boolean | undefined;
 
   const nullable =
-    (isArray(schemaType) && schemaType.includes('null')) ||
-    schemaNullable === true
-      ? ' | null'
-      : '';
+    isArray(schemaType) && schemaType.includes('null') ? ' | null' : '';
 
   const enumItems = schemaEnum?.filter(
     (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,

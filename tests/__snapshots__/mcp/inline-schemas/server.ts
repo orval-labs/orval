@@ -33,12 +33,16 @@ const createMcpServer = (
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
-      addHandler(args, {
-        ...options,
-        signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
-      }),
+      addHandler(
+        args,
+        {
+          ...options,
+          signal: options?.signal
+            ? AbortSignal.any([options.signal, ctx.signal])
+            : ctx.signal,
+        },
+        () => ({ success: true as const, data: undefined }),
+      ),
   );
 
   return { server, tools };

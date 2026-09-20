@@ -22,57 +22,36 @@ export const getGetSampleApiResponseMock = (
       (_, i) => i + 1,
     ).map(() => ({
       stepKey: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       groupKey: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       displayName: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       description: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       staffInstructions: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       clientInstructions: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       lastModifiedOn: faker.helpers.arrayElement([
         faker.date.past().toISOString().slice(0, 19) + 'Z',
         undefined,
       ]),
       lastModifiedBy: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
       stepStatus: faker.helpers.arrayElement([
         faker.helpers.arrayElement([0, 1, 2, 3, 4, 5, 6] as const),
@@ -92,28 +71,22 @@ export const getGetSampleApiResponseMock = (
             undefined,
           ]),
           stepKey: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            undefined,
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
           ]),
           modifiedOn: faker.helpers.arrayElement([
             faker.date.past().toISOString().slice(0, 19) + 'Z',
             undefined,
           ]),
           modifiedBy: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            undefined,
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
           ]),
         })),
-        undefined,
+        null,
       ]),
     })),
-    undefined,
+    null,
   ]),
   ...overrideResponse,
 });

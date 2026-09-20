@@ -26,3 +26,5 @@ export const DeleteThingResponse = zod.void();
 export const OptionsThingsResponse = zod.void();
 
 export const HeadThingsResponse = zod.unknown();
+
+export const GetThingsOutput = zod.object({ result: GetThingsResponse });

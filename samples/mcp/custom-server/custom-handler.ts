@@ -9,11 +9,17 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
-    headers: ctx?.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
+    headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
   });
+  const text = JSON.stringify(res.data ?? null);
 
   if (res.status >= 400) {
     return {
@@ -21,7 +27,7 @@ export const customHandler = async (
         {
           type: 'text',
           text: JSON.stringify({
-            requestId: ctx?.requestId,
+            requestId: ctx.requestId,
             status: res.status,
             error: res.data ?? null,
           }),
@@ -31,13 +37,15 @@ export const customHandler = async (
     };
   }
 
-  const data = res.data;
+  const result = toStructuredContent(res.data);
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
-  };
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };

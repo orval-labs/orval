@@ -1,6 +1,6 @@
 {
   "name": "orval",
-  "version": "8.33.0",
+  "version": "8.34.0",
   "description": "A swagger client generator for typescript",
   "keywords": [
     "angular",
@@ -81,23 +81,31 @@
     "js-yaml": "4.3.2",
     "json5": "2.2.3",
     "remeda": "^2.33.6",
-    "string-argv": "^0.3.2",
-    "typedoc": "^0.28.19",
-    "typedoc-plugin-coverage": "^4.0.2",
-    "typedoc-plugin-markdown": "^4.10.0"
+    "string-argv": "^0.3.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "rimraf": "catalog:",
+    "typedoc": "^0.28.19",
+    "typedoc-plugin-coverage": "^4.0.2",
+    "typedoc-plugin-markdown": "^4.10.0",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "prettier": ">=3.0.0"
+    "prettier": ">=3.0.0",
+    "typedoc": "^0.28.19",
+    "typedoc-plugin-markdown": "^4.10.0"
   },
   "peerDependenciesMeta": {
     "prettier": {
+      "optional": true
+    },
+    "typedoc": {
+      "optional": true
+    },
+    "typedoc-plugin-markdown": {
       "optional": true
     }
   },

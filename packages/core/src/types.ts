@@ -1,6 +1,5 @@
 import type { allLocales } from '@faker-js/faker';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
-import type { TypeDocOptions } from 'typedoc';
 
 // Type-only, so it is erased: no runtime `types` -> `writers` dependency.
 import type { SchemaOutputPlan } from './writers/schema-output-plan';
@@ -576,9 +575,29 @@ export const OutputMode = {
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
 
+/**
+ * Options for the `docs` output. Everything but `configPath` is forwarded to
+ * TypeDoc as-is, so any TypeDoc option is accepted.
+ *
+ * Typed structurally rather than as `Partial<TypeDocOptions>` on purpose:
+ * `typedoc` is an optional peer dependency, and importing its types here would
+ * leave a `typedoc` import in the published declarations, forcing every
+ * consumer to install it to typecheck their config.
+ *
+ * @see https://typedoc.org/documents/Options.html
+ */
 export type OutputDocsOptions = {
+  /** TypeDoc config file, forwarded to TypeDoc as its `options` path. */
   configPath?: string;
-} & Partial<TypeDocOptions>;
+  /** Output directory. */
+  out?: string;
+  /** TypeDoc theme. Defaults to `markdown`. */
+  theme?: string;
+  /** TypeDoc plugins. `typedoc-plugin-markdown` is always included. */
+  plugin?: string[];
+  /** Any other TypeDoc option. */
+  [option: string]: unknown;
+};
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {

@@ -47,7 +47,8 @@ import {
   generateZod,
   generateZodValidationSchemaDefinition,
   getZodDependencies,
-  isPlainObjectResponseSchema,
+  hasResponseSchema,
+  isObjectResponseSchema,
   parseZodValidationSchemaDefinition,
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
@@ -2331,8 +2332,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     it('generates nullish + default for a non-required nullable schema with default', () => {
       const schemaWithNullableDefault: OpenApiSchemaObject = {
-        type: 'string',
-        nullable: true,
+        type: ['string', 'null'],
         default: 'hello',
       };
 
@@ -4370,8 +4370,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         type: 'object',
         properties: {
           checklist: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
             additionalProperties: { type: 'object' },
           },
           available_indexes: {
@@ -4853,212 +4852,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
         );
         expect(parsed.zod).toBe(
           'zod.number().gt(testNumberExclusiveMinMaxExclusiveMin).lt(testNumberExclusiveMinMaxExclusiveMax).optional()',
-        );
-      });
-    });
-
-    describe('OpenAPI 3.0 (exclusiveMinimum/exclusiveMaximum as booleans)', () => {
-      it('generates .gt() when exclusiveMinimum=true with minimum value', () => {
-        const schema = {
-          type: 'number',
-          minimum: 10,
-          exclusiveMinimum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMinOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['gt', 'testNumberExclusiveMinOAS30ExclusiveMin'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMinOAS30ExclusiveMin = 10;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().gt(testNumberExclusiveMinOAS30ExclusiveMin).optional()',
-        );
-      });
-
-      it('generates .lt() when exclusiveMaximum=true with maximum value', () => {
-        const schema = {
-          type: 'number',
-          maximum: 100,
-          exclusiveMaximum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMaxOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['lt', 'testNumberExclusiveMaxOAS30ExclusiveMax'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().lt(testNumberExclusiveMaxOAS30ExclusiveMax).optional()',
-        );
-      });
-
-      it('generates .min() when exclusiveMinimum=false with minimum value', () => {
-        const schema = {
-          type: 'number',
-          minimum: 10,
-          exclusiveMinimum: false,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMinFalseOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['min', 'testNumberExclusiveMinFalseOAS30Min'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMinFalseOAS30Min = 10;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().min(testNumberExclusiveMinFalseOAS30Min).optional()',
-        );
-      });
-
-      it('generates .max() when exclusiveMaximum=false with maximum value', () => {
-        const schema = {
-          type: 'number',
-          maximum: 100,
-          exclusiveMaximum: false,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveMaxFalseOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['max', 'testNumberExclusiveMaxFalseOAS30Max'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveMaxFalseOAS30Max = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().max(testNumberExclusiveMaxFalseOAS30Max).optional()',
-        );
-      });
-
-      it('generates .gt() and .lt() when both exclusiveMinimum and exclusiveMaximum are true', () => {
-        const schema = {
-          type: 'number',
-          minimum: 5,
-          maximum: 100,
-          exclusiveMinimum: true,
-          exclusiveMaximum: true,
-        } as unknown as OpenApiSchemaObject;
-
-        const result = generateZodValidationSchemaDefinition(
-          schema,
-          context,
-          'testNumberExclusiveBothOAS30',
-          false,
-          false,
-          { required: false },
-        );
-
-        expect(result).toEqual({
-          functions: [
-            ['number', undefined],
-            ['gt', 'testNumberExclusiveBothOAS30ExclusiveMin'],
-            ['lt', 'testNumberExclusiveBothOAS30ExclusiveMax'],
-            ['optional', undefined],
-          ],
-          consts: [
-            'export const testNumberExclusiveBothOAS30ExclusiveMin = 5;',
-            'export const testNumberExclusiveBothOAS30ExclusiveMax = 100;',
-            '\n',
-          ],
-        });
-
-        const parsed = parseZodValidationSchemaDefinition(
-          result,
-          context,
-          false,
-          false,
-          false,
-        );
-        expect(parsed.zod).toBe(
-          'zod.number().gt(testNumberExclusiveBothOAS30ExclusiveMin).lt(testNumberExclusiveBothOAS30ExclusiveMax).optional()',
         );
       });
     });
@@ -5751,24 +5544,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
     });
 
-    it('chains .nullable() for nullable: true on a $ref', () => {
-      const context = makeContextSpec({
-        spec: { components: { schemas: { Pet: { type: 'object' } } } },
-      });
-      const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', nullable: true } as never,
-        context,
-        'someField',
-        false,
-        false,
-        { required: true, useReusableSchemas: true },
-      );
-      expect(result.functions).toEqual([
-        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['nullable', undefined],
-      ]);
-    });
-
     it('chains .describe(...) for a description sibling on a $ref', () => {
       const context = makeContextSpec({
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
@@ -5871,24 +5646,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(fnNames).toContain('namedRef');
       expect(fnNames).toContain('default');
       expect(fnNames).not.toContain('optional');
-    });
-
-    it('emits .nullish() when nullable and not required', () => {
-      const context = makeContextSpec({
-        spec: { components: { schemas: { Pet: { type: 'object' } } } },
-      });
-      const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', nullable: true } as never,
-        context,
-        'someField',
-        false,
-        false,
-        { required: false, useReusableSchemas: true },
-      );
-      expect(result.functions).toEqual([
-        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['nullish', undefined],
-      ]);
     });
 
     it('falls back to inlining when a $ref has non-chainable siblings (e.g. example)', () => {
@@ -6014,7 +5771,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ]);
     });
 
-    it('emits namedRef for $dynamicRef with nullable sibling', () => {
+    it('emits namedRef for $dynamicRef with a chainable sibling', () => {
       const context = makeContextSpec({
         spec: {
           components: {
@@ -6030,7 +5787,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#Pet', nullable: true } as never,
+        { $dynamicRef: '#Pet', description: 'a friend' } as never,
         context,
         'friends',
         false,
@@ -6042,7 +5799,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'namedRef',
         { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
-      expect(result.functions[1]).toEqual(['nullish', undefined]);
+      expect(result.functions[1]).toEqual(['optional', undefined]);
+      expect(result.functions[2]).toEqual(['describe', "'a friend'"]);
     });
 
     it('falls back to empty for unresolvable $dynamicRef with useReusableSchemas', () => {
@@ -7301,7 +7059,7 @@ const formDataSchema = {
                       },
                       catImage: {
                         type: 'string',
-                        format: 'binary',
+                        contentMediaType: 'application/octet-stream',
                       },
                     },
                   },
@@ -7323,6 +7081,60 @@ const formDataSchema = {
                   },
                 },
               },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
+
+// The 3.1 spelling of a nullable multipart part. `resolveSpec` produces this
+// from `{ type: 'string', format: 'binary', nullable: true }`.
+const formDataNullableBinarySchema = {
+  pathRoute: '/cats',
+  context: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    required: ['catImage'],
+                    properties: {
+                      catImage: {
+                        type: ['string', 'null'],
+                        contentMediaType: 'application/octet-stream',
+                      },
+                      thumbnail: {
+                        type: 'string',
+                        contentMediaType: 'application/octet-stream',
+                      },
+                      notes: {
+                        type: ['string', 'null'],
+                      },
+                    },
+                  },
+                  encoding: {
+                    notes: { contentType: 'text/csv' },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': { description: 'ok' },
             },
           },
         },
@@ -7380,6 +7192,62 @@ describe('generateFormData', () => {
     );
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(Blob).optional()\n})\n\n',
+    );
+  });
+
+  // The file-part override replaces the whole property definition, so it has
+  // to carry nullability itself. It did not, so a nullable part validated as
+  // non-null while the generated TS type said `Blob | File | null` (#4141).
+  it('keeps a nullable file part nullable', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      formDataNullableBinarySchema,
+      testOutput,
+    );
+
+    // required + nullable -> .nullable(); optional + nullable -> .nullish();
+    // optional + non-nullable -> .optional(), unchanged.
+    expect(result.implementation).toContain(
+      '"catImage": zod.instanceof(Blob).nullable()',
+    );
+    expect(result.implementation).toContain(
+      '"thumbnail": zod.instanceof(Blob).optional()',
+    );
+    expect(result.implementation).toContain(
+      '"notes": zod.instanceof(Blob).or(zod.string()).nullish()',
     );
   });
 });
@@ -7451,7 +7319,7 @@ const formUrlEncodedBinarySchema = {
                       },
                       attachment: {
                         type: 'string',
-                        format: 'binary',
+                        contentMediaType: 'application/octet-stream',
                       },
                     },
                   },
@@ -7507,7 +7375,7 @@ const formUrlEncodedNestedBinarySchema = {
                         type: 'array',
                         items: {
                           type: 'string',
-                          format: 'binary',
+                          contentMediaType: 'application/octet-stream',
                         },
                       },
                       // binary nested inside allOf composition
@@ -7518,7 +7386,7 @@ const formUrlEncodedNestedBinarySchema = {
                             properties: {
                               blob: {
                                 type: 'string',
-                                format: 'binary',
+                                contentMediaType: 'application/octet-stream',
                               },
                             },
                           },
@@ -7928,8 +7796,7 @@ const schemaWithRequiredDefaults = {
                 default: 10,
               },
               nullableString: {
-                type: 'string',
-                nullable: true,
+                type: ['string', 'null'],
                 default: 'hello',
               },
             },
@@ -8233,8 +8100,10 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         {
           $ref: '#/components/schemas/CatId',
         },
+        {
+          type: 'null',
+        },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8267,9 +8136,12 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     const uniqueConstNames = new Set(constNames);
     expect(uniqueConstNames.size).toBe(constNames.length);
 
-    // Verify the structure contains union
+    // Verify the structure contains union. In 3.1 the null lives in the
+    // union as its own branch, so the property is only `.optional()` --
+    // there is no `.nullish()` modifier left to carry it.
     expect(parsed.zod).toContain('union');
-    expect(parsed.zod).toContain('nullish');
+    expect(parsed.zod).toContain('zod.null()');
+    expect(parsed.zod).toMatch(/\.optional\(\)$/);
   });
 
   it('should generate unique schema names for nullable refs in oneOf', () => {
@@ -8292,8 +8164,10 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         {
           $ref: '#/components/schemas/BirdId',
         },
+        {
+          type: 'null',
+        },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8338,15 +8212,21 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     } as unknown as ContextSpec;
 
     const schemaWithAllOfNullableRefs: OpenApiSchemaObject = {
-      allOf: [
+      anyOf: [
         {
-          $ref: '#/components/schemas/BaseSchema',
+          allOf: [
+            {
+              $ref: '#/components/schemas/BaseSchema',
+            },
+            {
+              $ref: '#/components/schemas/ExtendedSchema',
+            },
+          ],
         },
         {
-          $ref: '#/components/schemas/ExtendedSchema',
+          type: 'null',
         },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8391,18 +8271,19 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     } as unknown as ContextSpec;
 
     const schemaWithAllOfAndProperties: OpenApiSchemaObject = {
-      allOf: [
+      properties: {
+        additionalProp: {
+          type: ['string', 'null'],
+        },
+      },
+      anyOf: [
         {
           $ref: '#/components/schemas/BaseSchema',
         },
-      ],
-      properties: {
-        additionalProp: {
-          type: 'string',
-          nullable: true,
+        {
+          type: 'null',
         },
-      },
-      nullable: true,
+      ],
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8452,11 +8333,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { $ref: '#/components/schemas/HelloEnum' },
             { $ref: '#/components/schemas/BlankEnum' },
             { $ref: '#/components/schemas/NullEnum' },
+            { type: 'null' },
           ],
         },
       },
@@ -8466,11 +8347,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { $ref: '#/components/schemas/HelloEnum' },
             { $ref: '#/components/schemas/BlankEnum' },
             { $ref: '#/components/schemas/NullEnum' },
+            { type: 'null' },
           ],
         },
       },
@@ -8539,8 +8420,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
         { $ref: '#/components/schemas/BirdId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -8584,15 +8465,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
             { $ref: '#/components/schemas/BirdId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
         secondaryId: {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8644,8 +8525,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8657,8 +8538,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           anyOf: [
             { $ref: '#/components/schemas/DogId' },
             { $ref: '#/components/schemas/CatId' },
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     };
@@ -8712,7 +8593,6 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         world: {
-          nullable: true,
           oneOf: [
             {
               type: 'integer',
@@ -8722,6 +8602,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
               type: 'boolean',
               enum: [true, false],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -8770,26 +8651,26 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
             // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
+            { type: 'null' },
           ],
         },
         world: {
-          nullable: true,
           oneOf: [
             { type: 'integer', enum: [1, 2, 3] },
             { type: 'boolean', enum: [true, false] },
+            { type: 'null' },
           ],
         },
         optional: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
+            { type: 'null' },
           ],
         },
       },
@@ -8841,12 +8722,12 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         hello: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
             // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
+            { type: 'null' },
           ],
         },
       },
@@ -8912,16 +8793,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       anyOf: [
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const schemaOptional: OpenApiSchemaObject = {
       anyOf: [
         { $ref: '#/components/schemas/DogId' },
         { $ref: '#/components/schemas/CatId' },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const resultRequired = generateZodValidationSchemaDefinition(
@@ -8958,9 +8839,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       false,
     );
 
-    // Required should have nullable, optional should have nullish
-    expect(parsedRequired.zod).toContain('nullable');
-    expect(parsedOptional.zod).toContain('nullish');
+    // Both carry the null as a union branch; the modifier now expresses only
+    // requiredness, so the required one takes none and the optional one
+    // takes `.optional()`.
+    expect(parsedRequired.zod).toContain('zod.null()');
+    expect(parsedOptional.zod).toContain('zod.null()');
+    expect(parsedRequired.zod).not.toContain('.optional()');
+    expect(parsedOptional.zod).toMatch(/\.optional\(\)$/);
   });
 
   it('should generate unique names for anyOf mixing nullable and not-null refs', () => {
@@ -8978,8 +8863,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/DogId' }, // nullable
         { $ref: '#/components/schemas/CatId' }, // nullable
         { $ref: '#/components/schemas/BirdIdNotNull' }, // not null
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9025,11 +8910,11 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         mixed: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] }, // nullable enum
             { type: 'string', enum: [''] }, // nullable enum
             { type: 'string', enum: ['ALWAYS', 'NEVER'] }, // not null enum
+            { type: 'null' },
           ],
         },
       },
@@ -9086,15 +8971,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
                 { $ref: '#/components/schemas/BirdId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
             petId: {
               anyOf: [
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
           },
         },
@@ -9150,19 +9035,19 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           type: 'object',
           properties: {
             hello: {
-              nullable: true,
               oneOf: [
                 { type: 'string', enum: ['HI', 'OHA'] },
                 { type: 'string', enum: [''] },
                 // eslint-disable-next-line unicorn/no-null
                 { enum: [null] },
+                { type: 'null' },
               ],
             },
             world: {
-              nullable: true,
               oneOf: [
                 { type: 'integer', enum: [1, 2, 3] },
                 { type: 'boolean', enum: [true, false] },
+                { type: 'null' },
               ],
             },
           },
@@ -9222,8 +9107,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
               anyOf: [
                 { $ref: '#/components/schemas/DogId' },
                 { $ref: '#/components/schemas/CatId' },
+                { type: 'null' },
               ],
-              nullable: true,
             },
           },
         },
@@ -9289,8 +9174,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
                     { $ref: '#/components/schemas/DogId' },
                     { $ref: '#/components/schemas/CatId' },
                     { $ref: '#/components/schemas/BirdId' },
+                    { type: 'null' },
                   ],
-                  nullable: true,
                 },
               },
             },
@@ -9340,11 +9225,15 @@ describe('generateZodWithNullableAnyOfRefs', () => {
 
     // Test case: allOf with mixed nullable and not-null refs
     const schemaWithMixedAllOf: OpenApiSchemaObject = {
-      allOf: [
-        { $ref: '#/components/schemas/DogId' }, // nullable
-        { $ref: '#/components/schemas/FishIdNotNull' }, // not null
+      anyOf: [
+        {
+          allOf: [
+            { $ref: '#/components/schemas/DogId' }, // nullable
+            { $ref: '#/components/schemas/FishIdNotNull' }, // not null
+          ],
+        },
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9392,8 +9281,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/NumberId' }, // number
         { $ref: '#/components/schemas/IntegerId' }, // integer
         { $ref: '#/components/schemas/BooleanFlag' }, // boolean
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9440,8 +9329,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
         { $ref: '#/components/schemas/NumberIdNotNull' }, // number
         { $ref: '#/components/schemas/IntegerIdNotNull' }, // integer
         { $ref: '#/components/schemas/BirdIdNotNull' }, // string
+        { type: 'null' },
       ],
-      nullable: true,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -9487,17 +9376,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         numberEnum: {
-          nullable: true,
           oneOf: [
             {
-              type: 'number',
-              nullable: true,
-              enum: [1.5, 2.5, 3.5],
+              type: ['number', 'null'],
+              enum: [1.5, 2.5, 3.5, null],
             },
             {
               type: 'number',
               enum: [100.1, 200.2],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -9547,17 +9435,16 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         integerEnum: {
-          nullable: true,
           oneOf: [
             {
-              type: 'integer',
-              nullable: true,
-              enum: [10, 20, 30],
+              type: ['integer', 'null'],
+              enum: [10, 20, 30, null],
             },
             {
               type: 'integer',
               enum: [1000, 2000],
             },
+            { type: 'null' },
           ],
         },
       },
@@ -9607,31 +9494,31 @@ describe('generateZodWithNullableAnyOfRefs', () => {
       type: 'object',
       properties: {
         stringEnum: {
-          nullable: true,
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
+            { type: 'null' },
           ],
         },
         numberEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'number', nullable: true, enum: [1.5, 2.5, 3.5] },
+            { type: ['number', 'null'], enum: [1.5, 2.5, 3.5, null] },
             { type: 'number', enum: [100.1, 200.2] },
+            { type: 'null' },
           ],
         },
         integerEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'integer', nullable: true, enum: [10, 20, 30] },
+            { type: ['integer', 'null'], enum: [10, 20, 30, null] },
             { type: 'integer', enum: [1000, 2000] },
+            { type: 'null' },
           ],
         },
         booleanEnum: {
-          nullable: true,
           oneOf: [
-            { type: 'boolean', nullable: true, enum: [true, false] },
+            { type: ['boolean', 'null'], enum: [true, false, null] },
             { type: 'boolean', enum: [true] },
+            { type: 'null' },
           ],
         },
       },
@@ -9688,8 +9575,8 @@ describe('generateZodWithNullableAnyOfRefs', () => {
             { $ref: '#/components/schemas/DogId' }, // string
             { $ref: '#/components/schemas/NumberId' }, // number
             { $ref: '#/components/schemas/IntegerId' }, // integer
+            { type: 'null' },
           ],
-          nullable: true,
         },
       },
     });
@@ -9849,7 +9736,10 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                             type: 'string',
                             contentMediaType: 'image/png',
                           },
-                          formatBinary: { type: 'string', format: 'binary' },
+                          formatBinary: {
+                            type: 'string',
+                            contentMediaType: 'application/octet-stream',
+                          },
                           base64Field: {
                             type: 'string',
                             contentMediaType: 'image/png',
@@ -9961,7 +9851,10 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                             type: 'string',
                             contentMediaType: 'image/png',
                           },
-                          formatBinary: { type: 'string', format: 'binary' },
+                          formatBinary: {
+                            type: 'string',
+                            contentMediaType: 'application/octet-stream',
+                          },
                           base64Field: {
                             type: 'string',
                             contentMediaType: 'image/png',
@@ -10103,7 +9996,7 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('"_type"');
   });
 
-  it('preserves nullable sibling fields on dereferenced refs', () => {
+  it('preserves a nullable type sibling on dereferenced refs', () => {
     const dereferenceContext = {
       ...context,
       spec: {
@@ -10126,7 +10019,7 @@ describe('zod split mode regressions', () => {
     const resolvedSchema = dereference(
       {
         $ref: '#/components/schemas/RefPet',
-        nullable: true,
+        type: ['object', 'null'],
       } as unknown as OpenApiSchemaObject,
       dereferenceContext,
     );
@@ -10447,7 +10340,7 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('zod.unknown()');
   });
 
-  it('resolves nullable $ref property with schema suffix (OAS 3.0)', () => {
+  it('resolves nullable $ref property with schema suffix', () => {
     const suffixContext = {
       output: {
         override: {
@@ -10480,7 +10373,7 @@ describe('zod split mode regressions', () => {
         properties: {
           optionalPosition: {
             $ref: '#/components/schemas/Position',
-            nullable: true,
+            type: ['object', 'null'],
           } as unknown as OpenApiSchemaObject,
         },
       },
@@ -13396,7 +13289,11 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
     ],
     ['enum', { enum: ['x', 'y'] }, "zod.enum(['x', 'y'])"],
     ['const', { const: 'x' }, 'zod.literal("x")'],
-    ['nullable', { nullable: true }, 'zod.unknown().nullable()'],
+    [
+      'a nullable type union',
+      { type: ['string', 'null'] },
+      'zod.string().nullable()',
+    ],
   ])('leaves a member carrying %s alone', (_label, extra, expected) => {
     const zod = render({
       type: 'object',
@@ -14076,13 +13973,15 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
   });
 });
 
-describe('isPlainObjectResponseSchema', () => {
+describe('isObjectResponseSchema / hasResponseSchema', () => {
   const run = (
     responses: OpenApiResponsesObject,
     zod: Partial<ContextSpec['output']['override']['zod']> = {},
+    override: Partial<ContextSpec['output']['override']> = {},
   ) => {
     const context = makeContextSpec({
       spec: { paths: { '/x': { get: { operationId: 'getX', responses } } } },
+      override,
     });
     const base = context.output.override.zod;
     context.output.override.zod = {
@@ -14091,15 +13990,20 @@ describe('isPlainObjectResponseSchema', () => {
       ...zod,
     };
 
-    return isPlainObjectResponseSchema(
-      {
-        verb: 'get',
-        pathRoute: '/x',
-        override: context.output.override,
-      } as GeneratorVerbOptions,
-      context,
-    );
+    const verbOptions = {
+      verb: 'get',
+      pathRoute: '/x',
+      override: context.output.override,
+    } as GeneratorVerbOptions;
+
+    return {
+      object: isObjectResponseSchema(verbOptions, context),
+      has: hasResponseSchema(verbOptions, context),
+    };
   };
+  const objectSchema = { object: true, has: true };
+  const valueSchema = { object: false, has: true };
+  const noSchema = { object: false, has: false };
   const json = (schema: OpenApiSchemaObject): OpenApiResponsesObject => ({
     '200': { description: 'ok', content: { 'application/json': { schema } } },
   });
@@ -14108,22 +14012,22 @@ describe('isPlainObjectResponseSchema', () => {
     properties: { a: { type: 'string' } },
   };
 
-  it('is true only when the response is emitted as a bare zod.object', () => {
-    expect(run(json(object))).toBe(true);
-    expect(run(json({ type: 'array', items: object }))).toBe(false);
-    expect(
-      run(
-        json({
-          type: 'object',
-          oneOf: [object, { type: 'object' }],
-          properties: { id: { type: 'integer' } },
-        }),
-      ),
-    ).toBe(false);
+  it('is object only for a bare zod.object and value for other schemas', () => {
+    expect(run(json(object))).toEqual(objectSchema);
+    expect(run(json({ type: 'array', items: object }))).toEqual(valueSchema);
+    expect(run(json({ oneOf: [object, { type: 'object' }] }))).toEqual(
+      valueSchema,
+    );
     expect(
       run(json({ type: 'object', additionalProperties: { type: 'integer' } })),
-    ).toBe(false);
-    expect(run(json({ ...object, nullable: true }))).toBe(false);
+    ).toEqual(valueSchema);
+    expect(run(json({ ...object, type: ['object', 'null'] }))).toEqual(
+      valueSchema,
+    );
+    expect(run(json({ type: 'string', format: 'date' }))).toEqual(valueSchema);
+    expect(
+      run(json({ type: 'string', format: 'date' }), { version: 3 }),
+    ).toEqual(valueSchema);
     expect(
       run({
         '200': {
@@ -14131,17 +14035,7 @@ describe('isPlainObjectResponseSchema', () => {
           content: { 'text/plain': { schema: { type: 'string' } } },
         },
       }),
-    ).toBe(false);
-    expect(run({ '204': { description: 'no content' } })).toBe(false);
-  });
-
-  it('is false when the response schema is not emitted or gets wrapped', () => {
-    const base = makeContextSpec().output.override.zod;
-
-    expect(
-      run(json(object), { generate: { ...base.generate, response: false } }),
-    ).toBe(false);
-    expect(run(json(object), { generateEachHttpStatus: true })).toBe(false);
+    ).toEqual(valueSchema);
     expect(
       run(json(object), {
         preprocess: {
@@ -14152,6 +14046,64 @@ describe('isPlainObjectResponseSchema', () => {
           },
         },
       }),
-    ).toBe(false);
+    ).toEqual(valueSchema);
+  });
+
+  it('is neither when no usable response schema is emitted', () => {
+    const base = makeContextSpec().output.override.zod;
+
+    expect(run({ '204': { description: 'no content' } })).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'object',
+          oneOf: [object, { type: 'object' }],
+          properties: { id: { type: 'integer' } },
+        }),
+      ),
+    ).toEqual(noSchema);
+    expect(run(json({ allOf: [object, { type: 'object' }] }))).toEqual(
+      noSchema,
+    );
+    expect(
+      run(
+        json({
+          type: 'array',
+          items: { allOf: [object, { type: 'object' }] },
+        }),
+      ),
+    ).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'object',
+          properties: { nested: { allOf: [object, { type: 'object' }] } },
+        }),
+      ),
+    ).toEqual({ object: true, has: false });
+    expect(
+      run(
+        json({ type: 'string', format: 'date-time' }),
+        {},
+        { useDates: true },
+      ),
+    ).toEqual(noSchema);
+    expect(
+      run(json({ type: 'string', format: 'date' }), {}, { useDates: true }),
+    ).toEqual(noSchema);
+    expect(
+      run(
+        json({
+          type: 'string',
+          contentMediaType: 'application/octet-stream',
+        }),
+      ),
+    ).toEqual(noSchema);
+    expect(
+      run(json(object), { generate: { ...base.generate, response: false } }),
+    ).toEqual(noSchema);
+    expect(run(json(object), { generateEachHttpStatus: true })).toEqual(
+      noSchema,
+    );
   });
 });

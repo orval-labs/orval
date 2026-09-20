@@ -14,7 +14,15 @@ export type addArgs = {
   bodyParams?: Form;
 };
 
-export const addHandler = async (args: addArgs, options?: RequestInit) => {
+export const addHandler = async (
+  args: addArgs,
+  options: RequestInit,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
+) => {
   const res = await add(args.bodyParams, options);
 
   if (res.status >= 400) {
@@ -29,12 +37,19 @@ export const addHandler = async (args: addArgs, options?: RequestInit) => {
     };
   }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res.data ?? null),
-      },
-    ],
-  };
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
+
+  return result.success
+    ? {
+        content: [{ type: 'text' as const, text }],
+        structuredContent: result.data,
+      }
+    : {
+        content: [
+          { type: 'text' as const, text },
+          { type: 'text' as const, text: result.error.message },
+        ],
+        isError: true,
+      };
 };

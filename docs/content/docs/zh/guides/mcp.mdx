@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler（自定义 Handler）
 
-默认情况下，每个生成的 handler 会把响应体作为文本返回，并将 400 及以上的 HTTP 状态码标记为错误。当操作的成功响应是一个普通的 JSON 对象时，工具还会声明 `outputSchema`，handler 会把解析后的响应体作为 `structuredContent` 返回。数组、基本类型、联合类型、record 和空响应则两者都不会生成，因为 MCP 要求两者都必须是对象。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
+默认情况下，每个生成的 handler 会把响应体作为文本返回，将 400 及以上的 HTTP 状态码标记为错误，并把响应体作为 `structuredContent` 返回，同时工具会声明对应的 `outputSchema`。响应体会先经过该操作的响应 schema 校验，校验会移除 spec 中不存在的字段，因此 `structuredContent` 始终满足所声明的 schema。当响应体不符合 schema 时，handler 会把原始响应体和校验错误一起作为 `isError` 结果返回，这样 Agent 仍然能看到 API 实际返回的内容。MCP 要求两者都必须是对象，因此普通的 JSON 对象会原样传递，其他响应体（数组、基本类型、联合类型）会被包装为 `{ result: body }`。空响应两者都不会生成；无法表示为 JSON Schema 的响应也不会生成：任何位置包含 `allOf`（或带有同级属性的 `oneOf`）的响应，其 JSON Schema 会变成由封闭对象组成的 `allOf`，没有任何值能够满足；包含 `Date`（启用 `useDates` 时）或二进制响应体的响应，则没有对应的 JSON Schema 表示。如果你想自行控制响应整形和错误映射，或者想利用工具调用上下文来做日志、鉴权或 elicitation，可以通过 `override.mcp.handler` 提供自定义 handler。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-设置后，每个生成的 handler 会把工具参数绑定到一个 `fetcher`，并连同工具调用上下文一起委托给你的函数：
+设置后，每个生成的 handler 会把工具参数绑定到一个 `fetcher`，并连同工具调用上下文和 `toStructuredContent` 函数一起委托给你的函数。该函数由 `server.ts` 在对应工具的 `outputSchema` 旁边为该操作构建：
 
 ```ts title="src/handlers.ts (generated)"
 import { customHandler } from '../custom-handler';
@@ -151,24 +151,52 @@ import type {
 
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 ```
 
-请按下面的签名实现 handler。它的返回值会直接作为工具结果使用。仅当响应体是普通对象时才在成功路径返回 `structuredContent`：生成的 server 只会为这些工具声明 `outputSchema`，而 MCP 会拒绝 `structuredContent` 中的数组和基本类型。
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    inputSchema: { queryParams: FindPetsByStatusQueryParams },
+    outputSchema: FindPetsByStatusOutput,
+    annotations: { readOnlyHint: true },
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(
+      args,
+      {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      },
+      ctx,
+      (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
+    ),
+);
+```
+
+请按下面的签名实现 handler。它的返回值会直接作为工具结果使用。请把响应体交给 `toStructuredContent` 处理，这样 `structuredContent` 才能与生成的 server 为该工具声明的 `outputSchema` 一致。
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -182,10 +210,15 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
-    headers: ctx?.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
+    headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
   });
 
   if (res.status >= 400) {
@@ -194,7 +227,7 @@ export const customHandler = async (
         {
           type: 'text',
           text: JSON.stringify({
-            requestId: ctx?.requestId,
+            requestId: ctx.requestId,
             status: res.status,
             error: res.data ?? null,
           }),
@@ -204,21 +237,26 @@ export const customHandler = async (
     };
   }
 
-  const data = res.data;
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
-  };
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 
 `fetcher` 已经绑定了工具参数以及传给 `createMcpServer` 的 `RequestInit`，其中包含上文描述的取消信号。传入 overrides 可以追加请求头或替换信号。overrides 中的请求头会合并到基础请求头中而不是整体替换，因此通过 `createMcpServer(options)` 设置的 `Authorization` 等请求头仍会保留在请求上。
 
-`ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。它是可选参数，因此生成的 handler 仍然可以被直接调用，例如在测试中。
+`ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。
+
+`toStructuredContent` 会用该操作的响应 schema 校验响应体并返回 `safeParse` 的结果。成功时，`data` 在响应是普通对象时为原样的响应体（spec 中不存在的字段已移除），对其他响应为 `{ result: body }`，在工具未声明 `outputSchema` 时为 `undefined`。失败时，`error.message` 描述了不匹配之处；请连同原始响应体一起返回，这样 Agent 仍然能看到 API 实际返回的内容。
 
 <Callout type="info">
 请把自定义 handler 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。

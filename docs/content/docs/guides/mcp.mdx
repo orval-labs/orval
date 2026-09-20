@@ -110,7 +110,7 @@ process.on('SIGTERM', () => shutdown.abort());
 
 ## Custom Handler
 
-By default, each generated handler returns the response body as text and marks HTTP status codes of 400 and above as errors. When the operation's success response is a plain JSON object, the tool also declares an `outputSchema` and the handler passes the parsed body as `structuredContent`. Arrays, primitives, unions, records and empty responses get neither, because MCP requires both to be objects. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
+By default, each generated handler returns the response body as text, marks HTTP status codes of 400 and above as errors, and returns the body as `structuredContent` while the tool declares a matching `outputSchema`. The body is first validated with the operation's response schema, which drops fields that are not in the spec, so `structuredContent` always satisfies the declared schema. When the body does not match the schema, the handler returns the raw body together with the validation error as an `isError` result, so the agent still sees what the API returned. MCP requires both to be objects, so a plain JSON object is passed as is and any other body (array, primitive, union) is wrapped as `{ result: body }`. Empty responses get neither, and so do responses that cannot be expressed as JSON Schema: those containing `allOf` (or `oneOf` with sibling properties) anywhere, whose JSON Schema becomes an `allOf` of closed objects that no value satisfies, and those containing `Date` (with `useDates`) or binary bodies, which have no JSON Schema representation. To take over response shaping and error mapping, or to use the tool call context for logging, authorization, or elicitation, provide a custom handler via `override.mcp.handler`.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-When set, every generated handler binds the tool arguments to a `fetcher` and delegates to your function together with the tool call context:
+When set, every generated handler binds the tool arguments to a `fetcher` and delegates to your function together with the tool call context and the `toStructuredContent` function that `server.ts` builds for that operation, next to its `outputSchema`:
 
 ```ts title="src/handlers.ts (generated)"
 import { customHandler } from '../custom-handler';
@@ -151,24 +151,52 @@ import type {
 
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
-  options?: RequestInit,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  options: RequestInit,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ) => {
   const fetcher = (overrides?: RequestInit) =>
     findPetsByStatus(args.queryParams, {
       ...options,
       ...overrides,
       headers: {
-        ...Object.fromEntries(new Headers(options?.headers)),
+        ...Object.fromEntries(new Headers(options.headers)),
         ...Object.fromEntries(new Headers(overrides?.headers)),
       },
     });
 
-  return customHandler(fetcher, ctx);
+  return customHandler(fetcher, ctx, toStructuredContent);
 };
 ```
 
-Implement the handler with the following signature. Its return value is used as the tool result as is. Return `structuredContent` on success only when the body is a plain object: the generated server declares an `outputSchema` for exactly those tools, and MCP rejects arrays and primitives in `structuredContent`.
+```ts title="src/server.ts (generated)"
+tools.findPetsByStatus = server.registerTool(
+  'findPetsByStatus',
+  {
+    inputSchema: { queryParams: FindPetsByStatusQueryParams },
+    outputSchema: FindPetsByStatusOutput,
+    annotations: { readOnlyHint: true },
+  },
+  (args, ctx) =>
+    findPetsByStatusHandler(
+      args,
+      {
+        ...options,
+        signal: options?.signal
+          ? AbortSignal.any([options.signal, ctx.signal])
+          : ctx.signal,
+      },
+      ctx,
+      (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
+    ),
+);
+```
+
+Implement the handler with the following signature. Its return value is used as the tool result as is. Pass the body through `toStructuredContent` so that `structuredContent` matches the `outputSchema` the generated server declares for the tool.
 
 ```ts title="custom-handler.ts"
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -182,10 +210,15 @@ export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx?: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  toStructuredContent: (
+    data: unknown,
+  ) =>
+    | { success: true; data: Record<string, unknown> | undefined }
+    | { success: false; error: { message: string } },
 ): Promise<CallToolResult> => {
   const res = await fetcher({
-    headers: ctx?.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
+    headers: ctx.sessionId ? { 'Mcp-Session-Id': ctx.sessionId } : undefined,
   });
 
   if (res.status >= 400) {
@@ -194,7 +227,7 @@ export const customHandler = async (
         {
           type: 'text',
           text: JSON.stringify({
-            requestId: ctx?.requestId,
+            requestId: ctx.requestId,
             status: res.status,
             error: res.data ?? null,
           }),
@@ -204,21 +237,26 @@ export const customHandler = async (
     };
   }
 
-  const data = res.data;
+  const text = JSON.stringify(res.data ?? null);
+  const result = toStructuredContent(res.data);
 
-  return {
-    content: [{ type: 'text', text: JSON.stringify(data ?? null) }],
-    structuredContent:
-      typeof data === 'object' && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : undefined,
-  };
+  return result.success
+    ? { content: [{ type: 'text', text }], structuredContent: result.data }
+    : {
+        content: [
+          { type: 'text', text },
+          { type: 'text', text: result.error.message },
+        ],
+        isError: true,
+      };
 };
 ```
 
 `fetcher` already carries the tool arguments and the `RequestInit` passed to `createMcpServer`, including the cancellation signal described above. Pass overrides to add headers or to replace the signal. Headers from overrides are merged into the base headers instead of replacing them, so headers such as `Authorization` set through `createMcpServer(options)` stay on the request.
 
-`ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`. It is optional so that the generated handlers can still be called directly, for example from tests.
+`ctx` is the SDK's `RequestHandlerExtra` for the current tool call. It exposes `signal`, `requestId`, `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, and `sendRequest`.
+
+`toStructuredContent` validates the body with the operation's response schema and returns the `safeParse` result. On success, `data` is the body as is when the response is a plain object (with fields that are not in the spec dropped), `{ result: body }` for any other response, and `undefined` when the tool declares no `outputSchema`. On failure, `error.message` describes the mismatch; return it together with the raw body so the agent still sees what the API returned.
 
 <Callout type="info">
 Place the custom handler file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.

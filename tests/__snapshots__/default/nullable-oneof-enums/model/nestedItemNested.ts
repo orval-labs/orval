@@ -5,14 +5,13 @@
  * Test case for issue
  * OpenAPI spec version: 1.0.0
  */
-import type { NestedItemNestedHello } from './nestedItemNestedHello';
-import type { NestedItemNestedWorld } from './nestedItemNestedWorld';
+import type { BlankEnum } from './blankEnum';
+import type { BooleanEnum } from './booleanEnum';
+import type { HelloEnum } from './helloEnum';
+import type { NullEnum } from './nullEnum';
+import type { NumberEnum } from './numberEnum';
 
 export type NestedItemNested = {
-  hello?:
-    | (typeof NestedItemNestedHello)[keyof typeof NestedItemNestedHello]
-    | null;
-  world?:
-    | (typeof NestedItemNestedWorld)[keyof typeof NestedItemNestedWorld]
-    | null;
+  hello?: HelloEnum | BlankEnum | NullEnum | null;
+  world?: NumberEnum | BooleanEnum | null;
 };

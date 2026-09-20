@@ -19,24 +19,15 @@ export const getFetchNullableObjectResponseMock = (
   overrideResponse: Partial<Extract<NullableObject, object>> = {},
 ): NullableObject => ({
   name: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
-  age: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.number.int(), null]),
-    undefined,
-  ]),
+  age: faker.helpers.arrayElement([faker.number.int(), null]),
   address: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
-  is_active: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+  is_active: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
   ...overrideResponse,
 });
 
@@ -44,30 +35,18 @@ export const getNullableWithMultipartFormRequestResponseMock = (
   overrideResponse: Partial<Extract<NullableObject, object>> = {},
 ): NullableObject => ({
   name: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
-  age: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.number.int(), null]),
-    undefined,
-  ]),
+  age: faker.helpers.arrayElement([faker.number.int(), null]),
   address: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
-  is_active: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+  is_active: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
   ...overrideResponse,
 });
 
 export const getFetchNullableRefResponseMock = (
   overrideResponse: Partial<Extract<NullableRefContainer, object>> = {},
-): NullableRefContainer => ({
-  time_step: faker.helpers.arrayElement([null, undefined]),
-  ...overrideResponse,
-});
+): NullableRefContainer => ({ time_step: null, ...overrideResponse });

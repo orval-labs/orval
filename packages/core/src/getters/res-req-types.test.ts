@@ -21,7 +21,7 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
   type: 'object',
   properties: {
     id: { type: 'integer', readOnly: true },
-    file: { type: 'string', format: 'binary' },
+    file: { type: 'string', contentMediaType: 'application/octet-stream' },
     kind: { type: 'string', enum: ['LOGO', 'CONTENT'] },
   },
   required: ['file'],
@@ -276,7 +276,7 @@ describe('getResReqTypes (content type handling)', () => {
       },
     };
 
-    // Comprehensive schema covering: encoding, contentMediaType, format binary,
+    // Comprehensive schema covering: encoding, contentMediaType, octet-stream,
     // base64, object fields, wildcard, arrays, nested properties, $ref
     const reqBody: [string, OpenApiRequestBodyObject][] = [
       [
@@ -303,8 +303,12 @@ describe('getResReqTypes (content type handling)', () => {
                     type: 'string',
                     contentMediaType: 'image/png',
                   },
-                  // format: binary → Blob
-                  formatBinary: { type: 'string', format: 'binary' },
+                  // contentMediaType: application/octet-stream (the upgraded
+                  // `format: binary`) → Blob
+                  formatBinary: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   // contentEncoding means base64 string, not file
                   base64Field: {
                     type: 'string',
@@ -452,8 +456,11 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               schema: {
                 type: 'object',
                 properties: {
-                  // format: binary → would be Blob under multipart
-                  content_file: { type: 'string', format: 'binary' },
+                  // application/octet-stream → would be Blob under multipart
+                  content_file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   // contentMediaType text file → Blob | string under multipart
                   content_xml: {
                     type: 'string',
@@ -529,7 +536,6 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     petId: { type: 'string' },
                     tags: {
                       type: ['array', 'null'] as unknown as 'array',
-                      nullable: true,
                       items: {
                         type: 'object',
                         required: ['tagId', 'label'],
@@ -578,7 +584,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     {
                       type: 'object',
                       properties: {
-                        content_file: { type: 'string', format: 'binary' },
+                        content_file: {
+                          type: 'string',
+                          contentMediaType: 'application/octet-stream',
+                        },
                       },
                     },
                     {
@@ -736,7 +745,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
-                  logo: { type: 'string', format: 'binary' },
+                  logo: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                 },
                 required: ['name', 'logo'],
               },
@@ -783,7 +795,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               UploadDtoV1: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   metadata: { type: 'string' },
                 },
                 required: ['file'],
@@ -791,7 +806,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               UploadDtoV2: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                   metadata: {
                     type: 'object',
                     properties: { name: { type: 'string' } },
@@ -872,7 +890,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     {
                       type: 'object',
                       properties: {
-                        logo: { type: 'string', format: 'binary' },
+                        logo: {
+                          type: 'string',
+                          contentMediaType: 'application/octet-stream',
+                        },
                       },
                       required: ['logo'],
                     },
@@ -1582,7 +1603,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
               OptionalBodyDto: {
                 type: 'object',
                 properties: {
-                  file: { type: 'string', format: 'binary' },
+                  file: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
                 },
               },
             },
@@ -1628,7 +1652,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 properties: {
                   files: {
                     type: 'array',
-                    items: { type: 'string', format: 'binary' },
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
                   },
                 },
               },
@@ -1637,7 +1664,10 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                 properties: {
                   files: {
                     type: 'array',
-                    items: { type: 'string', format: 'binary' },
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
                   },
                   tag: { type: 'string' },
                 },

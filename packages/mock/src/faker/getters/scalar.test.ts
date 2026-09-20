@@ -1657,3 +1657,69 @@ describe('getMockScalar (enum type-cast name injection)', () => {
     expect(result.value).toBe("faker.helpers.arrayElement(['A','B'] as const)");
   });
 });
+
+describe('getMockScalar (format lookup is own-property only)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  // `format` is a free-form annotation that no upstream validator constrains,
+  // so an inherited key must not resolve: the lookup used to return the
+  // prototype member itself, which is a truthy non-string and reaches the
+  // generated file as `function Object() { [native code] }`.
+  it.each([
+    'constructor',
+    'toString',
+    'valueOf',
+    'hasOwnProperty',
+    '__proto__',
+  ])('falls back to the type mock for the inherited format %s', (format) => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        format,
+        name: 'foo',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.string.alpha()');
+  });
+
+  it('still resolves an own format key', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        format: 'email',
+        name: 'foo',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.internet.email()');
+  });
+
+  // A user override named after a prototype member is an own property of
+  // ALL_FORMAT, so the guard must let it through rather than treat the name
+  // itself as suspect.
+  it('resolves a user format override that shadows a prototype member', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        format: 'constructor',
+        name: 'foo',
+      },
+      mockOptions: { format: { constructor: 'faker.lorem.word()' } },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe('faker.lorem.word()');
+  });
+});

@@ -14,6 +14,7 @@ import {
   isBoolean,
   isNumber,
   isObject,
+  isSchemaNullable,
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
@@ -176,31 +177,17 @@ export const generateEffectValidationSchemaDefinition = (
   const type = resolveEffectType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable =
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    ('nullable' in schema && schema.nullable) ||
-    (Array.isArray(schema.type) && schema.type.includes('null'));
+  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
-  const exclusiveMinRaw =
+  // `exclusiveMinimum`/`exclusiveMaximum` are the bound itself, not a boolean
+  // flag on `minimum`/`maximum`: `resolveSpec` rewrites the OpenAPI 3.0
+  // boolean form before the document reaches here.
+  const exclusiveMin =
     'exclusiveMinimum' in schema ? schema.exclusiveMinimum : undefined;
-  const exclusiveMaxRaw =
+  const exclusiveMax =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
-
-  // `false` means "not exclusive" and must normalize to undefined (not
-  // linger as the boolean `false`), or downstream code mistakes it for a
-  // constraint value.
-  const exclusiveMin = isBoolean(exclusiveMinRaw)
-    ? exclusiveMinRaw
-      ? min
-      : undefined
-    : exclusiveMinRaw;
-  const exclusiveMax = isBoolean(exclusiveMaxRaw)
-    ? exclusiveMaxRaw
-      ? max
-      : undefined
-    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
@@ -1174,12 +1161,22 @@ export const generateFormDataEffectSchema = (
 
       if (fileType) {
         const isRequired = schema.required?.includes(key);
+        // This override replaces the whole property definition, so the usual
+        // nullable/nullish handling never runs for it. A nullable part would
+        // otherwise validate as non-null while the type generator emits
+        // `Blob | File | null` (#4141). Same precedence as the main path.
+        const isNullable =
+          !!resolvedPropSchema && isSchemaNullable(resolvedPropSchema);
         const fileFunctions: [string, unknown][] = [
           fileType === 'binary'
             ? ['instanceof', 'File']
             : ['fileOrString', undefined],
         ];
-        if (!isRequired) {
+        if (!isRequired && isNullable) {
+          fileFunctions.push(['nullish', undefined]);
+        } else if (isNullable) {
+          fileFunctions.push(['nullable', undefined]);
+        } else if (!isRequired) {
           fileFunctions.push(['optional', undefined]);
         }
         propertyOverrides[key] = { functions: fileFunctions, consts: [] };

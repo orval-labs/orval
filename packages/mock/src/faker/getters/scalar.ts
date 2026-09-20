@@ -177,11 +177,11 @@ export function getMockScalar({
     ),
   };
 
-  // Both OpenAPI 3.1 `type: [..., 'null']` and OpenAPI 3.0 `nullable: true`
-  // reach here as a null union, because @scalar/openapi-parser upgrades 3.0
-  // inputs to 3.1 before mock generation. When this getter wraps the value via
-  // `getNullable` it flags the returned MockDefinition with `nullWrapped` so the
-  // object property layer does not add a second `arrayElement([..., null])`.
+  // Nullability reaches here as the 3.1 null union `type: [..., 'null']`,
+  // because `resolveSpec` upgrades 3.0 inputs before mock generation. When
+  // this getter wraps the value via `getNullable` it flags the returned
+  // MockDefinition with `nullWrapped` so the object property layer does not
+  // add a second `arrayElement([..., null])`.
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
   const nullWrapped = isNullable && !nonNullableOption;
   // The @scalar/openapi-parser upgrader rewrites `format: binary` to
@@ -202,7 +202,13 @@ export function getMockScalar({
       nullWrapped,
     };
   }
-  if (item.format && ALL_FORMAT[item.format]) {
+  // `item.format` is a free-form annotation straight from the spec, so a plain
+  // index would resolve inherited members: `format: constructor` returns the
+  // Object constructor and `format: __proto__` returns Object.prototype, both
+  // truthy non-strings that get interpolated into the generated mock (emitting
+  // uncompilable TypeScript) or crash the `.startsWith` check in combine.ts.
+  // Mirrors the guard on the media-type map in core's `body.ts`.
+  if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];
 
     const dateFormats = ['date', 'date-time'];
@@ -232,10 +238,9 @@ export function getMockScalar({
         (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
-      // Handle exclusiveMinimum/exclusiveMaximum for both OpenAPI 3.0 (boolean) and 3.1 (number).
-      // OpenAPI 3.0: booleans indicating whether minimum/maximum is exclusive — use minimum/maximum as the bound.
-      // OpenAPI 3.1: numbers representing the exclusive boundary value — use directly.
-      // Spec-supplied bounds land in `faker.number.int({min: ${numMin}})` as
+      // `exclusiveMinimum`/`exclusiveMaximum` are the exclusive boundary value
+      // itself, so they are used directly. Spec-supplied bounds land in
+      // `faker.number.int({min: ${numMin}})` as
       // bare expressions, so assert them rather than casting. `typeof` is not
       // enough for the exclusive branches: a YAML document can say `.nan` or
       // `.inf`, which are numbers but would emit `min: NaN` / `max: Infinity`.
@@ -565,6 +570,11 @@ export function getMockScalar({
         value: 'null',
         imports: [],
         name: item.name,
+        // The value *is* null, so it already covers both "nullable" and
+        // "omitted". Without this the object property loop wrapped it into
+        // `arrayElement([null, null])` — a random choice between null and
+        // null (#4141).
+        nullWrapped: true,
       };
     }
 

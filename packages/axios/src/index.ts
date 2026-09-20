@@ -11,11 +11,11 @@ import {
   generateMutatorRequestOptions,
   generateOptions,
   generateVerbImports,
-  assertSafeResponseStatusKey,
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   generateAxiosUrl,
+  getResponseStatusCondition,
   getStatusCodeType,
   HTTP_STATUS_CODE_SHARED_TYPES,
   isSyntheticDefaultImportsAllow,
@@ -171,41 +171,21 @@ export type ${responseTypeName} = ${types.map(({ name }) => name).join(' | ')}`,
 const getEmptyResponseStatusCondition = (
   response: GeneratorVerbOptions['response'],
 ) => {
-  const statuses = new Set(response.types.success.map(({ key }) => key));
-  const exactStatuses = [...statuses].filter((key) => /^[1-5]\d{2}$/.test(key));
+  const statuses = [...new Set(response.types.success.map(({ key }) => key))];
 
-  const conditionFor = (key: string) => {
-    if (/^[1-5]XX$/i.test(key)) {
-      const start = Number(key[0]) * 100;
-      const exclusions = exactStatuses
-        .filter((status) => status[0] === key[0])
-        .map((status) => `response.status !== ${status}`)
-        .join(' && ');
-      return `response.status >= ${start} && response.status < ${start + 100}${
-        exclusions ? ` && ${exclusions}` : ''
-      }`;
-    }
-    // Unquoted expression position: an unparsed key here is live code, not a
-    // comparison (GHSA-4j53-7m38-656f).
-    return `response.status === ${assertSafeResponseStatusKey(key)}`;
-  };
-
-  return [...statuses]
+  return statuses
     .filter((key) =>
       response.types.success
         .filter((entry) => entry.key === key)
         .every(({ value }) => value === 'void'),
     )
     .map((key) => {
-      if (key === 'default') {
-        const declaredConditions = [...statuses]
-          .filter((status) => status !== 'default')
-          .map(conditionFor);
-        return declaredConditions.length
-          ? `!(${declaredConditions.join(' || ')})`
-          : 'true';
-      }
-      return `(${conditionFor(key)})`;
+      const condition = getResponseStatusCondition({
+        key,
+        declaredKeys: statuses,
+        accessor: 'response.status',
+      });
+      return key === 'default' ? condition : `(${condition})`;
     })
     .join(' || ');
 };

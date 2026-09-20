@@ -23,6 +23,7 @@ import {
   isDynamicReference,
   isNumber,
   isObject,
+  isSchemaNullable,
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
@@ -395,7 +396,7 @@ const isPlainObjectSchema = (
 // `title` and `description` only annotate, and `not` is not translated into
 // anything by this generator today, so a branch carrying one renders as bare
 // `zod.unknown()` either way. Anything outside this set — `enum`, `const`,
-// `additionalProperties`, `nullable`, `default`, … — already renders to
+// `additionalProperties`, `default`, … — already renders to
 // something meaningful on its own and must be left alone.
 const SHAPELESS_MEMBER_KEYS = new Set([
   'required',
@@ -597,14 +598,13 @@ export const generateZodValidationSchemaDefinition = (
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
-  const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
+  const CHAINABLE_SIBLINGS = new Set(['default', 'description']);
   const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
 
   const applyChainableSiblings = (
     functions: [string, unknown][],
     consts: string[],
     siblingSchema: OpenApiSchemaObject & {
-      nullable?: boolean;
       default?: unknown;
       description?: string;
     },
@@ -612,11 +612,7 @@ export const generateZodValidationSchemaDefinition = (
     const refRequired = rules?.required ?? false;
     const refHasDefault = siblingSchema.default !== undefined;
 
-    if (!refRequired && siblingSchema.nullable) {
-      functions.push(['nullish', undefined]);
-    } else if (siblingSchema.nullable) {
-      functions.push(['nullable', undefined]);
-    } else if (!refRequired && !refHasDefault) {
+    if (!refRequired && !refHasDefault) {
       functions.push(['optional', undefined]);
     }
 
@@ -668,7 +664,6 @@ export const generateZodValidationSchemaDefinition = (
         consts,
         schema as OpenApiSchemaObject & {
           $ref: string;
-          nullable?: boolean;
           default?: unknown;
           description?: string;
         },
@@ -714,7 +709,6 @@ export const generateZodValidationSchemaDefinition = (
             consts,
             schema as OpenApiSchemaObject & {
               $dynamicRef: string;
-              nullable?: boolean;
               default?: unknown;
               description?: string;
             },
@@ -812,35 +806,17 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable =
-    // changing to ?? here changes behavior - so don't
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    ('nullable' in schema && schema.nullable) ||
-    (Array.isArray(schema.type) && schema.type.includes('null'));
+  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
-  // Handle exclusiveMinimum and exclusiveMaximum (OpenAPI 3.0 vs 3.1 compatibility)
-  // OpenAPI 3.0: exclusiveMinimum/exclusiveMaximum are booleans indicating if minimum/maximum is exclusive
-  // OpenAPI 3.1: exclusiveMinimum/exclusiveMaximum are numbers (the value itself)
-  const exclusiveMinRaw =
+  // `exclusiveMinimum`/`exclusiveMaximum` are the bound itself, not a boolean
+  // flag on `minimum`/`maximum`: `resolveSpec` rewrites the OpenAPI 3.0
+  // boolean form before the document reaches here.
+  const exclusiveMin =
     'exclusiveMinimum' in schema ? schema.exclusiveMinimum : undefined;
-  const exclusiveMaxRaw =
+  const exclusiveMax =
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
-
-  // Convert boolean to number if using OpenAPI 3.0 format. `false` means
-  // "not exclusive" and must normalize to undefined (not linger as the
-  // boolean `false`), or downstream code mistakes it for a constraint value.
-  const exclusiveMin = isBoolean(exclusiveMinRaw)
-    ? exclusiveMinRaw
-      ? min
-      : undefined
-    : exclusiveMinRaw;
-  const exclusiveMax = isBoolean(exclusiveMaxRaw)
-    ? exclusiveMaxRaw
-      ? max
-      : undefined
-    : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
@@ -3041,12 +3017,22 @@ export const generateFormDataZodSchema = (
 
       if (fileType) {
         const isRequired = schema.required?.includes(key);
+        // This override replaces the whole property definition, so the usual
+        // nullable/nullish handling never runs for it. A nullable part would
+        // otherwise validate as non-null while the type generator emits
+        // `Blob | File | null` (#4141). Same precedence as the main path.
+        const isNullable =
+          !!resolvedPropSchema && isSchemaNullable(resolvedPropSchema);
         const fileFunctions: [string, unknown][] = [
           fileType === 'binary'
             ? ['instanceof', 'Blob']
             : ['fileOrString', undefined],
         ];
-        if (!isRequired) {
+        if (!isRequired && isNullable) {
+          fileFunctions.push(['nullish', undefined]);
+        } else if (isNullable) {
+          fileFunctions.push(['nullable', undefined]);
+        } else if (!isRequired) {
           fileFunctions.push(['optional', undefined]);
         }
         propertyOverrides[key] = { functions: fileFunctions, consts: [] };
@@ -3303,50 +3289,102 @@ const getSingleResponse = (
   );
 };
 
-/**
- * Whether the success response is emitted as a plain `zod.object(...)`.
- * MCP requires `outputSchema` and `structuredContent` to be objects, so the
- * MCP generator emits them only when this returns true.
- */
-export const isPlainObjectResponseSchema = (
+// Parses the success response exactly as `generateZodRoute` does, so the
+// predicates below describe the `<Operation>Response` that is actually emitted.
+const parseResponseSchema = (
   {
     verb,
     pathRoute,
     override,
   }: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
   context: ContextSpec,
-): boolean => {
-  // Per-status mode emits `<Operation><Status>Response` names instead.
-  if (context.output.override.zod.generateEachHttpStatus) return false;
-  // `zod.preprocess(...)` wraps the object schema.
-  if (override.zod.preprocess?.response) return false;
+) => {
   const isZodV4 = resolveIsZodV4(
     context.output.override.zod.version,
     context.output.packageJson,
   );
-  // zod v3 `.brand()` yields a `ZodBranded` wrapper; v4 keeps the object.
-  if (override.zod.useBrandedTypes && !isZodV4) return false;
 
-  const { input, isArray } = parseBodyAndResponse({
-    data: getSingleResponse(context.spec.paths?.[pathRoute]?.[verb]?.responses),
-    context,
-    name: 'response',
-    strict: override.zod.strict.response,
-    generate: override.zod.generate.response,
+  return {
     isZodV4,
-    parseType: 'response',
-  });
-  if (isArray) return false;
+    ...parseBodyAndResponse({
+      data: getSingleResponse(
+        context.spec.paths?.[pathRoute]?.[verb]?.responses,
+      ),
+      context,
+      name: 'response',
+      strict: override.zod.strict.response,
+      generate: override.zod.generate.response,
+      isZodV4,
+      parseType: 'response',
+    }),
+  };
+};
+
+/** The success response is emitted as a plain `zod.object(...)`. */
+export const isObjectResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray, isZodV4 } = parseResponseSchema(verbOptions, context);
+  const [root, ...modifiers] = input.functions;
+  if (isArray || root === undefined) return false;
+  // `zod.preprocess(...)` and zod v3 `.brand()` wrap the object.
+  if (
+    verbOptions.override.zod.preprocess?.response ||
+    (verbOptions.override.zod.useBrandedTypes && !isZodV4)
+  ) {
+    return false;
+  }
 
   const objectRoots = new Set(['object', 'looseObject', 'strictObject']);
   const objectModifiers = new Set(['strict', 'passthrough', 'describe']);
 
-  const [root, ...modifiers] = input.functions;
   return (
-    root !== undefined &&
     objectRoots.has(root[0]) &&
     modifiers.every(([fn]) => objectModifiers.has(fn))
   );
+};
+
+/**
+ * A `<Operation>Response` schema that can be converted to JSON Schema is
+ * emitted for the success response.
+ */
+export const hasResponseSchema = (
+  verbOptions: Pick<GeneratorVerbOptions, 'verb' | 'pathRoute' | 'override'>,
+  context: ContextSpec,
+): boolean => {
+  // Per-status mode emits `<Operation><Status>Response` names instead.
+  if (context.output.override.zod.generateEachHttpStatus) return false;
+
+  const { input, isArray } = parseResponseSchema(verbOptions, context);
+  // No schema is emitted as `zod.void()` / `zod.unknown()`, and `void` cannot
+  // even be converted to JSON Schema.
+  if (!isArray && input.functions.length === 0) return false;
+
+  // Wherever they appear in the schema, these root types cannot be exposed as
+  // JSON Schema: `allOf` (also `oneOf` with sibling properties) renders as
+  // `.and()`, which becomes an `allOf` of closed objects that rejects every
+  // value; `zod.date()` (`useDates`) and `zod.instanceof()` (binary bodies)
+  // make the conversion throw. Only the first function is the type: a later
+  // `date` is the string `.date()` format validator.
+  const unsupportedTypes = new Set(['allOf', 'date', 'instanceof']);
+  const containsUnsupported = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsUnsupported);
+    if (!isObject(value)) return false;
+    if (Array.isArray(value.functions)) {
+      const functions = value.functions as [string, unknown][];
+      return (
+        (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
+        functions.some(([, args]) => containsUnsupported(args))
+      );
+    }
+    return Object.values(value).some(containsUnsupported);
+  };
+
+  return !containsUnsupported(input);
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */

@@ -1897,4 +1897,16 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  datesTransformFetch: {
+    output: {
+      target: '../generated/react-query/dates-transform-fetch/endpoints.ts',
+      schemas: '../generated/react-query/dates-transform-fetch/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: { useDatesTransform: true },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
 });

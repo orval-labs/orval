@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createTestContextSpec } from '../../core/src/test-utils/context';
 import {
   generateEffectValidationSchemaDefinition,
+  generateFormDataEffectSchema,
   parseEffectValidationSchemaDefinition,
 } from '.';
 
@@ -74,32 +75,6 @@ describe('constraints', () => {
     });
     expect(effect).toContain('S.greaterThan(');
     expect(effect).toContain('S.lessThan(');
-  });
-
-  it('maps exclusiveMinimum/exclusiveMaximum=true (3.0 boolean form) to exclusive bounds', () => {
-    const { effect } = gen({
-      type: 'number',
-      minimum: 0,
-      maximum: 100,
-      exclusiveMinimum: true,
-      exclusiveMaximum: true,
-    } as unknown as OpenApiSchemaObject);
-    expect(effect).toContain('S.greaterThan(');
-    expect(effect).toContain('S.lessThan(');
-  });
-
-  it('maps exclusiveMinimum/exclusiveMaximum=false (3.0 boolean form) to inclusive bounds', () => {
-    const { effect } = gen({
-      type: 'number',
-      minimum: 0,
-      maximum: 100,
-      exclusiveMinimum: false,
-      exclusiveMaximum: false,
-    } as unknown as OpenApiSchemaObject);
-    expect(effect).toContain('S.greaterThanOrEqualTo(');
-    expect(effect).toContain('S.lessThanOrEqualTo(');
-    expect(effect).not.toContain('S.greaterThan(');
-    expect(effect).not.toContain('S.lessThan(');
   });
 
   it('maps pattern to S.pattern', () => {
@@ -215,8 +190,7 @@ describe('enums and literals', () => {
 describe('nullable and optional', () => {
   it('wraps with S.NullOr when nullable', () => {
     const { effect } = gen({
-      type: 'string',
-      nullable: true,
+      type: ['string', 'null'],
     } as OpenApiSchemaObject);
     expect(effect).toContain('S.NullOr(S.String)');
   });
@@ -249,7 +223,7 @@ describe('nullable and optional', () => {
   it('leaves a nullish property as S.optional even with exactOptional (nullish admits undefined; only .optional() narrows)', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      properties: { name: { type: 'string', nullable: true } },
+      properties: { name: { type: ['string', 'null'] } },
     };
     expect(gen(schema, { exactOptional: true }).effect).toContain(
       '"name": S.optional(S.NullOr(S.String))',
@@ -411,5 +385,51 @@ describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
     } as OpenApiSchemaObject);
     expect(effect).toContain(String.raw`S.Literal('C:\\logs\\')`);
     expect(effect).toContain('S.Literal(1)');
+  });
+});
+
+// The multipart file-part override replaces the whole property definition, so
+// it has to carry nullability itself. It did not, so a nullable part validated
+// as non-null while the type generator emitted `Blob | File | null` (#4141).
+describe('multipart file parts', () => {
+  const formDataSchema: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['catImage'],
+    properties: {
+      catImage: {
+        type: ['string', 'null'],
+        contentMediaType: 'application/octet-stream',
+      },
+      thumbnail: {
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+      },
+      notes: { type: ['string', 'null'] },
+    },
+  } as unknown as OpenApiSchemaObject;
+
+  const render = () => {
+    const context = makeContext();
+    const definition = generateFormDataEffectSchema(
+      formDataSchema,
+      context,
+      'test',
+      false,
+      { notes: { contentType: 'text/csv' } },
+    );
+    return parseEffectValidationSchemaDefinition(definition, context, false)
+      .effect;
+  };
+
+  it('keeps a required nullable file part nullable', () => {
+    expect(render()).toContain('"catImage": S.NullOr(S.instanceOf(File))');
+  });
+
+  it('leaves a non-nullable optional file part as-is', () => {
+    expect(render()).toContain('"thumbnail": S.optional(S.instanceOf(File))');
+  });
+
+  it('keeps an optional nullable text part nullish', () => {
+    expect(render()).toContain('"notes": S.optional(S.NullOr(');
   });
 });

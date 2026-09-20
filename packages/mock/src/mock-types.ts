@@ -43,10 +43,6 @@ export function isSchemaNullableAtRoot(schema?: OpenApiSchemaObject): boolean {
     return false;
   }
 
-  if (schema.nullable === true) {
-    return true;
-  }
-
   const type = schema.type;
   return Array.isArray(type) && type.includes('null');
 }

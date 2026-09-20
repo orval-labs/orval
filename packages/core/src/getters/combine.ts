@@ -129,7 +129,7 @@ function directlyEmitsNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
   // Bridge assertions: AnyOtherAttribute infects all schema property access
-  if (schema.enum || (schema.nullable as boolean | undefined) === true) {
+  if (schema.enum) {
     return true;
   }
   const type = schema.type as string | string[] | undefined;
@@ -146,9 +146,6 @@ function directlyEmitsNonObjectType(
 function isDirectlyNullable(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  if ((schema.nullable as boolean | undefined) === true) {
-    return true;
-  }
   const type = schema.type as string | string[] | undefined;
   return type === 'null' || (Array.isArray(type) && type.includes('null'));
 }
@@ -172,8 +169,8 @@ function directlyEmitsOnlyObjectOrNull(
   return (
     hasObjectType &&
     hasOnlyObjectAndNull &&
-    ((schema.nullable as boolean | undefined) === true ||
-      (Array.isArray(type) && type.includes('null')))
+    Array.isArray(type) &&
+    type.includes('null')
   );
 }
 
@@ -464,8 +461,9 @@ function collectDeepPropertyKeys(
 ): string[] {
   const resolvesComponentRef =
     crossesComponentRefBoundary || isReference(schema);
-  // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
-  // scalar or mixed `type`) can change the emission just like inline nodes.
+  // Checked before dereferencing: `$ref`-site siblings (a `type` union
+  // admitting null, a scalar or mixed `type`) can change the emission just
+  // like inline nodes.
   if (
     cannotGuaranteeAllOfPropertyKeys(
       schema,

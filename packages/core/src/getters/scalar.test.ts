@@ -47,6 +47,43 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
     expect(result.value).toBe('string');
   });
 
+  // `resolveSpec` turns a 3.0 `{ type: 'string', format: 'binary',
+  // nullable: true }` part into this union. The `atPart` arm of getScalar's
+  // else-if chain runs before the `isBinaryScalarSchema` arm, so when
+  // `getFormDataFieldFileType` rejected the union the part silently degraded
+  // to `string | null` — contradicting the zod/effect validators, which read
+  // `contentMediaType` directly and still emitted a Blob check. (#4141)
+  it('nullable multipart part with octet-stream contentMediaType → Blob | File | null', () => {
+    const schema = {
+      type: ['string', 'null'],
+      contentMediaType: 'application/octet-stream',
+    } as unknown as OpenApiSchemaObject;
+
+    const result = getScalar({
+      item: schema,
+      name: 'attachment',
+      context,
+      formDataContext: { atPart: true },
+    });
+
+    expect(result.value).toBe('Blob | File | null');
+  });
+
+  it('nullable multipart part with a text encoding contentType → Blob | File | string | null', () => {
+    const schema = {
+      type: ['string', 'null'],
+    } as unknown as OpenApiSchemaObject;
+
+    const result = getScalar({
+      item: schema,
+      name: 'notes',
+      context,
+      formDataContext: { atPart: true, partContentType: 'text/csv' },
+    });
+
+    expect(result.value).toBe('Blob | File | string | null');
+  });
+
   it('non-octet-stream contentMediaType without formDataContext → string', () => {
     // contentMediaType other than application/octet-stream is only handled
     // in the form-data context (formDataContext?.atPart)
@@ -317,10 +354,10 @@ describe('getScalar integer enum + const (#3758)', () => {
 
   it('preserves nullable suffix when const is present', () => {
     const schema: OpenApiSchemaObject = {
-      type: 'integer',
-      enum: [1],
+      type: ['integer', 'null'],
+      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
+      enum: [1, null],
       const: 1,
-      nullable: true,
     };
 
     const result = getScalar({ item: schema, name: 'flag', context });
@@ -370,9 +407,8 @@ describe('getScalar (const/enum type confusion)', () => {
 
   it('keeps the nullable suffix outside the literal', () => {
     const schema = {
-      type: 'number',
+      type: ['number', 'null'],
       const: payload,
-      nullable: true,
     } as OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'field', context });
@@ -423,18 +459,6 @@ describe('getScalar (string-schema const presence and nullability)', () => {
       type: ['string', 'null'],
       const: 'x',
     } as unknown as OpenApiSchemaObject;
-
-    expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
-      "'x' | null",
-    );
-  });
-
-  it('keeps the nullable suffix for a nullable: true const', () => {
-    const schema = {
-      type: 'string',
-      const: 'x',
-      nullable: true,
-    } as OpenApiSchemaObject;
 
     expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
       "'x' | null",

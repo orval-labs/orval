@@ -145,12 +145,39 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
 }
 
 /**
+ * Whether a schema is dispatched as a string by {@link getScalar}.
+ *
+ * True for a bare `type: 'string'` and for the OAS 3.1 nullable union
+ * `['string', 'null']`, which is what `resolveSpec` produces from a 3.0
+ * `{ type: 'string', nullable: true }`. A union that also admits some other
+ * type is not string-like: `getScalar` renders it as a union rather than
+ * through `case 'string'`, so the string-only treatments (file parts, binary
+ * coercion) must not claim it.
+ *
+ * @param schema - Schema to test.
+ */
+export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
+  const type = schema.type;
+
+  if (type === 'string') {
+    return true;
+  }
+
+  return (
+    Array.isArray(type) &&
+    type.includes('string') &&
+    type.every((member) => member === 'string' || member === 'null')
+  );
+}
+
+/**
  * Whether a schema accepts `null`.
  *
- * Nullability can sit on the schema itself (`nullable: true` in OpenAPI 3.0,
- * `type: 'null'` or `type: ['string', 'null']` in 3.1) or in a separate
- * `{ type: 'null' }` branch of a `oneOf`/`anyOf`, which is the spelling
- * pydantic and other 3.1 generators emit for an optional field.
+ * Nullability can sit on the schema itself (`type: 'null'` or
+ * `type: ['string', 'null']`), on a `null` member of
+ * an `enum`, or in a separate `{ type: 'null' }` branch of a `oneOf`/`anyOf`,
+ * which is the spelling pydantic and other 3.1 generators emit for an optional
+ * field.
  *
  * References are not resolved here, so a `$ref` branch never counts as
  * nullable on its own.
@@ -158,15 +185,30 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
  * @param schema - Schema to test.
  */
 export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
-  if (schema.nullable === true) {
-    return true;
-  }
-
   if (schema.type === 'null') {
     return true;
   }
 
   if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    return true;
+  }
+
+  // With no `type` at all, a `null` member of the `enum` is the whole constraint
+  // on nullability — and the only spelling available for that case
+  // (`{ enum: ['foo', null] }`). The member itself is never emitted into the
+  // generated const; it only contributes the ` | null`.
+  //
+  // A sibling `type` settles the question on its own, so this deliberately does
+  // not look at the enum when one is present. `type` and `enum` are independent
+  // assertions combined with AND: a `type` that admits null has already
+  // returned above, and one that does not makes the enum's `null` unreachable,
+  // so honoring it would emit a `| null` the schema rejects.
+  if (
+    schema.type === undefined &&
+    Array.isArray(schema.enum) &&
+    schema.enum.includes(null) &&
+    !someAllOfBranchRejectsNull(schema.allOf)
+  ) {
     return true;
   }
 
@@ -181,6 +223,45 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
     }
 
     return isSchemaNullable(variant as OpenApiSchemaObject);
+  });
+}
+
+/**
+ * Whether any member of an `allOf` rules `null` out.
+ *
+ * `allOf` is an intersection, so one branch refusing null is enough to make an
+ * enclosing enum's `null` member unreachable:
+ * `{ enum: ['a', null], allOf: [{ type: 'string' }] }` admits only `'a'`.
+ *
+ * Only a branch that *definitely* rejects null counts. A branch constraining
+ * nothing permits it, and a `$ref` is not resolved here, so neither is read as
+ * rejecting — erring toward a `| null` that was not strictly needed rather than
+ * dropping one the API can really return.
+ *
+ * @param allOf - Value of the enclosing schema's `allOf`, if it has one.
+ */
+function someAllOfBranchRejectsNull(allOf: unknown): boolean {
+  if (!Array.isArray(allOf)) {
+    return false;
+  }
+
+  return allOf.some((branch) => {
+    if (!isObject(branch) || isReference(branch)) {
+      return false;
+    }
+
+    const { type, enum: members } = branch as OpenApiSchemaObject;
+
+    if (type !== undefined) {
+      const admitsNull = Array.isArray(type)
+        ? type.includes('null')
+        : type === 'null';
+      if (!admitsNull) {
+        return true;
+      }
+    }
+
+    return Array.isArray(members) && !members.includes(null);
   });
 }
 

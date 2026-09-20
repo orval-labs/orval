@@ -24,11 +24,8 @@ export const getSearchPetsResponseMock = (): Pets =>
       null,
     ]),
     optionalNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      undefined,
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
     ]),
   }));
 
@@ -46,11 +43,8 @@ export const getListPetsResponseMock = (): Pets =>
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
     })),
     Array.from(
@@ -65,11 +59,8 @@ export const getListPetsResponseMock = (): Pets =>
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
     })),
   ]);
@@ -92,11 +83,8 @@ export const getUpdatePetResponseMock = (
     null,
   ]),
   optionalNullableString: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
   ...overrideResponse,
 });
@@ -112,11 +100,8 @@ export const getPatchPetResponseMock = (
     null,
   ]),
   optionalNullableString: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    null,
   ]),
   ...overrideResponse,
 });

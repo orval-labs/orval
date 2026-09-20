@@ -8,8 +8,8 @@ import * as zod from 'zod';
 
 export const GetPetsResponseItem = zod.object({
   petId: zod
-    .union([zod.string().nullable(), zod.string().nullable()])
-    .nullish(),
+    .union([zod.string().nullable(), zod.string().nullable(), zod.null()])
+    .optional(),
 });
 export const GetPetsResponse = zod.array(GetPetsResponseItem);
 
@@ -19,11 +19,12 @@ export const GetAnimalsResponseItem = zod.object({
       zod.string().nullable(),
       zod.string().nullable(),
       zod.uuid().nullable(),
+      zod.null(),
     ])
-    .nullish(),
+    .optional(),
   secondaryId: zod
-    .union([zod.string().nullable(), zod.string().nullable()])
-    .nullish(),
+    .union([zod.string().nullable(), zod.string().nullable(), zod.null()])
+    .optional(),
 });
 export const GetAnimalsResponse = zod.array(GetAnimalsResponseItem);
 
@@ -35,11 +36,12 @@ export const GetNestedAnimalsResponseItem = zod.object({
           zod.string().nullable(),
           zod.string().nullable(),
           zod.uuid().nullable(),
+          zod.null(),
         ])
-        .nullish(),
+        .optional(),
       petId: zod
-        .union([zod.string().nullable(), zod.string().nullable()])
-        .nullish(),
+        .union([zod.string().nullable(), zod.string().nullable(), zod.null()])
+        .optional(),
     })
     .optional(),
 });
@@ -47,8 +49,13 @@ export const GetNestedAnimalsResponse = zod.array(GetNestedAnimalsResponseItem);
 
 export const GetMixedNullableResponseItem = zod.object({
   mixedId: zod
-    .union([zod.string().nullable(), zod.string().nullable(), zod.uuid()])
-    .nullish(),
+    .union([
+      zod.string().nullable(),
+      zod.string().nullable(),
+      zod.uuid(),
+      zod.null(),
+    ])
+    .optional(),
 });
 export const GetMixedNullableResponse = zod.array(GetMixedNullableResponseItem);
 
@@ -59,8 +66,11 @@ export const GetMixedTypesResponseItem = zod.object({
       zod.number().nullable(),
       zod.int().nullable(),
       zod.boolean().nullable(),
+      zod.null(),
     ])
-    .nullish(),
-  mixedTypesNotNull: zod.union([zod.number(), zod.int(), zod.uuid()]).nullish(),
+    .optional(),
+  mixedTypesNotNull: zod
+    .union([zod.number(), zod.int(), zod.uuid(), zod.null()])
+    .optional(),
 });
 export const GetMixedTypesResponse = zod.array(GetMixedTypesResponseItem);

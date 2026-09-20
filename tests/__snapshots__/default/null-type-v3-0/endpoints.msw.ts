@@ -26,11 +26,8 @@ export const getFetchNullableObjectResponseMock = (): NullableObject | null =>
   faker.helpers.arrayElement([
     {
       name: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
       ]),
     },
     null,

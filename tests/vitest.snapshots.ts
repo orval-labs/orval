@@ -15,6 +15,7 @@ export default defineConfig({
       'fetch-zod-array-validation.spec.ts',
       'query-swr-zod-validation.spec.ts',
       'dates-transform-request.spec.ts',
+      'dates-transform-fetch.spec.ts',
     ],
     silent: 'passed-only',
   },

@@ -26,7 +26,10 @@ describe('getResponsesMockDefinition', () => {
       responses: [
         {
           value: 'Blob',
-          originalSchema: { type: 'string', format: 'binary' },
+          originalSchema: {
+            type: 'string',
+            contentMediaType: 'application/octet-stream',
+          },
           contentType: 'application/octet-stream',
           imports: undefined,
           isRef: false,
