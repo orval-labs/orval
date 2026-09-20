@@ -25,6 +25,12 @@ export const createTypelessUpload = (
   if (createTypelessUploadBody.thumbnail !== undefined) {
     formData.append(`thumbnail`, createTypelessUploadBody.thumbnail);
   }
+  if (
+    createTypelessUploadBody.replacement !== undefined &&
+    createTypelessUploadBody.replacement !== null
+  ) {
+    formData.append(`replacement`, createTypelessUploadBody.replacement);
+  }
   if (createTypelessUploadBody.manifest !== undefined) {
     formData.append(
       `manifest`,

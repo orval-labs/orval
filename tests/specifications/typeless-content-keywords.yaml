@@ -43,6 +43,13 @@ paths:
                 thumbnail:
                   type: string
                   contentMediaType: application/octet-stream
+                # Declaring 3.1 skips the upgrader wholesale, so a 3.0
+                # `nullable` in one reaches the normalization untouched. The
+                # type has to be inferred before it is resolved, or the null
+                # is dropped and the part comes out `Blob | File`.
+                replacement:
+                  contentMediaType: application/octet-stream
+                  nullable: true
                 # A content keyword beside object assertions describes
                 # something that is not a string, so the type stays open.
                 manifest:

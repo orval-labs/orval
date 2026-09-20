@@ -14,6 +14,7 @@ export const CreateTypelessUploadBody = zod.object({
   imageFile: zod.instanceof(Blob),
   signature: zod.string().optional(),
   thumbnail: zod.instanceof(Blob).optional(),
+  replacement: zod.instanceof(Blob).nullish(),
   manifest: zod
     .object({
       revision: zod.string().optional(),

@@ -3832,6 +3832,95 @@ describe('normalizeToOpenApi31', () => {
       });
     });
 
+    it('should keep a sibling nullable when it infers the type', () => {
+      // The inference has to run before `resolveNullable`, which drops a
+      // `nullable` it has nothing to attach to. That is only harmless while
+      // the schema stays typeless: a `type` added afterwards would exclude the
+      // null. A 3.1 document still carrying 3.0 `nullable` reaches us this way.
+      expect(
+        normalize({
+          contentMediaType: 'application/octet-stream',
+          nullable: true,
+        }),
+      ).toEqual({
+        type: ['string', 'null'],
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should not narrow a schema carrying object assertions', () => {
+      for (const assertion of [
+        { required: ['a'] },
+        { minProperties: 1 },
+        { maxProperties: 2 },
+        { propertyNames: { pattern: '^a' } },
+        { dependentRequired: { a: ['b'] } },
+      ]) {
+        expect(
+          normalize({ contentMediaType: 'application/json', ...assertion }),
+        ).toEqual({ contentMediaType: 'application/json', ...assertion });
+      }
+    });
+
+    it('should not narrow a schema carrying array assertions', () => {
+      for (const assertion of [
+        { minItems: 1 },
+        { maxItems: 2 },
+        { uniqueItems: true },
+        { contains: { type: 'string' } },
+      ]) {
+        expect(
+          normalize({ contentMediaType: 'application/json', ...assertion }),
+        ).toEqual({ contentMediaType: 'application/json', ...assertion });
+      }
+    });
+
+    it('should not narrow a schema carrying numeric assertions', () => {
+      for (const assertion of [
+        { minimum: 1 },
+        { maximum: 2 },
+        { multipleOf: 2 },
+      ]) {
+        expect(
+          normalize({ contentMediaType: 'application/json', ...assertion }),
+        ).toEqual({ contentMediaType: 'application/json', ...assertion });
+      }
+    });
+
+    it('should not narrow a schema carrying a conditional applicator', () => {
+      // `then` is in the same set, but an object literal spelling it trips the
+      // no-thenable lint rule, so the two siblings stand in for it.
+      for (const assertion of [
+        { if: { type: 'object' } },
+        { else: { type: 'number' } },
+      ]) {
+        expect(
+          normalize({ contentMediaType: 'application/json', ...assertion }),
+        ).toEqual({ contentMediaType: 'application/json', ...assertion });
+      }
+    });
+
+    it('should still infer through annotations and string assertions', () => {
+      // The common shape the fix exists for: a documented file part. Only
+      // assertions block the inference, never annotations.
+      expect(
+        normalize({
+          description: 'The image to upload',
+          deprecated: false,
+          contentMediaType: 'application/octet-stream',
+          minLength: 1,
+          pattern: '^.+$',
+        }),
+      ).toEqual({
+        description: 'The image to upload',
+        deprecated: false,
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+        minLength: 1,
+        pattern: '^.+$',
+      });
+    });
+
     it('should leave a schema with neither content keyword untouched', () => {
       expect(normalize({ maxLength: 10 })).toEqual({ maxLength: 10 });
     });

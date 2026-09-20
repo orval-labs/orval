@@ -445,23 +445,58 @@ const LINK_DATA_KEYWORDS = new Set(['parameters', 'requestBody']);
 const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
 
 /**
- * Keywords that make a typeless schema something other than a plain string, so
- * {@link inferStringForContentKeywords} leaves it alone.
+ * Assertions that can only be satisfied by something other than a string, so
+ * {@link inferStringForContentKeywords} leaves the schema alone rather than
+ * narrowing away instances it admits.
+ *
+ * Deliberately a list of assertions and not of every keyword: annotations
+ * (`description`, `title`, `example`, `deprecated`, ...) and the string
+ * assertions (`pattern`, `minLength`, `maxLength`, `format`) say nothing
+ * against a string, and a part documented with a `description` is the common
+ * case the inference exists for.
  */
 const NON_STRING_ASSERTIONS = new Set([
+  // Resolved elsewhere, so what they admit is not visible here.
   '$ref',
   '$dynamicRef',
+  // Applicators: the branches carry the types, not this schema.
   'allOf',
   'anyOf',
   'oneOf',
   'not',
+  'if',
+  'then',
+  'else',
+  // Value assertions that enumerate the admitted instances themselves.
   'enum',
   'const',
+  // Object assertions.
   'properties',
   'patternProperties',
   'additionalProperties',
+  'unevaluatedProperties',
+  'propertyNames',
+  'required',
+  'dependentRequired',
+  'dependentSchemas',
+  'minProperties',
+  'maxProperties',
+  // Array assertions.
   'items',
   'prefixItems',
+  'unevaluatedItems',
+  'contains',
+  'minContains',
+  'maxContains',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  // Numeric assertions.
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
 ]);
 
 /**
@@ -662,10 +697,15 @@ function normalizeSchemaNode(
   obj: Record<string, unknown>,
   mediaType: string | undefined,
 ): Record<string, unknown> {
+  // Runs first so `resolveNullable` has the `type` it needs to attach a
+  // sibling `nullable: true` to. The other way round it finds nothing to
+  // attach to, drops the keyword as harmless — which it is only while the
+  // schema stays typeless — and the `type` added afterwards then excludes the
+  // null the author asked for.
+  inferStringForContentKeywords(obj);
   const withoutNullable = resolveNullable(obj);
   widenEnumForNullableType(withoutNullable);
   convertContentFormat(withoutNullable, mediaType);
-  inferStringForContentKeywords(withoutNullable);
   normalizeExclusiveBounds(withoutNullable);
   return withoutNullable;
 }
@@ -815,11 +855,13 @@ function convertContentFormat(
  * `instanceof Blob` in the zod and effect validators, and its file value in
  * the mocks.
  *
- * Only a schema that asserts nothing else is narrowed. A `$ref` or a
- * composition carrying a content keyword describes whatever the reference or
- * the branches describe, and object/array keywords say outright that the
- * instance is not a string; annotating `type` there would drop members the
- * spec admits, so those are left as authored.
+ * Only a schema that asserts nothing a string cannot satisfy is narrowed. A
+ * `$ref` or a composition carrying a content keyword describes whatever the
+ * reference or the branches describe, and an object, array or numeric assertion
+ * says outright that some admitted instance is not a string; annotating `type`
+ * there would drop those instances, so {@link NON_STRING_ASSERTIONS} leaves the
+ * schema as authored. Annotations do not block it, so a documented part still
+ * gets its type.
  */
 function inferStringForContentKeywords(obj: Record<string, unknown>): void {
   if (obj.type !== undefined) {

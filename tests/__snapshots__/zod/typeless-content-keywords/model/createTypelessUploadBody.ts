@@ -11,5 +11,7 @@ export type CreateTypelessUploadBody = {
   imageFile: Blob | File;
   signature?: string;
   thumbnail?: Blob | File;
+  /** @nullable */
+  replacement?: Blob | File | null;
   manifest?: CreateTypelessUploadBodyManifest;
 };
