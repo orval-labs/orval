@@ -1,0 +1,72 @@
+# Declared 3.1 on purpose, spelled the way `@scalar/openapi-upgrader` >= 0.2.16
+# leaves a document: converting a Swagger 2.0 `type: file` parameter, or any
+# `{ type: 'string', format: 'binary' }`, it writes the content keyword and drops
+# the `type` that carried it. `contentMediaType` and `contentEncoding` only ever
+# annotate a string, so `resolveSpec` puts the `type` back and the parts below
+# keep their file typing instead of degrading to `unknown` (#4157).
+openapi: '3.1.0'
+info:
+  version: 1.0.0
+  title: Typeless Content Keywords
+  description: >-
+    Content keywords with no sibling `type`, the shape the upgrader leaves
+    behind (#4157).
+  license:
+    name: MIT
+servers:
+  - url: http://localhost
+paths:
+  /uploads:
+    post:
+      summary: Upload a file described only by its content keywords
+      operationId: createTypelessUpload
+      tags:
+        - uploads
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - imageFile
+              properties:
+                # The upgraded form of a Swagger 2.0 `in: formData, type: file`
+                # parameter. No `type`, so this used to fall through to
+                # `unknown` and break `formData.append()` at the call site.
+                imageFile:
+                  contentMediaType: application/octet-stream
+                # The same loss on an encoded part: a string, not a blob.
+                signature:
+                  contentEncoding: base64
+                # The sibling that kept its `type`, so the two are comparable.
+                thumbnail:
+                  type: string
+                  contentMediaType: application/octet-stream
+                # A content keyword beside object assertions describes
+                # something that is not a string, so the type stays open.
+                manifest:
+                  contentMediaType: application/json
+                  properties:
+                    revision:
+                      type: string
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypelessUpload'
+components:
+  schemas:
+    TypelessUpload:
+      type: object
+      required:
+        - id
+        - archive
+      properties:
+        id:
+          type: string
+        # The same shape in a component schema rather than a multipart part.
+        archive:
+          contentMediaType: application/octet-stream

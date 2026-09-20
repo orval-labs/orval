@@ -445,6 +445,26 @@ const LINK_DATA_KEYWORDS = new Set(['parameters', 'requestBody']);
 const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
 
 /**
+ * Keywords that make a typeless schema something other than a plain string, so
+ * {@link inferStringForContentKeywords} leaves it alone.
+ */
+const NON_STRING_ASSERTIONS = new Set([
+  '$ref',
+  '$dynamicRef',
+  'allOf',
+  'anyOf',
+  'oneOf',
+  'not',
+  'enum',
+  'const',
+  'properties',
+  'patternProperties',
+  'additionalProperties',
+  'items',
+  'prefixItems',
+]);
+
+/**
  * Close the OpenAPI 3.0 syntax `upgrade()` leaves behind, so the document handed
  * to `importOpenApi` is fully 3.1-shaped (#4115).
  *
@@ -465,6 +485,9 @@ const CONTENT_FORMATS = new Set(['base64', 'binary', 'byte']);
  *   survive on nullable string unions;
  * - a document declaring `3.1` is skipped wholesale, so every 3.0 keyword in one
  *   reaches us untouched.
+ * - from 0.2.16 it writes `contentMediaType`/`contentEncoding` in place of a
+ *   `format` but drops the `type: 'string'` that carried it, leaving a part
+ *   that describes a string with no type at all (#4157).
  *
  * Every rule below therefore stands on its own rather than assuming the upgrader
  * already handled anything with a `type`.
@@ -642,6 +665,7 @@ function normalizeSchemaNode(
   const withoutNullable = resolveNullable(obj);
   widenEnumForNullableType(withoutNullable);
   convertContentFormat(withoutNullable, mediaType);
+  inferStringForContentKeywords(withoutNullable);
   normalizeExclusiveBounds(withoutNullable);
   return withoutNullable;
 }
@@ -774,6 +798,45 @@ function convertContentFormat(
   if (format === 'byte' && mediaType !== undefined) {
     obj.contentMediaType = mediaType;
   }
+}
+
+/**
+ * Give a schema that carries only `contentMediaType`/`contentEncoding` the
+ * `type: 'string'` those keywords describe (#4157).
+ *
+ * Both are string-only annotations — JSON Schema says they are ignored for any
+ * other instance type — so a schema asserting one and no `type` describes a
+ * string, and reading it as "any type" is what made the field come out
+ * `unknown`. `@scalar/openapi-upgrader` produces exactly that shape from
+ * `>= 0.2.16`: converting a Swagger 2.0 `type: file` parameter, or any
+ * `{ type: 'string', format: 'binary' }`, it writes the content keyword and
+ * drops the `type` that carried it. orval's binary detection is gated on a
+ * string-like `type`, so the part lost its `Blob | File` in the model, its
+ * `instanceof Blob` in the zod and effect validators, and its file value in
+ * the mocks.
+ *
+ * Only a schema that asserts nothing else is narrowed. A `$ref` or a
+ * composition carrying a content keyword describes whatever the reference or
+ * the branches describe, and object/array keywords say outright that the
+ * instance is not a string; annotating `type` there would drop members the
+ * spec admits, so those are left as authored.
+ */
+function inferStringForContentKeywords(obj: Record<string, unknown>): void {
+  if (obj.type !== undefined) {
+    return;
+  }
+
+  if (!isString(obj.contentMediaType) && !isString(obj.contentEncoding)) {
+    return;
+  }
+
+  for (const keyword of NON_STRING_ASSERTIONS) {
+    if (keyword in obj) {
+      return;
+    }
+  }
+
+  obj.type = 'string';
 }
 
 /**

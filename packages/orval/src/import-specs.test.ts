@@ -3744,6 +3744,111 @@ describe('normalizeToOpenApi31', () => {
     });
   });
 
+  describe('content keywords the upgrader leaves without a type (#4157)', () => {
+    it('should restore type: string on a typeless contentMediaType schema', () => {
+      // What `@scalar/openapi-upgrader` >= 0.2.16 makes of a Swagger 2.0
+      // `type: file` formData parameter, and of any `{ type: 'string',
+      // format: 'binary' }`: it writes the content keyword but drops the
+      // `type` that carried it, so the part came out `unknown` (#4157).
+      expect(
+        normalize({ contentMediaType: 'application/octet-stream' }),
+      ).toEqual({
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should restore type: string on a typeless contentEncoding schema', () => {
+      expect(normalize({ contentEncoding: 'base64' })).toEqual({
+        type: 'string',
+        contentEncoding: 'base64',
+      });
+    });
+
+    it('should restore type: string alongside other string assertions', () => {
+      expect(
+        normalize({ contentMediaType: 'image/png', maxLength: 10 }),
+      ).toEqual({
+        type: 'string',
+        contentMediaType: 'image/png',
+        maxLength: 10,
+      });
+    });
+
+    it('should leave an existing type alone', () => {
+      expect(
+        normalize({
+          type: ['string', 'null'],
+          contentMediaType: 'application/octet-stream',
+        }),
+      ).toEqual({
+        type: ['string', 'null'],
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should not narrow a reference that carries a content keyword', () => {
+      expect(
+        normalize({
+          $ref: '#/components/schemas/Upload',
+          contentMediaType: 'application/octet-stream',
+        }),
+      ).toEqual({
+        $ref: '#/components/schemas/Upload',
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should not narrow a composition that carries a content keyword', () => {
+      expect(
+        normalize({
+          anyOf: [{ type: 'string' }, { type: 'null' }],
+          contentMediaType: 'application/octet-stream',
+        }),
+      ).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'null' }],
+        contentMediaType: 'application/octet-stream',
+      });
+    });
+
+    it('should not narrow a schema that asserts object or array keywords', () => {
+      expect(
+        normalize({
+          properties: { data: { type: 'string' } },
+          contentMediaType: 'application/json',
+        }),
+      ).toEqual({
+        properties: { data: { type: 'string' } },
+        contentMediaType: 'application/json',
+      });
+      expect(
+        normalize({
+          items: { type: 'string' },
+          contentMediaType: 'application/json',
+        }),
+      ).toEqual({
+        items: { type: 'string' },
+        contentMediaType: 'application/json',
+      });
+    });
+
+    it('should leave a schema with neither content keyword untouched', () => {
+      expect(normalize({ maxLength: 10 })).toEqual({ maxLength: 10 });
+    });
+
+    it('should restore the type under a Media Type Object', () => {
+      const result = normalizeToOpenApi31({
+        content: {
+          'image/png': { schema: { contentEncoding: 'base64' } },
+        },
+      }) as Record<string, unknown>;
+      expect(
+        (result.content as Record<string, Record<string, unknown>>)['image/png']
+          .schema,
+      ).toEqual({ type: 'string', contentEncoding: 'base64' });
+    });
+  });
+
   describe('exclusive bounds', () => {
     it('should convert a boolean exclusiveMinimum into the numeric form', () => {
       expect(
