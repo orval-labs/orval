@@ -22,6 +22,7 @@ import type {
 
 import type {
   Appointment,
+  AppointmentWindow,
   AppointmentWithDuplicateDate,
   AuditRecord,
   Cat,
@@ -30,6 +31,7 @@ import type {
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
+  ShelterRecords,
 } from './model';
 
 const withQueryKey = <T extends object, K>(
@@ -1899,6 +1901,373 @@ export const useUpdateShelterIntake = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getUpdateShelterIntakeMutationOptions(options),
+    queryClient,
+  );
+};
+
+export type updateShelterRecordsResponse200 = {
+  data: ShelterRecords;
+  status: 200;
+};
+
+export type updateShelterRecordsResponseSuccess =
+  updateShelterRecordsResponse200 & {
+    headers: Headers;
+  };
+export type updateShelterRecordsResponse = updateShelterRecordsResponseSuccess;
+
+export const getUpdateShelterRecordsUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/records`;
+};
+
+export const updateShelterRecords = async (
+  shelterId: string,
+  shelterRecords: ShelterRecords,
+  options?: RequestInit,
+): Promise<updateShelterRecordsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  const res = await fetch(getUpdateShelterRecordsUrl(shelterId), {
+    ...options,
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
+    body: JSON.stringify(serializeUpdateShelterRecordsRequest(shelterRecords)),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: updateShelterRecordsResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeUpdateShelterRecordsResponse(data as ShelterRecords);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updateShelterRecordsResponse;
+};
+
+const deserializeUpdateShelterRecordsResponse = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  if (data.records != null) {
+    for (const key0 of Object.keys(data.records)) {
+      const item0 = data.records[key0];
+      if ('visitedOn' in item0 && item0.visitedOn != null) {
+        item0.visitedOn = new Date(item0.visitedOn);
+      }
+      if ('entries' in item0 && item0.entries != null) {
+        for (let i1 = 0; i1 < item0.entries.length; i1++) {
+          const item1 = item0.entries[i1];
+          item1.visitedOn = new Date(item1.visitedOn);
+        }
+      }
+      if ('administeredAt' in item0 && item0.administeredAt != null) {
+        item0.administeredAt = new Date(item0.administeredAt);
+      }
+    }
+  }
+  return data;
+};
+
+const serializeUpdateShelterRecordsRequest = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if (copy.records != null) {
+    copy.records = { ...copy.records };
+    for (const key0 of Object.keys(copy.records)) {
+      let value0 = copy.records[key0];
+      value0 = { ...value0 };
+      if ('visitedOn' in value0 && value0.visitedOn != null) {
+        value0.visitedOn =
+          value0.visitedOn instanceof Date
+            ? (value0.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+            : value0.visitedOn;
+      }
+      if ('entries' in value0 && value0.entries != null) {
+        value0.entries = value0.entries.map((item1) => {
+          let value1 = item1;
+          value1 = { ...value1 };
+          value1.visitedOn =
+            value1.visitedOn instanceof Date
+              ? (value1.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+              : value1.visitedOn;
+          return value1;
+        });
+      }
+      copy.records[key0] = value0;
+    }
+  }
+  return copy;
+};
+
+export const getUpdateShelterRecordsMutationKey = () =>
+  ['updateShelterRecords'] as const;
+
+export const getUpdateShelterRecordsMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateShelterRecords>>,
+    TError,
+    UpdateShelterRecordsMutationVariables,
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateShelterRecords>>,
+  TError,
+  UpdateShelterRecordsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateShelterRecordsMutationKey();
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateShelterRecords>>,
+    UpdateShelterRecordsMutationVariables
+  > = (props) => {
+    const { shelterId, data } = props ?? {};
+
+    return updateShelterRecords(shelterId, data, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateShelterRecordsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateShelterRecords>>
+>;
+export type UpdateShelterRecordsMutationBody = ShelterRecords;
+export type UpdateShelterRecordsMutationError = unknown;
+export type UpdateShelterRecordsMutationVariables = {
+  shelterId: string;
+  data: ShelterRecords;
+};
+
+export const useUpdateShelterRecords = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateShelterRecords>>,
+      TError,
+      UpdateShelterRecordsMutationVariables,
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateShelterRecords>>,
+  TError,
+  UpdateShelterRecordsMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateShelterRecordsMutationOptions(options),
+    queryClient,
+  );
+};
+
+export type updateAppointmentWindowResponse200 = {
+  data: AppointmentWindow;
+  status: 200;
+};
+
+export type updateAppointmentWindowResponseSuccess =
+  updateAppointmentWindowResponse200 & {
+    headers: Headers;
+  };
+export type updateAppointmentWindowResponse =
+  updateAppointmentWindowResponseSuccess;
+
+export const getUpdateAppointmentWindowUrl = (appointmentId: string) => {
+  return `/appointments/${appointmentId}/window`;
+};
+
+export const updateAppointmentWindow = async (
+  appointmentId: string,
+  appointmentWindow: AppointmentWindow,
+  options?: RequestInit,
+): Promise<updateAppointmentWindowResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  const res = await fetch(getUpdateAppointmentWindowUrl(appointmentId), {
+    ...options,
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getHeaders(options?.headers),
+    },
+    body: JSON.stringify(
+      serializeUpdateAppointmentWindowRequest(appointmentWindow),
+    ),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: updateAppointmentWindowResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  if (body && res.status === 200) {
+    data = deserializeUpdateAppointmentWindowResponse(
+      data as AppointmentWindow,
+    );
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updateAppointmentWindowResponse;
+};
+
+const deserializeUpdateAppointmentWindowResponse = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  if ('closedAt' in data && data.closedAt != null) {
+    data.closedAt = new Date(data.closedAt);
+  }
+  return data;
+};
+
+const serializeUpdateAppointmentWindowRequest = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if ('closedAt' in copy && copy.closedAt != null) {
+    copy.closedAt =
+      copy.closedAt instanceof Date
+        ? (copy.closedAt.toISOString().slice(0, 10) as unknown as Date)
+        : copy.closedAt;
+  }
+  return copy;
+};
+
+export const getUpdateAppointmentWindowMutationKey = () =>
+  ['updateAppointmentWindow'] as const;
+
+export const getUpdateAppointmentWindowMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointmentWindow>>,
+    TError,
+    UpdateAppointmentWindowMutationVariables,
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>,
+  TError,
+  UpdateAppointmentWindowMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateAppointmentWindowMutationKey();
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointmentWindow>>,
+    UpdateAppointmentWindowMutationVariables
+  > = (props) => {
+    const { appointmentId, data } = props ?? {};
+
+    return updateAppointmentWindow(appointmentId, data, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentWindowMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>
+>;
+export type UpdateAppointmentWindowMutationBody = AppointmentWindow;
+export type UpdateAppointmentWindowMutationError = unknown;
+export type UpdateAppointmentWindowMutationVariables = {
+  appointmentId: string;
+  data: AppointmentWindow;
+};
+
+export const useUpdateAppointmentWindow = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAppointmentWindow>>,
+      TError,
+      UpdateAppointmentWindowMutationVariables,
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>,
+  TError,
+  UpdateAppointmentWindowMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateAppointmentWindowMutationOptions(options),
     queryClient,
   );
 };

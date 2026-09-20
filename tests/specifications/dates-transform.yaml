@@ -194,6 +194,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShelterIntake'
+  /shelters/{shelterId}/records:
+    put:
+      operationId: updateShelterRecords
+      parameters:
+        - name: shelterId
+          in: path
+          required: true
+          schema: { type: string }
+      # The UNDISCRIMINATED twin of updateShelterIntake: `records` is a map
+      # whose values are an anyOf with no discriminator, and none is possible
+      # — VisitRecord and VisitSeriesRecord share the tag value `visit` and
+      # differ only by which fields they carry. Pins the structural walk:
+      # `visitedOn` is declared identically by two variants and must collapse
+      # to one guarded block, `entries` reaches dates nested in an array
+      # inside a union variant (its items are a single $ref to VisitRecord,
+      # not a union of their own), and WeightRecord contributes nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShelterRecords'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelterRecords'
+  /appointments/{appointmentId}/window:
+    put:
+      operationId: updateAppointmentWindow
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema: { type: string }
+      # Two variants that disagree on `openedOn` — an array of calendar days
+      # in one, a scalar calendar day in the other — and agree on `closedAt`.
+      # Both shapes produce non-empty, differing statements for `openedOn`,
+      # so the comparator itself (not an empty-vs-non-empty shortcut) is what
+      # skips it; `closedAt` converts. Pins the conflict rule with a real
+      # serializer and deserializer generated in both directions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentWindow'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentWindow'
 components:
   schemas:
     Cat:
@@ -335,3 +391,62 @@ components:
       properties:
         petType: { type: string, enum: [dog] }
         vaccinatedAt: { type: string, format: date-time }
+    ShelterRecords:
+      type: object
+      required: [records]
+      properties:
+        records:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ShelterRecord'
+    ShelterRecord:
+      anyOf:
+        - $ref: '#/components/schemas/VisitRecord'
+        - $ref: '#/components/schemas/VisitSeriesRecord'
+        - $ref: '#/components/schemas/WeightRecord'
+        - $ref: '#/components/schemas/TreatmentRecord'
+    VisitRecord:
+      type: object
+      required: [recordType, visitedOn]
+      properties:
+        recordType: { type: string, enum: [visit] }
+        visitedOn: { type: string, format: date }
+        seenBy: { type: string }
+    VisitSeriesRecord:
+      type: object
+      required: [recordType, entries]
+      properties:
+        recordType: { type: string, enum: [visit] }
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisitRecord'
+    WeightRecord:
+      type: object
+      required: [recordType, kilograms]
+      properties:
+        recordType: { type: string, enum: [weight] }
+        kilograms: { type: number }
+    TreatmentRecord:
+      type: object
+      required: [recordType, administeredAt]
+      properties:
+        recordType: { type: string, enum: [treatment] }
+        administeredAt: { type: string, format: date-time }
+        visitedOn: { type: string, format: date }
+    AppointmentWindow:
+      anyOf:
+        - $ref: '#/components/schemas/LegacyWindow'
+        - $ref: '#/components/schemas/CalendarWindow'
+    LegacyWindow:
+      type: object
+      properties:
+        openedOn:
+          type: array
+          items: { type: string, format: date }
+        closedAt: { type: string, format: date }
+    CalendarWindow:
+      type: object
+      properties:
+        openedOn: { type: string, format: date }
+        closedAt: { type: string, format: date }

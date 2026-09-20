@@ -5,7 +5,9 @@ import {
   updateAppointment,
   updateAppointmentDuplicateDate,
   updateAppointmentReminder,
+  updateAppointmentWindow,
   updateShelterIntake,
+  updateShelterRecords,
 } from './generated/react-query/dates-transform/endpoints';
 import { AXIOS_INSTANCE } from './mutators/custom-instance';
 
@@ -293,4 +295,165 @@ test('does not throw when the response omits the required pets map', async () =>
       },
     }),
   ).resolves.not.toHaveProperty('pets');
+});
+
+// NOTE ON TEST STYLE BELOW: `serializeUpdateShelterRecordsRequest` and
+// `serializeUpdateAppointmentWindowRequest` are not exported from the
+// generated module — every generated `serialize*Request`/`deserialize*Response`
+// function in this codebase is a module-private `const`, matching every test
+// above this point, which drives the request through the public endpoint
+// function and inspects the wire body captured by the mocked axios adapter.
+// The four tests below follow that same established pattern rather than
+// importing the private serializers directly.
+
+test('serializes dates inside an undiscriminated union map value', async () => {
+  // Would regress to sending a full ISO datetime if the structural union
+  // walk stopped emitting, which is what every orval release before this
+  // one did for a union with no discriminator mapping.
+  const captured = captureRequest();
+
+  const records = {
+    'record-1': {
+      recordType: 'visit' as const,
+      visitedOn: new Date('2026-07-01T09:30:00.000Z'),
+      seenBy: 'Dr. Ada',
+    },
+    'record-2': { recordType: 'weight' as const, kilograms: 4.2 },
+  };
+
+  await updateShelterRecords('shelter-1', { records });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.records['record-1'].visitedOn).toBe('2026-07-01');
+  // The non-date variant must come through untouched, asserted on the whole
+  // record rather than on `kilograms` alone: a wrongly emitted conversion
+  // reads `kilograms instanceof Date ? … : kilograms` and leaves `4.2`
+  // exactly as it was, so a `kilograms` check can never fail. What can fail
+  // is an extra key on the wire — the presence guards are the only thing
+  // keeping `visitedOn`, `entries` and `administeredAt` off a variant that
+  // never declared them.
+  expect(body.records['record-2']).toEqual({
+    recordType: 'weight',
+    kilograms: 4.2,
+  });
+  // The input must not be mutated — the request direction copies.
+  expect(records['record-1'].visitedOn).toBeInstanceOf(Date);
+});
+
+test('reaches dates nested in an array inside a union variant', async () => {
+  // Pins that the walk descends through `entries`: an array inside a union
+  // variant, whose items are a single `$ref` to `VisitRecord` rather than a
+  // union of their own.
+  const captured = captureRequest();
+
+  await updateShelterRecords('shelter-1', {
+    records: {
+      'record-1': {
+        recordType: 'visit' as const,
+        entries: [
+          {
+            recordType: 'visit' as const,
+            visitedOn: new Date('2026-07-02T23:45:00.000Z'),
+          },
+        ],
+      },
+    },
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.records['record-1'].entries[0].visitedOn).toBe('2026-07-02');
+});
+
+test('deserializes dates inside an undiscriminated union map value in the response', async () => {
+  // The RESPONSE direction of the structural walk. Every other
+  // `updateShelterRecords` test above drives the endpoint through
+  // `captureRequest()`, whose mock adapter answers `data: {}`, so the
+  // generated deserializer's `Object.keys(data.records)` loop iterates zero
+  // times and the response walk is pinned by snapshot text and `tsc` alone.
+  // This is the undiscriminated equivalent of the populated-mock response
+  // test the discriminated twin already has above: one entry per shape, so
+  // the loop body really runs.
+  AXIOS_INSTANCE.defaults.adapter = async (config) => ({
+    data: {
+      records: {
+        'record-1': {
+          recordType: 'visit',
+          visitedOn: '2026-07-01',
+          seenBy: 'Dr. Ada',
+        },
+        'record-2': {
+          recordType: 'visit',
+          entries: [{ recordType: 'visit', visitedOn: '2026-07-02' }],
+        },
+        'record-3': { recordType: 'weight', kilograms: 4.2 },
+      },
+    },
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config,
+  });
+
+  const response = await updateShelterRecords('shelter-1', {
+    records: {
+      'record-1': {
+        recordType: 'visit',
+        visitedOn: new Date('2026-07-01'),
+        seenBy: 'Dr. Ada',
+      },
+    },
+  });
+
+  const visit = response.records['record-1'];
+  const series = response.records['record-2'];
+  const weight = response.records['record-3'];
+
+  if (!('visitedOn' in visit)) {
+    throw new Error('expected a record carrying visitedOn');
+  }
+  if (!('entries' in series)) {
+    throw new Error('expected a record carrying entries');
+  }
+  if (!('kilograms' in weight)) {
+    throw new Error('expected a record carrying kilograms');
+  }
+
+  expect(visit.visitedOn).toBeInstanceOf(Date);
+  expect(visit.visitedOn.toISOString()).toBe('2026-07-01T00:00:00.000Z');
+
+  // The nested array inside a union variant, reached through the same walk.
+  expect(series.entries[0].visitedOn).toBeInstanceOf(Date);
+  expect(series.entries[0].visitedOn.toISOString()).toBe(
+    '2026-07-02T00:00:00.000Z',
+  );
+
+  // A variant that declares no date is left exactly as the server sent it:
+  // `kilograms` stays a number, and the presence guards keep the other
+  // variants' keys off it.
+  expect(weight.kilograms).toBe(4.2);
+  expect(weight).not.toHaveProperty('visitedOn');
+  expect(weight).not.toHaveProperty('entries');
+});
+
+test('skips a property whose union variants disagree in shape, converts the one they agree on', async () => {
+  // `openedOn` is an array of calendar days in one variant (`LegacyWindow`)
+  // and a scalar calendar day in the other (`CalendarWindow`): both shapes
+  // produce a real, non-empty conversion statement, but the two statements
+  // differ, so it is the comparator itself — not an empty-vs-non-empty
+  // shortcut — that skips the property. `closedAt` is `format: date` in
+  // both variants and must still serialize to a UTC calendar day.
+  const captured = captureRequest();
+
+  await updateAppointmentWindow('appt-1', {
+    openedOn: new Date('2026-07-01T09:30:00.000Z'),
+    closedAt: new Date('2026-07-05T12:00:00.000Z'),
+  });
+
+  const body = JSON.parse(String(captured.config?.data));
+
+  expect(body.closedAt).toBe('2026-07-05');
+  // Left alone entirely — not converted in either direction.
+  expect(body.openedOn).toBe('2026-07-01T09:30:00.000Z');
 });
