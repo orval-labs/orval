@@ -642,6 +642,21 @@ const generateHttpClientFiles = async (
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
+  // Mutator paths are resolved against the target directory, which is also
+  // where http-client lives.
+  const mutatorImports = generateMutatorImports({
+    mutators: Object.values(verbOptions).flatMap((verbOption) =>
+      [
+        verbOption.mutator,
+        verbOption.formData,
+        verbOption.formUrlEncoded,
+        verbOption.paramsSerializer,
+        verbOption.fetchReviver,
+      ].filter((mutator) => mutator !== undefined),
+    ),
+    implementation: clientImplementation,
+  });
+
   const rawFetchHeader = generateFetchHeader({
     title: '',
     isRequestOptions: false,
@@ -668,6 +683,7 @@ const generateHttpClientFiles = async (
   const content = [
     header,
     importImplementation,
+    mutatorImports,
     fetchHeader,
     clientImplementation,
   ].join('\n');

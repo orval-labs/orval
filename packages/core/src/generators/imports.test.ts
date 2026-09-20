@@ -259,5 +259,31 @@ export type MyError = Error;
 
       expect(imports).toBe("import { customInstance } from '@scope/axios';\n");
     });
+
+    it('skips a mutator the implementation does not reference', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('@scope/axios')],
+        implementation: 'export const listPets = () => fetch("/pets");',
+      });
+
+      expect(imports).toBe('');
+    });
+
+    it('matches the mutator name as a whole identifier', () => {
+      const mutator = { ...makeMutator('@scope/axios'), name: 'custom' };
+
+      expect(
+        generateMutatorImports({
+          mutators: [mutator],
+          implementation: 'export const customizePet = () => custom();',
+        }),
+      ).toBe("import { custom } from '@scope/axios';\n");
+      expect(
+        generateMutatorImports({
+          mutators: [mutator],
+          implementation: 'export const customizePet = () => customizePet();',
+        }),
+      ).toBe('');
+    });
   });
 });
