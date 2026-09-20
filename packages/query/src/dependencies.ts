@@ -371,11 +371,17 @@ const getSolidQueryImports = (
  * helpers), where a value import makes the generated file trip
  * `consistent-type-imports` in the consumer's linter.
  *
- * @param hasMutationInvalidation - Whether any operation invalidates, i.e.
- *   whether `inject(QueryClient)` will be emitted.
+ * The question is per file, not per config. With `tags-split` one tag can
+ * invalidate while its sibling emits no mutation at all, and an override can
+ * name an operation the spec does not have, so reading `mutationInvalidates`
+ * answers a different question than the one asked. The emitted implementation
+ * answers this one exactly, which is also what decides every other import in
+ * the file.
+ *
+ * @param injectsQueryClient - Whether this file emits `inject(QueryClient)`.
  */
 const getAngularQueryImports = (
-  hasMutationInvalidation: boolean,
+  injectsQueryClient: boolean,
 ): GeneratorDependency[] => [
   {
     exports: [
@@ -396,7 +402,7 @@ const getAngularQueryImports = (
       { name: 'InfiniteData' },
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
-      { name: 'QueryClient', values: hasMutationInvalidation },
+      { name: 'QueryClient', values: injectsQueryClient },
       { name: 'InvalidateOptions' },
       { name: 'matchQuery', values: true },
     ],
@@ -460,25 +466,8 @@ export const getSolidQueryDependencies: ClientDependenciesBuilder = (
   ];
 };
 
-/**
- * Whether any operation in the output invalidates on mutation, which is the
- * only thing that makes the generator emit `inject(QueryClient)`.
- *
- * `mutationInvalidates` can be set globally or narrowed per operation and per
- * tag, and any one of them is enough, so all three levels are read. Erring
- * toward a value import is the safe direction: a spurious one is an
- * annotation the linter would tidy, a missing one is a type used as a value.
- */
-const hasMutationInvalidation = (
-  override?: NormalizedOverrideOutput,
-): boolean =>
-  [
-    override?.query,
-    ...Object.values(override?.operations ?? {}).map(
-      (operation) => operation?.query,
-    ),
-    ...Object.values(override?.tags ?? {}).map((tag) => tag?.query),
-  ].some((query) => (query?.mutationInvalidates?.length ?? 0) > 0);
+/** The one line that needs Angular's `QueryClient` at runtime. */
+const QUERY_CLIENT_INJECTION = 'inject(QueryClient)';
 
 export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
@@ -487,6 +476,7 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
+  implementation?: string,
 ) => {
   // Always use Angular HTTP dependencies for Angular httpClient
   // Previously skipped for mutators, but we now inject http everywhere
@@ -497,7 +487,9 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
     ...(useAngularHttp ? ANGULAR_HTTP_DEPENDENCIES : []),
     ...(useAxios ? AXIOS_DEPENDENCIES : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...getAngularQueryImports(hasMutationInvalidation(override)),
+    ...getAngularQueryImports(
+      implementation?.includes(QUERY_CLIENT_INJECTION) ?? false,
+    ),
   ];
 };
 

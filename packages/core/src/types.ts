@@ -2185,6 +2185,12 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
+  /**
+   * The client implementation these imports are for, so a builder can settle a
+   * question the config cannot: whether *this file* uses an export as a value.
+   * Empty for callers that have no implementation to offer.
+   */
+  implementation?: string,
 ) => GeneratorDependency[];
 
 export interface ClientMockGeneratorImplementation {
