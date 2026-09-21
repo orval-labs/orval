@@ -1484,6 +1484,38 @@ const deletePet = injectDeletePet({
 });
 ```
 
+#### Operation names
+
+Both fields name operations by their **generated** name — the camelCased,
+sanitized form of the `operationId`, or whatever `override.operationName`
+returns. An `operationId` of `PostNotes` is generated as `postNotes`:
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['postNotes'], // not 'PostNotes'
+    invalidates: ['getNotes'],
+  },
+],
+```
+
+`invalidates` resolves its target through the query key function name, so the
+document's own casing happens to work there too. `onMutations` is matched
+exactly, so it does not.
+
+orval warns when either field names an operation the output does not generate,
+since the rule is otherwise ignored without a trace:
+
+```
+⚠️  mutationInvalidates references an unknown operation 'PostNotes' in
+onMutations. No operation with that name is generated for this output, so the
+rule is ignored — did you mean 'postNotes'?
+```
+
+An operation excluded by an input filter or by
+[`useDeprecatedOperations: false`](#usedeprecatedoperations) is not generated
+either, so naming one warns for the same reason.
+
 ### signal
 
 **Type:** `Boolean`

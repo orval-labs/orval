@@ -13,11 +13,13 @@ import {
   GetterPropType,
   isObject,
   isReference,
+  type MutationInvalidatesConfig,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
   type GeneratorVerbsOptions,
   resolveRef,
+  getUnknownMutationInvalidatesWarnings,
 } from '@orval/core';
 import {
   generateClientFooter,
@@ -27,12 +29,30 @@ import {
   generateExtraFiles,
   generateOperations,
 } from './client';
+import { logger } from './logger';
 
 // API construction only needs Mock when an output actually emits mocks. Keep
 // the resolved module for later projects without making it part of startup.
 let mockModuleCache: Promise<typeof import('@orval/mock')> | undefined;
 
 const loadMockModule = () => (mockModuleCache ??= import('@orval/mock'));
+
+/**
+ * Every `mutationInvalidates` list that reaches this output: the top-level one
+ * plus whatever a tag or operation override merged in. `mergeDeep` replaces the
+ * array rather than concatenating, so a per-operation rule set is invisible in
+ * `output.override` and has to be read off the verb options.
+ */
+const collectMutationInvalidates = (
+  output: NormalizedOutputOptions,
+  pathEntries: ReadonlyArray<{ verbsOptions: GeneratorVerbsOptions }>,
+): MutationInvalidatesConfig =>
+  [
+    output.override.query.mutationInvalidates,
+    ...pathEntries.flatMap(({ verbsOptions }) =>
+      verbsOptions.map(({ override }) => override.query.mutationInvalidates),
+    ),
+  ].flatMap((rules) => rules ?? []);
 
 export async function getApiBuilder({
   input,
@@ -97,6 +117,22 @@ export async function getApiBuilder({
   const allOperationNames = pathEntries.flatMap(({ verbsOptions }) =>
     verbsOptions.map(({ operationName }) => operationName),
   );
+
+  // Checked here because it is the only point that holds every operation of the
+  // output at once: the query package sees one verb at a time and cannot tell a
+  // name it does not recognise from one that belongs to another verb. The list
+  // is post-filter, so a rule naming an operation dropped by
+  // `useDeprecatedOperations: false` or an input filter warns too — correctly,
+  // since no such operation is generated. Rules can also arrive through a tag
+  // or operation override, which replaces rather than extends the top-level
+  // array, so every merged list is collected and the warnings deduped.
+  for (const warning of getUnknownMutationInvalidatesWarnings({
+    mutationInvalidates: collectMutationInvalidates(output, pathEntries),
+    operationNames: allOperationNames,
+  })) {
+    logger.warn(warning);
+  }
+
   const helperOptions = pathEntries.flatMap(({ verbsOptions }) =>
     verbsOptions.filter(({ mutator }) => !mutator),
   );
