@@ -162,6 +162,15 @@ async function resolveSpec(
   ) as typeof transformedData;
 
   const upgraded = upgrade(transformedData);
+
+  // As of @scalar/openapi-parser@0.29.2 `specification` is typed nullable, and
+  // is null only for a falsy input — which cannot reach here, since the
+  // document has already been bundled, dereferenced and (unless disabled)
+  // validated above.
+  if (!upgraded.specification) {
+    throw new Error('OpenAPI spec upgrade produced no document.');
+  }
+
   let specification = upgraded.specification;
 
   // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
