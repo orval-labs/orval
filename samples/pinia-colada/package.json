@@ -11,7 +11,7 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "@pinia/colada": "1.4.4",
+    "@pinia/colada": "1.4.5",
     "axios": "catalog:axios",
     "pinia": "4.0.3",
     "vue": "3.5.42"
