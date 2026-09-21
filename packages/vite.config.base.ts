@@ -62,6 +62,14 @@ export const definePackage = (
     },
     test: {
       passWithNoTests: true,
+      // Several suites (notably packages/orval) do real filesystem work --
+      // mkdtemp, generateSpec writing many small files, recursive rm -- plus
+      // first-use dynamic imports of prettier/typescript/@orval/*. On
+      // windows-latest that runs ~10x slower than ubuntu-latest, which put a
+      // rotating set of tests over vitest's 5s default and made CI flaky.
+      // hookTimeout matters too: some suites mkdtemp in beforeEach.
+      testTimeout: 30_000,
+      hookTimeout: 30_000,
       ...test,
     },
   });
