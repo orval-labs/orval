@@ -9,6 +9,7 @@ console.log('TESTING ES MODULE IMPORT/EXPORT', MY_CONST, ANOTHER_CONST);
 export { MY_CONST, ANOTHER_CONST };
 
 export default defineConfig({
+  logLevel: 'error',
   api: {
     input: {
       target: '../specifications/multi-files/api.yaml',

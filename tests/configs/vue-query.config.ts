@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   petstore: {
     output: {
       target: '../generated/vue-query/petstore/endpoints.ts',

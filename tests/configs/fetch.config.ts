@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   issue3826: {
     output: {
       target: '../generated/fetch/issue-3826/endpoints.ts',

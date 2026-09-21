@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   bodySchemaNameMatchesOperationId: {
     output: {
       target:
