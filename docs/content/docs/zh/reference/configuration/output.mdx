@@ -1339,6 +1339,31 @@ const deletePet = injectDeletePet({
 });
 ```
 
+#### 操作名称
+
+两个字段都使用**生成后**的操作名称，即 `operationId` 经过 camelCase 和净化处理后的形式，或者 `override.operationName` 的返回值。`operationId` 为 `PostNotes` 的操作会生成为 `postNotes`：
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['postNotes'], // 而不是 'PostNotes'
+    invalidates: ['getNotes'],
+  },
+],
+```
+
+`invalidates` 会通过 query key 函数名来解析目标，因此文档中原本的大小写在这里恰好也能生效；而 `onMutations` 是精确匹配，所以不行。
+
+当任一字段引用了该 output 并未生成的操作时，orval 会发出警告 —— 否则这条规则会被静默忽略，不留任何痕迹：
+
+```
+⚠️  mutationInvalidates references an unknown operation 'PostNotes' in
+onMutations. No operation with that name is generated for this output, so the
+rule is ignored — did you mean 'postNotes'?
+```
+
+被 input 过滤器或 [`useDeprecatedOperations: false`](#usedeprecatedoperations) 排除的操作同样不会被生成，因此引用它们也会出于相同原因触发警告。
+
 ### signal
 
 **类型：** `Boolean`
