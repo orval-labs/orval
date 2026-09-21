@@ -163,10 +163,15 @@ async function resolveSpec(
 
   const upgraded = upgrade(transformedData);
 
-  // As of @scalar/openapi-parser@0.29.2 `specification` is typed nullable, and
-  // is null only for a falsy input — which cannot reach here, since the
-  // document has already been bundled, dereferenced and (unless disabled)
-  // validated above.
+  // As of @scalar/openapi-parser@0.29.2 `specification` is typed nullable. It
+  // is null for a falsy input and nothing else: an unsupported-but-truthy
+  // document leaves `version` undefined and comes back unchanged. Nothing
+  // falsy reaches here, because every route into `resolveSpec` rejects a
+  // non-object before this point — `parseSpec` for a parsed file or URL,
+  // `applyInputTransformer` for a transformer's return value. Both are
+  // unconditional, so `unsafeDisableValidation` does not open a path either.
+  // The guard is therefore type-level, and throws rather than asserts so a
+  // future upstream change cannot turn it into a downstream cast.
   if (!upgraded.specification) {
     throw new Error('OpenAPI spec upgrade produced no document.');
   }
