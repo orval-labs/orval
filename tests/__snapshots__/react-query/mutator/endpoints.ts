@@ -447,8 +447,8 @@ export const getListPetsSuspenseQueryOptions = <
 
   return queryOptionsBuilder({
     queryKey,
-    queryFn,
     ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
   }) as UseSuspenseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
     TError,
@@ -1007,8 +1007,8 @@ export const getShowPetByIdSuspenseQueryOptions = <
 
   return queryOptionsBuilder({
     queryKey,
-    queryFn,
     ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
   }) as UseSuspenseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
     TError,
@@ -1369,8 +1369,8 @@ export const getHealthCheckSuspenseQueryOptions = <
 
   return queryOptionsBuilder({
     queryKey,
-    queryFn,
     ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
   }) as UseSuspenseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
@@ -1676,8 +1676,8 @@ export const getShowPetWithOwnerSuspenseQueryOptions = <
 
   return queryOptionsBuilder({
     queryKey,
-    queryFn,
     ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
   }) as UseSuspenseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
     TError,

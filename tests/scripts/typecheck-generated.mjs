@@ -138,6 +138,25 @@ typecheck('exact-optional', {
   include: exactOptionalFolders.map((f) => `generated/angular/${f}`),
 }, 'angular (exactOptionalPropertyTypes)');
 
+// The same gate for react-query, where `queryOptions()` type-checks the emitted
+// literal instead of an `as` cast laundering it, so the caller-options spread
+// must not widen `queryFn` to `… | undefined` (#4163). Only fixtures that emit
+// suspense query options are listed; the axios-mutator ones have unrelated
+// `exactOptionalPropertyTypes` failures of their own.
+const reactQueryExactOptionalFolders = ['prefetch-serializable-headers'];
+
+console.log(
+  `\nTypechecking ${reactQueryExactOptionalFolders.length} react-query client with exactOptionalPropertyTypes...\n`,
+);
+
+typecheck('exact-optional-react-query', {
+  extends: './tsconfig.json',
+  compilerOptions: { exactOptionalPropertyTypes: true },
+  include: reactQueryExactOptionalFolders.map(
+    (f) => `generated/react-query/${f}`,
+  ),
+}, 'react-query (exactOptionalPropertyTypes)');
+
 console.log('\n--- Summary ---\n');
 const labelWidth = Math.max(...results.map((r) => r.label.length));
 for (const r of results) {

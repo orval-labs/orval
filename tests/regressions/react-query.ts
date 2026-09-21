@@ -1,10 +1,12 @@
 import { keepPreviousData } from '@tanstack/react-query';
 
 import {
+  getListPetsSuspenseQueryOptions,
   useCreatePets,
   useListPets,
   useListPetsInfinite,
 } from '../generated/react-query/mutator/endpoints';
+import type { Pets } from '../generated/react-query/mutator/model';
 
 export const useInfiniteQueryTest = () => {
   const { data } = useListPetsInfinite(
@@ -60,3 +62,23 @@ export const useCreatePetsWithOnMutate = () =>
       },
     },
   });
+
+// Regression test for https://github.com/orval-labs/orval/issues/4163
+//
+// The suspense options literal is validated by TanStack's `queryOptions()`
+// builder, so the caller-options spread must not widen `queryFn` to
+// `… | undefined` — under `exactOptionalPropertyTypes` that stops every
+// generated query-options function compiling. Re-asserting the property after
+// the spread fixes that, and this asserts the override still reaches the
+// returned options rather than being replaced by the generated `queryFn`.
+export const suspenseOptionsWithCallerQueryFn = () => {
+  const petsFromCache: Pets = [];
+
+  const options = getListPetsSuspenseQueryOptions(
+    { sort: 'name' },
+    0,
+    { query: { queryFn: () => petsFromCache } },
+  );
+
+  return options.queryFn;
+};

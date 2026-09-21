@@ -497,3 +497,127 @@ describe('generateQuery — fetch runtimeValidation outside Angular (#4136, #413
     );
   });
 });
+
+describe('generateQuery — suspense queryOptions() literal (#4163)', () => {
+  const makeVerbOptions = (
+    queryOverride: Record<string, unknown> = {},
+  ): GeneratorVerbOptions =>
+    ({
+      verb: 'get',
+      route: '/pets',
+      pathRoute: '/pets',
+      operationId: 'listPets',
+      operationName: 'listPets',
+      typeName: 'listPets',
+      doc: '',
+      tags: [],
+      response: {
+        definition: { success: 'Pets', errors: 'Error' },
+        imports: [{ name: 'Pets' }, { name: 'Error' }],
+        types: {
+          success: [
+            {
+              key: '200',
+              value: 'Pets',
+              contentType: 'application/json',
+              hasReadonlyProps: false,
+              imports: [{ name: 'Pets' }],
+              isEnum: false,
+              isRef: true,
+              schemas: [],
+              type: 'object',
+              dependencies: [],
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+        schemas: [],
+        isBlob: false,
+      },
+      body: {
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: undefined,
+        formUrlEncoded: undefined,
+        contentType: '',
+        isOptional: true,
+        originalSchema: {},
+        isBlob: false,
+      },
+      params: [],
+      props: [],
+      override: {
+        formData: { disabled: false, arrayHandling: 'serialize' },
+        formUrlEncoded: false,
+        requestOptions: true,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
+        },
+        query: {
+          useQuery: false,
+          useMutation: false,
+          useInfinite: false,
+          useSuspenseQuery: true,
+          useSuspenseInfiniteQuery: false,
+          usePrefetch: false,
+          useInvalidate: false,
+          shouldExportKeys: true,
+          shouldExportHttpClient: true,
+          shouldExportMutatorHooks: true,
+          signal: false,
+          version: 5,
+          ...queryOverride,
+        },
+      },
+      originalOperation: {},
+    }) as unknown as GeneratorVerbOptions;
+
+  const options = {
+    route: '/pets',
+    pathRoute: '/pets',
+    override: { operations: {} },
+    output: '',
+    context: createTestContextSpec({
+      output: {
+        client: OutputClient.REACT_QUERY,
+        httpClient: OutputHttpClient.FETCH,
+      },
+    }),
+  } as unknown as GeneratorOptions;
+
+  // `Partial<UseSuspenseQueryOptions<…>>` declares `queryFn` as
+  // `QueryFunction<…> | undefined`, so spreading it over a concrete `queryFn`
+  // widens the property and `queryOptions()` rejects the literal under
+  // `exactOptionalPropertyTypes`. The property has to be re-asserted after the
+  // spread, with the caller's value still winning.
+  it('re-asserts queryFn after the caller spread', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions(),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain(
+      'queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn})',
+    );
+    expect(implementation).not.toContain(
+      'queryOptionsBuilder({ queryKey, queryFn,',
+    );
+  });
+
+  it('keeps the plain queryFn when override.query.options is false', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions({ options: false }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain('queryOptionsBuilder({ queryKey, queryFn');
+    expect(implementation).not.toContain('queryOptions?.queryFn ??');
+  });
+});
