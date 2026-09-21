@@ -103,7 +103,7 @@ export const generateAngularHttpRequestFunction = (
     const skip = new Set(
       params.filter((p) => p.allowReserved).map((p) => p.name),
     );
-    route = makeRouteSafe(route, skip);
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
   }
 
   const isRequestOptions = override.requestOptions !== false;
@@ -326,7 +326,7 @@ export const generateAxiosRequestFunction = (
     const skip = new Set(
       params.filter((p) => p.allowReserved).map((p) => p.name),
     );
-    route = makeRouteSafe(route, skip);
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
   }
 
   const unrefStatements = adapter.getRequestUnrefStatements(props);

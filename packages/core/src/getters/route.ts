@@ -378,12 +378,15 @@ export function getBaseUrlRuntimeImports(
 // Emits a codegen string: wraps each `${param}` segment of a template-literal
 // route so the generated client encodes path parameters at request time.
 // `skip` lists param names to leave unwrapped (e.g. `allowReserved: true`
-// wildcard params that must keep their `/`).
+// wildcard params that must keep their `/`). `only`, when given, restricts
+// wrapping to those names, so an interpolation that is not a path parameter
+// (a runtime `baseUrl`, a runtime server variable) is left as it is.
 export const wrapRouteParameters = (
   route: string,
   prepend: string,
   append: string,
   skip: Set<string> = new Set(),
+  only?: Set<string>,
 ): string =>
   mapTemplateExpressions(route, (name) => {
     // Angular's httpResource rewrites `${param}` to `${param()}`,
@@ -399,14 +402,17 @@ export const wrapRouteParameters = (
       .replace(/\(\)$/, '')
       .replace(/[()?]/g, '')
       .trim();
-    return skip.has(key) ? name : `${prepend}${name}${append}`;
+    return skip.has(key) || (only && !only.has(key))
+      ? name
+      : `${prepend}${name}${append}`;
   });
 
 export const makeRouteSafe = (
   route: string,
   skip: Set<string> = new Set(),
+  only?: Set<string>,
 ): string =>
-  wrapRouteParameters(route, 'encodeURIComponent(String(', '))', skip);
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))', skip, only);
 
 /**
  * Turns a template-literal route into the comma-separated query-key segments
