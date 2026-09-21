@@ -280,6 +280,26 @@ export const getQueryFnProperty = ({
 };
 
 /**
+ * The `queryFn` entry for a literal that `queryOptions()` validates instead of
+ * an `as` cast laundering it.
+ *
+ * TanStack declares `queryFn` on the suspense options as
+ * `Exclude<…['queryFn'], SkipToken>`, an indexed access that carries
+ * `| undefined`; `Partial<…>` keeps it. Spreading the caller's options over a
+ * concrete `queryFn` therefore widens the property to `… | undefined`, which
+ * the builder rejects under `exactOptionalPropertyTypes`. Re-asserting the
+ * property after the spread drops the `undefined` while keeping the caller's
+ * own `queryFn` winning, matching how `queryKey` is already resolved. See #4163.
+ */
+export const getBuilderQueryFnProperty = (queryFnProperty: string) => {
+  const fallback = queryFnProperty.startsWith('queryFn:')
+    ? `(${queryFnProperty.slice('queryFn:'.length).trim()})`
+    : queryFnProperty;
+
+  return `queryFn: queryOptions?.queryFn ?? ${fallback}`;
+};
+
+/**
  * Whether `useSkipToken` applies to this adapter. `skipToken` is exported by
  * `@tanstack/react-query` v5 only: the other v5 adapters neither import it nor
  * read their params the same way — vue unwraps refs in its `enabled` guard, for
@@ -829,6 +849,14 @@ const generateQueryImplementation = ({
     !queryOptionsMutator &&
     (adapter.getQueryOptionsHelperTypes?.() ?? []).includes(type);
 
+  // The builder type-checks the literal, so `queryFn` has to trail the caller
+  // spread that would otherwise widen it — see `getBuilderQueryFnProperty`.
+  // `override.query.options: false` drops the spread, and then the plain
+  // property is both correct and what the caller asked for.
+  const builderQueryOptionsLiteral = queryOptionsImp.includes('...queryOptions')
+    ? `queryOptionsBuilder({ queryKey, ${queryOptionsImp}, ${getBuilderQueryFnProperty(queryFnProperty)}})`
+    : `queryOptionsBuilder({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`;
+
   const queryOptionsFnName = camel(
     shouldUseOptionsHook({
       optionsMutator: queryOptionsMutator,
@@ -930,7 +958,7 @@ ${hookOptions}
          // suspense surface and selected-data key brand. The inference-only
          // member carries TError through useSuspenseQueries without allowing
          // callers to configure or invoke throwOnError.
-         `queryOptionsBuilder({ queryKey, ${queryFnProperty}, ${queryOptionsImp}})`
+         builderQueryOptionsLiteral
        : queryOptionsMutator
          ? 'customOptions'
          : `{ queryKey, ${queryFnProperty}, ${queryOptionsImp}}`
