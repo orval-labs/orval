@@ -492,6 +492,23 @@ export const createGenerateInvalidateCalls = (
   };
 };
 
+/**
+ * The options literal handed to a `mutationOptions` mutator.
+ *
+ * `mutationInvalidates` emits its invalidation as a generated `onSuccess` that
+ * ends by chaining the caller's own handler. The mutator has to receive it —
+ * it is the object the whole options function returns — or the configured
+ * invalidation is generated and then silently dropped. See #4165, and #1522
+ * for the same fix on the query side.
+ *
+ * `onSuccess` trails the spread because it already calls the caller's handler;
+ * letting `...mutationOptions` win would drop the invalidation again.
+ */
+export const getMutatorMutationOptionsLiteral = (hasInvalidation: boolean) =>
+  hasInvalidation
+    ? '{...mutationOptions, mutationFn, onSuccess}'
+    : '{...mutationOptions, mutationFn}';
+
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
   options: GeneratorOptions;
@@ -720,7 +737,7 @@ ${
           mutationOptionsMutator
             ? `const customOptions = ${
                 mutationOptionsMutator.name
-              }({...mutationOptions, mutationFn}${
+              }(${getMutatorMutationOptionsLiteral(hasInvalidation)}${
                 mutationOptionsMutator.hasSecondArg
                   ? `, { url: \`${getMutationOptionsUrl(
                       route,

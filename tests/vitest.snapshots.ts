@@ -16,6 +16,7 @@ export default defineConfig({
       'query-swr-zod-validation.spec.ts',
       'dates-transform-request.spec.ts',
       'dates-transform-fetch.spec.ts',
+      'mutation-invalidates-options-mutator.spec.ts',
     ],
     silent: 'passed-only',
   },

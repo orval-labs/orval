@@ -6,6 +6,7 @@ import {
   createGenerateInvalidateCalls,
   getMutationOptionsPathParamNames,
   getMutationOptionsUrl,
+  getMutatorMutationOptionsLiteral,
 } from './mutation-generator';
 
 describe('getMutationOptionsUrl', () => {
@@ -299,6 +300,20 @@ describe('createGenerateInvalidateCalls — GHSA-5g7p-r63h-5vfw: broad-invalidat
     expect(statement).toContain("query.queryKey[0] === 'DELETE'");
     expect(statement).toContain(
       String.raw`startsWith('/pets\'+(globalThis.__pwned=1)+\'/')`,
+    );
+  });
+});
+
+describe('getMutatorMutationOptionsLiteral', () => {
+  it('passes the generated onSuccess to the mutator so the invalidation runs', () => {
+    expect(getMutatorMutationOptionsLiteral(true)).toBe(
+      '{...mutationOptions, mutationFn, onSuccess}',
+    );
+  });
+
+  it('omits onSuccess when no invalidation handler is generated', () => {
+    expect(getMutatorMutationOptionsLiteral(false)).toBe(
+      '{...mutationOptions, mutationFn}',
     );
   });
 });
