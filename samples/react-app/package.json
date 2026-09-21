@@ -21,7 +21,7 @@
     "@faker-js/faker": "catalog:tooling",
     "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^5.1.2",
+    "@vitejs/plugin-react": "^6.1.1",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
