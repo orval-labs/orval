@@ -54,8 +54,11 @@ import {
 } from './constants';
 import {
   buildAcceptHelpers,
+  DEFER_IMPORT,
   generateHttpClientImplementation,
   getAngularHttpResponseImport,
+  getRequestBodySchema,
+  withValueBodyImport,
   narrowsResponseEvents,
   getAcceptHelperName,
   getHttpClientReturnTypes,
@@ -1676,19 +1679,39 @@ export const generateHttpResourceClient: ClientBuilder = (
   // `generateHttpResourceHeader`), so they need its `HttpResponse` import;
   // whether as a value or a type depends on the method body. `HttpHeaders`
   // is already a value import in `ANGULAR_HTTP_RESOURCE_DEPENDENCIES`.
-  const mutationImports = isMutationVerb(
+  const isMutation = isMutationVerb(
     verbOptions.verb,
     verbOptions.operationName,
     getClientOverride(verbOptions),
-  )
+  );
+  // Only the HttpClient method parses its request body; a retrieval rendered
+  // as `httpResource` sends it unchanged.
+  const validatedBody = isMutation
+    ? getRequestBodySchema(verbOptions, options.context.output)
+    : undefined;
+  const mutationImports = isMutation
     ? [
         getAngularHttpResponseImport(
           narrowsResponseEvents(verbOptions, options.context.output),
         ),
       ]
     : [];
+  const bodyValidationImports = validatedBody
+    ? [
+        DEFER_IMPORT,
+        ...(validatedBody.schemaRef.startsWith('zod.')
+          ? [getZodNamespaceImport(options.context.output.override)]
+          : []),
+      ]
+    : [];
   const imports = [
-    ...getHttpResourceVerbImports(verbOptions, options.context.output),
+    ...getHttpResourceVerbImports(
+      validatedBody
+        ? withValueBodyImport(verbOptions, validatedBody.importName)
+        : verbOptions,
+      options.context.output,
+    ),
+    ...bodyValidationImports,
     ...mutationImports,
     ...(baseUrlOption
       ? [

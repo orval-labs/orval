@@ -199,6 +199,51 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // JSON request bodies parsed before transport, under the `both` strategy
+  // (#4145). `samples/angular-app` covers `throw` with `retrievalClient: 'both'`.
+  zodRequestBodies: {
+    output: {
+      target: '../generated/angular/zod-request-bodies/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/zod-request-bodies/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          runtimeValidation: { strategy: 'both', requestBodies: true },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // A body schema with readOnly properties is typed `NonReadonly<Pet>` under
+  // the default `preserveReadonlyRequestBodies: 'strip'`, which still has to
+  // resolve to `Pet` for parsing (#4145).
+  zodRequestBodiesReadonly: {
+    output: {
+      target: '../generated/angular/zod-request-bodies-readonly/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/zod-request-bodies-readonly/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          runtimeValidation: { requestBodies: true },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-zod-readonly-body.yaml',
+    },
+  },
   // An inline `type: array` response is the definition `Item[]`, which never
   // matches the import name `Item`, so runtime validation used to skip it while
   // a named array component validated normally (#3718). `retrievalClient: 'both'`
