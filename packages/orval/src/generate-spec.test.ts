@@ -3772,10 +3772,11 @@ describe('generateSpec - artifact groups (#3832)', () => {
     fakerOptions: Partial<FakerMockOptions> = {},
     schemas: OutputOptions['schemas'] = { path: './gen/schemas' },
     indexFiles = true,
+    spec: OpenApiDocument = PETSTORE_WITH_TAG,
   ) => {
     const options = await normalizeOptions(
       {
-        input: { target: PETSTORE_WITH_TAG },
+        input: { target: spec },
         output: {
           target: './gen/angular',
           mode: 'tags-split',
@@ -3865,6 +3866,69 @@ describe('generateSpec - artifact groups (#3832)', () => {
           path.join(workspace, 'gen/faker/pets/pets.faker.ts'),
         ),
       ).toContain('../schemas/index.faker');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('re-exports the relocated schema factories from the faker barrel', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(workspace, { schemasPath: './gen/faker/schemas' });
+
+      const barrel = await fs.readFile(
+        path.join(workspace, 'gen/faker/index.faker.ts'),
+        'utf8',
+      );
+      expect(barrel).toContain("export * from './pets/pets.faker'");
+      expect(barrel).toMatch(
+        /export \{[^}]*\bgetPetMock\b[^}]*\} from '\.\/schemas\/index\.faker'/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves out schema factories whose names an operation mock already exports', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      // `ListPetsResponse` gets the factory `getListPetsResponseMock`, the
+      // same name as the `listPets` operation's response factory.
+      const spec: OpenApiDocument = {
+        ...PETSTORE_WITH_TAG,
+        components: {
+          schemas: {
+            ...PETSTORE_WITH_TAG.components?.schemas,
+            ListPetsResponse: {
+              type: 'object',
+              properties: { total: { type: 'integer' } },
+            },
+          },
+        },
+      };
+      await generateGroups(
+        workspace,
+        { schemasPath: './gen/faker/schemas' },
+        { path: './gen/schemas' },
+        true,
+        spec,
+      );
+
+      const barrel = await fs.readFile(
+        path.join(workspace, 'gen/faker/index.faker.ts'),
+        'utf8',
+      );
+      const schemaExports = barrel
+        .split('\n')
+        .find((line) => line.includes("'./schemas/index.faker'"));
+      expect(
+        await fs.readFile(
+          path.join(workspace, 'gen/faker/schemas/index.faker.ts'),
+          'utf8',
+        ),
+      ).toContain('export const getListPetsResponseMock');
+      expect(schemaExports).toContain('getPetMock');
+      expect(schemaExports).not.toContain('getListPetsResponseMock');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

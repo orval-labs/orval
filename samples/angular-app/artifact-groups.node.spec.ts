@@ -25,6 +25,7 @@ describe('artifact groups', () => {
     const faker = await import('./src/api/artifact-groups/faker/index.faker');
 
     expect(faker.getListPetsResponseMock().length).toBeGreaterThan(0);
+    expect(faker.getPetMock().name).toEqual(expect.any(String));
     expect([...loaded]).toEqual([]);
   });
 

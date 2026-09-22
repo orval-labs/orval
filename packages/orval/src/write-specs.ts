@@ -11,6 +11,7 @@ import {
   generateMutator,
   getFileInfo,
   getImportExtension,
+  getFakerEntry,
   getMockFileExtensionByTypeName,
   getSchemasImportPath,
   isFunction,
@@ -491,6 +492,63 @@ async function writeFakerSchemaMocks(
   return filePath;
 }
 
+const EXPORTED_NAME_RE = /^export\s+(?:const|function)\s+(\w+)/gm;
+
+/**
+ * Re-exports the relocated schema factories from the faker barrel when
+ * `schemasPath` sits inside the faker directory, so the faker group exposes
+ * them too. Names an operation mock already exports are left out: two
+ * re-exports of one name break the barrel (TS2308).
+ */
+async function reexportFakerSchemaFactories(
+  output: NormalizedOutputOptions,
+  factoriesPath: string,
+): Promise<void> {
+  const faker = getFakerEntry(output.mock);
+  if (!output.mock.indexMockFiles || !faker?.path || !faker.schemasPath) {
+    return;
+  }
+  if (upath.relativeSafe(faker.path, faker.schemasPath).startsWith('..')) {
+    return;
+  }
+
+  const fileExtension = output.fileExtension || '.ts';
+  const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  const barrelPath = path.join(faker.path, `index.faker${fileExtension}`);
+  if (!(await fs.pathExists(barrelPath))) return;
+
+  const barrel = await fs.readFile(barrelPath, 'utf8');
+  const taken = new Set<string>();
+  for (const specifier of readReExportSpecifiers(barrel)) {
+    const modulePath = path.resolve(
+      faker.path,
+      importExtension && specifier.endsWith(importExtension)
+        ? specifier.slice(0, -importExtension.length)
+        : specifier,
+    );
+    const content = await fs
+      .readFile(`${modulePath}${fileExtension}`, 'utf8')
+      .catch(() => '');
+    for (const match of content.matchAll(EXPORTED_NAME_RE)) {
+      taken.add(match[1]);
+    }
+  }
+
+  const factories = await fs.readFile(factoriesPath, 'utf8');
+  const names = [...factories.matchAll(EXPORTED_NAME_RE)]
+    .map((match) => match[1])
+    .filter((name) => !taken.has(name));
+  if (names.length === 0) return;
+
+  const specifier =
+    upath.getRelativeImportPath(barrelPath, factoriesPath) + importExtension;
+  if (barrel.includes(`from '${specifier}'`)) return;
+  await writeGeneratedFile(
+    barrelPath,
+    `${barrel}export { ${names.join(', ')} } from '${specifier}';\n`,
+  );
+}
+
 function isSchemaValidatorClient(
   client: NormalizedOptions['output']['client'],
 ): boolean {
@@ -961,6 +1019,10 @@ async function writeSpecsInternal(
             )
         : undefined,
     });
+  }
+
+  if (fakerSchemaPath) {
+    await reexportFakerSchemaFactories(output, fakerSchemaPath);
   }
 
   if (output.workspace) {
