@@ -1057,7 +1057,8 @@ The generated method then looks like this:
 createPets(createPetsBody: CreatePetsBody, options?: HttpClientObserveOptions) {
   return defer(() => {
     const parsedCreatePetsBody = CreatePetsBody.parse(createPetsBody);
-    // ...this.http.post(url, parsedCreatePetsBody, options)
+    // The real method branches on `options.observe`; each branch sends the parsed body.
+    return this.http.post(url, parsedCreatePetsBody, options);
   });
 }
 ```

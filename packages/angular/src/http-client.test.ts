@@ -3047,6 +3047,43 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     );
   });
 
+  it('does not shadow a parameter that already has the parsed-body name', () => {
+    const verb = createPetsVerb();
+    const impl = generate({
+      ...verb,
+      route: '/pets/${parsedCreatePetsBody}',
+      props: [
+        {
+          name: 'parsedCreatePetsBody',
+          definition: 'parsedCreatePetsBody: string',
+          implementation: 'parsedCreatePetsBody: string',
+          default: false,
+          required: true,
+          type: GetterPropType.PARAM,
+        },
+        ...verb.props,
+      ],
+    });
+
+    expect(impl).toContain(
+      'const parsedCreatePetsBody1 = CreatePetsBody.parse(createPetsBody);',
+    );
+    expect(impl).not.toContain('const parsedCreatePetsBody =');
+    expect(impl).toMatch(/,\s*parsedCreatePetsBody1,/);
+  });
+
+  it('parses a body typed NonReadonly<Schema> with the wrapped schema', () => {
+    const impl = generate(
+      createPetsVerb({
+        body: jsonBody({ definition: 'NonReadonly<CreatePetsBody>' }),
+      }),
+    );
+
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = CreatePetsBody.parse(createPetsBody);',
+    );
+  });
+
   it('parses before the multi-content Accept dispatch', () => {
     const impl = generate(
       createPetsVerb({

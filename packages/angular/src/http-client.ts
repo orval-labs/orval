@@ -106,6 +106,8 @@ const resolveValidatableSchema = (
   return getArrayResponseSchema(imports, value, getSchemaValueRef);
 };
 
+const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
+
 /**
  * The schema a request body is parsed with under
  * `runtimeValidation.requestBodies` (#4145), or `undefined` when the body is
@@ -135,11 +137,16 @@ export const getRequestBodySchema = (
     return undefined;
   }
 
-  const schema = resolveValidatableSchema(body.imports, body.definition);
+  // Under `preserveReadonlyRequestBodies: 'strip'` (the default) a body whose
+  // spec has readOnly properties is typed `NonReadonly<Pet>`. Zod schemas carry
+  // no readonly markers, so that is structurally `Pet` and parses with it.
+  const definition =
+    NON_READONLY_PATTERN.exec(body.definition)?.[1] ?? body.definition;
+  const schema = resolveValidatableSchema(body.imports, definition);
   if (!schema) return undefined;
 
   return {
-    importName: schema.elementName ?? body.definition,
+    importName: schema.elementName ?? definition,
     schemaRef: schema.schemaRef,
   };
 };
@@ -636,12 +643,26 @@ export const generateHttpClientImplementation = (
   // With `runtimeValidation.requestBodies`, the body is parsed inside `defer`
   // so a failure errors the returned observable and no request goes out. The
   // parsed value is bound to a new name because redeclaring the parameter's
-  // name there would read it in its temporal dead zone.
+  // name there would read it in its temporal dead zone. That name must not
+  // shadow a parameter, a local the method body declares, or the serializer
+  // it calls, or the statements inside `defer` would read the wrong value.
   const validatedBody = getRequestBodySchema(
     { body, mutator, override },
     context.output,
   );
-  const parsedBodyName = `parsed${pascal(body.implementation)}`;
+  const takenNames = new Set([
+    ...props.map((prop) => prop.name),
+    'options',
+    'headers',
+    'accept',
+    'filteredParams',
+    ...(paramsSerializer ? [paramsSerializer.name] : []),
+  ]);
+  const baseParsedBodyName = `parsed${pascal(body.implementation)}`;
+  let parsedBodyName = baseParsedBodyName;
+  for (let suffix = 1; takenNames.has(parsedBodyName); suffix++) {
+    parsedBodyName = `${baseParsedBodyName}${suffix}`;
+  }
   const sentBody = validatedBody
     ? { ...body, implementation: parsedBodyName }
     : body;
