@@ -1,5 +1,3 @@
-import { getAtPath } from '../utils';
-
 import { getRefInfo, isComponentRef, type RefInfo } from '../getters/ref';
 import type {
   ContextSpec,
@@ -12,6 +10,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
+import { getAtPath } from '../utils';
 import { isInlineSchema, isObject, sanitize } from '../utils';
 
 /** Convert a `$dynamicAnchor` name to a valid TypeScript generic parameter identifier. */

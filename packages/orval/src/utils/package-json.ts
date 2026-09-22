@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { styleText } from 'node:util';
 
 import {
@@ -8,9 +9,8 @@ import {
   resolveInstalledVersions,
 } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
-import fs from 'node:fs';
-import JSON5 from 'json5';
 import yaml from 'js-yaml';
+import JSON5 from 'json5';
 
 import { logger } from '../logger';
 import { normalizePath } from './options';

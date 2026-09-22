@@ -1,6 +1,5 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
-import { uniqueBy } from '../utils';
 
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
@@ -17,6 +16,7 @@ import {
   type OpenApiSchemaObject,
   type ResReqTypesValue,
 } from '../types';
+import { uniqueBy } from '../utils';
 import { camel, isInlineSchema, sanitize } from '../utils';
 import { pascal, conventionName } from '../utils/case';
 import {
@@ -24,8 +24,8 @@ import {
   isBinaryContentType,
 } from '../utils/content-type';
 import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
-import type { FormDataContext } from './object';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
+import type { FormDataContext } from './object';
 
 const getSchemaType = (s: OpenApiSchemaObject) =>
   isBooleanJsonSchema(s)

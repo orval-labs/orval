@@ -1,12 +1,12 @@
 import type { ContextSpec, OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   generateEffectValidationSchemaDefinition,
   generateFormDataEffectSchema,
   parseEffectValidationSchemaDefinition,
 } from '.';
+import { createTestContextSpec } from '../../core/src/test-utils';
 
 function makeContext(): ContextSpec {
   return createTestContextSpec();

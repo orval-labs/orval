@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'node:fs';
 import { describe, expect, it } from 'vite-plus/test';
 
 const outputFile = async (file: string, content: string) => {
@@ -10,6 +10,7 @@ const outputFile = async (file: string, content: string) => {
 };
 
 import { type GeneratorSchema, NamingConvention } from '../types';
+import { createSchemaOutputPlan } from './schema-output-plan';
 import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
@@ -17,7 +18,6 @@ import {
   writeRoutedSchemas,
   writeSchemas,
 } from './schemas';
-import { createSchemaOutputPlan } from './schema-output-plan';
 
 const createMockSchema = (name: string): GeneratorSchema => ({
   name,

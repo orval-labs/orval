@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import nodePath from 'node:path';
 
 import {
@@ -34,7 +35,6 @@ import {
   upath,
 } from '@orval/core';
 import { generateZod, getZodImportSource } from '@orval/zod';
-import fs from 'node:fs';
 
 import { logger } from './logger';
 

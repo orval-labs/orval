@@ -1,8 +1,8 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import fs from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -23,8 +23,8 @@ import {
   OutputMockType,
   OutputMode,
 } from '../types';
-import { writeSingleMode } from './single-mode';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
+import { writeSingleMode } from './single-mode';
 
 describe('writeSingleMode — separated mocks import inline schemas from the target file', () => {
   let tmpDir: string;

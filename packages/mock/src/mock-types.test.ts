@@ -1,6 +1,7 @@
 import type { ResReqTypesValue } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   applyStrictMockReturnType,
   buildStrictMockTypeFileHeader,
@@ -18,7 +19,6 @@ import {
   getStrictMockTypeName,
   isStrictMock,
 } from './mock-types';
-import { createTestContextSpec } from '../../core/src/test-utils';
 
 describe('mock-types', () => {
   describe('isStrictMock', () => {

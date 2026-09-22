@@ -47,10 +47,8 @@ import {
   getEnumImplementation,
   EnumGeneration,
 } from '@orval/core';
-import jsesc from 'jsesc';
 import { unique } from '@orval/core';
-
-import { logger } from './logger';
+import jsesc from 'jsesc';
 
 import {
   getLooseObjectFunctionName,
@@ -69,6 +67,7 @@ import {
   renderZodExport,
   zodMiniCall,
 } from './export-emitter';
+import { logger } from './logger';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,

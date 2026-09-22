@@ -17,8 +17,6 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-
-import { createFrameworkAdapter } from './frameworks';
 import {
   generateAngularHttpRequestFunction,
   generateAxiosRequestFunction,
@@ -31,6 +29,7 @@ import {
   getQueryOptions,
   getSignalDefinition,
 } from './client';
+import { createFrameworkAdapter } from './frameworks';
 
 describe('getQueryHeader', () => {
   it('emits filterParams helper for Angular when a non-tagged file has query params', () => {

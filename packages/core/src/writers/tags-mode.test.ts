@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -24,8 +24,8 @@ import {
   OutputMockType,
   OutputMode,
 } from '../types';
-import { writeTagsMode } from './tags-mode';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
+import { writeTagsMode } from './tags-mode';
 
 // Regression: the index mock barrel must emit tags in locale-sorted order
 // regardless of I/O completion order inside Promise.all. Without an

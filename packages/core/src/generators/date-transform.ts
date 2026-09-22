@@ -1,6 +1,6 @@
-import { hasNarrowedPropertyNames } from '../getters';
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
+import { hasNarrowedPropertyNames } from '../getters';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,

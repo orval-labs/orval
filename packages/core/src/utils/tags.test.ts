@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { getOperationTagKey, getTagKey, isOperationInTagBucket } from './tags';
 import { kebab } from './case';
+import { getOperationTagKey, getTagKey, isOperationInTagBucket } from './tags';
 
 describe('getTagKey', () => {
   it('kebab-cases a simple tag', () => {

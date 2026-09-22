@@ -43,11 +43,6 @@ vi.mock('@orval/core', async (importOriginal) => {
 });
 
 import {
-  createTestContextSpec,
-  createTestGeneratorOptions,
-  createTestGeneratorVerbOptions,
-} from '../../core/src/test-utils';
-import {
   dereference,
   generateZod,
   generateZodValidationSchemaDefinition,
@@ -58,6 +53,11 @@ import {
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
 } from '.';
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import {
   getZodDateFormat,
   getZodDateTimeFormat,

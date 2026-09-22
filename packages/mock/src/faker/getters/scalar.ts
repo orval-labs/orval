@@ -26,13 +26,13 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
+import { formatSchemaExampleValue } from '../format-example-value';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
 import { extractArrayItemMock } from './array-item-factory';
-import { formatSchemaExampleValue } from '../format-example-value';
 import { getMockObject } from './object';
 
 interface GetMockScalarOptions {

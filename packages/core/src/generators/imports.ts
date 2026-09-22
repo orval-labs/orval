@@ -1,5 +1,3 @@
-import { groupBy, unique, uniqueWith } from '../utils';
-
 import {
   type GeneratorImport,
   type GeneratorMutator,
@@ -7,6 +5,7 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
+import { groupBy, unique, uniqueWith } from '../utils';
 import { compareNatural, conventionName } from '../utils';
 
 interface GenerateImportsOptions {

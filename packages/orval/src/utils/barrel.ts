@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { writeGeneratedFile } from '@orval/core';
-import fs from 'node:fs';
 
 const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 

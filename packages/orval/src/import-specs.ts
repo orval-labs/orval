@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+import nodePath from 'node:path';
+
 import {
   dynamicImport,
   isNullOnlyEnum,
@@ -10,6 +13,7 @@ import {
   type OverrideInput,
   type WriteSpecBuilder,
 } from '@orval/core';
+import { isNullish } from '@orval/core';
 import { bundle, type Plugin } from '@scalar/json-magic/bundle';
 import {
   fetchUrls,
@@ -18,9 +22,6 @@ import {
   readFiles,
 } from '@scalar/json-magic/bundle/plugins/node';
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
-import { readFile } from 'node:fs/promises';
-import nodePath from 'node:path';
-import { isNullish } from '@orval/core';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';

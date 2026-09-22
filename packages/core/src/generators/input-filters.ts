@@ -1,3 +1,4 @@
+import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   InputFiltersOptions,
@@ -6,7 +7,6 @@ import type {
   OpenApiOperationObject,
   OpenApiPathItemObject,
 } from '../types';
-import { resolveRef } from '../resolvers/ref';
 import { isInlineSchema, isString } from '../utils';
 
 const COMPONENT_TYPES = [

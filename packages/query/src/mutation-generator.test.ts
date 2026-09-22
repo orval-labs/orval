@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vite-plus/test';
-
 import { GetterPropType } from '@orval/core';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   createGenerateInvalidateCalls,

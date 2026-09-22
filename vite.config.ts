@@ -16,6 +16,7 @@ export default defineConfig({
   fmt: {
     singleQuote: true,
     printWidth: 80,
+    sortImports: true,
     ignorePatterns: [
       '**/dist',
       '**/node_modules',

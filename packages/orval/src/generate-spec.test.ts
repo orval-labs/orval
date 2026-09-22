@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,7 +15,6 @@ import {
   setProjectName,
   withReporter,
 } from '@orval/core';
-import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 const outputFile = async (file: string, content: string) => {

@@ -1,5 +1,4 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
-import { getAtPath, isNullish, unique } from '../utils';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import type { SchemaType } from '../types';
@@ -13,6 +12,7 @@ import {
   type OpenApiSchemaObject,
   type ScalarValue,
 } from '../types';
+import { getAtPath, isNullish, unique } from '../utils';
 import {
   dedupeUnionType,
   getNumberWord,
