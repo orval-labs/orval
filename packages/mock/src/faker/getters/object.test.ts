@@ -1,6 +1,7 @@
 import type {
   ContextSpec,
   MockOptions,
+  OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
@@ -446,7 +447,7 @@ describe('getMockObject recursive reference terminators', () => {
   } satisfies OpenApiSchemaObject;
 
   const buildNode = (
-    schema: Exclude<OpenApiSchemaObject, boolean>,
+    schema: OpenApiNonBooleanSchemaObject,
     mockOptions?: MockOptions,
   ) => {
     const context = createTestContextSpec({

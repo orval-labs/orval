@@ -8,6 +8,7 @@ import type {
   GetterParameters,
   GetterQueryParam,
   OpenApiParameterObject,
+  OpenApiParameterWithContentObject,
   OpenApiSchemaObject,
 } from '../types';
 import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
@@ -225,7 +226,7 @@ function getQueryParamsTypes(
       name: string;
       required: boolean;
       schema: OpenApiSchemaObject | undefined;
-      content: OpenApiParameterObject['content'];
+      content: OpenApiParameterWithContentObject['content'];
     };
 
     const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {
@@ -242,6 +243,9 @@ function getQueryParamsTypes(
         `Query parameter "${name}" has no schema or content definition`,
       );
     }
+
+    const hasSchemaDefault =
+      !isBooleanJsonSchema(schema) && schema.default !== undefined;
 
     const resolvedValue = resolveValue({
       schema,
@@ -286,7 +290,7 @@ function getQueryParamsTypes(
       return {
         name,
         required,
-        definition: `${doc}${key}${!required || schema.default !== undefined ? '?' : ''}: ${
+        definition: `${doc}${key}${!required || hasSchemaDefault ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
@@ -324,7 +328,7 @@ function getQueryParamsTypes(
         name,
         required,
         definition: `${doc}${key}${
-          !required || schema.default !== undefined ? '?' : ''
+          !required || hasSchemaDefault ? '?' : ''
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
@@ -342,7 +346,7 @@ function getQueryParamsTypes(
     }
 
     const definition = `${doc}${key}${
-      !required || schema.default !== undefined ? '?' : ''
+      !required || hasSchemaDefault ? '?' : ''
     }: ${resolvedValue.value};`;
 
     return {

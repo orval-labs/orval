@@ -360,7 +360,8 @@ export function getResReqTypes(
                   name: effectivePropName,
                   schemaObject: mediaType.schema,
                   context,
-                  isRequestBodyOptional: res.required !== true,
+                  isRequestBodyOptional:
+                    !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })
@@ -372,7 +373,8 @@ export function getResReqTypes(
                   schemaObject: mediaType.schema,
                   context,
                   isUrlEncoded: true,
-                  isRequestBodyOptional: res.required !== true,
+                  isRequestBodyOptional:
+                    !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })

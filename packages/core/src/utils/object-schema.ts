@@ -3,7 +3,10 @@ import {
   isDereferenced,
 } from '@scalar/openapi-types/helpers';
 
-import type { OpenApiSchemaObject } from '../types';
+import type {
+  OpenApiNonBooleanSchemaObject,
+  OpenApiSchemaObject,
+} from '../types';
 
 /**
  * True for an inline value, including JSON Schema booleans (`true` / `false`).
@@ -25,7 +28,7 @@ export function isInlineSchema<T>(
  */
 export function toObjectSchema(
   schema: OpenApiSchemaObject,
-): Exclude<OpenApiSchemaObject, boolean> {
+): OpenApiNonBooleanSchemaObject {
   if (!isBooleanJsonSchema(schema)) {
     return schema;
   }

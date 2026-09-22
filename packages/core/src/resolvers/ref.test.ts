@@ -104,7 +104,6 @@ describe('resolveRef', () => {
       type: ['object', 'null'],
     };
 
-    // @ts-expect-error — OAS 3.1 $ref + sibling keywords is a Schema Object
     const { schema } = resolveRef(refWithHints, context);
 
     expect(typeof schema === 'object' && schema && 'type' in schema).toBe(true);

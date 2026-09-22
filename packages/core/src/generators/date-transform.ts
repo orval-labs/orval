@@ -6,6 +6,7 @@ import type {
   ContextSpec,
   GetterBody,
   GetterResponse,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OpenApiSchemaObject,
@@ -15,7 +16,7 @@ import { isInlineSchema, pascal, toObjectSchema } from '../utils';
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
 interface NormalizedSchema {
-  schema: Exclude<OpenApiSchemaObject, boolean>;
+  schema: OpenApiNonBooleanSchemaObject;
   /** Set when the schema was reached through a `$ref`; drives cycle detection. */
   ref?: string;
   /** True when the schema admits `null`, in either OAS 3.0 or 3.1 spelling. */
@@ -192,7 +193,7 @@ const normalizeSchema = (
     };
   }
 
-  const schema = schemaOrRef as Exclude<OpenApiSchemaObject, boolean>;
+  const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
   const variants = schema.oneOf ?? schema.anyOf;
 
   if (

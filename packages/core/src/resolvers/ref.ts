@@ -8,6 +8,7 @@ import type {
   GeneratorImport,
   OpenApiComponentsObject,
   OpenApiExampleObject,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
@@ -89,7 +90,11 @@ export function resolveRef<
       );
     }
 
-    if ('examples' in resolvedRef.schema) {
+    if (
+      typeof resolvedRef.schema === 'object' &&
+      resolvedRef.schema !== null &&
+      'examples' in resolvedRef.schema
+    ) {
       const resolvedWithExamples = resolvedRef.schema as WithOptionalExamples;
       resolvedWithExamples.examples = resolveExampleRefs(
         resolvedWithExamples.examples,
@@ -153,15 +158,18 @@ export interface BoundAliasInfo {
 }
 
 /** Check whether a schema reference has at least one `$defs` entry with both `$dynamicAnchor` and `$ref`. */
-function isBoundAlias(schema: OpenApiReferenceObject): boolean {
-  const defs = schema.$defs as Record<string, unknown> | undefined;
+function isBoundAlias(
+  schema: OpenApiReferenceObject | OpenApiNonBooleanSchemaObject,
+): boolean {
+  // `$defs` is a schema keyword. A `$ref` with `$defs` siblings is a Schema Object in OAS 3.1.
+  if (!('$defs' in schema)) return false;
+  const defs = schema.$defs;
   if (!defs || typeof defs !== 'object') return false;
   for (const defSchema of Object.values(defs)) {
     if (!defSchema || typeof defSchema !== 'object') continue;
-    const rec = defSchema as Record<string, unknown>;
     if (
-      typeof rec.$dynamicAnchor === 'string' &&
-      typeof rec.$ref === 'string'
+      typeof defSchema.$dynamicAnchor === 'string' &&
+      typeof defSchema.$ref === 'string'
     ) {
       return true;
     }

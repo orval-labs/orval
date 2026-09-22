@@ -2,6 +2,7 @@ import { isArray } from 'remeda';
 
 import type {
   ContextSpec,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
@@ -115,11 +116,13 @@ export function resolveDiscriminators(
         ];
 
         // @see https://github.com/orval-labs/orval/issues/3139
+        // `propertyType` is a widened string, so the object is not a SchemaObject
+        // until asserted. The value is always a single primitive schema type.
         const mergedProperty = {
           ...schemaProperty,
           type: propertyType,
           enum: mergedEnumValues,
-        };
+        } as OpenApiNonBooleanSchemaObject;
         delete (mergedProperty as Record<string, unknown>).const;
 
         subTypeSchema.properties = {
@@ -155,8 +158,8 @@ export function resolveDiscriminators(
     const mappedRefs = mapping ? Object.values(mapping) : [];
     const variantArrayRefs = variants
       .filter(
-        (item): item is OpenApiReferenceObject & { $ref: string } =>
-          !isInlineSchema(item) && typeof item.$ref === 'string',
+        (item): item is OpenApiNonBooleanSchemaObject & { $ref: string } =>
+          !isBooleanJsonSchema(item) && typeof item.$ref === 'string',
       )
       .map((item) => item.$ref);
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
@@ -227,7 +230,7 @@ export function resolveDiscriminators(
         // the cycle or are now meaningless on the variant.
         const inlinedParent = {
           ...(parentSchema as Record<string, unknown>),
-        } as Exclude<OpenApiSchemaObject, boolean>;
+        } as OpenApiNonBooleanSchemaObject;
         delete (inlinedParent as Record<string, unknown>).oneOf;
         delete (inlinedParent as Record<string, unknown>).discriminator;
         delete (inlinedParent as Record<string, unknown>).allOf;

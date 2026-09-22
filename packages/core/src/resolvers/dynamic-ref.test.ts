@@ -893,7 +893,7 @@ describe('null safety in $defs entries', () => {
                   $ref: '#/components/schemas/User',
                 },
               },
-              type: 'object',
+              type: 'object' as const,
             };
             if (typeof schema === 'object') {
               // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
@@ -923,9 +923,9 @@ describe('null safety in $defs entries', () => {
           Container: (() => {
             const schema = {
               $defs: {
-                param: { $dynamicAnchor: 'node', type: 'string' },
+                param: { $dynamicAnchor: 'node', type: 'string' as const },
               },
-              type: 'object',
+              type: 'object' as const,
             };
             if (typeof schema === 'object') {
               // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry

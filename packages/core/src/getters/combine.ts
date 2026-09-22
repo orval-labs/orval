@@ -8,6 +8,7 @@ import {
   EnumGeneration,
   type GeneratorImport,
   type GeneratorSchema,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ScalarValue,
@@ -75,7 +76,7 @@ function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
 
 function normalizeAllOfSchema(
   schemaInput: OpenApiSchemaObject,
-): Exclude<OpenApiSchemaObject, boolean> {
+): OpenApiNonBooleanSchemaObject {
   const schema = toObjectSchema(schemaInput);
   // Bridge assertions: AnyOtherAttribute infects all schema property access
   const schemaAllOf = schema.allOf as
@@ -130,7 +131,7 @@ function normalizeAllOfSchema(
     }),
     ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
     ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
-  } as Exclude<OpenApiSchemaObject, boolean>;
+  } as OpenApiNonBooleanSchemaObject;
 }
 
 /** True when the schema node itself is not a single object shape. */
@@ -141,7 +142,7 @@ function directlyEmitsNonObjectType(
     return false;
   }
   // `$ref` objects may still carry sibling keywords (OAS 3.1).
-  const objectSchema = schema as Exclude<OpenApiSchemaObject, boolean>;
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
   if (objectSchema.enum) {
     return true;
   }
@@ -162,7 +163,7 @@ function isDirectlyNullable(
   if (isBooleanJsonSchema(schema)) {
     return schema;
   }
-  const objectSchema = schema as Exclude<OpenApiSchemaObject, boolean>;
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
   const type = objectSchema.type as string | string[] | undefined;
   return type === 'null' || (Array.isArray(type) && type.includes('null'));
 }
@@ -173,7 +174,7 @@ function directlyEmitsOnlyObjectOrNull(
   if (isBooleanJsonSchema(schema)) {
     return false;
   }
-  const objectSchema = schema as Exclude<OpenApiSchemaObject, boolean>;
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
   if (objectSchema.enum) {
     return false;
   }
@@ -596,7 +597,7 @@ function combineValues({
         mapping?: Record<string, string>;
       }
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
-        (s): s is Exclude<OpenApiSchemaObject, boolean> =>
+        (s): s is OpenApiNonBooleanSchemaObject =>
           s !== undefined &&
           !isBooleanJsonSchema(s) &&
           Boolean(
@@ -1072,7 +1073,7 @@ export function combineSchemas({
           return !!entry.$ref && entry.$ref.endsWith('/' + name);
         }
         const entryProps = Object.keys(
-          (entry as Exclude<OpenApiSchemaObject, boolean>).properties ?? {},
+          (entry as OpenApiNonBooleanSchemaObject).properties ?? {},
         );
         return entryProps.some((key) => parentPropKeys.has(key));
       });

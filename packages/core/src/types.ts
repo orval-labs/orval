@@ -2536,6 +2536,7 @@ export class ErrorWithTag extends Error {
   }
 }
 
+// OpenAPI type aliases. Intended to make it easier to swap to OpenAPI v3.2 in the future
 import type {
   ComponentsObject,
   Document,
@@ -2560,10 +2561,17 @@ import type {
   ServerObject,
 } from '@scalar/openapi-types/3.1';
 
-// OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
 export type OpenApiDocument = Document;
-/** Schema Object, including JSON Schema boolean schemas (`true` / `false`). */
 export type OpenApiSchemaObject = SchemaObject;
+/**
+ * Schema Object excluding JSON Schema boolean schemas (`true` / `false`).
+ * - `true` - meaning any value allowed
+ * - `false` - meaning no value allowed
+ */
+export type OpenApiNonBooleanSchemaObject = Exclude<
+  OpenApiSchemaObject,
+  boolean
+>;
 export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
 export type OpenApiReferenceObject = ReferenceObject;
 export type OpenApiComponentsObject = ComponentsObject;
@@ -2573,16 +2581,6 @@ export type OpenApiResponsesObject = ResponsesObject;
 export type OpenApiResponseObject = ResponseObject;
 export type OpenApiParameterObject = ParameterObject;
 export type OpenApiRequestBodyObject = RequestBodyObject;
-/**
- * The OpenAPI Info Object, as passed to the {@link OverrideOutput.header}
- * callback.
- *
- * `title` and `version` are required by the specification. `summary`,
- * `description`, `termsOfService`, `contact` and `license` are optional, so
- * guard them before use. Specification extensions (`x-*`) are also allowed.
- *
- * @see https://spec.openapis.org/oas/v3.1.1#info-object
- */
 export type OpenApiInfoObject = InfoObject;
 export type OpenApiExampleObject = ExampleObject;
 export type OpenApiOperationObject = OperationObject;

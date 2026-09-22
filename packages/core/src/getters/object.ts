@@ -6,6 +6,7 @@ import type { SchemaType } from '../types';
 import {
   type ContextSpec,
   type GeneratorImport,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   PropertySortOrder,
@@ -249,7 +250,7 @@ export function getObject({
   }
 
   const objectItem = toObjectSchema(item);
-  const schemaItem = objectItem as Exclude<OpenApiSchemaObject, boolean> &
+  const schemaItem = objectItem as OpenApiNonBooleanSchemaObject &
     Record<string, unknown>;
   const itemAllOf = schemaItem.allOf as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
@@ -489,7 +490,7 @@ export function getObject({
         Boolean(
           typeof schema === 'object' &&
           schema !== null &&
-          (schema as Exclude<OpenApiSchemaObject, boolean>).readOnly,
+          (schema as OpenApiNonBooleanSchemaObject).readOnly,
         );
       if (!index) {
         acc.value += '{';

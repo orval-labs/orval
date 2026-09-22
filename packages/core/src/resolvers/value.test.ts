@@ -628,7 +628,7 @@ describe('resolveValue with $dynamicRef', () => {
     };
 
     const schema = {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         child: { $dynamicRef: '#category' },
       },
