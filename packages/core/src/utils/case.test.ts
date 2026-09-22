@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { camel, pascal } from './case';
-import { kebab } from './case';
+import { kebab, snake } from './case';
 
 describe('pascal case testing', () => {
   it('should convert to pascal case', () => {
@@ -68,6 +68,27 @@ describe('kebab-case a few examples', () => {
   ]) {
     it(`should process ${input} to ${expected}`, () => {
       expect(kebab(input)).toBe(expected);
+    });
+  }
+});
+
+describe('snake_case and kebab-case word splitting', () => {
+  for (const [input, snakeExpected, kebabExpected] of [
+    // acronyms are split out only when the input has no separators
+    ['getHTTPResponse', 'get_http_response', 'get-http-response'],
+    ['get-HTTPResponse', 'get_httpresponse', 'get-httpresponse'],
+    ['HTTP_RESPONSE', 'http_response', 'http-response'],
+    ["pet's tag", 'pets_tag', 'pets-tag'],
+    [
+      '  leading and trailing  ',
+      '_leading_and_trailing',
+      '-leading-and-trailing',
+    ],
+    ['', '', ''],
+  ]) {
+    it(`should process ${JSON.stringify(input)}`, () => {
+      expect(snake(input)).toBe(snakeExpected);
+      expect(kebab(input)).toBe(kebabExpected);
     });
   }
 });
