@@ -24,6 +24,7 @@ import {
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
   isQueryV5WithMutationContextOnSuccess,
+  isQueryV5WithOptionalOnMutateResult,
   isQueryV5WithRequiredContextOnSuccess,
   isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
@@ -226,16 +227,18 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       const invalidateCalls = generateInvalidateCalls(uniqueInvalidates);
       const variablesType =
         mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
+      // 5.89 renamed the third parameter to `onMutateResult`; whether it is
+      // nullable moved with the TanStack release, so the flag decides. See #4180.
       if (composed.hasQueryV5WithMutationContextOnSuccess) {
         if (isRequestOptions) {
-          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext${composed.hasQueryV5WithOptionalOnMutateResult ? ' | undefined' : ''}, context: MutationFunctionContext) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
       };`;
         }
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext${composed.hasQueryV5WithOptionalOnMutateResult ? ' | undefined' : ''}, context: MutationFunctionContext) => {
     ${invalidateCalls}
         mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
       };`;
@@ -361,6 +364,8 @@ export const createFrameworkAdapter = ({
     isQueryV5WithInfiniteQueryOptionsError(packageJson, clientType);
   const _hasQueryV5WithMutationContextOnSuccess =
     isQueryV5WithMutationContextOnSuccess(packageJson, clientType);
+  const _hasQueryV5WithOptionalOnMutateResult =
+    isQueryV5WithOptionalOnMutateResult(packageJson, clientType);
   const _hasQueryV5WithRequiredContextOnSuccess =
     isQueryV5WithRequiredContextOnSuccess(packageJson, clientType);
 
@@ -376,6 +381,8 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithInfiniteQueryOptionsError,
           hasQueryV5WithMutationContextOnSuccess:
             _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithOptionalOnMutateResult:
+            _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
         }),
@@ -396,6 +403,8 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithInfiniteQueryOptionsError,
           hasQueryV5WithMutationContextOnSuccess:
             _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithOptionalOnMutateResult:
+            _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
         }),
@@ -411,6 +420,8 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithInfiniteQueryOptionsError,
           hasQueryV5WithMutationContextOnSuccess:
             _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithOptionalOnMutateResult:
+            _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
         }),
@@ -429,6 +440,8 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithInfiniteQueryOptionsError,
           hasQueryV5WithMutationContextOnSuccess:
             _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithOptionalOnMutateResult:
+            _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
           hasSolidQueryUsePrefix: hasSolidQueryWithUsePrefix,
@@ -448,6 +461,8 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithInfiniteQueryOptionsError,
           hasQueryV5WithMutationContextOnSuccess:
             _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithOptionalOnMutateResult:
+            _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
         }),

@@ -7,6 +7,7 @@ import {
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
+  isQueryV5WithOptionalOnMutateResult,
   isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
 } from './dependencies';
@@ -114,6 +115,55 @@ describe('isQueryV5WithDataTagError', () => {
 
     // ^5.0.0 stripped to 5.0.0 by compareVersions, which is < 5.62.0
     expect(isQueryV5WithDataTagError(packageJson, 'react-query')).toBe(false);
+  });
+});
+
+describe('isQueryV5WithOptionalOnMutateResult', () => {
+  const resolvedTo = (version: string): PackageJson => ({
+    resolvedVersions: { '@tanstack/react-query': version },
+  });
+
+  // 5.89.0 widened `onSuccess`'s third parameter to `TOnMutateResult |
+  // undefined`; 5.90.2 narrowed it back. No 5.89.x patch was published, so
+  // 5.89.0 and 5.90.1 are the entire window. See #4180.
+  it.each(['5.89.0', '5.90.1'])('returns true inside the window (%s)', (v) => {
+    expect(
+      isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+    ).toBe(true);
+  });
+
+  it.each(['5.88.0', '5.62.16', '5.90.2', '5.92.7', '6.0.0'])(
+    'returns false outside the window (%s)',
+    (v) => {
+      expect(
+        isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+      ).toBe(false);
+    },
+  );
+
+  it('ignores a prerelease suffix', () => {
+    expect(
+      isQueryV5WithOptionalOnMutateResult(
+        resolvedTo('5.90.1-rc.1'),
+        'react-query',
+      ),
+    ).toBe(true);
+  });
+
+  // compareVersions answers true for a version it cannot resolve, so both
+  // bounds agree and the unresolvable version must land on the current, narrow
+  // shape rather than inside the two-release window.
+  it.each(['catalog:react', 'latest', '*'])(
+    'treats an unresolvable version (%s) as the current shape',
+    (v) => {
+      expect(
+        isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+      ).toBe(false);
+    },
+  );
+
+  it('returns false when the package is absent', () => {
+    expect(isQueryV5WithOptionalOnMutateResult({}, 'react-query')).toBe(false);
   });
 });
 
