@@ -1,9 +1,11 @@
 import basepath from 'node:path';
 
-import type {
-  ClientMockBuilder,
-  GlobalMockOptions,
-  WriteModeProps,
+import {
+  type ClientMockBuilder,
+  type FakerMockOptions,
+  type GlobalMockOptions,
+  OutputMockType,
+  type WriteModeProps,
 } from '../types';
 import { isFunction, upath } from '../utils';
 
@@ -15,6 +17,16 @@ export function getMockDir(
     return entry.path;
   }
   return mockConfig.path;
+}
+
+/** The faker generator entry, when one is configured. */
+export function getFakerEntry(
+  mockConfig: WriteModeProps['output']['mock'],
+): FakerMockOptions | undefined {
+  return mockConfig.generators.find(
+    (g): g is FakerMockOptions =>
+      !isFunction(g) && g.type === OutputMockType.FAKER,
+  );
 }
 
 export function hasAnyMockPath(

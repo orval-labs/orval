@@ -789,7 +789,9 @@ In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `ge
 | `type` | `'faker'` | required | Discriminator for Faker-only output. |
 | `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. In `single` and `tags` mode this only changes where the de-inlined mock file lands; see `mock.inline` to keep mock code in the implementation file instead. |
 | `schemas` | `Boolean` | `false` | Emit a consolidated mock factory file (`get<SchemaName>Mock`) for every entry under `components/schemas`. |
-| `schemasImportPath` | `String` | `undefined` | Package specifier for importing the schema-level faker factories emitted by `schemas: true` (e.g. `@acme/models/fakers`). When set, used verbatim instead of appending `/index.faker` to `schemas.importPath` — useful when the production barrel can't expose a sub-path export. Requires `schemas: true` and `schemas.importPath`. Only applies when `schemas: true` is set on the same generator. |
+| `schemasImportPath` | `String` | `undefined` | Package specifier for importing the schema-level faker factories emitted by `schemas: true` (e.g. `@acme/models/fakers`). When set, used verbatim instead of appending `/index.faker` to `schemas.importPath` — useful when the production barrel can't expose a sub-path export. Requires `schemas: true`, plus `schemas.importPath` or `schemasPath`. |
+| `schemasPath` | `String` | `undefined` | Output directory for the schema-level factories file (`index.faker.ts`) emitted by `schemas: true`. Defaults to the `schemas` directory. Set it to keep `@faker-js/faker` out of a schemas package, for example `./src/mocks/faker/schemas`. Operation mocks import the factories through a relative path, or through `schemasImportPath` when set. Requires `schemas: true` and `output.schemas`. With `indexMockFiles: true` it can't be the generator's own `path`, since the faker barrel is also called `index.faker.ts`. |
+| `importPath` | `String` | `undefined` | Package specifier for the faker directory's barrel, for example `@acme/mocks/faker`. MSW files then import the `get<Op>ResponseMock` factories from it instead of through a relative path into the faker directory. Use it when MSW and Faker live in different packages. `split` and `tags-split` modes only, and the specifier must resolve to the `index.faker.ts` barrel (`indexMockFiles: true`). |
 | `operationResponses` | `Boolean` | `true` | Emit per-operation response mock factories (the historical behavior). Set to `false` together with `schemas: true` to get only the consolidated schema factories. |
 | `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
 | `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
@@ -800,7 +802,7 @@ In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `ge
 #### `schemasImportPath`
 
 Only applies when `schemas: true` is set on the same faker generator (requires
-both `schemas: true` and `schemas.importPath`). When `schemas.importPath`
+`schemas: true`, plus `schemas.importPath` or `schemasPath`). When `schemas.importPath`
 resolves to a single barrel file (e.g. via tsconfig path mappings), appending
 `/index.faker` produces an unresolvable sub-path. `schemasImportPath` lets you
 point faker factories at a separate import path so you can expose them through a
@@ -837,6 +839,72 @@ import { getPetMock } from '@acme/data-layer/sdk/index.faker'; // may not resolv
 // With schemasImportPath: '@acme/data-layer/sdk/fakers':
 import { getPetMock } from '@acme/data-layer/sdk/fakers';
 ```
+
+### Artifact groups
+
+One config run can split its output into four groups, each in its own directory with its own barrel:
+
+| Group | Directory | Barrel | Runtime imports |
+|-------|-----------|--------|-----------------|
+| Client | [`target`](#target) | `index.ts` ([`indexFiles`](#indexfiles)) | Your HTTP client, e.g. `@angular/*` |
+| Schemas | [`schemas.path`](#schemas) | `index.ts` | None, or `zod` with `type: 'zod'` |
+| MSW | MSW generator `path` | `index.msw.ts` (`indexMockFiles`) | `msw`, plus the Faker group |
+| Faker | Faker generator `path` | `index.faker.ts` (`indexMockFiles`) | `@faker-js/faker` |
+
+Each barrel re-exports only its own group, so a Node test that imports the MSW barrel never loads the Angular client, and the app never loads `msw` or `@faker-js/faker`. Because every group comes from one run, operation names, type names and overrides stay the same across groups.
+
+Use `split` or `tags-split` mode. In `single` and `tags` mode, mock files are written next to the implementation unless [`mock.path`](#mocks-options) is set, and [`mock.inline`](#mocks-options) puts them back into the implementation file.
+
+When the groups are separate packages, give each one a package specifier so generated files never import across packages with a relative path:
+
+- [`schemas.importPath`](#importpath): client, MSW and Faker files import schema types from it.
+- Faker [`importPath`](#faker-generator-type-faker): MSW files import the response factories from it.
+- Faker [`schemasPath`](#faker-generator-type-faker): writes the `schemas: true` factories into the Faker group instead of the schemas directory, which keeps the schemas package free of `@faker-js/faker`.
+- Faker [`schemasImportPath`](#schemasimportpath): the specifier operation mocks use for those factories, when a relative path won't do.
+
+MSW files re-export the response factories they import, so `get<Op>ResponseMock` is also reachable from the MSW group. The relocated `schemasPath` file isn't re-exported by `index.faker.ts`; publish it as its own entry point if consumers need `get<Schema>Mock`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: { target: './petstore.yaml' },
+    output: {
+      mode: 'tags-split',
+      client: 'angular',
+      target: './src/generated/angular', // client group
+      indexFiles: true, // -> src/generated/angular/index.ts
+      schemas: {
+        path: './src/generated/schemas',
+        importPath: '@acme/models',
+      },
+      mock: {
+        indexMockFiles: true, // -> index.msw.ts, index.faker.ts
+        generators: [
+          { type: 'msw', path: './src/generated/msw' },
+          {
+            type: 'faker',
+            path: './src/generated/faker',
+            importPath: '@acme/mocks/faker',
+            schemas: true,
+            schemasPath: './src/generated/faker/schemas',
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+```text
+src/generated/
+├── angular/  index.ts         client services, imports @angular/*
+├── schemas/  index.ts         types, no runtime imports
+├── msw/      index.msw.ts     handlers, imports msw and @acme/mocks/faker
+└── faker/    index.faker.ts   factories, imports @faker-js/faker
+    └── schemas/index.faker.ts get<Schema>Mock factories
+```
+
+Orval writes the groups and their barrels. Nx project files, `ng-package.json` and `package.json` `exports` maps are up to your project. `samples/angular-app` generates all four groups from one config (`petstoreArtifactGroups`) and has a Node test that loads the MSW barrel without loading Angular.
 
 ## indexFiles
 

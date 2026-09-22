@@ -336,6 +336,44 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   }
 }
 
+/** Rejects a faker `schemasPath` that has nothing to write or would clash. */
+function validateFakerSchemasPath(output: NormalizedOutputOptions): void {
+  const faker = output.mock.generators.find(
+    (g): g is FakerMockOptions =>
+      !isFunction(g) && g.type === OutputMockType.FAKER && !!g.schemasPath,
+  );
+  if (!faker?.schemasPath) return;
+
+  if (faker.schemas !== true) {
+    throw new Error(
+      styleText(
+        'red',
+        '`mock.generators[faker].schemasPath` requires `schemas: true` on the same generator. It only moves the schema-level faker factories file.',
+      ),
+    );
+  }
+  if (!output.schemas) {
+    throw new Error(
+      styleText(
+        'red',
+        '`mock.generators[faker].schemasPath` requires `output.schemas` to be set. Without it the factories are written next to the target as `schemas.faker.ts`.',
+      ),
+    );
+  }
+  if (
+    output.mock.indexMockFiles &&
+    faker.path &&
+    upath.resolve(faker.schemasPath) === upath.resolve(faker.path)
+  ) {
+    throw new Error(
+      styleText(
+        'red',
+        '`mock.generators[faker].schemasPath` cannot be the faker `path` when `indexMockFiles` is true, because both write `index.faker.ts` there. Use a subdirectory such as `<faker path>/schemas`.',
+      ),
+    );
+  }
+}
+
 /**
  * Validates that a config value is a valid package specifier (bare specifier
  * or sub-path import like `@acme/models` / `@acme/models/fakers`). Rejects
@@ -611,6 +649,11 @@ export async function normalizeOptions(
                   m.path && isString(m.path)
                     ? normalizePath(m.path, outputWorkspace)
                     : sharedMockPath,
+                ...(m.type === OutputMockType.FAKER &&
+                  m.schemasPath &&
+                  isString(m.schemasPath) && {
+                    schemasPath: normalizePath(m.schemasPath, outputWorkspace),
+                  }),
               } as GlobalMockOptions),
         ),
       ),
@@ -631,6 +674,10 @@ export async function normalizeOptions(
       validatePackageSpecifier(
         entry.schemasImportPath,
         'mock.generators[faker].schemasImportPath',
+      );
+      validatePackageSpecifier(
+        entry.importPath,
+        'mock.generators[faker].importPath',
       );
     }
   }
@@ -1056,6 +1103,7 @@ export async function normalizeOptions(
       );
     }
     if (
+      !fakerWithSchemasImportPath.schemasPath &&
       !(
         isObject(normalizedOptions.output.schemas) &&
         normalizedOptions.output.schemas.importPath
@@ -1064,11 +1112,13 @@ export async function normalizeOptions(
       throw new Error(
         styleText(
           'red',
-          `\`mock.generators[faker].schemasImportPath\` requires \`schemas.importPath\` to also be set. It overrides the package specifier used for importing schema-level faker factories.`,
+          `\`mock.generators[faker].schemasImportPath\` requires \`schemas.importPath\` or \`schemasPath\` to also be set. It overrides the package specifier used for importing schema-level faker factories.`,
         ),
       );
     }
   }
+
+  validateFakerSchemasPath(normalizedOptions.output);
 
   // `paramsFilter` is only consumed by the Angular generator. That runs for
   // the `angular` client (regardless of `httpClient`, which stays at its

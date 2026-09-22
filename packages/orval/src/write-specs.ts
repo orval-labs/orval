@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getImportExtension,
   getMockFileExtensionByTypeName,
+  getSchemasImportPath,
   isFunction,
   isObject,
   isString,
@@ -366,11 +367,20 @@ async function writeFakerSchemaMocks(
   let filePath: string;
   let schemaImportPath: string | undefined;
   const fileExtension = output.fileExtension || '.ts';
+  const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  const schemasDir = isString(output.schemas)
+    ? output.schemas
+    : output.schemas?.path;
+  // `schemasPath` moves the factories out of the schemas directory, so the
+  // schema types come from the schemas package or a path back into it.
+  const isRelocated = !!schemasDir && !!fakerEntry.schemasPath;
 
-  if (output.schemas) {
-    const schemasDir = isString(output.schemas)
-      ? output.schemas
-      : output.schemas.path;
+  if (schemasDir && fakerEntry.schemasPath) {
+    filePath = path.join(fakerEntry.schemasPath, `index.faker${fileExtension}`);
+    schemaImportPath =
+      getSchemasImportPath(output.schemas) ??
+      upath.relativeSafe(fakerEntry.schemasPath, schemasDir);
+  } else if (schemasDir) {
     filePath = path.join(schemasDir, `index.faker${fileExtension}`);
     schemaImportPath = '.';
   } else {
@@ -407,16 +417,16 @@ async function writeFakerSchemaMocks(
   // and always resolve to `'.'`.
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
-  const importExtension = getImportExtension(fileExtension, output.tsconfig);
   const schemaSuffix = isZodSchemaOutput ? '.zod' : '';
 
   // Build a pascal-cased-name → import path lookup so the consolidated file
   // can route each schema type import to its on-disk location. The map is
   // only populated when per-file routing is required (no root barrel); when
   // `indexFiles: true` every entry maps to `'.'` and the lookup short-circuits.
+  const isRelativeSchemaImport = !!schemaImportPath?.startsWith('.');
   const perSchemaImportPath = new Map<string, string>();
   if (
-    schemaImportPath === '.' &&
+    isRelativeSchemaImport &&
     !output.indexFiles &&
     isObject(output.schemas)
   ) {
@@ -427,9 +437,13 @@ async function writeFakerSchemaMocks(
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       perSchemaImportPath.set(
         tsName,
-        `./${tagSegment}${fileName}${schemaSuffix}${importExtension}`,
+        `${schemaImportPath}/${tagSegment}${fileName}${schemaSuffix}${importExtension}`,
       );
     }
+  } else if (isRelocated && isRelativeSchemaImport && importExtension) {
+    // A directory specifier only resolves through the barrel file under
+    // NodeNext / Node16.
+    schemaImportPath = `${schemaImportPath}/index${importExtension}`;
   }
 
   const reroutedImports = imports.map((imp) => {

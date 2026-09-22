@@ -166,6 +166,12 @@ export async function writeTagsMode({
           isAllowSyntheticDefaultImports,
         });
 
+        const kebabTag = kebab(tag);
+        const implementationPath = path.join(
+          dirname,
+          `${kebabTag}${extension}`,
+        );
+
         if (!shouldDeinlineMocks) {
           for (const mockOutput of collapsedMockOutputs) {
             const entry = output.mock.generators.find(
@@ -184,6 +190,7 @@ export async function writeTagsMode({
               schemasPathRelative,
               schemaTagMap,
               schemaOutputPlan,
+              implementationPath,
             );
 
             data += builder.importsMock({
@@ -238,11 +245,6 @@ export async function writeTagsMode({
           }
         }
 
-        const kebabTag = kebab(tag);
-        const implementationPath = path.join(
-          dirname,
-          `${kebabTag}${extension}`,
-        );
         await writeGeneratedFile(implementationPath, data);
 
         const extraPaths: string[] = [];
@@ -307,6 +309,7 @@ export async function writeTagsMode({
               mockRelativeSchemasPath,
               schemaTagMap,
               schemaOutputPlan,
+              mockFilePath,
             );
 
             let mockData = header;

@@ -377,4 +377,40 @@ export default defineConfig({
       },
     },
   },
+  // Artifact groups (#3832): one run writes the client, schemas, MSW and
+  // Faker groups to their own directories, each with its own barrel. The
+  // `@artifact-groups/*` specifiers are mapped in `tsconfig.json`, standing in
+  // for separate packages. `artifact-groups.node.spec.ts` loads the MSW barrel
+  // in Node and checks that it never loads `@angular/core`.
+  petstoreArtifactGroups: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/artifact-groups/angular',
+      indexFiles: true,
+      client: 'angular',
+      schemas: {
+        path: 'src/api/artifact-groups/schemas',
+        importPath: '@artifact-groups/schemas',
+      },
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw', path: 'src/api/artifact-groups/msw' },
+          {
+            type: 'faker',
+            path: 'src/api/artifact-groups/faker',
+            importPath: '@artifact-groups/faker',
+            schemas: true,
+            schemasPath: 'src/api/artifact-groups/faker/schemas',
+          },
+        ],
+      },
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
 });

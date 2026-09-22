@@ -662,8 +662,18 @@ export interface FakerMockOptions extends CommonMockOptions {
   // it is used verbatim as the schema factory import path instead of appending
   // `/index.faker` to `schemas.importPath`. This lets consumers expose fakers
   // through a dedicated barrel separate from the production type barrel.
-  // Requires `schemas.importPath` to also be set.
+  // Requires `schemas.importPath` or `schemasPath` to also be set.
   schemasImportPath?: string;
+  // Output directory for the schema-level faker factories file
+  // (`index.faker.ts`). Defaults to the `schemas` directory. Set it to keep
+  // `@faker-js/faker` out of a schemas package, e.g. to a subdirectory of the
+  // faker `path`. Requires `schemas: true` and `output.schemas`.
+  schemasPath?: string;
+  // Package specifier for the faker group barrel. When set, MSW files import
+  // the `get<Op>ResponseMock` factories from it instead of a relative path
+  // into the faker directory. Only used in `split` and `tags-split` modes,
+  // where MSW and faker are written to separate files.
+  importPath?: string;
   // Emit per-operation response mock factories (the historical behavior).
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.

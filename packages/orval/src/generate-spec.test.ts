@@ -6,6 +6,7 @@ import { styleText } from 'node:util';
 import {
   consoleReporter,
   createSuccessMessage,
+  type FakerMockOptions,
   noopReporter,
   type OpenApiDocument,
   OutputMockType,
@@ -3743,6 +3744,173 @@ describe('generateSpec - single-file Zod schemas', () => {
       expect(content).toContain('zod.lazy(() => Tree)');
       expect(content).not.toContain('__REF_');
       expect(content).not.toMatch(/from ['"]\.\//);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - artifact groups (#3832)', () => {
+  const PETSTORE_WITH_TAG: OpenApiDocument = {
+    ...PETSTORE_SPEC,
+    paths: {
+      '/pets': {
+        get: { ...PETSTORE_SPEC.paths?.['/pets']?.get, tags: ['pets'] },
+      },
+    },
+  };
+
+  /** Every `from '...'` specifier in a generated file. */
+  const readSpecifiers = async (file: string) => {
+    const content = await fs.readFile(file, 'utf8');
+    return [...content.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
+  };
+
+  /** Writes the client, schemas, MSW and Faker groups to separate directories. */
+  const generateGroups = async (
+    workspace: string,
+    fakerOptions: Partial<FakerMockOptions> = {},
+    schemas: OutputOptions['schemas'] = { path: './gen/schemas' },
+    indexFiles = true,
+  ) => {
+    const options = await normalizeOptions(
+      {
+        input: { target: PETSTORE_WITH_TAG },
+        output: {
+          target: './gen/angular',
+          mode: 'tags-split',
+          client: 'angular',
+          indexFiles,
+          schemas,
+          mock: {
+            indexMockFiles: true,
+            generators: [
+              { type: 'msw', path: './gen/msw' },
+              {
+                type: 'faker',
+                path: './gen/faker',
+                schemas: true,
+                ...fakerOptions,
+              },
+            ],
+          },
+        },
+      },
+      workspace,
+    );
+    await generateSpec(workspace, options);
+  };
+
+  it('keeps every group barrel inside its own directory', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(workspace);
+
+      // Each barrel may only point below its own directory, at its own kind
+      // of file.
+      const barrels = {
+        'gen/angular/index.ts': /^\.\/pets\/pets\.service$/,
+        'gen/schemas/index.ts': /^\.\/[^./]+$/,
+        'gen/msw/index.msw.ts': /^\.\/pets\/pets\.msw$/,
+        'gen/faker/index.faker.ts': /^\.\/pets\/pets\.faker$/,
+      };
+      for (const [barrel, allowed] of Object.entries(barrels)) {
+        const specifiers = await readSpecifiers(path.join(workspace, barrel));
+        expect(specifiers.length, barrel).toBeGreaterThan(0);
+        for (const specifier of specifiers) {
+          expect(specifier, barrel).toMatch(allowed);
+        }
+      }
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('imports faker factories into MSW files through the faker importPath', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(workspace, { importPath: '@acme/mocks/faker' });
+
+      const specifiers = await readSpecifiers(
+        path.join(workspace, 'gen/msw/pets/pets.msw.ts'),
+      );
+      expect(specifiers).toContain('@acme/mocks/faker');
+      expect(specifiers.filter((s) => s.includes('faker/pets'))).toEqual([]);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('writes schema factories to the faker schemasPath instead of the schemas directory', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(workspace, { schemasPath: './gen/faker/schemas' });
+
+      expect(
+        await fs.pathExists(path.join(workspace, 'gen/schemas/index.faker.ts')),
+      ).toBe(false);
+      const factories = path.join(
+        workspace,
+        'gen/faker/schemas/index.faker.ts',
+      );
+      expect(await fs.readFile(factories, 'utf8')).toContain(
+        'export const getPetMock',
+      );
+      expect(await readSpecifiers(factories)).toEqual(
+        expect.arrayContaining(['@faker-js/faker', '../../schemas']),
+      );
+
+      expect(
+        await readSpecifiers(
+          path.join(workspace, 'gen/faker/pets/pets.faker.ts'),
+        ),
+      ).toContain('../schemas/index.faker');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('imports each schema file directly from the relocated factories file without index files', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(
+        workspace,
+        { schemasPath: './gen/faker/schemas' },
+        { path: './gen/schemas' },
+        false,
+      );
+
+      expect(
+        await readSpecifiers(
+          path.join(workspace, 'gen/faker/schemas/index.faker.ts'),
+        ),
+      ).toContain('../../schemas/pet');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('imports schema types through schemas.importPath in the relocated factories file', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(
+        workspace,
+        { schemasPath: './gen/faker/schemas' },
+        { path: './gen/schemas', importPath: '@acme/models' },
+      );
+
+      const factorySpecifiers = await readSpecifiers(
+        path.join(workspace, 'gen/faker/schemas/index.faker.ts'),
+      );
+      expect(factorySpecifiers).toContain('@acme/models');
+      expect(factorySpecifiers.filter((s) => s.startsWith('.'))).toEqual([]);
+
+      const opSpecifiers = await readSpecifiers(
+        path.join(workspace, 'gen/faker/pets/pets.faker.ts'),
+      );
+      expect(opSpecifiers).toContain('@acme/models');
+      expect(opSpecifiers).toContain('../schemas/index.faker');
+      expect(opSpecifiers).not.toContain('@acme/models/index.faker');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
