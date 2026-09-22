@@ -508,20 +508,25 @@ function buildPrimitivePayload(
 
   const enumValues = schema.enum as unknown[] | undefined;
 
+  // The enum member is document text, and OpenAPI does not make it agree with
+  // the declared `type`: `{ type: number, enum: ["<code>"] }` validates. So the
+  // member is serialized from its runtime value rather than trusted as a
+  // literal of the declared type — `String()` spliced a string in verbatim.
   if (schemaType === 'boolean') {
     return enumValues && enumValues.length > 0
-      ? String(enumValues[0])
+      ? formatValue(enumValues[0])
       : 'false';
   }
 
   if (schemaType === 'number' || schemaType === 'integer') {
-    return enumValues && enumValues.length > 0 ? String(enumValues[0]) : '0';
+    return enumValues && enumValues.length > 0
+      ? formatValue(enumValues[0])
+      : '0';
   }
 
   if (schemaType === 'string') {
     if (enumValues && enumValues.length > 0) {
-      const first = enumValues[0];
-      return typeof first === 'string' ? JSON.stringify(first) : String(first);
+      return formatValue(enumValues[0]);
     }
     if (schema.format === 'date' || schema.format === 'date-time') {
       return context.output.override.useDates
