@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@scalar/openapi-types": "catalog:",
     "remeda": "catalog:"
   },
   "devDependencies": {

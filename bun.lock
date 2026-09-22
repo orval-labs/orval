@@ -150,7 +150,6 @@
       "version": "8.36.0",
       "dependencies": {
         "@orval/core": "workspace:*",
-        "@scalar/openapi-types": "catalog:",
         "remeda": "catalog:",
       },
       "devDependencies": {
