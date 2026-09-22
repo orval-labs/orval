@@ -150,4 +150,4 @@ Status.options.map((o) => ({ value: o.value, ...zod.globalRegistry.get(o) }));
 | Zod 4 Mini | 每个带注解的分支使用 `.check(zod.meta({ ... }))` |
 | Zod 3 | 没有注册表，分支保留 `.describe(description)`，`title`/`deprecated` 会被丢弃 |
 
-只有 `description` 或完全没有元数据的分支会保留现有的 `.describe()` 输出。
+只有 `description` 的分支会保留 `.describe()`。没有任何元数据的分支则保持为不带修饰的 `zod.literal(...)`，因此不含成员元数据的规范会生成与之前完全相同的输出。

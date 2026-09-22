@@ -149,4 +149,4 @@ This does not need `output.override.zod.generateMeta`. Per Zod version:
 | Zod 4 Mini  | `.check(zod.meta({ ... }))` on each annotated branch                                        |
 | Zod 3       | No registry, so branches keep `.describe(description)` and `title`/`deprecated` are dropped |
 
-Branches with only a `description`, or with no metadata at all, keep their existing `.describe()` output.
+Branches that carry only a `description` keep `.describe()`. Branches with no metadata stay a bare `zod.literal(...)`, so a spec without member metadata produces the same output as before.
