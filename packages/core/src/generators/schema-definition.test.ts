@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import type {
   ContextSpec,
   InputFiltersOptions,
+  OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
 import { generateSchemasDefinition } from './schema-definition';
@@ -544,5 +545,119 @@ describe('generateSchemasDefinition', () => {
     expect(mixedNumberSchema?.model).toContain(
       'export type MixedNumberEnum = typeof MixedNumberEnum[keyof typeof MixedNumberEnum] | null;',
     );
+  });
+
+  describe('multipart request bodies aliased as shared schemas (#4177)', () => {
+    const uploadSchema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        bar: { type: 'string' },
+        report: { type: 'string' },
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            contentMediaType: 'application/octet-stream',
+          },
+        },
+      },
+    };
+
+    const buildContext = (contentType: string, encoding?: unknown) =>
+      ({
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            namingConvention: {},
+            components: { schemas: {} },
+          },
+        },
+        spec: {
+          paths: {
+            '/foo': {
+              post: {
+                requestBody: {
+                  content: {
+                    [contentType]: {
+                      schema: { $ref: '#/components/schemas/upload' },
+                      encoding,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: { schemas: { upload: uploadSchema } },
+        },
+      }) as unknown as ContextSpec;
+
+    it('types binary fields as Blob | File when the schema is a multipart body', () => {
+      const result = generateSchemasDefinition(
+        { upload: uploadSchema },
+        buildContext('multipart/form-data'),
+        '',
+      );
+
+      expect(result[0].model).toContain('files?: (Blob | File)[]');
+    });
+
+    it('applies the media type encoding to the shared model', () => {
+      const result = generateSchemasDefinition(
+        { upload: uploadSchema },
+        buildContext('multipart/form-data', {
+          report: { contentType: 'text/csv' },
+        }),
+        '',
+      );
+
+      expect(result[0].model).toContain('report?: Blob | File | string');
+    });
+
+    it('leaves binary fields as Blob when the schema is a json body', () => {
+      const result = generateSchemasDefinition(
+        { upload: uploadSchema },
+        buildContext('application/json'),
+        '',
+      );
+
+      expect(result[0].model).toContain('files?: Blob[]');
+    });
+
+    it('types a binary scalar alias as Blob | File', () => {
+      const fileSchema: OpenApiSchemaObject = {
+        type: 'string',
+        contentMediaType: 'application/octet-stream',
+      };
+      const specContext = {
+        ...context,
+        spec: {
+          paths: {
+            '/foo': {
+              post: {
+                requestBody: {
+                  content: {
+                    'multipart/form-data': {
+                      schema: { $ref: '#/components/schemas/attachment' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: { schemas: { attachment: fileSchema } },
+        },
+      } as unknown as ContextSpec;
+
+      const result = generateSchemasDefinition(
+        { attachment: fileSchema },
+        specContext,
+        '',
+      );
+
+      expect(result[0].model).toContain(
+        'export type Attachment = Blob | File;',
+      );
+    });
   });
 });

@@ -1,7 +1,12 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { isArray, isEmptyish } from 'remeda';
 
-import { getEnum, getEnumMembers, resolveDiscriminators } from '../getters';
+import {
+  getEnum,
+  getEnumMembers,
+  getFormDataComponentContext,
+  resolveDiscriminators,
+} from '../getters';
 import {
   buildDynamicScope,
   dynamicAnchorsToUniqueParamNames,
@@ -334,11 +339,18 @@ function generateSchemaDefinitions(
 
   const genericParams = collectGenericParams(schema);
 
+  // A component schema used as a `multipart/form-data` request body is emitted
+  // here, detached from the operation that declares its media type, so its
+  // binary parts would otherwise fall back to the context-free `Blob` that
+  // inline bodies avoid (#4177).
+  const formDataContext = getFormDataComponentContext(schemaName, context);
+
   if (shouldCreateInterface(schema)) {
     return generateInterface({
       name: sanitizedSchemaName,
       schema,
       context: scopedContext,
+      formDataContext,
       genericParams:
         genericParams.length > 0
           ? genericParams.map((p) => p.paramName)
@@ -350,6 +362,7 @@ function generateSchemaDefinitions(
     schema,
     name: sanitizedSchemaName,
     context: scopedContext,
+    formDataContext,
   });
 
   let output = '';
