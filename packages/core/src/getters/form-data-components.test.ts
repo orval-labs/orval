@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { ContextSpec, OpenApiDocument } from '../types';
-import { getFormDataComponentContext } from './form-data-components';
+import { getFormDataComponentContexts } from './form-data-components';
 
 const makeContext = (spec: OpenApiDocument): ContextSpec =>
   ({
@@ -11,7 +11,7 @@ const makeContext = (spec: OpenApiDocument): ContextSpec =>
     output: { override: {} },
   }) as unknown as ContextSpec;
 
-describe('getFormDataComponentContext', () => {
+describe('getFormDataComponentContexts', () => {
   it('returns a form-data context for a schema used as a multipart body', () => {
     const context = makeContext({
       paths: {
@@ -29,7 +29,7 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toEqual({
+    expect(getFormDataComponentContexts(context).get('upload')).toEqual({
       atPart: false,
       encoding: {},
     });
@@ -53,7 +53,7 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toEqual({
+    expect(getFormDataComponentContexts(context).get('upload')).toEqual({
       atPart: false,
       encoding: { report: { contentType: 'text/csv' } },
     });
@@ -79,7 +79,7 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toEqual({
+    expect(getFormDataComponentContexts(context).get('upload')).toEqual({
       atPart: false,
       encoding: {},
     });
@@ -118,7 +118,7 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toEqual({
+    expect(getFormDataComponentContexts(context).get('upload')).toEqual({
       atPart: false,
       encoding: {
         report: { contentType: 'text/csv' },
@@ -155,8 +155,10 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toBeUndefined();
-    expect(getFormDataComponentContext('download', context)).toBeUndefined();
+    expect(getFormDataComponentContexts(context).get('upload')).toBeUndefined();
+    expect(
+      getFormDataComponentContexts(context).get('download'),
+    ).toBeUndefined();
   });
 
   it('ignores url-encoded bodies so shared schemas keep their Blob fields', () => {
@@ -176,7 +178,7 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toBeUndefined();
+    expect(getFormDataComponentContexts(context).get('upload')).toBeUndefined();
   });
 
   it('ignores inline multipart body schemas', () => {
@@ -196,6 +198,6 @@ describe('getFormDataComponentContext', () => {
       },
     } as unknown as OpenApiDocument);
 
-    expect(getFormDataComponentContext('upload', context)).toBeUndefined();
+    expect(getFormDataComponentContexts(context).get('upload')).toBeUndefined();
   });
 });

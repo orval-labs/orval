@@ -614,6 +614,32 @@ describe('generateSchemasDefinition', () => {
       expect(result[0].model).toContain('report?: Blob | File | string');
     });
 
+    it('rescans the document when it changes between runs', () => {
+      const multipartContext = buildContext('multipart/form-data');
+
+      expect(
+        generateSchemasDefinition(
+          { upload: uploadSchema },
+          multipartContext,
+          '',
+        )[0].model,
+      ).toContain('files?: (Blob | File)[]');
+
+      // Same document object, different paths: the second run must describe
+      // the spec as it is now, not as it was on the first call.
+      (
+        multipartContext.spec as unknown as { paths: Record<string, unknown> }
+      ).paths = {};
+
+      expect(
+        generateSchemasDefinition(
+          { upload: uploadSchema },
+          multipartContext,
+          '',
+        )[0].model,
+      ).toContain('files?: Blob[]');
+    });
+
     it('leaves binary fields as Blob when the schema is a json body', () => {
       const result = generateSchemasDefinition(
         { upload: uploadSchema },
