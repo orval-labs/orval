@@ -2956,6 +2956,8 @@ export enum Example { foo = 'foo', bar = 'bar' }
 export type Example = 'foo' | 'bar';
 ```
 
+对于带有 `x-enumNames` 或 `x-enumDescriptions` 元数据的枚举，Zod 输出会忽略此选项，始终生成 `z.enum({ ... })` 对象形式。参见[枚举指南](/zh/docs/guides/enums#zod)。
+
 <Callout type="warn">
 `'enum'` 会生成 TypeScript 的 `enum` 声明，而类型擦除无法移除它。如果你使用 TypeScript 5.8+ 的 [`erasableSyntaxOnly`](https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly) 来编译，例如在 Node 原生 TypeScript 支持下，或任何做类型擦除的构建步骤中，那么生成的 `'enum'` 输出会编译失败。在这种环境中请改用 `'const'`（默认）或 `'union'`。
 </Callout>

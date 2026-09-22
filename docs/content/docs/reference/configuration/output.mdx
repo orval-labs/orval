@@ -3295,6 +3295,8 @@ export enum Example { foo = 'foo', bar = 'bar' }
 export type Example = 'foo' | 'bar';
 ```
 
+Zod output ignores this option for enums that carry `x-enumNames` or `x-enumDescriptions` metadata, which always emit the `z.enum({ ... })` object form. See the [enums guide](/docs/guides/enums#zod).
+
 <Callout type="warn">
 `'enum'` emits a TypeScript `enum` declaration, which type stripping cannot
 remove. If you compile with TypeScript 5.8+ [`erasableSyntaxOnly`](https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly) — for example under Node's native TypeScript support or any type-stripping build step — generated `'enum'` output fails to compile. Use `'const'` (default) or `'union'` instead in that environment.
