@@ -298,7 +298,10 @@ function generateSchemaDefinitions(
         const resolved = resolveValue({
           schema: extraSchema,
           name: sanitizedSchemaName,
+          // The extra `allOf` members are intersected into the alias, so their
+          // properties are top-level parts of the same multipart body.
           context: aliasScopedContext,
+          formDataContext,
         });
         for (const imp of resolved.imports) {
           const impSchemaName = imp.schemaName ?? imp.name;

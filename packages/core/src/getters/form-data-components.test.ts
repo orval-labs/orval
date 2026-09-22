@@ -200,4 +200,28 @@ describe('getFormDataComponentContexts', () => {
 
     expect(getFormDataComponentContexts(context).get('upload')).toBeUndefined();
   });
+
+  it('ignores refs that only start at a component schema', () => {
+    const context = makeContext({
+      paths: {
+        '/foo': {
+          post: {
+            requestBody: {
+              content: {
+                'multipart/form-data': {
+                  // Names the last token `upload`, but points at a property of
+                  // `Wrapper` — not at `components.schemas.upload`.
+                  schema: {
+                    $ref: '#/components/schemas/Wrapper/properties/upload',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as OpenApiDocument);
+
+    expect(getFormDataComponentContexts(context).size).toBe(0);
+  });
 });

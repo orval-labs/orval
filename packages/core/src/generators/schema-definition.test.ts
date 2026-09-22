@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils/context';
 import type {
   ContextSpec,
   InputFiltersOptions,
+  OpenApiDocument,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
@@ -684,6 +686,70 @@ describe('generateSchemasDefinition', () => {
       expect(result[0].model).toContain(
         'export type Attachment = Blob | File;',
       );
+    });
+
+    it('types binary fields in the extra allOf members of a bound alias', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '0.1.0' },
+        paths: {
+          '/foo': {
+            post: {
+              requestBody: {
+                content: {
+                  'multipart/form-data': {
+                    schema: { $ref: '#/components/schemas/AliasedUpload' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            Meta: { type: 'object', properties: { id: { type: 'string' } } },
+            BaseTemplate: {
+              $id: 'https://example.com/schemas/BaseTemplate',
+              $defs: {
+                itemType: { $dynamicAnchor: 'itemType', not: {} },
+              },
+              type: 'object',
+              properties: { item: { $dynamicRef: '#itemType' } },
+            },
+            // The alias itself is an import, but the extra `allOf` member is
+            // intersected into it — its properties are parts of this body.
+            AliasedUpload: {
+              allOf: [
+                {
+                  $ref: '#/components/schemas/BaseTemplate',
+                  $defs: {
+                    itemType: {
+                      $dynamicAnchor: 'itemType',
+                      $ref: '#/components/schemas/Meta',
+                    },
+                  },
+                },
+                {
+                  type: 'object',
+                  properties: {
+                    avatar: { type: 'string', format: 'binary' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      } as unknown as OpenApiDocument;
+
+      const result = generateSchemasDefinition(
+        spec.components?.schemas ?? {},
+        createTestContextSpec({ spec }),
+        '',
+      );
+
+      expect(
+        result.find((schema) => schema.name === 'AliasedUpload')?.model,
+      ).toContain('avatar?: Blob | File');
     });
   });
 });

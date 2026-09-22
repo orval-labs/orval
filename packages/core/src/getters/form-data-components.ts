@@ -8,7 +8,7 @@ import type {
 import { Verbs } from '../types';
 import { isReference } from '../utils/assertion';
 import type { FormDataContext } from './object';
-import { getRefInfo } from './ref';
+import { getRefInfo, isComponentRef } from './ref';
 
 const MULTIPART_CONTENT_TYPE = 'multipart/form-data';
 
@@ -104,10 +104,15 @@ function indexRequestBody(
 
   const schema = mediaType?.schema;
 
+  // `isComponentRef` is what rejects a ref that only *starts* at a component,
+  // such as `#/components/schemas/Wrapper/properties/upload`: `getRefInfo`
+  // names it after its last token, which would hand the form-data context to
+  // an unrelated `components.schemas.upload`.
   if (
     !schema ||
     !isReference(schema) ||
-    !schema.$ref?.startsWith(SCHEMA_REF_PREFIX)
+    !schema.$ref?.startsWith(SCHEMA_REF_PREFIX) ||
+    !isComponentRef(schema.$ref)
   ) {
     return;
   }
