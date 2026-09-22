@@ -3769,10 +3769,17 @@ describe('generateSpec - artifact groups (#3832)', () => {
   /** Writes the client, schemas, MSW and Faker groups to separate directories. */
   const generateGroups = async (
     workspace: string,
-    fakerOptions: Partial<FakerMockOptions> = {},
-    schemas: OutputOptions['schemas'] = { path: './gen/schemas' },
-    indexFiles = true,
-    spec: OpenApiDocument = PETSTORE_WITH_TAG,
+    {
+      faker = {},
+      schemas = { path: './gen/schemas' },
+      spec = PETSTORE_WITH_TAG,
+      output = {},
+    }: {
+      faker?: Partial<FakerMockOptions>;
+      schemas?: OutputOptions['schemas'];
+      spec?: OpenApiDocument;
+      output?: Partial<OutputOptions>;
+    } = {},
   ) => {
     const options = await normalizeOptions(
       {
@@ -3781,7 +3788,7 @@ describe('generateSpec - artifact groups (#3832)', () => {
           target: './gen/angular',
           mode: 'tags-split',
           client: 'angular',
-          indexFiles,
+          indexFiles: true,
           schemas,
           mock: {
             indexMockFiles: true,
@@ -3791,10 +3798,11 @@ describe('generateSpec - artifact groups (#3832)', () => {
                 type: 'faker',
                 path: './gen/faker',
                 schemas: true,
-                ...fakerOptions,
+                ...faker,
               },
             ],
           },
+          ...output,
         },
       },
       workspace,
@@ -3830,7 +3838,9 @@ describe('generateSpec - artifact groups (#3832)', () => {
   it('imports faker factories into MSW files through the faker importPath', async () => {
     const workspace = await createTempWorkspace();
     try {
-      await generateGroups(workspace, { importPath: '@acme/mocks/faker' });
+      await generateGroups(workspace, {
+        faker: { importPath: '@acme/mocks/faker' },
+      });
 
       const specifiers = await readSpecifiers(
         path.join(workspace, 'gen/msw/pets/pets.msw.ts'),
@@ -3845,7 +3855,9 @@ describe('generateSpec - artifact groups (#3832)', () => {
   it('writes schema factories to the faker schemasPath instead of the schemas directory', async () => {
     const workspace = await createTempWorkspace();
     try {
-      await generateGroups(workspace, { schemasPath: './gen/faker/schemas' });
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
+      });
 
       expect(
         await fs.pathExists(path.join(workspace, 'gen/schemas/index.faker.ts')),
@@ -3874,7 +3886,9 @@ describe('generateSpec - artifact groups (#3832)', () => {
   it('re-exports the relocated schema factories from the faker barrel', async () => {
     const workspace = await createTempWorkspace();
     try {
-      await generateGroups(workspace, { schemasPath: './gen/faker/schemas' });
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
+      });
 
       const barrel = await fs.readFile(
         path.join(workspace, 'gen/faker/index.faker.ts'),
@@ -3906,13 +3920,10 @@ describe('generateSpec - artifact groups (#3832)', () => {
           },
         },
       };
-      await generateGroups(
-        workspace,
-        { schemasPath: './gen/faker/schemas' },
-        { path: './gen/schemas' },
-        true,
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
         spec,
-      );
+      });
 
       const barrel = await fs.readFile(
         path.join(workspace, 'gen/faker/index.faker.ts'),
@@ -3934,21 +3945,88 @@ describe('generateSpec - artifact groups (#3832)', () => {
     }
   });
 
-  it('imports each schema file directly from the relocated factories file without index files', async () => {
+  it.each([
+    { form: 'object', schemas: { path: './gen/schemas' } },
+    { form: 'string', schemas: './gen/schemas' },
+  ])(
+    'imports each schema file directly from the relocated factories file without index files ($form schemas)',
+    async ({ schemas }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        await generateGroups(workspace, {
+          faker: { schemasPath: './gen/faker/schemas' },
+          schemas,
+          output: { indexFiles: false },
+        });
+
+        expect(
+          await readSpecifiers(
+            path.join(workspace, 'gen/faker/schemas/index.faker.ts'),
+          ),
+        ).toContain('../../schemas/pet');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('writes the faker barrel for a spec with schemas but no operations', async () => {
     const workspace = await createTempWorkspace();
     try {
-      await generateGroups(
-        workspace,
-        { schemasPath: './gen/faker/schemas' },
-        { path: './gen/schemas' },
-        false,
-      );
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
+        spec: { ...PETSTORE_WITH_TAG, paths: {} },
+      });
 
       expect(
-        await readSpecifiers(
-          path.join(workspace, 'gen/faker/schemas/index.faker.ts'),
+        await fs.readFile(
+          path.join(workspace, 'gen/faker/index.faker.ts'),
+          'utf8',
         ),
-      ).toContain('../../schemas/pet');
+      ).toContain("export { getPetMock } from './schemas/index.faker';");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps the full file extension out of the faker barrel specifier', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
+        output: { fileExtension: '.generated.ts' },
+      });
+
+      const barrel = await fs.readFile(
+        path.join(workspace, 'gen/faker/index.faker.generated.ts'),
+        'utf8',
+      );
+      expect(barrel).toContain("} from './schemas/index.faker.generated';");
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('cleans stale factories from a schemasPath outside every other output directory', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const stale = path.join(workspace, 'fixtures/fakers/stale.faker.ts');
+      const handWritten = path.join(workspace, 'fixtures/fakers/notes.ts');
+      await fs.outputFile(stale, '// stale');
+      await fs.outputFile(handWritten, '// keep');
+
+      await generateGroups(workspace, {
+        faker: { schemasPath: './fixtures/fakers' },
+        output: { clean: true },
+      });
+
+      expect(await fs.pathExists(stale)).toBe(false);
+      expect(await fs.pathExists(handWritten)).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(workspace, 'fixtures/fakers/index.faker.ts'),
+        ),
+      ).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3957,11 +4035,10 @@ describe('generateSpec - artifact groups (#3832)', () => {
   it('imports schema types through schemas.importPath in the relocated factories file', async () => {
     const workspace = await createTempWorkspace();
     try {
-      await generateGroups(
-        workspace,
-        { schemasPath: './gen/faker/schemas' },
-        { path: './gen/schemas', importPath: '@acme/models' },
-      );
+      await generateGroups(workspace, {
+        faker: { schemasPath: './gen/faker/schemas' },
+        schemas: { path: './gen/schemas', importPath: '@acme/models' },
+      });
 
       const factorySpecifiers = await readSpecifiers(
         path.join(workspace, 'gen/faker/schemas/index.faker.ts'),

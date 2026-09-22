@@ -679,6 +679,13 @@ export async function normalizeOptions(
         entry.importPath,
         'mock.generators[faker].importPath',
       );
+      // The specifier has to resolve to the `index.faker.ts` barrel, which
+      // Orval only writes with `indexMockFiles`.
+      if (entry.importPath && !mocks.indexMockFiles) {
+        throw new Error(
+          '`mock.generators[faker].importPath` requires `mock.indexMockFiles: true`.',
+        );
+      }
     }
   }
 

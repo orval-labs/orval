@@ -2345,6 +2345,19 @@ describe('normalizeOptions', () => {
       }
     });
 
+    it('rejects importPath without indexMockFiles', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(workspace, { importPath: '@acme/mocks/faker' }),
+        ).rejects.toThrow(
+          '`mock.generators[faker].importPath` requires `mock.indexMockFiles: true`',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
     it('rejects a relative importPath', async () => {
       const workspace = await createTempWorkspace();
       try {

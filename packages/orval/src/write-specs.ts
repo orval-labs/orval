@@ -426,11 +426,7 @@ async function writeFakerSchemaMocks(
   // `indexFiles: true` every entry maps to `'.'` and the lookup short-circuits.
   const isRelativeSchemaImport = !!schemaImportPath?.startsWith('.');
   const perSchemaImportPath = new Map<string, string>();
-  if (
-    isRelativeSchemaImport &&
-    !output.indexFiles &&
-    isObject(output.schemas)
-  ) {
+  if (isRelativeSchemaImport && !output.indexFiles && schemasDir) {
     for (const schema of builder.schemas) {
       const tsName = pascal(schema.name);
       const fileName = conventionName(schema.name, output.namingConvention);
@@ -514,10 +510,12 @@ async function reexportFakerSchemaFactories(
 
   const fileExtension = output.fileExtension || '.ts';
   const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  // A spec without operations gets no faker barrel from the mode writers, so
+  // start from an empty one.
   const barrelPath = path.join(faker.path, `index.faker${fileExtension}`);
-  if (!(await fs.pathExists(barrelPath))) return;
-
-  const barrel = await fs.readFile(barrelPath, 'utf8');
+  const barrel = (await fs.pathExists(barrelPath))
+    ? await fs.readFile(barrelPath, 'utf8')
+    : '';
   const taken = new Set<string>();
   for (const specifier of readReExportSpecifiers(barrel)) {
     const modulePath = path.resolve(
@@ -541,7 +539,10 @@ async function reexportFakerSchemaFactories(
   if (names.length === 0) return;
 
   const specifier =
-    upath.getRelativeImportPath(barrelPath, factoriesPath) + importExtension;
+    stripFileExtension(
+      upath.getRelativeImportPath(barrelPath, factoriesPath, true),
+      fileExtension,
+    ) + importExtension;
   if (barrel.includes(`from '${specifier}'`)) return;
   await writeGeneratedFile(
     barrelPath,

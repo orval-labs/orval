@@ -44,6 +44,9 @@ export function hasAnyMockPath(
  * resolves to it, so a configuration that lost its last generator still knows
  * where earlier runs wrote.
  *
+ * The faker generator's `schemasPath` is listed as well, since the schema
+ * factories file is a mock file.
+ *
  * @returns The configured mock output directories. Empty when no mock path is
  * configured, in which case mock files land beside the implementation files.
  */
@@ -60,6 +63,12 @@ export function getConfiguredMockDirectories(
     if (directory) {
       directories.add(directory);
     }
+  }
+  // The faker generator's `schemasPath` holds a mock file too, and can sit
+  // outside every other output directory.
+  const schemasPath = getFakerEntry(mockConfig)?.schemasPath;
+  if (schemasPath) {
+    directories.add(schemasPath);
   }
 
   return [...directories];
