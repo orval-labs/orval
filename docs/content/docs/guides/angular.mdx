@@ -963,6 +963,9 @@ pipe JSON model responses through Zod.
 2. Set `override.angular.runtimeValidation` to either:
    - `true` (shorthand for `{ strategy: 'throw' }`)
    - `{ strategy: 'both' }` for log-then-throw behavior
+   - either object form with `requestBodies: true` to also parse JSON request
+     bodies before they are sent (see
+     [Parsing request bodies before they are sent](#parsing-request-bodies-before-they-are-sent))
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -1028,29 +1031,59 @@ For generated `HttpClient` services, runtime validation also applies when the
 JSON response body is surfaced through `response` and response-event observe
 flows.
 
-### Request bodies are typed, but not auto-parsed
+### Parsing request bodies before they are sent
 
 When you generate Zod schemas, Orval also emits request-body schemas such as
-`CreatePetsBody`, plus matching `z.input<>` / `z.output<>` types. Generated
-Angular `HttpClient` methods use those types, but they do **not** automatically
-call `Schema.parse(body)` before sending a request.
+`CreatePetsBody`, plus matching `z.input<>` / `z.output<>` types. By default,
+generated `HttpClient` methods only use those types. They send the body as the
+caller passed it.
 
-That means the current Angular + Zod split is:
+Set `requestBodies: true` to parse JSON request bodies before transport:
 
-- request bodies get generated TypeScript types and reusable Zod schemas
-- response bodies get automatic runtime parsing when
-  `override.angular.runtimeValidation` is enabled
+```ts
+override: {
+  angular: {
+    runtimeValidation: {
+      strategy: 'throw',
+      requestBodies: true,
+    },
+  },
+}
+```
 
-If you want pre-send validation, validate explicitly before calling the
-generated client:
+The generated method then looks like this:
+
+```ts
+createPets(createPetsBody: CreatePetsBody, options?: HttpClientObserveOptions) {
+  return defer(() => {
+    const parsedCreatePetsBody = CreatePetsBody.parse(createPetsBody);
+    // The real method branches on `options.observe`; each branch sends the parsed body.
+    return this.http.post(url, parsedCreatePetsBody, options);
+  });
+}
+```
+
+An invalid body never reaches the network. The observable errors with the
+`ZodError`, so `catchError` and the `error` callback see it like any other
+request failure. Parsing happens on subscribe, not when you call the method.
+
+The parameter keeps the schema's input type, and the parsed output is what gets
+sent. Defaults and transforms in the schema therefore apply to the payload.
+
+Form data, url-encoded, binary and text bodies are skipped, and so are
+operations with a custom `mutator`. See
+[`runtimeValidation.requestBodies`](/docs/reference/configuration/output#requestbodies)
+for the details.
+
+Without the option, validate before calling the generated client:
 
 ```ts
 const payload = CreatePetsBody.parse(formValue);
 return this.petsService.createPets(payload);
 ```
 
-Use `.parse()` when you want invalid input to throw immediately, or
-`.safeParse()` when you want to surface validation feedback without throwing.
+That is also the way to go when you want field-level feedback in a form:
+`.safeParse()` gives you the issues without throwing.
 
 ## Request-body readonly guidance
 

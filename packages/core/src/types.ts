@@ -1337,6 +1337,30 @@ export interface NormalizedRuntimeValidation {
   strategy: RuntimeValidationStrategy;
 }
 
+/**
+ * Angular's `runtimeValidation` surface. On top of the shared forms, the object
+ * form can opt JSON request bodies into parsing before they are sent. The
+ * object form enables response validation too, with `strategy` defaulting to
+ * `throw`.
+ */
+export type AngularRuntimeValidation =
+  | boolean
+  | {
+      strategy?: RuntimeValidationStrategy;
+      /**
+       * Parse JSON request bodies with the generated Zod schema before the
+       * request is sent. `strategy` applies to request bodies as well.
+       *
+       * @default false
+       */
+      requestBodies?: boolean;
+    };
+
+export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeValidation {
+  /** Omitted is the same as `false`. */
+  requestBodies?: boolean;
+}
+
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
@@ -1430,7 +1454,7 @@ export interface AngularOptions {
    * Kept for compatibility with existing configs.
    */
   client?: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation?: RuntimeValidation;
+  runtimeValidation?: AngularRuntimeValidation;
   httpResource?: AngularHttpResourceOptions;
   /**
    * Opt-in: compose the runtime base URL for this output via Angular DI
@@ -1461,7 +1485,7 @@ export interface AngularOptions {
 export interface NormalizedAngularOptions {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: NormalizedRuntimeValidation;
+  runtimeValidation: NormalizedAngularRuntimeValidation;
   httpResource?: AngularHttpResourceOptions;
   baseUrl?: AngularBaseUrlOptions;
   queryObjectSerialization: 'spec' | 'legacy';

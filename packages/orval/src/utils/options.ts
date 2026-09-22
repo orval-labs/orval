@@ -47,6 +47,7 @@ import {
   type NormalizedOutputOptions,
   type NormalizedQueryOptions,
   type NormalizedSchemaOptions,
+  normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
   type OperationOptions,
   operationZodOverrideKeys,
@@ -946,7 +947,7 @@ export async function normalizeOptions(
             outputOptions.override?.angular?.retrievalClient ??
             outputOptions.override?.angular?.client ??
             'httpClient',
-          runtimeValidation: normalizeRuntimeValidation(
+          runtimeValidation: normalizeAngularRuntimeValidation(
             outputOptions.override?.angular?.runtimeValidation,
           ),
           queryObjectSerialization:
@@ -1381,7 +1382,7 @@ function normalizeOperationsAndTags(
                     provideIn: angular.provideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
-                    runtimeValidation: normalizeRuntimeValidation(
+                    runtimeValidation: normalizeAngularRuntimeValidation(
                       angular.runtimeValidation,
                     ),
                     queryObjectSerialization:
