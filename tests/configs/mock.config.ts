@@ -1270,4 +1270,68 @@ export default defineConfig({
       target: '../specifications/nullable-binary-parts.yaml',
     },
   },
+  // `exactOptional` leaves optional keys out instead of setting them to
+  // `undefined`; these are typechecked with `exactOptionalPropertyTypes` (#3912).
+  'exact-optional-petstore': {
+    output: {
+      target: '../generated/mock/exact-optional-petstore/endpoints.ts',
+      schemas: '../generated/mock/exact-optional-petstore/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          exactOptional: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'exact-optional-allof': {
+    output: {
+      target: '../generated/mock/exact-optional-allof/endpoints.ts',
+      schemas: '../generated/mock/exact-optional-allof/model',
+      mock: true,
+      override: {
+        mock: {
+          exactOptional: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-allof-inherited.yaml',
+    },
+  },
+  // A native enum is cast through `Parent['key']`, which on an optional key
+  // includes `undefined` unless it is excluded.
+  'exact-optional-native-enum': {
+    output: {
+      target: '../generated/mock/exact-optional-native-enum/endpoints.ts',
+      schemas: '../generated/mock/exact-optional-native-enum/model',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        enumGenerationType: 'enum',
+        mock: {
+          exactOptional: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/enums-inline.yaml',
+    },
+  },
 });

@@ -110,8 +110,8 @@ for (const folder of folders) {
 // ─── exactOptionalPropertyTypes gate (#3909) ─────────────────────────────
 // Under this flag an optional property may be *absent* but never *present and
 // `undefined`, which is how every Angular `httpResource` client stopped
-// compiling in #3909. Mock output does not pass under the flag yet, so the
-// gate lists the fixtures that emit the httpResource request-extension helper.
+// compiling in #3909. The gate lists the fixtures that emit the httpResource
+// request-extension helper.
 const exactOptionalFolders = [
   'base-url-token-both',
   'base-url-token-http-resource',
@@ -156,6 +156,24 @@ typecheck('exact-optional-react-query', {
     (f) => `generated/react-query/${f}`,
   ),
 }, 'react-query (exactOptionalPropertyTypes)');
+
+// Mocks only compile under the flag with `override.mock.exactOptional`, which
+// leaves an optional key out instead of setting it to `undefined` (#3912).
+const mockExactOptionalFolders = [
+  'exact-optional-allof',
+  'exact-optional-native-enum',
+  'exact-optional-petstore',
+];
+
+console.log(
+  `\nTypechecking ${mockExactOptionalFolders.length} mock clients with exactOptionalPropertyTypes...\n`,
+);
+
+typecheck('exact-optional-mock', {
+  extends: './tsconfig.json',
+  compilerOptions: { exactOptionalPropertyTypes: true },
+  include: mockExactOptionalFolders.map((f) => `generated/mock/${f}`),
+}, 'mock (exactOptionalPropertyTypes)');
 
 console.log('\n--- Summary ---\n');
 const labelWidth = Math.max(...results.map((r) => r.label.length));
