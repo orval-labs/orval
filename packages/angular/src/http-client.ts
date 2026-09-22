@@ -7,6 +7,7 @@ import {
   type ContextSpec,
   type GeneratorImport,
   type NormalizedOutputOptions,
+  emitRequestBodyValidation,
   emitResponseValidation,
   getZodNamespaceImport,
   getArrayResponseSchema,
@@ -92,7 +93,9 @@ const getSchemaValueRef = (typeName: string): string =>
 const resolveValidatableSchema = (
   imports: readonly { name: string }[],
   value: string,
-): { outputTypeRef: string; schemaRef: string } | undefined => {
+):
+  | { outputTypeRef: string; schemaRef: string; elementName?: string }
+  | undefined => {
   if (isPrimitiveType(value)) return undefined;
   if (hasSchemaImport(imports, value)) {
     return {
@@ -102,6 +105,75 @@ const resolveValidatableSchema = (
   }
   return getArrayResponseSchema(imports, value, getSchemaValueRef);
 };
+
+/**
+ * The schema a request body is parsed with under
+ * `runtimeValidation.requestBodies` (#4145), or `undefined` when the body is
+ * sent as-is: the option is off, the output has no Zod schemas, a custom
+ * mutator owns the request, or the body is not JSON (form data, url-encoded,
+ * binary and text bodies are skipped).
+ *
+ * `importName` is the schema binding that has to become a value import.
+ */
+export const getRequestBodySchema = (
+  {
+    body,
+    mutator,
+    override,
+  }: Pick<GeneratorVerbOptions, 'body' | 'mutator' | 'override'>,
+  output: NormalizedOutputOptions,
+): { importName: string; schemaRef: string } | undefined => {
+  const { runtimeValidation } = override.angular;
+  if (
+    !runtimeValidation.enabled ||
+    !runtimeValidation.requestBodies ||
+    mutator ||
+    !isZodSchemaOutput(output) ||
+    !body.implementation ||
+    !body.contentType.includes('json')
+  ) {
+    return undefined;
+  }
+
+  const schema = resolveValidatableSchema(body.imports, body.definition);
+  if (!schema) return undefined;
+
+  return {
+    importName: schema.elementName ?? body.definition,
+    schemaRef: schema.schemaRef,
+  };
+};
+
+/** `rxjs`'s `defer`, which a method that parses its request body returns. */
+export const DEFER_IMPORT: GeneratorImport = {
+  name: 'defer',
+  values: true,
+  importPath: 'rxjs',
+};
+
+/**
+ * Promotes the parsed request-body schema to a value import. A schema named
+ * `Error` keeps a type import and gets its value aliased to `ErrorSchema`, so
+ * it does not shadow the global `Error` (the httpResource path does not go
+ * through `generateVerbImports`, which does the same for responses).
+ */
+export const withValueBodyImport = (
+  verbOptions: GeneratorVerbOptions,
+  importName: string,
+): GeneratorVerbOptions => ({
+  ...verbOptions,
+  body: {
+    ...verbOptions.body,
+    imports: verbOptions.body.imports.flatMap((imp) => {
+      if (imp.name !== importName) return [imp];
+      if (imp.name !== 'Error') return [{ ...imp, values: true }];
+      return [
+        imp,
+        { ...imp, alias: getSchemaValueRef(imp.name), values: true },
+      ];
+    }),
+  },
+});
 
 /**
  * Partition props into the three buckets used by per-content-type overload
@@ -561,9 +633,35 @@ export const generateHttpClientImplementation = (
     queryObjectSerialization: override.angular.queryObjectSerialization,
   });
 
+  // With `runtimeValidation.requestBodies`, the body is parsed inside `defer`
+  // so a failure errors the returned observable and no request goes out. The
+  // parsed value is bound to a new name because redeclaring the parameter's
+  // name there would read it in its temporal dead zone.
+  const validatedBody = getRequestBodySchema(
+    { body, mutator, override },
+    context.output,
+  );
+  const parsedBodyName = `parsed${pascal(body.implementation)}`;
+  const sentBody = validatedBody
+    ? { ...body, implementation: parsedBodyName }
+    : body;
+  const withBodyValidation = (statements: string) =>
+    validatedBody
+      ? `return defer(() => {
+      const ${parsedBodyName} = ${emitRequestBodyValidation({
+        schemaRef: validatedBody.schemaRef,
+        operationName,
+        strategy: override.angular.runtimeValidation.strategy,
+        inputExpression: body.implementation,
+        isOptional: body.isOptional,
+      })};
+    ${statements}
+    });`
+      : statements;
+
   const optionsBase = {
     route,
-    body,
+    body: sentBody,
     headers,
     queryParams,
     objectQueryParamStrategies: objectParamStrategies,
@@ -796,7 +894,7 @@ export const generateHttpClientImplementation = (
 
   if (hasMultipleContentTypes) {
     const bodyIdentifier = generateBodyOptions(
-      body,
+      sentBody,
       isFormData,
       isFormUrlEncoded,
     );
@@ -839,12 +937,7 @@ export const generateHttpClientImplementation = (
       .filter(Boolean)
       .join(',\n    ');
 
-    return ` ${overloads}
-  ${operationName}(
-    ${allParams},
-    ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
-  ): ${refinedMultiImplementationReturnType} {${bodyForm}
-    ${paramsDeclaration}const headers = options?.headers instanceof HttpHeaders
+    const acceptDispatch = `${paramsDeclaration}const headers = options?.headers instanceof HttpHeaders
       ? options.headers.set('Accept', accept)
       : { ...(options?.headers ?? {}), Accept: accept };
 
@@ -864,7 +957,14 @@ export const generateHttpClientImplementation = (
         : `
 
     return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};`
-    }
+    }`;
+
+    return ` ${overloads}
+  ${operationName}(
+    ${allParams},
+    ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
+  ): ${refinedMultiImplementationReturnType} {${bodyForm}
+    ${withBodyValidation(acceptDispatch)}
   }
 `;
   }
@@ -909,7 +1009,7 @@ export const generateHttpClientImplementation = (
     ${toObjectString(props, 'implementation')} ${
       isRequestOptions ? `options?: HttpClientObserveOptions` : ''
     }): ${singleImplementationReturnType} {${bodyForm}
-    ${observeImplementation}
+    ${withBodyValidation(observeImplementation)}
   }
 `;
 };
@@ -1092,10 +1192,20 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     options,
   );
 
+  const validatedBody = getRequestBodySchema(
+    verbOptions,
+    options.context.output,
+  );
+  const verbImports = generateVerbImports(
+    validatedBody
+      ? withValueBodyImport(normalizedVerbOptions, validatedBody.importName)
+      : normalizedVerbOptions,
+  );
+
   const baseUrl = options.context.output.override.angular.baseUrl;
 
   const imports = [
-    ...generateVerbImports(normalizedVerbOptions),
+    ...verbImports,
     ...getAngularHttpImports(
       implementation,
       narrowsResponseEvents(normalizedVerbOptions, options.context.output),
@@ -1103,6 +1213,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),
+    ...(validatedBody ? [DEFER_IMPORT] : []),
     // Only a composed array expression references the `zod` namespace; a named
     // schema calls `Schema.parse` on its own binding.
     ...(implementation.includes('zod.array(')

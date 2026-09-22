@@ -2890,3 +2890,304 @@ describe('angular HttpClient generator', () => {
     });
   });
 });
+
+describe('runtimeValidation.requestBodies (#4145)', () => {
+  const requestBodyValidation = {
+    enabled: true,
+    strategy: 'throw',
+    requestBodies: true,
+  } as const;
+
+  const zodOutput = (
+    runtimeValidation: AngularOverride['runtimeValidation'] = requestBodyValidation,
+  ) =>
+    createOutput({
+      schemas: {
+        type: 'zod',
+        path: '/tmp/schemas',
+      } as NormalizedOutputOptions['schemas'],
+      override: {
+        ...createOutput().override,
+        angular: { ...angularOverride, runtimeValidation },
+      },
+    });
+
+  const jsonBody = (
+    overrides: Partial<GeneratorVerbOptions['body']> = {},
+  ): GeneratorVerbOptions['body'] => ({
+    implementation: 'createPetsBody',
+    definition: 'CreatePetsBody',
+    imports: [{ name: 'CreatePetsBody' }],
+    schemas: [],
+    originalSchema: { type: 'object' },
+    contentType: 'application/json',
+    formData: '',
+    formUrlEncoded: '',
+    isBlob: false,
+    isOptional: false,
+    ...overrides,
+  });
+
+  const createPetsVerb = ({
+    body = jsonBody(),
+    runtimeValidation = requestBodyValidation,
+    ...overrides
+  }: Partial<GeneratorVerbOptions> & {
+    runtimeValidation?: AngularOverride['runtimeValidation'];
+  } = {}) => {
+    const optionalMarker = body.isOptional ? '?' : '';
+    const bodyProp = `${body.implementation}${optionalMarker}: ${body.definition}`;
+    return createVerbOption({
+      operationId: 'createPets',
+      operationName: 'createPets',
+      typeName: 'createPets',
+      verb: Verbs.POST,
+      route: '/pets',
+      pathRoute: '/pets',
+      body,
+      params: [],
+      props: [
+        {
+          name: body.implementation,
+          definition: bodyProp,
+          implementation: bodyProp,
+          default: false,
+          required: !body.isOptional,
+          type: GetterPropType.BODY,
+        },
+      ],
+      override: {
+        ...createVerbOption().override,
+        angular: { ...angularOverride, runtimeValidation },
+      } as GeneratorVerbOptions['override'],
+      ...overrides,
+    });
+  };
+
+  const generatorOptions = (output: NormalizedOutputOptions) =>
+    createGeneratorOptions({
+      route: '/api/pets',
+      context: createContextSpec(output),
+      override: output.override,
+    });
+
+  const generate = (
+    verbOption: GeneratorVerbOptions,
+    output: NormalizedOutputOptions = zodOutput(),
+  ) => generateHttpClientImplementation(verbOption, generatorOptions(output));
+
+  beforeEach(() => {
+    resetHttpClientReturnTypes();
+  });
+
+  it('parses the body inside defer and sends the parsed value in every observe branch', () => {
+    const impl = generate(createPetsVerb());
+
+    expect(impl).toContain('return defer(() => {');
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = CreatePetsBody.parse(createPetsBody);',
+    );
+    expect(
+      impl.match(
+        /this\.http\.post<TData>\(\s*`\/api\/pets`,\s*parsedCreatePetsBody,/g,
+      ),
+    ).toHaveLength(3);
+    expect(impl).not.toMatch(/`\/api\/pets`,\s*createPetsBody,/);
+    // The caller still passes the schema's input type.
+    expect(impl).toContain('createPetsBody: CreatePetsBody');
+  });
+
+  it('leaves the method unchanged when requestBodies is off', () => {
+    const off = { enabled: true, strategy: 'throw' } as const;
+    const impl = generate(
+      createPetsVerb({ runtimeValidation: off }),
+      zodOutput(off),
+    );
+
+    expect(impl).not.toContain('defer(');
+    expect(impl).not.toContain('CreatePetsBody.parse');
+    expect(impl).toMatch(/`\/api\/pets`,\s*createPetsBody,/);
+  });
+
+  it('logs and re-throws under the both strategy', () => {
+    const both = { ...requestBodyValidation, strategy: 'both' } as const;
+    const impl = generate(
+      createPetsVerb({ runtimeValidation: both }),
+      zodOutput(both),
+    );
+
+    expect(impl).toContain(
+      "const parsedCreatePetsBody = (() => { const result = CreatePetsBody.safeParse(createPetsBody); if (!result.success) { console.error('[orval] createPets request body validation failed', result.error); throw result.error; } return result.data; })();",
+    );
+  });
+
+  it('passes an omitted optional body through', () => {
+    const impl = generate(
+      createPetsVerb({ body: jsonBody({ isOptional: true }) }),
+    );
+
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = createPetsBody === undefined ? undefined : CreatePetsBody.parse(createPetsBody);',
+    );
+  });
+
+  it('parses an inline array body through its element schema', () => {
+    const impl = generate(
+      createPetsVerb({
+        body: jsonBody({
+          implementation: 'petBody',
+          definition: 'Pet[]',
+          imports: [{ name: 'Pet' }],
+        }),
+      }),
+    );
+
+    expect(impl).toContain(
+      'const parsedPetBody = zod.array(Pet).parse(petBody);',
+    );
+  });
+
+  it('parses before the multi-content Accept dispatch', () => {
+    const impl = generate(
+      createPetsVerb({
+        response: baseResponse({
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      }),
+    );
+
+    expect(impl).toContain('return defer(() => {');
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = CreatePetsBody.parse(createPetsBody);',
+    );
+    expect(impl).not.toMatch(/`\/api\/pets`,\s*createPetsBody,/);
+    expect(impl).toMatch(/`\/api\/pets`,\s*parsedCreatePetsBody,/);
+  });
+
+  it('parses without request options', () => {
+    const verb = createPetsVerb();
+    const impl = generate({
+      ...verb,
+      override: { ...verb.override, requestOptions: false },
+    });
+
+    expect(impl).toContain('return defer(() => {');
+    expect(impl).toMatch(/`\/api\/pets`,\s*parsedCreatePetsBody/);
+  });
+
+  it.each([
+    [
+      'multipart form data',
+      jsonBody({
+        contentType: 'multipart/form-data',
+        formData: 'const formData = new FormData();',
+      }),
+    ],
+    [
+      'url-encoded form data',
+      jsonBody({
+        contentType: 'application/x-www-form-urlencoded',
+        formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();',
+      }),
+    ],
+    [
+      'a binary body',
+      jsonBody({
+        definition: 'Blob',
+        imports: [],
+        contentType: 'application/octet-stream',
+        isBlob: true,
+      }),
+    ],
+    [
+      'a text body',
+      jsonBody({
+        definition: 'string',
+        imports: [],
+        contentType: 'text/plain',
+      }),
+    ],
+  ])('skips %s', (_, body) => {
+    const impl = generate(createPetsVerb({ body }));
+
+    expect(impl).not.toContain('defer(');
+    expect(impl).not.toContain('.parse(');
+  });
+
+  it('skips operations with a custom mutator', () => {
+    const impl = generate(
+      createPetsVerb({
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-instance.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        } as GeneratorVerbOptions['mutator'],
+      }),
+    );
+
+    expect(impl).not.toContain('defer(');
+    expect(impl).not.toContain('.parse(');
+  });
+
+  it('skips non-Zod schema output', () => {
+    const output = createOutput({
+      override: {
+        ...createOutput().override,
+        angular: {
+          ...angularOverride,
+          runtimeValidation: requestBodyValidation,
+        },
+      },
+    });
+    const impl = generate(createPetsVerb(), output);
+
+    expect(impl).not.toContain('defer(');
+  });
+
+  it('imports the body schema as a value and defer from rxjs', async () => {
+    const output = zodOutput();
+    const { imports } = await generateAngular(
+      createPetsVerb(),
+      generatorOptions(output),
+      'angular',
+      output,
+    );
+
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'CreatePetsBody', values: true }),
+    );
+    expect(imports).toContainEqual({
+      name: 'defer',
+      values: true,
+      importPath: 'rxjs',
+    });
+  });
+
+  it('keeps the body a type-only import when requestBodies is off', async () => {
+    const off = { enabled: true, strategy: 'throw' } as const;
+    const output = zodOutput(off);
+    const { imports } = await generateAngular(
+      createPetsVerb({ runtimeValidation: off }),
+      generatorOptions(output),
+      'angular',
+      output,
+    );
+
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'CreatePetsBody', values: true }),
+    );
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'defer' }),
+    );
+  });
+});
