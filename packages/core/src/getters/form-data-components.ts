@@ -1,12 +1,13 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type {
   ContextSpec,
-  OpenApiMediaTypeObject,
   OpenApiOperationObject,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
 } from '../types';
 import { Verbs } from '../types';
-import { isReference } from '../utils/assertion';
+import { isInlineSchema } from '../utils';
 import type { FormDataContext } from './object';
 import { getRefInfo, isComponentRef } from './ref';
 
@@ -92,15 +93,11 @@ function indexRequestBody(
   // Request bodies referencing `#/components/requestBodies/...` are already
   // covered by the components sweep above; anything else (a bundler-emitted
   // path ref, an external document) has no named slot to look up here.
-  if (isReference(requestBody)) {
+  if (!isInlineSchema(requestBody)) {
     return;
   }
 
-  const mediaType = (
-    requestBody.content as
-      | Record<string, OpenApiMediaTypeObject | undefined>
-      | undefined
-  )?.[MULTIPART_CONTENT_TYPE];
+  const mediaType = requestBody.content[MULTIPART_CONTENT_TYPE];
 
   const schema = mediaType?.schema;
 
@@ -108,10 +105,13 @@ function indexRequestBody(
   // such as `#/components/schemas/Wrapper/properties/upload`: `getRefInfo`
   // names it after its last token, which would hand the form-data context to
   // an unrelated `components.schemas.upload`.
+  // A `$ref` with siblings is a Schema Object in OAS 3.1, so this is a string
+  // `$ref` check rather than a Reference Object guard. Boolean schemas have no `$ref`.
   if (
     !schema ||
-    !isReference(schema) ||
-    !schema.$ref?.startsWith(SCHEMA_REF_PREFIX) ||
+    isBooleanJsonSchema(schema) ||
+    typeof schema.$ref !== 'string' ||
+    !schema.$ref.startsWith(SCHEMA_REF_PREFIX) ||
     !isComponentRef(schema.$ref)
   ) {
     return;

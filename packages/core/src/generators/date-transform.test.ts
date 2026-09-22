@@ -7,6 +7,7 @@ import type {
   ContextSpec,
   GetterBody,
   GetterResponse,
+  OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
 import {
@@ -1485,7 +1486,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and a scalar variant disqualifies the union', () => {
     const makeScalarSiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1532,7 +1533,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and an array variant disqualifies the union', () => {
     const makeArraySiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1575,7 +1576,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and an unresolvable variant disqualifies the union', () => {
     const makeBrokenSiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1701,7 +1702,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     // Returning only `{ Node }` from the variant loop left `Outer`
     // converting `oat` while everything under `node` stayed a string.
     const makeOuterContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Outer: {
@@ -1956,7 +1957,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     // `data.child`, typed `Date` by the model, stayed a string.
     const makeItemsCycleContext = (
       back: string,
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -2483,14 +2484,14 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
       Vehicle: {
         type: 'object',
         properties: {
-          toString: { type: 'string', format: 'date' },
+          toString: { type: 'string' as const, format: 'date' },
           registeredOn: { type: 'string', format: 'date' },
         },
       },
       Trailer: {
         type: 'object',
         properties: {
-          toString: { type: 'string', format: 'date' },
+          toString: { type: 'string' as const, format: 'date' },
           registeredOn: { type: 'string', format: 'date' },
         },
       },

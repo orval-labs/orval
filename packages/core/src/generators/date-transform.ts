@@ -939,7 +939,7 @@ const buildMappedUnionStatements = ({
  * — and it's correctly rejected too, since a null schema declares no
  * properties of its own.
  */
-const isObjectVariant = (schema: OpenApiSchemaObject): boolean => {
+const isObjectVariant = (schema: OpenApiNonBooleanSchemaObject): boolean => {
   if (schema.items || schema.type === 'array') return false;
   return hasOwnProperties(schema);
 };
@@ -954,7 +954,7 @@ const isObjectVariant = (schema: OpenApiSchemaObject): boolean => {
 type ClassifiedVariant =
   | {
       kind: 'walkable';
-      schema: OpenApiSchemaObject;
+      schema: OpenApiNonBooleanSchemaObject;
       ref?: string;
       objectShaped: boolean;
     }
@@ -975,7 +975,7 @@ const classifyUnionVariant = (
   context: ContextSpec,
   visitedRefs: Set<string>,
 ): ClassifiedVariant => {
-  let variantSchema: OpenApiSchemaObject;
+  let variantSchema: OpenApiNonBooleanSchemaObject;
   let ref: string | undefined;
   try {
     ({ schema: variantSchema, ref } = normalizeSchema(variant, context));
@@ -1087,7 +1087,7 @@ const discoverVariantCycles = ({
  * spelling alone drop the schema — a disagreement where there is currently
  * none, over a branch neither spelling ever converts.
  */
-const hasUnwalkedBranches = (schema: OpenApiSchemaObject): boolean =>
+const hasUnwalkedBranches = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   (schema.allOf ?? []).length > 0 ||
   schema.oneOf != null ||
   schema.anyOf != null;
@@ -1181,7 +1181,7 @@ const buildUndiscriminatedUnionStatements = ({
   depth,
   mode,
 }: {
-  schema: OpenApiSchemaObject;
+  schema: OpenApiNonBooleanSchemaObject;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
@@ -1208,7 +1208,7 @@ const buildUndiscriminatedUnionStatements = ({
   // it emits nothing either way, so it takes the wider, statement-free walk
   // (`discoverVariantCycles`) instead of the property-by-property one.
   const perVariant: {
-    schema: OpenApiSchemaObject;
+    schema: OpenApiNonBooleanSchemaObject;
     perKey: Map<string, BuildResult>;
     /** Refs seen only in branches this walk reads for cycles, never converts. */
     branchRefs: Set<string>;
@@ -1409,7 +1409,7 @@ const buildUndiscriminatedUnionStatements = ({
  * `switch` needs, not the property name.
  */
 const buildUnionStatements = (params: {
-  schema: OpenApiSchemaObject;
+  schema: OpenApiNonBooleanSchemaObject;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
