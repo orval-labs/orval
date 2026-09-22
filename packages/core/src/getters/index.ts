@@ -3,6 +3,7 @@ export * from './body';
 export * from './combine';
 export * from './discriminators';
 export * from './enum';
+export * from './form-data-components';
 export * from './keys';
 export * from './object';
 export * from './operation';
