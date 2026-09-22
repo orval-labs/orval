@@ -122,3 +122,31 @@ Metadata generates `z.enum({ ... })` for Zod 4 and `z.nativeEnum({ ... } as cons
 
 When metadata produces an enum **object** (`z.enum({ Cat: 'cat', ... })`), the generator always emits constant-style `key: value` pairs and deliberately ignores the [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) setting. The object is inserted as an object-literal argument, where `union` (`'cat' | 'dog'`) and `enum` (`Cat = 'cat'`) output are not valid — either would make the generated code fail to parse. If you need union or enum-style output, apply it to enums **without** metadata instead.
 
+### `oneOf`/`const` branches
+
+Annotated `oneOf`/`const` branches keep the union-of-literals shape. Each annotated branch carries its `title`, `description` and `deprecated` in [`.meta()`](https://zod.dev/metadata), so the values stay readable at runtime through `zod.globalRegistry`:
+
+```ts
+export const Status = zod.union([
+  zod
+    .literal('PENDING')
+    .meta({ title: 'Pending', description: 'Awaiting manual review' }),
+  zod.literal('LEGACY').meta({
+    title: 'Legacy',
+    description: 'No longer issued',
+    deprecated: true,
+  }),
+]);
+
+Status.options.map((o) => ({ value: o.value, ...zod.globalRegistry.get(o) }));
+```
+
+This does not need `output.override.zod.generateMeta`. Per Zod version:
+
+| Zod version | Output                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Zod 4       | `.meta({ title, description, deprecated })` on each annotated branch                        |
+| Zod 4 Mini  | `.check(zod.meta({ ... }))` on each annotated branch                                        |
+| Zod 3       | No registry, so branches keep `.describe(description)` and `title`/`deprecated` are dropped |
+
+Branches with only a `description`, or with no metadata at all, keep their existing `.describe()` output.
