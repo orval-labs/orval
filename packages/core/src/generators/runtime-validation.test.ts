@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  emitRequestBodyValidation,
   emitResponseValidation,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   hasSchemaImport,
   isPrimitiveResponseType,
+  normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
   rewriteImportsForResponseValidation,
 } from './runtime-validation';
@@ -182,6 +184,90 @@ describe('normalizeRuntimeValidation', () => {
     expect(
       normalizeRuntimeValidation({ enabled: true, strategy: 'both' }),
     ).toEqual({ enabled: true, strategy: 'both' });
+  });
+});
+
+describe('emitRequestBodyValidation', () => {
+  it('emits a bare parse call for the throw strategy', () => {
+    expect(
+      emitRequestBodyValidation({
+        schemaRef: 'CreatePetsBody',
+        operationName: 'createPets',
+        strategy: 'throw',
+        inputExpression: 'createPetsBody',
+      }),
+    ).toBe('CreatePetsBody.parse(createPetsBody)');
+  });
+
+  it('IIFE-wraps a request-body safeParse guard for the both strategy', () => {
+    expect(
+      emitRequestBodyValidation({
+        schemaRef: 'CreatePetsBody',
+        operationName: 'createPets',
+        strategy: 'both',
+        inputExpression: 'createPetsBody',
+      }),
+    ).toBe(
+      "(() => { const result = CreatePetsBody.safeParse(createPetsBody); if (!result.success) { console.error('[orval] createPets request body validation failed', result.error); throw result.error; } return result.data; })()",
+    );
+  });
+
+  it('skips parsing an omitted optional body', () => {
+    expect(
+      emitRequestBodyValidation({
+        schemaRef: 'Pet',
+        operationName: 'patchPet',
+        strategy: 'throw',
+        inputExpression: 'pet',
+        isOptional: true,
+      }),
+    ).toBe('pet === undefined ? undefined : Pet.parse(pet)');
+  });
+});
+
+describe('normalizeAngularRuntimeValidation', () => {
+  it('leaves request bodies off for the boolean and strategy forms', () => {
+    expect(normalizeAngularRuntimeValidation(undefined)).toEqual({
+      enabled: false,
+      strategy: 'throw',
+      requestBodies: false,
+    });
+    expect(normalizeAngularRuntimeValidation(true)).toEqual({
+      enabled: true,
+      strategy: 'throw',
+      requestBodies: false,
+    });
+    expect(normalizeAngularRuntimeValidation({ strategy: 'both' })).toEqual({
+      enabled: true,
+      strategy: 'both',
+      requestBodies: false,
+    });
+  });
+
+  it('enables request bodies with the throw strategy when no strategy is given', () => {
+    expect(normalizeAngularRuntimeValidation({ requestBodies: true })).toEqual({
+      enabled: true,
+      strategy: 'throw',
+      requestBodies: true,
+    });
+  });
+
+  it('keeps the configured strategy alongside request bodies', () => {
+    expect(
+      normalizeAngularRuntimeValidation({
+        strategy: 'both',
+        requestBodies: true,
+      }),
+    ).toEqual({ enabled: true, strategy: 'both', requestBodies: true });
+  });
+
+  it('is idempotent on an already-normalized value', () => {
+    const normalized = {
+      enabled: true,
+      strategy: 'throw',
+      requestBodies: true,
+    } as const;
+    expect(normalizeAngularRuntimeValidation(normalized)).toEqual(normalized);
   });
 });
 

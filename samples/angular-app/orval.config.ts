@@ -208,6 +208,34 @@ export default defineConfig({
       },
     },
   },
+  petstoreZodRequestBodies: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-zod-request-bodies/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/endpoints-zod-request-bodies/model',
+      },
+      client: 'angular',
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+      override: {
+        angular: {
+          // Mutations stay HttpClient methods under `both`, so this also
+          // covers request-body parsing next to generated resources.
+          retrievalClient: 'both',
+          runtimeValidation: { strategy: 'throw', requestBodies: true },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'src/orval/transformer/add-version.ts',
+      },
+    },
+  },
   petstoreHttpResource: {
     output: {
       mode: 'tags-split',

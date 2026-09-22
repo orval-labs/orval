@@ -7,7 +7,7 @@ import type {
   NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
-import { GetterPropType } from '@orval/core';
+import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -645,6 +645,92 @@ describe('angular httpResource generator', () => {
       expect(result.imports).not.toContainEqual(
         expect.objectContaining({ name: 'zod' }),
       );
+    });
+
+    const generateMutationImports = async (
+      requestBodies: boolean,
+      bodyName = 'CreatePetsBody',
+    ) => {
+      const angular = {
+        ...angularOverride('httpResource'),
+        runtimeValidation: {
+          enabled: true,
+          strategy: 'throw',
+          requestBodies,
+        },
+      } as const;
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular,
+        } as NormalizedOutputOptions['override'],
+      });
+      const verbOption = createVerbOption({
+        operationId: 'createPets',
+        operationName: 'createPets',
+        verb: Verbs.POST,
+        body: {
+          implementation: 'body',
+          definition: bodyName,
+          imports: [{ name: bodyName }],
+          schemas: [],
+          originalSchema: { type: 'object' },
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isBlob: false,
+          isOptional: false,
+        },
+        override: {
+          ...createVerbOption().override,
+          angular,
+        } as GeneratorVerbOptions['override'],
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/pets',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+      return result.imports;
+    };
+
+    it.each([
+      [true, 'imports the parsed body schema as a value and defer'],
+      [false, 'keeps the body type-only without requestBodies'],
+    ])('requestBodies=%s on a mutation: %s (#4145)', async (requestBodies) => {
+      const imports = await generateMutationImports(requestBodies);
+
+      const valueImport = { name: 'CreatePetsBody', values: true };
+      const deferImport = expect.objectContaining({ name: 'defer' });
+      if (requestBodies) {
+        expect(imports).toContainEqual(valueImport);
+        expect(imports).toContainEqual(deferImport);
+      } else {
+        expect(imports).not.toContainEqual(valueImport);
+        expect(imports).not.toContainEqual(deferImport);
+      }
+    });
+
+    it('aliases a parsed `Error` body schema so it does not shadow the global (#4145)', async () => {
+      const imports = await generateMutationImports(true, 'Error');
+
+      expect(imports).toContainEqual({
+        name: 'Error',
+        alias: 'ErrorSchema',
+        values: true,
+      });
+      expect(imports).not.toContainEqual({ name: 'Error', values: true });
     });
   });
 

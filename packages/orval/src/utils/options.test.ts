@@ -538,7 +538,58 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.angular.runtimeValidation).toEqual({
         enabled: false,
         strategy: 'throw',
+        requestBodies: false,
       });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes angular runtimeValidation.requestBodies globally and per operation', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'angular',
+            override: {
+              angular: {
+                runtimeValidation: { requestBodies: true },
+              },
+              operations: {
+                createPets: {
+                  angular: {
+                    runtimeValidation: {
+                      strategy: 'both',
+                      requestBodies: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.runtimeValidation).toEqual({
+        enabled: true,
+        strategy: 'throw',
+        requestBodies: true,
+      });
+      expect(
+        normalized.output.override.operations.createPets?.angular
+          ?.runtimeValidation,
+      ).toEqual({ enabled: true, strategy: 'both', requestBodies: true });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -1,5 +1,7 @@
 import type {
+  AngularRuntimeValidation,
   GeneratorImport,
+  NormalizedAngularRuntimeValidation,
   NormalizedOverrideOutput,
   NormalizedRuntimeValidation,
   RuntimeValidation,
@@ -62,10 +64,11 @@ const buildGuardBody = (
   schemaRef: string,
   operationName: string,
   input: string,
+  subject: 'response' | 'request body' = 'response',
 ): string =>
   `const result = ${schemaRef}.safeParse(${input}); ` +
   `if (!result.success) { ` +
-  `console.error('[orval] ${escapeSingleQuoted(operationName)} response validation failed', result.error); ` +
+  `console.error('[orval] ${escapeSingleQuoted(operationName)} ${subject} validation failed', result.error); ` +
   `throw result.error; ` +
   `} ` +
   `return result.data;`;
@@ -108,6 +111,40 @@ export const emitResponseValidation = ({
   }
 };
 
+export interface EmitRequestBodyValidationOptions {
+  /** Reference to the Zod schema value, e.g. `CreatePetsBody`. */
+  schemaRef: string;
+  /** Operation name, surfaced in the `both` strategy's `console.error` message. */
+  operationName: string;
+  strategy: RuntimeValidationStrategy;
+  /** The body argument to parse, e.g. `createPetsBody`. */
+  inputExpression: string;
+  /** An omitted optional body is passed through instead of parsed. */
+  isOptional?: boolean;
+}
+
+/**
+ * Emits an expression that parses a request body before it is sent. `throw`
+ * is a bare `Schema.parse(...)`; `both` logs the raw `ZodError` and re-throws,
+ * like its response counterpart.
+ */
+export const emitRequestBodyValidation = ({
+  schemaRef,
+  operationName,
+  strategy,
+  inputExpression,
+  isOptional = false,
+}: EmitRequestBodyValidationOptions): string => {
+  const parse =
+    strategy === 'both'
+      ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression, 'request body')} })()`
+      : `${schemaRef}.parse(${inputExpression})`;
+
+  return isOptional
+    ? `${inputExpression} === undefined ? undefined : ${parse}`
+    : parse;
+};
+
 /**
  * Normalizes the user-facing `runtimeValidation` config surface
  * (`boolean | { strategy }`) into the canonical `{ enabled, strategy }` object
@@ -131,6 +168,29 @@ export const normalizeRuntimeValidation = (
     return value;
   }
   return { enabled: true, strategy: value.strategy ?? 'throw' };
+};
+
+/**
+ * Angular variant of {@link normalizeRuntimeValidation}: also resolves the
+ * `requestBodies` opt-in, which only the object form can switch on.
+ * Idempotent, like the shared normalizer.
+ */
+export const normalizeAngularRuntimeValidation = (
+  value:
+    | AngularRuntimeValidation
+    | NormalizedAngularRuntimeValidation
+    | undefined,
+): NormalizedAngularRuntimeValidation => {
+  if (typeof value !== 'object') {
+    return { ...normalizeRuntimeValidation(value), requestBodies: false };
+  }
+  if ('enabled' in value) {
+    return value;
+  }
+  return {
+    ...normalizeRuntimeValidation({ strategy: value.strategy ?? 'throw' }),
+    requestBodies: value.requestBodies ?? false,
+  };
 };
 
 /**
