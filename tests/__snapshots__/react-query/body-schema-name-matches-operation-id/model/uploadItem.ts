@@ -7,5 +7,5 @@
 
 export interface UploadItem {
   name: string;
-  file: Blob;
+  file: Blob | File;
 }

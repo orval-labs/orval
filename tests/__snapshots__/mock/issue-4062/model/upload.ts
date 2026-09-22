@@ -8,6 +8,6 @@ import type { IFormFile } from './iFormFile';
 
 export interface Upload {
   name?: string;
-  file?: Blob;
+  file?: Blob | File;
   attachment?: IFormFile;
 }

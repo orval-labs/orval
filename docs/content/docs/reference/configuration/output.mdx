@@ -3052,6 +3052,25 @@ Make all properties required in mocks.
 
 When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`. For OpenAPI 3.1 null-union array items (`type: ['string', 'null']`), this also skips null inside `.map()` callbacks. Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
 
+### exactOptional
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `true`, an optional property is left out of the mock object half the time instead of being set to `undefined`. Use it when your project compiles with `exactOptionalPropertyTypes`, which rejects a present key holding `undefined`.
+
+```ts
+// default
+barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
+
+// exactOptional: true
+...(faker.datatype.boolean() ? { barksPerMinute: faker.number.int() } : {}),
+```
+
+Optional nullable properties are unchanged: they still pick between the value and `null`, because `null` is a value, not an absence. Setting `nonNullable` as well drops that `null`, and those properties are then spread in the same way.
+
+This changes runtime shape as well as types: `in` checks and `Object.keys` now see the key missing. To keep every optional property present instead, use `required: true`.
+
 ### delay
 
 **Type:** `Number | Function | false`

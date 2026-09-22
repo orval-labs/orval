@@ -2687,6 +2687,25 @@ export default defineConfig({
 
 当设为 `true` 时，可空属性不会再通过 `faker.helpers.arrayElement([value, null])` 来生成。对于 OpenAPI 3.1 中的 null-union 数组项（`type: ['string', 'null']`），这也会跳过 `.map()` 回调里的 `null`。可选属性仍然可能通过 `arrayElement([value, undefined])` 被省略，除非同时把 `required` 也设为 `true`。运行时你仍然可以通过工厂函数的 `overrideResponse` 参数传入 `null`。
 
+### exactOptional
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+当设为 `true` 时，可选属性有一半的概率不出现在 mock 对象中，而不是被设为 `undefined`。如果你的项目开启了 `exactOptionalPropertyTypes`（它不允许已存在的键取值为 `undefined`），请使用这个选项。
+
+```ts
+// 默认
+barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
+
+// exactOptional: true
+...(faker.datatype.boolean() ? { barksPerMinute: faker.number.int() } : {}),
+```
+
+可选的可空属性不受影响：它们仍然在值和 `null` 之间随机，因为 `null` 是一个值，而不是缺失。如果同时设置了 `nonNullable`，`null` 会被去掉，这些属性也会以同样的方式展开。
+
+这不仅改变类型，也改变运行时形状：`in` 检查和 `Object.keys` 会发现键不存在。如果希望所有可选属性始终存在，请改用 `required: true`。
+
 ### delay
 
 **类型：** `Number | Function | false`

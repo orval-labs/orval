@@ -731,6 +731,7 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   numberMax?: number;
   required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
   nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
+  exactOptional?: boolean; // When true, optional properties are omitted instead of set to `undefined`, for `exactOptionalPropertyTypes`.
   properties?: MockProperties;
   // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
   // so the same property name can mock differently per schema. Matching rules are

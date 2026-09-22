@@ -1,7 +1,13 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { isArray, isEmptyish } from 'remeda';
 
-import { getEnum, getEnumMembers, resolveDiscriminators } from '../getters';
+import {
+  getEnum,
+  getEnumMembers,
+  getFormDataComponentContexts,
+  resolveDiscriminators,
+} from '../getters';
+import type { FormDataContext } from '../getters/object';
 import {
   buildDynamicScope,
   dynamicAnchorsToUniqueParamNames,
@@ -60,8 +66,21 @@ export function generateSchemasDefinition(
     });
   }
 
+  // A component schema used as a `multipart/form-data` request body is emitted
+  // here, detached from the operation that declares its media type, so its
+  // binary parts would otherwise fall back to the context-free `Blob` that
+  // inline bodies avoid (#4177). Scanned once for the whole run.
+  const formDataContexts = getFormDataComponentContexts(context);
+
   const models = generateSchemas.flatMap(([schemaName, schema]) =>
-    generateSchemaDefinitions(schemaName, schema, context, suffix, prefix),
+    generateSchemaDefinitions(
+      schemaName,
+      schema,
+      context,
+      suffix,
+      prefix,
+      formDataContexts.get(schemaName),
+    ),
   );
 
   // Deduplicate schemas by normalized name to prevent duplicate exports
@@ -220,6 +239,7 @@ function generateSchemaDefinitions(
   context: ContextSpec,
   suffix: string,
   prefix = '',
+  formDataContext?: FormDataContext,
 ): GeneratorSchema[] {
   const sanitizedSchemaName = sanitize(
     `${prefix}${pascal(schemaName)}${suffix}`,
@@ -278,7 +298,10 @@ function generateSchemaDefinitions(
         const resolved = resolveValue({
           schema: extraSchema,
           name: sanitizedSchemaName,
+          // The extra `allOf` members are intersected into the alias, so their
+          // properties are top-level parts of the same multipart body.
           context: aliasScopedContext,
+          formDataContext,
         });
         for (const imp of resolved.imports) {
           const impSchemaName = imp.schemaName ?? imp.name;
@@ -339,6 +362,7 @@ function generateSchemaDefinitions(
       name: sanitizedSchemaName,
       schema,
       context: scopedContext,
+      formDataContext,
       genericParams:
         genericParams.length > 0
           ? genericParams.map((p) => p.paramName)
@@ -350,6 +374,7 @@ function generateSchemaDefinitions(
     schema,
     name: sanitizedSchemaName,
     context: scopedContext,
+    formDataContext,
   });
 
   let output = '';
