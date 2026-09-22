@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.34.0",
+  "version": "8.36.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -29,7 +29,7 @@
     "@angular-eslint/builder": "22.0.0",
     "@angular-eslint/eslint-plugin": "22.1.0",
     "@angular-eslint/eslint-plugin-template": "22.0.0",
-    "@angular-eslint/template-parser": "22.0.0",
+    "@angular-eslint/template-parser": "22.5.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",

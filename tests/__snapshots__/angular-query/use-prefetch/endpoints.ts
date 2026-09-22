@@ -9,7 +9,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 
 import {
-  QueryClient,
   injectMutation,
   injectQuery,
 } from '@tanstack/angular-query-experimental';
@@ -19,12 +18,13 @@ import type {
   CreateQueryOptions,
   CreateQueryResult,
   MutationFunction,
+  QueryClient,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 
-import { map, takeUntil } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 
 import type {
   CreatePetsBody,

@@ -738,6 +738,7 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   numberMax?: number;
   required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
   nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
+  exactOptional?: boolean; // When true, optional properties are omitted instead of set to `undefined`, for `exactOptionalPropertyTypes`.
   properties?: MockProperties;
   // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
   // so the same property name can mock differently per schema. Matching rules are
@@ -2192,6 +2193,12 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
+  /**
+   * The client implementation these imports are for, so a builder can settle a
+   * question the config cannot: whether *this file* uses an export as a value.
+   * Empty for callers that have no implementation to offer.
+   */
+  implementation?: string,
 ) => GeneratorDependency[];
 
 export interface ClientMockGeneratorImplementation {

@@ -32,10 +32,6 @@ import type {
   Signal
 } from '@angular/core';
 
-import {
-  map
-} from 'rxjs';
-
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */

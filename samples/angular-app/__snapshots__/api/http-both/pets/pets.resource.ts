@@ -6,8 +6,6 @@
  */
 import type { ListPetsParams, Pet, Pets, SearchPetsParams } from '../model';
 
-import { map } from 'rxjs';
-
 import type { ListPetsAccept, ShowPetByIdAccept } from './pets.service';
 
 import { HttpHeaders, httpResource } from '@angular/common/http';

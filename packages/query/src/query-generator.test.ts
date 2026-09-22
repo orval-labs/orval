@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createFrameworkAdapter } from './frameworks';
 import {
   allowUndefinedParam,
+  getBuilderQueryFnProperty,
   getMutationInvalidatesConflictWarning,
   getQueryFnProperty,
   getQueryKeyVerbPrefix,
@@ -778,6 +779,24 @@ describe('getQueryFnProperty', () => {
         type: QueryType.SUSPENSE_INFINITE,
       }),
     ).toBe('queryFn');
+  });
+});
+
+describe('getBuilderQueryFnProperty', () => {
+  it('falls back to the generated queryFn after the caller spread', () => {
+    expect(getBuilderQueryFnProperty('queryFn')).toBe(
+      'queryFn: queryOptions?.queryFn ?? queryFn',
+    );
+  });
+
+  it('parenthesises a skipToken conditional, which ?? cannot take bare', () => {
+    expect(
+      getBuilderQueryFnProperty(
+        'queryFn: petId === null || petId === undefined ? skipToken : queryFn',
+      ),
+    ).toBe(
+      'queryFn: queryOptions?.queryFn ?? (petId === null || petId === undefined ? skipToken : queryFn)',
+    );
   });
 });
 

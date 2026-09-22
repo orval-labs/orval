@@ -270,3 +270,15 @@ describe('getMockWithoutFunc (override.mock.schemas)', () => {
     expect(result.schemas).toBeUndefined();
   });
 });
+
+describe('getMockWithoutFunc (override.mock.exactOptional)', () => {
+  it('passes exactOptional through to the mock options', () => {
+    const override = {
+      mock: { exactOptional: true },
+    } as unknown as NormalizedOverrideOutput;
+
+    const result = getMockWithoutFunc({} as OpenApiDocument, override);
+
+    expect(result.exactOptional).toBe(true);
+  });
+});

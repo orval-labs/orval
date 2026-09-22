@@ -1268,6 +1268,59 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
   });
 });
 
+// An inline enum is cast through its parent, and `Pet['status']` on an
+// optional key includes `undefined`. Once `exactOptional` spreads the key in
+// instead of offering `undefined`, that `undefined` has to be cast out (#3912).
+describe('getMockScalar (inline enum cast under exactOptional)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: ['Pet'],
+    splitMockImplementations: [],
+    context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+  };
+
+  const statusItem = {
+    type: 'string' as OpenApiSchemaObjectType,
+    enum: ['DRAFT', 'PUBLISHED'],
+    name: 'status',
+    parentName: 'Pet',
+  };
+
+  it('keeps the plain indexed-access cast by default', () => {
+    const result = getMockScalar({ ...baseArg, item: statusItem });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['DRAFT','PUBLISHED'] as Pet['status'][])",
+    );
+  });
+
+  it('excludes undefined from the indexed-access cast', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: statusItem,
+      mockOptions: { exactOptional: true },
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['DRAFT','PUBLISHED'] as Exclude<Pet['status'], undefined>[])",
+    );
+  });
+
+  it('excludes undefined from an array property cast', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...statusItem, name: 'tags', path: '#.tags.[]' },
+      mockOptions: { exactOptional: true },
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElements(['DRAFT','PUBLISHED'] as Exclude<Pet['tags'], undefined>)",
+    );
+  });
+});
+
 describe('getMockScalar (enum member type confusion)', () => {
   const baseArg = {
     imports: [],

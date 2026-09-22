@@ -270,7 +270,7 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
     } finally {
       await fs.remove(tmpDir);
     }
-  }, 30_000);
+  });
 });
 
 describe('writeSpecs', () => {

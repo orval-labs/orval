@@ -25,6 +25,7 @@ export const createSvelteAdapter = ({
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
   hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
 }: {
   hasSvelteQueryV4: boolean;
@@ -33,6 +34,7 @@ export const createSvelteAdapter = ({
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
   hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
 }): FrameworkAdapterConfig => {
   const prefix = hasSvelteQueryV4 ? 'Create' : 'Use';
@@ -44,6 +46,7 @@ export const createSvelteAdapter = ({
     hasQueryV5WithDataTagError,
     hasQueryV5WithInfiniteQueryOptionsError,
     hasQueryV5WithMutationContextOnSuccess,
+    hasQueryV5WithOptionalOnMutateResult,
     hasQueryV5WithRequiredContextOnSuccess,
 
     getHookPropsDefinitions(props: GetterProps): string {

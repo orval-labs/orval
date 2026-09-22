@@ -78,6 +78,23 @@ export default defineConfig({
       },
     },
   },
+  mutator: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/mutator/handlers.ts',
+      schemas: '../generated/mcp/mutator/http-schemas',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+  },
   customHandler: {
     input: '../specifications/petstore.yaml',
     output: {

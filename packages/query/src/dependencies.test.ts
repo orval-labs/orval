@@ -2,10 +2,12 @@ import { generateDependencyImports, type PackageJson } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  getAngularQueryDependencies,
   getVueQueryDependencies,
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
+  isQueryV5WithOptionalOnMutateResult,
   isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
 } from './dependencies';
@@ -116,6 +118,55 @@ describe('isQueryV5WithDataTagError', () => {
   });
 });
 
+describe('isQueryV5WithOptionalOnMutateResult', () => {
+  const resolvedTo = (version: string): PackageJson => ({
+    resolvedVersions: { '@tanstack/react-query': version },
+  });
+
+  // 5.89.0 widened `onSuccess`'s third parameter to `TOnMutateResult |
+  // undefined`; 5.90.2 narrowed it back. No 5.89.x patch was published, so
+  // 5.89.0 and 5.90.1 are the entire window. See #4180.
+  it.each(['5.89.0', '5.90.1'])('returns true inside the window (%s)', (v) => {
+    expect(
+      isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+    ).toBe(true);
+  });
+
+  it.each(['5.88.0', '5.62.16', '5.90.2', '5.92.7', '6.0.0'])(
+    'returns false outside the window (%s)',
+    (v) => {
+      expect(
+        isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+      ).toBe(false);
+    },
+  );
+
+  it('ignores a prerelease suffix', () => {
+    expect(
+      isQueryV5WithOptionalOnMutateResult(
+        resolvedTo('5.90.1-rc.1'),
+        'react-query',
+      ),
+    ).toBe(true);
+  });
+
+  // compareVersions answers true for a version it cannot resolve, so both
+  // bounds agree and the unresolvable version must land on the current, narrow
+  // shape rather than inside the two-release window.
+  it.each(['catalog:react', 'latest', '*'])(
+    'treats an unresolvable version (%s) as the current shape',
+    (v) => {
+      expect(
+        isQueryV5WithOptionalOnMutateResult(resolvedTo(v), 'react-query'),
+      ).toBe(false);
+    },
+  );
+
+  it('returns false when the package is absent', () => {
+    expect(isQueryV5WithOptionalOnMutateResult({}, 'react-query')).toBe(false);
+  });
+});
+
 describe('isSolidQueryWithUsePrefix', () => {
   it('should return true for 5.71.5 (boundary)', () => {
     const packageJson: PackageJson = {
@@ -207,5 +258,62 @@ describe('vue reactivity imports tree-shake from the declared superset', () => {
     expect(result).toMatch(/\bcomputed\b/);
     expect(result).not.toMatch(/\btoValue\b/);
     expect(result).not.toMatch(/\bMaybeRefOrGetter\b/);
+  });
+});
+
+// `QueryClient` is a value in Angular output only where DI injects it, which
+// the generator emits as `const queryClient = inject(QueryClient)` for a
+// mutation that invalidates. Everywhere else it is named in parameter and
+// return annotations only, so a value import there trips
+// `consistent-type-imports` in the consumer's linter — and in this repo's own,
+// whose autofix then rewrites the committed snapshot out from under the
+// generator.
+//
+// The question is per file, not per config: with `tags-split` one tag can
+// invalidate while its sibling emits no mutation at all, and an override can
+// name an operation the spec does not have, so neither answers it. The
+// emitted implementation does, the same way `addDependency` already decides
+// which names to keep.
+describe('getAngularQueryDependencies', () => {
+  const angularQueryImports = (implementation: string) =>
+    generateDependencyImports(
+      implementation,
+      getAngularQueryDependencies(
+        false,
+        false,
+        undefined,
+        undefined,
+        false,
+        undefined,
+        implementation,
+      ).filter(
+        (dep) => dep.dependency === '@tanstack/angular-query-experimental',
+      ),
+      undefined,
+      false,
+      false,
+    );
+
+  // Only `QueryClient` is referenced, so the filtered dependency emits a
+  // single import and the whole result is it.
+  const prefetchOnly =
+    'export const prefetch = async (queryClient: QueryClient): Promise<QueryClient> => {};';
+
+  it('imports QueryClient as a type when nothing injects it', () => {
+    const result = angularQueryImports(prefetchOnly);
+
+    expect(result).toContain('QueryClient');
+    expect(result).toContain('import type {');
+    expect(result).not.toContain('import {');
+  });
+
+  it('imports QueryClient as a value when the file injects it', () => {
+    const result = angularQueryImports(
+      'const queryClient = inject(QueryClient);' + prefetchOnly,
+    );
+
+    expect(result).toContain('QueryClient');
+    expect(result).toContain('import {');
+    expect(result).not.toContain('import type {');
   });
 });

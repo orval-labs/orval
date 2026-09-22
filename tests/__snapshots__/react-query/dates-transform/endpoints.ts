@@ -22,6 +22,7 @@ import type {
 
 import type {
   Appointment,
+  AppointmentWindow,
   AppointmentWithDuplicateDate,
   AuditRecord,
   Cat,
@@ -30,6 +31,7 @@ import type {
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
+  ShelterRecords,
 } from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
@@ -1481,6 +1483,262 @@ export const useUpdateShelterIntake = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getUpdateShelterIntakeMutationOptions(options),
+    queryClient,
+  );
+};
+
+export const updateShelterRecords = (
+  shelterId: string,
+  shelterRecords: ShelterRecords,
+  signal?: AbortSignal,
+) => {
+  return customInstance<ShelterRecords>({
+    url: `/shelters/${shelterId}/records`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateShelterRecordsRequest(shelterRecords),
+    signal,
+  }).then(deserializeUpdateShelterRecordsResponse);
+};
+
+const deserializeUpdateShelterRecordsResponse = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  if (data.records != null) {
+    for (const key0 of Object.keys(data.records)) {
+      const item0 = data.records[key0];
+      if ('visitedOn' in item0 && item0.visitedOn != null) {
+        item0.visitedOn = new Date(item0.visitedOn);
+      }
+      if ('entries' in item0 && item0.entries != null) {
+        for (let i1 = 0; i1 < item0.entries.length; i1++) {
+          const item1 = item0.entries[i1];
+          item1.visitedOn = new Date(item1.visitedOn);
+        }
+      }
+      if ('administeredAt' in item0 && item0.administeredAt != null) {
+        item0.administeredAt = new Date(item0.administeredAt);
+      }
+    }
+  }
+  return data;
+};
+
+const serializeUpdateShelterRecordsRequest = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if (copy.records != null) {
+    copy.records = { ...copy.records };
+    for (const key0 of Object.keys(copy.records)) {
+      let value0 = copy.records[key0];
+      value0 = { ...value0 };
+      if ('visitedOn' in value0 && value0.visitedOn != null) {
+        value0.visitedOn =
+          value0.visitedOn instanceof Date
+            ? (value0.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+            : value0.visitedOn;
+      }
+      if ('entries' in value0 && value0.entries != null) {
+        value0.entries = value0.entries.map((item1) => {
+          let value1 = item1;
+          value1 = { ...value1 };
+          value1.visitedOn =
+            value1.visitedOn instanceof Date
+              ? (value1.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+              : value1.visitedOn;
+          return value1;
+        });
+      }
+      copy.records[key0] = value0;
+    }
+  }
+  return copy;
+};
+
+export const getUpdateShelterRecordsMutationKey = () =>
+  ['updateShelterRecords'] as const;
+
+export const getUpdateShelterRecordsMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateShelterRecords>>,
+    TError,
+    UpdateShelterRecordsMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateShelterRecords>>,
+  TError,
+  UpdateShelterRecordsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateShelterRecordsMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateShelterRecords>>,
+    UpdateShelterRecordsMutationVariables
+  > = (props) => {
+    const { shelterId, data } = props ?? {};
+
+    return updateShelterRecords(shelterId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateShelterRecordsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateShelterRecords>>
+>;
+export type UpdateShelterRecordsMutationBody = ShelterRecords;
+export type UpdateShelterRecordsMutationError = unknown;
+export type UpdateShelterRecordsMutationVariables = {
+  shelterId: string;
+  data: ShelterRecords;
+};
+
+export const useUpdateShelterRecords = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateShelterRecords>>,
+      TError,
+      UpdateShelterRecordsMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateShelterRecords>>,
+  TError,
+  UpdateShelterRecordsMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateShelterRecordsMutationOptions(options),
+    queryClient,
+  );
+};
+
+export const updateAppointmentWindow = (
+  appointmentId: string,
+  appointmentWindow: AppointmentWindow,
+  signal?: AbortSignal,
+) => {
+  return customInstance<AppointmentWindow>({
+    url: `/appointments/${appointmentId}/window`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateAppointmentWindowRequest(appointmentWindow),
+    signal,
+  }).then(deserializeUpdateAppointmentWindowResponse);
+};
+
+const deserializeUpdateAppointmentWindowResponse = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  if ('closedAt' in data && data.closedAt != null) {
+    data.closedAt = new Date(data.closedAt);
+  }
+  return data;
+};
+
+const serializeUpdateAppointmentWindowRequest = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if ('closedAt' in copy && copy.closedAt != null) {
+    copy.closedAt =
+      copy.closedAt instanceof Date
+        ? (copy.closedAt.toISOString().slice(0, 10) as unknown as Date)
+        : copy.closedAt;
+  }
+  return copy;
+};
+
+export const getUpdateAppointmentWindowMutationKey = () =>
+  ['updateAppointmentWindow'] as const;
+
+export const getUpdateAppointmentWindowMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppointmentWindow>>,
+    TError,
+    UpdateAppointmentWindowMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>,
+  TError,
+  UpdateAppointmentWindowMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateAppointmentWindowMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppointmentWindow>>,
+    UpdateAppointmentWindowMutationVariables
+  > = (props) => {
+    const { appointmentId, data } = props ?? {};
+
+    return updateAppointmentWindow(appointmentId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppointmentWindowMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>
+>;
+export type UpdateAppointmentWindowMutationBody = AppointmentWindow;
+export type UpdateAppointmentWindowMutationError = unknown;
+export type UpdateAppointmentWindowMutationVariables = {
+  appointmentId: string;
+  data: AppointmentWindow;
+};
+
+export const useUpdateAppointmentWindow = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAppointmentWindow>>,
+      TError,
+      UpdateAppointmentWindowMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppointmentWindow>>,
+  TError,
+  UpdateAppointmentWindowMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateAppointmentWindowMutationOptions(options),
     queryClient,
   );
 };

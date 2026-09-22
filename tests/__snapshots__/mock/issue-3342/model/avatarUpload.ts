@@ -6,6 +6,6 @@
  */
 
 export interface AvatarUpload {
-  file: Blob;
+  file: Blob | File;
   description?: string;
 }

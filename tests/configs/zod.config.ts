@@ -576,6 +576,20 @@ export default defineConfig({
       target: '../specifications/zod-composed-array-items.yaml',
     },
   },
+  // The validator's view of the typeless parts: `instanceof(Blob)` here has to
+  // agree with the `Blob | File` the type generator emits (#4157).
+  'typeless-content-keywords': {
+    output: {
+      target: '../generated/zod/typeless-content-keywords/endpoints.ts',
+      schemas: '../generated/zod/typeless-content-keywords/model',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typeless-content-keywords.yaml',
+    },
+  },
   // The validator's view of the same document: `instanceof(Blob)` here has to
   // agree with the `Blob | File | null` the type generator emits (#4141).
   'nullable-binary-parts': {

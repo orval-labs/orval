@@ -381,7 +381,7 @@ export const generateHttpClientImplementation = (
     const skip = new Set(
       params.filter((p) => p.allowReserved).map((p) => p.name),
     );
-    route = makeRouteSafe(route, skip);
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
   }
   // MUST run after the urlEncodeParameters/makeRouteSafe step above:
   // wrapRouteParameters (invoked by makeRouteSafe) rewrites every `${...}`

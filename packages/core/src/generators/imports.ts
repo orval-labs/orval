@@ -105,6 +105,12 @@ export function generateMutatorImports({
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   )) {
+    if (
+      implementation &&
+      !implementation.split(/[^\w$]+/).includes(mutator.name)
+    ) {
+      continue;
+    }
     // Relative mutator paths are written relative to the output root, so in
     // tags-split mode (`oneMore`) they need an extra `../` to reach the file
     // from the deeper per-tag directory. Bare specifiers (e.g. `@scope/axios`)
@@ -240,11 +246,54 @@ type AddDependencyFromIdentifiersOptions = Omit<
   referencedIdentifiers: ReadonlySet<string>;
 };
 
+const IDENTIFIER_PATTERN = /[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu;
+
+/**
+ * Whether the identifier starting at `start` is a member name — the `map` of
+ * `value.map(...)` — rather than a reference to a binding in scope.
+ *
+ * A member name is never the import: an imported binding that the code really
+ * uses has to appear bare somewhere (`map(...)`, `{ map }`, `Pet`), because a
+ * name after a dot is a property of the object on its left. Reading one as a
+ * reference kept imports alive that nothing used — the rxjs `map` that every
+ * generated Angular `httpResource` file carried came from the `.map((item) =>`
+ * in its own query-param serializer (#4143).
+ *
+ * `...spread` is not a member access even though a `.` sits in front of it, so
+ * the third dot of a spread token does not count. Two dots are not enough to
+ * recognize one: `1..map` is valid, where the first dot ends the numeric
+ * literal `1.` and the second is the member access. Optional chaining
+ * (`value?.map`) is a member access like any other.
+ */
+function isMemberName(source: string, start: number): boolean {
+  let index = start - 1;
+
+  while (index >= 0 && /\s/.test(source[index])) {
+    index--;
+  }
+
+  if (index < 0 || source[index] !== '.') {
+    return false;
+  }
+
+  const isSpread = source[index - 1] === '.' && source[index - 2] === '.';
+
+  return !isSpread;
+}
+
 function getReferencedIdentifiers(implementation: string): Set<string> {
-  return new Set(
-    implementation.match(/[$_\p{ID_Start}][$\u200c\u200d\p{ID_Continue}]*/gu) ??
-      [],
-  );
+  const identifiers = new Set<string>();
+
+  for (const match of implementation.matchAll(IDENTIFIER_PATTERN)) {
+    if (
+      match.index !== undefined &&
+      !isMemberName(implementation, match.index)
+    ) {
+      identifiers.add(match[0]);
+    }
+  }
+
+  return identifiers;
 }
 
 function addDependencyFromIdentifiers({

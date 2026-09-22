@@ -115,6 +115,7 @@ export function getMockWithoutFunc(
     numberMax: override?.mock?.numberMax,
     required: override?.mock?.required,
     nonNullable: override?.mock?.nonNullable,
+    exactOptional: override?.mock?.exactOptional,
     fractionDigits: override?.mock?.fractionDigits,
     ...(override?.mock?.properties
       ? {

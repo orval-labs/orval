@@ -399,6 +399,11 @@ export function getMockObject({
             }
             const omitValue =
               mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
+            // `exactOptionalPropertyTypes` rejects a present key holding
+            // `undefined`, so express absence by leaving the key out (#3912).
+            if (omitValue === 'undefined' && mockOptions?.exactOptional) {
+              return `...(faker.datatype.boolean() ? {${keyDefinition}: ${resolvedValue.value}} : {})`;
+            }
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;
           }
 

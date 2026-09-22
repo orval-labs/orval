@@ -567,6 +567,28 @@ describe('makeRouteSafe', () => {
     );
   });
 
+  it('does not encode a runtime baseUrl', () => {
+    const result = makeRouteSafe(
+      '${getBaseUrl()}/items/${id}',
+      new Set(),
+      new Set(['id']),
+    );
+    expect(result).toBe(
+      '${getBaseUrl()}/items/${encodeURIComponent(String(id))}',
+    );
+  });
+
+  it('does not encode a runtime server variable', () => {
+    const result = makeRouteSafe(
+      'https://${process.env.HOST}/v1/items/${id}',
+      new Set(),
+      new Set(['id']),
+    );
+    expect(result).toBe(
+      'https://${process.env.HOST}/v1/items/${encodeURIComponent(String(id))}',
+    );
+  });
+
   it('normalizes signal-form params when matching the skip set', () => {
     const skip = new Set(['path']);
     const result = makeRouteSafe('/files/${path()}/x/${name()}', skip);

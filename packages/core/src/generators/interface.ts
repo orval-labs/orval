@@ -2,6 +2,7 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { prop } from 'remeda';
 
 import { getScalar } from '../getters';
+import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   GeneratorSchema,
@@ -13,6 +14,13 @@ interface GenerateInterfaceOptions {
   name: string;
   schema: OpenApiSchemaObject;
   context: ContextSpec;
+  /**
+   * Multipart/form-data context, set when the schema is used as a shared
+   * `multipart/form-data` request body (#4177).
+   *
+   * @see FormDataContext
+   */
+  formDataContext?: FormDataContext;
   genericParams?: string[];
 }
 
@@ -27,12 +35,14 @@ export function generateInterface({
   name,
   schema,
   context,
+  formDataContext,
   genericParams,
 }: GenerateInterfaceOptions): GeneratorSchema[] {
   const scalar = getScalar({
     item: schema,
     name,
     context,
+    formDataContext,
   });
   const isEmptyObject = scalar.value === '{}';
   const shouldUseTypeAlias =

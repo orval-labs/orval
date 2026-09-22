@@ -6,6 +6,7 @@
  */
 import type {
   Appointment,
+  AppointmentWindow,
   AppointmentWithDuplicateDate,
   AuditRecord,
   Cat,
@@ -14,6 +15,7 @@ import type {
   OrderDetails,
   ReminderUpdate,
   ShelterIntake,
+  ShelterRecords,
 } from './model';
 
 import { customFetch } from '../../../mutators/custom-fetch';
@@ -674,6 +676,216 @@ const serializeUpdateShelterIntakeRequest = (
       }
       copy.pets[key0] = value0;
     }
+  }
+  return copy;
+};
+
+export type updateShelterRecordsResponse200 = {
+  data: ShelterRecords;
+  status: 200;
+};
+
+export type updateShelterRecordsResponseSuccess =
+  updateShelterRecordsResponse200 & {
+    headers: Headers;
+  };
+export type updateShelterRecordsResponse = updateShelterRecordsResponseSuccess;
+
+export const getUpdateShelterRecordsUrl = (shelterId: string) => {
+  return `/shelters/${shelterId}/records`;
+};
+
+export const updateShelterRecords = async (
+  shelterId: string,
+  shelterRecords: ShelterRecords,
+  options?: Parameters<typeof customFetch>[1],
+): Promise<updateShelterRecordsResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return customFetch<updateShelterRecordsResponse>(
+    getUpdateShelterRecordsUrl(shelterId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders(options?.headers),
+      },
+      body: JSON.stringify(
+        serializeUpdateShelterRecordsRequest(shelterRecords),
+      ),
+    },
+  ).then((res) => {
+    if (res.status === 200) {
+      res.data = deserializeUpdateShelterRecordsResponse(
+        res.data as ShelterRecords,
+      );
+    }
+    return res;
+  });
+};
+
+const deserializeUpdateShelterRecordsResponse = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  if (data.records != null) {
+    for (const key0 of Object.keys(data.records)) {
+      const item0 = data.records[key0];
+      if ('visitedOn' in item0 && item0.visitedOn != null) {
+        item0.visitedOn = new Date(item0.visitedOn);
+      }
+      if ('entries' in item0 && item0.entries != null) {
+        for (let i1 = 0; i1 < item0.entries.length; i1++) {
+          const item1 = item0.entries[i1];
+          item1.visitedOn = new Date(item1.visitedOn);
+        }
+      }
+      if ('administeredAt' in item0 && item0.administeredAt != null) {
+        item0.administeredAt = new Date(item0.administeredAt);
+      }
+    }
+  }
+  return data;
+};
+
+const serializeUpdateShelterRecordsRequest = (
+  data: ShelterRecords,
+): ShelterRecords => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if (copy.records != null) {
+    copy.records = { ...copy.records };
+    for (const key0 of Object.keys(copy.records)) {
+      let value0 = copy.records[key0];
+      value0 = { ...value0 };
+      if ('visitedOn' in value0 && value0.visitedOn != null) {
+        value0.visitedOn =
+          value0.visitedOn instanceof Date
+            ? (value0.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+            : value0.visitedOn;
+      }
+      if ('entries' in value0 && value0.entries != null) {
+        value0.entries = value0.entries.map((item1) => {
+          let value1 = item1;
+          value1 = { ...value1 };
+          value1.visitedOn =
+            value1.visitedOn instanceof Date
+              ? (value1.visitedOn.toISOString().slice(0, 10) as unknown as Date)
+              : value1.visitedOn;
+          return value1;
+        });
+      }
+      copy.records[key0] = value0;
+    }
+  }
+  return copy;
+};
+
+export type updateAppointmentWindowResponse200 = {
+  data: AppointmentWindow;
+  status: 200;
+};
+
+export type updateAppointmentWindowResponseSuccess =
+  updateAppointmentWindowResponse200 & {
+    headers: Headers;
+  };
+export type updateAppointmentWindowResponse =
+  updateAppointmentWindowResponseSuccess;
+
+export const getUpdateAppointmentWindowUrl = (appointmentId: string) => {
+  return `/appointments/${appointmentId}/window`;
+};
+
+export const updateAppointmentWindow = async (
+  appointmentId: string,
+  appointmentWindow: AppointmentWindow,
+  options?: Parameters<typeof customFetch>[1],
+): Promise<updateAppointmentWindowResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return customFetch<updateAppointmentWindowResponse>(
+    getUpdateAppointmentWindowUrl(appointmentId),
+    {
+      ...options,
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getHeaders(options?.headers),
+      },
+      body: JSON.stringify(
+        serializeUpdateAppointmentWindowRequest(appointmentWindow),
+      ),
+    },
+  ).then((res) => {
+    if (res.status === 200) {
+      res.data = deserializeUpdateAppointmentWindowResponse(
+        res.data as AppointmentWindow,
+      );
+    }
+    return res;
+  });
+};
+
+const deserializeUpdateAppointmentWindowResponse = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  if ('closedAt' in data && data.closedAt != null) {
+    data.closedAt = new Date(data.closedAt);
+  }
+  return data;
+};
+
+const serializeUpdateAppointmentWindowRequest = (
+  data: AppointmentWindow,
+): AppointmentWindow => {
+  if (data == null) return data;
+  const copy = { ...data };
+  if ('closedAt' in copy && copy.closedAt != null) {
+    copy.closedAt =
+      copy.closedAt instanceof Date
+        ? (copy.closedAt.toISOString().slice(0, 10) as unknown as Date)
+        : copy.closedAt;
   }
   return copy;
 };

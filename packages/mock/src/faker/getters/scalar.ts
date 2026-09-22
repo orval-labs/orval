@@ -291,7 +291,7 @@ export function getMockScalar({
           numberImports,
           context,
           existingReferencedProperties,
-          'number',
+          { type: 'number', exactOptional: safeMockOptions.exactOptional },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -317,7 +317,7 @@ export function getMockScalar({
           booleanImports,
           context,
           existingReferencedProperties,
-          'boolean',
+          { type: 'boolean', exactOptional: safeMockOptions.exactOptional },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -548,7 +548,7 @@ export function getMockScalar({
           stringImports,
           context,
           existingReferencedProperties,
-          'string',
+          { type: 'string', exactOptional: safeMockOptions.exactOptional },
         );
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
@@ -586,6 +586,7 @@ export function getMockScalar({
           enumImports,
           context,
           existingReferencedProperties,
+          { exactOptional: safeMockOptions.exactOptional },
         );
 
         return {
@@ -706,9 +707,15 @@ function getEnum(
   imports: GeneratorImport[],
   context: ContextSpec,
   existingReferencedProperties: string[],
-  // Only gates the `Object.values(...)` reference shortcut below. It must not
-  // decide how a member is quoted — see `formatEnumMember`.
-  type?: 'string' | 'number' | 'boolean',
+  {
+    type,
+    exactOptional,
+  }: {
+    // Only gates the `Object.values(...)` reference shortcut below. It must not
+    // decide how a member is quoted — see `formatEnumMember`.
+    type?: 'string' | 'number' | 'boolean';
+    exactOptional?: boolean;
+  } = {},
 ) {
   if (!item.enum) return '';
   const joinedEnumValues = item.enum
@@ -752,7 +759,12 @@ function getEnum(
       // side is this cast, and it was quoting the name by hand.
       const parentIdentifier = safeTypeIdentifier(parentReference);
       if (parentIdentifier) {
-        enumValue += ` as ${parentIdentifier}[${getStringLiteralType(item.name)}]`;
+        const indexedType = `${parentIdentifier}[${getStringLiteralType(item.name)}]`;
+        // On an optional key the indexed access includes `undefined`, which
+        // `exactOptional` no longer offers as a value — only as absence.
+        enumValue += exactOptional
+          ? ` as Exclude<${indexedType}, undefined>`
+          : ` as ${indexedType}`;
         if (!item.path?.endsWith('[]')) enumValue += '[]';
         imports.push({
           name: parentIdentifier,

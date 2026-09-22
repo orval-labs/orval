@@ -277,6 +277,22 @@ export default defineConfig({
       target: '../specifications/issue-2410-nullable-binary.yaml',
     },
   },
+  // Issue #4177: a multipart/form-data body aliased behind a
+  // `components.schemas` $ref must get the same `Blob | File` parts as an
+  // inline body, encoding included, while schemas that are never multipart
+  // bodies keep their plain `Blob`.
+  'issue-4177-shared-form-data-body': {
+    output: {
+      target: '../generated/fetch/issue-4177-shared-form-data-body/endpoints.ts',
+      schemas: '../generated/fetch/issue-4177-shared-form-data-body/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4177-shared-form-data-body.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',

@@ -1,94 +1,32 @@
 import { NamingConvention } from '../types';
 
-const unicodes = function (s: string, prefix = '') {
+const SYMBOLS = String.raw`\u0020-\u0026\u0028-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E\u00A0-\u00BF\u00D7\u00F7`;
+const LOWERS = String.raw`a-z\u00DF-\u00F6\u00F8-\u00FF`;
+const UPPERS = String.raw`A-Z\u00C0-\u00D6\u00D8-\u00DE`;
+
+const allUpperRe = new RegExp(`^[^${LOWERS}]+$`);
+const hasSymbolRe = new RegExp(`[${SYMBOLS}]`);
+const fillRe = new RegExp(`[${SYMBOLS}]+(.|$)`, 'g');
+// "getHTTPResponse" -> "get HTTP Response"; only applied when the input has
+// no separator characters at all.
+const acronymRe = new RegExp(
+  `([^${UPPERS}])([${UPPERS}]*)([${UPPERS}])(?=[^${UPPERS}]|$)`,
+  'g',
+);
+
+const lower = (s: string, fillWith: string) => {
+  if (allUpperRe.test(s)) s = s.toLowerCase();
+  if (!hasSymbolRe.test(s)) {
+    s = s.replace(
+      acronymRe,
+      (_, before: string, acronym: string, caps: string) =>
+        `${before} ${acronym ? `${acronym} ` : ''}${caps}`,
+    );
+  }
   return s
-    .replaceAll(/(^|-)/g, String.raw`$1\u` + prefix)
-    .replaceAll(',', String.raw`\u` + prefix);
-};
-
-const symbols = unicodes('20-26,28-2F,3A-40,5B-60,7B-7E,A0-BF,D7,F7', '00');
-const lowers = 'a-z' + unicodes('DF-F6,F8-FF', '00');
-const uppers = 'A-Z' + unicodes('C0-D6,D8-DE', '00');
-const impropers = String.raw`A|An|And|As|At|But|By|En|For|If|In|Of|On|Or|The|To|Vs?\.?|Via`;
-
-const regexps = {
-  capitalize: new RegExp('(^|[' + symbols + '])([' + lowers + '])', 'g'),
-  pascal: new RegExp('(^|[' + symbols + '])+([' + lowers + uppers + '])', 'g'),
-  fill: new RegExp('[' + symbols + ']+(.|$)', 'g'),
-  sentence: new RegExp(
-    String.raw`(^\s*|[\?\!\.]+"?\s+"?|,\s+")([` + lowers + '])',
-    'g',
-  ),
-  improper: new RegExp(String.raw`\b(` + impropers + String.raw`)\b`, 'g'),
-  relax: new RegExp(
-    '([^' +
-      uppers +
-      '])([' +
-      uppers +
-      ']*)([' +
-      uppers +
-      '])(?=[^' +
-      uppers +
-      ']|$)',
-    'g',
-  ),
-  upper: new RegExp('^[^' + lowers + ']+$'),
-  hole: /[^\s]\s[^\s]/,
-  apostrophe: /'/g,
-  room: new RegExp('[' + symbols + ']'),
-};
-
-const deapostrophe = (s: string) => {
-  return s.replace(regexps.apostrophe, '');
-};
-
-const up = (s: string) => s.toUpperCase();
-const low = (s: string) => s.toLowerCase();
-
-const fill = (s: string, fillWith: string, isDeapostrophe = false) => {
-  s = s.replace(regexps.fill, function (m: string, next: string) {
-    return next ? fillWith + next : '';
-  });
-
-  if (isDeapostrophe) {
-    s = deapostrophe(s);
-  }
-  return s;
-};
-
-const decap = (s: string, char = 0) => {
-  return low(s.charAt(char)) + s.slice(char + 1);
-};
-
-const relax = (
-  m: string,
-  before: string,
-  acronym: string | undefined,
-  caps: string,
-) => {
-  return before + ' ' + (acronym ? acronym + ' ' : '') + caps;
-};
-
-const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
-  // s is already typed as string, no coercion needed
-  if (!isUpper && regexps.upper.test(s)) {
-    s = low(s);
-  }
-  if (!isFill && !regexps.hole.test(s)) {
-    // eslint-disable-next-line no-var
-    var holey = fill(s, ' ');
-    if (regexps.hole.test(holey)) {
-      s = holey;
-    }
-  }
-  if (!isPascal && !regexps.room.test(s)) {
-    s = s.replace(regexps.relax, relax);
-  }
-  return s;
-};
-
-const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
-  return fill(low(prep(s, !!fillWith)), fillWith, isDeapostrophe);
+    .toLowerCase()
+    .replace(fillRe, (_, next: string) => (next ? fillWith + next : ''))
+    .replaceAll("'", '');
 };
 
 // Caches the previously converted strings to improve performance.
@@ -107,8 +45,8 @@ export function pascal(s = '') {
   const isStartWithUnderscore = s.startsWith('_');
   const cacheKey = s;
 
-  if (regexps.upper.test(s)) {
-    s = low(s);
+  if (allUpperRe.test(s)) {
+    s = s.toLowerCase();
   }
 
   const pascalString = (s.match(/[a-zA-Z0-9\u00C0-\u017F]+/g) ?? [])
@@ -126,20 +64,18 @@ export function pascal(s = '') {
 
 export function camel(s = '') {
   const isStartWithUnderscore = s.startsWith('_');
-  const camelString = decap(pascal(s), isStartWithUnderscore ? 1 : 0);
+  const at = isStartWithUnderscore ? 1 : 0;
+  const p = pascal(s);
+  const camelString = p.charAt(at).toLowerCase() + p.slice(at + 1);
   return isStartWithUnderscore ? `_${camelString}` : camelString;
 }
 
 export function snake(s = '') {
-  return lower(s, '_', true);
+  return lower(s, '_');
 }
 
 export function kebab(s = '') {
-  return lower(s, '-', true);
-}
-
-export function upper(s: string, fillWith: string, isDeapostrophe?: boolean) {
-  return fill(up(prep(s, !!fillWith, false, true)), fillWith, isDeapostrophe);
+  return lower(s, '-');
 }
 
 export function conventionName(name: string, convention: NamingConvention) {

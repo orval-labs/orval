@@ -1484,6 +1484,38 @@ const deletePet = injectDeletePet({
 });
 ```
 
+#### Operation names
+
+Both fields name operations by their **generated** name — the camelCased,
+sanitized form of the `operationId`, or whatever `override.operationName`
+returns. An `operationId` of `PostNotes` is generated as `postNotes`:
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['postNotes'], // not 'PostNotes'
+    invalidates: ['getNotes'],
+  },
+],
+```
+
+`invalidates` resolves its target through the query key function name, so the
+document's own casing happens to work there too. `onMutations` is matched
+exactly, so it does not.
+
+orval warns when either field names an operation the output does not generate,
+since the rule is otherwise ignored without a trace:
+
+```
+⚠️  mutationInvalidates references an unknown operation 'PostNotes' in
+onMutations. No operation with that name is generated for this output, so the
+rule is ignored — did you mean 'postNotes'?
+```
+
+An operation excluded by an input filter or by
+[`useDeprecatedOperations: false`](#usedeprecatedoperations) is not generated
+either, so naming one warns for the same reason.
+
 ### signal
 
 **Type:** `Boolean`
@@ -2984,6 +3016,25 @@ Make all properties required in mocks.
 
 When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`. For OpenAPI 3.1 null-union array items (`type: ['string', 'null']`), this also skips null inside `.map()` callbacks. Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
 
+### exactOptional
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `true`, an optional property is left out of the mock object half the time instead of being set to `undefined`. Use it when your project compiles with `exactOptionalPropertyTypes`, which rejects a present key holding `undefined`.
+
+```ts
+// default
+barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
+
+// exactOptional: true
+...(faker.datatype.boolean() ? { barksPerMinute: faker.number.int() } : {}),
+```
+
+Optional nullable properties are unchanged: they still pick between the value and `null`, because `null` is a value, not an absence. Setting `nonNullable` as well drops that `null`, and those properties are then spread in the same way.
+
+This changes runtime shape as well as types: `in` checks and `Object.keys` now see the key missing. To keep every optional property present instead, use `required: true`.
+
 ### delay
 
 **Type:** `Number | Function | false`
@@ -3243,6 +3294,8 @@ export enum Example { foo = 'foo', bar = 'bar' }
 // 'union'
 export type Example = 'foo' | 'bar';
 ```
+
+Zod output ignores this option for enums that carry `x-enumNames` or `x-enumDescriptions` metadata, which always emit the `z.enum({ ... })` object form. See the [enums guide](/docs/guides/enums#zod).
 
 <Callout type="warn">
 `'enum'` emits a TypeScript `enum` declaration, which type stripping cannot
@@ -4040,12 +4093,31 @@ with `new Date(Date.UTC(year, month, day))` and read it back with `getUTCFullYea
 `getUTCMonth()` / `getUTCDate()` — a `Date` built from local parts can land on the
 previous day at positive UTC offsets.
 
-A `oneOf`/`anyOf` without an OpenAPI
+A `oneOf`/`anyOf` with an explicit OpenAPI
 [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
-`mapping` is skipped, since there's no static way to tell which variant a
-given payload matched; a discriminated union with an explicit `mapping` is
-converted, emitting a `switch` on the discriminator property with one `case`
-per mapping key. `additionalProperties` maps are converted with a loop over
+`mapping` is converted by emitting a `switch` on the discriminator property
+with one `case` per mapping key. Any other union whose variants are all
+object-shaped — each one declaring its own `properties` — is converted
+structurally instead: each property a variant declares is guarded by its
+presence on the value (`'key' in value`), which is also what lets TypeScript
+narrow the union. A variant that declares no `properties` of its own — one
+composed purely with `allOf`, one that is itself a `oneOf`/`anyOf`, or one
+declaring an empty `properties: {}` — fails that test and disqualifies the
+whole union, not just itself. A variant that declares its own `properties`
+*and* composes with `allOf` does qualify, but only its own properties are
+converted: dates it inherits through the `allOf` are left as strings even
+though the generated type calls them `Date`. A property the
+variants treat differently is skipped, while the rest of the union still
+converts — because the response direction converts every date format
+identically, a `date`-versus-`date-time` disagreement between variants only
+affects the request direction. A property one variant marks `readOnly` while
+another does not counts as such a disagreement and is skipped too, even though
+both spell the same `Date`. A date property named after an `Object.prototype`
+member (`constructor`, `toString`, `valueOf`, and so on) is skipped inside a
+structurally-walked union as well, since `'key' in value` is true for every
+object and would convert the field on payloads of a variant that never
+declared it. A union that mixes object variants with array or scalar ones is
+skipped entirely. `additionalProperties` maps are converted with a loop over
 `Object.keys`, unless the schema also declares `properties` — directly, via
 `allOf`, or a sibling `oneOf`/`anyOf` — or declares a `propertyNames` that
 narrows the keys to an enumerable set (`enum` or `const`, inline or via

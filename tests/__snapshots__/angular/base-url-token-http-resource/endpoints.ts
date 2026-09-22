@@ -14,10 +14,14 @@ import type {
   HttpResourceRequest,
 } from '@angular/common/http';
 
+import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
+
 import { Injectable, inject } from '@angular/core';
 import type { ResourceStatus, Signal } from '@angular/core';
 
 import type { Observable } from 'rxjs';
+
+import { PETSTORE_API_BASE_URL } from './endpoints.base-url';
 
 import type {
   CreatePetsBody,
@@ -27,12 +31,6 @@ import type {
   PetWithTag,
   Pets,
 } from './model';
-
-import { map } from 'rxjs';
-
-import { PETSTORE_API_BASE_URL } from './endpoints.base-url';
-
-import type { HttpResponse as AngularHttpResponse } from '@angular/common/http';
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */

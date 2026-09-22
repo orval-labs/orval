@@ -3435,6 +3435,65 @@ describe('angular httpResource generator', () => {
       expect(extraFiles[0].content).toContain('ResourceState');
     });
 
+    it('does not import rxjs map into the resource file (#4143)', async () => {
+      // The resource emits response validation through httpResource's own
+      // `parse` option, never `.pipe(map(...))` — only the service does that.
+      // The candidate import survived the usage filter because the query-param
+      // serializer every resource file carries contains `.map((item) => ...)`,
+      // which reads as a reference to a bare `map`. Projects with
+      // `noUnusedLocals` or an unused-import lint rule failed on the result.
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('httpResource'),
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        {
+          getPetById: createVerbOption({
+            // A query param is what pulls in the serializer helper carrying
+            // the `.map((item) => ...)` call.
+            queryParams: {
+              schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+              deps: [],
+              isOptional: true,
+              name: 'params',
+              definition: 'params: GetPetByIdParams',
+              implementation: 'params: GetPetByIdParams',
+              default: false,
+              required: false,
+              type: GetterPropType.QUERY_PARAM,
+            } as never,
+          }),
+        },
+        output,
+        context,
+      );
+
+      const content = extraFiles[0].content;
+
+      // rxjs is pulled in for nothing else here, so its absence is the check.
+      expect(content).not.toContain("from 'rxjs'");
+      // The array helper that made `map` look referenced is still emitted, so
+      // the assertion above is about the import and not a vanished helper.
+      expect(content).toContain('.map((item) =>');
+    });
+
     it('generates per-tag .resource.ts files in both tags-split mode', async () => {
       const petsVerb = createVerbOption({
         tags: ['Pets'],
@@ -3525,22 +3584,18 @@ describe('angular httpResource generator', () => {
       expect(healthFile?.content).toContain('getHealthResource');
       expect(healthFile?.content).not.toContain('getPetByIdResource');
 
-      // Regression guard: `getHttpResourceVerbImports` always lists rxjs's
-      // `map` as a candidate import (importPath: 'rxjs'), and the shared
-      // request-extension helpers emitted in every httpResource file contain
-      // the literal substring `.map(String)`. `buildSchemaImportDependencies`
-      // has no concept of `importPath` and used to bucket every candidate
-      // import — including this external one — under the schemas dependency,
-      // so `map` (unused by getHealth's body) would get misrouted to an
+      // Regression guard: `getHttpResourceVerbImports` used to list rxjs's
+      // `map` as a candidate import with an explicit `importPath`, and
+      // `buildSchemaImportDependencies` has no concept of `importPath`, so it
+      // bucketed the candidate under the schemas dependency and emitted an
       // `import { map } from '<schemas path>'` that the schemas module never
-      // exports. `map` must either be absent or, if present, imported from
-      // 'rxjs'.
+      // exports. The candidate is gone now (#4143) — a resource never uses the
+      // operator — which settles the misrouting too: no import of `map` from
+      // anywhere.
       const mapImportLine = healthFile?.content
         .split('\n')
         .find((line) => /\bimport\b.*\bmap\b/.test(line));
-      if (mapImportLine) {
-        expect(mapImportLine).toContain("from 'rxjs'");
-      }
+      expect(mapImportLine).toBeUndefined();
     });
 
     // Both siblings feed the `tags-split` barrel through `export *`. A name

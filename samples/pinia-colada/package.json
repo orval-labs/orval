@@ -1,6 +1,6 @@
 {
   "name": "pinia-colada-sample",
-  "version": "8.34.0",
+  "version": "8.36.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "@pinia/colada": "1.4.4",
+    "@pinia/colada": "1.4.5",
     "axios": "catalog:axios",
     "pinia": "4.0.3",
     "vue": "3.5.42"

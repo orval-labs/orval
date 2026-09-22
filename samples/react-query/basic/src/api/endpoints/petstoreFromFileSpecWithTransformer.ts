@@ -484,8 +484,8 @@ export const getListPetsSuspenseQueryOptions = <
 
   return queryOptionsBuilder({
     queryKey,
-    queryFn,
     ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
   }) as UseSuspenseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
     TError,

@@ -320,6 +320,79 @@ describe('getMockObject', () => {
     );
   });
 
+  // Under `exactOptionalPropertyTypes` a present key may not hold `undefined`,
+  // so absence has to be expressed by leaving the key out (#3912).
+  describe('exactOptional', () => {
+    const optionalTag = (tag: OpenApiSchemaObject) => ({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: { tag },
+    });
+
+    it('omits an optional field by spreading it in conditionally', () => {
+      const result = getObjectMock(optionalTag({ type: 'string' }), {
+        exactOptional: true,
+      });
+
+      expect(result.value).toBe(
+        '{...(faker.datatype.boolean() ? {tag: faker.string.alpha()} : {})}',
+      );
+    });
+
+    it('quotes a key that is not a valid identifier', () => {
+      const result = getObjectMock(
+        {
+          name: 'Pet',
+          type: 'object' as const,
+          properties: { 'pet-tag': { type: 'string' } },
+        },
+        { exactOptional: true },
+      );
+
+      expect(result.value).toBe(
+        "{...(faker.datatype.boolean() ? {'pet-tag': faker.string.alpha()} : {})}",
+      );
+    });
+
+    it('keeps null as the omission value for an optional nullable field', () => {
+      const result = getObjectMock(optionalTag({ type: ['string', 'null'] }), {
+        exactOptional: true,
+      });
+
+      expect(result.value).toBe(
+        '{tag: faker.helpers.arrayElement([faker.string.alpha(), null])}',
+      );
+    });
+
+    it('spreads an optional nullable field once nonNullable drops the null', () => {
+      const result = getObjectMock(optionalTag({ type: ['string', 'null'] }), {
+        exactOptional: true,
+        nonNullable: true,
+      });
+
+      expect(result.value).toBe(
+        '{...(faker.datatype.boolean() ? {tag: faker.string.alpha()} : {})}',
+      );
+    });
+
+    it('leaves required fields as plain entries', () => {
+      const result = getObjectMock(petSchema, { exactOptional: true });
+
+      expect(result.value).toMatch(/^\{id: faker\.number\.int\(/);
+      expect(result.value).toContain(', name: faker.string.alpha(');
+      expect(result.value).not.toContain('undefined');
+    });
+
+    it('has nothing to spread when required is set', () => {
+      const result = getObjectMock(optionalTag({ type: 'string' }), {
+        exactOptional: true,
+        required: true,
+      });
+
+      expect(result.value).toBe('{tag: faker.string.alpha()}');
+    });
+  });
+
   it('randomizes OpenAPI 3.1 nullable array items to null by default', () => {
     const result = getObjectMock({
       name: 'Pet',

@@ -245,6 +245,41 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // #4165: a `mutationOptions` mutator must receive the generated `onSuccess`
+  // that carries the `mutationInvalidates` invalidation. Before the fix the
+  // handler was emitted but never passed to the mutator, so the configured
+  // invalidation silently never ran.
+  invalidatesWithMutationOptionsMutator: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-mutation-options-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-mutation-options-mutator/model',
+      client: 'react-query',
+      override: {
+        query: {
+          // `useHooks: false` keeps the factory a plain function, so the spec
+          // can call it and invoke the resulting `onSuccess` directly.
+          mutationOptions: {
+            path: '../mutators/custom-mutation-options.ts',
+            name: 'customMutationOptions',
+            useHooks: false,
+          },
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   invalidatesTagsSplit: {
     output: {
       target: '../generated/react-query/invalidates-tags-split/endpoints.ts',

@@ -333,6 +333,7 @@ export const generateClientImports: GeneratorClientImports = async ({
             output.httpClient,
             hasTagsMutator,
             output.override,
+            implementation,
           ),
           ...imports,
         ]

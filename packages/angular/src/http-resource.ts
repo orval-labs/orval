@@ -1050,6 +1050,7 @@ const buildHttpResourceFunction = (
     ? makeRouteSafe(
         signalRoute,
         new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
+        new Set(params.map((p) => p.name)),
       )
     : signalRoute;
   // MUST run after the urlEncodeParameters/makeRouteSafe step above (see the
