@@ -963,6 +963,9 @@ pipe JSON model responses through Zod.
 2. Set `override.angular.runtimeValidation` to either:
    - `true` (shorthand for `{ strategy: 'throw' }`)
    - `{ strategy: 'both' }` for log-then-throw behavior
+   - either object form with `requestBodies: true` to also parse JSON request
+     bodies before they are sent (see
+     [Parsing request bodies before they are sent](#parsing-request-bodies-before-they-are-sent))
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
