@@ -32,12 +32,14 @@ export const createAngularAdapter = ({
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
   hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
   hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
 }): FrameworkAdapterConfig => {
   const prefix = 'Create';
@@ -50,6 +52,7 @@ export const createAngularAdapter = ({
     hasQueryV5WithDataTagError,
     hasQueryV5WithInfiniteQueryOptionsError,
     hasQueryV5WithMutationContextOnSuccess,
+    hasQueryV5WithOptionalOnMutateResult,
     hasQueryV5WithRequiredContextOnSuccess,
 
     getHookPropsDefinitions(props: GetterProps): string {

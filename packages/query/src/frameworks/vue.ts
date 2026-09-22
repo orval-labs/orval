@@ -76,6 +76,7 @@ export const createVueAdapter = ({
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
   hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
 }: {
   hasVueQueryV4: boolean;
@@ -83,6 +84,7 @@ export const createVueAdapter = ({
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
   hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.VUE_QUERY,
@@ -91,6 +93,7 @@ export const createVueAdapter = ({
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
   hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
 
   transformProps(props: GetterProps): GetterProps {
@@ -255,16 +258,18 @@ export const createVueAdapter = ({
     const invalidateCalls = generateInvalidateCalls(uniqueInvalidates);
     const variablesType =
       mutationVariablesType ?? (definitions ? `{${definitions}}` : 'void');
+    // 5.89 renamed the third parameter to `onMutateResult`; whether it is
+    // nullable moved with the TanStack release, so the flag decides. See #4180.
     if (hasQueryV5WithMutationContextOnSuccess) {
       if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext${hasQueryV5WithOptionalOnMutateResult ? ' | undefined' : ''}, context: MutationFunctionContext) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
       };`;
       }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext, context: MutationFunctionContext) => {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${variablesType}, onMutateResult: TContext${hasQueryV5WithOptionalOnMutateResult ? ' | undefined' : ''}, context: MutationFunctionContext) => {
     ${invalidateCalls}
         unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
       };`;

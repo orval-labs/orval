@@ -578,6 +578,42 @@ export const isQueryV5WithRequiredContextOnSuccess = (
   return compareVersions(withoutRc, '5.14.1');
 };
 
+/**
+ * 5.89.0 renamed the `onSuccess` mutation context parameter to `onMutateResult`
+ * and, unlike the `context: TContext` it replaced, declared it
+ * `TOnMutateResult | undefined`. 5.90.2 narrowed it back to `TOnMutateResult`,
+ * so only 5.89.0 and 5.90.1 want the widened parameter — generating it for
+ * 5.90.2+ makes the handler unable to forward `onMutateResult` to the caller's
+ * own `onSuccess`, and generating the narrow one for 5.89.0 makes the handler
+ * unassignable to `onSuccess` at all (TS2322). See #4180.
+ *
+ * `compareVersions` answers `true` for a version it cannot resolve (`latest`,
+ * `catalog:`, `*`), so both bounds agreeing on `true` lands on the current,
+ * narrow shape rather than on the two-release window.
+ */
+export const isQueryV5WithOptionalOnMutateResult = (
+  packageJson: PackageJson | undefined,
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return (
+    compareVersions(withoutRc, '5.89.0') &&
+    !compareVersions(withoutRc, '5.90.2')
+  );
+};
+
 export const isQueryV5WithMutationContextOnSuccess = (
   packageJson: PackageJson | undefined,
   queryClient:
