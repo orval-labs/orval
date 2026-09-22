@@ -63,8 +63,8 @@
     "tslib": "2.8.1",
     "typescript-eslint": "8.57.2",
     "typescript": "6.0.3",
-    "vite-plus": "0.3.1",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1"
+    "vite-plus": "0.3.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.3"
   },
   "catalogs": {
     "angular": {
