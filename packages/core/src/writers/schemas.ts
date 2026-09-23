@@ -564,7 +564,6 @@ export async function writeSchemas({
 
   if (indexFiles) {
     const schemaFilePath = nodePath.join(schemaPath, `index.ts`);
-    await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception if duplicates are detected (using convention names)
@@ -594,7 +593,6 @@ export async function writeSchemas({
           factoryOutputDirectory,
           `index.ts`,
         );
-        await fs.ensureFile(factoryIndexFilePath);
         const factoryExports: string[] = [];
         if (isCombined.value) {
           const factoryFileName = conventionName(
@@ -621,7 +619,9 @@ export async function writeSchemas({
         }
       }
 
-      const existingContent = await fs.readFile(schemaFilePath, 'utf8');
+      const existingContent = fs.existsSync(schemaFilePath)
+        ? await fs.readFile(schemaFilePath, 'utf8')
+        : '';
       const existingExports = [
         ...existingContent.matchAll(
           /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,
