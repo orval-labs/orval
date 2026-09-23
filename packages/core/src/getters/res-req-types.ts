@@ -441,10 +441,6 @@ export function getResReqTypes(
 }
 
 /**
- * Response type categories for HTTP client response parsing.
- * Maps to Angular HttpClient's responseType, Axios responseType, and Fetch response methods.
- */
-/**
  * Determine the responseType option based on success content types only.
  * This avoids error-response content types influencing the responseType.
  */
