@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import { writeGeneratedFile } from '@orval/core';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 
 const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 
@@ -33,7 +33,7 @@ export async function reExportSpecifierExists(
   candidates.add(path.join(resolved, `index${fileExtension}`));
 
   for (const candidate of candidates) {
-    if (await fs.pathExists(candidate)) return true;
+    if (fs.existsSync(candidate)) return true;
   }
   return false;
 }
@@ -48,7 +48,7 @@ export async function reconcileWorkspaceBarrel(
 ): Promise<void> {
   let existingContent: string;
   try {
-    existingContent = await fs.readFile(filePath, 'utf8');
+    existingContent = await fs.promises.readFile(filePath, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;
@@ -104,7 +104,7 @@ export async function reconcileZodBarrel(
 ): Promise<void> {
   let existingContent = '';
   try {
-    existingContent = await fs.readFile(filePath, 'utf8');
+    existingContent = await fs.promises.readFile(filePath, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;

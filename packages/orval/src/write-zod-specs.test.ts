@@ -1,7 +1,7 @@
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -57,7 +57,9 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
 
 describe('write-zod-specs regressions', () => {
   it('does not rewrite unchanged direct zod output', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-mtime-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-mtime-'),
+    );
     const schemasPath = path.join(root, 'schemas');
     const filePath = path.join(schemasPath, 'RangeSchema.ts');
     const builder = {
@@ -80,7 +82,7 @@ describe('write-zod-specs regressions', () => {
         createOutputOptions(),
       );
       const past = new Date('2020-01-01T00:00:00.000Z');
-      await fs.utimes(filePath, past, past);
+      await fs.promises.utimes(filePath, past, past);
 
       await writeZodSchemas(
         builder,
@@ -90,14 +92,14 @@ describe('write-zod-specs regressions', () => {
         createOutputOptions(),
       );
 
-      expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
+      expect((await fs.promises.stat(filePath)).mtimeMs).toBe(past.getTime());
     } finally {
-      await fs.remove(root);
+      await fs.promises.rm(root, { recursive: true, force: true });
     }
   });
 
   it('writes const constraints before schema export', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -124,7 +126,7 @@ describe('write-zod-specs regressions', () => {
     );
 
     const filePath = path.join(schemasPath, 'RangeSchema.ts');
-    const fileContent = await fs.readFile(filePath, 'utf8');
+    const fileContent = await fs.promises.readFile(filePath, 'utf8');
 
     expect(fileContent).toContain('export const RangeSchemaMin = 2;');
     expect(fileContent).toContain('export const RangeSchemaMax = 10;');
@@ -145,11 +147,13 @@ describe('write-zod-specs regressions', () => {
       'export const RangeSchema = export const',
     );
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('writes zod mini schema files with zod/mini imports', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-mini-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-mini-'),
+    );
     const schemasPath = path.join(root, 'schemas');
     const output = createOutputOptions();
     output.override.zod.variant = 'mini';
@@ -172,7 +176,7 @@ describe('write-zod-specs regressions', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', output);
 
-    const fileContent = await fs.readFile(
+    const fileContent = await fs.promises.readFile(
       path.join(schemasPath, 'RangeSchema.ts'),
       'utf8',
     );
@@ -182,11 +186,11 @@ describe('write-zod-specs regressions', () => {
       'export const RangeSchema = /*#__PURE__*/ zod.number().check(/*#__PURE__*/ zod.gte(RangeSchemaMin)).check(/*#__PURE__*/ zod.lte(RangeSchemaMax))',
     );
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it("defaults 'auto' to zod v4 syntax when no packageJson is available", async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -217,18 +221,18 @@ describe('write-zod-specs regressions', () => {
     );
 
     const filePath = path.join(schemasPath, 'PetSchema.ts');
-    const fileContent = await fs.readFile(filePath, 'utf8');
+    const fileContent = await fs.promises.readFile(filePath, 'utf8');
 
     expect(fileContent).toContain('zod.strictObject({');
     expect(fileContent).toContain('"email": zod.email().optional()');
     expect(fileContent).not.toContain('.strict()');
     expect(fileContent).not.toContain('zod.string().email()');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('merges case-colliding schema files and keeps canonical index export', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
 
     const context = {
@@ -304,7 +308,7 @@ describe('write-zod-specs regressions', () => {
       context,
     );
 
-    const directoryFiles = await fs.readdir(schemasPath);
+    const directoryFiles = await fs.promises.readdir(schemasPath);
     const schemaFiles = directoryFiles.filter((file) =>
       file.toLowerCase().startsWith('foobarbody.'),
     );
@@ -312,7 +316,7 @@ describe('write-zod-specs regressions', () => {
     expect(schemaFiles).toHaveLength(1);
 
     const mergedFilePath = path.join(schemasPath, schemaFiles[0]);
-    const mergedContent = await fs.readFile(mergedFilePath, 'utf8');
+    const mergedContent = await fs.promises.readFile(mergedFilePath, 'utf8');
 
     expect(mergedContent).toContain('export const FooBarBodyMin = 2;');
     expect(mergedContent).toContain('export const FoobarBodyMin = 3;');
@@ -324,16 +328,16 @@ describe('write-zod-specs regressions', () => {
     );
 
     const indexPath = path.join(schemasPath, 'index.ts');
-    const indexContent = await fs.readFile(indexPath, 'utf8');
+    const indexContent = await fs.promises.readFile(indexPath, 'utf8');
     const mergedSchemaExport = path.basename(schemaFiles[0], '.ts');
 
     expect(indexContent).toContain(`export * from './${mergedSchemaExport}';`);
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('writes default const before schema export in split output (#2801)', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -359,7 +363,7 @@ describe('write-zod-specs regressions', () => {
     );
 
     const filePath = path.join(schemasPath, 'DefaultedSchema.ts');
-    const fileContent = await fs.readFile(filePath, 'utf8');
+    const fileContent = await fs.promises.readFile(filePath, 'utf8');
 
     expect(fileContent).toContain(
       'export const DefaultedSchemaDefault = `hello`;',
@@ -374,11 +378,11 @@ describe('write-zod-specs regressions', () => {
       'export const DefaultedSchema = export const',
     );
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('honors response generate override in split zod output', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
 
     const context = {
@@ -446,19 +450,21 @@ describe('write-zod-specs regressions', () => {
       context,
     );
 
-    if (await fs.pathExists(schemasPath)) {
-      const directoryFiles = await fs.readdir(schemasPath);
+    if (fs.existsSync(schemasPath)) {
+      const directoryFiles = await fs.promises.readdir(schemasPath);
 
       expect(directoryFiles).not.toContain('GetPetResponse.ts');
     }
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 });
 
 describe('writeZodSchemas with generateReusableSchemas', () => {
   it('emits cross-file imports instead of inlining $refs', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -490,11 +496,11 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
-    const petContent = await fs.readFile(
+    const petContent = await fs.promises.readFile(
       path.join(schemasPath, 'Pet.ts'),
       'utf8',
     );
-    const ownerContent = await fs.readFile(
+    const ownerContent = await fs.promises.readFile(
       path.join(schemasPath, 'Owner.ts'),
       'utf8',
     );
@@ -503,11 +509,13 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     expect(petContent).not.toContain('__REF_');
     expect(ownerContent).not.toContain('__REF_');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('emits schemas whose raw name differs from the sanitized model name', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-raw-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-raw-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -536,22 +544,22 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
-    const fileExists = await fs.pathExists(
-      path.join(schemasPath, 'PageItem.ts'),
-    );
+    const fileExists = fs.existsSync(path.join(schemasPath, 'PageItem.ts'));
     expect(fileExists).toBe(true);
 
-    const content = await fs.readFile(
+    const content = await fs.promises.readFile(
       path.join(schemasPath, 'PageItem.ts'),
       'utf8',
     );
     expect(content).toContain('export const PageItem = ');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('pins recursive schemas to a generated TS type across files', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-rec-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-rec-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     // Node <-> Edge mutual recursion: the back-edge is emitted as a `zod.lazy`,
@@ -591,7 +599,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
-    const nodeContent = await fs.readFile(
+    const nodeContent = await fs.promises.readFile(
       path.join(schemasPath, 'Node.ts'),
       'utf8',
     );
@@ -605,7 +613,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     expect(nodeContent).not.toContain('export type Node = zod.input<');
     expect(nodeContent).not.toContain('__REF_');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('imports type-only refs that the recursive TS body uses but the zod runtime drops', async () => {
@@ -615,7 +623,9 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     // in the entry's `usedRefs`. Pre-fix the split-mode writer derived imports
     // purely from `usedRefs`, leaving the rendered `Partial<Record<KeyType,
     // ...>>` referencing an unimported `KeyType` (TS2304).
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-pn-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-pn-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -662,7 +672,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
-    const treeContent = await fs.readFile(
+    const treeContent = await fs.promises.readFile(
       path.join(schemasPath, 'Tree.ts'),
       'utf8',
     );
@@ -691,11 +701,9 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     // RelationType itself is emitted as a sibling file; the import above
     // would dangle without this. Asserting the emission keeps "what's
     // imported" and "what's written" in lockstep.
-    expect(await fs.pathExists(path.join(schemasPath, 'RelationType.ts'))).toBe(
-      true,
-    );
+    expect(fs.existsSync(path.join(schemasPath, 'RelationType.ts'))).toBe(true);
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   it('emits the implicit sub-model an inline nested object hoists in a recursive schema', async () => {
@@ -707,7 +715,9 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     // `resolved.schemas`, so the body named a type that was never declared
     // (TS2552 in single-file output, TS2305 in split). The acyclic path never
     // hits this: it derives its type via `zod.input<typeof X>`.
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-sub-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-sub-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
@@ -738,7 +748,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
-    const actionContent = await fs.readFile(
+    const actionContent = await fs.promises.readFile(
       path.join(schemasPath, 'Action.ts'),
       'utf8',
     );
@@ -754,12 +764,10 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     // it (it isn't a component).
     expect(actionContent).toContain('export type ActionMeta = ');
     expect(actionContent).not.toMatch(/from '\.\/ActionMeta'/);
-    expect(await fs.pathExists(path.join(schemasPath, 'ActionMeta.ts'))).toBe(
-      false,
-    );
+    expect(fs.existsSync(path.join(schemasPath, 'ActionMeta.ts'))).toBe(false);
     expect(actionContent).not.toContain('__REF_');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 });
 
@@ -854,7 +862,9 @@ describe('buildSiblingImports', () => {
 
 describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
   it('skips operation wrapper when body is a pure $ref', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-verbs-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-verbs-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const verbOptions = {
@@ -904,19 +914,21 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     );
 
     // No PetCreateBody file should be emitted because the body is a pure ref.
-    const fileExists = await fs.pathExists(
+    const fileExists = fs.existsSync(
       path.join(schemasPath, 'PetCreateBody.ts'),
     );
     expect(fileExists).toBe(false);
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 
   // Regression for #3463: an operation param/body/response that references a
   // component schema (e.g. a nullable enum query param) must rewrite the
   // `__REF_<name>__` sentinel to the bare identifier AND emit the import.
   it('rewrites sentinels and emits imports for refs in operation schemas', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-verbs-ref-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-verbs-ref-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const verbOptions = {
@@ -977,7 +989,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
       ctx,
     );
 
-    const content = await fs.readFile(
+    const content = await fs.promises.readFile(
       path.join(schemasPath, 'findPetsByStatusParams.ts'),
       'utf8',
     );
@@ -988,13 +1000,15 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     // ...and the matching import is emitted (PascalCase symbol, camelCase file).
     expect(content).toContain("import { PetStatus } from './petStatus';");
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 });
 
 describe('writeZodSchemasFromVerbs $ref parameter resolution', () => {
   it('includes $ref parameters in generated query param schemas', async () => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-ref-param-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-ref-param-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const verbOptions = {
@@ -1048,7 +1062,7 @@ describe('writeZodSchemasFromVerbs $ref parameter resolution', () => {
       ctx,
     );
 
-    const content = await fs.readFile(
+    const content = await fs.promises.readFile(
       path.join(schemasPath, 'ListPetsParams.ts'),
       'utf8',
     );
@@ -1056,7 +1070,7 @@ describe('writeZodSchemasFromVerbs $ref parameter resolution', () => {
     expect(content).toContain('"page"');
     expect(content).toContain('"status"');
 
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
   });
 });
 
@@ -1329,7 +1343,9 @@ describe('writeZodSchemasFromVerbs — composed array item schemas', () => {
     value: string,
     originalSchema: unknown,
   ): Promise<string[]> => {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-composed-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-composed-'),
+    );
     const schemasPath = path.join(root, 'schemas');
 
     const context = {
@@ -1373,10 +1389,10 @@ describe('writeZodSchemasFromVerbs — composed array item schemas', () => {
       context,
     );
 
-    const files = (await fs.pathExists(schemasPath))
-      ? await fs.readdir(schemasPath)
+    const files = fs.existsSync(schemasPath)
+      ? await fs.promises.readdir(schemasPath)
       : [];
-    await fs.remove(root);
+    await fs.promises.rm(root, { recursive: true, force: true });
     return files;
   };
 

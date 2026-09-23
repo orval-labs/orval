@@ -39,8 +39,9 @@ import {
   writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
+import fs from 'node:fs';
+
 import { execa, ExecaError } from 'execa';
-import fs from 'fs-extra';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
 
 import {
@@ -276,7 +277,7 @@ async function addOperationSchemasReExport(
 
   let existingContent: string | undefined;
   try {
-    existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+    existingContent = await fs.promises.readFile(schemaIndexPath, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;

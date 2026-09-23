@@ -8,7 +8,7 @@ import {
   withReporter,
   type WriteSpecBuilder,
 } from '@orval/core';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { MockExecaError } = vi.hoisted(() => ({
@@ -219,23 +219,31 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
     const { Application, PackageJsonReader, TSConfigReader, TypeDocReader } =
       await import('typedoc');
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'orval-typedoc-'));
+    const tmpDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'orval-typedoc-'),
+    );
     try {
       const entryFile = path.join(tmpDir, 'index.ts');
-      await fs.writeFile(
+      await fs.promises.writeFile(
         entryFile,
         'export interface Foo {\n  bar: string;\n}\n',
       );
-      await fs.writeJson(path.join(tmpDir, 'tsconfig.json'), {
-        compilerOptions: { strict: true },
-        files: ['index.ts'],
-      });
+      await fs.promises.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: { strict: true },
+          files: ['index.ts'],
+        }),
+      );
 
       const configFile = path.join(tmpDir, 'typedoc.json');
       // Deliberately omits `typedoc-plugin-markdown` to reproduce the bug.
-      await fs.writeJson(configFile, {
-        plugin: ['typedoc-plugin-coverage'],
-      });
+      await fs.promises.writeFile(
+        configFile,
+        JSON.stringify({
+          plugin: ['typedoc-plugin-coverage'],
+        }),
+      );
 
       const outDir = path.join(tmpDir, 'docs');
 
@@ -263,17 +271,19 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
 
       await expect(app.generateOutputs(project!)).resolves.not.toThrow();
 
-      const files = await fs.readdir(outDir);
+      const files = await fs.promises.readdir(outDir);
       expect(files.length).toBeGreaterThan(0);
     } finally {
-      await fs.remove(tmpDir);
+      await fs.promises.rm(tmpDir, { recursive: true, force: true });
     }
   });
 });
 
 describe('writeSpecs', () => {
   it('does not rewrite unchanged extra files', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'orval-extra-file-'));
+    const root = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'orval-extra-file-'),
+    );
     const filePath = path.join(root, 'context.ts');
     const builder = {
       operations: {},
@@ -306,13 +316,13 @@ describe('writeSpecs', () => {
     try {
       await writeSpecs(builder, root, options);
       const past = new Date('2020-01-01T00:00:00.000Z');
-      await fs.utimes(filePath, past, past);
+      await fs.promises.utimes(filePath, past, past);
 
       await writeSpecs(builder, root, options);
 
-      expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
+      expect((await fs.promises.stat(filePath)).mtimeMs).toBe(past.getTime());
     } finally {
-      await fs.remove(root);
+      await fs.promises.rm(root, { recursive: true, force: true });
     }
   });
 });

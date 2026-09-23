@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -42,7 +42,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('omits the *.schemas.ts path when needSchema is false', async () => {
@@ -113,7 +113,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
 
     await writeSplitTagsMode({ ...props, needSchema: false });
 
-    const content = await fs.readFile(
+    const content = await fs.promises.readFile(
       path.join(tmpDir, 'pets', 'pets.service.ts'),
       'utf8',
     );
@@ -178,7 +178,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
 
     await writeSplitTagsMode({ ...props, needSchema: false });
 
-    const mockContent = await fs.readFile(
+    const mockContent = await fs.promises.readFile(
       path.join(tmpDir, 'pets', 'pets.msw.ts'),
       'utf8',
     );
@@ -205,7 +205,7 @@ describe('writeSplitTagsMode — function generator is treated as MSW (#3554)', 
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('does not throw and emits the MSW mock file for a function generator', async () => {
@@ -248,7 +248,7 @@ describe('writeSplitTagsMode — index mock barrel has deterministic tag order',
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 
@@ -326,7 +326,7 @@ describe('writeSplitTagsMode — schemas import extension follows tsconfig modul
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('appends .js to the schemas specifier under module: NodeNext', async () => {
@@ -413,7 +413,7 @@ describe('writeSplitTagsMode — mock barrel extension follows tsconfig', () => 
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('appends .js to mock barrel re-exports under module: NodeNext', async () => {
@@ -450,7 +450,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('writes index.ts when indexFiles and tagsSplitDeduplication are true', async () => {
@@ -629,7 +629,7 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const sharedExports = {
@@ -757,7 +757,7 @@ describe('writeSplitTagsMode — routes mock schema imports through schemaOutput
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('mock file schema imports match the routed client imports', async () => {

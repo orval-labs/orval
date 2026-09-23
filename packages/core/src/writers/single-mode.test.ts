@@ -2,7 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -34,7 +34,7 @@ describe('writeSingleMode — separated mocks import inline schemas from the tar
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('does not import a non-existent *.schemas file when output.schemas is unset', async () => {
@@ -242,7 +242,7 @@ describe('writeSingleMode — recovers schema-factory imports stripped by aggreg
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('recovers getPetMock() missing from mockOutput.imports', async () => {
@@ -280,7 +280,7 @@ describe('writeSingleMode — recovers schema-factory imports stripped by aggreg
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('recovers getPetMock() in the generated .faker.ts file', async () => {
@@ -302,7 +302,7 @@ describe('writeSingleMode — recovers schema-factory imports stripped by aggreg
 
     await writeSingleMode({ ...props, needSchema: false });
 
-    const mockContent = await fs.readFile(
+    const mockContent = await fs.promises.readFile(
       path.join(tmpDir, 'mocks', 'petstore.faker.ts'),
       'utf8',
     );
@@ -342,7 +342,7 @@ describe('writeSingleMode — importing the client does not evaluate msw/faker (
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('does not run the msw/faker module factories, but the sibling mock files do', async () => {

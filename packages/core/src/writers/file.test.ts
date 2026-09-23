@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
@@ -9,18 +9,18 @@ describe('writeGeneratedFile', () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'orval-write-'));
+    dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'orval-write-'));
   });
 
   afterEach(async () => {
-    await fs.remove(dir);
+    await fs.promises.rm(dir, { recursive: true, force: true });
   });
 
   it('creates the file and strips trailing whitespace', async () => {
     const filePath = path.join(dir, 'nested', 'out.ts');
     await writeGeneratedFile(filePath, 'const a = 1;   \nconst b = 2;\n');
 
-    expect(await fs.readFile(filePath, 'utf8')).toBe(
+    expect(await fs.promises.readFile(filePath, 'utf8')).toBe(
       'const a = 1;\nconst b = 2;\n',
     );
   });
@@ -29,14 +29,14 @@ describe('writeGeneratedFile', () => {
     const filePath = path.join(dir, 'out.ts');
     await writeGeneratedFile(filePath, 'const a = 1;\n');
     const past = new Date('2020-01-01T00:00:00.000Z');
-    await fs.utimes(filePath, past, past);
+    await fs.promises.utimes(filePath, past, past);
 
     // Same final content, reached from a different source string: the trailing
     // whitespace is stripped before the comparison.
     await writeGeneratedFile(filePath, 'const a = 1;   \n');
 
-    expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
-    expect(await fs.readFile(filePath, 'utf8')).toBe('const a = 1;\n');
+    expect((await fs.promises.stat(filePath)).mtimeMs).toBe(past.getTime());
+    expect(await fs.promises.readFile(filePath, 'utf8')).toBe('const a = 1;\n');
   });
 
   it('compares transformed content before writing', async () => {
@@ -48,14 +48,16 @@ describe('writeGeneratedFile', () => {
       writeGeneratedFile(filePath, "const value = 'test';\n"),
     );
     const past = new Date('2020-01-01T00:00:00.000Z');
-    await fs.utimes(filePath, past, past);
+    await fs.promises.utimes(filePath, past, past);
 
     await withGeneratedFileTransform(format, () =>
       writeGeneratedFile(filePath, "const value = 'test';\n"),
     );
 
-    expect(await fs.readFile(filePath, 'utf8')).toBe('const value = "test";\n');
-    expect((await fs.stat(filePath)).mtimeMs).toBe(past.getTime());
+    expect(await fs.promises.readFile(filePath, 'utf8')).toBe(
+      'const value = "test";\n',
+    );
+    expect((await fs.promises.stat(filePath)).mtimeMs).toBe(past.getTime());
   });
 
   it('still writes when the content differs', async () => {
@@ -63,6 +65,6 @@ describe('writeGeneratedFile', () => {
     await writeGeneratedFile(filePath, 'const a = 1;\n');
     await writeGeneratedFile(filePath, 'const a = 2;\n');
 
-    expect(await fs.readFile(filePath, 'utf8')).toBe('const a = 2;\n');
+    expect(await fs.promises.readFile(filePath, 'utf8')).toBe('const a = 2;\n');
   });
 });
