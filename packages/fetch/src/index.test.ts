@@ -29,7 +29,9 @@ type TestParameter = {
   in: string;
   style?: string;
   explode?: boolean;
-  schema?: Record<string, unknown>;
+  // Record keeps widened fixture objects assignable. OpenApiSchemaObject
+  // adds JSON Schema booleans, which Record<string, unknown> rejects.
+  schema?: OpenApiSchemaObject | Record<string, unknown>;
 };
 
 const successType = (

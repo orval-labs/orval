@@ -1761,6 +1761,76 @@ describe('getResReqTypes ($ref response without content)', () => {
   });
 });
 
+describe('getResReqTypes ($ref request body required default)', () => {
+  const noteSchema = {
+    type: 'object' as const,
+    properties: {
+      note: { type: 'string' as const },
+    },
+    required: ['note'],
+  };
+
+  const ctx = extendContext({
+    spec: {
+      components: {
+        requestBodies: {
+          UploadBody: {
+            content: {
+              'multipart/form-data': { schema: noteSchema },
+            },
+          },
+          RequiredUploadBody: {
+            content: {
+              'multipart/form-data': { schema: noteSchema },
+            },
+            required: true,
+          },
+          UrlEncodedBody: {
+            content: {
+              'application/x-www-form-urlencoded': { schema: noteSchema },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  it('treats a $ref multipart body as optional when required is omitted', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      ['requestBody', { $ref: '#/components/requestBodies/UploadBody' }],
+    ];
+
+    const formData = getResReqTypes(reqBody, 'Upload', ctx)[0]?.formData;
+
+    expect(formData).toEqual(expect.stringMatching(/\?\.note/));
+  });
+
+  it('keeps a $ref multipart body required when required is true', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      [
+        'requestBody',
+        { $ref: '#/components/requestBodies/RequiredUploadBody' },
+      ],
+    ];
+
+    const formData = getResReqTypes(reqBody, 'Upload', ctx)[0]?.formData;
+
+    expect(formData).toEqual(expect.stringContaining('.note'));
+    expect(formData).not.toEqual(expect.stringMatching(/\?\.note/));
+  });
+
+  it('treats a $ref url-encoded body as optional when required is omitted', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      ['requestBody', { $ref: '#/components/requestBodies/UrlEncodedBody' }],
+    ];
+
+    const formUrlEncoded = getResReqTypes(reqBody, 'Upload', ctx)[0]
+      ?.formUrlEncoded;
+
+    expect(formUrlEncoded).toEqual(expect.stringMatching(/\?\.note/));
+  });
+});
+
 describe('getResReqTypes (form-data part content type escaping)', () => {
   it('escapes single quotes in an encoding content type', () => {
     const reqBody: [string, OpenApiRequestBodyObject][] = [

@@ -208,13 +208,16 @@ export function getResReqTypes(
           ] as ResReqTypesValue[];
         }
 
+        // OpenAPI defaults requestBody.required to false when the key is absent.
+        const isRequestBodyOptional =
+          !('required' in bodySchema) || bodySchema.required !== true;
+
         const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional:
-                'required' in bodySchema && bodySchema.required !== true,
+              isRequestBodyOptional,
               isRef: true,
               encoding: mediaType.encoding,
             })
@@ -225,8 +228,7 @@ export function getResReqTypes(
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional:
-                'required' in bodySchema && bodySchema.required !== true,
+              isRequestBodyOptional,
               isUrlEncoded: true,
               isRef: true,
               encoding: mediaType.encoding,
