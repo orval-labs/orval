@@ -823,20 +823,21 @@ describe('getBodiesByContentType', () => {
   it('does not resolve inherited members of the content type map', () => {
     // A plain index lookup would return `Object.prototype.toString` here and
     // splice the function source into the generated identifier.
-    const content: OpenApiRequestBodyObject['content'] = {
-      'application/json': {
-        schema: { type: 'object', properties: { a: { type: 'string' } } },
+    // An object literal can declare that key, but TypeScript then checks the
+    // value against `Object.prototype.toString` and drops contextual typing,
+    // so the nested schema's `type` is a widened `string`.
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        toString: {
+          // @ts-expect-error — toString is checked against Object.prototype.toString
+          schema: { type: 'object', properties: { b: { type: 'string' } } },
+        },
       },
-    };
-    Object.assign(content, {
-      toString: {
-        schema: { type: 'object', properties: { b: { type: 'string' } } },
-      },
-    });
-    const requestBody = {
-      content,
       required: true,
-    } satisfies OpenApiRequestBodyObject;
+    };
 
     const result = getBodiesByContentType({
       requestBody,

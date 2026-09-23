@@ -570,16 +570,17 @@ describe('generateFactory', () => {
   });
 
   it('returns undefined as unknown for unsupported types', () => {
-    const schema = {
-      type: 'object' as const,
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
       required: ['weirdField'],
       properties: {
-        weirdField: { type: 'string' as const },
+        // `weird` is not a JSON Schema type. The instance type must be one of
+        // array, boolean, integer, null, number, object, or string.
+        // https://json-schema.org/draft/2020-12/json-schema-core#section-4.2.1
+        // @ts-expect-error — 'weird' is not a JSON Schema type
+        weirdField: { type: 'weird' },
       },
-    } satisfies OpenApiSchemaObject;
-    if (typeof schema === 'object') {
-      Object.assign(schema.properties ?? {}, { weirdField: { type: 'weird' } });
-    }
+    };
 
     const result = generateFactory(schema, 'WeirdObj', createMockContext());
     expect(result?.model).toContain('weirdField: undefined as unknown');

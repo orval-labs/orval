@@ -6,7 +6,6 @@ import path from 'node:path';
 
 import type {
   OpenApiDocument,
-  OpenApiMediaTypeObject,
   OpenApiReferenceObject,
   OpenApiResponseObject,
 } from '@orval/core';
@@ -153,6 +152,10 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
             description: 'Successful Response',
             content: {
               'text/event-stream': {
+                // `itemSchema` is not a Media Type Object field. OpenAPI 3.1
+                // allows schema, example, examples, encoding, and `x-` extensions.
+                // https://spec.openapis.org/oas/v3.1.1#media-type-object
+                // @ts-expect-error — itemSchema is not a Media Type Object field
                 itemSchema: {
                   type: 'object',
                   properties: {
@@ -160,7 +163,7 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
                     event: { type: 'string' },
                   },
                 },
-              } as unknown as OpenApiMediaTypeObject,
+              },
             },
           },
         },

@@ -3611,13 +3611,17 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
   });
 
   it('still converts the array when additionalProperties is an empty array (must not regress)', () => {
-    const schema = {
-      type: 'array' as const,
-      items: { type: 'string' as const, format: 'date' },
-    } satisfies OpenApiSchemaObject;
-    if (typeof schema === 'object') {
-      Object.assign(schema, { additionalProperties: [] });
-    }
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      // An array is not a legal `additionalProperties` value. The keyword
+      // must be a JSON Schema — an object or a boolean — and OpenAPI 3.1
+      // Schema Objects use that dialect.
+      // https://json-schema.org/draft/2020-12/json-schema-core#section-10.3.2.3
+      // https://spec.openapis.org/oas/v3.1.1#schema-object
+      // @ts-expect-error — an array is not a legal additionalProperties value
+      additionalProperties: [],
+    };
 
     expect(
       buildDateTransformStatements({
@@ -5235,13 +5239,17 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
   });
 
   it('still maps the array when additionalProperties is an empty array (must not regress)', () => {
-    const schema = {
-      type: 'array' as const,
-      items: { type: 'string' as const, format: 'date' },
-    } satisfies OpenApiSchemaObject;
-    if (typeof schema === 'object') {
-      Object.assign(schema, { additionalProperties: [] });
-    }
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      // An array is not a legal `additionalProperties` value. The keyword
+      // must be a JSON Schema — an object or a boolean — and OpenAPI 3.1
+      // Schema Objects use that dialect.
+      // https://json-schema.org/draft/2020-12/json-schema-core#section-10.3.2.3
+      // https://spec.openapis.org/oas/v3.1.1#schema-object
+      // @ts-expect-error — an array is not a legal additionalProperties value
+      additionalProperties: [],
+    };
 
     expect(
       buildRequestDateSerializeStatements({

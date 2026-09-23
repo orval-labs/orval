@@ -882,22 +882,22 @@ describe('null safety in $defs entries', () => {
       components: {
         schemas: {
           User: { type: 'object', properties: { id: { type: 'string' } } },
-          Container: (() => {
-            const schema = {
-              $defs: {
-                good: {
-                  $dynamicAnchor: 'itemType',
-                  $ref: '#/components/schemas/User',
-                },
+          Container: {
+            $defs: {
+              // `null` is not a legal $defs value. A JSON Schema must be an object
+              // or a boolean, and each $defs member must be a valid JSON Schema.
+              // OpenAPI 3.1 Schema Objects use that dialect.
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
+              // @ts-expect-error — null is not a legal $defs value
+              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              good: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
               },
-              type: 'object' as const,
-            };
-            if (typeof schema === 'object') {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              Object.assign(schema.$defs ?? {}, { bad: null });
-            }
-            return schema;
-          })(),
+            },
+            type: 'object',
+          },
         },
       },
     };
@@ -917,19 +917,19 @@ describe('null safety in $defs entries', () => {
       openapi: '3.1.0',
       components: {
         schemas: {
-          Container: (() => {
-            const schema = {
-              $defs: {
-                param: { $dynamicAnchor: 'node', type: 'string' as const },
-              },
-              type: 'object' as const,
-            };
-            if (typeof schema === 'object') {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              Object.assign(schema.$defs ?? {}, { bad: null });
-            }
-            return schema;
-          })(),
+          Container: {
+            $defs: {
+              // `null` is not a legal $defs value. A JSON Schema must be an object
+              // or a boolean, and each $defs member must be a valid JSON Schema.
+              // OpenAPI 3.1 Schema Objects use that dialect.
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
+              // @ts-expect-error — null is not a legal $defs value
+              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              param: { $dynamicAnchor: 'node', type: 'string' },
+            },
+            type: 'object',
+          },
         },
       },
     };
