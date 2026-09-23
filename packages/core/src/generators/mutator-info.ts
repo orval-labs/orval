@@ -106,18 +106,34 @@ async function bundleFile(
     platform: 'node',
     resolve: { alias },
     // Externals arrive as esbuild-style globs (e.g. `*.scss`); rolldown
-    // matches exact IDs, so translate `*` → `.*` before testing.
+    // matches exact IDs, so translate `*` → `.*` before testing. A bare
+    // package pattern with no wildcard also covers its subpaths, which is what
+    // esbuild did: `@scope/pkg` externalises `@scope/pkg/subpath` too.
     external: external
       ? external.map((pattern) => {
           const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-          return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`);
+          if (pattern.includes('*')) {
+            return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`);
+          }
+
+          return new RegExp(
+            `^${escaped}${isBareSpecifier(pattern) ? '(?:/.*)?' : ''}$`,
+          );
         })
       : () => true,
   });
-  const { output } = await build.generate({ format: 'esm' });
-  const first = output[0];
 
-  return first.type === 'chunk' ? first.code : '';
+  try {
+    const { output } = await build.generate({ format: 'esm' });
+
+    // rolldown types `output` as starting with a chunk, so the entry code is
+    // always at index 0.
+    return output[0].code;
+  } finally {
+    // rolldown holds native resources until closed; repeated inspections in
+    // one process would otherwise leak them. Runs on the throw path too.
+    await build.close();
+  }
 }
 
 function parseFile(
