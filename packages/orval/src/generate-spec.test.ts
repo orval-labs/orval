@@ -1672,7 +1672,10 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const entries = await fs.readdir(workspace, { recursive: true });
+      // Sorted so the tag file comes before the root barrel, whatever readdir's order.
+      const entries = (
+        await fs.readdir(workspace, { recursive: true })
+      ).toSorted();
       const tsFile = entries.find(
         (e) => String(e).endsWith('.ts') && !String(e).includes('model'),
       );
