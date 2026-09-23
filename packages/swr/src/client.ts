@@ -11,6 +11,7 @@ import {
   type GetterResponse,
   GetterPropType,
   isSyntheticDefaultImportsAllow,
+  makeRouteSafe,
   OutputHttpClient,
   toObjectString,
 } from '@orval/core';
@@ -60,9 +61,18 @@ const generateAxiosRequestFunction = (
     formUrlEncoded,
     override,
     paramsSerializer,
+    params,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
 ) => {
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
