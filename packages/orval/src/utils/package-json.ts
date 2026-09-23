@@ -130,8 +130,9 @@ const loadPackageJsonCatalog = async (
 
   for (const filePath of filePaths) {
     try {
+      // fs-extra's readJson stripped a leading BOM; JSON.parse rejects it.
       const pkg = JSON.parse(
-        await fs.promises.readFile(filePath, 'utf8'),
+        (await fs.promises.readFile(filePath, 'utf8')).replace(/^\uFEFF/, ''),
       ) as Record<string, unknown>;
       if (pkg.catalog || pkg.catalogs) {
         return {

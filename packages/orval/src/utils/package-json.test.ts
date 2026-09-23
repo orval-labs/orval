@@ -292,6 +292,32 @@ describe('loadPackageJson - catalog resolution', () => {
       expect(result?.dependencies?.react).toBe('^19.0.0');
     });
 
+    it('should resolve catalog: from a BOM-prefixed root package.json', async () => {
+      const mockPkg = {
+        dependencies: {
+          react: 'catalog:',
+        },
+      };
+
+      mockFindUp((name) => {
+        if (name === 'pnpm-workspace.yaml') return;
+        if (name === '.yarnrc.yml') return;
+        if (Array.isArray(name) && name.includes('package.json'))
+          return '/workspace/packages/app/package.json';
+        return;
+      });
+      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+
+      vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        '\uFEFF' + JSON.stringify({ catalog: { react: '^19.0.0' } }),
+      );
+
+      const result = await loadPackageJson();
+
+      expect(result?.dependencies?.react).toBe('^19.0.0');
+    });
+
     it('should resolve named catalog from root package.json', async () => {
       const mockPkg = {
         devDependencies: {
