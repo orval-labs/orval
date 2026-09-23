@@ -601,6 +601,54 @@ describe('generateFactory', () => {
     expect(result?.model).toContain(`return "O'Reilly"`);
   });
 
+  it.each(['number', 'integer', 'boolean'] as const)(
+    'serializes a string member of a %s enum as a string literal',
+    (type) => {
+      // OpenAPI does not make enum members agree with the declared type, so a
+      // string member reached a branch that spliced it in with `String()`,
+      // letting it close the factory body and run code at import time.
+      const payload =
+        '0; } ((globalThis as any).__PWNED__ = true); function _x() { return 0';
+      const schema: OpenApiSchemaObject = { type, enum: [payload] };
+
+      const result = generateFactory(schema, 'EvilEnum', createMockContext());
+
+      expect(result?.model).toContain(`return ${JSON.stringify(payload)};`);
+      expect(result?.model).not.toContain(`return ${payload};`);
+    },
+  );
+
+  it('serializes a string member of a nested numeric enum as a string literal', () => {
+    const payload = '0, (globalThis.pwned = 1)';
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['count'],
+      properties: { count: { type: 'integer', enum: [payload] } },
+    };
+
+    const result = generateFactory(schema, 'EvilNested', createMockContext());
+
+    expect(result?.model).toContain(`count: ${JSON.stringify(payload)}`);
+  });
+
+  it('keeps numeric and boolean enum members as bare literals', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['num', 'int', 'flag'],
+      properties: {
+        num: { type: 'number', enum: [1.5, 2] },
+        int: { type: 'integer', enum: [-3] },
+        flag: { type: 'boolean', enum: [false] },
+      },
+    };
+
+    const result = generateFactory(schema, 'SafeEnums', createMockContext());
+
+    expect(result?.model).toContain('num: 1.5');
+    expect(result?.model).toContain('int: -3');
+    expect(result?.model).toContain('flag: false');
+  });
+
   it('escapes backslashes and quotes properly', () => {
     const schema: OpenApiSchemaObject = {
       type: 'string',
