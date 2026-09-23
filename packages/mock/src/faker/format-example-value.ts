@@ -168,22 +168,6 @@ function resolveExampleSchema(
   return resolved;
 }
 
-export function formatScalarExampleValue(
-  example: unknown,
-  format: string | undefined,
-  context: ContextSpec,
-): string {
-  if (
-    context.output.override.useDates &&
-    typeof example === 'string' &&
-    isDateFormat(format)
-  ) {
-    return `new Date(${JSON.stringify(example)})`;
-  }
-
-  return JSON.stringify(example);
-}
-
 function formatLiteralValue(
   example: unknown,
   schema: OpenApiSchemaObject | undefined,

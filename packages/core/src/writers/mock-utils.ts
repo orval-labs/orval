@@ -17,13 +17,6 @@ export function getMockDir(
   return mockConfig.path;
 }
 
-export function hasAnyMockPath(
-  mockConfig: WriteModeProps['output']['mock'],
-): boolean {
-  if (mockConfig.path) return true;
-  return mockConfig.generators.some((g) => !isFunction(g) && !!g.path);
-}
-
 /**
  * Lists the directories that mock files are written to.
  *

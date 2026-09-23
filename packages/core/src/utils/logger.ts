@@ -117,10 +117,6 @@ export function setProjectName(projectName?: string) {
   });
 }
 
-export function getProjectName(): string | undefined {
-  return storage.getStore()?.projectName;
-}
-
 /** Re-enter the current report scope from later callbacks (watchers). */
 export function bindReporter() {
   const context = storage.getStore();
@@ -156,10 +152,6 @@ export function resolveLogLevel(options: {
     return 'warn';
   }
   return options.logLevel ?? 'info';
-}
-
-export function getLogLevel(): LogLevel {
-  return logLevel;
 }
 
 export function isLogLevelEnabled(level: LogLevel): boolean {

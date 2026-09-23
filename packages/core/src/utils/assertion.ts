@@ -4,7 +4,6 @@ import { isFunction, isNullish, isNumber, isString } from 'remeda';
 
 import {
   type ClientMockBuilder,
-  type FakerMockOptions,
   type GlobalMockOptions,
   type MswMockOptions,
   type OpenApiReferenceObject,
@@ -77,19 +76,6 @@ export function isDirectory(pathValue: string) {
  */
 export function isObject(x: unknown): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
-}
-
-/**
- * Type guard for string primitives and `String` wrapper objects.
- *
- * @param val - Value to test.
- */
-export function isStringLike(val: unknown): val is string {
-  if (isString(val)) {
-    return true;
-  }
-
-  return Object.prototype.toString.call(val) === '[object String]';
 }
 
 /**
@@ -303,18 +289,6 @@ export function isMswMock(
   mock: GlobalMockOptions | ClientMockBuilder,
 ): mock is MswMockOptions {
   return !isFunction(mock) && mock.type === OutputMockType.MSW;
-}
-
-/**
- * Type guard for the Faker mock generator. Use to narrow a
- * `GlobalMockOptions | ClientMockBuilder` value to `FakerMockOptions`.
- *
- * @param mock - Mock configuration or builder to test.
- */
-export function isFakerMock(
-  mock: GlobalMockOptions | ClientMockBuilder,
-): mock is FakerMockOptions {
-  return !isFunction(mock) && mock.type === OutputMockType.FAKER;
 }
 
 /** Re-exported Remeda type guards and predicates used alongside local assertions. */

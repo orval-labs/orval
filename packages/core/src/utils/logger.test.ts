@@ -8,8 +8,6 @@ import {
   consoleReporter,
   createLogger,
   createSuccessMessage,
-  getLogLevel,
-  getProjectName,
   getWarningCount,
   logger,
   noopReporter,
@@ -68,7 +66,6 @@ describe('logger', () => {
       logger.info('Cleaning output folder');
     });
 
-    expect(getProjectName()).toBeUndefined();
     expect(info).toHaveBeenCalledWith({
       message: `${styleText('green', 'petstore')} - Cleaning output folder`,
       packageName: 'orval',
@@ -275,10 +272,6 @@ describe('logger', () => {
       packageName: '@orval/zod',
       projectName: 'petstore',
     });
-  });
-
-  it('defaults to the info log level', () => {
-    expect(getLogLevel()).toBe('info');
   });
 
   it('gates messages by log level', () => {

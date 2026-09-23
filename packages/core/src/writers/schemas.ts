@@ -353,18 +353,6 @@ function getPath(path: string, name: string, fileExtension: string): string {
   return nodePath.join(path, `${name}${fileExtension}`);
 }
 
-export function writeModelInline(acc: string, model: string): string {
-  return acc + `${model}\n`;
-}
-
-export function writeModelsInline(array: GeneratorSchema[]): string {
-  let acc = '';
-  for (const { model } of array) {
-    acc = writeModelInline(acc, model);
-  }
-  return acc;
-}
-
 interface WriteSchemaOptions {
   path: string;
   schema: GeneratorSchema;

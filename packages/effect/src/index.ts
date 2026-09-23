@@ -60,14 +60,6 @@ const possibleSchemaTypes = new Set([
   'array',
 ]);
 
-export const predefinedEffectFormats = new Set([
-  'date',
-  'date-time',
-  'email',
-  'uri',
-  'uuid',
-]);
-
 type ResolvedEffectType =
   | string
   | {

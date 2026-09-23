@@ -24,9 +24,6 @@ export const VERBS_WITH_BODY = [
   Verbs.QUERY,
 ];
 
-export const URL_REGEX =
-  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/;
-
 /**
  * Matches a `${thing}` tag in template-literal source.
  *
