@@ -320,7 +320,7 @@ describe('getMutatorInfo', () => {
   });
 
   // The inspection bundle is discarded after its arity is read, so it is built
-  // at esbuild's default target. Downleveling it to the project's TypeScript
+  // at rolldown's default target. Downleveling it to the project's TypeScript
   // target warned on `import.meta` (the old `es6` fallback, which applied
   // whenever `compilerOptions.target` was absent), failed outright on a low
   // target, and rewrote default arguments out of the signature this parse
@@ -335,6 +335,25 @@ describe('getMutatorInfo', () => {
       // Two declared parameters — the default argument must not be hoisted out
       // of the signature, which is what a downleveled bundle would do.
       expect(result).toEqual({ numberOfParams: 2 });
+    });
+  });
+
+  // CodeRabbit on #4053: compilerOptions.paths must still resolve during
+  // inspection. Both esbuild (absWorkingDir) and rolldown (cwd) auto-discover
+  // tsconfig.json, so no tsconfig option is passed — this guards that
+  // behavior. `external: []` matters: left undefined the bundle externalizes
+  // everything (esbuild parity: `['*']`), so imports are never followed and
+  // paths resolution is never exercised.
+  describe('tsconfig paths', () => {
+    const dir = path.join(basePath, 'tsconfig-paths-tests');
+
+    it('inlines a re-export resolved through tsconfig paths', async () => {
+      const result = await getMutatorInfo(path.join(dir, 'mutator.ts'), {
+        root: dir,
+        external: [],
+      });
+
+      expect(result).toEqual({ numberOfParams: 3 });
     });
   });
 });
