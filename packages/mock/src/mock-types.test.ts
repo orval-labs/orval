@@ -56,7 +56,9 @@ describe('mock-types', () => {
         }),
       ).toBe('alias');
       expect(
-        classifyStrictMockSchemaType({ $ref: '#/components/schemas/Pet' }),
+        classifyStrictMockSchemaType({
+          $ref: '#/components/schemas/Pet',
+        }),
       ).toBe('object');
       expect(
         classifyStrictMockSchemaType({

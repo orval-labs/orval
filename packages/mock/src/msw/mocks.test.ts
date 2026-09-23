@@ -73,9 +73,7 @@ describe('getResponsesMockDefinition', () => {
               type: 'object',
               required: ['countryCode'],
               properties: {
-                countryCode: {
-                  $ref: '#/components/schemas/CountryCode',
-                },
+                countryCode: { $ref: '#/components/schemas/CountryCode' },
               },
             },
             CountryCode: { type: 'string', enum: ['CN', 'UY'] },

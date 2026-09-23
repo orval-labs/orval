@@ -433,9 +433,7 @@ describe('resolveExampleRefs', () => {
         expected: ['hello'],
       },
       {
-        examples: {
-          sample: { $ref: '#/components/examples/ObjectValue' },
-        },
+        examples: { sample: { $ref: '#/components/examples/ObjectValue' } },
         expected: { sample: { id: 'p_1' } },
       },
       {

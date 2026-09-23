@@ -36,36 +36,26 @@ const createMockContext = ({
           CircularChild: {
             type: 'object',
             properties: {
-              parent: {
-                $ref: '#/components/schemas/CircularParent',
-              },
+              parent: { $ref: '#/components/schemas/CircularParent' },
             },
           },
           CircularParent: {
             type: 'object',
             properties: {
-              child: {
-                $ref: '#/components/schemas/CircularChild',
-              },
+              child: { $ref: '#/components/schemas/CircularChild' },
             },
           },
           DeepCircularA: {
             type: 'object',
-            properties: {
-              b: { $ref: '#/components/schemas/DeepCircularB' },
-            },
+            properties: { b: { $ref: '#/components/schemas/DeepCircularB' } },
           },
           DeepCircularB: {
             type: 'object',
-            properties: {
-              c: { $ref: '#/components/schemas/DeepCircularC' },
-            },
+            properties: { c: { $ref: '#/components/schemas/DeepCircularC' } },
           },
           DeepCircularC: {
             type: 'object',
-            properties: {
-              a: { $ref: '#/components/schemas/DeepCircularA' },
-            },
+            properties: { a: { $ref: '#/components/schemas/DeepCircularA' } },
           },
         },
       },

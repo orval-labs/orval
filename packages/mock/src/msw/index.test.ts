@@ -1760,9 +1760,7 @@ describe('arrayItems option', () => {
     key: '200',
     value: 'TenantListResponse',
     contentType: 'application/json',
-    originalSchema: {
-      $ref: '#/components/schemas/TenantListResponse',
-    },
+    originalSchema: { $ref: '#/components/schemas/TenantListResponse' },
     imports: [{ name: 'TenantListResponse' }],
     schemas: [],
     type: 'object',
@@ -2060,9 +2058,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
               key: '200',
               value: root,
               contentType: 'application/json',
-              originalSchema: {
-                $ref: `#/components/schemas/${root}`,
-              },
+              originalSchema: { $ref: `#/components/schemas/${root}` },
               imports: [{ name: root, values: false }],
               schemas: [],
               isRef: true,
@@ -2161,9 +2157,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
         },
       },
       XNode: { allOf: [{ $ref: '#/components/schemas/XObject' }] },
-      XContainer: {
-        allOf: [{ $ref: '#/components/schemas/XNode' }],
-      },
+      XContainer: { allOf: [{ $ref: '#/components/schemas/XNode' }] },
       XElement: {
         allOf: [{ $ref: '#/components/schemas/XContainer' }],
         properties: { name: { type: 'string' } },

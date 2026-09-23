@@ -670,9 +670,7 @@ describe('specParsing', () => {
               description: 'OK',
               content: {
                 'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/ApiVersion',
-                  },
+                  schema: { $ref: '#/components/schemas/ApiVersion' },
                 },
               },
             },

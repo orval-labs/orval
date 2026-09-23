@@ -12293,9 +12293,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
                 description: 'OK',
                 content: {
                   'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/Lizard',
-                    },
+                    schema: { $ref: '#/components/schemas/Lizard' },
                   },
                 },
               },
@@ -12383,9 +12381,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
                             properties: {
                               items: {
                                 type: 'array',
-                                items: {
-                                  $dynamicRef: '#nonexistent',
-                                },
+                                items: { $dynamicRef: '#nonexistent' },
                               },
                             },
                           },

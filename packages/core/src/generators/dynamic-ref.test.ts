@@ -135,9 +135,7 @@ const nestedWorkspaceSpec: OpenApiDocument = {
           root: { $ref: '#/components/schemas/WorkspaceFolder' },
           related: {
             type: 'array',
-            items: {
-              $ref: '#/components/schemas/WorkspaceResource',
-            },
+            items: { $ref: '#/components/schemas/WorkspaceResource' },
           },
         },
       },
@@ -922,10 +920,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
           PairTemplate: {
             $defs: {
               itemType: { $dynamicAnchor: 'itemType', not: {} },
-              cursorType: {
-                $dynamicAnchor: 'cursorType',
-                not: {},
-              },
+              cursorType: { $dynamicAnchor: 'cursorType', not: {} },
             },
             type: 'object',
             properties: {

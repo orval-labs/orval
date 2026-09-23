@@ -280,9 +280,7 @@ describe('getResReqTypes (content type handling)', () => {
           {
             content: {
               '*/*': {
-                schema: {
-                  $ref: '#/components/schemas/UserProfile',
-                },
+                schema: { $ref: '#/components/schemas/UserProfile' },
               },
             },
             required: true,
@@ -298,9 +296,7 @@ describe('getResReqTypes (content type handling)', () => {
             description: 'OK',
             content: {
               '*/*': {
-                schema: {
-                  $ref: '#/components/schemas/UserProfile',
-                },
+                schema: { $ref: '#/components/schemas/UserProfile' },
               },
             },
           },
@@ -485,9 +481,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
           {
             content: {
               'multipart/form-data': {
-                schema: {
-                  $ref: '#/components/schemas/FileUpload',
-                },
+                schema: { $ref: '#/components/schemas/FileUpload' },
               },
             },
           },

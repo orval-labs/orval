@@ -212,9 +212,7 @@ describe('collectReferencedComponents', () => {
         schemas: {
           Pet: {
             type: 'object',
-            properties: {
-              tag: { $ref: '#/components/schemas/Tag' },
-            },
+            properties: { tag: { $ref: '#/components/schemas/Tag' } },
           },
           Tag: {
             type: 'object',
@@ -283,9 +281,7 @@ describe('collectReferencedComponents', () => {
                 description: 'OK',
                 content: {
                   'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/TreeNode',
-                    },
+                    schema: { $ref: '#/components/schemas/TreeNode' },
                   },
                 },
               },
@@ -610,9 +606,7 @@ describe('collectReferencedComponents', () => {
             properties: {
               details: {
                 type: 'array',
-                items: {
-                  $ref: '#/components/schemas/ErrorDetail',
-                },
+                items: { $ref: '#/components/schemas/ErrorDetail' },
               },
             },
           },
@@ -726,9 +720,7 @@ describe('collectReferencedComponents', () => {
                 type: 'array',
                 items: { $dynamicRef: '#itemType' },
               },
-              pagination: {
-                $ref: '#/components/schemas/Pagination',
-              },
+              pagination: { $ref: '#/components/schemas/Pagination' },
             },
             $defs: {
               itemType: { $dynamicAnchor: 'itemType', not: {} },
@@ -759,9 +751,7 @@ describe('collectReferencedComponents', () => {
                 description: 'OK',
                 content: {
                   'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/Folder',
-                    },
+                    schema: { $ref: '#/components/schemas/Folder' },
                   },
                 },
               },
@@ -821,9 +811,7 @@ describe('filterPathsBySchemas', () => {
           requestBody: {
             content: {
               'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/CreateUserRequest',
-                },
+                schema: { $ref: '#/components/schemas/CreateUserRequest' },
               },
             },
           },
@@ -836,9 +824,7 @@ describe('filterPathsBySchemas', () => {
           requestBody: {
             content: {
               'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/UpdateUserRequest',
-                },
+                schema: { $ref: '#/components/schemas/UpdateUserRequest' },
               },
             },
           },
@@ -978,9 +964,7 @@ describe('filterPathsBySchemas', () => {
             requestBody: {
               content: {
                 'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/CreateUserRequest',
-                  },
+                  schema: { $ref: '#/components/schemas/CreateUserRequest' },
                 },
               },
             },
@@ -993,9 +977,7 @@ describe('filterPathsBySchemas', () => {
             requestBody: {
               content: {
                 'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/CreateAdminRequest',
-                  },
+                  schema: { $ref: '#/components/schemas/CreateAdminRequest' },
                 },
               },
             },
@@ -1029,9 +1011,7 @@ describe('filterPathsBySchemas', () => {
                 description: 'OK',
                 content: {
                   'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/CreateUserRequest',
-                    },
+                    schema: { $ref: '#/components/schemas/CreateUserRequest' },
                   },
                 },
               },
@@ -1042,9 +1022,7 @@ describe('filterPathsBySchemas', () => {
             requestBody: {
               content: {
                 'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/UpdateUserRequest',
-                  },
+                  schema: { $ref: '#/components/schemas/UpdateUserRequest' },
                 },
               },
             },
@@ -1099,9 +1077,7 @@ describe('filterPathsBySchemas', () => {
                 description: 'OK',
                 content: {
                   'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/CreateUserRequest',
-                    },
+                    schema: { $ref: '#/components/schemas/CreateUserRequest' },
                   },
                 },
               },
@@ -1112,9 +1088,7 @@ describe('filterPathsBySchemas', () => {
             requestBody: {
               content: {
                 'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/UpdateUserRequest',
-                  },
+                  schema: { $ref: '#/components/schemas/UpdateUserRequest' },
                 },
               },
             },

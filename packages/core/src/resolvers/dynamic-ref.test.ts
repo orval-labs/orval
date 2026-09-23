@@ -797,10 +797,7 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
     // proves the scan does not re-run per call.
     ((spec.components as { schemas: Record<string, unknown> }).schemas[
       'LateArrival'
-    ] as unknown) = {
-      $dynamicAnchor: 'LateArrival',
-      type: 'object',
-    };
+    ] as unknown) = { $dynamicAnchor: 'LateArrival', type: 'object' };
     resolveDynamicRef('LateArrival', context);
 
     // The stale index is still in place (no rebuild), and the late schema is
@@ -958,14 +955,8 @@ describe('null safety in $defs entries', () => {
         schemas: {
           Container: {
             $defs: {
-              'foo-bar': {
-                $dynamicAnchor: 'foo-bar',
-                type: 'string',
-              },
-              foo_bar: {
-                $dynamicAnchor: 'foo_bar',
-                type: 'number',
-              },
+              'foo-bar': { $dynamicAnchor: 'foo-bar', type: 'string' },
+              foo_bar: { $dynamicAnchor: 'foo_bar', type: 'number' },
             },
             type: 'object',
           },

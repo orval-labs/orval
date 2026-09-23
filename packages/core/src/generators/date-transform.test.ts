@@ -271,9 +271,7 @@ describe('buildDateTransformStatements', () => {
     const context = makeContext({
       Node: {
         type: 'object',
-        properties: {
-          child: { $ref: '#/components/schemas/Node' },
-        },
+        properties: { child: { $ref: '#/components/schemas/Node' } },
       },
     });
 
@@ -2795,9 +2793,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       Child: {
         type: 'object',
         required: ['parent'],
-        properties: {
-          parent: { $ref: '#/components/schemas/Parent' },
-        },
+        properties: { parent: { $ref: '#/components/schemas/Parent' } },
       },
     });
 
@@ -3267,9 +3263,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     const context = makeContext({
       Node: {
         type: 'object',
-        additionalProperties: {
-          $ref: '#/components/schemas/Node',
-        },
+        additionalProperties: { $ref: '#/components/schemas/Node' },
       },
     });
 
@@ -3452,9 +3446,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     });
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      propertyNames: {
-        $ref: '#/components/schemas/SomeStringEnum',
-      },
+      propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
       additionalProperties: { type: 'string', format: 'date-time' },
     } satisfies OpenApiSchemaObject;
 
@@ -4882,9 +4874,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
     const context = makeContext({
       Node: {
         type: 'object',
-        additionalProperties: {
-          $ref: '#/components/schemas/Node',
-        },
+        additionalProperties: { $ref: '#/components/schemas/Node' },
       },
     });
 
@@ -5076,9 +5066,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
     });
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      propertyNames: {
-        $ref: '#/components/schemas/SomeStringEnum',
-      },
+      propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
       additionalProperties: { type: 'string', format: 'date' },
     } satisfies OpenApiSchemaObject;
 
