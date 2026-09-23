@@ -1,8 +1,13 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vite-plus/test';
+
+const outputFile = async (file: string, content: string) => {
+  await fs.promises.mkdir(path.dirname(file), { recursive: true });
+  await fs.promises.writeFile(file, content);
+};
 
 import { type GeneratorSchema, NamingConvention } from '../types';
 import {
@@ -619,7 +624,7 @@ describe('fixRegularSchemaImports', () => {
 
 describe('writeSchemas indexFiles', () => {
   it('merges index exports across projects that share a schema path (#2842)', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-index-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -652,7 +657,7 @@ describe('writeSchemas indexFiles', () => {
       });
 
       const indexPath = path.join(schemaPath, 'index.ts');
-      const content = await fs.readFile(indexPath, 'utf8');
+      const content = await fs.promises.readFile(indexPath, 'utf8');
 
       const exportLines = content
         .split('\n')
@@ -664,12 +669,12 @@ describe('writeSchemas indexFiles', () => {
         "export * from './userListResponse';",
       ]);
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('does not duplicate exports when the same schema name is written multiple times', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-index-dup-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -696,17 +701,17 @@ describe('writeSchemas indexFiles', () => {
       });
 
       const indexPath = path.join(schemaPath, 'index.ts');
-      const content = await fs.readFile(indexPath, 'utf8');
+      const content = await fs.promises.readFile(indexPath, 'utf8');
 
       const matches = content.match(/export \* from '.\/userDto';/g) ?? [];
       expect(matches).toHaveLength(1);
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('emits .js import suffixes when tsconfig module is NodeNext', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-nodenext-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -731,25 +736,25 @@ describe('writeSchemas indexFiles', () => {
         tsconfig: { compilerOptions: { module: 'NodeNext' } },
       });
 
-      const ownerContent = await fs.readFile(
+      const ownerContent = await fs.promises.readFile(
         path.join(schemaPath, 'owner.ts'),
         'utf8',
       );
       expect(ownerContent).toContain("from './pet.js';");
 
-      const indexContent = await fs.readFile(
+      const indexContent = await fs.promises.readFile(
         path.join(schemaPath, 'index.ts'),
         'utf8',
       );
       expect(indexContent).toContain("export * from './pet.js';");
       expect(indexContent).toContain("export * from './owner.js';");
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('keeps the .ts file extension on imports when allowImportingTsExtensions is true', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-allow-ts-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -779,18 +784,18 @@ describe('writeSchemas indexFiles', () => {
         },
       });
 
-      const ownerContent = await fs.readFile(
+      const ownerContent = await fs.promises.readFile(
         path.join(schemaPath, 'owner.gen.ts'),
         'utf8',
       );
       expect(ownerContent).toContain("from './pet.gen.ts';");
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('normalizes imports to schema name canonical file when importPath is stale', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-import-normalize-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -816,19 +821,19 @@ describe('writeSchemas indexFiles', () => {
       });
 
       const petsApiPath = path.join(schemaPath, 'petsApi.ts');
-      const content = await fs.readFile(petsApiPath, 'utf8');
+      const content = await fs.promises.readFile(petsApiPath, 'utf8');
 
       expect(content).toContain("from './notFoundResponse';");
       expect(content).not.toContain("from './notFound';");
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 });
 
 describe('writeRoutedSchemas', () => {
   it('writes route files, route barrels, root barrel, and cross-route imports', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-routed-schemas-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -865,31 +870,40 @@ describe('writeRoutedSchemas', () => {
         indexFiles: true,
       });
 
-      expect(await fs.pathExists(path.join(schemaPath, 'models/user.ts'))).toBe(
+      expect(fs.existsSync(path.join(schemaPath, 'models/user.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(schemaPath, 'types/userStatus.ts'))).toBe(
         true,
       );
       expect(
-        await fs.pathExists(path.join(schemaPath, 'types/userStatus.ts')),
-      ).toBe(true);
-      expect(
-        await fs.readFile(path.join(schemaPath, 'models/user.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'models/user.ts'),
+          'utf8',
+        ),
       ).toContain("from '../types/userStatus';");
       expect(
-        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'models/index.ts'),
+          'utf8',
+        ),
       ).toContain("export * from './user';");
       expect(
-        await fs.readFile(path.join(schemaPath, 'types/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'types/index.ts'),
+          'utf8',
+        ),
       ).toContain("export * from './userStatus';");
-      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+      expect(
+        await fs.promises.readFile(path.join(schemaPath, 'index.ts'), 'utf8'),
+      ).toBe(
         "// routed\nexport * from './models';\nexport * from './types';\n",
       );
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('preserves direct route-root schemas alongside child scope barrels', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-routed-root-schema-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -930,26 +944,32 @@ describe('writeRoutedSchemas', () => {
       });
 
       expect(
-        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'models/index.ts'),
+          'utf8',
+        ),
       ).toBe(
         "// routed root schema\nexport * from './directSchema';\nexport * from './pets/index';\n",
       );
       expect(
-        await fs.readFile(
+        await fs.promises.readFile(
           path.join(schemaPath, 'models/pets/index.ts'),
           'utf8',
         ),
       ).toContain("export * from './childSchema';");
       expect(
-        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'models/index.ts'),
+          'utf8',
+        ),
       ).not.toContain('.//index');
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('normalizes preserved route barrel exports to Unix separators', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-routed-existing-export-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -972,7 +992,7 @@ describe('writeRoutedSchemas', () => {
     });
 
     try {
-      await fs.outputFile(
+      await outputFile(
         routeIndexPath,
         ['// routed', "export * from '.\\legacy\\index';", ''].join('\n'),
       );
@@ -986,11 +1006,11 @@ describe('writeRoutedSchemas', () => {
         indexFiles: true,
       });
 
-      expect(await fs.readFile(routeIndexPath, 'utf8')).toBe(
+      expect(await fs.promises.readFile(routeIndexPath, 'utf8')).toBe(
         "// routed\nexport * from './legacy/index';\nexport * from './pets/index';\n",
       );
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
@@ -1022,7 +1042,7 @@ describe('writeRoutedSchemas', () => {
   });
 
   it('writes NodeNext extensions for routed indexFiles barrels', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-routed-schemas-nodenext-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -1060,16 +1080,18 @@ describe('writeRoutedSchemas', () => {
         tsconfig: { compilerOptions: { module: 'NodeNext' } },
       });
 
-      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+      expect(
+        await fs.promises.readFile(path.join(schemaPath, 'index.ts'), 'utf8'),
+      ).toBe(
         "// routed nodenext\nexport * from './models/index.js';\nexport * from './types/index.js';\n",
       );
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it('writes NodeNext extensions for tag-routed indexFiles barrels', async () => {
-    const tempDir = await fs.mkdtemp(
+    const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'orval-routed-tag-schemas-nodenext-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
@@ -1113,16 +1135,24 @@ describe('writeRoutedSchemas', () => {
       });
 
       expect(
-        await fs.readFile(path.join(schemaPath, 'models/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'models/index.ts'),
+          'utf8',
+        ),
       ).toBe("// routed tag nodenext\nexport * from './pets/index.js';\n");
       expect(
-        await fs.readFile(path.join(schemaPath, 'types/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemaPath, 'types/index.ts'),
+          'utf8',
+        ),
       ).toBe("// routed tag nodenext\nexport * from './pets/index.js';\n");
-      expect(await fs.readFile(path.join(schemaPath, 'index.ts'), 'utf8')).toBe(
+      expect(
+        await fs.promises.readFile(path.join(schemaPath, 'index.ts'), 'utf8'),
+      ).toBe(
         "// routed tag nodenext\nexport * from './models/index.js';\nexport * from './types/index.js';\n",
       );
     } finally {
-      await fs.remove(tempDir);
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
 });

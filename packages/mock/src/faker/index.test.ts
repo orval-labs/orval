@@ -8,12 +8,7 @@ import type {
   MswMockOptions,
   OpenApiSchemaObject,
 } from '@orval/core';
-import {
-  EnumGeneration,
-  isFakerMock,
-  isMswMock,
-  OutputMockType,
-} from '@orval/core';
+import { EnumGeneration, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vite-plus/test';
 
 import {
@@ -123,17 +118,6 @@ describe('discriminated GlobalMockOptions union', () => {
     }
   });
 
-  it('isFakerMock narrows to FakerMockOptions', () => {
-    const mock: GlobalMockOptions | ClientMockBuilder = {
-      type: OutputMockType.FAKER,
-    };
-    if (isFakerMock(mock)) {
-      expectTypeOf(mock).toEqualTypeOf<FakerMockOptions>();
-    } else {
-      throw new Error('expected faker narrowing');
-    }
-  });
-
   it('rejects ClientMockBuilder function form for both type guards', () => {
     const mock: GlobalMockOptions | ClientMockBuilder = () =>
       ({
@@ -141,7 +125,6 @@ describe('discriminated GlobalMockOptions union', () => {
         implementation: { function: '', handler: '', handlerName: '' },
       }) as ReturnType<ClientMockBuilder>;
     expect(isMswMock(mock)).toBe(false);
-    expect(isFakerMock(mock)).toBe(false);
   });
 });
 

@@ -132,6 +132,67 @@ const generatorOptions = createTestGeneratorOptions({
   },
 });
 
+describe('swr axios urlEncodeParameters', () => {
+  it('encodes path parameters when urlEncodeParameters is true', () => {
+    const verbOptions = {
+      ...createVerbOptions('Pet'),
+      route: '`/pets/${petId}`',
+      pathRoute: '/pets/{petId}',
+      params: [
+        {
+          name: 'petId',
+          definition: 'petId: string',
+          implementation: 'petId: string',
+          default: false,
+          required: true,
+        },
+      ],
+    } as unknown as GeneratorVerbOptions;
+
+    const options = {
+      ...generatorOptions,
+      route: '`/pets/${petId}`',
+      context: {
+        ...generatorOptions.context,
+        output: {
+          ...generatorOptions.context.output,
+          urlEncodeParameters: true,
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const implementation = generateSwrRequestFunction(verbOptions, options);
+
+    expect(implementation).toContain('encodeURIComponent(String(petId))');
+  });
+
+  it('does not encode path parameters when urlEncodeParameters is false', () => {
+    const verbOptions = {
+      ...createVerbOptions('Pet'),
+      route: '`/pets/${petId}`',
+      pathRoute: '/pets/{petId}',
+      params: [
+        {
+          name: 'petId',
+          definition: 'petId: string',
+          implementation: 'petId: string',
+          default: false,
+          required: true,
+        },
+      ],
+    } as unknown as GeneratorVerbOptions;
+
+    const options = {
+      ...generatorOptions,
+      route: '`/pets/${petId}`',
+    } as unknown as GeneratorOptions;
+
+    const implementation = generateSwrRequestFunction(verbOptions, options);
+
+    expect(implementation).not.toContain('encodeURIComponent');
+  });
+});
+
 describe('swr mutator body type', () => {
   it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(
     'wraps a %s body in the mutator BodyType envelope',

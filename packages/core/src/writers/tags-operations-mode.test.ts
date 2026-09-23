@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -22,7 +22,7 @@ describe('writeTagsOperationsMode', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('writes one file per operation nested under its tag directory', async () => {

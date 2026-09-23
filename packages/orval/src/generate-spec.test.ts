@@ -14,8 +14,13 @@ import {
   setProjectName,
   withReporter,
 } from '@orval/core';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vite-plus/test';
+
+const outputFile = async (file: string, content: string) => {
+  await fs.promises.mkdir(path.dirname(file), { recursive: true });
+  await fs.promises.writeFile(file, content);
+};
 
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils';
@@ -371,19 +376,21 @@ describe('generateSpec - unchanged formatted output', () => {
       await generateSpec(workspace, options);
       const generatedFiles = [
         targetFile,
-        ...(await fs.readdir(schemasDir)).map((file) =>
+        ...(await fs.promises.readdir(schemasDir)).map((file) =>
           path.join(schemasDir, file),
         ),
       ];
       const past = new Date('2020-01-01T00:00:00.000Z');
       await Promise.all(
-        generatedFiles.map((file) => fs.utimes(file, past, past)),
+        generatedFiles.map((file) => fs.promises.utimes(file, past, past)),
       );
 
       await generateSpec(workspace, options);
 
       const mtimes = await Promise.all(
-        generatedFiles.map(async (file) => (await fs.stat(file)).mtimeMs),
+        generatedFiles.map(
+          async (file) => (await fs.promises.stat(file)).mtimeMs,
+        ),
       );
       expect(mtimes).toEqual(generatedFiles.map(() => past.getTime()));
     } finally {
@@ -413,7 +420,7 @@ describe('generateSpec - collision-safe Axios URL helpers', () => {
 
         await generateSpec(workspace, options);
 
-        const content = await fs.readFile(targetFile, 'utf8');
+        const content = await fs.promises.readFile(targetFile, 'utf8');
         expect(content).toContain('getFooUrl2');
         expect(content).toContain('getGetFooUrlUrl');
         expect(content.match(/(?:export )?const getFooUrl\s*=/g)).toHaveLength(
@@ -445,7 +452,7 @@ describe('generateSpec - HTTP QUERY method', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       expect(content).toContain('export const searchPets =');
       expect(content).toContain("method: 'QUERY'");
@@ -478,10 +485,10 @@ describe('generateSpec - schemas: false', () => {
       await generateSpec(workspace, options);
 
       // schemas: false should prevent the schemas directory from being created
-      expect(await fs.pathExists(schemasDir)).toBe(false);
+      expect(fs.existsSync(schemasDir)).toBe(false);
 
       // The target file should still be generated
-      expect(await fs.pathExists(targetFile)).toBe(true);
+      expect(fs.existsSync(targetFile)).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -508,12 +515,12 @@ describe('generateSpec - schemas: false', () => {
       await generateSpec(workspace, options);
 
       // schemas: './model' should create the schemas directory with files
-      expect(await fs.pathExists(schemasDir)).toBe(true);
-      const schemaFiles = await fs.readdir(schemasDir);
+      expect(fs.existsSync(schemasDir)).toBe(true);
+      const schemaFiles = await fs.promises.readdir(schemasDir);
       expect(schemaFiles.length).toBeGreaterThan(0);
 
       // The target file should also be generated
-      expect(await fs.pathExists(targetFile)).toBe(true);
+      expect(fs.existsSync(targetFile)).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -545,17 +552,20 @@ describe('generateSpec - schemas: false', () => {
 
         await generateSpec(workspace, options);
 
+        expect(fs.existsSync(path.join(schemasDir, 'models/pet.ts'))).toBe(
+          true,
+        );
+        expect(fs.existsSync(path.join(schemasDir, 'types/petStatus.ts'))).toBe(
+          true,
+        );
         expect(
-          await fs.pathExists(path.join(schemasDir, 'models/pet.ts')),
-        ).toBe(true);
-        expect(
-          await fs.pathExists(path.join(schemasDir, 'types/petStatus.ts')),
-        ).toBe(true);
-        expect(
-          await fs.readFile(path.join(schemasDir, 'models/pet.ts'), 'utf8'),
+          await fs.promises.readFile(
+            path.join(schemasDir, 'models/pet.ts'),
+            'utf8',
+          ),
         ).toContain("from '../types/petStatus'");
 
-        const client = await fs.readFile(
+        const client = await fs.promises.readFile(
           path.join(workspace, 'endpoints.ts'),
           'utf8',
         );
@@ -564,10 +574,16 @@ describe('generateSpec - schemas: false', () => {
         );
         if (indexFiles) {
           expect(
-            await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+            await fs.promises.readFile(
+              path.join(schemasDir, 'index.ts'),
+              'utf8',
+            ),
           ).toContain("export * from './models';");
           expect(
-            await fs.readFile(path.join(schemasDir, 'models/index.ts'), 'utf8'),
+            await fs.promises.readFile(
+              path.join(schemasDir, 'models/index.ts'),
+              'utf8',
+            ),
           ).toContain("export * from './pet';");
         }
       } finally {
@@ -600,8 +616,12 @@ describe('generateSpec - schemas: false', () => {
 
       await generateSpec(workspace, options);
 
-      const modelFiles = await fs.readdir(path.join(schemasDir, 'models'));
-      const enumFiles = await fs.readdir(path.join(schemasDir, 'types'));
+      const modelFiles = await fs.promises.readdir(
+        path.join(schemasDir, 'models'),
+      );
+      const enumFiles = await fs.promises.readdir(
+        path.join(schemasDir, 'types'),
+      );
       expect(modelFiles).toEqual(
         expect.arrayContaining([
           'account.ts',
@@ -623,13 +643,16 @@ describe('generateSpec - schemas: false', () => {
         modelFiles
           .filter((file) => file.endsWith('.ts'))
           .map((file) =>
-            fs.readFile(path.join(schemasDir, 'models', file), 'utf8'),
+            fs.promises.readFile(path.join(schemasDir, 'models', file), 'utf8'),
           ),
       );
       expect(generatedModels.join('\n')).not.toContain('__REF_');
       expect(generatedModels.join('\n')).toMatch(/from ['"]\.\.\/types\//);
       expect(
-        await fs.readFile(path.join(workspace, 'large-endpoints.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(workspace, 'large-endpoints.ts'),
+          'utf8',
+        ),
       ).toContain("from './schemas/models/order'");
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -661,26 +684,35 @@ describe('generateSpec - schemas: false', () => {
 
       await generateSpec(workspace, options);
 
+      expect(fs.existsSync(path.join(schemasDir, 'models/pet.zod.ts'))).toBe(
+        true,
+      );
       expect(
-        await fs.pathExists(path.join(schemasDir, 'models/pet.zod.ts')),
+        fs.existsSync(path.join(schemasDir, 'types/petStatus.zod.ts')),
       ).toBe(true);
       expect(
-        await fs.pathExists(path.join(schemasDir, 'types/petStatus.zod.ts')),
-      ).toBe(true);
-      expect(
-        await fs.readFile(path.join(schemasDir, 'models/pet.zod.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemasDir, 'models/pet.zod.ts'),
+          'utf8',
+        ),
       ).toContain("from '../types/petStatus.zod'");
       expect(
-        await fs.readFile(path.join(schemasDir, 'models/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemasDir, 'models/index.ts'),
+          'utf8',
+        ),
       ).toContain("export * from './pet.zod'");
       expect(
-        await fs.readFile(path.join(schemasDir, 'types/index.ts'), 'utf8'),
+        await fs.promises.readFile(
+          path.join(schemasDir, 'types/index.ts'),
+          'utf8',
+        ),
       ).toContain("export * from './petStatus.zod'");
       expect(
-        await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+        await fs.promises.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
       ).toContain("export * from './models/index'");
       expect(
-        await fs.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
+        await fs.promises.readFile(path.join(schemasDir, 'index.ts'), 'utf8'),
       ).toContain("export * from './types/index'");
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -711,7 +743,7 @@ describe('generateSpec - schemas: false', () => {
 
       await generateSpec(workspace, options);
 
-      const endpoints = await fs.readFile(
+      const endpoints = await fs.promises.readFile(
         path.join(workspace, 'endpoints.ts'),
         'utf8',
       );
@@ -749,7 +781,7 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // The component schema referenced by the operation is defined inline
       // (PascalCase identifier, consistent with operation wrappers)...
@@ -777,7 +809,7 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
     const mutatorFile = path.join(workspace, 'zod-params.ts');
 
     try {
-      await fs.writeFile(
+      await fs.promises.writeFile(
         mutatorFile,
         'export const zodParams = (_ctx: unknown) => ({});\n',
       );
@@ -808,7 +840,7 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
       await generateSpec(workspace, options);
 
       // The named file is the schema module; no <dir>/index.zod.ts is created.
-      const content = await fs.readFile(schemasFile, 'utf8');
+      const content = await fs.promises.readFile(schemasFile, 'utf8');
       expect(content).toContain('export const Pet = zod.object(');
       expect(fs.existsSync(path.join(workspace, 'index.zod.ts'))).toBe(false);
 
@@ -838,7 +870,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
     const mutatorFile = path.join(workspace, 'zod-params.ts');
 
     try {
-      await fs.writeFile(
+      await fs.promises.writeFile(
         mutatorFile,
         'export const zodParams = (_ctx: unknown) => ({});\n',
       );
@@ -863,7 +895,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // Inline component schema is injected with location: 'schema' and the
       // component's name (not an operation's) — that's the whole point of
@@ -896,7 +928,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
     const mutatorFile = path.join(workspace, 'zod-params.ts');
 
     try {
-      await fs.writeFile(
+      await fs.promises.writeFile(
         mutatorFile,
         'export const zodParams = (_ctx: unknown) => ({});\n',
       );
@@ -921,8 +953,8 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
 
       await generateSpec(workspace, options);
 
-      const schemasContent = await fs.readFile(schemasFile, 'utf8');
-      const targetContent = await fs.readFile(targetFile, 'utf8');
+      const schemasContent = await fs.promises.readFile(schemasFile, 'utf8');
+      const targetContent = await fs.promises.readFile(targetFile, 'utf8');
 
       // Injection lands in the schemas file...
       expect(schemasContent).toContain('export const Pet = zod.object(');
@@ -967,7 +999,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
     const mutatorFile = path.join(workspace, 'zod-params.ts');
 
     try {
-      await fs.writeFile(
+      await fs.promises.writeFile(
         mutatorFile,
         'export const zodParams = (_ctx: unknown) => ({});\n',
       );
@@ -992,7 +1024,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
 
       await generateSpec(workspace, options);
 
-      const schemasContent = await fs.readFile(schemasFile, 'utf8');
+      const schemasContent = await fs.promises.readFile(schemasFile, 'utf8');
 
       expect(schemasContent).toContain('export const Pet = zod.object(');
       expect(schemasContent).toMatch(
@@ -1014,7 +1046,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
     const mutatorFile = path.join(workspace, 'zod-params.ts');
 
     try {
-      await fs.writeFile(
+      await fs.promises.writeFile(
         mutatorFile,
         'export const zodParams = (_ctx: unknown) => ({});\n',
       );
@@ -1039,7 +1071,7 @@ describe('generateSpec - generateReusableSchemas inline + override.zod.params', 
 
       await generateSpec(workspace, options);
 
-      const schemasContent = await fs.readFile(schemasFile, 'utf8');
+      const schemasContent = await fs.promises.readFile(schemasFile, 'utf8');
 
       expect(schemasContent).toContain('export const Pet = zod.object(');
       expect(schemasContent).toMatch(
@@ -1131,7 +1163,7 @@ describe('generateSpec - generateReusableSchemas recursive ($ref to self)', () =
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // A recursive TS type is generated for the schema. Asserted with a
       // whitespace-tolerant regex (union-bar spacing and index-signature brace
@@ -1232,7 +1264,7 @@ describe('generateSpec - generateReusableSchemas recursive ($ref to self)', () =
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // Both component schemas are emitted inline...
       expect(content).toContain(
@@ -1310,7 +1342,7 @@ describe('generateSpec - generateReusableSchemas inline (pure-$ref operations)',
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // The component schema is defined inline...
       expect(content).toContain('export const Thing = zod.object(');
@@ -1395,7 +1427,7 @@ describe('generateSpec - generateReusableSchemas wrapper/import name collision (
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // The component schema retains its name.
       expect(content).toContain('export const ListPetsResponse = zod.object(');
@@ -1489,7 +1521,7 @@ describe('generateSpec - generateReusableSchemas wrapper/import name collision (
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
 
       // Both component schemas keep their names.
       expect(content).toContain('export const ListPetsResponse = zod.object(');
@@ -1560,7 +1592,7 @@ describe('generateSpec - useNamedParameters + zod schema output', () => {
 
       await generateSpec(workspace, options);
 
-      const schema = await fs.readFile(
+      const schema = await fs.promises.readFile(
         path.join(workspace, 'model', 'showPetByIdPathParameters.zod.ts'),
         'utf8',
       );
@@ -1574,7 +1606,7 @@ describe('generateSpec - useNamedParameters + zod schema output', () => {
       );
 
       // The endpoints file consumes the named type in its signature.
-      const endpoints = await fs.readFile(
+      const endpoints = await fs.promises.readFile(
         path.join(workspace, 'endpoints.ts'),
         'utf8',
       );
@@ -1609,7 +1641,7 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
       expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
@@ -1639,12 +1671,12 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const files = await fs.readdir(workspace);
+      const files = await fs.promises.readdir(workspace);
       const tagFileName = files.find(
         (f) => f.endsWith('.ts') && f !== 'endpoints.ts',
       );
       expect(tagFileName).toBeTruthy();
-      const content = await fs.readFile(
+      const content = await fs.promises.readFile(
         path.join(workspace, tagFileName ?? ''),
         'utf8',
       );
@@ -1677,13 +1709,16 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const entries = await fs.readdir(workspace, { recursive: true });
+      // Sorted so the tag file comes before the root barrel, whatever readdir's order.
+      const entries = (
+        await fs.promises.readdir(workspace, { recursive: true })
+      ).toSorted();
       const tsFile = entries.find(
         (e) => String(e).endsWith('.ts') && !String(e).includes('model'),
       );
       expect(tsFile).toBeTruthy();
       const tagFile = path.join(workspace, String(tsFile));
-      const content = await fs.readFile(tagFile, 'utf8');
+      const content = await fs.promises.readFile(tagFile, 'utf8');
       expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
@@ -1713,7 +1748,7 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(
+      const content = await fs.promises.readFile(
         path.join(workspace, 'endpoints.ts'),
         'utf8',
       );
@@ -1748,7 +1783,7 @@ describe('generateSpec - schemas.importPath', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf8');
+      const content = await fs.promises.readFile(targetFile, 'utf8');
       expect(content).toMatch(/from\s+'@acme\/models'/);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1878,19 +1913,17 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await generateSpec(workspace, options);
 
       const modelDir = path.join(workspace, 'model');
-      expect(await fs.pathExists(modelDir)).toBe(true);
+      expect(fs.existsSync(modelDir)).toBe(true);
 
-      const entries = await fs.readdir(modelDir);
+      const entries = await fs.promises.readdir(modelDir);
       const subdirs: string[] = [];
       for (const entry of entries) {
-        const stat = await fs.stat(path.join(modelDir, entry));
+        const stat = await fs.promises.stat(path.join(modelDir, entry));
         if (stat.isDirectory()) subdirs.push(entry);
       }
       expect(subdirs).toContain('pets');
-      expect(await fs.pathExists(path.join(modelDir, 'pets', 'pet.ts'))).toBe(
-        true,
-      );
-      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(modelDir, 'pets', 'pet.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(modelDir, 'index.ts'))).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -1938,19 +1971,17 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await generateSpec(workspace, options);
 
       const modelDir = path.join(workspace, 'model');
-      expect(await fs.pathExists(modelDir)).toBe(true);
+      expect(fs.existsSync(modelDir)).toBe(true);
 
-      const entries = await fs.readdir(modelDir);
+      const entries = await fs.promises.readdir(modelDir);
       const subdirs: string[] = [];
       for (const entry of entries) {
-        const stat = await fs.stat(path.join(modelDir, entry));
+        const stat = await fs.promises.stat(path.join(modelDir, entry));
         if (stat.isDirectory()) subdirs.push(entry);
       }
       expect(subdirs).toContain('pets');
-      expect(await fs.pathExists(path.join(modelDir, 'pets', 'pet.ts'))).toBe(
-        true,
-      );
-      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(modelDir, 'pets', 'pet.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(modelDir, 'index.ts'))).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -1984,10 +2015,10 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await generateSpec(workspace, options);
 
       const resourceFile = path.join(workspace, 'pets', 'pets.resource.ts');
-      expect(await fs.pathExists(resourceFile)).toBe(true);
+      expect(fs.existsSync(resourceFile)).toBe(true);
 
-      const resourceContent = await fs.readFile(resourceFile, 'utf8');
-      const serviceContent = await fs.readFile(
+      const resourceContent = await fs.promises.readFile(resourceFile, 'utf8');
+      const serviceContent = await fs.promises.readFile(
         path.join(workspace, 'pets', 'pets.service.ts'),
         'utf8',
       );
@@ -2029,11 +2060,11 @@ describe('generateSpec - schemas.splitByTags validation', () => {
 
       await generateSpec(workspace, options);
 
-      const resourceContent = await fs.readFile(
+      const resourceContent = await fs.promises.readFile(
         path.join(workspace, 'pets', 'pets.resource.ts'),
         'utf8',
       );
-      const serviceContent = await fs.readFile(
+      const serviceContent = await fs.promises.readFile(
         path.join(workspace, 'pets', 'pets.service.ts'),
         'utf8',
       );
@@ -2043,7 +2074,7 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       expect(resourceContent).toContain(`from '../model/models/pet'`);
       expect(serviceContent).toContain(`from '../model/models/pet'`);
       expect(
-        await fs.pathExists(path.join(workspace, 'model', 'models', 'pet.ts')),
+        fs.existsSync(path.join(workspace, 'model', 'models', 'pet.ts')),
       ).toBe(true);
 
       // The flat fallback names a module that was never written.
@@ -2073,20 +2104,20 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await generateSpec(workspace, options);
 
       const modelDir = path.join(workspace, 'model');
-      expect(await fs.pathExists(modelDir)).toBe(true);
+      expect(fs.existsSync(modelDir)).toBe(true);
 
-      const entries = await fs.readdir(modelDir);
+      const entries = await fs.promises.readdir(modelDir);
       const subdirs: string[] = [];
       for (const entry of entries) {
-        const stat = await fs.stat(path.join(modelDir, entry));
+        const stat = await fs.promises.stat(path.join(modelDir, entry));
         if (stat.isDirectory()) subdirs.push(entry);
       }
       expect(subdirs).toContain('pets');
 
-      expect(
-        await fs.pathExists(path.join(modelDir, 'pets', 'pet.zod.ts')),
-      ).toBe(true);
-      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(modelDir, 'pets', 'pet.zod.ts'))).toBe(
+        true,
+      );
+      expect(fs.existsSync(path.join(modelDir, 'index.ts'))).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -2118,27 +2149,23 @@ describe('generateSpec - schemas.splitByTags validation', () => {
 
       await generateSpec(workspace, options);
 
+      expect(fs.existsSync(path.join(schemasDir, 'models/pets/pet.ts'))).toBe(
+        true,
+      );
       expect(
-        await fs.pathExists(path.join(schemasDir, 'models/pets/pet.ts')),
+        fs.existsSync(path.join(schemasDir, 'models/stores/store.ts')),
       ).toBe(true);
       expect(
-        await fs.pathExists(path.join(schemasDir, 'models/stores/store.ts')),
+        fs.existsSync(path.join(schemasDir, 'models/shared/sharedError.ts')),
       ).toBe(true);
       expect(
-        await fs.pathExists(
-          path.join(schemasDir, 'models/shared/sharedError.ts'),
-        ),
+        fs.existsSync(path.join(schemasDir, 'types/pets/petStatus.ts')),
       ).toBe(true);
       expect(
-        await fs.pathExists(path.join(schemasDir, 'types/pets/petStatus.ts')),
-      ).toBe(true);
-      expect(
-        await fs.pathExists(
-          path.join(schemasDir, 'types/stores/storeStatus.ts'),
-        ),
+        fs.existsSync(path.join(schemasDir, 'types/stores/storeStatus.ts')),
       ).toBe(true);
 
-      const pet = await fs.readFile(
+      const pet = await fs.promises.readFile(
         path.join(schemasDir, 'models/pets/pet.ts'),
         'utf8',
       );
@@ -2177,27 +2204,25 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await generateSpec(workspace, options);
 
       expect(
-        await fs.pathExists(path.join(schemasDir, 'models/pets/pet.zod.ts')),
+        fs.existsSync(path.join(schemasDir, 'models/pets/pet.zod.ts')),
       ).toBe(true);
       expect(
-        await fs.pathExists(
+        fs.existsSync(
           path.join(schemasDir, 'models/shared/sharedError.zod.ts'),
         ),
       ).toBe(true);
       expect(
-        await fs.pathExists(
-          path.join(schemasDir, 'types/pets/petStatus.zod.ts'),
-        ),
+        fs.existsSync(path.join(schemasDir, 'types/pets/petStatus.zod.ts')),
       ).toBe(true);
 
-      const pet = await fs.readFile(
+      const pet = await fs.promises.readFile(
         path.join(schemasDir, 'models/pets/pet.zod.ts'),
         'utf8',
       );
       expect(pet).toContain("from '../../types/pets/petStatus.zod'");
       expect(pet).toContain("from '../shared/sharedError.zod'");
 
-      const modelsIndex = await fs.readFile(
+      const modelsIndex = await fs.promises.readFile(
         path.join(schemasDir, 'models/index.ts'),
         'utf8',
       );
@@ -2205,7 +2230,7 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       expect(modelsIndex).toContain("export * from './shared/index';");
       expect(modelsIndex).toContain("export * from './stores/index';");
 
-      const rootIndex = await fs.readFile(
+      const rootIndex = await fs.promises.readFile(
         path.join(schemasDir, 'index.ts'),
         'utf8',
       );
@@ -2240,11 +2265,11 @@ describe('generateSpec - zod schemas with a custom fileExtension', () => {
 
       await generateSpec(workspace, options);
 
-      expect(
-        await fs.pathExists(path.join(workspace, 'model', 'pet.gen.ts')),
-      ).toBe(true);
+      expect(fs.existsSync(path.join(workspace, 'model', 'pet.gen.ts'))).toBe(
+        true,
+      );
 
-      const endpoints = await fs.readFile(
+      const endpoints = await fs.promises.readFile(
         path.join(workspace, 'endpoints.ts'),
         'utf8',
       );
@@ -2356,11 +2381,11 @@ describe('generateSpec - returnTypesToWrite isolation across tags (#3685)', () =
 
       await generateSpec(workspace, options);
 
-      const catalogContent = await fs.readFile(
+      const catalogContent = await fs.promises.readFile(
         path.join(workspace, 'catalog', 'catalog.ts'),
         'utf-8',
       );
-      const inventoryContent = await fs.readFile(
+      const inventoryContent = await fs.promises.readFile(
         path.join(workspace, 'inventory', 'inventory.ts'),
         'utf-8',
       );
@@ -2447,7 +2472,7 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf-8');
+      const content = await fs.promises.readFile(targetFile, 'utf-8');
 
       // Method name: bare (no service prefix)
       expect(content).toContain('getItems');
@@ -2484,7 +2509,7 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf-8');
+      const content = await fs.promises.readFile(targetFile, 'utf-8');
 
       expect(content).toContain('getApiCatalogItems');
       expect(content).toContain('GetApiCatalogItemsResult');
@@ -2519,7 +2544,7 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf-8');
+      const content = await fs.promises.readFile(targetFile, 'utf-8');
 
       expect(content).toContain('$api_catalog_items');
       expect(content).toContain('$api_inventory_products');
@@ -2557,7 +2582,7 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf-8');
+      const content = await fs.promises.readFile(targetFile, 'utf-8');
 
       // Method name preserved verbatim, including $ and _.
       expect(content).toContain('$items');
@@ -2602,11 +2627,14 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
       const catalogFile = path.join(workspace, 'catalog', 'catalog.ts');
       const inventoryFile = path.join(workspace, 'inventory', 'inventory.ts');
 
-      expect(await fs.pathExists(catalogFile)).toBe(true);
-      expect(await fs.pathExists(inventoryFile)).toBe(true);
+      expect(fs.existsSync(catalogFile)).toBe(true);
+      expect(fs.existsSync(inventoryFile)).toBe(true);
 
-      const catalogContent = await fs.readFile(catalogFile, 'utf-8');
-      const inventoryContent = await fs.readFile(inventoryFile, 'utf-8');
+      const catalogContent = await fs.promises.readFile(catalogFile, 'utf-8');
+      const inventoryContent = await fs.promises.readFile(
+        inventoryFile,
+        'utf-8',
+      );
 
       // Both have the same bare method name (safe — scoped per tag file)
       expect(catalogContent).toContain('getItems');
@@ -2652,7 +2680,7 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.readFile(targetFile, 'utf-8');
+      const content = await fs.promises.readFile(targetFile, 'utf-8');
 
       // Hook name uses bare method name
       expect(content).toContain('useGetItems');
@@ -2744,7 +2772,7 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
     const barrel = path.join(workspace, 'gen', 'index.ts');
 
     const countExports = async () => {
-      const content = await fs.readFile(barrel, 'utf8');
+      const content = await fs.promises.readFile(barrel, 'utf8');
       return (content.match(/export \*/g) ?? []).length;
     };
 
@@ -2780,11 +2808,11 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
       expect(afterCycle1).toBeGreaterThan(0);
 
       // Simulate prettier flipping single -> double quotes between runs.
-      const flipped = (await fs.readFile(barrel, 'utf8')).replace(
+      const flipped = (await fs.promises.readFile(barrel, 'utf8')).replace(
         /export \* from '([^']+)';/g,
         'export * from "$1";',
       );
-      await fs.writeFile(barrel, flipped);
+      await fs.promises.writeFile(barrel, flipped);
 
       await generateSpec(workspace, baseOptions, 'base');
       await generateSpec(workspace, masterOptions, 'master');
@@ -2792,7 +2820,7 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
 
       expect(afterCycle2).toBe(afterCycle1);
 
-      const finalContent = await fs.readFile(barrel, 'utf8');
+      const finalContent = await fs.promises.readFile(barrel, 'utf8');
       const specifiers = [
         ...finalContent.matchAll(/export \* from ['"]([^'"]+)['"]/g),
       ].map((m) => m[1]);
@@ -2837,16 +2865,16 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
       await generateSpec(workspace, baseOptions, 'base');
       await generateSpec(workspace, masterOptions, 'master');
 
-      const beforeRemoval = await fs.readFile(barrel, 'utf8');
+      const beforeRemoval = await fs.promises.readFile(barrel, 'utf8');
       expect(beforeRemoval).toContain('./gen/api/base/endpoints');
       expect(beforeRemoval).toContain('./gen/api/master/endpoints');
 
-      await fs.remove(masterDir);
+      await fs.promises.rm(masterDir, { recursive: true, force: true });
       await generateSpec(workspace, baseOptions, 'base');
 
-      const afterRemoval = await fs.readFile(barrel, 'utf8');
-      expect(await fs.pathExists(baseDir)).toBe(true);
-      expect(await fs.pathExists(masterDir)).toBe(false);
+      const afterRemoval = await fs.promises.readFile(barrel, 'utf8');
+      expect(fs.existsSync(baseDir)).toBe(true);
+      expect(fs.existsSync(masterDir)).toBe(false);
       expect(afterRemoval).toContain('./gen/api/base/endpoints');
       expect(afterRemoval).not.toContain('./gen/api/master/endpoints');
       expect(afterRemoval).not.toContain('./gen/api/master/model');
@@ -2933,7 +2961,7 @@ describe('generateSpec - faker schemas with tags-split MSW (#3747)', () => {
 
       await generateSpec(workspace, options);
 
-      const fakerSchemas = await fs.readFile(
+      const fakerSchemas = await fs.promises.readFile(
         path.join(schemasDir, 'index.faker.ts'),
         'utf8',
       );
@@ -2942,7 +2970,7 @@ describe('generateSpec - faker schemas with tags-split MSW (#3747)', () => {
       );
       expect(fakerSchemas).not.toContain("PetStatus['PetStatus']");
 
-      const mswContent = await fs.readFile(mswFile, 'utf8');
+      const mswContent = await fs.promises.readFile(mswFile, 'utf8');
       expect(mswContent).toContain('getPetMock as getPetMockSchemaFactory');
       expect(mswContent).toContain('getPetMockSchemaFactory()');
       expect(mswContent).toContain('export const getPetMock = () => [');
@@ -3032,16 +3060,16 @@ describe('generateSpec - clean prunes configured mock directories', () => {
       // Files left over from a previous run, e.g. a tag removed from the spec.
       const staleMsw = path.join(workspace, 'src/mocks/msw/stale.msw.ts');
       const staleFaker = path.join(workspace, 'src/mocks/faker/stale.faker.ts');
-      await fs.outputFile(staleMsw, '// stale');
-      await fs.outputFile(staleFaker, '// stale');
+      await outputFile(staleMsw, '// stale');
+      await outputFile(staleFaker, '// stale');
 
       await generateWithOutput(workspace, separateMockDirectories);
 
-      expect(await fs.pathExists(staleMsw)).toBe(false);
-      expect(await fs.pathExists(staleFaker)).toBe(false);
+      expect(fs.existsSync(staleMsw)).toBe(false);
+      expect(fs.existsSync(staleFaker)).toBe(false);
       // The regenerated mocks are still there.
       expect(
-        await fs.pathExists(path.join(workspace, 'src/mocks/msw/index.msw.ts')),
+        fs.existsSync(path.join(workspace, 'src/mocks/msw/index.msw.ts')),
       ).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -3055,11 +3083,11 @@ describe('generateSpec - clean prunes configured mock directories', () => {
       await generateWithOutput(workspace, sharedMockDirectory);
 
       const stale = path.join(workspace, 'src/mocks/stale.msw.ts');
-      await fs.outputFile(stale, '// stale');
+      await outputFile(stale, '// stale');
 
       await generateWithOutput(workspace, sharedMockDirectory);
 
-      expect(await fs.pathExists(stale)).toBe(false);
+      expect(fs.existsSync(stale)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3073,14 +3101,14 @@ describe('generateSpec - clean prunes configured mock directories', () => {
 
       // A run before `fileExtension` changed from `.ts` to `.js` wrote these.
       const staleTs = path.join(workspace, 'src/mocks/pets.msw.ts');
-      await fs.outputFile(staleTs, '// stale');
+      await outputFile(staleTs, '// stale');
 
       await generateWithOutput(workspace, {
         ...sharedMockDirectory,
         fileExtension: '.js',
       });
 
-      expect(await fs.pathExists(staleTs)).toBe(false);
+      expect(fs.existsSync(staleTs)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3134,13 +3162,13 @@ describe('generateSpec - clean prunes configured mock directories', () => {
         path.join(workspace, 'src/mocks/faker/fixtures/pets.json'),
       ];
       for (const file of handWritten) {
-        await fs.outputFile(file, '// keep');
+        await outputFile(file, '// keep');
       }
 
       await generateWithOutput(workspace, separateMockDirectories);
 
       for (const file of handWritten) {
-        expect(await fs.pathExists(file)).toBe(true);
+        expect(fs.existsSync(file)).toBe(true);
       }
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -3160,13 +3188,13 @@ describe('generateSpec - clean prunes configured mock directories', () => {
 
       const inMockDir = path.join(workspace, 'src/mocks/msw/.eslintrc.json');
       const inTargetDir = path.join(workspace, 'src/client/.eslintrc.json');
-      await fs.outputFile(inMockDir, '{}');
-      await fs.outputFile(inTargetDir, '{}');
+      await outputFile(inMockDir, '{}');
+      await outputFile(inTargetDir, '{}');
 
       await generateWithOutput(workspace, widened);
 
-      expect(await fs.pathExists(inMockDir)).toBe(true);
-      expect(await fs.pathExists(inTargetDir)).toBe(false);
+      expect(fs.existsSync(inMockDir)).toBe(true);
+      expect(fs.existsSync(inTargetDir)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3231,18 +3259,18 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
         path.join(workspace, 'src/api/mocks/fixtures/pets.json'),
       ];
       for (const file of handWritten) {
-        await fs.outputFile(file, '// keep');
+        await outputFile(file, '// keep');
       }
       const stale = path.join(workspace, 'src/api/mocks/removed.msw.ts');
-      await fs.outputFile(stale, '// stale');
+      await outputFile(stale, '// stale');
 
       await generateWithOutput(workspace, nestedInTarget);
 
       for (const file of handWritten) {
-        expect(await fs.pathExists(file)).toBe(true);
+        expect(fs.existsSync(file)).toBe(true);
       }
       // The directory is still pruned of Orval's own output.
-      expect(await fs.pathExists(stale)).toBe(false);
+      expect(fs.existsSync(stale)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3259,14 +3287,14 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
       await generateWithOutput(workspace, nestedInSchemas);
 
       const handWritten = path.join(workspace, 'src/models/mocks/fixtures.ts');
-      await fs.outputFile(handWritten, '// keep');
+      await outputFile(handWritten, '// keep');
       const stale = path.join(workspace, 'src/models/mocks/removed.faker.ts');
-      await fs.outputFile(stale, '// stale');
+      await outputFile(stale, '// stale');
 
       await generateWithOutput(workspace, nestedInSchemas);
 
-      expect(await fs.pathExists(handWritten)).toBe(true);
-      expect(await fs.pathExists(stale)).toBe(false);
+      expect(fs.existsSync(handWritten)).toBe(true);
+      expect(fs.existsSync(stale)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3281,13 +3309,13 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
 
       const inMockDir = path.join(workspace, 'src/api/mocks/.eslintrc.json');
       const inTargetDir = path.join(workspace, 'src/api/.eslintrc.json');
-      await fs.outputFile(inMockDir, '{}');
-      await fs.outputFile(inTargetDir, '{}');
+      await outputFile(inMockDir, '{}');
+      await outputFile(inTargetDir, '{}');
 
       await generateWithOutput(workspace, widened);
 
-      expect(await fs.pathExists(inMockDir)).toBe(true);
-      expect(await fs.pathExists(inTargetDir)).toBe(false);
+      expect(fs.existsSync(inMockDir)).toBe(true);
+      expect(fs.existsSync(inTargetDir)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3301,14 +3329,14 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
 
       const inMockDir = path.join(workspace, 'src/api/mocks/browser.ts');
       const inSiblingDir = path.join(workspace, 'src/api/mocks-extra/notes.ts');
-      await fs.outputFile(inMockDir, '// keep');
-      await fs.outputFile(inSiblingDir, '// wiped');
+      await outputFile(inMockDir, '// keep');
+      await outputFile(inSiblingDir, '// wiped');
 
       await generateWithOutput(workspace, nestedInTarget);
 
-      expect(await fs.pathExists(inMockDir)).toBe(true);
+      expect(fs.existsSync(inMockDir)).toBe(true);
       // `mocks-extra` is not the mock directory, so `target` owns it.
-      expect(await fs.pathExists(inSiblingDir)).toBe(false);
+      expect(fs.existsSync(inSiblingDir)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3338,17 +3366,17 @@ describe('generateSpec - clean prunes mock directories nested in owned ones', ()
         workspace,
         'src/api/mocks[legacy]/browser.ts',
       );
-      await fs.outputFile(handWritten, '// keep');
+      await outputFile(handWritten, '// keep');
       const stale = path.join(
         workspace,
         'src/api/mocks[legacy]/removed.msw.ts',
       );
-      await fs.outputFile(stale, '// stale');
+      await outputFile(stale, '// stale');
 
       await generateWithOutput(workspace, nestedWithMetachars);
 
-      expect(await fs.pathExists(handWritten)).toBe(true);
-      expect(await fs.pathExists(stale)).toBe(false);
+      expect(fs.existsSync(handWritten)).toBe(true);
+      expect(fs.existsSync(stale)).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3370,17 +3398,17 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
 
     try {
       const outsideFile = path.join(outsideTarget, 'do-not-touch.ts');
-      await fs.outputFile(outsideFile, '// outside the workspace');
+      await outputFile(outsideFile, '// outside the workspace');
 
       const mockLink = path.join(workspace, 'src/mocks');
-      await fs.ensureDir(path.dirname(mockLink));
+      await fs.promises.mkdir(path.dirname(mockLink), { recursive: true });
       try {
         // A junction, not a true symbolic link: Windows grants
         // `SeCreateSymbolicLinkPrivilege` only to elevated tokens or under
         // Developer Mode, but a junction needs no privilege. libuv reports any
         // reparse point as a symlink under lstat, so the guard under test sees
         // the same thing either way. Ignored on POSIX.
-        await fs.symlink(outsideTarget, mockLink, 'junction');
+        await fs.promises.symlink(outsideTarget, mockLink, 'junction');
       } catch (error: unknown) {
         // Filesystems without reparse-point support (FAT32, some network mounts).
         const code = (error as NodeJS.ErrnoException)?.code;
@@ -3392,14 +3420,14 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
       // the mock cleanup patterns, so a naive fix (just widening the glob
       // options) would still be caught by an assertion on file survival.
       const staleLookingFile = path.join(outsideTarget, 'stale.msw.ts');
-      await fs.outputFile(staleLookingFile, '// looks stale, is not ours');
+      await outputFile(staleLookingFile, '// looks stale, is not ours');
 
       await generateWithOutput(workspace, {
         mock: { path: './src/mocks', generators: [{ type: 'msw' }] },
       });
 
-      expect(await fs.pathExists(outsideFile)).toBe(true);
-      expect(await fs.pathExists(staleLookingFile)).toBe(true);
+      expect(fs.existsSync(outsideFile)).toBe(true);
+      expect(fs.existsSync(staleLookingFile)).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
       await rm(outsideTarget, { recursive: true, force: true });
@@ -3512,9 +3540,9 @@ describe('generateSpec - reporter', () => {
 
     try {
       const mockLink = path.join(workspace, 'src/mocks');
-      await fs.ensureDir(path.dirname(mockLink));
+      await fs.promises.mkdir(path.dirname(mockLink), { recursive: true });
       try {
-        await fs.symlink(outsideTarget, mockLink, 'junction');
+        await fs.promises.symlink(outsideTarget, mockLink, 'junction');
       } catch (error: unknown) {
         const code = (error as NodeJS.ErrnoException)?.code;
         if (code === 'EPERM' || code === 'ENOTSUP') skip();
@@ -3566,15 +3594,15 @@ describe('generateSpec - clean scopes to the configured schemas directory', () =
         workspace,
         'src/api/petstore.schemas/removedModel.ts',
       );
-      await fs.outputFile(mutator, '// keep');
-      await fs.outputFile(stale, '// stale');
+      await outputFile(mutator, '// keep');
+      await outputFile(stale, '// stale');
 
       await generateWithOutput(workspace, dottedSchemas);
 
-      expect(await fs.pathExists(mutator)).toBe(true);
-      expect(await fs.pathExists(stale)).toBe(false);
+      expect(fs.existsSync(mutator)).toBe(true);
+      expect(fs.existsSync(stale)).toBe(false);
       expect(
-        await fs.pathExists(path.join(workspace, 'src/api/petstore.schemas')),
+        fs.existsSync(path.join(workspace, 'src/api/petstore.schemas')),
       ).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -3668,11 +3696,11 @@ describe('generateSpec - single-file Zod schemas', () => {
         expect(await readdir(path.join(workspace, 'model'))).toEqual([
           'index.zod.ts',
         ]);
-        const schemas = await fs.readFile(
+        const schemas = await fs.promises.readFile(
           path.join(workspace, 'model/index.zod.ts'),
           'utf8',
         );
-        const client = await fs.readFile(
+        const client = await fs.promises.readFile(
           path.join(workspace, 'client.ts'),
           'utf8',
         );
@@ -3695,7 +3723,10 @@ describe('generateSpec - single-file Zod schemas', () => {
         const before = schemas;
         await generateSpec(workspace, options);
         expect(
-          await fs.readFile(path.join(workspace, 'model/index.zod.ts'), 'utf8'),
+          await fs.promises.readFile(
+            path.join(workspace, 'model/index.zod.ts'),
+            'utf8',
+          ),
         ).toBe(before);
       } finally {
         await rm(workspace, { recursive: true, force: true });
@@ -3741,7 +3772,7 @@ describe('generateSpec - single-file Zod schemas', () => {
       expect(await readdir(path.join(workspace, 'model'))).toEqual([
         'index.zod.ts',
       ]);
-      const content = await fs.readFile(
+      const content = await fs.promises.readFile(
         path.join(workspace, 'model/index.zod.ts'),
         'utf8',
       );

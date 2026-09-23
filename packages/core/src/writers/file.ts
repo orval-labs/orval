@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const TRAILING_WHITESPACE_RE = /[^\S\r\n]+$/gm;
 
@@ -52,7 +53,7 @@ export async function writeGeneratedFile(
   // reasoning as the barrel writers (#3756), applied to generated artifacts
   // as well. (#3787)
   try {
-    const existingContent = await fs.readFile(filePath, 'utf8');
+    const existingContent = await fs.promises.readFile(filePath, 'utf8');
     if (existingContent === nextContent) {
       return;
     }
@@ -62,5 +63,6 @@ export async function writeGeneratedFile(
     }
   }
 
-  await fs.outputFile(filePath, nextContent);
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.promises.writeFile(filePath, nextContent);
 }

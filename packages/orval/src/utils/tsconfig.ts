@@ -1,6 +1,6 @@
 import { isNullish, isObject, isString, type Tsconfig } from '@orval/core';
 import { findUp } from 'find-up';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import {
   parseTsconfig,
   type TsConfigJson,

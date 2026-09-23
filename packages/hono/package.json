@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "8.36.0",
+  "version": "8.37.0",
   "homepage": "https://orval.dev/docs/guides/hono",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -24,12 +24,10 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@orval/zod": "workspace:*",
-    "fs-extra": "^11.3.2"
+    "@orval/zod": "workspace:*"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",
-    "@types/fs-extra": "^11.0.4",
     "hono": "catalog:hono",
     "rimraf": "catalog:",
     "typescript": "catalog:",

@@ -20,11 +20,12 @@ vi.mock('find-up', () => ({
   findUpMultiple: vi.fn(),
 }));
 
-vi.mock('fs-extra', () => ({
+vi.mock('node:fs', () => ({
   default: {
-    readFile: vi.fn<(...args: unknown[]) => Promise<Buffer>>(),
-    readJson: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
     existsSync: vi.fn<(...args: unknown[]) => boolean>(),
+    promises: {
+      readFile: vi.fn<(...args: unknown[]) => Promise<string>>(),
+    },
   },
 }));
 
@@ -53,7 +54,7 @@ vi.mock('./options', () => ({
 
 import { dynamicImport } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import yaml from 'js-yaml';
 
 import { loadPackageJson as loadPackageJsonImpl } from './package-json';
@@ -82,9 +83,7 @@ const mockFindUp = (
 };
 
 const mockReadFile = (value: string) => {
-  vi.mocked(fs.readFile).mockImplementation(() =>
-    Promise.resolve(Buffer.from(value)),
-  );
+  vi.mocked(fs.promises.readFile).mockResolvedValue(value);
 };
 
 describe('loadPackageJson - configured package manifest', () => {
@@ -108,7 +107,7 @@ describe('loadPackageJson - configured package manifest', () => {
     const result = await loadPackageJson('/workspace/package.json5');
 
     expect(result?.dependencies?.react).toBe('^19.0.0');
-    expect(fs.readFile).toHaveBeenCalledWith(
+    expect(fs.promises.readFile).toHaveBeenCalledWith(
       '/workspace/package.json5',
       'utf8',
     );
@@ -132,7 +131,7 @@ describe('loadPackageJson - configured package manifest', () => {
   it('includes the manifest path and read error as the cause', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const readError = new Error('EACCES');
-    vi.mocked(fs.readFile).mockRejectedValue(readError);
+    vi.mocked(fs.promises.readFile).mockRejectedValue(readError);
 
     const result = loadPackageJson('/workspace/package.json5');
 
@@ -282,9 +281,37 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson).mockResolvedValue({
-        catalog: { react: '^19.0.0' },
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({
+          catalog: { react: '^19.0.0' },
+        }),
+      );
+
+      const result = await loadPackageJson();
+
+      expect(result?.dependencies?.react).toBe('^19.0.0');
+    });
+
+    it('should resolve catalog: from a BOM-prefixed root package.json', async () => {
+      const mockPkg = {
+        dependencies: {
+          react: 'catalog:',
+        },
+      };
+
+      mockFindUp((name) => {
+        if (name === 'pnpm-workspace.yaml') return;
+        if (name === '.yarnrc.yml') return;
+        if (Array.isArray(name) && name.includes('package.json'))
+          return '/workspace/packages/app/package.json';
+        return;
       });
+      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+
+      vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        '\uFEFF' + JSON.stringify({ catalog: { react: '^19.0.0' } }),
+      );
 
       const result = await loadPackageJson();
 
@@ -308,11 +335,9 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson).mockResolvedValue({
-        catalogs: {
-          testing: { vitest: '^2.0.0' },
-        },
-      });
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({ catalogs: { testing: { vitest: '^2.0.0' } } }),
+      );
 
       const result = await loadPackageJson();
 
@@ -338,7 +363,7 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson).mockResolvedValue({});
+      vi.mocked(fs.promises.readFile).mockResolvedValue(JSON.stringify({}));
       mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { typescript: '5.9.3' },
@@ -372,9 +397,11 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
-      vi.mocked(fs.readJson).mockResolvedValue({
-        catalog: { react: '^19.0.0' },
-      });
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({
+          catalog: { react: '^19.0.0' },
+        }),
+      );
 
       const result = await loadPackageJson();
 
@@ -398,10 +425,11 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson).mockResolvedValue({
-        catalog: { react: '^19.0.0' },
-      });
-      mockReadFile('');
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({
+          catalog: { react: '^19.0.0' },
+        }),
+      );
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -432,7 +460,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result).toEqual(mockPkg);
-      expect(fs.readFile).not.toHaveBeenCalled();
+      expect(fs.promises.readFile).not.toHaveBeenCalled();
     });
 
     it('should warn when no catalog source is found', async () => {
@@ -575,11 +603,13 @@ describe('loadPackageJson - catalog resolution', () => {
       ]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson)
-        .mockResolvedValueOnce({}) // nested package.json - no catalogs
-        .mockResolvedValueOnce({
-          catalog: { react: '^19.0.0' },
-        }); // root package.json - has catalogs
+      vi.mocked(fs.promises.readFile)
+        .mockResolvedValueOnce(JSON.stringify({})) // nested package.json - no catalogs
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            catalog: { react: '^19.0.0' },
+          }),
+        ); // root package.json - has catalogs
 
       const result = await loadPackageJson();
 
@@ -608,13 +638,15 @@ describe('loadPackageJson - catalog resolution', () => {
       ]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson)
-        .mockResolvedValueOnce({}) // deepest - no catalogs
-        .mockResolvedValueOnce({}) // middle - no catalogs
-        .mockResolvedValueOnce({}) // packages - no catalogs
-        .mockResolvedValueOnce({
-          catalog: { lodash: '^4.17.21' },
-        }); // root - has catalogs
+      vi.mocked(fs.promises.readFile)
+        .mockResolvedValueOnce(JSON.stringify({})) // deepest - no catalogs
+        .mockResolvedValueOnce(JSON.stringify({})) // middle - no catalogs
+        .mockResolvedValueOnce(JSON.stringify({})) // packages - no catalogs
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            catalog: { lodash: '^4.17.21' },
+          }),
+        ); // root - has catalogs
 
       const result = await loadPackageJson();
 
@@ -642,16 +674,18 @@ describe('loadPackageJson - catalog resolution', () => {
       ]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson)
-        .mockResolvedValueOnce({}) // app - no catalogs
-        .mockResolvedValueOnce({
-          catalog: { axios: '^1.5.0' },
-        }); // packages - has catalogs (should stop here)
+      vi.mocked(fs.promises.readFile)
+        .mockResolvedValueOnce(JSON.stringify({})) // app - no catalogs
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            catalog: { axios: '^1.5.0' },
+          }),
+        ); // packages - has catalogs (should stop here)
 
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.axios).toBe('^1.5.0');
-      expect(fs.readJson).toHaveBeenCalledTimes(2);
+      expect(fs.promises.readFile).toHaveBeenCalledTimes(2);
     });
 
     it('should return undefined when no package.json has catalogs', async () => {
@@ -674,9 +708,9 @@ describe('loadPackageJson - catalog resolution', () => {
       ]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson)
-        .mockResolvedValueOnce({})
-        .mockResolvedValueOnce({});
+      vi.mocked(fs.promises.readFile)
+        .mockResolvedValueOnce(JSON.stringify({}))
+        .mockResolvedValueOnce(JSON.stringify({}));
 
       const result = await loadPackageJson();
 
@@ -706,11 +740,13 @@ describe('loadPackageJson - catalog resolution', () => {
       ]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readJson)
+      vi.mocked(fs.promises.readFile)
         .mockRejectedValueOnce(new Error('ENOENT'))
-        .mockResolvedValueOnce({
-          catalog: { typescript: '^5.0.0' },
-        });
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            catalog: { typescript: '^5.0.0' },
+          }),
+        );
 
       const result = await loadPackageJson();
 

@@ -55,74 +55,6 @@ export const resolveSchemaNames = (
   return resolved;
 };
 
-const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
-
-const isComponentSchemaRef = (ref: unknown): ref is string =>
-  typeof ref === 'string' && ref.startsWith(COMPONENT_SCHEMAS_PREFIX);
-
-/**
- * Walk a value (object or array) and accumulate every component-schema `$ref`
- * found anywhere in the subtree. Pure spec traversal — does NOT invoke the
- * Zod generator.
- */
-const collectRefsInValue = (value: unknown, refs: Set<string>): void => {
-  if (value === null || typeof value !== 'object') {
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectRefsInValue(item, refs);
-    }
-    return;
-  }
-  const record = value as Record<string, unknown>;
-  if (isComponentSchemaRef(record.$ref)) {
-    refs.add(record.$ref);
-  }
-  for (const key of Object.keys(record)) {
-    if (key === '$ref') continue; // already added; don't descend into the string
-    collectRefsInValue(record[key], refs);
-  }
-};
-
-/**
- * Returns the set of component-schema refs reachable from `spec.paths`,
- * following refs transitively through `spec.components.schemas`.
- */
-export const collectReachableComponentRefs = (
-  spec: OpenApiDocument,
-): Set<string> => {
-  const reachable = new Set<string>();
-  const queue: string[] = [];
-
-  const initial = new Set<string>();
-  collectRefsInValue(spec.paths, initial);
-  for (const ref of initial) {
-    reachable.add(ref);
-    queue.push(ref);
-  }
-
-  const componentSchemas = spec.components?.schemas ?? {};
-  // Index-based queue iteration (not `shift()`) so the BFS is O(n) rather than
-  // O(n²). The queue is append-only — we never need to reclaim the head slot.
-  for (const currentRef of queue) {
-    const schemaName = currentRef.slice(COMPONENT_SCHEMAS_PREFIX.length);
-    const targetSchema = componentSchemas[schemaName];
-    if (!targetSchema) continue;
-
-    const innerRefs = new Set<string>();
-    collectRefsInValue(targetSchema, innerRefs);
-    for (const innerRef of innerRefs) {
-      if (!reachable.has(innerRef)) {
-        reachable.add(innerRef);
-        queue.push(innerRef);
-      }
-    }
-  }
-
-  return reachable;
-};
-
 export interface ReusableSchemaEntry {
   ref: string;
   name: string;
@@ -335,14 +267,6 @@ const tarjan = (graph: Graph): TarjanResult => {
 
   return { sccs, lazyEdges };
 };
-
-/**
- * Returns the set of lazy-emission edge keys ("from->to") for `graph`. Back-edges
- * (edges from a node to an ancestor in the DFS tree) and self-loops are lazy.
- * Cross-SCC edges and tree/forward edges within an SCC are not lazy.
- */
-export const computeLazyEdges = (graph: Graph): Set<string> =>
-  tarjan(graph).lazyEdges;
 
 const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
 

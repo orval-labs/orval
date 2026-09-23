@@ -16,7 +16,6 @@ import {
   getStrictMockTypeDeclaration,
   getStrictMockTypeDeclarations,
   getStrictMockTypeName,
-  isSchemaNullableAtRoot,
   isStrictMock,
 } from './mock-types';
 import { createTestContextSpec } from '../../core/src/test-utils';
@@ -101,13 +100,6 @@ describe('mock-types', () => {
           context,
         ),
       ).toBe('alias');
-    });
-  });
-
-  describe('isSchemaNullableAtRoot', () => {
-    it('detects nullable object schemas', () => {
-      expect(isSchemaNullableAtRoot({ type: ['object', 'null'] })).toBe(true);
-      expect(isSchemaNullableAtRoot({ type: 'object' })).toBe(false);
     });
   });
 

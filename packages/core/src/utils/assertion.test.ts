@@ -15,7 +15,6 @@ import {
   isSchema,
   isSchemaNullable,
   isString,
-  isStringLike,
   isUrl,
   isVerb,
   safeNumericConstraint,
@@ -32,12 +31,6 @@ describe('assertion testing', () => {
     expect(isObject([])).toBeFalsy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isObject(null)).toBeFalsy();
-  });
-
-  it('checks for string-like values', () => {
-    expect(isStringLike('hello')).toBeTruthy();
-    expect(isStringLike(new Object('hello'))).toBeTruthy();
-    expect(isStringLike(123)).toBeFalsy();
   });
 
   it('checks for module-like objects', () => {

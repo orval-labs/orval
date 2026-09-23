@@ -49,16 +49,6 @@ export type MockWithNullableOverrides<
 };`;
 }
 
-export function isSchemaNullableAtRoot(schema?: OpenApiSchemaObject): boolean {
-  const objectSchema = asObjectSchema(schema);
-  if (!objectSchema) {
-    return false;
-  }
-
-  const type = objectSchema.type;
-  return Array.isArray(type) && type.includes('null');
-}
-
 export function classifyStrictMockSchemaType(
   schema?: OpenApiSchemaObject,
   context?: ContextSpec,

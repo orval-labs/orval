@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { styleText } from 'node:util';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 
 import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
 import { getFileInfo, getImportExtension, pascal, upath } from '../utils';
@@ -64,7 +64,7 @@ export async function generateMutator({
   }
 
   let rawFile = path.isAbsolute(inspectionPath)
-    ? await fs.readFile(inspectionPath, 'utf8')
+    ? await fs.promises.readFile(inspectionPath, 'utf8')
     : '';
   rawFile = removeComments(rawFile);
 
