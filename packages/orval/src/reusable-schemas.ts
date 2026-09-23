@@ -1,6 +1,5 @@
 import {
   type ContextSpec,
-  type OpenApiDocument,
   type ZodCoerceType,
   type GeneratorMutator,
   type OpenApiSchemaObject,
