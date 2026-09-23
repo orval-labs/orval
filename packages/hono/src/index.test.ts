@@ -196,7 +196,9 @@ describe('generateHandlerFile — NodeNext module resolution', () => {
 
 describe('resolveDefaultSchemaModule', () => {
   const output = (
-    overrides: Parameters<typeof createTestContextSpec>[0]['output'] = {},
+    overrides: NonNullable<
+      Parameters<typeof createTestContextSpec>[0]
+    >['output'] = {},
   ) =>
     createTestContextSpec({
       output: {

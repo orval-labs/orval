@@ -14,6 +14,7 @@ import {
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
+  type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
@@ -1302,7 +1303,10 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   pathParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
@@ -1335,7 +1339,10 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   queryParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
@@ -1368,7 +1375,10 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   headerParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
@@ -1418,20 +1428,23 @@ function generateZodSchemasFromVerbs(
               // the only thing this loop needs to stop at.
               while (
                 cleanSchema &&
+                typeof cleanSchema === 'object' &&
                 'type' in cleanSchema &&
                 cleanSchema.type === 'array' &&
                 cleanSchema.items &&
+                typeof cleanSchema.items === 'object' &&
                 isInlineSchema(cleanSchema.items) &&
                 !('$ref' in cleanSchema.items)
               ) {
-                cleanSchema = cleanSchema.items as OpenApiSchemaObject;
+                cleanSchema = cleanSchema.items;
               }
               // If the loop didn't fully unwrap (still an array, or item is a
               // $ref), discard — the component schema writer handles it.
               if (
                 !cleanSchema ||
-                ('type' in cleanSchema &&
-                  (cleanSchema as OpenApiSchemaObject).type === 'array')
+                (typeof cleanSchema === 'object' &&
+                  'type' in cleanSchema &&
+                  cleanSchema.type === 'array')
               ) {
                 cleanSchema = undefined;
               }

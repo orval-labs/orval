@@ -2919,7 +2919,7 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     definition: 'CreatePetsBody',
     imports: [{ name: 'CreatePetsBody' }],
     schemas: [],
-    originalSchema: { type: 'object' },
+    originalSchema: { content: {} },
     contentType: 'application/json',
     formData: '',
     formUrlEncoded: '',

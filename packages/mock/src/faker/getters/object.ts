@@ -120,7 +120,7 @@ export function getMockObject({
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
-  if (!isInlineSchema(item)) {
+  if (typeof item.$ref === 'string') {
     return resolveMockValue({
       schema: {
         ...item,
@@ -386,7 +386,11 @@ export function getMockObject({
             return `${keyDefinition}: {} as unknown as ${refName}`;
           }
 
-          const hasDefault = 'default' in prop && prop.default !== undefined;
+          const hasDefault =
+            typeof prop === 'object' &&
+            prop !== null &&
+            'default' in prop &&
+            prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
             // A value that already carries its own null branch randomizes
@@ -408,7 +412,11 @@ export function getMockObject({
           }
 
           const isNullable =
-            Array.isArray(prop.type) && prop.type.includes('null');
+            typeof prop === 'object' &&
+            prop !== null &&
+            'type' in prop &&
+            Array.isArray(prop.type) &&
+            prop.type.includes('null');
           if (
             isNullable &&
             !resolvedValue.nullWrapped &&
@@ -492,7 +500,7 @@ export function getMockObject({
         ...additionalProperties,
         name: schemaItem.name,
         path: schemaItem.path ? `${schemaItem.path}.#` : '#',
-      },
+      } as MockSchemaObject,
       mockOptions,
       operationId,
       tags,

@@ -188,7 +188,7 @@ export function getMockScalar({
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
   // treat both equivalently so the mock emits the binary format value
   // (Blob) instead of falling through to the string case.
-  const schemaContentMediaType = (item as OpenApiSchemaObject).contentMediaType;
+  const schemaContentMediaType = item.contentMediaType;
   if (
     !item.format &&
     schemaContentMediaType === 'application/octet-stream' &&
@@ -369,11 +369,12 @@ export function getMockScalar({
         };
       }
 
-      if (!item.items) {
+      if (!item.items || typeof item.items !== 'object') {
         return { value: '[]', imports: [], name: item.name };
       }
 
-      const itemsRef = extractItemsRef(item.items);
+      const itemsSchema = item.items as MockSchema;
+      const itemsRef = extractItemsRef(itemsSchema);
       if (
         itemsRef &&
         existingReferencedProperties.includes(
@@ -389,7 +390,7 @@ export function getMockScalar({
       // `faker.helpers.arrayElements(...)`) and keeps recursion semantics in
       // line with direct-$ref items.
       const resolvedItems =
-        itemsRef && !('$ref' in item.items) ? { $ref: itemsRef } : item.items;
+        itemsRef && !('$ref' in itemsSchema) ? { $ref: itemsRef } : itemsSchema;
 
       const {
         value,
@@ -553,7 +554,7 @@ export function getMockScalar({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
       } else if ('const' in item) {
-        value = JSON.stringify((item as OpenApiSchemaObject).const);
+        value = JSON.stringify(item.const);
       }
 
       return {

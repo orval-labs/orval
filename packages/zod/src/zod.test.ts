@@ -7,6 +7,7 @@ import type {
   OpenApiDocument,
   OpenApiResponsesObject,
   OpenApiSchemaObject,
+  OpenApiSchemasObject,
 } from '@orval/core';
 import { EnumGeneration, OutputClient, PropertySortOrder } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
@@ -104,8 +105,11 @@ function makeContextSpec({
   };
 }
 
-function schemaObject(schema: unknown): OpenApiSchemaObject {
-  return schema as OpenApiSchemaObject;
+function schemaObject(schema: unknown): Exclude<OpenApiSchemaObject, boolean> {
+  if (typeof schema !== 'object' || schema === null) {
+    throw new Error(`expected an object schema, received ${typeof schema}`);
+  }
+  return schema as Exclude<OpenApiSchemaObject, boolean>;
 }
 
 describe.each([
@@ -1863,7 +1867,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('generates stringFormat when format and pattern is defined in v4', () => {
-    const stringWithPatternAndFormat = {
+    const stringWithPatternAndFormat: OpenApiSchemaObject = {
       type: 'string',
       pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
       format: 'my-guid',
@@ -1911,7 +1915,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('places stringFormat before min/max when format and pattern and minLength are defined in v4', () => {
-    const schemaWithPatternFormatAndMin = {
+    const schemaWithPatternFormatAndMin: OpenApiSchemaObject = {
       type: 'string',
       format: 'slug',
       pattern: '^[a-z0-9-]+$',
@@ -1987,7 +1991,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('generates string when format and pattern is defined in v3', () => {
-    const stringWithPatternAndFormat = {
+    const stringWithPatternAndFormat: OpenApiSchemaObject = {
       type: 'string',
       pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
       format: 'my-guid',
@@ -2046,7 +2050,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const zodFormat = expectedZodFormatByOpenApiFormat.get(format);
       expect(zodFormat).toBeDefined();
 
-      const schema = {
+      const schema: OpenApiSchemaObject = {
         type: 'string',
         format,
         pattern: '^[0-9a-f-]+$',
@@ -3734,7 +3738,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('skips stringFormat emission for enums in Zod v4 when format and pattern are both present (#3024)', () => {
-      const schema = {
+      const schema: OpenApiSchemaObject = {
         type: 'string',
         enum: ['cat', 'dog'],
         format: 'pet-kind',
@@ -4957,7 +4961,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('does not emit stringFormat when custom format has no pattern in v4', () => {
-    const schemaFormatOnly = {
+    const schemaFormatOnly: OpenApiSchemaObject = {
       type: 'string',
       format: 'slug',
     };
@@ -4996,7 +5000,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('does not emit stringFormat twice when format+pattern+minLength in v4', () => {
-    const schemaFormatPatternMin = {
+    const schemaFormatPatternMin: OpenApiSchemaObject = {
       type: 'string',
       format: 'slug',
       pattern: '^[a-z0-9-]+$',
@@ -5038,7 +5042,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('does not emit a duplicate RegExp const when format+pattern+minLength in v4', () => {
-    const schemaFormatPatternMin = {
+    const schemaFormatPatternMin: OpenApiSchemaObject = {
       type: 'string',
       format: 'slug',
       pattern: '^[a-z0-9-]+$',
@@ -5120,7 +5124,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('adds the u flag for custom format+pattern with property escapes in v4 (#3841)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       format: 'name',
       pattern: String.raw`^[\p{L}]+$`,
@@ -5175,7 +5179,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('does not emit stringFormat for custom format+pattern in v3', () => {
-    const schemaFormatPattern = {
+    const schemaFormatPattern: OpenApiSchemaObject = {
       type: 'string',
       format: 'slug',
       pattern: '^[a-z0-9-]+$',
@@ -5254,7 +5258,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('emits string().regex() for custom format+pattern in v3', () => {
-    const schemaFormatPattern = {
+    const schemaFormatPattern: OpenApiSchemaObject = {
       type: 'string',
       format: 'my-id',
       pattern: String.raw`^[A-Z]{3}-\d+$`,
@@ -11540,7 +11544,7 @@ describe('generateMeta (.meta())', () => {
   });
 
   it('emits meta on a multi-type (type array) top-level schema', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: ['string', 'number'],
       description: 'either',
     };
@@ -11741,7 +11745,7 @@ function makeZodOverride(overrides: Record<string, unknown> = {}) {
 }
 
 describe('$dynamicRef / $dynamicAnchor', () => {
-  const petstoreComponents = {
+  const petstoreComponents: OpenApiSchemasObject = {
     Pet: {
       $dynamicAnchor: 'Pet',
       type: 'object',
@@ -11783,7 +11787,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
   function makeApiSchema(paths: OpenApiDocument['paths']) {
     return createTestGeneratorOptions({
-      pathRoute: Object.keys(paths)[0],
+      pathRoute: Object.keys(paths ?? {})[0] ?? '/',
       context: {
         spec: {
           paths,
@@ -11833,8 +11837,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         ctx,
       );
 
-      const playmatesItems = (resolved as OpenApiSchemaObject).properties
-        ?.playmates;
+      const playmatesItems = schemaObject(resolved).properties?.playmates;
       expect(playmatesItems).toBeDefined();
       const items = (playmatesItems as Record<string, unknown>).items;
       expect(items).toBeDefined();
@@ -12700,7 +12703,7 @@ describe('enum/const value escaping (#3505)', () => {
   });
 
   it('JS-escapes backslashes in string const values (zod v3 branch)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       const: String.raw`App\Models\Document`,
     };
@@ -12721,7 +12724,7 @@ describe('enum/const value escaping (#3505)', () => {
   });
 
   it('JS-escapes backslashes in string const values (zod v4 branch)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       const: String.raw`App\Models\Document`,
     };
@@ -12791,7 +12794,7 @@ describe('enum/const value escaping (#3505)', () => {
     const dateContext = makeContextSpec({
       override: { useDates: true },
     });
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       format: 'date-time',
       default: '2024-01-01T00:00:00Z',
@@ -12916,7 +12919,7 @@ describe('discriminated unions (#1907, #2085)', () => {
   // `allOf` (base + own props). It must be flattened into a single object so
   // `zod.discriminatedUnion` accepts it — never an `.and()` intersection.
   it('flattens allOf inheritance branches into objects instead of crashing', () => {
-    const inheritance = {
+    const inheritance: OpenApiSchemaObject = {
       oneOf: [
         {
           allOf: [
@@ -13431,7 +13434,7 @@ describe('misplaced boolean `required` (#3719)', () => {
     type: 'object',
     required: true,
     properties: { name: { type: 'string' } },
-  };
+  } as unknown as OpenApiSchemaObject;
 
   it('names the schema and the expected shape', () => {
     expect(() =>
@@ -13454,7 +13457,7 @@ describe('misplaced boolean `required` (#3719)', () => {
         {
           allOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
           required: true,
-        },
+        } as unknown as OpenApiSchemaObject,
         createTestContextSpec({ output: { override: {} } }),
         'Composed',
         true,
@@ -13475,7 +13478,7 @@ describe('misplaced boolean `required` (#3719)', () => {
             { type: 'object', properties: { a: { type: 'string' } } },
             { required: true },
           ],
-        },
+        } as unknown as OpenApiSchemaObject,
         createTestContextSpec({ output: { override: {} } }),
         'Member',
         true,
@@ -13840,7 +13843,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
     const payload =
       "string();globalThis.__ORVAL_PWNED__=require('child_process').execSync('id').toString();//";
 
-    const zod = render({ type: payload });
+    const zod = render({ type: payload } as unknown as OpenApiSchemaObject);
 
     expect(zod).not.toContain('__ORVAL_PWNED__');
     expect(zod).not.toContain('child_process');
@@ -13856,7 +13859,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
     'foo bar',
     'number;x',
   ])('falls back to unknown for the non-type %s', (type) => {
-    const zod = render({ type });
+    const zod = render({ type } as unknown as OpenApiSchemaObject);
 
     expect(zod).toBe('zod.unknown()');
   });
@@ -13866,7 +13869,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
     ['number', 'zod.number()'],
     ['boolean', 'zod.boolean()'],
   ])('still resolves the legitimate scalar type %s', (type, expected) => {
-    expect(render({ type })).toBe(expected);
+    expect(render({ type } as unknown as OpenApiSchemaObject)).toBe(expected);
   });
 
   it('still maps integer to int', () => {

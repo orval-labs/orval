@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/no-null */
-import type { ContextSpec } from '@orval/core';
+import type { ContextSpec, OpenApiPrimitiveSchemaType } from '@orval/core';
 import { EnumGeneration, getKey } from '@orval/core';
 import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
@@ -1282,7 +1282,7 @@ describe('getMockScalar (inline enum cast under exactOptional)', () => {
   };
 
   const statusItem = {
-    type: 'string' as OpenApiSchemaObjectType,
+    type: 'string' as OpenApiPrimitiveSchemaType,
     enum: ['DRAFT', 'PUBLISHED'],
     name: 'status',
     parentName: 'Pet',

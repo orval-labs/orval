@@ -478,18 +478,16 @@ describe('generateQuery — suspense queryOptions() literal (#4163)', () => {
       originalOperation: {},
     }) as unknown as GeneratorVerbOptions;
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/pets',
     pathRoute: '/pets',
-    override: { operations: {} },
-    output: '',
-    context: createTestContextSpec({
+    context: {
       output: {
         client: OutputClient.REACT_QUERY,
         httpClient: OutputHttpClient.FETCH,
       },
-    }),
-  } as unknown as GeneratorOptions;
+    },
+  });
 
   // `Partial<UseSuspenseQueryOptions<…>>` declares `queryFn` as
   // `QueryFunction<…> | undefined`, so spreading it over a concrete `queryFn`

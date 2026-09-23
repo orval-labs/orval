@@ -7,7 +7,10 @@ import {
   type MockOptions,
   type NormalizedOverrideOutput,
   type OpenApiDocument,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
   resolveRef,
+  toObjectSchema,
   type ResReqTypesValue,
   stringify,
 } from '@orval/core';
@@ -239,12 +242,17 @@ export function getResponsesMockDefinition({
     const { value: definition, example, examples, imports, isRef } = response;
     let { originalSchema } = response;
 
+    const schemaObject =
+      originalSchema && typeof originalSchema === 'object'
+        ? originalSchema
+        : undefined;
+
     if (context.output.override.mock?.useExamples || mockOptions?.useExamples) {
       const exampleValue = unwrapExampleValue(
         example ??
-          originalSchema?.example ??
+          schemaObject?.example ??
           getExampleEntries(examples)[0] ??
-          getExampleEntries(originalSchema?.examples)[0],
+          getExampleEntries(schemaObject?.examples)[0],
       );
 
       if (exampleValue !== undefined) {
@@ -275,7 +283,12 @@ export function getResponsesMockDefinition({
       continue;
     }
 
-    const resolvedSchema = resolveRef(originalSchema, context).schema;
+    const resolvedSchema = toObjectSchema(
+      resolveRef<OpenApiSchemaObject>(
+        originalSchema as OpenApiReferenceObject,
+        context,
+      ).schema,
+    );
 
     // `imports` belongs to the response type entry, which core shares across
     // operations that resolve the same schema. Mock resolution appends the

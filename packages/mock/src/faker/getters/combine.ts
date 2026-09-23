@@ -75,7 +75,8 @@ export function combineSchemasMock({
   const itemRequired = item.required as string[] | undefined;
 
   const isRefAndNotExisting =
-    !isInlineSchema(item) && !existingReferencedProperties.includes(item.name);
+    typeof item.$ref === 'string' &&
+    !existingReferencedProperties.includes(item.name);
 
   // When a oneOf schema declares a discriminator with a mapping AND the
   // discriminator property is also declared on the parent's `properties`,

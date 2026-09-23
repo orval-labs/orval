@@ -8,6 +8,7 @@ import {
   isFunction,
   isSchemaNullable,
   type MockOptions,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
   OutputMockType,
   pascal,
@@ -101,7 +102,7 @@ export function resolveMockOverride(
 export function resolveRefTarget(
   ref: string | undefined,
   context: ContextSpec,
-): Partial<OpenApiSchemaObject> | undefined {
+): Partial<OpenApiNonBooleanSchemaObject> | undefined {
   if (typeof ref !== 'string') return undefined;
   // getRefInfo throws on refs without a '#' fragment
   const [, fragment] = ref.split('#');
@@ -113,7 +114,7 @@ export function resolveRefTarget(
     context.spec,
     // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
     ...refPaths,
-  ) as Partial<OpenApiSchemaObject> | undefined;
+  ) as Partial<OpenApiNonBooleanSchemaObject> | undefined;
 }
 
 /**
@@ -287,7 +288,7 @@ export function resolveMockValue({
       // `$ref`. `core/src/resolvers/ref.ts` propagates it onto the resolved
       // schema so the type generator honours the hint; not carrying it here
       // left the mock unable to produce the `null` the type promises (#4141).
-      ...(Array.isArray(schemaReference.type)
+      ...('type' in schemaReference && Array.isArray(schemaReference.type)
         ? { type: schemaReference.type }
         : {}),
     } as MockSchemaObject;
@@ -625,7 +626,7 @@ function resolvesToObjectLike(
   context: ContextSpec,
   seen = new Set<string>(),
 ): boolean {
-  let resolved: Partial<OpenApiSchemaObject> | undefined;
+  let resolved: Partial<OpenApiNonBooleanSchemaObject> | undefined;
 
   if (!isInlineSchema(schema)) {
     // A non-string or already-visited `$ref` can't be resolved further here.
@@ -635,7 +636,7 @@ function resolvesToObjectLike(
     seen = new Set(seen).add(schema.$ref);
     resolved = resolveRefTarget(schema.$ref, context);
   } else {
-    resolved = schema as Partial<OpenApiSchemaObject>;
+    resolved = schema as Partial<OpenApiNonBooleanSchemaObject>;
   }
 
   if (!resolved) {

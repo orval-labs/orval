@@ -4,7 +4,12 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { OpenApiDocument } from '@orval/core';
+import type {
+  OpenApiDocument,
+  OpenApiMediaTypeObject,
+  OpenApiReferenceObject,
+  OpenApiResponseObject,
+} from '@orval/core';
 import { noopReporter, withReporter } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
@@ -16,6 +21,16 @@ import {
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
+
+function responseContent(
+  response: OpenApiResponseObject | OpenApiReferenceObject | undefined,
+) {
+  if (!response || !('content' in response)) {
+    return undefined;
+  }
+
+  return response.content;
+}
 
 const TEST_SPEC: OpenApiDocument = {
   openapi: '3.1.0',
@@ -145,7 +160,7 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
                     event: { type: 'string' },
                   },
                 },
-              },
+              } as unknown as OpenApiMediaTypeObject,
             },
           },
         },
@@ -1426,9 +1441,9 @@ describe('externalRefs', () => {
 
       expect(result.spec.components?.schemas).toHaveProperty('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content?.[
-          'application/json'
-        ]?.schema,
+        responseContent(
+          result.spec.paths?.['/user']?.get?.responses?.['200'],
+        )?.['application/json']?.schema,
       ).toEqual({ $ref: '#/components/schemas/User_billing' });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1473,7 +1488,7 @@ describe('externalRefs', () => {
       expect(compressInputs).toEqual(['billing.yaml']);
       expect(result.spec.components?.schemas).toHaveProperty('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content,
+        responseContent(result.spec.paths?.['/user']?.get?.responses?.['200']),
       ).toEqual({
         'application/json': {
           schema: { $ref: '#/components/schemas/User_billing' },
@@ -1521,9 +1536,9 @@ describe('externalRefs', () => {
       expect(generatedName).toMatch(/^User_[a-zA-Z0-9]+$/);
       expect(generatedName).not.toBe('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content?.[
-          'application/json'
-        ]?.schema,
+        responseContent(
+          result.spec.paths?.['/user']?.get?.responses?.['200'],
+        )?.['application/json']?.schema,
       ).toEqual({ $ref: `#/components/schemas/${generatedName}` });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -2761,7 +2776,9 @@ describe('dereferenceExternalRefs', () => {
 
     // Schemas from external docs should be merged into components
     expect(result.components?.schemas).toHaveProperty('Pet');
-    expect(result.paths?.['/pets']?.post?.responses?.['200']?.content).toEqual({
+    expect(
+      responseContent(result.paths?.['/pets']?.post?.responses?.['200']),
+    ).toEqual({
       'application/json': {
         schema: {
           // updated from '#/x-ext/cefada3/components/schemas/Pet'

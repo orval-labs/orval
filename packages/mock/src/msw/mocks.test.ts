@@ -1,5 +1,6 @@
 import {
   EnumGeneration,
+  type NormalizedOverrideOutput,
   type OpenApiDocument,
   type ResReqTypesValue,
 } from '@orval/core';

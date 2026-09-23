@@ -392,7 +392,7 @@ describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
 // it has to carry nullability itself. It did not, so a nullable part validated
 // as non-null while the type generator emitted `Blob | File | null` (#4141).
 describe('multipart file parts', () => {
-  const formDataSchema = {
+  const formDataSchema: OpenApiSchemaObject = {
     type: 'object',
     required: ['catImage'],
     properties: {

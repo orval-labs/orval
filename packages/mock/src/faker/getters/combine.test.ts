@@ -20,7 +20,11 @@ function createMockContext(): ContextSpec {
   return {
     target: 'test',
     workspace: 'test',
-    spec: { openapi: '3.1.0', info: { title: 'Test' }, paths: {} },
+    spec: {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+    },
     output: {
       target: '',
       namingConvention: NamingConvention.CAMEL_CASE,
@@ -212,6 +216,7 @@ describe('collectAllOfRequired', () => {
     const members: MockSchema[] = [
       { $ref: '#/components/schemas/B' },
       {
+        name: 'inline',
         type: 'object',
         required: ['aField'],
         properties: { aField: { type: 'string' } },

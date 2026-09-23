@@ -22,9 +22,11 @@ import {
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
+  toObjectSchema,
   safeNumericConstraint,
   stringify,
 } from '@orval/core';
@@ -75,11 +77,14 @@ type ResolvedEffectType =
     };
 
 const resolveEffectType = (schema: OpenApiSchemaObject): ResolvedEffectType => {
-  const schemaTypeValue = schema.type as unknown;
+  if (typeof schema !== 'object') {
+    return schema ? 'unknown' : 'never';
+  }
+
+  const schemaTypeValue = schema.type;
 
   if (Array.isArray(schemaTypeValue)) {
     const nonNullTypes = schemaTypeValue
-      .filter((t): t is string => isString(t))
       .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
       .map((t) => (t === 'integer' ? 'number' : t));
 
@@ -121,7 +126,11 @@ const minAndMaxTypes = new Set(['number', 'string', 'array']);
 
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
-): OpenApiSchemaObject => {
+): OpenApiNonBooleanSchemaObject => {
+  if (typeof schema !== 'object') {
+    return toObjectSchema(schema);
+  }
+
   if (schema.properties && isObject(schema.properties)) {
     const filteredProperties: Record<string, OpenApiSchemaObject> = {};
 
@@ -149,7 +158,7 @@ const removeReadOnlyProperties = (
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export const generateEffectValidationSchemaDefinition = (
-  schema: OpenApiSchemaObject | undefined,
+  schemaInput: OpenApiSchemaObject | undefined,
   context: ContextSpec,
   name: string,
   strict: boolean,
@@ -159,7 +168,19 @@ export const generateEffectValidationSchemaDefinition = (
     constNameRegistry?: Record<string, number>;
   },
 ): EffectValidationSchemaDefinition => {
-  if (!schema) return { functions: [], consts: [] };
+  if (schemaInput == null || typeof schemaInput !== 'object') {
+    return {
+      functions:
+        schemaInput === true
+          ? [['unknown', undefined]]
+          : schemaInput === false
+            ? [['never', undefined]]
+            : [],
+      consts: [],
+    };
+  }
+
+  const schema: OpenApiNonBooleanSchemaObject = schemaInput;
 
   const consts: string[] = [];
   const constNameRegistry = rules?.constNameRegistry ?? {};
@@ -307,6 +328,7 @@ export const generateEffectValidationSchemaDefinition = (
         Array.isArray(schema.default) &&
         type === 'array' &&
         schema.items &&
+        typeof schema.items === 'object' &&
         'enum' in schema.items &&
         schema.default.length > 0;
 
@@ -355,13 +377,9 @@ export const generateEffectValidationSchemaDefinition = (
   if (!skipSwitchStatement) {
     switch (type) {
       case 'tuple': {
-        if ('prefixItems' in schema) {
-          const schema31 = schema as OpenApiSchemaObject;
-          const prefixItems = Array.isArray(schema31.prefixItems)
-            ? (schema31.prefixItems as (
-                | OpenApiSchemaObject
-                | OpenApiReferenceObject
-              )[])
+        if (schema.prefixItems) {
+          const prefixItems = Array.isArray(schema.prefixItems)
+            ? schema.prefixItems
             : [];
 
           if (prefixItems.length > 0) {
@@ -1071,8 +1089,12 @@ function tryResolveRefSchema(
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiSchemaObject => {
-  const refName = '$ref' in schema ? schema.$ref : undefined;
+): OpenApiNonBooleanSchemaObject => {
+  if (typeof schema !== 'object') {
+    return toObjectSchema(schema);
+  }
+
+  const refName = typeof schema.$ref === 'string' ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
   }
@@ -1085,11 +1107,14 @@ export const dereference = (
   };
 
   const resolvedSchema: OpenApiSchemaObject | undefined =
-    '$ref' in schema
+    typeof schema.$ref === 'string'
       ? (() => {
           const referencedSchema = tryResolveRefSchema(schema.$ref, context);
-          if (!referencedSchema || !isObject(referencedSchema)) {
+          if (!referencedSchema) {
             return;
+          }
+          if (typeof referencedSchema !== 'object') {
+            return toObjectSchema(referencedSchema);
           }
           const siblingProperties = Object.fromEntries(
             Object.entries(schema as Record<string, unknown>).filter(
@@ -1103,8 +1128,10 @@ export const dereference = (
         })()
       : schema;
 
-  if (!resolvedSchema) {
-    return {};
+  if (!resolvedSchema || typeof resolvedSchema !== 'object') {
+    return typeof resolvedSchema === 'boolean'
+      ? toObjectSchema(resolvedSchema)
+      : {};
   }
 
   const resolvedContext = childContext;
@@ -1129,7 +1156,7 @@ export const dereference = (
       return acc;
     },
     {},
-  ) as OpenApiSchemaObject;
+  ) as OpenApiNonBooleanSchemaObject;
 };
 
 export const generateFormDataEffectSchema = (
@@ -1139,6 +1166,16 @@ export const generateFormDataEffectSchema = (
   strict: boolean,
   encoding?: Record<string, { contentType?: string }>,
 ): EffectValidationSchemaDefinition => {
+  if (typeof schema !== 'object') {
+    return generateEffectValidationSchemaDefinition(
+      schema,
+      context,
+      name,
+      strict,
+      { required: true },
+    );
+  }
+
   const propertyOverrides: Record<string, EffectValidationSchemaDefinition> =
     {};
 
@@ -1365,10 +1402,15 @@ export const parseParameters = ({
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
 
-    if (!parameter.schema) return acc;
-    if (!parameter.in || !parameter.name) return acc;
+    if (!('schema' in parameter) || !parameter.in || !parameter.name) {
+      return acc;
+    }
 
-    const resolvedSchema = dereference(parameter.schema, context);
+    const parameterSchema =
+      typeof parameter.schema === 'boolean'
+        ? toObjectSchema(parameter.schema)
+        : parameter.schema;
+    const resolvedSchema = dereference(parameterSchema, context);
     resolvedSchema.description = parameter.description;
 
     const mapStrict = {
@@ -1449,9 +1491,10 @@ const generateEffectRoute = (
     throw new Error(`No such path ${pathRoute} in ${context.projectName}`);
   }
 
+  const operation = verb === 'query' ? undefined : spec[verb];
   const parameters = [
     ...(spec.parameters ?? []),
-    ...(spec[verb]?.parameters ?? []),
+    ...(operation?.parameters ?? []),
   ];
   const effectOptions = override.effect;
 
@@ -1463,7 +1506,7 @@ const generateEffectRoute = (
     generate: effectOptions.generate,
   });
 
-  const requestBody = spec[verb]?.requestBody;
+  const requestBody = operation?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
@@ -1475,8 +1518,8 @@ const generateEffectRoute = (
 
   const responses = (
     effectOptions.generateEachHttpStatus
-      ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', getSingleResponse(spec[verb]?.responses)]]
+      ? Object.entries(operation?.responses ?? {})
+      : [['', getSingleResponse(operation?.responses)]]
   ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({

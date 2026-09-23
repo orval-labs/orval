@@ -61,7 +61,10 @@ describe('write-zod-specs regressions', () => {
     const schemasPath = path.join(root, 'schemas');
     const filePath = path.join(schemasPath, 'RangeSchema.ts');
     const builder = {
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       schemas: [
         {
@@ -101,7 +104,10 @@ describe('write-zod-specs regressions', () => {
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       schemas: [
         {
@@ -156,7 +162,10 @@ describe('write-zod-specs regressions', () => {
     output.override.zod.version = 4;
 
     const builder = {
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       schemas: [
         {
@@ -190,7 +199,10 @@ describe('write-zod-specs regressions', () => {
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       schemas: [
         {
@@ -241,7 +253,10 @@ describe('write-zod-specs regressions', () => {
           },
         },
       },
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       workspace: root,
     } satisfies MinimalVerbsContext;
@@ -337,7 +352,10 @@ describe('write-zod-specs regressions', () => {
     const schemasPath = path.join(root, 'schemas');
 
     const builder = {
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       schemas: [
         {
@@ -391,7 +409,10 @@ describe('write-zod-specs regressions', () => {
           },
         },
       },
-      spec: {},
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+      },
       target: '',
       workspace: root,
     } satisfies MinimalVerbsContext;
@@ -463,6 +484,8 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Pet: {
@@ -512,6 +535,8 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Page_Item_: {
@@ -559,6 +584,8 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     // explicit `zod.ZodType<...>` annotation to satisfy TS7022.
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Node: {
@@ -620,6 +647,8 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             // `Tree` recurses through its `children` map. The map keys are
@@ -712,6 +741,8 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Action: {
@@ -884,6 +915,8 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
         },
       },
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Pet: { type: 'object', properties: { id: { type: 'number' } } },
@@ -955,6 +988,8 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
         },
       },
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             PetStatus: {
@@ -1024,6 +1059,8 @@ describe('writeZodSchemasFromVerbs $ref parameter resolution', () => {
         },
       },
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           parameters: {
             pageQuery: {
@@ -1064,6 +1101,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
   it('emits one named schema per reachable component ref', () => {
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Pet: {
@@ -1109,6 +1148,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     // references it dangling.
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             __my_data: {
@@ -1138,6 +1179,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
   const metaBuilder = () =>
     ({
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Pet: {
@@ -1196,6 +1239,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     // namedRef + emitMeta interaction can't silently regress.
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Pet: {
@@ -1256,6 +1301,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     // import when `includeZodImport: true` (the value split modes pass).
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Widget: {
@@ -1288,6 +1335,8 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     // duplicate the import. This verifies the `!operationsUseZod` side of the gate.
     const builder = {
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Widget: {
@@ -1340,6 +1389,8 @@ describe('writeZodSchemasFromVerbs — composed array item schemas', () => {
         },
       },
       spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
         components: {
           schemas: {
             Base: { type: 'object', properties: { id: { type: 'number' } } },

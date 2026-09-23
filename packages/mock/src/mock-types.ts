@@ -3,12 +3,23 @@ import {
   type ContextSpec,
   type FinalizeMockImplementationOptions,
   type MockOptions,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   resolveRef,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
 } from '@orval/core';
+
+function asObjectSchema(
+  schema: OpenApiSchemaObject | undefined,
+): OpenApiNonBooleanSchemaObject | undefined {
+  if (!schema || typeof schema !== 'object') {
+    return undefined;
+  }
+
+  return schema;
+}
 
 export type { StrictMockSchemaKind };
 
@@ -39,11 +50,12 @@ export type MockWithNullableOverrides<
 }
 
 export function isSchemaNullableAtRoot(schema?: OpenApiSchemaObject): boolean {
-  if (!schema) {
+  const objectSchema = asObjectSchema(schema);
+  if (!objectSchema) {
     return false;
   }
 
-  const type = schema.type;
+  const type = objectSchema.type;
   return Array.isArray(type) && type.includes('null');
 }
 
@@ -51,22 +63,23 @@ export function classifyStrictMockSchemaType(
   schema?: OpenApiSchemaObject,
   context?: ContextSpec,
 ): StrictMockSchemaKind {
-  if (!schema) {
+  const objectSchema = asObjectSchema(schema);
+  if (!objectSchema) {
     return 'object';
   }
 
   if (
-    schema.format === 'binary' ||
-    (schema.contentMediaType === 'application/octet-stream' &&
-      !schema.contentEncoding)
+    objectSchema.format === 'binary' ||
+    (objectSchema.contentMediaType === 'application/octet-stream' &&
+      !objectSchema.contentEncoding)
   ) {
     return 'binary';
   }
 
-  if (typeof schema.$ref === 'string') {
+  if (typeof objectSchema.$ref === 'string') {
     if (context) {
       const { schema: resolved } = resolveRef(
-        schema as OpenApiReferenceObject,
+        objectSchema as OpenApiReferenceObject,
         context,
       );
       return classifyStrictMockSchemaType(
@@ -79,9 +92,9 @@ export function classifyStrictMockSchemaType(
   }
 
   if (
-    schema.type === 'object' ||
-    schema.properties ||
-    isComposedObjectSchema(schema)
+    objectSchema.type === 'object' ||
+    objectSchema.properties ||
+    isComposedObjectSchema(objectSchema)
   ) {
     return 'object';
   }
@@ -89,7 +102,9 @@ export function classifyStrictMockSchemaType(
   return 'alias';
 }
 
-function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
+function isComposedObjectSchema(
+  schema: OpenApiNonBooleanSchemaObject,
+): boolean {
   const branches = (schema.oneOf ?? schema.anyOf ?? schema.allOf) as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
@@ -98,7 +113,10 @@ function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
   }
 
   return branches.some((branch) => {
-    const item = branch as OpenApiSchemaObject;
+    const item = asObjectSchema(branch as OpenApiSchemaObject);
+    if (!item) {
+      return false;
+    }
     if (
       typeof item.$ref === 'string' ||
       item.type === 'object' ||
@@ -180,23 +198,29 @@ function resolveStrictMockSchemaForTypeName(
   context?: ContextSpec,
   importBareName?: string,
 ): OpenApiSchemaObject | undefined {
-  if (!originalSchema) {
+  const objectSchema = asObjectSchema(originalSchema);
+  if (!objectSchema) {
     return undefined;
   }
 
   if (!context) {
-    return originalSchema;
+    return objectSchema;
   }
 
-  const branches = (originalSchema.oneOf ??
-    originalSchema.anyOf ??
-    originalSchema.allOf) as
+  const branches = (objectSchema.oneOf ??
+    objectSchema.anyOf ??
+    objectSchema.allOf) as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
 
   if (branches?.length) {
     for (const branch of branches) {
-      if (typeof branch.$ref !== 'string') {
+      if (
+        typeof branch !== 'object' ||
+        branch === null ||
+        !('$ref' in branch) ||
+        typeof branch.$ref !== 'string'
+      ) {
         continue;
       }
 
@@ -215,9 +239,9 @@ function resolveStrictMockSchemaForTypeName(
     return undefined;
   }
 
-  if (typeof originalSchema.$ref === 'string') {
+  if (typeof objectSchema.$ref === 'string') {
     const resolved = resolveRef(
-      originalSchema as OpenApiReferenceObject,
+      objectSchema as OpenApiReferenceObject,
       context,
     );
     if (
@@ -233,7 +257,7 @@ function resolveStrictMockSchemaForTypeName(
     return undefined;
   }
 
-  return originalSchema;
+  return objectSchema;
 }
 
 export function getMockFactoryReturnType(
@@ -391,10 +415,14 @@ export function getStrictMockSchemaKindsFromResponses(
       continue;
     }
 
-    const schema = response.originalSchema;
-    if (value.endsWith('[]') && schema.type === 'array' && schema.items) {
-      const items = schema.items as OpenApiSchemaObject;
-      kinds[baseType] = classifyStrictMockSchemaType(items, context);
+    const schema = asObjectSchema(response.originalSchema);
+    if (
+      value.endsWith('[]') &&
+      schema?.type === 'array' &&
+      schema.items &&
+      typeof schema.items === 'object'
+    ) {
+      kinds[baseType] = classifyStrictMockSchemaType(schema.items, context);
       continue;
     }
 

@@ -395,7 +395,7 @@ const makeVerb = (operationId: string, tags: string[]): GeneratorVerbOptions =>
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {},
+      originalSchema: { content: {} },
       contentType: '',
       formData: '',
       formUrlEncoded: '',

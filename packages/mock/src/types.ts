@@ -1,7 +1,7 @@
 import type {
   GeneratorImport,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
-  OpenApiSchemaObject,
 } from '@orval/core';
 
 export interface MockDefinition {
@@ -19,7 +19,7 @@ export interface MockDefinition {
 
 type MockSchemaRef = OpenApiReferenceObject;
 
-export type MockSchemaObject = Omit<OpenApiSchemaObject, 'enum'> & {
+export type MockSchemaObject = OpenApiNonBooleanSchemaObject & {
   name: string;
   path?: string;
   parentName?: string;

@@ -38,6 +38,17 @@ import fs from 'fs-extra';
 
 import { logger } from './logger';
 
+function successResponseJsonSchema(
+  originalSchema: GeneratorVerbOptions['response']['originalSchema'],
+) {
+  const response = originalSchema?.['200'];
+  if (!response || !('content' in response)) {
+    return undefined;
+  }
+
+  return response.content?.['application/json'];
+}
+
 import {
   type DesiredImports,
   type DesiredValidator,
@@ -265,10 +276,7 @@ const getDesiredValidators = (
   }
   if (
     validator !== 'hono' &&
-    verbOption.response.originalSchema?.['200']?.content?.[
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'application/json'
-    ]
+    successResponseJsonSchema(verbOption.response.originalSchema)
   ) {
     validators.push({
       target: 'response',
@@ -359,9 +367,7 @@ const getZvalidatorImports = (
 
     if (
       !isHonoValidator &&
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      response.originalSchema?.['200']?.content?.['application/json'] !=
-        undefined
+      successResponseJsonSchema(response.originalSchema) != undefined
     ) {
       specifiers.push(`${pascalTypeName}Response`);
     }

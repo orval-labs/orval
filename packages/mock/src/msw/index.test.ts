@@ -2138,7 +2138,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
   // direction: the new allOf-ancestor chain must not *over*-cut a legitimate
   // polymorphic hierarchy — it must keep generating successfully.
   it('still generates a discriminated allOf inheritance hierarchy', () => {
-    const schemas = {
+    const schemas: Record<string, OpenApiSchemaObject> = {
       XObject: {
         type: 'object',
         required: ['kind'],
