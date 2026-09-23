@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { reExportSpecifierExists } from './barrel';
@@ -20,8 +20,8 @@ describe('reExportSpecifierExists', () => {
 
   async function write(relativePath: string): Promise<void> {
     const absolute = path.join(dir, relativePath);
-    await fs.ensureDir(path.dirname(absolute));
-    await fs.writeFile(absolute, '');
+    await fs.promises.mkdir(path.dirname(absolute), { recursive: true });
+    await fs.promises.writeFile(absolute, '');
   }
 
   async function probe(specifier: string): Promise<boolean> {

@@ -34,7 +34,7 @@ import {
   upath,
 } from '@orval/core';
 import { generateZod, getZodImportSource } from '@orval/zod';
-import fs from 'fs-extra';
+import fs from 'node:fs';
 
 import { logger } from './logger';
 
@@ -546,7 +546,7 @@ export const generateHandlerFile = async ({
     });
   }
 
-  const source = await fs.readFile(path, 'utf8');
+  const source = await fs.promises.readFile(path, 'utf8');
 
   if (strategy === 'skip') {
     return source;

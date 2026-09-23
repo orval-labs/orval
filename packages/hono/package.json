@@ -24,12 +24,10 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@orval/zod": "workspace:*",
-    "fs-extra": "^11.3.2"
+    "@orval/zod": "workspace:*"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",
-    "@types/fs-extra": "^11.0.4",
     "hono": "catalog:hono",
     "rimraf": "catalog:",
     "typescript": "catalog:",

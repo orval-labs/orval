@@ -1,6 +1,6 @@
 import nodePath from 'node:path';
 
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import { groupBy } from 'remeda';
 
 import { generateImports } from '../generators';
@@ -620,7 +620,7 @@ export async function writeSchemas({
       }
 
       const existingContent = fs.existsSync(schemaFilePath)
-        ? await fs.readFile(schemaFilePath, 'utf8')
+        ? await fs.promises.readFile(schemaFilePath, 'utf8')
         : '';
       const existingExports = [
         ...existingContent.matchAll(
@@ -682,7 +682,7 @@ export async function writeRoutedSchemas({
   }
 
   for (const [schemaPath, { schemas }] of grouped) {
-    await fs.ensureDir(schemaPath);
+    await fs.promises.mkdir(schemaPath, { recursive: true });
 
     for (const schema of schemas) {
       const imports = schema.imports.map((imp) => ({
@@ -735,8 +735,8 @@ export async function writeRoutedSchemas({
       for (const [route, directories] of routeDirectories) {
         const routePath = plan.routePathByKey[route];
         const routeIndexPath = nodePath.join(routePath, 'index.ts');
-        const existingContent = (await fs.pathExists(routeIndexPath))
-          ? await fs.readFile(routeIndexPath, 'utf8')
+        const existingContent = fs.existsSync(routeIndexPath)
+          ? await fs.promises.readFile(routeIndexPath, 'utf8')
           : '';
         const existingExports = [
           ...existingContent.matchAll(
