@@ -42,6 +42,7 @@ describe('collection helpers', () => {
   it('pick copies only the requested keys that exist', () => {
     const obj: Record<string, number> = { a: 1, b: 2 };
     expect(pick(obj, ['a', 'missing'])).toEqual({ a: 1 });
+    expect(pick(obj, ['toString'])).toEqual({});
     expect(pick(obj, new Set(['b']))).toEqual({ b: 2 });
   });
 

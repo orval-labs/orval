@@ -38,7 +38,9 @@ export const pick = <T extends object, K extends keyof T>(
   keys: Iterable<K>,
 ): Pick<T, K> =>
   Object.fromEntries(
-    [...keys].filter((key) => key in obj).map((key) => [key, obj[key]]),
+    [...keys]
+      .filter((key) => Object.hasOwn(obj, key))
+      .map((key) => [key, obj[key]]),
   ) as Pick<T, K>;
 
 /** `obj` without the entries `drop` returns true for. */
