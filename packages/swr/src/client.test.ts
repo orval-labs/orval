@@ -145,9 +145,10 @@ describe('swr axios urlEncodeParameters', () => {
           implementation: 'petId: string',
           default: false,
           required: true,
+          imports: [],
         },
       ],
-    } as unknown as GeneratorVerbOptions;
+    };
 
     const options = {
       ...generatorOptions,
@@ -159,7 +160,7 @@ describe('swr axios urlEncodeParameters', () => {
           urlEncodeParameters: true,
         },
       },
-    } as unknown as GeneratorOptions;
+    };
 
     const implementation = generateSwrRequestFunction(verbOptions, options);
 
@@ -178,14 +179,15 @@ describe('swr axios urlEncodeParameters', () => {
           implementation: 'petId: string',
           default: false,
           required: true,
+          imports: [],
         },
       ],
-    } as unknown as GeneratorVerbOptions;
+    };
 
     const options = {
       ...generatorOptions,
       route: '`/pets/${petId}`',
-    } as unknown as GeneratorOptions;
+    };
 
     const implementation = generateSwrRequestFunction(verbOptions, options);
 

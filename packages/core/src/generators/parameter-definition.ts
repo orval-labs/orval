@@ -1,5 +1,3 @@
-import { entries, hasProp, isEmptyish } from 'remeda';
-
 import { resolveObject, resolveRef } from '../resolvers';
 import type {
   ContextSpec,
@@ -16,12 +14,12 @@ export function generateParameterDefinition(
   suffix: string,
   prefix = '',
 ): GeneratorSchema[] {
-  if (isEmptyish(parameters)) {
+  if (Object.keys(parameters).length === 0) {
     return [];
   }
 
   const generatorSchemas: GeneratorSchema[] = [];
-  for (const [parameterName, parameter] of entries(parameters)) {
+  for (const [parameterName, parameter] of Object.entries(parameters)) {
     const modelName = sanitize(`${prefix}${pascal(parameterName)}${suffix}`, {
       underscore: '_',
       whitespace: '_',
@@ -41,7 +39,7 @@ export function generateParameterDefinition(
       continue;
     }
 
-    if (!hasProp(schema, 'schema') || imports.length > 0) {
+    if (!('schema' in schema) || !schema.schema || imports.length > 0) {
       generatorSchemas.push({
         name: modelName,
         imports:

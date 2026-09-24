@@ -13,7 +13,7 @@ import {
   OutputMockType,
   pascal,
 } from '@orval/core';
-import { prop } from 'remeda';
+import { getAtPath } from '@orval/core';
 
 import {
   formatMockFactoryDeclaration,
@@ -110,11 +110,9 @@ export function resolveRefTarget(
   const { refPaths } = getRefInfo(ref, context);
   if (!Array.isArray(refPaths)) return undefined;
 
-  return prop(
-    context.spec,
-    // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-    ...refPaths,
-  ) as Partial<OpenApiNonBooleanSchemaObject> | undefined;
+  return getAtPath(context.spec, refPaths) as
+    | Partial<OpenApiNonBooleanSchemaObject>
+    | undefined;
 }
 
 /**

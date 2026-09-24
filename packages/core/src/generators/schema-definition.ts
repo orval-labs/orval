@@ -1,5 +1,4 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
-import { isArray, isEmptyish } from 'remeda';
 
 import {
   getEnum,
@@ -48,7 +47,7 @@ export function generateSchemasDefinition(
   filters?: InputFiltersOptions,
   prefix = '',
 ): GeneratorSchema[] {
-  if (isEmptyish(schemas)) {
+  if (Object.keys(schemas).length === 0) {
     return [];
   }
 
@@ -202,7 +201,7 @@ function shouldCreateInterface(schema: OpenApiSchemaObject) {
     return false;
   }
 
-  const isNullable = isArray(schema.type) && schema.type.includes('null');
+  const isNullable = Array.isArray(schema.type) && schema.type.includes('null');
 
   return (
     (!schema.type || schema.type === 'object') &&

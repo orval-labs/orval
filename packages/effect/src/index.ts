@@ -30,7 +30,7 @@ import {
   safeNumericConstraint,
   stringify,
 } from '@orval/core';
-import { unique } from 'remeda';
+import { unique } from '@orval/core';
 
 import { logger } from './logger';
 

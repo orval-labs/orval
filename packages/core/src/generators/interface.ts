@@ -1,11 +1,11 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
-import { prop } from 'remeda';
 
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   GeneratorSchema,
+  OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
 import { jsDoc } from '../utils';
@@ -68,7 +68,9 @@ export function generateInterface({
     !shouldUseTypeAlias &&
     !isBooleanJsonSchema(schema)
   ) {
-    const properties = prop(schema, 'properties');
+    const properties = schema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
     if (
       properties &&
       Object.values(properties).length > 0 &&

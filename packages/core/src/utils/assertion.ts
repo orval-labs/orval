@@ -1,6 +1,5 @@
 import path from 'node:path';
 
-import { isFunction, isNullish, isNumber, isString } from 'remeda';
 import {
   isBooleanJsonSchema,
   isMultiTypeSchema,
@@ -294,8 +293,27 @@ export function isMswMock(
   return !isFunction(mock) && mock.type === OutputMockType.MSW;
 }
 
-/** Re-exported Remeda type guards and predicates used alongside local assertions. */
-export { isBoolean, isFunction, isNullish, isNumber, isString } from 'remeda';
+export function isString(x: unknown): x is string {
+  return typeof x === 'string';
+}
+
+/** A number other than `NaN`. */
+export function isNumber(x: unknown): x is number {
+  return typeof x === 'number' && !Number.isNaN(x);
+}
+
+export function isBoolean(x: unknown): x is boolean {
+  return typeof x === 'boolean';
+}
+
+// eslint-disable-next-line typescript/no-explicit-any -- callable after narrowing, as remeda typed it
+export function isFunction(x: unknown): x is (...args: any[]) => unknown {
+  return typeof x === 'function';
+}
+
+export function isNullish(x: unknown): x is null | undefined {
+  return x === null || x === undefined;
+}
 
 /**
  * Asserts that a spec-supplied numeric constraint really is a finite number.

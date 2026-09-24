@@ -1,5 +1,4 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
-import { isArray } from 'remeda';
 
 import { resolveExampleRefs } from '../resolvers';
 import type {
@@ -99,7 +98,7 @@ export function getScalar({
   const schemaFormat = item.format as string | undefined;
 
   const nullable =
-    isArray(schemaType) && schemaType.includes('null') ? ' | null' : '';
+    Array.isArray(schemaType) && schemaType.includes('null') ? ' | null' : '';
 
   const enumItems = schemaEnum?.filter(
     (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,
@@ -113,7 +112,7 @@ export function getScalar({
     item.type = 'array';
     itemType = 'array';
   }
-  if (isArray(schemaType) && schemaType.includes('null')) {
+  if (Array.isArray(schemaType) && schemaType.includes('null')) {
     const typesWithoutNull = schemaType.filter(
       (x): x is OpenApiPrimitiveSchemaType => x !== 'null',
     );
@@ -335,7 +334,7 @@ export function getScalar({
     }
 
     default: {
-      if (isArray(itemType)) {
+      if (Array.isArray(itemType)) {
         const anyOfVariants = itemType.map((type) =>
           Object.assign({}, item, { type }),
         ) as OpenApiSchemaObject[];

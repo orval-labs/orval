@@ -79,7 +79,6 @@
     "jiti": "^2.6.1",
     "js-yaml": "4.3.2",
     "json5": "2.2.3",
-    "remeda": "catalog:",
     "string-argv": "^0.3.2"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { groupBy, unique, uniqueWith } from 'remeda';
+import { groupBy, unique, uniqueWith } from '../utils';
 
 import {
   type GeneratorImport,
@@ -56,7 +56,7 @@ export function generateImports({
         )}|${String(imp.isConstant)}`,
   );
 
-  return Object.entries(grouped)
+  return [...grouped]
     .toSorted(([a], [b]) => compareNatural(a, b))
     .map(([, group]) => {
       const sample = group[0];

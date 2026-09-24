@@ -6,10 +6,8 @@ import type {
   OpenApiOperationObject,
   OpenApiPathItemObject,
 } from '../types';
-import { isString } from 'remeda';
-
 import { resolveRef } from '../resolvers/ref';
-import { isInlineSchema } from '../utils';
+import { isInlineSchema, isString } from '../utils';
 
 const COMPONENT_TYPES = [
   'schemas',

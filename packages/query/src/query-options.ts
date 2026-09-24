@@ -6,7 +6,7 @@ import {
   pascal,
   stringify,
 } from '@orval/core';
-import { omitBy } from 'remeda';
+import { omitBy } from '@orval/core';
 
 import type { FrameworkAdapter } from './framework-adapter';
 

@@ -3,7 +3,7 @@ import {
   getRefInfo,
   type OpenApiNonBooleanSchemaObject,
 } from '@orval/core';
-import { prop } from 'remeda';
+import { getAtPath } from '@orval/core';
 
 import type { MockSchema } from '../../types';
 
@@ -31,11 +31,7 @@ function derefAllOfMember(
     seen.add(ref);
     const { refPaths } = getRefInfo(ref, context);
     current = Array.isArray(refPaths)
-      ? prop(
-          context.spec,
-          // @ts-expect-error: refPaths are not guaranteed to be valid keys of the spec
-          ...refPaths,
-        )
+      ? getAtPath(context.spec, refPaths)
       : undefined;
   }
 

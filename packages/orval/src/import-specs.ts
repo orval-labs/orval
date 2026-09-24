@@ -19,7 +19,7 @@ import {
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
 import { readFile } from 'node:fs/promises';
 import nodePath from 'node:path';
-import { isNullish } from 'remeda';
+import { isNullish } from '@orval/core';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
@@ -158,6 +158,13 @@ async function resolveSpec(
   // and bundling and dereferencing are done, so the warning fires once per
   // source occurrence rather than once per dereference site.
   transformedData = normalizeNullableRefs(
+    transformedData,
+  ) as typeof transformedData;
+
+  // Keep binary schemas binary through the upgrade (#4199). Also runs
+  // *before* `upgrade()`: once the upgrader has reduced a whole-body one to
+  // `{}` there is nothing left to tell it apart from an authored `{}`.
+  transformedData = preserveBinarySchemas(
     transformedData,
   ) as typeof transformedData;
 
@@ -346,6 +353,149 @@ function isNonNullableObjectSchema(value: unknown): boolean {
     return false;
   }
   return 'properties' in obj || obj.type === 'object';
+}
+
+// ─── Binary schema preservation (#4199) ────────────────────────────────────
+
+/**
+ * Keywords whose value is data rather than document structure, so
+ * {@link preserveBinarySchemas} does not descend into them. `default` is
+ * deliberately absent: under `responses` it names the default response.
+ */
+const BINARY_WALK_DATA_KEYWORDS = new Set([
+  'example',
+  'examples',
+  'enum',
+  'const',
+]);
+
+/**
+ * Rewrite `{ type: 'string', format: 'binary' }` — and, at a Swagger 2.0 body,
+ * `{ type: 'file' }` — into the 3.1 form
+ * `{ type: 'string', contentMediaType: 'application/octet-stream' }` before
+ * `upgrade()` runs (#4199).
+ *
+ * Since @scalar/openapi-upgrader@0.2.17 the upgrader drops `type` from every
+ * binary schema, and a whole-body one — directly under a Media Type Object —
+ * loses its `format` with no replacement too, on the grounds that the media
+ * type already describes the body. That leaves `{}`, and orval then has nothing
+ * to go on: a media type outside `isBinaryContentType` (`text/csv`, xlsx, ...)
+ * resolves to `unknown`, and the client reads the response with `res.text()`
+ * and `JSON.stringify`s the request body. Elsewhere the dropped `type` takes a
+ * `nullable: true` with it, since the upgrader has already folded the null into
+ * the `type` union it then deletes, so a nullable binary loses its `| null`.
+ *
+ * The rewrite produces what earlier upgraders produced. The upgrader leaves a
+ * schema with no `format` alone apart from turning `nullable` into a type
+ * union, so the result reaches `importOpenApi` in the shape orval reads as a
+ * `Blob`.
+ *
+ * A 3.0 document is rewritten wherever the pair appears, as the upgrader
+ * itself would. A 2.0 document only at a response or body parameter schema,
+ * the positions the upgrader turns into Media Type Objects: a `formData`
+ * `type: file` parameter becomes a multipart property, which the upgrader
+ * still gives a `contentMediaType` and `inferStringForContentKeywords` gives
+ * back its `type` (#4157).
+ */
+export function preserveBinarySchemas(spec: unknown): unknown {
+  if (!isObject(spec)) {
+    return spec;
+  }
+
+  const document = spec as Record<string, unknown>;
+  const swagger2 = isSwagger2(document);
+
+  // A 3.1 document is skipped by the upgrader, and `normalizeToOpenApi31`
+  // converts its formats after the upgrade instead.
+  if (
+    !swagger2 &&
+    !(isString(document.openapi) && document.openapi.startsWith('3.0'))
+  ) {
+    return spec;
+  }
+
+  walkForBinarySchemas(document, [], swagger2);
+  return spec;
+}
+
+/**
+ * Rewrite every binary schema below `node` in place.
+ *
+ * @param inNameMap - Whether `node` is a map of names (`properties`,
+ *   `components/schemas`, `responses`, ...). Its keys are member names, not
+ *   keywords, so a property called `x-file` or a response called `examples` is
+ *   walked like any other member.
+ */
+function walkForBinarySchemas(
+  node: unknown,
+  path: string[],
+  swagger2: boolean,
+  inNameMap = false,
+): void {
+  if (Array.isArray(node)) {
+    for (const [i, item] of node.entries()) {
+      walkForBinarySchemas(item, [...path, String(i)], swagger2);
+    }
+    return;
+  }
+
+  if (!isObject(node)) {
+    return;
+  }
+
+  const obj = node as Record<string, unknown>;
+
+  if (swagger2 ? isSwagger2BinaryBody(obj, path) : isBinaryString(obj)) {
+    obj.type = 'string';
+    delete obj.format;
+    obj.contentMediaType = 'application/octet-stream';
+    return;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (
+      !inNameMap &&
+      (BINARY_WALK_DATA_KEYWORDS.has(key) || isExtension(key))
+    ) {
+      continue;
+    }
+    walkForBinarySchemas(
+      value,
+      [...path, key],
+      swagger2,
+      !inNameMap && isNameMapKeyword(key),
+    );
+  }
+}
+
+/** Whether the value under keyword `key` is a map keyed by member names. */
+function isNameMapKeyword(key: string): boolean {
+  return (
+    key === 'schemas' ||
+    SCHEMA_MAP_KEYWORDS.has(key) ||
+    OAS_MAP_KEYWORDS.has(key)
+  );
+}
+
+/** A 3.0 `{ type: 'string', format: 'binary' }` schema. */
+function isBinaryString(obj: Record<string, unknown>): boolean {
+  return obj.type === 'string' && obj.format === 'binary';
+}
+
+/**
+ * A binary `schema` on a Swagger 2.0 Response or body Parameter, whether it is
+ * inline under an operation or reusable under the top-level maps.
+ */
+function isSwagger2BinaryBody(
+  obj: Record<string, unknown>,
+  path: string[],
+): boolean {
+  const grandparent = path.at(-3);
+  return (
+    path.at(-1) === 'schema' &&
+    (grandparent === 'responses' || grandparent === 'parameters') &&
+    (obj.type === 'file' || isBinaryString(obj))
+  );
 }
 
 // ─── Residual OpenAPI 3.0 syntax normalization (#4115) ─────────────────────

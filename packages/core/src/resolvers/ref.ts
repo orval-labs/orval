@@ -1,4 +1,4 @@
-import { prop } from 'remeda';
+import { getAtPath } from '../utils';
 
 import { getRefInfo, isComponentRef, type RefInfo } from '../getters/ref';
 import type {
@@ -246,11 +246,9 @@ export function extractBoundAliasInfo(
   );
 
   const templateSchema = templateRefPaths
-    ? (prop(
-        context.spec,
-        // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-        ...templateRefPaths,
-      ) as Record<string, unknown> | undefined)
+    ? (getAtPath(context.spec, templateRefPaths) as
+        | Record<string, unknown>
+        | undefined)
     : undefined;
 
   const templateDefs = templateSchema?.$defs as
@@ -317,11 +315,10 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
     | OpenApiSchemaObject
     | OpenApiReferenceObject
     | undefined = Array.isArray(refPaths)
-    ? (prop(
-        context.spec,
-        // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-        ...refPaths,
-      ) as OpenApiSchemaObject | OpenApiReferenceObject | undefined)
+    ? (getAtPath(context.spec, refPaths) as
+        | OpenApiSchemaObject
+        | OpenApiReferenceObject
+        | undefined)
     : undefined;
 
   // Don't tail-recurse through an intermediate that is itself a bound alias:

@@ -48,7 +48,7 @@ import {
   EnumGeneration,
 } from '@orval/core';
 import jsesc from 'jsesc';
-import { unique } from 'remeda';
+import { unique } from '@orval/core';
 
 import { logger } from './logger';
 

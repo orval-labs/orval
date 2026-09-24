@@ -30,7 +30,6 @@
     "esutils": "2.0.3",
     "jiti": "^2.6.1",
     "jsesc": "^3.0.0",
-    "remeda": "catalog:",
     "tinyglobby": "^0.2.16"
   },
   "devDependencies": {
