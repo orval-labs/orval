@@ -1,6 +1,8 @@
+import path from 'node:path';
+
 import { Parser, type Program } from 'acorn';
-import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
+import { rolldown } from 'rolldown';
 
 import type { GeneratorMutatorParsingInfo } from '../types';
 
@@ -26,53 +28,64 @@ export async function getMutatorInfo(
 }
 
 /**
- * Bundles the mutator purely so its exported function can be parsed for arity —
- * `write: false`, and the only thing read back out is `numberOfParams` /
- * `returnNumberOfParams`. None of this output reaches the generated client.
- *
- * That is why no `target` is set: esbuild defaults to `esnext`, and downleveling
- * a throwaway bundle to the project's TypeScript target has no upside and three
- * failure modes. It emitted `"import.meta" is not available in the configured
- * target environment` for the `es6` fallback that applied whenever
- * `compilerOptions.target` was absent — which covers a TypeScript 6+ project
- * (where an omitted `target` means *latest*, not ES2015) and a solution-style
- * `tsconfig.json` that only carries `references`. It failed outright on a low
- * target, since esbuild cannot transform `const`, `async` or default arguments
- * to `es5`. And rewriting default or rest parameters into the function body
- * changes the very arity this parse exists to measure.
- *
- * `parseFile` reads the result with `ecmaVersion: 'latest'`, so a modern bundle
- * is the safe input here, not a risky one.
- *
- * @see https://github.com/orval-labs/orval/issues/4093
- * @see https://github.com/orval-labs/orval/issues/1185
+ * True for node-style bare specifiers (`@scope/pkg`, `pkg`, `pkg/sub`)
+ * that must reach rolldown untouched so node_modules resolution applies.
  */
+function isBareSpecifier(value: string): boolean {
+  return (
+    !!value &&
+    value.trim() === value &&
+    !value.startsWith('.') &&
+    !value.startsWith('/') &&
+    !value.startsWith('\\\\') &&
+    !path.isAbsolute(value) &&
+    !/^[A-Za-z]:[\\/]/.test(value)
+  );
+}
+
 async function bundleFile(
   root: string,
   fileName: string,
   alias?: Record<string, string>,
   external?: string[],
 ): Promise<string> {
-  const result = await build({
-    absWorkingDir: root,
-    entryPoints: [fileName],
-    write: false,
+  const build = await rolldown({
+    cwd: root,
+    input: isBareSpecifier(fileName)
+      ? fileName
+      : path.isAbsolute(fileName)
+        ? fileName
+        : path.resolve(root, fileName),
     platform: 'node',
-    bundle: true,
-    format: 'esm',
-    metafile: false,
-    minify: false,
-    minifyIdentifiers: false,
-    minifySyntax: false,
-    minifyWhitespace: false,
-    treeShaking: false,
-    keepNames: false,
-    alias,
-    external: external ?? ['*'],
-  } satisfies BuildOptions);
-  const { text } = result.outputFiles[0];
+    resolve: { alias },
+    // Externals arrive as esbuild-style globs (e.g. `*.scss`); rolldown
+    // matches exact IDs, so translate `*` → `.*` before testing. A bare
+    // package pattern with no wildcard also covers its subpaths, which is what
+    // esbuild did: `@scope/pkg` externalises `@scope/pkg/subpath` too.
+    external: external
+      ? external.map((pattern) => {
+          const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+          if (pattern.includes('*')) {
+            return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`);
+          }
 
-  return text;
+          return new RegExp(
+            `^${escaped}${isBareSpecifier(pattern) ? '(?:/.*)?' : ''}$`,
+          );
+        })
+      : () => true,
+  });
+
+  try {
+    const { output } = await build.generate({ format: 'esm' });
+    const first = output[0];
+
+    return first.type === 'chunk' ? first.code : '';
+  } finally {
+    // rolldown holds native resources until closed; repeated inspections in
+    // one process would otherwise leak them. Runs on the throw path too.
+    await build.close();
+  }
 }
 
 function parseFile(
@@ -80,7 +93,7 @@ function parseFile(
   name: string,
 ): GeneratorMutatorParsingInfo | undefined {
   try {
-    // `file` is esbuild's bundled output, not the user's source. esbuild may
+    // `file` is the bundler's output, not the user's source. The bundler may
     // emit any modern syntax (notably dynamic `import()`, which it preserves
     // even when targeting es6 in ESM mode), so we parse with the latest
     // ecmaVersion to avoid spurious SyntaxErrors that would mask the export
