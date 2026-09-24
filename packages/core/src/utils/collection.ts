@@ -3,12 +3,12 @@ export const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];
 
 /** Keeps the first item for every distinct `key(item)`. */
 export function uniqueBy<T>(
-  items: readonly T[],
-  key: (item: T) => unknown,
+  items: T[],
+  key: (item: T, index: number, items: T[]) => unknown,
 ): T[] {
   const seen = new Set<unknown>();
-  return items.filter((item) => {
-    const k = key(item);
+  return items.filter((item, index, all) => {
+    const k = key(item, index, all);
     if (seen.has(k)) return false;
     seen.add(k);
     return true;

@@ -302,7 +302,8 @@ export function isBoolean(x: unknown): x is boolean {
   return typeof x === 'boolean';
 }
 
-export function isFunction(x: unknown): x is (...args: never[]) => unknown {
+// eslint-disable-next-line typescript/no-explicit-any -- callable after narrowing, as remeda typed it
+export function isFunction(x: unknown): x is (...args: any[]) => unknown {
   return typeof x === 'function';
 }
 

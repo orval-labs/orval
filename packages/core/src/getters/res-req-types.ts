@@ -127,7 +127,11 @@ export function getResReqTypes(
   name: string,
   context: ContextSpec,
   defaultType = 'unknown',
-  uniqueKey: (item: ResReqTypesValue) => unknown = (item) => item.value,
+  uniqueKey: (
+    item: ResReqTypesValue,
+    index: number,
+    data: ResReqTypesValue[],
+  ) => unknown = (item) => item.value,
 ): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
