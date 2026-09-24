@@ -169,7 +169,7 @@ function getSchemaGroups(
 }
 
 function getCanonicalMap(
-  schemaGroups: Record<string, GeneratorSchema[]>,
+  schemaGroups: Map<string, GeneratorSchema[]>,
   schemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
@@ -177,7 +177,7 @@ function getCanonicalMap(
   const canonicalPathMap = new Map<string, CanonicalInfo>();
   const canonicalNameMap = new Map<string, CanonicalInfo>();
 
-  for (const [key, groupSchemas] of Object.entries(schemaGroups)) {
+  for (const [key, groupSchemas] of schemaGroups) {
     const canonicalPath = getPath(
       schemaPath,
       conventionName(groupSchemas[0].name, namingConvention),
@@ -491,7 +491,7 @@ export async function writeSchemas({
     isCombined,
   };
 
-  for (const groupSchemas of Object.values(schemaGroups)) {
+  for (const groupSchemas of schemaGroups.values()) {
     if (groupSchemas.length === 1) {
       await writeSchema({
         path: schemaPath,
@@ -557,7 +557,7 @@ export async function writeSchemas({
     // Throw an exception if duplicates are detected (using convention names)
     const ext = getImportExtension(fileExtension, tsconfig);
     const conventionNamesSet = new Set(
-      Object.values(schemaGroups).map((group) =>
+      [...schemaGroups.values()].map((group) =>
         conventionName(group[0].name, namingConvention),
       ),
     );

@@ -33,10 +33,12 @@ describe('collection helpers', () => {
   });
 
   it('groupBy buckets by the returned key', () => {
-    expect(groupBy([1, 2, 3, 4], (n) => (n % 2 ? 'odd' : 'even'))).toEqual({
-      odd: [1, 3],
-      even: [2, 4],
-    });
+    const groups = groupBy([1, 2, 3, 4], (n) => (n % 2 ? 'odd' : 'even'));
+    expect([...groups]).toEqual([
+      ['odd', [1, 3]],
+      ['even', [2, 4]],
+    ]);
+    expect(groups.get('missing')).toBeUndefined();
   });
 
   it('pick copies only the requested keys that exist', () => {

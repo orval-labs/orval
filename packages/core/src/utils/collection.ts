@@ -26,11 +26,14 @@ export const uniqueWith = <T>(
       index,
   );
 
-/** `Object.groupBy` typed for a key callback that always returns a string. */
+/**
+ * Buckets `items` by `key(item)` in first-seen order. Only keys that occur get
+ * a bucket, so `get` on any other key is `undefined`.
+ */
 export const groupBy = <T>(
   items: readonly T[],
   key: (item: T) => string,
-): Record<string, T[]> => Object.groupBy(items, key) as Record<string, T[]>;
+): Map<string, T[]> => Map.groupBy(items, key);
 
 /** The subset of `obj` at `keys`; keys absent from `obj` are left out. */
 export const pick = <T extends object, K extends keyof T>(
