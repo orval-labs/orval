@@ -1,4 +1,4 @@
-import { uniqueBy } from 'remeda';
+import { uniqueBy } from '../utils';
 
 import {
   type FakerMockOptions,

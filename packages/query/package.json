@@ -24,8 +24,7 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@orval/fetch": "workspace:*",
-    "remeda": "^2.33.6"
+    "@orval/fetch": "workspace:*"
   },
   "devDependencies": {
     "rimraf": "catalog:",

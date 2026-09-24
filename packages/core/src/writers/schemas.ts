@@ -1,7 +1,7 @@
 import nodePath from 'node:path';
 
 import fs from 'node:fs';
-import { groupBy } from 'remeda';
+import { groupBy } from '../utils';
 
 import { generateImports } from '../generators';
 import {

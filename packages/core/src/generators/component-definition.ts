@@ -1,5 +1,3 @@
-import { entries, isEmptyish } from 'remeda';
-
 import { getResReqTypes } from '../getters';
 import type {
   ContextSpec,
@@ -16,12 +14,12 @@ export function generateComponentDefinition(
   suffix: string,
   prefix = '',
 ): GeneratorSchema[] {
-  if (isEmptyish(responses)) {
+  if (Object.keys(responses).length === 0) {
     return [];
   }
 
   const generatorSchemas: GeneratorSchema[] = [];
-  for (const [name, response] of entries(responses)) {
+  for (const [name, response] of Object.entries(responses)) {
     const allResponseTypes = getResReqTypes(
       [[suffix, response]],
       name,

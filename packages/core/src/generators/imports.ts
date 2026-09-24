@@ -1,4 +1,4 @@
-import { groupBy, unique, uniqueWith } from 'remeda';
+import { groupBy, unique, uniqueWith } from '../utils';
 
 import {
   type GeneratorImport,

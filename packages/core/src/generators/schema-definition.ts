@@ -1,5 +1,4 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
-import { isArray, isEmptyish } from 'remeda';
 
 import {
   getEnum,
@@ -46,7 +45,7 @@ export function generateSchemasDefinition(
   filters?: InputFiltersOptions,
   prefix = '',
 ): GeneratorSchema[] {
-  if (isEmptyish(schemas)) {
+  if (Object.keys(schemas).length === 0) {
     return [];
   }
 
@@ -196,7 +195,7 @@ function sortSchemasByDependencies(
 }
 
 function shouldCreateInterface(schema: OpenApiSchemaObject) {
-  const isNullable = isArray(schema.type) && schema.type.includes('null');
+  const isNullable = Array.isArray(schema.type) && schema.type.includes('null');
 
   return (
     (!schema.type || schema.type === 'object') &&

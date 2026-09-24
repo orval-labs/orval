@@ -1,5 +1,5 @@
 import { keyword } from 'esutils';
-import { uniqueBy } from 'remeda';
+import { uniqueBy } from '../utils';
 
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
@@ -127,11 +127,7 @@ export function getResReqTypes(
   name: string,
   context: ContextSpec,
   defaultType = 'unknown',
-  uniqueKey: (
-    item: ResReqTypesValue,
-    index: number,
-    data: ResReqTypesValue[],
-  ) => unknown = (item) => item.value,
+  uniqueKey: (item: ResReqTypesValue) => unknown = (item) => item.value,
 ): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
