@@ -19,7 +19,7 @@ import {
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
 import { readFile } from 'node:fs/promises';
 import nodePath from 'node:path';
-import { isNullish } from 'remeda';
+import { isNullish } from '@orval/core';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';

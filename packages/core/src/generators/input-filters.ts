@@ -8,7 +8,7 @@ import type {
 } from '../types';
 import { isReference } from '../utils/assertion';
 import { resolveRef } from '../resolvers/ref';
-import { isString } from 'remeda';
+import { isString } from '../utils';
 
 const COMPONENT_TYPES = [
   'schemas',

@@ -1,5 +1,5 @@
 import { keyword } from 'esutils';
-import { uniqueBy } from 'remeda';
+import { uniqueBy } from '../utils';
 
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';

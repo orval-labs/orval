@@ -23,8 +23,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@orval/core": "workspace:*",
-    "remeda": "^2.33.6"
+    "@orval/core": "workspace:*"
   },
   "devDependencies": {
     "rimraf": "catalog:",

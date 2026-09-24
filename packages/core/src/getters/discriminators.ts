@@ -1,4 +1,4 @@
-import { isArray, isBoolean } from 'remeda';
+import { isBoolean } from '../utils';
 
 import type {
   ContextSpec,
@@ -25,7 +25,7 @@ export function resolveDiscriminators(
       | { oneOf?: OpenApiSchemasObject[string][] }
       | undefined;
 
-    if (!schema.oneOf && isArray(discriminator?.oneOf)) {
+    if (!schema.oneOf && Array.isArray(discriminator?.oneOf)) {
       schema.oneOf = discriminator.oneOf;
     }
 

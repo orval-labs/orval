@@ -18,7 +18,10 @@ describe('resolveInstalledVersion', () => {
   });
 
   it('resolves version for package with exports field blocking', () => {
-    const version = resolveInstalledVersion('remeda', projectDir);
+    const version = resolveInstalledVersion(
+      '@scalar/openapi-types',
+      projectDir,
+    );
     expect(version).toBeDefined();
     expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });
@@ -47,15 +50,18 @@ describe('resolveInstalledVersion', () => {
 describe('resolveInstalledVersions', () => {
   it('batch resolves from PackageJson-shaped object', () => {
     const packageJson: PackageJson = {
-      dependencies: { typescript: 'catalog:', remeda: '^2.0.0' },
+      dependencies: {
+        typescript: 'catalog:',
+        '@scalar/openapi-types': 'catalog:',
+      },
       devDependencies: { 'nonexistent-pkg-xyz': '*' },
     };
     const result = resolveInstalledVersions(packageJson, projectDir);
     expect(result).toHaveProperty('typescript');
-    expect(result).toHaveProperty('remeda');
+    expect(result).toHaveProperty('@scalar/openapi-types');
     expect(result).not.toHaveProperty('nonexistent-pkg-xyz');
     expect(result.typescript).toMatch(/^\d+\.\d+\.\d+/);
-    expect(result.remeda).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result['@scalar/openapi-types']).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it('returns empty object when no dependencies', () => {

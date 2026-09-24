@@ -1,4 +1,4 @@
-import { isNullish, prop, unique } from 'remeda';
+import { getAtPath, isNullish, unique } from '../utils';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import type { SchemaType } from '../types';
@@ -345,11 +345,7 @@ function derefComponentSchema(
     try {
       const { refPaths } = getRefInfo(current, context);
       target = Array.isArray(refPaths)
-        ? prop(
-            context.spec,
-            // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-            ...refPaths,
-          )
+        ? getAtPath(context.spec, refPaths)
         : undefined;
     } catch {
       // getRefInfo decodes URI components and may throw on malformed refs

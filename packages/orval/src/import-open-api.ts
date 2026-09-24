@@ -12,7 +12,7 @@ import {
   type OpenApiDocument,
   type WriteSpecBuilder,
 } from '@orval/core';
-import { pick } from 'remeda';
+import { pick } from '@orval/core';
 
 import { getApiBuilder } from './api';
 
