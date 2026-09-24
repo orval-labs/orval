@@ -83,7 +83,7 @@ export function collectAllOfRequiredWithDeclared(
     }
 
     if (Array.isArray(schema.required)) {
-      required.push(...(schema.required as string[]));
+      required.push(...schema.required);
     }
 
     if (Array.isArray(schema.allOf)) {

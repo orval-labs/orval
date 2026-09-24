@@ -310,7 +310,7 @@ const removeReadOnlyProperties = (
       if (isObject(value) && 'readOnly' in value && value.readOnly) {
         continue;
       }
-      filteredProperties[key] = value as OpenApiSchemaObject;
+      filteredProperties[key] = value;
     }
 
     return {
@@ -462,7 +462,7 @@ const getForbiddenKeys = (
   for (const branch of branches) {
     if (isObject(branch) && Array.isArray(branch.required)) {
       for (const key of branch.required) {
-        forbidden.add(key as string);
+        forbidden.add(key);
       }
     }
   }
@@ -520,9 +520,9 @@ const collectDiscriminatorValues = (
   if (!resolved) return null;
 
   if (resolved.allOf) {
-    const parts = (
-      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    ).map((part) => resolveUnionMemberSchema(part, context));
+    const parts = resolved.allOf.map((part) =>
+      resolveUnionMemberSchema(part, context),
+    );
     for (let index = parts.length - 1; index >= 0; index--) {
       const values = readValues(parts[index]);
       if (values) return values;
@@ -554,9 +554,9 @@ const isDiscriminatableMember = (
     // consts (potentially intersections themselves), so we can't guarantee a
     // ZodObject — leave it as a plain union.
     if (useReusableSchemas) return false;
-    const parts = (
-      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    ).map((part) => resolveUnionMemberSchema(part, context));
+    const parts = resolved.allOf.map((part) =>
+      resolveUnionMemberSchema(part, context),
+    );
     if (!parts.every((part) => isPlainObjectSchema(part))) return false;
     return parts.some((part) => hasLiteralDiscriminator(part, property));
   }
@@ -1432,7 +1432,7 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           'array',
           generateZodValidationSchemaDefinition(
-            schema.items as OpenApiSchemaObject | undefined,
+            schema.items,
             context,
             camel(`${name}-item`),
             strict,
@@ -3267,16 +3267,13 @@ const parseBodyAndResponse = ({
                 : (resolveRef(schema as OpenApiReferenceObject, context)
                     .schema as OpenApiSchemaObject),
             );
-            return (shallowArraySchema.items ??
-              resolvedJsonSchema.items) as OpenApiSchemaObject;
+            return shallowArraySchema.items ?? resolvedJsonSchema.items;
           })()
         : resolvedJsonSchema.items;
 
     return {
       input: generateZodValidationSchemaDefinition(
-        parseType === 'body'
-          ? removeReadOnlyProperties(rawItems as OpenApiSchemaObject)
-          : (rawItems as OpenApiSchemaObject),
+        parseType === 'body' ? removeReadOnlyProperties(rawItems) : rawItems,
         context,
         name,
         strict,

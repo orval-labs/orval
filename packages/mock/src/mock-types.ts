@@ -95,9 +95,7 @@ export function classifyStrictMockSchemaType(
 function isComposedObjectSchema(
   schema: OpenApiNonBooleanSchemaObject,
 ): boolean {
-  const branches = (schema.oneOf ?? schema.anyOf ?? schema.allOf) as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const branches = schema.oneOf ?? schema.anyOf ?? schema.allOf;
   if (!branches?.length) {
     return false;
   }
@@ -197,11 +195,8 @@ function resolveStrictMockSchemaForTypeName(
     return objectSchema;
   }
 
-  const branches = (objectSchema.oneOf ??
-    objectSchema.anyOf ??
-    objectSchema.allOf) as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const branches =
+    objectSchema.oneOf ?? objectSchema.anyOf ?? objectSchema.allOf;
 
   if (branches?.length) {
     for (const branch of branches) {

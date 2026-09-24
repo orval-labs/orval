@@ -352,12 +352,7 @@ const generateImplementation = (
         return false;
       }
 
-      return Object.values(
-        schemaObject.properties as Record<
-          string,
-          OpenApiSchemaObject | OpenApiReferenceObject
-        >,
-      ).some((prop) => {
+      return Object.values(schemaObject.properties).some((prop) => {
         const { schema: propSchema } = resolveSchemaRef(prop, context);
         return propSchema.format === 'date-time';
       });

@@ -279,7 +279,7 @@ export function resolveMockValue({
       path: schemaReference.path,
       isRef: true,
       required: [
-        ...((schemaRef?.required as string[] | undefined) ?? []),
+        ...(schemaRef?.required ?? []),
         ...getRequiredKeys(schemaReference, name),
       ],
       // A reference site spells its nullability as a `type` array beside the
@@ -351,7 +351,7 @@ export function resolveMockValue({
           } else {
             mutableSchema.properties = remainingProperties;
           }
-          const parentRequired = newSchema.required as string[] | undefined;
+          const parentRequired = newSchema.required;
           if (Array.isArray(parentRequired)) {
             const filteredRequired = parentRequired.filter(
               (key) => key !== parentDiscriminator.propertyName,

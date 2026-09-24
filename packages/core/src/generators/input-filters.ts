@@ -34,8 +34,7 @@ export function filteredVerbs(
       if (!operation || typeof operation !== 'object') {
         return false;
       }
-      // Bridge assertion: operation.tags is `any` due to AnyOtherAttribute
-      const operationTags = (operation.tags ?? []) as string[];
+      const operationTags = operation.tags ?? [];
 
       const isMatch = operationTags.some((tag) =>
         filterTags.some((filterTag) =>

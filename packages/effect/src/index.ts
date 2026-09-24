@@ -130,7 +130,7 @@ const removeReadOnlyProperties = (
       if (isObject(value) && 'readOnly' in value && value.readOnly) {
         continue;
       }
-      filteredProperties[key] = value as OpenApiSchemaObject;
+      filteredProperties[key] = value;
     }
 
     return {
@@ -398,7 +398,7 @@ export const generateEffectValidationSchemaDefinition = (
         functions.push([
           'array',
           generateEffectValidationSchemaDefinition(
-            schema.items as OpenApiSchemaObject | undefined,
+            schema.items,
             context,
             camel(`${name}-item`),
             strict,

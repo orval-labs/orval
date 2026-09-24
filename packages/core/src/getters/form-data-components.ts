@@ -49,8 +49,7 @@ export function getFormDataComponentContexts(
 ): Map<string, FormDataContext> {
   const encodings = new Map<string, PartEncodings>();
 
-  const requestBodies = (context.spec.components?.requestBodies ??
-    {}) as Record<string, OpenApiReferenceObject | OpenApiRequestBodyObject>;
+  const requestBodies = context.spec.components?.requestBodies ?? {};
 
   for (const requestBody of Object.values(requestBodies)) {
     indexRequestBody(requestBody, context, encodings);

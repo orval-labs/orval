@@ -58,9 +58,7 @@ export function getFormDataFieldFileType(
     return undefined;
   }
 
-  const contentMediaType = resolvedSchema.contentMediaType as
-    | string
-    | undefined;
+  const contentMediaType = resolvedSchema.contentMediaType;
   const effectiveContentType = partContentType ?? contentMediaType;
 
   if (effectiveContentType) {

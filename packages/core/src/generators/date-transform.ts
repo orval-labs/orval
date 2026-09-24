@@ -1702,7 +1702,7 @@ const resolveJsonBodySchema = (
 ): OpenApiSchemaObject | undefined => {
   const requestBody = !isInlineSchema(body.originalSchema)
     ? resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema
-    : (body.originalSchema as OpenApiRequestBodyObject);
+    : body.originalSchema;
 
   const content = requestBody.content;
   if (!content) return undefined;
@@ -1712,7 +1712,7 @@ const resolveJsonBodySchema = (
   );
   if (jsonEntries.length !== 1) return undefined;
 
-  return jsonEntries[0][1].schema as OpenApiSchemaObject | undefined;
+  return jsonEntries[0][1].schema;
 };
 
 export interface GeneratedDateSerializer {

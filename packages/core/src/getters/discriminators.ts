@@ -162,9 +162,7 @@ export function resolveDiscriminators(
       .map((item) => item.$ref);
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
 
-    const parentProperties = parentSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const parentProperties = parentSchema.properties;
     const parentRequired = parentSchema.required;
     const inheritableProps: Record<
       string,

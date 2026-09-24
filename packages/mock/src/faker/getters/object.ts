@@ -69,7 +69,7 @@ function reExpansionWouldCollapse(
   const targetProperties = target?.properties as
     | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
     | undefined;
-  const targetRequired = target?.required as string[] | undefined;
+  const targetRequired = target?.required;
   if (!targetProperties || !Array.isArray(targetRequired)) return false;
 
   return Object.entries(targetProperties).some(([key, property]) => {
@@ -143,10 +143,8 @@ export function getMockObject({
   const itemOneOf = schemaItem.oneOf as MockSchema[] | undefined;
   const itemAnyOf = schemaItem.anyOf as MockSchema[] | undefined;
   const itemType = schemaItem.type as string | string[] | undefined;
-  const itemProperties = schemaItem.properties as
-    | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
-    | undefined;
-  const itemRequired = schemaItem.required as string[] | undefined;
+  const itemProperties = schemaItem.properties;
+  const itemRequired = schemaItem.required;
   const itemAdditionalProperties = schemaItem.additionalProperties as
     | boolean
     | OpenApiReferenceObject
@@ -290,9 +288,7 @@ export function getMockObject({
           // Reading `nullable` directly made this dead in the CLI pipeline --
           // `resolveSpec` deletes the keyword -- so an optional nullable
           // property could never pick `null` as its omission value (#4141).
-          const hasNullable =
-            isInlineSchema(prop) &&
-            isSchemaNullable(prop as OpenApiSchemaObject);
+          const hasNullable = isInlineSchema(prop) && isSchemaNullable(prop);
 
           const refName = !isInlineSchema(prop)
             ? getReferenceName(prop.$ref, context)

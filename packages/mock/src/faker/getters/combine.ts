@@ -72,7 +72,7 @@ export function combineSchemasMock({
   const combineImports: GeneratorImport[] = [];
   const includedProperties: string[] = [...(combine?.includedProperties ?? [])];
   const separatorItems = (item[separator] ?? []) as MockSchema[];
-  const itemRequired = item.required as string[] | undefined;
+  const itemRequired = item.required;
 
   const isRefAndNotExisting =
     typeof item.$ref === 'string' &&
@@ -158,9 +158,7 @@ export function combineSchemasMock({
     itemEntriesForResolve,
   ) as MockSchemaObject;
   if (separator === 'allOf' && allRequiredFields.length > 0) {
-    const itemResolveRequired = itemSchemaForResolve.required as
-      | string[]
-      | undefined;
+    const itemResolveRequired = itemSchemaForResolve.required;
     itemSchemaForResolve.required = [
       ...new Set([...allRequiredFields, ...(itemResolveRequired ?? [])]),
     ];

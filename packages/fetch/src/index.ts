@@ -34,7 +34,6 @@ import {
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
   type NormalizedOverrideOutput,
-  type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
@@ -242,9 +241,7 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.spec.paths?.[pathRoute] as
-    | OpenApiPathItemObject
-    | undefined;
+  const spec = context.spec.paths?.[pathRoute];
   // `query` is an orval verb, not an OpenAPI path-item method.
   const operation = spec && verb !== 'query' ? spec[verb] : undefined;
   // Path-item-level parameters apply to every operation under the path, and an
@@ -386,12 +383,7 @@ export const generateRequestFunction = (
         return false;
       }
 
-      return Object.values(
-        schema.properties as Record<
-          string,
-          OpenApiSchemaObject | OpenApiReferenceObject
-        >,
-      ).some((prop) => {
+      return Object.values(schema.properties).some((prop) => {
         const { schema: propSchema } = resolveSchemaRef(prop, context);
         return propSchema.format === 'date-time';
       });

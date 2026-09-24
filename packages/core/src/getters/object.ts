@@ -93,10 +93,7 @@ function getPropertyNamesKeyType(
     return inlineKeyType;
   }
 
-  const propertyNames = item.propertyNames as
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | undefined;
+  const propertyNames = item.propertyNames;
   if (!propertyNames || isInlineSchema(propertyNames)) {
     return undefined;
   }
@@ -228,7 +225,7 @@ export function getObject({
   nullable,
   formDataContext,
 }: GetObjectOptions): ScalarValue {
-  if (!isInlineSchema(item as OpenApiSchemaObject | OpenApiReferenceObject)) {
+  if (!isInlineSchema(item)) {
     const { name } = getRefInfo((item as OpenApiReferenceObject).$ref, context);
     return {
       value: name + nullable,
@@ -252,15 +249,9 @@ export function getObject({
   const objectItem = toObjectSchema(item);
   const schemaItem = objectItem as OpenApiNonBooleanSchemaObject &
     Record<string, unknown>;
-  const itemAllOf = schemaItem.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
-  const itemOneOf = schemaItem.oneOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
-  const itemAnyOf = schemaItem.anyOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const itemAllOf = schemaItem.allOf;
+  const itemOneOf = schemaItem.oneOf;
+  const itemAnyOf = schemaItem.anyOf;
   const itemType = schemaItem.type as string | string[] | undefined;
 
   if (itemAllOf || itemOneOf || itemAnyOf) {
@@ -317,9 +308,7 @@ export function getObject({
         nonNullMember &&
         isInlineSchema(nonNullMember) &&
         !isBooleanJsonSchema(nonNullMember)
-          ? (nonNullMember.properties as
-              | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-              | undefined)
+          ? nonNullMember.properties
           : undefined;
 
       const isNullableObjectComposition =
@@ -338,7 +327,7 @@ export function getObject({
         // member, not on the parent), so synthesize ` | null`; the
         // property-iteration path appends it to the rendered object.
         return getObject({
-          item: nonNullMember as OpenApiSchemaObject,
+          item: nonNullMember,
           name,
           context,
           nullable: nullable || ' | null',
@@ -367,11 +356,7 @@ export function getObject({
     // those enums instead. See issue #3340. Real unions (e.g. `['string', 'number']`)
     // keep the combineSchemas path.
     const nonNullTypes = typeArray.filter((type) => type !== 'null');
-    // Bridge assertion: AnyOtherAttribute infects `properties` to `any`; cast to
-    // the documented property-map shape, matching the itemProperties cast below.
-    const typeArrayProperties = schemaItem.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const typeArrayProperties = schemaItem.properties;
     // Only divert when there are properties to walk — an empty nullable object
     // has no nested enums to extract, and routing it through the property path
     // would render it as `unknown` instead of `{ [key: string]: unknown }`.
@@ -401,11 +386,7 @@ export function getObject({
     // the ` | null` computed by getScalar for this type array.
   }
 
-  // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
-  // but AnyOtherAttribute index signature infects all property access to return `any`
-  const itemProperties = schemaItem.properties as
-    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-    | undefined;
+  const itemProperties = schemaItem.properties;
 
   if (itemProperties && Object.entries(itemProperties).length > 0) {
     const entries = Object.entries(itemProperties);
@@ -443,7 +424,7 @@ export function getObject({
         context,
       ),
     };
-    const itemRequired = schemaItem.required as string[] | undefined;
+    const itemRequired = schemaItem.required;
     for (const [index, [key, schema]] of entries.entries()) {
       const isRequired = (
         Array.isArray(itemRequired) ? itemRequired : []
@@ -571,14 +552,8 @@ export function getObject({
         // and both mean "extra keys are allowed with this value type", so they
         // render identically as an index signature / Record intersection.
         // See issue #2156.
-        // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-        // but AnyOtherAttribute infects property access
-        const additionalProps = (schemaItem.additionalProperties ??
-          schemaItem.unevaluatedProperties) as
-          | boolean
-          | OpenApiSchemaObject
-          | OpenApiReferenceObject
-          | undefined;
+        const additionalProps =
+          schemaItem.additionalProperties ?? schemaItem.unevaluatedProperties;
         if (additionalProps) {
           if (additionalProps === true) {
             const recordType = getPropertyNamesRecordType(
@@ -644,14 +619,9 @@ export function getObject({
     return acc;
   }
 
-  // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
   // Unevaluated fallback mirrors the first spot above (see issue #2156).
-  const outerAdditionalProps = (schemaItem.additionalProperties ??
-    schemaItem.unevaluatedProperties) as
-    | boolean
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | undefined;
+  const outerAdditionalProps =
+    schemaItem.additionalProperties ?? schemaItem.unevaluatedProperties;
   const readOnlyFlag = schemaItem.readOnly;
   if (outerAdditionalProps) {
     if (outerAdditionalProps === true) {

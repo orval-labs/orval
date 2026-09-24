@@ -73,8 +73,8 @@ function getEffectiveScalarFormat(
     return resolved.format;
   }
 
-  const oneOf = resolved.oneOf as OpenApiSchemaObject[] | undefined;
-  const anyOf = resolved.anyOf as OpenApiSchemaObject[] | undefined;
+  const oneOf = resolved.oneOf;
+  const anyOf = resolved.anyOf;
 
   for (const variant of [...(oneOf ?? []), ...(anyOf ?? [])]) {
     const resolvable = isSchemaObject(variant) ? variant : undefined;
@@ -118,9 +118,9 @@ function resolveExampleSchema(
     return undefined;
   }
 
-  const allOf = resolved.allOf as OpenApiSchemaObject[] | undefined;
-  const oneOf = resolved.oneOf as OpenApiSchemaObject[] | undefined;
-  const anyOf = resolved.anyOf as OpenApiSchemaObject[] | undefined;
+  const allOf = resolved.allOf;
+  const oneOf = resolved.oneOf;
+  const anyOf = resolved.anyOf;
   const compositors = [...(allOf ?? []), ...(oneOf ?? []), ...(anyOf ?? [])];
 
   const properties = mergePropertySchemas(

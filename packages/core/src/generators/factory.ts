@@ -93,21 +93,14 @@ function getProperties(
   schema: OpenApiSchemaObject,
 ): Record<string, OpenApiSchemaObject | OpenApiReferenceObject> {
   if (isBooleanJsonSchema(schema)) return {};
-  return (
-    (schema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined) ?? {}
-  );
+  return schema.properties ?? {};
 }
 
 function getItems(
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject | OpenApiReferenceObject | undefined {
   if (isBooleanJsonSchema(schema)) return undefined;
-  return schema.items as
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | undefined;
+  return schema.items;
 }
 
 function getAdditionalProperties(
@@ -116,11 +109,7 @@ function getAdditionalProperties(
   if (isBooleanJsonSchema(schema)) return undefined;
   // `unevaluatedProperties` (OAS 3.1) has the same shape and circularity
   // implications as `additionalProperties`. See issue #2156.
-  return (schema.additionalProperties ?? schema.unevaluatedProperties) as
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | boolean
-    | undefined;
+  return schema.additionalProperties ?? schema.unevaluatedProperties;
 }
 
 function getSchemas(schemas: unknown): SchemaArray | undefined {
@@ -414,8 +403,7 @@ function buildObjectPayload(
   const { includeOptionalProperty = false } =
     context.output.factoryMethods ?? {};
   const props = getProperties(schema);
-  const requiredProps: string[] =
-    (schema.required as string[] | undefined) ?? [];
+  const requiredProps: string[] = schema.required ?? [];
   const entries = Object.entries(props);
 
   if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {

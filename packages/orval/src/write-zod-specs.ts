@@ -321,10 +321,7 @@ function renderReusableSchemaEntry(
       ? getRefInfo(entry.ref, context).originalName
       : undefined;
     const schema = rawName
-      ? (context.spec.components?.schemas?.[rawName] as
-          | OpenApiSchemaObject
-          | OpenApiReferenceObject
-          | undefined)
+      ? context.spec.components?.schemas?.[rawName]
       : undefined;
     const resolved = schema
       ? resolveValue({ schema, name: entry.name, context })
@@ -1238,9 +1235,7 @@ function generateZodSchemasFromVerbs(
 
     const requestBody = operation.requestBody;
     const requestBodyContent =
-      requestBody && 'content' in requestBody
-        ? (requestBody as OpenApiRequestBodyObject).content
-        : undefined;
+      requestBody && 'content' in requestBody ? requestBody.content : undefined;
     // Pick the first available body media type. JSON wins; otherwise fall back
     // to form-data / urlencoded so we still generate a `*Body` schema for
     // operations whose only payload is multipart (e.g. file uploads). Without
@@ -1260,7 +1255,7 @@ function generateZodSchemasFromVerbs(
               formUrlEncodedBodyMedia,
             ] as const)
           : [undefined, undefined];
-    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
+    const bodySchema = bodyMedia?.schema;
 
     const bodySchemas =
       shouldGenerate.body && bodySchema
@@ -1310,11 +1305,8 @@ function generateZodSchemasFromVerbs(
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: pathParams
@@ -1346,11 +1338,8 @@ function generateZodSchemasFromVerbs(
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -1382,11 +1371,8 @@ function generateZodSchemasFromVerbs(
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams

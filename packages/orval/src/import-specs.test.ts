@@ -4941,7 +4941,7 @@ describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input) as Record<string, unknown>;
+    const result = dereferenceExternalRef(input);
 
     expect(result).not.toHaveProperty('components');
   });

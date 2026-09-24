@@ -41,8 +41,8 @@ export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
   // OAS 3.1 upgrades; treat the upgraded shape the same. A non-empty
   // contentEncoding signals an encoded string payload (e.g. base64), not raw
   // binary.
-  const contentMediaType = schema.contentMediaType as string | undefined;
-  const contentEncoding = schema.contentEncoding as string | undefined;
+  const contentMediaType = schema.contentMediaType;
+  const contentEncoding = schema.contentEncoding;
   return contentMediaType === 'application/octet-stream' && !contentEncoding;
 }
 
@@ -89,7 +89,7 @@ export function getScalar({
     | OpenApiPrimitiveSchemaType
     | OpenApiPrimitiveSchemaType[]
     | undefined;
-  const schemaReadOnly = item.readOnly as boolean | undefined;
+  const schemaReadOnly = item.readOnly;
   const schemaExample = item.example as unknown;
   const schemaExamples = item.examples as Parameters<
     typeof resolveExampleRefs

@@ -294,12 +294,10 @@ export async function generateVerbOptions({
     summary: rawSummary,
   } = operation;
 
-  // Bridge assertions: OpenApiOperationObject has AnyOtherAttribute index signature
-  // which makes all destructured properties `any`. Assert to their declared types.
-  const tags = (rawTags ?? []) as string[];
-  const deprecated = rawDeprecated as boolean | undefined;
-  const description = rawDescription as string | undefined;
-  const summary = rawSummary as string | undefined;
+  const tags = rawTags ?? [];
+  const deprecated = rawDeprecated;
+  const description = rawDescription;
+  const summary = rawSummary;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operationId];
   let overrideTag: NormalizedOperationOptions = {};

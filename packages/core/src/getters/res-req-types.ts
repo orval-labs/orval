@@ -27,39 +27,22 @@ import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import type { FormDataContext } from './object';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 
-// Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
-// OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
-// These helpers centralize the cast so it appears once rather than at each access site.
 const getSchemaType = (s: OpenApiSchemaObject) =>
   isBooleanJsonSchema(s)
     ? undefined
     : (s.type as string | string[] | undefined);
 const getSchemaCombined = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s)
-    ? undefined
-    : ((s.oneOf ?? s.anyOf ?? s.allOf) as
-        | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-        | undefined);
+  isBooleanJsonSchema(s) ? undefined : (s.oneOf ?? s.anyOf ?? s.allOf);
 const getSchemaOneOf = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s)
-    ? undefined
-    : (s.oneOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined);
+  isBooleanJsonSchema(s) ? undefined : s.oneOf;
 const getSchemaAnyOf = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s)
-    ? undefined
-    : (s.anyOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined);
+  isBooleanJsonSchema(s) ? undefined : s.anyOf;
 const getSchemaItems = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s)
-    ? undefined
-    : (s.items as OpenApiSchemaObject | OpenApiReferenceObject | undefined);
+  isBooleanJsonSchema(s) ? undefined : s.items;
 const getSchemaRequired = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s) ? undefined : (s.required as string[] | undefined);
+  isBooleanJsonSchema(s) ? undefined : s.required;
 const getSchemaProperties = (s: OpenApiSchemaObject) =>
-  isBooleanJsonSchema(s)
-    ? undefined
-    : (s.properties as
-        | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-        | undefined);
+  isBooleanJsonSchema(s) ? undefined : s.properties;
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
@@ -752,9 +735,7 @@ export function isEffectivelyObjectSchema(
     return true;
   }
 
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
   if (Array.isArray(schemaAllOf)) {
     return schemaAllOf.some((member) => {
       const { schema: resolved } = resolveSchemaRef(member, context);
@@ -786,9 +767,7 @@ function isEffectivelyArraySchema(
     return true;
   }
 
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
   return (
     Array.isArray(schemaAllOf) &&
     schemaAllOf.some((member) => {
@@ -819,9 +798,7 @@ export function collectPropertiesThroughAllOf(
   seen.add(schema);
 
   const ownProps = getSchemaProperties(schema) ?? {};
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
 
   if (!Array.isArray(schemaAllOf)) {
     return ownProps;
@@ -860,9 +837,7 @@ export function collectRequiredThroughAllOf(
   seen.add(schema);
 
   const ownRequired = getSchemaRequired(schema) ?? [];
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
 
   if (!Array.isArray(schemaAllOf)) {
     return ownRequired;
@@ -963,8 +938,7 @@ function resolveSchemaPropertiesToFormData({
 
     // Use shared file type detection (same logic as type generation)
     const fileType = getFormDataFieldFileType(property, partContentType);
-    const effectiveContentType =
-      partContentType ?? (property.contentMediaType as string | undefined);
+    const effectiveContentType = partContentType ?? property.contentMediaType;
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)

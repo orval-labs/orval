@@ -5,7 +5,6 @@ import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   GeneratorSchema,
-  OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
 import { jsDoc } from '../utils';
@@ -68,9 +67,7 @@ export function generateInterface({
     !shouldUseTypeAlias &&
     !isBooleanJsonSchema(schema)
   ) {
-    const properties = schema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const properties = schema.properties;
     if (
       properties &&
       Object.values(properties).length > 0 &&
