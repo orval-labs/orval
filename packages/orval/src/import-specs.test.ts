@@ -3706,6 +3706,43 @@ describe('preserveBinarySchemas', () => {
     expect(at(spec, ...GET_CSV, 'text/csv', 'x-meta')).toEqual(lookalike);
   });
 
+  it('should walk map members whose names look like skipped keywords', () => {
+    const spec = preserveBinarySchemas({
+      ...oas30({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: {
+              'x-file': { type: 'string', format: 'binary', nullable: true },
+              example: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+      }),
+      components: {
+        responses: { examples: { description: 'ok', content: csvContent() } },
+        requestBodies: { const: { content: csvContent() } },
+        schemas: { enum: { type: 'string', format: 'binary' } },
+      },
+    });
+
+    expect(
+      at(spec, ...GET_CSV, 'multipart/form-data', 'schema', 'properties'),
+    ).toEqual({
+      'x-file': { ...BINARY, nullable: true },
+      example: BINARY,
+    });
+    for (const location of [
+      ['components', 'responses', 'examples'],
+      ['components', 'requestBodies', 'const'],
+    ]) {
+      expect(at(spec, ...location, 'content', 'text/csv', 'schema')).toEqual(
+        BINARY,
+      );
+    }
+    expect(at(spec, 'components', 'schemas', 'enum')).toEqual(BINARY);
+  });
+
   it('should rewrite Swagger 2.0 response and body parameter schemas', () => {
     const spec = preserveBinarySchemas({
       swagger: '2.0',

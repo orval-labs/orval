@@ -418,10 +418,19 @@ export function preserveBinarySchemas(spec: unknown): unknown {
   return spec;
 }
 
+/**
+ * Rewrite every binary schema below `node` in place.
+ *
+ * @param inNameMap - Whether `node` is a map of names (`properties`,
+ *   `components/schemas`, `responses`, ...). Its keys are member names, not
+ *   keywords, so a property called `x-file` or a response called `examples` is
+ *   walked like any other member.
+ */
 function walkForBinarySchemas(
   node: unknown,
   path: string[],
   swagger2: boolean,
+  inNameMap = false,
 ): void {
   if (Array.isArray(node)) {
     for (const [i, item] of node.entries()) {
@@ -444,13 +453,31 @@ function walkForBinarySchemas(
   }
 
   for (const [key, value] of Object.entries(obj)) {
-    if (BINARY_WALK_DATA_KEYWORDS.has(key) || isExtension(key)) {
+    if (
+      !inNameMap &&
+      (BINARY_WALK_DATA_KEYWORDS.has(key) || isExtension(key))
+    ) {
       continue;
     }
-    walkForBinarySchemas(value, [...path, key], swagger2);
+    walkForBinarySchemas(
+      value,
+      [...path, key],
+      swagger2,
+      !inNameMap && isNameMapKeyword(key),
+    );
   }
 }
 
+/** Whether the value under keyword `key` is a map keyed by member names. */
+function isNameMapKeyword(key: string): boolean {
+  return (
+    key === 'schemas' ||
+    SCHEMA_MAP_KEYWORDS.has(key) ||
+    OAS_MAP_KEYWORDS.has(key)
+  );
+}
+
+/** A 3.0 `{ type: 'string', format: 'binary' }` schema. */
 function isBinaryString(obj: Record<string, unknown>): boolean {
   return obj.type === 'string' && obj.format === 'binary';
 }
