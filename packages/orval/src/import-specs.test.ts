@@ -13,6 +13,7 @@ import {
   importSpecs,
   normalizeNullableRefs,
   normalizeToOpenApi31,
+  preserveBinarySchemas,
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
@@ -3527,6 +3528,280 @@ describe('normalizeNullableRefs', () => {
     expect(normalizeNullableRefs(null)).toBe(null);
     expect(normalizeNullableRefs(42)).toBe(42);
     expect(normalizeNullableRefs([1, 2, 3])).toEqual([1, 2, 3]);
+  });
+});
+
+describe('preserveBinarySchemas', () => {
+  // Since @scalar/openapi-upgrader@0.2.17, upgrade() reduces a binary schema
+  // directly under a Media Type Object to `{}`, so a `text/csv` body came out
+  // `unknown` instead of `Blob` (#4199).
+  const BINARY = {
+    type: 'string',
+    contentMediaType: 'application/octet-stream',
+  };
+
+  const csvContent = () => ({
+    'text/csv': { schema: { type: 'string', format: 'binary' } },
+  });
+
+  const oas30 = (content: Record<string, unknown>) => ({
+    openapi: '3.0.1',
+    info: { title: 'repro', version: '1' },
+    paths: {
+      '/csv': {
+        get: {
+          operationId: 'getCsv',
+          responses: { '200': { description: 'ok', content } },
+        },
+      },
+    },
+  });
+
+  /** Follow `keys` down from `node`. */
+  const at = (node: unknown, ...keys: string[]): unknown =>
+    keys.reduce<unknown>(
+      (current, key) => (current as Record<string, unknown>)[key],
+      node,
+    );
+
+  const GET_CSV = ['paths', '/csv', 'get', 'responses', '200', 'content'];
+
+  it('should rewrite a whole-body binary response schema', () => {
+    const spec = preserveBinarySchemas(oas30(csvContent()));
+
+    expect(at(spec, ...GET_CSV, 'text/csv', 'schema')).toEqual(BINARY);
+  });
+
+  it('should keep a sibling nullable and annotations', () => {
+    const spec = preserveBinarySchemas(
+      oas30({
+        'text/csv': {
+          schema: {
+            type: 'string',
+            format: 'binary',
+            nullable: true,
+            description: 'CSV export',
+          },
+        },
+      }),
+    );
+
+    expect(at(spec, ...GET_CSV, 'text/csv', 'schema')).toEqual({
+      ...BINARY,
+      nullable: true,
+      description: 'CSV export',
+    });
+  });
+
+  it('should rewrite request bodies, default responses and components', () => {
+    const spec = preserveBinarySchemas({
+      openapi: '3.0.3',
+      info: { title: 'repro', version: '1' },
+      paths: {
+        '/csv': {
+          post: {
+            requestBody: { content: csvContent() },
+            responses: {
+              default: { description: 'ok', content: csvContent() },
+            },
+          },
+        },
+      },
+      components: {
+        requestBodies: { Csv: { content: csvContent() } },
+        responses: { Csv: { description: 'ok', content: csvContent() } },
+      },
+    });
+
+    const post = ['paths', '/csv', 'post'];
+    for (const location of [
+      [...post, 'requestBody'],
+      [...post, 'responses', 'default'],
+      ['components', 'requestBodies', 'Csv'],
+      ['components', 'responses', 'Csv'],
+    ]) {
+      expect(at(spec, ...location, 'content', 'text/csv', 'schema')).toEqual(
+        BINARY,
+      );
+    }
+  });
+
+  it('should rewrite binary properties and reusable schemas too', () => {
+    const spec = preserveBinarySchemas({
+      ...oas30({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: { file: { type: 'string', format: 'binary' } },
+          },
+        },
+      }),
+      components: {
+        schemas: {
+          NullableFile: { type: 'string', format: 'binary', nullable: true },
+        },
+      },
+    });
+
+    expect(
+      at(spec, ...GET_CSV, 'multipart/form-data', 'schema', 'properties'),
+    ).toEqual({ file: BINARY });
+    expect(at(spec, 'components', 'schemas', 'NullableFile')).toEqual({
+      ...BINARY,
+      nullable: true,
+    });
+  });
+
+  it('should leave other formats and typeless schemas alone', () => {
+    const spec = preserveBinarySchemas(
+      oas30({
+        'text/plain': { schema: { type: 'string', format: 'byte' } },
+        'text/csv': { schema: { format: 'binary' } },
+      }),
+    );
+
+    expect(at(spec, ...GET_CSV, 'text/plain', 'schema')).toEqual({
+      type: 'string',
+      format: 'byte',
+    });
+    expect(at(spec, ...GET_CSV, 'text/csv', 'schema')).toEqual({
+      format: 'binary',
+    });
+  });
+
+  it('should leave Swagger 2.0 formData file parameters alone', () => {
+    const file = { in: 'formData', name: 'file', type: 'file' };
+    const spec = preserveBinarySchemas({
+      swagger: '2.0',
+      info: { title: 'repro', version: '1' },
+      paths: {
+        '/upload': {
+          post: {
+            consumes: ['multipart/form-data'],
+            parameters: [{ ...file }],
+            responses: { '204': { description: 'ok' } },
+          },
+        },
+      },
+    });
+
+    expect(at(spec, 'paths', '/upload', 'post', 'parameters', '0')).toEqual(
+      file,
+    );
+  });
+
+  it('should not rewrite example data or extensions', () => {
+    const lookalike = { content: csvContent() };
+    const spec = preserveBinarySchemas(
+      oas30({
+        'text/csv': {
+          schema: { type: 'string', format: 'binary' },
+          example: structuredClone(lookalike),
+          'x-meta': structuredClone(lookalike),
+        },
+      }),
+    );
+
+    expect(at(spec, ...GET_CSV, 'text/csv', 'example')).toEqual(lookalike);
+    expect(at(spec, ...GET_CSV, 'text/csv', 'x-meta')).toEqual(lookalike);
+  });
+
+  it('should rewrite Swagger 2.0 response and body parameter schemas', () => {
+    const spec = preserveBinarySchemas({
+      swagger: '2.0',
+      info: { title: 'repro', version: '1' },
+      parameters: {
+        CsvBody: { in: 'body', name: 'body', schema: { type: 'file' } },
+      },
+      responses: { Csv: { description: 'ok', schema: { type: 'file' } } },
+      paths: {
+        '/csv': {
+          post: {
+            consumes: ['text/csv'],
+            produces: ['text/csv'],
+            parameters: [
+              {
+                in: 'body',
+                name: 'body',
+                schema: { type: 'string', format: 'binary' },
+              },
+            ],
+            responses: {
+              '200': { description: 'ok', schema: { type: 'file' } },
+            },
+          },
+        },
+      },
+    });
+
+    for (const location of [
+      ['paths', '/csv', 'post', 'parameters', '0'],
+      ['paths', '/csv', 'post', 'responses', '200'],
+      ['parameters', 'CsvBody'],
+      ['responses', 'Csv'],
+    ]) {
+      expect(at(spec, ...location, 'schema')).toEqual(BINARY);
+    }
+  });
+
+  it('should not touch a 3.1 document', () => {
+    const spec = preserveBinarySchemas({
+      ...oas30(csvContent()),
+      openapi: '3.1.0',
+    });
+
+    expect(at(spec, ...GET_CSV, 'text/csv', 'schema')).toEqual({
+      type: 'string',
+      format: 'binary',
+    });
+  });
+
+  it('should hand importOpenApi a Blob-shaped schema through the real pipeline', async () => {
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.0.1',
+            info: { title: 'repro', version: '1' },
+            paths: {
+              '/csv': {
+                get: {
+                  operationId: 'getCsv',
+                  responses: {
+                    '200': { description: 'ok', content: csvContent() },
+                  },
+                },
+              },
+              '/upload-csv': {
+                post: {
+                  operationId: 'uploadCsv',
+                  requestBody: { content: csvContent() },
+                  responses: { '204': { description: 'ok' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      'test',
+      {},
+    );
+    const { spec } = await importSpecs('test', normalizedOptions);
+
+    expect(at(spec, ...GET_CSV, 'text/csv', 'schema')).toEqual(BINARY);
+    expect(
+      at(
+        spec,
+        'paths',
+        '/upload-csv',
+        'post',
+        'requestBody',
+        'content',
+        'text/csv',
+        'schema',
+      ),
+    ).toEqual(BINARY);
   });
 });
 
