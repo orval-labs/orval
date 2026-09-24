@@ -30,7 +30,7 @@ export const uniqueWith = <T>(
 export const groupBy = <T>(
   items: readonly T[],
   key: (item: T) => string,
-): Record<string, T[]> => Object.groupBy(items, key) as Record<string, T[]>;
+): Partial<Record<string, T[]>> => Object.groupBy(items, key);
 
 /** The subset of `obj` at `keys`; keys absent from `obj` are left out. */
 export const pick = <T extends object, K extends keyof T>(
