@@ -73,9 +73,7 @@ export default defineConfig({
     },
     overrides: [
       {
-        // Samples and snapshots are generated orval output — relax the rules
-        // generated code legitimately trips so `lint:samples` and
-        // `lint:snapshots` stay useful, looser gates.
+        // Samples and generated orval output — relax the rules
         files: ['samples/**', 'tests/generated/**'],
         rules: {
           'eslint/no-unused-vars': 'off',
