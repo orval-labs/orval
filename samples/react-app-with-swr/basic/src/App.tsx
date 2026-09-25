@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useListPets } from './api/endpoints/petstoreFromFileSpecWithTransformer';
 import './App.css';
 import { useAuthDispatch } from './auth.context';

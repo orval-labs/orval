@@ -6,7 +6,14 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["bun"],
+    // The SDK nests its own Zod. Point both imports at this sample's copy so
+    // generated schemas stay assignable to the SDK's schema types.
+    "paths": {
+      "zod": ["./node_modules/zod"],
+      "zod/*": ["./node_modules/zod/*"]
+    }
   },
   "include": ["src/**/*.ts", "*.ts"],
   "exclude": [

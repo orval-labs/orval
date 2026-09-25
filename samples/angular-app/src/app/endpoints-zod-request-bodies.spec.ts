@@ -65,7 +65,8 @@ describe('endpoints-zod-request-bodies PetsService (runtimeValidation.requestBod
   it('errors the observable and sends nothing when the body is invalid', async () => {
     const error = await new Promise<unknown>((resolve, reject) => {
       service.createPets({ name: '', tag: 'dog' }, 1).subscribe({
-        next: (value) => reject(new Error(`expected error, got ${value}`)),
+        next: (value) =>
+          reject(new Error(`expected error, got ${JSON.stringify(value)}`)),
         error: resolve,
       });
     });
@@ -84,7 +85,8 @@ describe('endpoints-zod-request-bodies PetsService (runtimeValidation.requestBod
       service
         .updatePetById('1', { ...validPet, id: 0 }, 'application/json', 1)
         .subscribe({
-          next: (value) => reject(new Error(`expected error, got ${value}`)),
+          next: (value) =>
+            reject(new Error(`expected error, got ${JSON.stringify(value)}`)),
           error: resolve,
         });
     });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Pets } from './api/model';
 import { useApi } from './api/useApi';
 import './App.css';

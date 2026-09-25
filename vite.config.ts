@@ -2,16 +2,6 @@ import { defineConfig } from 'vite-plus';
 
 // All fmt + lint config lives here (Vite+ recommends the config blocks over
 // .oxfmtrc.json / .oxlintrc.json).
-//
-// Lint `typeAware`/`typeCheck` are OFF at the config level so the looser default
-// works for generated sample code. The `lint` script re-enables them ONLY for
-// packages via `vp lint --type-aware --type-check packages` (CLI flags override
-// the config). Samples (generated orval output) are linted via `lint:samples`
-// with the looser ruleset in the `samples/**` override below.
-//
-// NOTE: because `samples` is not in the lint `ignorePatterns`, a BARE `vp lint`
-// would lint everything WITHOUT type-aware — always use the path-scoped `lint` /
-// `lint:samples` scripts (CI and git hooks are wired accordingly).
 export default defineConfig({
   fmt: {
     singleQuote: true,
@@ -33,8 +23,8 @@ export default defineConfig({
   },
   lint: {
     options: {
-      typeAware: false,
-      typeCheck: false,
+      typeAware: true,
+      typeCheck: true,
     },
     plugins: ['oxc', 'typescript', 'unicorn', 'import'],
     categories: {
@@ -54,6 +44,8 @@ export default defineConfig({
       // Committed TypeDoc bundles: minified vendor output, not lintable source.
       'samples/react-app/docs-html/assets',
       'samples/react-app/docs-html-plugin/assets',
+      'samples/**/.svelte-kit/**',
+      'samples/**/*.test-d.ts',
     ],
     rules: {
       'eslint/no-array-constructor': 'error',
@@ -87,6 +79,10 @@ export default defineConfig({
           // Generators emit empty files on purpose (e.g. a client with no
           // operations for a tag).
           'unicorn/no-empty-file': 'off',
+          'typescript/no-useless-default-assignment': 'off',
+          'typescript/no-floating-promises': 'off',
+          'typescript/no-misused-spread': 'off',
+          'typescript/unbound-method': 'off',
           // Generated output must not trip a consumer's linter. Stays `warn`
           // until every generator emits `import type` for type-only imports
           // (tracked per generator from #3931); then it flips to `error`

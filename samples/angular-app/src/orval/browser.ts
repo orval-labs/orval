@@ -110,7 +110,7 @@ const customShowPetByIdHandler = http.get(
   '*/v:version/pets/:petId',
   ({ request, params }) => {
     const accept = request.headers.get('Accept') || 'application/json';
-    const petId = params['petId'];
+    const petId = String(params['petId']);
     const url = new URL(request.url);
     const demoValidation = url.searchParams.get('demoValidation');
     const mockPet =
