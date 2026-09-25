@@ -367,6 +367,20 @@ describe('getScalar integer enum + const (#3758)', () => {
   });
 });
 
+describe('getScalar null-only enum branch', () => {
+  it('returns the null literal instead of an empty enum value', () => {
+    const result = getScalar({
+      item: { enum: [null] } as OpenApiSchemaObject,
+      name: 'nullBranch',
+      context,
+    });
+
+    expect(result.value).toBe('null');
+    expect(result.type).toBe('null');
+    expect(result.isEnum).toBe(false);
+  });
+});
+
 describe('getScalar (const/enum type confusion)', () => {
   const payload = '0; console.log("pwned"); type Tail = 0';
 

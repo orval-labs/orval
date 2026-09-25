@@ -698,6 +698,19 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'openapi-3.0-nullable-ref-enum': {
+    input: {
+      target: '../specifications/openapi-3.0-nullable-ref-enum.yaml',
+    },
+    output: {
+      target:
+        '../generated/default/openapi-3.0-nullable-ref-enum/endpoints.ts',
+      schemas: '../generated/default/openapi-3.0-nullable-ref-enum/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'nullable-oneof-enums': {
     input: {
       target: '../specifications/nullable-oneof-enums.yaml',

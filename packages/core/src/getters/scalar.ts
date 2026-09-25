@@ -84,10 +84,16 @@ export function getScalar({
     (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,
   );
 
+  const isNullOnlyEnum =
+    schemaType === undefined &&
+    Array.isArray(schemaEnum) &&
+    schemaEnum.length > 0 &&
+    schemaEnum.every((enumItem) => enumItem === null);
+
   let itemType:
     | OpenApiSchemaObjectType
     | OpenApiSchemaObjectType[]
-    | undefined = schemaType;
+    | undefined = isNullOnlyEnum ? 'null' : schemaType;
   if (!itemType && item.items) {
     item.type = 'array';
     itemType = 'array';
