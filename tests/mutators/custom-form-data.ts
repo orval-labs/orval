@@ -1,10 +1,8 @@
-export const customFormData = <Body extends Record<string, any>>(
-  body: Body,
-): FormData => {
+export const customFormData = <Body extends object>(body: Body): FormData => {
   const formData = new FormData();
 
   for (const [key, value] of Object.entries(body)) {
-    formData.append(key, value);
+    formData.append(key, value instanceof Blob ? value : String(value));
   }
 
   return formData;

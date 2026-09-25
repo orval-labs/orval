@@ -4,7 +4,7 @@ import Axios from 'axios';
 
 export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
 
-export const useCustomInstance = <T>() => {
+export const useCustomInstance = <_T>() => {
   // code test for parser
   const queryClient = useQueryClient();
 

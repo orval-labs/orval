@@ -73,7 +73,7 @@ export default defineConfig({
       target: '../generated/mock/petstore-custom-mock-builder/endpoints.ts',
       schemas: '../generated/mock/petstore-custom-mock-builder/model',
       client: 'axios',
-      mock: (verbOptions, _) => {
+      mock: (verbOptions) => {
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
@@ -102,7 +102,7 @@ export default defineConfig({
       schemas: '../generated/mock/petstore-custom-mock-builder-split/model',
       mode: 'split',
       client: 'axios',
-      mock: (verbOptions, _) => {
+      mock: (verbOptions) => {
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
@@ -134,7 +134,7 @@ export default defineConfig({
         '../generated/mock/petstore-custom-mock-builder-tags-split/model',
       mode: 'tags-split',
       client: 'axios',
-      mock: (verbOptions, _) => {
+      mock: (verbOptions) => {
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
