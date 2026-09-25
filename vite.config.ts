@@ -24,7 +24,7 @@ export default defineConfig({
       '**/*.timestamp*',
       'samples',
       'docs',
-      'tests',
+      'tests/generated',
       '**/*.yaml',
       '**/*.yml',
       'packages/hono/src/zValidator.ts',
@@ -45,18 +45,11 @@ export default defineConfig({
     },
     ignorePatterns: [
       '**/dist',
-      'packages/**/__snapshots__',
-      'samples/**/__snapshots__',
+      '**/__snapshots__',
       '**/.bun',
       '**/*.timestamp*',
       '**/node_modules',
       'docs',
-      // Everything under `tests` is ignored except the committed generated
-      // output, which `lint:snapshots` lints. Gitignore semantics: a negation
-      // can only re-include a child of a directory whose *children* are
-      // ignored, hence `tests/*` rather than `tests`.
-      'tests/*',
-      '!tests/__snapshots__',
       'packages/hono/src/zValidator.ts',
       // Committed TypeDoc bundles: minified vendor output, not lintable source.
       'samples/react-app/docs-html/assets',
@@ -83,7 +76,7 @@ export default defineConfig({
         // Samples and snapshots are generated orval output — relax the rules
         // generated code legitimately trips so `lint:samples` and
         // `lint:snapshots` stay useful, looser gates.
-        files: ['samples/**', 'tests/__snapshots__/**'],
+        files: ['samples/**', 'tests/generated/**'],
         rules: {
           'eslint/no-unused-vars': 'off',
           'eslint/no-extra-boolean-cast': 'off',
