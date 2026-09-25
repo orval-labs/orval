@@ -40,7 +40,7 @@ export const getGetTagsResponseMock = (
   retired_label: null,
   retired_on: null,
   visibility: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['public', 'private'] as const),
+    faker.helpers.arrayElement(['public', 'private'] as Tag['visibility'][]),
     null,
   ]),
   ...overrideResponse,

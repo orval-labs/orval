@@ -2276,9 +2276,26 @@ test('default OpenAPI 3.0 nullable $ref enum branches preserve null and generate
     'utf8',
   );
 
+  const nativeEnumMockContent = await readFile(
+    generated(
+      'default',
+      'openapi-3.0-nullable-ref-enum-native-enums',
+      'endpoints.msw.ts',
+    ),
+    'utf8',
+  );
+
   expect(mockContent).not.toMatch(/faker\.helpers\.arrayElement\(\[\s*\]/);
+  expect(nativeEnumMockContent).not.toMatch(
+    /faker\.helpers\.arrayElement\(\[\s*\]/,
+  );
   expect(mockContent).toContain('group: faker.helpers.arrayElement([');
   expect(mockContent).toMatch(/group: faker\.helpers\.arrayElement\(\[[\s\S]*?null/);
+  expect(mockContent).toMatch(/retired_label: null,/);
+  expect(mockContent).toMatch(/retired_on: null,/);
+  expect(mockContent).not.toMatch(
+    /parent_group: faker\.helpers\.arrayElement\(\[[\s\S]*?null,\s*null/,
+  );
   expect(() => getGetTagsResponseMock()).not.toThrow();
 });
 

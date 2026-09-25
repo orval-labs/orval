@@ -23,6 +23,23 @@ components:
           anyOf:
             - $ref: '#/components/schemas/TagGroup'
             - enum: [null]
+        parent_group:
+          nullable: true
+          anyOf:
+            - $ref: '#/components/schemas/TagGroup'
+            - enum: [null]
+        retired_label:
+          type: string
+          nullable: true
+          enum: [null]
+        retired_on:
+          enum: [null]
+          format: date
+        visibility:
+          anyOf:
+            - type: string
+              enum: [public, private]
+            - enum: [null]
     TagGroup:
       type: object
       properties:

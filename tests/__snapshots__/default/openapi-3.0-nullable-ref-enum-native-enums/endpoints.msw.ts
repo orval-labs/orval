@@ -6,6 +6,9 @@
  */
 import { faker } from '@faker-js/faker';
 
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
+
 import type { Tag } from './model';
 
 export const getGetTagsResponseMock = (
@@ -40,8 +43,33 @@ export const getGetTagsResponseMock = (
   retired_label: null,
   retired_on: null,
   visibility: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['public', 'private'] as const),
+    faker.helpers.arrayElement(['public', 'private'] as Tag['visibility'][]),
     null,
   ]),
   ...overrideResponse,
 });
+
+export const getGetTagsMockHandler = (
+  overrideResponse?:
+    | Tag
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Tag> | Tag),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    '*/tags',
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetTagsResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+export const getNullableReferenceEnumMock = () => [getGetTagsMockHandler()];

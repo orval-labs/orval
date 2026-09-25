@@ -27,6 +27,25 @@ export const getGetTagsResponseMock = (
     },
     null,
   ]),
+  parent_group: faker.helpers.arrayElement([
+    {
+      id: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      label: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+    },
+    null,
+  ]),
+  retired_label: null,
+  retired_on: null,
+  visibility: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(['public', 'private'] as const),
+    null,
+  ]),
   ...overrideResponse,
 });
 

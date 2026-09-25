@@ -27,7 +27,6 @@ export const getGetItemsResponseMock = (): Item1[] =>
     hello: faker.helpers.arrayElement([
       faker.helpers.arrayElement(Object.values(HelloEnum)),
       faker.helpers.arrayElement(Object.values(BlankEnum)),
-      faker.helpers.arrayElement([] as const),
       null,
     ]),
   }));
@@ -40,7 +39,6 @@ export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
     hello: faker.helpers.arrayElement([
       faker.helpers.arrayElement(Object.values(HelloEnum)),
       faker.helpers.arrayElement(Object.values(BlankEnum)),
-      faker.helpers.arrayElement([] as const),
       null,
     ]),
     world: faker.helpers.arrayElement([
@@ -65,7 +63,6 @@ export const getGetNestedItemsResponseMock = (): NestedItem[] =>
         hello: faker.helpers.arrayElement([
           faker.helpers.arrayElement(Object.values(HelloEnum)),
           faker.helpers.arrayElement(Object.values(BlankEnum)),
-          faker.helpers.arrayElement([] as const),
           null,
         ]),
         world: faker.helpers.arrayElement([

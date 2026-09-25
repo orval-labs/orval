@@ -9,8 +9,4 @@
 /**
  * @nullable
  */
-export type NullOnlyStringEnum =
-  | (typeof NullOnlyStringEnum)[keyof typeof NullOnlyStringEnum]
-  | null;
-
-export const NullOnlyStringEnum = {} as const;
+export type NullOnlyStringEnum = null;
