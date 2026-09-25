@@ -52,9 +52,10 @@ vi.mock('./options', () => ({
   normalizePath: (p: string) => p,
 }));
 
+import fs from 'node:fs';
+
 import { dynamicImport } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
-import fs from 'node:fs';
 import yaml from 'js-yaml';
 
 import { loadPackageJson as loadPackageJsonImpl } from './package-json';

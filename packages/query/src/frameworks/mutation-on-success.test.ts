@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vite-plus/test';
-
 import type { PackageJson } from '@orval/core';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from '.';
 

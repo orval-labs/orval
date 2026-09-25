@@ -1,5 +1,3 @@
-import { isInlineSchema } from '../utils';
-
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -7,6 +5,7 @@ import type {
   OpenApiParameterObject,
   OpenApiReferenceObject,
 } from '../types';
+import { isInlineSchema } from '../utils';
 import { getRefInfo, isComponentRef } from './ref';
 
 interface GetParametersOptions {

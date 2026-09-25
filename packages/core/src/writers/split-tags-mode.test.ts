@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -26,8 +26,8 @@ import {
   OutputMockType,
   OutputMode,
 } from '../types';
-import { writeSplitTagsMode } from './split-tags-mode';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
+import { writeSplitTagsMode } from './split-tags-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
 //

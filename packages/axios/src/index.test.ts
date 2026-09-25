@@ -10,7 +10,6 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-
 import {
   generateAxios,
   generateAxiosFactory,

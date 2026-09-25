@@ -25,6 +25,7 @@ import {
   OutputMockType,
   pascal,
 } from '@orval/core';
+
 import { logger } from './logger';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;

@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type {
   ContextSpec,
   OpenApiNonBooleanSchemaObject,
@@ -5,8 +7,6 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
-
 import { getPropertySafe, isInlineSchema, pascal } from '../utils';
 import { getRefInfo } from './ref';
 

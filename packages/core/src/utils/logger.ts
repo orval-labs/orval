@@ -1,7 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { styleText } from 'node:util';
 
-import { isString } from './assertion';
 import {
   ErrorWithTag,
   type LogLevel,
@@ -9,6 +8,7 @@ import {
   type OrvalReporter,
   type OrvalReportEvent,
 } from '../types';
+import { isString } from './assertion';
 
 type ReportStore = {
   reporter: OrvalReporter;

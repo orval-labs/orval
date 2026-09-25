@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { getSolidQueryDependencies } from '../dependencies';
 import { createFrameworkAdapter } from '.';
+import { getSolidQueryDependencies } from '../dependencies';
 
 describe('solid-query getQueryReturnStatement (issue #3347)', () => {
   it('attaches queryKey without mutating the Solid store', () => {

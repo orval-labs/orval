@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -39,8 +40,6 @@ import {
   writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
-import fs from 'node:fs';
-
 import { execa, ExecaError } from 'execa';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
 

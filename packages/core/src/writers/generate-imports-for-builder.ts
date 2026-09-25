@@ -1,5 +1,3 @@
-import { uniqueBy } from '../utils';
-
 import {
   type FakerMockOptions,
   type GeneratorDependency,
@@ -8,6 +6,7 @@ import {
   type NormalizedMocksConfig,
   type NormalizedOutputOptions,
 } from '../types';
+import { uniqueBy } from '../utils';
 import {
   getImportExtension,
   getSchemasImportPath,

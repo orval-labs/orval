@@ -8,8 +8,6 @@ import {
   isUntypedSchema,
 } from '@scalar/openapi-types/helpers';
 
-import { isInlineSchema } from './object-schema';
-
 import {
   type ClientMockBuilder,
   type GlobalMockOptions,
@@ -19,6 +17,7 @@ import {
   SchemaType,
   Verbs,
 } from '../types';
+import { isInlineSchema } from './object-schema';
 
 /**
  * Represents an OpenAPI 3.1 schema object that contains a `$dynamicRef`

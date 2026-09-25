@@ -14,13 +14,13 @@ import {
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
+import { mergeReturnedMockImports } from '../imports';
 import {
   resolveMockValue,
   getNullable,
   isNullableSchema,
   resolveRefTarget,
 } from '../resolvers/value';
-import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';

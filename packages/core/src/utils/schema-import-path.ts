@@ -5,12 +5,12 @@ import type {
   GeneratorImport,
   NormalizedOutputOptions,
 } from '../types';
+import type { SchemaOutputPlan } from '../writers/schema-output-plan';
 import { conventionName } from './case';
 import { stripFileExtension } from './file';
 import * as upath from './path';
 import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
-import type { SchemaOutputPlan } from '../writers/schema-output-plan';
 
 /** Known source file extensions used to detect named single-schema files. */
 const SOURCE_FILE_EXTENSIONS = new Set([

@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import fs from 'node:fs';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {

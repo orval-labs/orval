@@ -11,7 +11,6 @@ import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
-
 import {
   getHttpClientReturnTypes,
   resetHttpClientReturnTypes,

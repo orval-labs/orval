@@ -1,7 +1,5 @@
-import nodePath from 'node:path';
-
 import fs from 'node:fs';
-import { groupBy } from '../utils';
+import nodePath from 'node:path';
 
 import { generateImports } from '../generators';
 import {
@@ -10,6 +8,7 @@ import {
   NamingConvention,
   type Tsconfig,
 } from '../types';
+import { groupBy } from '../utils';
 import {
   compareNatural,
   conventionName,
