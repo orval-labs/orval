@@ -237,6 +237,7 @@ function getQueryParamsTypes(
       es5IdentifierName: true,
     });
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const schema = schemaParam ?? content?.['application/json']?.schema;
     if (!schema) {
       throw new Error(

@@ -1140,6 +1140,7 @@ const buildHttpResourceFunction = (
         const returnType = getBranchReturnType(type);
         const overloadArgs = [
           requiredPart,
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           `accept: '${jsStringLiteralEscape(type.contentType ?? '')}'`,
           optionalPart,
           `options?: ${buildBranchOptionsType(returnType, getBranchRawType(type), omitParse)}`,

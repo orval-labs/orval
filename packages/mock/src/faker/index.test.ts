@@ -431,6 +431,7 @@ describe('generateFakerForSchemas recursion guards', () => {
           name: root,
           model: root,
           imports: [],
+          // oxlint-disable-next-line typescript/no-non-null-assertion
           schema: schemas[root]!,
         },
       ],
@@ -477,6 +478,7 @@ describe('generateFakerForSchemas recursive reference terminators', () => {
         name: root,
         model: root,
         imports: [],
+        // oxlint-disable-next-line typescript/no-non-null-assertion
         schema: schemas[root]!,
       })),
       context,

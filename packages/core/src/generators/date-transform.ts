@@ -1378,6 +1378,7 @@ const buildUndiscriminatedUnionStatements = ({
     );
 
     const [first, ...rest] = declaringResults;
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!first || first.statements.length === 0) {
       return { statements: [], cyclicRefs };
     }
@@ -1417,6 +1418,7 @@ const buildUnionStatements = (params: {
   mode: DateTransformMode;
 }): BuildResult =>
   params.schema.discriminator?.propertyName &&
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   params.schema.discriminator?.mapping
     ? buildMappedUnionStatements(params)
     : buildUndiscriminatedUnionStatements(params);
@@ -1705,6 +1707,7 @@ const resolveJsonBodySchema = (
     : body.originalSchema;
 
   const content = requestBody.content;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!content) return undefined;
 
   const jsonEntries = Object.entries(content).filter(([mediaType]) =>
@@ -1751,6 +1754,7 @@ export const generateRequestDateSerializer = ({
   // exactly one body type survived, and is `''` otherwise. A JSON-shaped
   // walk cannot be typed against that union, so bail out symmetrically with
   // `generateResponseDateDeserializer`'s single-success-type guard below.
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!body.contentType?.toLowerCase().includes('json')) return undefined;
 
   const schema = resolveJsonBodySchema(body, context);

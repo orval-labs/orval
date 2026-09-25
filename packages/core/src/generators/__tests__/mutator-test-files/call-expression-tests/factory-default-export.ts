@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* oxlint-disable eslint/no-unused-vars */
 // Regression fixture for https://github.com/orval-labs/orval/issues/3402:
 // a default export whose initializer is a CallExpression. esbuild lowers
 // `export default <expr>` into a variable declarator + named-export

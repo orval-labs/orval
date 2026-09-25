@@ -177,6 +177,7 @@ describe('createGenerateInvalidateCalls — GHSA-5g7p-r63h-5vfw: broad-invalidat
   const predicateOf = (statement: string) => {
     const match = /predicate: \(query\) => \((.*)\)\s*\}\);$/.exec(statement);
     expect(match, `no predicate in: ${statement}`).not.toBeNull();
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     return match![1];
   };
 
@@ -193,7 +194,7 @@ describe('createGenerateInvalidateCalls — GHSA-5g7p-r63h-5vfw: broad-invalidat
       String.raw`startsWith('/pets\'+(globalThis.__pwned=1)+\'/')`,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func
     const predicate = new Function(
       'query',
       `return ${predicateOf(statement)}`,
@@ -212,7 +213,7 @@ describe('createGenerateInvalidateCalls — GHSA-5g7p-r63h-5vfw: broad-invalidat
       undefined,
     )(target);
 
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func
     const predicate = new Function(
       'query',
       `return ${predicateOf(statement)}`,

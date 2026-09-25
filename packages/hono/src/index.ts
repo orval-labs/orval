@@ -385,6 +385,7 @@ const getVerbOptionGroupByTag = (
 
   for (const value of Object.values(verbOptions)) {
     const tag = getOperationTagKey(value);
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!grouped[tag]) {
       grouped[tag] = [];
     }
@@ -798,6 +799,7 @@ const getHeader = (
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   context.spec.info ?? {
     title: 'API',
     version: '1.0.0',

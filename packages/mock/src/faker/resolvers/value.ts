@@ -280,6 +280,7 @@ export function resolveMockValue({
       isRef: true,
       required: [
         ...(schemaRef?.required ?? []),
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         ...getRequiredKeys(schemaReference, name),
       ],
       // A reference site spells its nullability as a `type` array beside the

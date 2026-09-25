@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-array-reduce */
+/* oxlint-disable unicorn/no-array-reduce */
 
 import {
   buildDynamicScope,
@@ -336,7 +336,7 @@ interface TimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+/* oxlint-disable typescript/no-unsafe-assignment */
 
 const COMPONENT_SCHEMAS_REF_PATTERN = /^#\/components\/schemas\/[^/]+$/;
 
@@ -511,6 +511,7 @@ const collectDiscriminatorValues = (
     const constValue = (propertySchema as { const?: unknown }).const;
     if (constValue !== undefined) return [constValue];
     const enumValues = (propertySchema as { enum?: unknown }).enum;
+    // oxlint-disable-next-line typescript/no-unsafe-return
     if (Array.isArray(enumValues)) return enumValues;
     return null;
   };
@@ -879,6 +880,7 @@ export const generateZodValidationSchemaDefinition = (
     const discriminatorProperty = ((): string | undefined => {
       const propertyName = schema.discriminator?.propertyName;
       if (
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         !context.output?.override?.zod?.generateDiscriminatedUnion ||
         !(schema.oneOf || schema.anyOf) ||
         typeof propertyName !== 'string' ||
@@ -935,11 +937,13 @@ export const generateZodValidationSchemaDefinition = (
               // Only the member's top-level `required` is needed. For `$ref`
               // members resolve shallowly (no deep property dereference) and
               // tolerate unresolvable refs — they simply contribute no keys.
+              /* oxlint-disable typescript/no-unnecessary-condition */
               const isRef =
                 typeof member === 'object' &&
                 member !== null &&
                 '$ref' in member &&
                 typeof member.$ref === 'string';
+              /* oxlint-enable typescript/no-unnecessary-condition */
               const resolved = isRef
                 ? tryResolveRefSchema(member.$ref as string, context)
                 : (member as OpenApiSchemaObject);
@@ -948,6 +952,7 @@ export const generateZodValidationSchemaDefinition = (
               // so a misplaced boolean here would otherwise pass unreported.
               // Name the member, not the composing schema, or the message
               // points at the wrong place in the document.
+              // oxlint-disable-next-line typescript/no-unsafe-return
               return getRequiredKeys(
                 resolved,
                 isRef ? (member.$ref as string) : `${name}.allOf[${index}]`,
@@ -1196,13 +1201,15 @@ export const generateZodValidationSchemaDefinition = (
             .map(([nestedKey, nestedValue]) => {
               const nestedSchema =
                 entrySchema &&
+                /* oxlint-disable typescript/no-unnecessary-condition */
                 typeof entrySchema === 'object' &&
                 entrySchema !== null &&
                 'properties' in entrySchema &&
                 typeof (entrySchema as Record<string, unknown>).properties ===
                   'object' &&
                 (entrySchema as Record<string, unknown>).properties !== null
-                  ? (
+                  ? /* oxlint-enable typescript/no-unnecessary-condition */
+                    (
                       (entrySchema as Record<string, unknown>)
                         .properties as Record<string, unknown>
                     )[nestedKey]
@@ -1695,6 +1702,7 @@ export const generateZodValidationSchemaDefinition = (
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
     const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       const safeExclusiveMin = assertSafeNumericConstraint(
         exclusiveMin,
@@ -1718,6 +1726,7 @@ export const generateZodValidationSchemaDefinition = (
     }
 
     // Handle maximum constraints: exclusiveMaximum (<.lt()) takes priority over maximum (.max())
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (shouldUseExclusiveMax && exclusiveMax !== undefined) {
       const safeExclusiveMax = assertSafeNumericConstraint(
         exclusiveMax,
@@ -2277,6 +2286,7 @@ ${Object.entries(objectArgs)
           })
           .join(',\n');
         const next = definition.functions[index + 1];
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         if (next?.[0] === 'rest') {
           const restDefinition = next[1] as ZodValidationSchemaDefinition;
           const rest = renderMiniDefinition(restDefinition, fieldPath).expr;
@@ -3398,6 +3408,7 @@ export const isObjectResponseSchema = (
 
   const { input, isArray, isZodV4 } = parseResponseSchema(verbOptions, context);
   const [root, ...modifiers] = input.functions;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (isArray || root === undefined) return false;
   // `zod.preprocess(...)` and zod v3 `.brand()` wrap the object.
   if (
@@ -3445,6 +3456,7 @@ export const hasResponseSchema = (
     if (Array.isArray(value.functions)) {
       const functions = value.functions as [string, unknown][];
       return (
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
         functions.some(([, args]) => containsUnsupported(args))
       );
@@ -3455,7 +3467,7 @@ export const hasResponseSchema = (
   return !containsUnsupported(input);
 };
 
-/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+/* oxlint-enable typescript/no-unsafe-assignment */
 
 export const parseParameters = ({
   data,
@@ -3522,6 +3534,7 @@ export const parseParameters = ({
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!('schema' in parameter) || !parameter.in || !parameter.name) {
       return acc;
     }

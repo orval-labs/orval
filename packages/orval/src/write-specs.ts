@@ -1023,6 +1023,7 @@ async function writeSpecsInternal(
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
         ? () =>
+            // oxlint-disable-next-line typescript/no-non-null-assertion
             zodWriters!.generateZodSchemasInline(
               builder,
               output,

@@ -96,6 +96,7 @@ export function getMockWithoutFunc(
         const schemaMocks: Exclude<MockOptions['schemas'], undefined> = {};
 
         for (const [key, value] of Object.entries(override.mock.schemas)) {
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           if (!value?.properties) {
             continue;
           }
@@ -296,6 +297,7 @@ export function getResponsesMockDefinition({
     // reported below, so work on a copy: mutating the shared array would leak
     // mock-only value imports into every later client that imports the same
     // schema, turning its `import type` into a value import (#3931).
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const responseImports = imports ? [...imports] : [];
     const importsBefore = responseImports.length;
     const scalar = getMockScalar({

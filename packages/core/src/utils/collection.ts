@@ -62,6 +62,7 @@ export const getAtPath = (
   value: unknown,
   path: readonly PropertyKey[],
 ): unknown =>
+  // oxlint-disable-next-line unicorn/no-array-reduce
   path.reduce<unknown>(
     (current, key) =>
       current === null || current === undefined

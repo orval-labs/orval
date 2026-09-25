@@ -33,6 +33,7 @@ export const builder =
   ({ output }: { output: NormalizedOutputOptions }) =>
   () => {
     const isFetch = output.httpClient === OutputHttpClient.FETCH;
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const transport = isFetch ? fetch()() : axios()();
 
     const client: ClientBuilder = async (
@@ -60,6 +61,7 @@ export const builder =
             },
           }
         : verb;
+      // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access
       const generated = await transport.client(
         requestVerb,
         options,
@@ -171,16 +173,21 @@ export function use${title}${generic}(${config}${optionalConfig}: ${configType})
 }
 `;
       }
+      // oxlint-disable-next-line typescript/no-unsafe-return
       return {
         ...generated,
+        // oxlint-disable-next-line typescript/no-unsafe-member-access
         implementation: generated.implementation + wrapper,
       };
     };
 
+    // oxlint-disable-next-line typescript/no-unsafe-return
     return {
       ...transport,
       client,
+      // oxlint-disable-next-line typescript/no-unsafe-return
       dependencies: (...args) => [
+        // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access
         ...(transport.dependencies?.(...args) ?? []),
         ...dependencies,
       ],

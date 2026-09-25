@@ -167,6 +167,7 @@ export const normalizeRuntimeValidation = (
   if ('enabled' in value) {
     return value;
   }
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   return { enabled: true, strategy: value.strategy ?? 'throw' };
 };
 

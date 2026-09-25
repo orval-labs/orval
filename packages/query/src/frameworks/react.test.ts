@@ -50,11 +50,12 @@ describe('generateQueryHeader withQueryKey emission (issue #3573)', () => {
   };
 
   it('emits the helper once when the client references withQueryKey', () => {
+    // oxlint-disable-next-line typescript/no-unsafe-argument
     const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation:
         'return withQueryKey(query, queryOptions.queryKey);',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line typescript/no-explicit-any
     } as any);
 
     const header =
@@ -65,10 +66,11 @@ describe('generateQueryHeader withQueryKey emission (issue #3573)', () => {
   });
 
   it('omits the helper for mutation-only output that never calls it', () => {
+    // oxlint-disable-next-line typescript/no-unsafe-argument
     const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation: 'return useMutation(mutationOptions);',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line typescript/no-explicit-any
     } as any);
 
     const header =
@@ -78,11 +80,12 @@ describe('generateQueryHeader withQueryKey emission (issue #3573)', () => {
   });
 
   it('lets the explicit queryKey win over a queryKey field on the result', () => {
+    // oxlint-disable-next-line typescript/no-unsafe-argument
     const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation:
         'return withQueryKey(query, queryOptions.queryKey);',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line typescript/no-explicit-any
     } as any);
 
     const header =

@@ -201,10 +201,12 @@ function resolveStrictMockSchemaForTypeName(
   if (branches?.length) {
     for (const branch of branches) {
       if (
+        /* oxlint-disable typescript/no-unnecessary-condition */
         typeof branch !== 'object' ||
         branch === null ||
         !('$ref' in branch) ||
         typeof branch.$ref !== 'string'
+        /* oxlint-enable typescript/no-unnecessary-condition */
       ) {
         continue;
       }

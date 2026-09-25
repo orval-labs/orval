@@ -163,6 +163,7 @@ function shouldExtractArrayItem(
         { $ref: itemsRef },
         context,
       );
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (typeof schema !== 'object' || schema === null) {
         return false;
       }
@@ -242,8 +243,10 @@ function getArrayItemFactoryNames({
   }
 
   const itemPrefix =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.components.schemas.itemPrefix ?? '';
   const itemSuffix =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.components.schemas.itemSuffix ?? '';
 
   let typeName: string;

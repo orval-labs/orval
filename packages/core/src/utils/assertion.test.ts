@@ -29,7 +29,6 @@ describe('assertion testing', () => {
   it('checks for plain objects', () => {
     expect(isObject({})).toBeTruthy();
     expect(isObject([])).toBeFalsy();
-    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isObject(null)).toBeFalsy();
   });
 
@@ -52,7 +51,6 @@ describe('assertion testing', () => {
     expect(isSchema({ anyOf: [] })).toBeTruthy();
     expect(isSchema({ properties: {} })).toBeTruthy();
     expect(isSchema({ type: 'not-a-schema' })).toBeFalsy();
-    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isSchema(null)).toBeFalsy();
   });
 
@@ -79,10 +77,8 @@ describe('assertion testing', () => {
 
     // OpenAPI 3.1 also spells it as a `null` member of the enum itself, which
     // is the only spelling available when there is no sibling `type` (#4115).
-    // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
     expect(isSchemaNullable({ enum: ['a', null] })).toBeTruthy();
     expect(
-      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       isSchemaNullable({ type: ['string', 'null'], enum: ['a', null] }),
     ).toBeTruthy();
 
@@ -90,26 +86,20 @@ describe('assertion testing', () => {
     // `type` and `enum` are independent assertions that combine with AND, so a
     // `type` refusing null makes the enum's `null` unreachable rather than the
     // schema nullable.
+    expect(isSchemaNullable({ type: 'string', enum: ['a', null] })).toBeFalsy();
     expect(
-      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
-      isSchemaNullable({ type: 'string', enum: ['a', null] }),
-    ).toBeFalsy();
-    expect(
-      // eslint-disable-next-line unicorn/no-null -- a null the `type` rejects
       isSchemaNullable({ type: ['string'], enum: ['a', null] }),
     ).toBeFalsy();
     // `allOf` is an intersection, so one branch refusing null is enough to make
     // the enum's `null` unreachable.
     expect(
       isSchemaNullable({
-        // eslint-disable-next-line unicorn/no-null -- a null the branch rejects
         enum: ['a', null],
         allOf: [{ type: 'string' }],
       }),
     ).toBeFalsy();
     expect(
       isSchemaNullable({
-        // eslint-disable-next-line unicorn/no-null -- a null the branch rejects
         enum: ['a', null],
         allOf: [{ enum: ['a'] }],
       }),
@@ -117,14 +107,12 @@ describe('assertion testing', () => {
     // A branch that admits null, or constrains nothing, leaves it reachable.
     expect(
       isSchemaNullable({
-        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
         enum: ['a', null],
         allOf: [{ type: ['string', 'null'] }],
       }),
     ).toBeTruthy();
     expect(
       isSchemaNullable({
-        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
         enum: ['a', null],
         allOf: [{ description: 'unconstrained' }],
       }),
@@ -132,7 +120,6 @@ describe('assertion testing', () => {
     // A reference is not resolved here, so it cannot rule null out either.
     expect(
       isSchemaNullable({
-        // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
         enum: ['a', null],
         allOf: [{ $ref: '#/components/schemas/Base' }],
       }),
@@ -185,14 +172,13 @@ describe('assertion testing', () => {
     expect(isBoolean(true)).toBeTruthy();
     expect(isNumber(1)).toBeTruthy();
     expect(isString('test')).toBeTruthy();
-    // eslint-disable-next-line unicorn/new-for-builtins
+    // oxlint-disable-next-line unicorn/new-for-builtins
     expect(isString(new String('test'))).toBeFalsy();
     expect(
       isFunction(() => {
         /* empty */
       }),
     ).toBeTruthy();
-    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isNullish(null)).toBeTruthy();
   });
 });
@@ -213,7 +199,6 @@ describe('isDynamicReference', () => {
   });
 
   it('returns false for null', () => {
-    // eslint-disable-next-line unicorn/no-null
     // @ts-expect-error — runtime null is not an object
     expect(isDynamicReference(null)).toBe(false);
   });
