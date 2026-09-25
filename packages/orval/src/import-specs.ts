@@ -1,5 +1,6 @@
 import {
   dynamicImport,
+  isNullOnlyEnum,
   isObject,
   isString,
   isUrl,
@@ -1082,7 +1083,11 @@ function normalizeExclusiveBounds(obj: Record<string, unknown>): void {
 }
 
 function isNullBranch(value: unknown): boolean {
-  return isObject(value) && (value as Record<string, unknown>).type === 'null';
+  return (
+    isObject(value) &&
+    ((value as Record<string, unknown>).type === 'null' ||
+      isNullOnlyEnum(value))
+  );
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────

@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+  title: Nullable reference enum
+  version: 1.0.0
+paths:
+  /tags:
+    get:
+      operationId: getTags
+      tags: [Stories]
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+components:
+  schemas:
+    Tag:
+      type: object
+      properties:
+        group:
+          anyOf:
+            - $ref: '#/components/schemas/TagGroup'
+            - enum: [null]
+        parent_group:
+          nullable: true
+          anyOf:
+            - $ref: '#/components/schemas/TagGroup'
+            - enum: [null]
+        retired_label:
+          type: string
+          nullable: true
+          enum: [null]
+        retired_on:
+          enum: [null]
+          format: date
+        visibility:
+          anyOf:
+            - type: string
+              enum: [public, private]
+            - enum: [null]
+    TagGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+    ChartTemplateParameter:
+      type: object
+      properties:
+        default:
+          anyOf:
+            - $ref: '#/components/schemas/ChartTemplateParameterValue'
+            - enum: [null]
+    ChartTemplateParameterValue:
+      type: string
+    StoryAvailableBenchmarksData:
+      type: object
+      properties:
+        default_date:
+          anyOf:
+            - $ref: '#/components/schemas/StoryAvailableBenchmarkDate'
+            - enum: [null]
+    StoryAvailableBenchmarkDate:
+      type: string
+      format: date
+    Query:
+      type: object
+      properties:
+        benchmark_config:
+          anyOf:
+            - $ref: '#/components/schemas/BenchmarkConfig'
+            - enum: [null]
+        order_by:
+          anyOf:
+            - $ref: '#/components/schemas/OrderBy'
+            - enum: [null]
+    BenchmarkConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+    OrderBy:
+      type: string
+      enum: [name, date]

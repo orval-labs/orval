@@ -353,6 +353,26 @@ describe('combineSchemasMock', () => {
     expect(result.name).toBe('Config');
   });
 
+  it('emits a single null member when several anyOf branches only allow null', () => {
+    const item: MockSchemaObject = {
+      name: 'MaybeLabel',
+      anyOf: [{ type: 'string' }, { enum: [null] }, { type: 'null' }],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'anyOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value.match(/\bnull\b/g)).toHaveLength(1);
+  });
+
   it('should skip already referenced properties in allOf', () => {
     const item: MockSchemaObject = {
       name: 'Extended',

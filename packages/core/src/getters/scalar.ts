@@ -6,7 +6,7 @@ import type {
   ScalarValue,
 } from '../types';
 import { toJsLiteral } from '../utils';
-import { isStringLikeSchema } from '../utils/assertion';
+import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -98,6 +98,9 @@ export function getScalar({
     );
     itemType =
       typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
+  }
+  if (isNullOnlyEnum(item)) {
+    itemType = 'null';
   }
 
   switch (itemType) {

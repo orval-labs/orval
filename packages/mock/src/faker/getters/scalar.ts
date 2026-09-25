@@ -12,6 +12,7 @@ import {
   getRefInfo,
   getStringLiteralType,
   isBoolean,
+  isNullOnlyEnum,
   isNumber,
   isReference,
   isString,
@@ -165,6 +166,10 @@ export function getMockScalar({
         overrided: true,
       };
     }
+  }
+
+  if (isNullOnlyEnum(item)) {
+    return { value: 'null', imports: [], name: item.name, nullWrapped: true };
   }
 
   const formatOverrides = safeMockOptions.format ?? {};
