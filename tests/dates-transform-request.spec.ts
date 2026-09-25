@@ -200,9 +200,7 @@ test('does not mutate the caller map or its value objects when serializing an ad
   expect(cat.arrivedOn).toBeInstanceOf(Date);
   expect(cat.arrivedOn.toISOString().slice(0, 10)).toBe('2026-07-01');
   expect(dog.vaccinatedAt).toBeInstanceOf(Date);
-  expect(dog.vaccinatedAt.toISOString()).toBe(
-    '2026-07-01T09:30:00.000Z',
-  );
+  expect(dog.vaccinatedAt.toISOString()).toBe('2026-07-01T09:30:00.000Z');
 });
 
 test('deserializes format: date and format: date-time values inside an additionalProperties map in the response', async () => {
@@ -230,9 +228,7 @@ test('deserializes format: date and format: date-time values inside an additiona
     throw new Error(`expected a cat, got petType: ${cat.petType}`);
   }
   if (dog.petType !== 'dog') {
-    throw new Error(
-      `expected a dog, got petType: ${dog.petType}`,
-    );
+    throw new Error(`expected a dog, got petType: ${dog.petType}`);
   }
 
   expect(cat.arrivedOn).toBeInstanceOf(Date);

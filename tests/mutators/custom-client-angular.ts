@@ -1,5 +1,5 @@
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import type { HttpClient } from '@angular/common/http';
+import type { Observable } from 'rxjs';
 
 const responseType = <Result>(
   {

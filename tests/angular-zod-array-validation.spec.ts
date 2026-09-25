@@ -27,7 +27,9 @@ describe('angular inline array responses are validated (#3718)', () => {
   const resource = readGenerated('endpoints.resource.ts');
 
   it('parses every HttpClient observe branch through the element schema', () => {
-    expect(service).toContain('.pipe(map((data) => zod.array(Item).parse(data)))');
+    expect(service).toContain(
+      '.pipe(map((data) => zod.array(Item).parse(data)))',
+    );
     expect(service).toContain(
       'response.clone({ body: zod.array(Item).parse(response.body) })',
     );

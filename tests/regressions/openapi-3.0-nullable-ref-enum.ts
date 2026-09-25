@@ -1,3 +1,5 @@
+import type { Tag as NativeEnumTag } from '../generated/default/openapi-3.0-nullable-ref-enum-native-enums/model';
+import { QueryOrderBy as NativeEnumQueryOrderBy } from '../generated/default/openapi-3.0-nullable-ref-enum-native-enums/model';
 import type {
   ChartTemplateParameter,
   Query,
@@ -5,8 +7,6 @@ import type {
   Tag,
 } from '../generated/default/openapi-3.0-nullable-ref-enum/model';
 import { QueryOrderBy } from '../generated/default/openapi-3.0-nullable-ref-enum/model';
-import type { Tag as NativeEnumTag } from '../generated/default/openapi-3.0-nullable-ref-enum-native-enums/model';
-import { QueryOrderBy as NativeEnumQueryOrderBy } from '../generated/default/openapi-3.0-nullable-ref-enum-native-enums/model';
 
 const tagWithNullGroup: Tag = { group: null };
 const tagWithoutGroup: Tag = {};

@@ -135,8 +135,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/fetch/petstore-tags-split-deduplication/endpoints.ts',
-      schemas:
-        '../generated/fetch/petstore-tags-split-deduplication/model',
+      schemas: '../generated/fetch/petstore-tags-split-deduplication/model',
       mode: 'tags-split',
       client: 'fetch',
       indexFiles: true,
@@ -283,7 +282,8 @@ export default defineConfig({
   // bodies keep their plain `Blob`.
   'issue-4177-shared-form-data-body': {
     output: {
-      target: '../generated/fetch/issue-4177-shared-form-data-body/endpoints.ts',
+      target:
+        '../generated/fetch/issue-4177-shared-form-data-body/endpoints.ts',
       schemas: '../generated/fetch/issue-4177-shared-form-data-body/model',
       client: 'fetch',
       clean: true,
@@ -530,8 +530,10 @@ export default defineConfig({
   },
   forceSuccessResponseWithoutHttpResponseReturnType: {
     output: {
-      target: '../generated/fetch/force-success-response-no-http-response/endpoints.ts',
-      schemas: '../generated/fetch/force-success-response-no-http-response/model',
+      target:
+        '../generated/fetch/force-success-response-no-http-response/endpoints.ts',
+      schemas:
+        '../generated/fetch/force-success-response-no-http-response/model',
       client: 'fetch',
       override: {
         fetch: {
@@ -1256,7 +1258,8 @@ export default defineConfig({
   },
   datesTransformNoHttpResponse: {
     output: {
-      target: '../generated/fetch/dates-transform-no-http-response/endpoints.ts',
+      target:
+        '../generated/fetch/dates-transform-no-http-response/endpoints.ts',
       schemas: '../generated/fetch/dates-transform-no-http-response/model',
       client: 'fetch',
       override: {

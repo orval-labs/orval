@@ -158,7 +158,8 @@ export default defineConfig({
   },
   petstoreTagsSplitNodeNextMutator: {
     output: {
-      target: '../generated/axios/petstore-tags-split-nodenext-mutator/endpoints.ts',
+      target:
+        '../generated/axios/petstore-tags-split-nodenext-mutator/endpoints.ts',
       mode: 'tags-split',
       client: 'axios',
       tsconfig: {
@@ -200,8 +201,7 @@ export default defineConfig({
   },
   tagsSplitSharedModels: {
     output: {
-      target:
-        '../generated/axios/tags-split-shared-models/endpoints.ts',
+      target: '../generated/axios/tags-split-shared-models/endpoints.ts',
       schemas: {
         path: '../generated/axios/tags-split-shared-models/model',
         type: 'typescript',
@@ -258,8 +258,7 @@ export default defineConfig({
   },
   petstoreTagsSplitZodSchemas: {
     output: {
-      target:
-        '../generated/axios/petstore-tags-split-zod-schemas/endpoints.ts',
+      target: '../generated/axios/petstore-tags-split-zod-schemas/endpoints.ts',
       schemas: {
         path: '../generated/axios/petstore-tags-split-zod-schemas/model',
         type: 'zod',
@@ -414,8 +413,7 @@ export default defineConfig({
   },
   gatewayTupleTagsSplit: {
     output: {
-      target:
-        '../generated/axios/gateway-tuple-tags-split/endpoints.ts',
+      target: '../generated/axios/gateway-tuple-tags-split/endpoints.ts',
       schemas: {
         path: '../generated/axios/gateway-tuple-tags-split/model',
         type: 'typescript',
@@ -428,8 +426,7 @@ export default defineConfig({
       override: {
         operationName: (_operation, route, verb) => {
           const segments = route.split('/').filter(Boolean);
-          const cap = (s: string) =>
-            s.charAt(0).toUpperCase() + s.slice(1);
+          const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
           return [
             `${verb}${segments.slice(2).map(cap).join('')}`,
             `${verb}${segments.slice(1).map(cap).join('')}`,

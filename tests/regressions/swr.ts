@@ -1,8 +1,9 @@
+import { isFunction, isNumber, isString } from '@orval/core';
+
 import {
   getListPetsInfiniteKeyLoader,
   useListPetsInfinite,
 } from '../generated/swr/petstore-override-swr/endpoints';
-import { isFunction, isNumber, isString } from '@orval/core';
 import {
   useListPets as useListPetsWithHeaders,
   useListPetsInfinite as useListPetsInfiniteWithHeaders,

@@ -704,8 +704,7 @@ export default defineConfig({
       target: '../specifications/openapi-3.0-nullable-ref-enum.yaml',
     },
     output: {
-      target:
-        '../generated/default/openapi-3.0-nullable-ref-enum/endpoints.ts',
+      target: '../generated/default/openapi-3.0-nullable-ref-enum/endpoints.ts',
       schemas: '../generated/default/openapi-3.0-nullable-ref-enum/model',
       mock: true,
       clean: true,

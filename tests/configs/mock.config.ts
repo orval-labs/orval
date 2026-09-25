@@ -459,8 +459,7 @@ export default defineConfig({
   },
   mswProblemDetailsContentType: {
     output: {
-      target:
-        '../generated/mock/msw-problem-details-content-type/endpoints.ts',
+      target: '../generated/mock/msw-problem-details-content-type/endpoints.ts',
       schemas: '../generated/mock/msw-problem-details-content-type/model',
       client: 'axios',
       mock: {
@@ -813,8 +812,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/mock/issue-3590-tags-split-schema-imports/pets/pets.ts',
-      schemas:
-        '../generated/mock/issue-3590-tags-split-schema-imports/schemas',
+      schemas: '../generated/mock/issue-3590-tags-split-schema-imports/schemas',
       mode: 'tags-split',
       client: 'fetch',
       mock: {
@@ -835,7 +833,8 @@ export default defineConfig({
   },
   issue3590BinaryResponseImports: {
     output: {
-      target: '../generated/mock/issue-3590-binary-response-imports/endpoints.ts',
+      target:
+        '../generated/mock/issue-3590-binary-response-imports/endpoints.ts',
       schemas: '../generated/mock/issue-3590-binary-response-imports/model',
       client: 'fetch',
       mock: {
@@ -911,7 +910,8 @@ export default defineConfig({
   },
   issue3706MswArrayItemAliases: {
     output: {
-      target: '../generated/mock/issue-3706-msw-array-item-aliases/endpoints.ts',
+      target:
+        '../generated/mock/issue-3706-msw-array-item-aliases/endpoints.ts',
       schemas: '../generated/mock/issue-3706-msw-array-item-aliases/model',
       client: 'fetch',
       mock: {
@@ -928,7 +928,8 @@ export default defineConfig({
     output: {
       target:
         '../generated/mock/issue-3706-msw-array-item-aliases-strict/endpoints.ts',
-      schemas: '../generated/mock/issue-3706-msw-array-item-aliases-strict/model',
+      schemas:
+        '../generated/mock/issue-3706-msw-array-item-aliases-strict/model',
       client: 'fetch',
       mock: {
         generators: [{ type: 'msw', arrayItems: true, delay: false }],
@@ -1154,8 +1155,7 @@ export default defineConfig({
   },
   tagsSplitPerGeneratorPath: {
     output: {
-      target:
-        '../generated/mock/tags-split-per-generator-path/endpoints.ts',
+      target: '../generated/mock/tags-split-per-generator-path/endpoints.ts',
       schemas: '../generated/mock/tags-split-per-generator-path/model',
       mock: {
         indexMockFiles: true,

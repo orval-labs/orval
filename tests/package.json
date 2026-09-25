@@ -1,10 +1,10 @@
 {
   "name": "orval-tests",
   "version": "8.37.0",
-  "description": "",
-  "author": "Victor Bury",
-  "license": "ISC",
   "private": true,
+  "description": "",
+  "license": "ISC",
+  "author": "Victor Bury",
   "type": "module",
   "scripts": {
     "generate-api": "run-p 'generate:*'",
@@ -37,10 +37,10 @@
   "devDependencies": {
     "@angular/common": "catalog:angular",
     "@angular/core": "catalog:angular",
-    "@orval/core": "workspace:*",
     "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "catalog:hono",
     "@modelcontextprotocol/sdk": "catalog:mcp",
+    "@orval/core": "workspace:*",
     "@solidjs/router": "catalog:solid",
     "@tanstack/angular-query-experimental": "catalog:angular",
     "@tanstack/react-query": "catalog:react",

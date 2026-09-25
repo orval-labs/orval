@@ -156,7 +156,11 @@ test('angular issue-3713 multi-content resources read signals inside the httpRes
   // object (including param/path signal reads) eagerly, before httpResource()
   // was called — Angular only tracks signals read during factory execution,
   // so these resources never refetched when inputs changed. See #3713.
-  const file = generated('angular', 'http-resource-multi-content', 'endpoints.ts');
+  const file = generated(
+    'angular',
+    'http-resource-multi-content',
+    'endpoints.ts',
+  );
   const content = await readFile(file, 'utf8');
   // listItemsResource is emitted as two narrow overloads followed by the
   // implementation signature; only the implementation has a body, so anchor
@@ -183,9 +187,7 @@ test('angular http-resource-headers exposes request descriptor extension (#3710)
   expect(content).toContain(
     'export interface OrvalHttpResourceRequestExtension',
   );
-  expect(content).toContain(
-    "context?: HttpContext | (() => HttpContext);",
-  );
+  expect(content).toContain('context?: HttpContext | (() => HttpContext);');
   expect(content).toContain(
     'request?: (request: HttpResourceRequest) => HttpResourceRequest;',
   );
@@ -261,7 +263,7 @@ test('fetch arrayFormat comma serializes arrays as comma-joined values', async (
     generated('fetch', 'array-format-comma', 'endpoints.ts'),
     'utf8',
   );
-  expect(content).toContain('.join(\',\')');
+  expect(content).toContain(".join(',')");
   expect(content).not.toContain("key + '[]'");
 });
 
@@ -274,7 +276,7 @@ test('fetch paramsSerializer delegates URL building to a custom serializer', asy
 
   expect(content).toContain('customParamsSerializer(params)');
   expect(content).not.toContain('new URLSearchParams()');
-  expect(content).toContain("import { customParamsSerializer }");
+  expect(content).toContain('import { customParamsSerializer }');
 });
 
 test('react-query issue-708 isolates the infinite query key from the regular one', async () => {
@@ -403,7 +405,9 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
 
   // Sanity check: the HTTP function still receives and resolves `headers`, so
   // the assertion above is not passing simply because headers support is missing.
-  expect(content).toContain('headers?: MaybeRefOrGetter<GetSomeEndpointHeaders>');
+  expect(content).toContain(
+    'headers?: MaybeRefOrGetter<GetSomeEndpointHeaders>',
+  );
   expect(content).toContain('headers = toValue(headers);');
 });
 
@@ -978,9 +982,7 @@ test('mock problem+json error response preserves the vendor Content-Type (RFC 94
     handler404Start,
     handler404End === -1 ? content.length : handler404End,
   );
-  expect(handler404).toContain(
-    "'Content-Type': 'application/problem+json'",
-  );
+  expect(handler404).toContain("'Content-Type': 'application/problem+json'");
 
   // The 200 status-specific handler (application/json) must NOT carry an
   // explicit Content-Type header — application/json is the MSW default and is
@@ -1426,7 +1428,9 @@ test('react-query issue-3534 includes baseUrl segments in the split-key invalida
   // ...so the invalidation partial key must share those baseUrl segments
   // instead of the bare ['pets'].
   expect(content).toContain("queryKey: ['http:', 'example.com', 'pets']");
-  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+  expect(content).not.toContain(
+    "queryClient.invalidateQueries({ queryKey: ['pets'] })",
+  );
 });
 
 test('react-query issue-3534 bakes a static baseUrl into the default-mode predicate', async () => {
@@ -1451,7 +1455,11 @@ test('react-query issue-3534 emits a runtime baseUrl as an unquoted split-key se
   // an unquoted segment in the partial query key (via `getRouteAsArray`'s
   // template-tag unwrapping), so it matches the query key array element.
   const content = await readFile(
-    generated('react-query', 'invalidates-base-url-runtime-split', 'endpoints.ts'),
+    generated(
+      'react-query',
+      'invalidates-base-url-runtime-split',
+      'endpoints.ts',
+    ),
     'utf8',
   );
 
@@ -1459,7 +1467,9 @@ test('react-query issue-3534 emits a runtime baseUrl as an unquoted split-key se
     "return [process.env.API_URL, 'pets', petId] as const;",
   );
   expect(content).toContain("queryKey: [process.env.API_URL, 'pets']");
-  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+  expect(content).not.toContain(
+    "queryClient.invalidateQueries({ queryKey: ['pets'] })",
+  );
 });
 
 test('react-query issue-3534 carries baseUrl on the verb-prefixed key element', async () => {
@@ -1545,7 +1555,9 @@ test('default issue-3583 param default values with backslashes are JS-escaped', 
 
   // Embedded backslashes must survive, otherwise the default silently
   // evaluates to `AppModelsDocument`.
-  expect(endpoints).toContain("namespace: string = 'App\\\\Models\\\\Document'");
+  expect(endpoints).toContain(
+    "namespace: string = 'App\\\\Models\\\\Document'",
+  );
   expect(endpoints).not.toContain("'App\\Models\\Document'");
 
   // Forward slashes must not be over-escaped (#3530 guard).
@@ -1638,12 +1650,7 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     'utf8',
   );
   const nestedComposedUnionItem = await readFile(
-    generated(
-      'default',
-      'regressions',
-      'model',
-      'nestedComposedUnionItem.ts',
-    ),
+    generated('default', 'regressions', 'model', 'nestedComposedUnionItem.ts'),
     'utf8',
   );
   const directScalarUnionItem = await readFile(
@@ -1694,12 +1701,7 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     'utf8',
   );
   const nullableAllOfMemberItem = await readFile(
-    generated(
-      'default',
-      'regressions',
-      'model',
-      'nullableAllOfMemberItem.ts',
-    ),
+    generated('default', 'regressions', 'model', 'nullableAllOfMemberItem.ts'),
     'utf8',
   );
   const nullableParentItem = await readFile(
@@ -1714,12 +1716,8 @@ test('default regressions collect only guaranteed keys through nested allOf refs
   expect(scalarItem).toContain("Extract<keyof ScalarWrapper, 'id'>");
   expect(scalarItem).not.toContain("Pick<ScalarWrapper, 'id'>");
 
-  expect(nestedUnionItem).toContain(
-    "Extract<keyof NestedUnionWrapper, 'id'>",
-  );
-  expect(nestedUnionItem).not.toContain(
-    "Pick<NestedUnionWrapper, 'id'>",
-  );
+  expect(nestedUnionItem).toContain("Extract<keyof NestedUnionWrapper, 'id'>");
+  expect(nestedUnionItem).not.toContain("Pick<NestedUnionWrapper, 'id'>");
 
   expect(nestedComposedUnionItem).toContain(
     "Pick<NestedComposedUnionWrapper, 'id'>",
@@ -1731,19 +1729,13 @@ test('default regressions collect only guaranteed keys through nested allOf refs
   );
   expect(directScalarUnionItem).not.toContain('Extract<');
 
-  expect(refMemberUnionItem).toContain(
-    "Pick<RefMemberUnionWrapper, 'id'>",
-  );
+  expect(refMemberUnionItem).toContain("Pick<RefMemberUnionWrapper, 'id'>");
   expect(refMemberUnionItem).not.toContain('Extract<');
 
-  expect(enumUnionItem).toContain(
-    "Extract<keyof EnumUnionWrapper, 'id'>",
-  );
+  expect(enumUnionItem).toContain("Extract<keyof EnumUnionWrapper, 'id'>");
   expect(enumUnionItem).not.toContain("Pick<EnumUnionWrapper, 'id'>");
 
-  expect(siblingEnumItem).toContain(
-    "Extract<keyof SiblingEnumWrapper, 'id'>",
-  );
+  expect(siblingEnumItem).toContain("Extract<keyof SiblingEnumWrapper, 'id'>");
   expect(siblingEnumItem).not.toContain("Pick<SiblingEnumWrapper, 'id'>");
 
   expect(canonicalNullableOneOfItem).toContain(
@@ -1763,9 +1755,7 @@ test('default regressions collect only guaranteed keys through nested allOf refs
   );
   expect(inlineNullableAnyOfItem).not.toContain('Extract<');
 
-  expect(allEnumSiblingItem).toContain(
-    "Pick<AllEnumSiblingWrapper, 'id'>",
-  );
+  expect(allEnumSiblingItem).toContain("Pick<AllEnumSiblingWrapper, 'id'>");
   expect(allEnumSiblingItem).not.toContain('Extract<');
 
   expect(nullableAllOfMemberItem).toContain(
@@ -1773,15 +1763,18 @@ test('default regressions collect only guaranteed keys through nested allOf refs
   );
   expect(nullableAllOfMemberItem).not.toContain('Extract<');
 
-  expect(nullableParentItem).toContain(
-    "Pick<NullableParentWrapper, 'id'>",
-  );
+  expect(nullableParentItem).toContain("Pick<NullableParentWrapper, 'id'>");
   expect(nullableParentItem).not.toContain('Extract<');
 });
 
 test('default regressions place null by where nullable sits around an allOf', async () => {
   const onWrapper = await readFile(
-    generated('default', 'regressions', 'model', 'nullablePlacementOnWrapper.ts'),
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nullablePlacementOnWrapper.ts',
+    ),
     'utf8',
   );
   const holder = await readFile(
@@ -1851,20 +1844,21 @@ test('mock issue-3590 strict faker schema mocks typecheck and emit correct alias
 
   expect(fakerContent).toContain('export type StatusMock = Status;');
   expect(fakerContent).toContain('export type PhotoUploadMock = Blob;');
-  expect(fakerContent).toContain(
-    '...(getPetSettingMock() as PetSettingMock)',
-  );
+  expect(fakerContent).toContain('...(getPetSettingMock() as PetSettingMock)');
   expect(fakerContent).toContain(
     '...(getPetDetailResponseSettingsItemMock() as PetDetailSettingsItemMock)',
   );
-  expect(fakerContent).not.toContain(
-    '[K in keyof Required<Status>]',
-  );
+  expect(fakerContent).not.toContain('[K in keyof Required<Status>]');
 });
 
 test('mock issue-3590 wide schema imports do not overflow when building index.faker.ts', async () => {
   const fakerContent = await readFile(
-    generated('mock', 'issue-3590-wide-schema-imports', 'model', 'index.faker.ts'),
+    generated(
+      'mock',
+      'issue-3590-wide-schema-imports',
+      'model',
+      'index.faker.ts',
+    ),
     'utf8',
   );
 
@@ -1982,15 +1976,17 @@ test('axios tags-split workspace barrel keeps a multi-part fileExtension single 
   // `./pets/pets.generated.generated`. The fix derives the specifier from the
   // full path and strips `fileExtension` once, matching the `schemas.ts` writer.
   const barrel = await readFile(
-    generated('axios', 'petstore-tags-split-workspace-generated-ext', 'index.ts'),
+    generated(
+      'axios',
+      'petstore-tags-split-workspace-generated-ext',
+      'index.ts',
+    ),
     'utf8',
   );
 
   expect(barrel).toContain("export * from './pets/pets.generated';");
   expect(barrel).toContain("export * from './health/health.generated';");
-  expect(barrel).toContain(
-    "export * from './endpoints.schemas.generated';",
-  );
+  expect(barrel).toContain("export * from './endpoints.schemas.generated';");
   // No doubled prefix may appear.
   expect(barrel).not.toContain('.generated.generated');
 });
@@ -2010,7 +2006,10 @@ test('axios tags-split + schemas.splitByTags separates per-tag schemas from cros
   const root = generated('axios', 'tags-split-shared-models', 'model');
 
   // Per-tag schemas live under `<tag>/` with their own barrel.
-  const petsBarrel = await readFile(path.join(root, 'pets', 'index.ts'), 'utf8');
+  const petsBarrel = await readFile(
+    path.join(root, 'pets', 'index.ts'),
+    'utf8',
+  );
   expect(petsBarrel).toContain("export * from './pet';");
   expect(petsBarrel).toContain("export * from './petList';");
   expect(petsBarrel).toContain("export * from './createPetBody';");
@@ -2029,9 +2028,15 @@ test('axios tags-split + schemas.splitByTags separates per-tag schemas from cros
   // Shared schemas referenced by both tags stay at the root, not in any tag
   // subdir. `Pagination` is shared even though it is only reached via
   // `PetList`/`StoreList` — both tag-scoped wrappers reference it.
-  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves.toBeDefined();
-  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves.toBeDefined();
-  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves.toBeDefined();
+  await expect(
+    readFile(path.join(root, 'error.ts'), 'utf8'),
+  ).resolves.toBeDefined();
+  await expect(
+    readFile(path.join(root, 'sortOrder.ts'), 'utf8'),
+  ).resolves.toBeDefined();
+  await expect(
+    readFile(path.join(root, 'pagination.ts'), 'utf8'),
+  ).resolves.toBeDefined();
   // No tag owns a schema named after the other tag.
   await expect(
     readFile(path.join(root, 'pets', 'store.ts'), 'utf8'),
@@ -2083,7 +2088,10 @@ test('axios split mode + schemas.splitByTags produces the same per-tag schema la
   const root = generated('axios', 'split-mode-split-schemas', 'model');
 
   // Same per-tag layout as the tags-split case above.
-  const petsBarrel = await readFile(path.join(root, 'pets', 'index.ts'), 'utf8');
+  const petsBarrel = await readFile(
+    path.join(root, 'pets', 'index.ts'),
+    'utf8',
+  );
   expect(petsBarrel).toContain("export * from './pet';");
   expect(petsBarrel).toContain("export * from './petList';");
 
@@ -2180,12 +2188,8 @@ test('axios splitByTags + indexFiles:false + faker schemas:true routes faker fac
     "import type { Pagination } from './pagination';",
   );
   // Tag-scoped schemas route into their tag subdirectory.
-  expect(fakerFile).toContain(
-    "import type { Pet } from './pets/pet';",
-  );
-  expect(fakerFile).toContain(
-    "import type { Store } from './stores/store';",
-  );
+  expect(fakerFile).toContain("import type { Pet } from './pets/pet';");
+  expect(fakerFile).toContain("import type { Store } from './stores/store';");
   // No flat-layout or extensionless root-barrel imports may remain.
   expect(fakerFile).not.toContain("from '.'");
   expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
@@ -2268,11 +2272,7 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
 
 test('default OpenAPI 3.0 nullable $ref enum branches preserve null and generate runnable mocks', async () => {
   const mockContent = await readFile(
-    generated(
-      'default',
-      'openapi-3.0-nullable-ref-enum',
-      'endpoints.msw.ts',
-    ),
+    generated('default', 'openapi-3.0-nullable-ref-enum', 'endpoints.msw.ts'),
     'utf8',
   );
 
@@ -2290,7 +2290,9 @@ test('default OpenAPI 3.0 nullable $ref enum branches preserve null and generate
     /faker\.helpers\.arrayElement\(\[\s*\]/,
   );
   expect(mockContent).toContain('group: faker.helpers.arrayElement([');
-  expect(mockContent).toMatch(/group: faker\.helpers\.arrayElement\(\[[\s\S]*?null/);
+  expect(mockContent).toMatch(
+    /group: faker\.helpers\.arrayElement\(\[[\s\S]*?null/,
+  );
   expect(mockContent).toMatch(/retired_label: null,/);
   expect(mockContent).toMatch(/retired_on: null,/);
   expect(mockContent).not.toMatch(
@@ -2376,7 +2378,9 @@ test('fetch serializes path-item-level query parameters into the URL', async () 
   };
 
   // `date` is declared on the path item, not on the get operation.
-  expect(urlFn('getGetItemUrl')).toContain('normalizedParams.append(key, value');
+  expect(urlFn('getGetItemUrl')).toContain(
+    'normalizedParams.append(key, value',
+  );
 
   // `tags` explodes at the path-item level but the operation overrides it with
   // `explode: false`, so the exploding branch must not be generated.
