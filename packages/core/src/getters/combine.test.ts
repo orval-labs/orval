@@ -1891,3 +1891,63 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
     expect(result.value).toBe("Base & Required<Pick<Base, 'baseProp'>>");
   });
 });
+
+describe('combineSchemas — OAS 3.0 null-only enum branch', () => {
+  it('keeps the runtime const for a $ref enum combined with {enum: [null]}', () => {
+    const result = combineSchemas({
+      schema: {
+        oneOf: [{ $ref: '#/components/schemas/Status' }, { enum: [null] }],
+      },
+      name: 'StatusOrNull',
+      separator: 'oneOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toBe(
+      'typeof StatusOrNull[keyof typeof StatusOrNull] | null',
+    );
+    expect(result.schemas.map((schema) => schema.model)).toContain(
+      'export const StatusOrNull = {...Status,} as const',
+    );
+  });
+
+  it('keeps | null for an inline enum combined with {enum: [null]} under enumGenerationType enum', () => {
+    const enumContext = {
+      ...context,
+      output: {
+        ...context.output,
+        override: { ...context.output.override, enumGenerationType: 'enum' },
+      },
+    } as ContextSpec;
+
+    const result = combineSchemas({
+      schema: {
+        anyOf: [{ type: 'string', enum: ['a', 'b'] }, { enum: [null] }],
+      },
+      name: 'LetterOrNull',
+      separator: 'anyOf',
+      context: enumContext,
+      nullable: '',
+    });
+
+    expect(result.value).toBe(
+      'typeof LetterOrNull[keyof typeof LetterOrNull] | null',
+    );
+  });
+
+  it('unions null onto a non-enum $ref combined with {enum: [null]}', () => {
+    const result = combineSchemas({
+      schema: {
+        anyOf: [{ $ref: '#/components/schemas/Base' }, { enum: [null] }],
+      },
+      name: 'BaseOrNull',
+      separator: 'anyOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toBe('Base | null');
+    expect(result.schemas).toEqual([]);
+  });
+});

@@ -146,7 +146,6 @@ export function getMockObject({
   const itemProperties = schemaItem.properties;
   const itemRequired = schemaItem.required;
   const itemAdditionalProperties = schemaItem.additionalProperties as
-    | boolean
     | OpenApiReferenceObject
     | OpenApiSchemaObject
     | undefined;

@@ -186,6 +186,7 @@ export function combineSchemasMock({
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
+  let hasNullMember = false;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
@@ -290,6 +291,11 @@ export function combineSchemasMock({
           : `...{${resolvedValue.value}},`;
         continue;
       }
+    }
+
+    if (separator !== 'allOf' && resolvedValue.value === 'null') {
+      if (hasNullMember) continue;
+      hasNullMember = true;
     }
 
     value += `${resolvedValue.value},`;

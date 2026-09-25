@@ -17,6 +17,7 @@ import {
   dedupeUnionType,
   getNumberWord,
   isInlineSchema,
+  isNullOnlyEnum,
   isObject,
   pascal,
   toObjectSchema,
@@ -883,7 +884,10 @@ export function combineSchemas({
     }
   }
 
-  const isAllEnums = resolvedData.isEnum.every(Boolean);
+  const isAllEnums = resolvedData.isEnum.every(
+    (isEnum, index) =>
+      isEnum || isNullOnlyEnum(resolvedData.originalSchema[index]),
+  );
   // OAS 3.1 spells a nullable enum as `anyOf: [{enum: [...]}, {type: 'null'}]`.
   // Without this, the {type: 'null'} variant flips `isEnum` to false and the
   // enum gets inlined instead of extracted as a named type — the

@@ -3898,6 +3898,17 @@ describe('normalizeToOpenApi31', () => {
       });
     });
 
+    it('should not add a second null branch when the combinator has an OAS 3.0 {enum: [null]} branch', () => {
+      expect(
+        normalize({
+          anyOf: [{ $ref: '#/components/schemas/Pet' }, { enum: [null] }],
+          nullable: true,
+        }),
+      ).toEqual({
+        anyOf: [{ $ref: '#/components/schemas/Pet' }, { enum: [null] }],
+      });
+    });
+
     it('should add null to a nullable enum that has no sibling type', () => {
       expect(normalize({ enum: ['foo', 'bar'], nullable: true })).toEqual({
         enum: ['foo', 'bar', null],

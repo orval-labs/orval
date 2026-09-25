@@ -129,6 +129,54 @@ describe('getMockScalar (uint64 format handling)', () => {
   });
 });
 
+describe('getMockScalar null-only enum branch', () => {
+  it('emits null instead of an empty Faker dataset', () => {
+    const result = getMockScalar({
+      item: { enum: [null], name: 'nullBranch' },
+      imports: [],
+      operationId: 'getTags',
+      tags: [],
+      context: scalarContext(),
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe('null');
+  });
+
+  it('emits null when a declared type allows only null', () => {
+    const result = getMockScalar({
+      item: {
+        type: ['string', 'null'] as OpenApiPrimitiveSchemaType[],
+        enum: [null],
+        name: 'typedNullBranch',
+      },
+      imports: [],
+      operationId: 'getTags',
+      tags: [],
+      context: scalarContext(),
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe('null');
+  });
+
+  it('emits null instead of a formatted value', () => {
+    const result = getMockScalar({
+      item: { enum: [null], format: 'date', name: 'formattedNullBranch' },
+      imports: [],
+      operationId: 'getTags',
+      tags: [],
+      context: scalarContext(),
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe('null');
+  });
+});
+
 describe('getMockScalar (example handling with falsy values)', () => {
   const baseArg = {
     item: {

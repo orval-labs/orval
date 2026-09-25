@@ -105,7 +105,7 @@ function getItems(
 
 function getAdditionalProperties(
   schema: OpenApiSchemaObject,
-): OpenApiSchemaObject | OpenApiReferenceObject | boolean | undefined {
+): OpenApiSchemaObject | OpenApiReferenceObject | undefined {
   if (isBooleanJsonSchema(schema)) return undefined;
   // `unevaluatedProperties` (OAS 3.1) has the same shape and circularity
   // implications as `additionalProperties`. See issue #2156.

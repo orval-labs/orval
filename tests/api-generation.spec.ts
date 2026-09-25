@@ -4,6 +4,7 @@ import path from 'node:path';
 import { expect, test } from 'vite-plus/test';
 
 import { describeApiGenerationSnapshots } from '../test-utils/snapshot-testing';
+import { getGetTagsResponseMock } from './generated/default/openapi-3.0-nullable-ref-enum/endpoints.msw';
 
 const generated = (...segments: string[]) =>
   path.resolve(import.meta.dirname, 'generated', ...segments);
@@ -2263,6 +2264,39 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // The nullable tuple (`anyOf: [tuple, null]`) is the issue's exact shape and
   // must not regress to the original empty `[]`.
   expect(content).not.toContain('point: []');
+});
+
+test('default OpenAPI 3.0 nullable $ref enum branches preserve null and generate runnable mocks', async () => {
+  const mockContent = await readFile(
+    generated(
+      'default',
+      'openapi-3.0-nullable-ref-enum',
+      'endpoints.msw.ts',
+    ),
+    'utf8',
+  );
+
+  const nativeEnumMockContent = await readFile(
+    generated(
+      'default',
+      'openapi-3.0-nullable-ref-enum-native-enums',
+      'endpoints.msw.ts',
+    ),
+    'utf8',
+  );
+
+  expect(mockContent).not.toMatch(/faker\.helpers\.arrayElement\(\[\s*\]/);
+  expect(nativeEnumMockContent).not.toMatch(
+    /faker\.helpers\.arrayElement\(\[\s*\]/,
+  );
+  expect(mockContent).toContain('group: faker.helpers.arrayElement([');
+  expect(mockContent).toMatch(/group: faker\.helpers\.arrayElement\(\[[\s\S]*?null/);
+  expect(mockContent).toMatch(/retired_label: null,/);
+  expect(mockContent).toMatch(/retired_on: null,/);
+  expect(mockContent).not.toMatch(
+    /parent_group: faker\.helpers\.arrayElement\(\[[\s\S]*?null,\s*null/,
+  );
+  expect(() => getGetTagsResponseMock()).not.toThrow();
 });
 
 // `set-cookie` must be filtered out, so the response carries no session

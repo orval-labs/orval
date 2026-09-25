@@ -6,7 +6,7 @@ import type {
 
 export interface MockDefinition {
   value: string;
-  enums?: string[];
+  enums?: (string | null)[];
   imports: GeneratorImport[];
   name: string;
   overrided?: boolean;
@@ -24,7 +24,7 @@ export type MockSchemaObject = OpenApiNonBooleanSchemaObject & {
   path?: string;
   parentName?: string;
   isRef?: boolean;
-  enum?: string[];
+  enum?: (string | null)[];
 };
 
 export type MockSchema = MockSchemaObject | MockSchemaRef;
