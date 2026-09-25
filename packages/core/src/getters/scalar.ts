@@ -6,7 +6,7 @@ import type {
   ScalarValue,
 } from '../types';
 import { toJsLiteral } from '../utils';
-import { isStringLikeSchema } from '../utils/assertion';
+import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -84,16 +84,10 @@ export function getScalar({
     (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,
   );
 
-  const isNullOnlyEnum =
-    schemaType === undefined &&
-    Array.isArray(schemaEnum) &&
-    schemaEnum.length > 0 &&
-    schemaEnum.every((enumItem) => enumItem === null);
-
   let itemType:
     | OpenApiSchemaObjectType
     | OpenApiSchemaObjectType[]
-    | undefined = isNullOnlyEnum ? 'null' : schemaType;
+    | undefined = schemaType;
   if (!itemType && item.items) {
     item.type = 'array';
     itemType = 'array';
@@ -104,6 +98,9 @@ export function getScalar({
     );
     itemType =
       typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
+  }
+  if (isNullOnlyEnum(item)) {
+    itemType = 'null';
   }
 
   switch (itemType) {

@@ -379,6 +379,18 @@ describe('getScalar null-only enum branch', () => {
     expect(result.type).toBe('null');
     expect(result.isEnum).toBe(false);
   });
+
+  it('returns the null literal when a declared type allows only null', () => {
+    const result = getScalar({
+      item: { type: ['string', 'null'], enum: [null] } as OpenApiSchemaObject,
+      name: 'typedNullBranch',
+      context,
+    });
+
+    expect(result.value).toBe('null');
+    expect(result.type).toBe('null');
+    expect(result.isEnum).toBe(false);
+  });
 });
 
 describe('getScalar (const/enum type confusion)', () => {

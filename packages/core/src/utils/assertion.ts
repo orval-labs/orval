@@ -211,6 +211,21 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
 }
 
 /**
+ * Whether the schema's `enum` admits only `null` — the OAS 3.0 spelling of a
+ * null branch (`anyOf: [{ $ref }, { enum: [null] }]`), whatever its `type`.
+ */
+export function isNullOnlyEnum(
+  schema: { enum?: unknown } | undefined,
+): boolean {
+  const schemaEnum = schema?.enum;
+  return (
+    Array.isArray(schemaEnum) &&
+    schemaEnum.length > 0 &&
+    schemaEnum.every((member) => member === null)
+  );
+}
+
+/**
  * Whether any member of an `allOf` rules `null` out.
  *
  * `allOf` is an intersection, so one branch refusing null is enough to make an
