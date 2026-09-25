@@ -32,13 +32,7 @@ const excludedByFolder = new Map([
   // type systems, causing exponential type inference in server.registerTool() calls.
   // Yarn avoided this by nesting a separate zod@4.x for the SDK.
   // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
-  [
-    'mcp',
-    [
-      'generated/mcp/**/server.ts',
-      'generated/mcp/**/server.*.ts',
-    ],
-  ],
+  ['mcp', ['generated/mcp/**/server.ts', 'generated/mcp/**/server.*.ts']],
 ]);
 
 const results = [];
@@ -132,11 +126,15 @@ console.log(
   `\nTypechecking ${exactOptionalFolders.length} httpResource clients with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck('exact-optional', {
-  extends: './tsconfig.json',
-  compilerOptions: { exactOptionalPropertyTypes: true },
-  include: exactOptionalFolders.map((f) => `generated/angular/${f}`),
-}, 'angular (exactOptionalPropertyTypes)');
+typecheck(
+  'exact-optional',
+  {
+    extends: './tsconfig.json',
+    compilerOptions: { exactOptionalPropertyTypes: true },
+    include: exactOptionalFolders.map((f) => `generated/angular/${f}`),
+  },
+  'angular (exactOptionalPropertyTypes)',
+);
 
 // The same gate for react-query, where `queryOptions()` type-checks the emitted
 // literal instead of an `as` cast laundering it, so the caller-options spread
@@ -149,13 +147,17 @@ console.log(
   `\nTypechecking ${reactQueryExactOptionalFolders.length} react-query client with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck('exact-optional-react-query', {
-  extends: './tsconfig.json',
-  compilerOptions: { exactOptionalPropertyTypes: true },
-  include: reactQueryExactOptionalFolders.map(
-    (f) => `generated/react-query/${f}`,
-  ),
-}, 'react-query (exactOptionalPropertyTypes)');
+typecheck(
+  'exact-optional-react-query',
+  {
+    extends: './tsconfig.json',
+    compilerOptions: { exactOptionalPropertyTypes: true },
+    include: reactQueryExactOptionalFolders.map(
+      (f) => `generated/react-query/${f}`,
+    ),
+  },
+  'react-query (exactOptionalPropertyTypes)',
+);
 
 // Mocks only compile under the flag with `override.mock.exactOptional`, which
 // leaves an optional key out instead of setting it to `undefined` (#3912).
@@ -169,11 +171,15 @@ console.log(
   `\nTypechecking ${mockExactOptionalFolders.length} mock clients with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck('exact-optional-mock', {
-  extends: './tsconfig.json',
-  compilerOptions: { exactOptionalPropertyTypes: true },
-  include: mockExactOptionalFolders.map((f) => `generated/mock/${f}`),
-}, 'mock (exactOptionalPropertyTypes)');
+typecheck(
+  'exact-optional-mock',
+  {
+    extends: './tsconfig.json',
+    compilerOptions: { exactOptionalPropertyTypes: true },
+    include: mockExactOptionalFolders.map((f) => `generated/mock/${f}`),
+  },
+  'mock (exactOptionalPropertyTypes)',
+);
 
 console.log('\n--- Summary ---\n');
 const labelWidth = Math.max(...results.map((r) => r.label.length));

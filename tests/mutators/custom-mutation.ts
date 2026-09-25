@@ -1,4 +1,5 @@
-import { UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationOptions } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useCustomMutation = <T, TError, TData, TContext>(
   options: UseMutationOptions<T, TError, TData, TContext> &

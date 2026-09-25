@@ -52,8 +52,8 @@ jobs:
       - name: Lint samples
         run: vp run -w lint:samples
 
-      - name: Lint snapshots
-        run: vp run -w lint:snapshots
+      - name: Lint tests
+        run: vp run -w lint:tests
 
       - name: Typecheck packages
         run: vp run -w typecheck

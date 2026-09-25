@@ -1,5 +1,12 @@
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import type { HttpClient } from '@angular/common/http';
+import type { Observable } from 'rxjs';
+
+type AngularQueryParams = Record<
+  string,
+  string | number | boolean | ReadonlyArray<string | number | boolean>
+>;
+
+type AngularHeaders = Record<string, string | readonly string[]>;
 
 const responseType = <Result>(
   {
@@ -10,9 +17,9 @@ const responseType = <Result>(
   }: {
     url: string;
     method: string;
-    params?: any;
-    data?: any;
-    headers?: any;
+    params?: AngularQueryParams;
+    data?: unknown;
+    headers?: AngularHeaders;
   },
   http: HttpClient,
 ): Observable<Result> =>

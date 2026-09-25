@@ -255,9 +255,9 @@ export default defineConfig({
       formatter: 'prettier',
       override: {
         zod: {
-          version: 3
-        }
-      }
+          version: 3,
+        },
+      },
     },
     input: {
       target: '../specifications/enums.yaml',

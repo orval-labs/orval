@@ -74,11 +74,9 @@ export const useCreatePetsWithOnMutate = () =>
 export const suspenseOptionsWithCallerQueryFn = () => {
   const petsFromCache: Pets = [];
 
-  const options = getListPetsSuspenseQueryOptions(
-    { sort: 'name' },
-    0,
-    { query: { queryFn: () => petsFromCache } },
-  );
+  const options = getListPetsSuspenseQueryOptions({ sort: 'name' }, 0, {
+    query: { queryFn: () => petsFromCache },
+  });
 
   return options.queryFn;
 };

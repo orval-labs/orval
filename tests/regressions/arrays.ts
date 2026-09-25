@@ -1,4 +1,4 @@
-import { ArrayTest } from '../generated/default/regressions/model/arrayTest';
+import type { ArrayTest } from '../generated/default/regressions/model/arrayTest';
 
 // Ensure arrays with nullable items work correctly.
 // See: https://github.com/orval-labs/orval/pull/563
