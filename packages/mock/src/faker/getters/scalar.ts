@@ -12,6 +12,7 @@ import {
   getRefInfo,
   getStringLiteralType,
   isBoolean,
+  isNullOnlyEnum,
   isNumber,
   isReference,
   isString,
@@ -165,6 +166,10 @@ export function getMockScalar({
         overrided: true,
       };
     }
+  }
+
+  if (isNullOnlyEnum(item)) {
+    return { value: 'null', imports: [], name: item.name, nullWrapped: true };
   }
 
   const formatOverrides = safeMockOptions.format ?? {};
@@ -650,10 +655,6 @@ function getItemType(item: MockSchemaObject) {
 
   if (item.type) return item.type;
   if (!item.enum) return;
-
-  if (item.enum.length > 0 && item.enum.every((value) => value === null)) {
-    return 'null';
-  }
 
   const uniqTypes = new Set(item.enum.map((value) => typeof value));
   if (uniqTypes.size > 1) return;
