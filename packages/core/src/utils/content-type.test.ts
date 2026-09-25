@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type { OpenApiSchemaObject } from '../types';
 import { getFormDataFieldFileType, isBinaryContentType } from './content-type';
 
 describe('isBinaryContentType', () => {
@@ -48,15 +47,12 @@ describe('getFormDataFieldFileType', () => {
         {
           type: ['string', 'null'],
           contentMediaType: 'application/octet-stream',
-        } as unknown as OpenApiSchemaObject,
+        },
         undefined,
       ),
     ).toBe('binary');
     expect(
-      getFormDataFieldFileType(
-        { type: ['string', 'null'] } as unknown as OpenApiSchemaObject,
-        'text/csv',
-      ),
+      getFormDataFieldFileType({ type: ['string', 'null'] }, 'text/csv'),
     ).toBe('text');
   });
 
@@ -66,7 +62,7 @@ describe('getFormDataFieldFileType', () => {
         {
           type: ['string', 'null'],
           contentMediaType: 'text/csv',
-        } as unknown as OpenApiSchemaObject,
+        },
         'image/png',
       ),
     ).toBe('binary');
@@ -79,7 +75,7 @@ describe('getFormDataFieldFileType', () => {
           type: ['string', 'null'],
           contentMediaType: 'application/octet-stream',
           contentEncoding: 'base64',
-        } as unknown as OpenApiSchemaObject,
+        },
         undefined,
       ),
     ).toBeUndefined();
@@ -87,10 +83,7 @@ describe('getFormDataFieldFileType', () => {
 
   it('returns undefined when the part has no effective content type', () => {
     expect(
-      getFormDataFieldFileType(
-        { type: ['string', 'null'] } as unknown as OpenApiSchemaObject,
-        undefined,
-      ),
+      getFormDataFieldFileType({ type: ['string', 'null'] }, undefined),
     ).toBeUndefined();
   });
 
@@ -115,7 +108,7 @@ describe('getFormDataFieldFileType', () => {
         {
           type: ['string', 'integer'],
           contentMediaType: 'application/octet-stream',
-        } as unknown as OpenApiSchemaObject,
+        },
         undefined,
       ),
     ).toBeUndefined();

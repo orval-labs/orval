@@ -38,10 +38,14 @@ vi.mock('./generate-spec', () => ({
   generateSpec: vi.fn(),
 }));
 
-vi.mock('./utils/config', () => ({
-  findConfigFile: vi.fn(),
-  loadConfigFile: vi.fn(),
-}));
+vi.mock('./utils/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./utils/config')>();
+  return {
+    ...actual,
+    findConfigFile: vi.fn(),
+    loadConfigFile: vi.fn(),
+  };
+});
 
 vi.mock('./utils/options', () => ({
   normalizeOptions: vi.fn().mockResolvedValue({
@@ -100,6 +104,38 @@ describe('generate - log level', () => {
 
     expect(setLogLevel).toHaveBeenNthCalledWith(1, 'verbose');
     expect(setLogLevel).toHaveBeenNthCalledWith(2, 'info');
+  });
+
+  it('applies logLevel from the config file and skips it as a project', async () => {
+    vi.mocked(findConfigFile).mockReturnValue('/workspace/orval.config.ts');
+    vi.mocked(loadConfigFile).mockResolvedValue({
+      logLevel: 'warn',
+      petstore: { input: 'spec.yaml', output: 'out.ts' },
+    });
+
+    await generateQuiet('./orval.config.ts', '/workspace');
+
+    expect(setLogLevel).toHaveBeenCalledWith('warn');
+    expect(normalizeOptions).toHaveBeenCalledTimes(1);
+    expect(normalizeOptions).toHaveBeenCalledWith(
+      { input: 'spec.yaml', output: 'out.ts' },
+      '/workspace',
+      undefined,
+    );
+  });
+
+  it('lets the generate logLevel override the config file', async () => {
+    vi.mocked(findConfigFile).mockReturnValue('/workspace/orval.config.ts');
+    vi.mocked(loadConfigFile).mockResolvedValue({
+      logLevel: 'warn',
+      petstore: { input: 'spec.yaml', output: 'out.ts' },
+    });
+
+    await generateQuiet('./orval.config.ts', '/workspace', {
+      logLevel: 'debug',
+    });
+
+    expect(setLogLevel).toHaveBeenCalledWith('debug');
   });
 });
 

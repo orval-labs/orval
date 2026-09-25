@@ -1,5 +1,4 @@
 import type {
-  ContextSpec,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -13,6 +12,11 @@ import {
   OutputHttpClient,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
+
+import {
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 
 import { createFrameworkAdapter } from './frameworks';
 import {
@@ -636,32 +640,18 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
 
   const createResponse = (
     overrides: Partial<GeneratorVerbOptions['response']> = {},
-  ): GeneratorVerbOptions['response'] =>
-    ({
-      imports: [],
-      definition: { success: 'Pet', errors: 'unknown' },
-      types: {
-        success: [createSuccessType({ originalSchema: datedSchema })],
-        errors: [],
-      },
-      contentTypes: ['application/json'],
-      isBlob: false,
-      schemas: [],
-      ...overrides,
-    }) as GeneratorVerbOptions['response'];
-
-  const createOverride = (
-    overrides: Partial<GeneratorVerbOptions['override']> = {},
-  ): GeneratorVerbOptions['override'] =>
-    ({
-      requestOptions: true,
-      formData: { disabled: true, arrayHandling: 'serialize' },
-      formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
-      query: {},
-      useDatesTransform: true,
-      ...overrides,
-    }) as GeneratorVerbOptions['override'];
+  ): GeneratorVerbOptions['response'] => ({
+    imports: [],
+    definition: { success: 'Pet', errors: 'unknown' },
+    types: {
+      success: [createSuccessType({ originalSchema: datedSchema })],
+      errors: [],
+    },
+    contentTypes: ['application/json'],
+    isBlob: false,
+    schemas: [],
+    ...overrides,
+  });
 
   const mutator: GeneratorMutator = {
     name: 'customInstance',
@@ -675,73 +665,48 @@ describe('generateAxiosRequestFunction with useDatesTransform', () => {
   };
 
   const createVerbOptions = (
-    overrides: Partial<GeneratorVerbOptions> = {},
-  ): GeneratorVerbOptions =>
-    ({
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+  ) =>
+    createTestGeneratorVerbOptions({
       operationId: 'getPet',
       operationName: 'getPet',
       typeName: 'getPet',
       verb: 'get',
       route: '/pets',
       pathRoute: '/pets',
-      tags: [],
-      summary: '',
-      doc: '',
       response: createResponse(),
-      body: {
-        implementation: '',
-        definition: '',
-        imports: [],
-        schemas: [],
-        originalSchema: { type: 'object' },
-        contentType: '',
-        formData: '',
-        formUrlEncoded: '',
-        isOptional: true,
-      },
-      headers: undefined,
-      queryParams: undefined,
-      params: [],
-      props: [],
       mutator,
-      formData: undefined,
-      formUrlEncoded: undefined,
-      paramsSerializer: undefined,
-      fetchReviver: undefined,
-      override: createOverride(),
-      deprecated: false,
-      originalOperation: {} as GeneratorVerbOptions['originalOperation'],
+      override: {
+        requestOptions: true,
+        formData: { disabled: true, arrayHandling: 'serialize' },
+        formUrlEncoded: true,
+        useDatesTransform: true,
+      },
       ...overrides,
-    }) as GeneratorVerbOptions;
-
-  const createContext = (): ContextSpec =>
-    ({
-      target: 'query-test',
-      workspace: '/tmp',
-      spec: {
-        openapi: '3.1.0',
-        info: { title: 'Pets', version: '1.0.0' },
-        paths: {},
-        components: {},
-      },
-      output: {
-        urlEncodeParameters: false,
-        tsconfig: {},
-        optionsParamRequired: false,
-      },
-    }) as unknown as ContextSpec;
+    });
 
   const createOptions = (
-    overrides: Partial<GeneratorOptions> = {},
+    overrides: Parameters<typeof createTestGeneratorOptions>[0] = {},
   ): GeneratorOptions =>
-    ({
+    createTestGeneratorOptions({
       route: '/pets',
       pathRoute: '/pets',
-      override: createOverride(),
-      context: createContext(),
       output: '/tmp/pet.ts',
+      override: { useDatesTransform: true },
+      context: {
+        target: 'query-test',
+        workspace: '/tmp',
+        spec: {
+          info: { title: 'Pets', version: '1.0.0' },
+        },
+        output: {
+          urlEncodeParameters: false,
+          tsconfig: {},
+          optionsParamRequired: false,
+        },
+      },
       ...overrides,
-    }) as GeneratorOptions;
+    });
 
   const verbOptions = createVerbOptions();
   const options = createOptions();
@@ -1183,87 +1148,71 @@ describe('getHooksOptionImplementation', () => {
 });
 
 describe('generateAngularHttpRequestFunction — zod runtimeValidation response typing (#3941)', () => {
-  const makeResponse = (successName = 'Pets') =>
-    ({
-      definition: { success: successName, errors: 'Error' },
-      imports: [{ name: successName, schemaName: successName, values: true }],
-      types: {
-        success: [
-          {
-            key: '200',
-            contentType: 'application/json',
-            value: successName,
-            hasReadonlyProps: false,
-            imports: [],
-            isEnum: false,
-            isRef: true,
-            schemas: [],
-            type: 'object',
-            dependencies: [],
-          },
-        ],
-        errors: [],
-      },
-      contentTypes: ['application/json'],
-      schemas: [],
-      isBlob: false,
-    }) as unknown as GeneratorVerbOptions['response'];
+  const makeResponse = (
+    successName = 'Pets',
+  ): GeneratorVerbOptions['response'] => ({
+    definition: { success: successName, errors: 'Error' },
+    imports: [{ name: successName, schemaName: successName, values: true }],
+    types: {
+      success: [
+        {
+          key: '200',
+          contentType: 'application/json',
+          value: successName,
+          hasReadonlyProps: false,
+          imports: [],
+          isEnum: false,
+          isRef: true,
+          schemas: [],
+          type: 'object',
+          dependencies: [],
+        },
+      ],
+      errors: [],
+    },
+    contentTypes: ['application/json'],
+    schemas: [],
+    isBlob: false,
+  });
 
   const makeVerbOptions = (
-    overrides: Partial<GeneratorVerbOptions> = {},
-  ): GeneratorVerbOptions =>
-    ({
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+  ) =>
+    createTestGeneratorVerbOptions({
       verb: 'get',
       route: '/pets',
       pathRoute: '/pets',
       operationId: 'listPets',
       operationName: 'listPets',
-      doc: '',
-      tags: [],
+      typeName: 'listPets',
       response: makeResponse(),
-      body: {
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
-        contentType: '',
-        isOptional: true,
-        originalSchema: {},
-        isBlob: false,
-      },
-      params: [],
-      props: [],
       override: {
-        formData: { disabled: false, arrayHandling: 'serialize' },
-        formUrlEncoded: false,
         requestOptions: false,
         query: {
           runtimeValidation: { enabled: true, strategy: 'throw' },
           shouldExportHttpClient: true,
-          signal: false,
-          version: 5,
         },
       },
       ...overrides,
-    }) as unknown as GeneratorVerbOptions;
+    });
 
   const makeAngularOptions = (
-    schemas: unknown = { path: './model', type: 'zod' },
+    schemas: string | { path: string; type: 'zod'; splitByTags: boolean } = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    },
   ) =>
-    ({
+    createTestGeneratorOptions({
       route: '/pets',
       pathRoute: '/pets',
-      override: {},
-      output: '',
       context: {
-        target: '',
-        workspace: '',
-        spec: {},
-        output: { schemas, httpClient: 'angular' },
+        output: {
+          schemas: typeof schemas === 'string' ? schemas : schemas,
+          httpClient: OutputHttpClient.ANGULAR,
+        },
       },
-    }) as unknown as GeneratorOptions;
+    });
 
   it('declares the validated response as the zod output alias', () => {
     const implementation = generateAngularHttpRequestFunction(
@@ -1334,11 +1283,39 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
 });
 
 describe('getQueryErrorType with response envelopes', () => {
-  const response = {
+  const errorType = (
+    key: string,
+  ): GeneratorVerbOptions['response']['types']['errors'][number] => ({
+    key,
+    value: key === '404' ? 'NotFound' : 'Invalid',
+    contentType: 'application/json',
+    hasReadonlyProps: false,
+    imports: [],
+    isEnum: false,
+    isRef: false,
+    schemas: [],
+    type: 'object',
+    dependencies: [],
+  });
+
+  const response: GeneratorVerbOptions['response'] = {
+    imports: [],
     definition: { success: 'Pet', errors: 'NotFound | Invalid' },
-    types: { success: [], errors: [{ key: '404' }, { key: '422' }] },
-  } as unknown as GeneratorVerbOptions['response'];
-  const mutator = { hasErrorType: true, default: false } as GeneratorMutator;
+    types: { success: [], errors: [errorType('404'), errorType('422')] },
+    contentTypes: [],
+    isBlob: false,
+    schemas: [],
+  };
+  const mutator = {
+    name: 'customInstance',
+    path: './mutator.ts',
+    default: false,
+    hasErrorType: true,
+    errorTypeName: '',
+    hasSecondArg: false,
+    hasThirdArg: false,
+    isHook: false,
+  } satisfies GeneratorMutator;
 
   it('keeps body unions by default', () => {
     expect(

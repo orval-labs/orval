@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec, type TestOverride } from '../test-utils';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
@@ -27,26 +28,45 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
   required: ['file'],
 };
 
-const context = {
-  output: {
+const context = createTestContextSpec({
+  target: 'spec',
+  override: {
+    formData: { arrayHandling: 'serialize', disabled: false },
+    enumGenerationType: 'const',
+    components: {
+      schemas: { suffix: '', itemSuffix: 'Item' },
+      responses: { suffix: '' },
+      parameters: { suffix: '' },
+      requestBodies: { suffix: 'RequestBody' },
+    },
+  },
+  spec: {
+    components: { schemas: {} },
+  },
+});
+
+const extendContext = ({
+  spec,
+  override,
+}: {
+  spec?: Partial<ContextSpec['spec']>;
+  override?: TestOverride;
+} = {}): ContextSpec =>
+  createTestContextSpec({
+    target: 'spec',
+    spec,
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
-      namingConvention: {},
       components: {
         schemas: { suffix: '', itemSuffix: 'Item' },
         responses: { suffix: '' },
         parameters: { suffix: '' },
         requestBodies: { suffix: 'RequestBody' },
       },
+      ...override,
     },
-  },
-  target: 'spec',
-  workspace: '',
-  spec: {
-    components: { schemas: {} },
-  },
-} as unknown as ContextSpec;
+  });
 
 describe('getResReqTypes (formData, readOnly property)', () => {
   it('should not include readOnly properties in the generated formData', () => {
@@ -124,6 +144,7 @@ describe('getResReqTypes (content type handling)', () => {
         [
           '200',
           {
+            description: 'OK',
             content: {
               'application/octet-stream': { schema: { type: 'string' } },
             },
@@ -132,6 +153,36 @@ describe('getResReqTypes (content type handling)', () => {
       ];
       expect(getResReqTypes(binaryRes, 'Response', context)[0].value).toBe(
         'Blob',
+      );
+    });
+
+    it('types a boolean true schema as unknown', () => {
+      const responses: [string, OpenApiResponseObject][] = [
+        [
+          '200',
+          {
+            description: 'anything',
+            content: { 'application/json': { schema: true } },
+          },
+        ],
+      ];
+      expect(getResReqTypes(responses, 'Response', context)[0].value).toBe(
+        'unknown',
+      );
+    });
+
+    it('types a boolean false schema as never', () => {
+      const responses: [string, OpenApiResponseObject][] = [
+        [
+          '200',
+          {
+            description: 'nothing',
+            content: { 'application/json': { schema: false } },
+          },
+        ],
+      ];
+      expect(getResReqTypes(responses, 'Response', context)[0].value).toBe(
+        'never',
       );
     });
 
@@ -155,6 +206,7 @@ describe('getResReqTypes (content type handling)', () => {
         [
           '200',
           {
+            description: 'OK',
             content: {
               'application/json': {
                 schema: { type: 'string', contentMediaType: 'image/png' },
@@ -191,6 +243,7 @@ describe('getResReqTypes (content type handling)', () => {
         [
           '200',
           {
+            description: 'OK',
             content: {
               '*/*': {
                 schema: { type: 'string' },
@@ -205,8 +258,7 @@ describe('getResReqTypes (content type handling)', () => {
     });
 
     it('wildcard */* with object schema uses schema type', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -220,7 +272,7 @@ describe('getResReqTypes (content type handling)', () => {
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -241,6 +293,7 @@ describe('getResReqTypes (content type handling)', () => {
         [
           '200',
           {
+            description: 'OK',
             content: {
               '*/*': {
                 schema: { $ref: '#/components/schemas/UserProfile' },
@@ -257,8 +310,7 @@ describe('getResReqTypes (content type handling)', () => {
 
   describe('FormData generation (comprehensive)', () => {
     // Context with $ref schemas
-    const ctxWithSchemas: ContextSpec = {
-      ...context,
+    const ctxWithSchemas = extendContext({
       spec: {
         components: {
           schemas: {
@@ -274,7 +326,7 @@ describe('getResReqTypes (content type handling)', () => {
           },
         },
       },
-    };
+    });
 
     // Comprehensive schema covering: encoding, contentMediaType, octet-stream,
     // base64, object fields, wildcard, arrays, nested properties, $ref
@@ -535,7 +587,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                   properties: {
                     petId: { type: 'string' },
                     tags: {
-                      type: ['array', 'null'] as unknown as 'array',
+                      type: ['array', 'null'],
                       items: {
                         type: 'object',
                         required: ['tagId', 'label'],
@@ -616,8 +668,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
     // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
     it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -630,7 +681,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -736,8 +787,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     // at the root of a request body (common with @nestjs/swagger or
     // zod-to-openapi for versioned request schemas).
     it('oneOf with a single $ref: FormData variable derives from the DTO name', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -755,7 +805,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -787,8 +837,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('oneOf with 2 $refs: FormData uses a runtime Object.entries loop', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -820,7 +869,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -863,8 +912,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('allOf: FormData still emits per-field appends (no regression)', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -876,7 +924,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -926,8 +974,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // schema is a $ref to a wrapper that itself is only `allOf: [$ref]`
       // one level deeper than the already-covered "allOf: FormData still
       // emits per-field appends" case above.
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -947,7 +994,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -984,8 +1031,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('nested allOf property ($ref -> allOf -> $ref -> allOf string): doesnt JSON.stringifies the field', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1001,7 +1047,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1034,8 +1080,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('array property whose items are a pure allOf wrapper (no explicit type: object): JSON.stringifies each item', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1050,7 +1095,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1087,15 +1132,8 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('array property whose items are a pure allOf wrapper, EXPLODE arrayHandling: appends the nested item properties', () => {
-      const ctx: ContextSpec = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            formData: { arrayHandling: 'explode', disabled: false },
-          },
-        },
+      const ctx = extendContext({
+        override: { formData: { arrayHandling: 'explode', disabled: false } },
         spec: {
           components: {
             schemas: {
@@ -1109,7 +1147,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      } as unknown as ContextSpec;
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1152,17 +1190,12 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
         items: OpenApiSchemaObject | OpenApiReferenceObject,
         schemas: Record<string, OpenApiSchemaObject> = {},
       ) => {
-        const ctx = {
-          ...context,
-          output: {
-            ...context.output,
-            override: {
-              ...context.output.override,
-              formData: { arrayHandling, disabled: false },
-            },
+        const ctx = extendContext({
+          override: {
+            formData: { arrayHandling, disabled: false },
           },
           spec: { components: { schemas } },
-        } as unknown as ContextSpec;
+        });
 
         const reqBody: [string, OpenApiRequestBodyObject][] = [
           [
@@ -1254,7 +1287,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
           { additionalProperties: { type: 'string' } },
           { allOf: [{ type: 'object' }] },
           { type: 'array', items: { type: 'string' } },
-        ] as OpenApiSchemaObject[]) {
+        ] satisfies OpenApiSchemaObject[]) {
           expect(getTagsFormData('explode', items)).toContain(
             'createTagsRequestBody.tags.forEach((value, index) => formData.append(`tags[${index}]`, JSON.stringify(value)));',
           );
@@ -1265,7 +1298,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
         const formData = getTagsFormData('explode', {
           type: ['object', 'null'],
           properties: { name: { type: 'string' } },
-        } as OpenApiSchemaObject);
+        } satisfies OpenApiSchemaObject);
 
         expect(formData).toContain(
           'if (value !== null && value !== undefined) {',
@@ -1274,8 +1307,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('allOf wrapping a non-object schema: must not JSON.stringify a scalar value', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1289,7 +1321,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1338,15 +1370,8 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // properties — a wrapper schema that is *only* `allOf: [$ref]` has
       // no properties of its own, so naively recursing on it directly
       // silently drops the whole field instead of emitting its nested keys.
-      const ctx: ContextSpec = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            formData: { arrayHandling: 'explode', disabled: false },
-          },
-        },
+      const ctx = extendContext({
+        override: { formData: { arrayHandling: 'explode', disabled: false } },
         spec: {
           components: {
             schemas: {
@@ -1363,7 +1388,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1412,15 +1437,8 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // test above doesn't exercise recursion depth or required-merging
       // together; this one does, for the arrayHandling mode most likely
       // to expose a shallow (non-recursive) properties/required read.
-      const ctx: ContextSpec = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            formData: { arrayHandling: 'explode', disabled: false },
-          },
-        },
+      const ctx = extendContext({
+        override: { formData: { arrayHandling: 'explode', disabled: false } },
         spec: {
           components: {
             schemas: {
@@ -1466,7 +1484,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1522,8 +1540,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('oneOf alongside direct properties: loop skips direct keys to avoid duplicate appends', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1546,7 +1563,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1595,8 +1612,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('oneOf with an optional body: FormData guards against undefined', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1612,7 +1628,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1642,8 +1658,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
 
     it('oneOf with an array of binary files: FormData appends Blob items directly', () => {
-      const ctx: ContextSpec = {
-        ...context,
+      const ctx = extendContext({
         spec: {
           components: {
             schemas: {
@@ -1675,7 +1690,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
             },
           },
         },
-      };
+      });
 
       const reqBody: [string, OpenApiRequestBodyObject][] = [
         [
@@ -1713,8 +1728,7 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
 
 describe('getResReqTypes ($ref response without content)', () => {
   it('should not crash when a $ref response has no content property', () => {
-    const ctxWithResponses: ContextSpec = {
-      ...context,
+    const ctxWithResponses = extendContext({
       spec: {
         components: {
           schemas: {},
@@ -1725,7 +1739,7 @@ describe('getResReqTypes ($ref response without content)', () => {
           },
         },
       },
-    };
+    });
 
     const responses: [
       string,
@@ -1738,6 +1752,76 @@ describe('getResReqTypes ($ref response without content)', () => {
     expect(result[0].value).toBe('Ok');
     expect(result[0].isRef).toBe(true);
     expect(result[0].originalSchema).toBeUndefined();
+  });
+});
+
+describe('getResReqTypes ($ref request body required default)', () => {
+  const noteSchema = {
+    type: 'object' as const,
+    properties: {
+      note: { type: 'string' as const },
+    },
+    required: ['note'],
+  };
+
+  const ctx = extendContext({
+    spec: {
+      components: {
+        requestBodies: {
+          UploadBody: {
+            content: {
+              'multipart/form-data': { schema: noteSchema },
+            },
+          },
+          RequiredUploadBody: {
+            content: {
+              'multipart/form-data': { schema: noteSchema },
+            },
+            required: true,
+          },
+          UrlEncodedBody: {
+            content: {
+              'application/x-www-form-urlencoded': { schema: noteSchema },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  it('treats a $ref multipart body as optional when required is omitted', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      ['requestBody', { $ref: '#/components/requestBodies/UploadBody' }],
+    ];
+
+    const formData = getResReqTypes(reqBody, 'Upload', ctx)[0]?.formData;
+
+    expect(formData).toEqual(expect.stringMatching(/\?\.note/));
+  });
+
+  it('keeps a $ref multipart body required when required is true', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      [
+        'requestBody',
+        { $ref: '#/components/requestBodies/RequiredUploadBody' },
+      ],
+    ];
+
+    const formData = getResReqTypes(reqBody, 'Upload', ctx)[0]?.formData;
+
+    expect(formData).toEqual(expect.stringContaining('.note'));
+    expect(formData).not.toEqual(expect.stringMatching(/\?\.note/));
+  });
+
+  it('treats a $ref url-encoded body as optional when required is omitted', () => {
+    const reqBody: [string, OpenApiReferenceObject][] = [
+      ['requestBody', { $ref: '#/components/requestBodies/UrlEncodedBody' }],
+    ];
+
+    const formUrlEncoded = getResReqTypes(reqBody, 'Upload', ctx)[0]
+      ?.formUrlEncoded;
+
+    expect(formUrlEncoded).toEqual(expect.stringMatching(/\?\.note/));
   });
 });
 
@@ -1787,10 +1871,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
   };
 
   const ctxWith = (schemas: Record<string, OpenApiSchemaObject>): ContextSpec =>
-    ({
-      ...context,
-      spec: { components: { schemas } },
-    }) as unknown as ContextSpec;
+    extendContext({ spec: { components: { schemas } } });
 
   describe('isEffectivelyObjectSchema', () => {
     it('true for an explicit type: object', () => {
@@ -1799,10 +1880,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
 
     it('true for a type array that includes object', () => {
       expect(
-        isEffectivelyObjectSchema(
-          { type: ['object', 'null'] as unknown as 'object' },
-          context,
-        ),
+        isEffectivelyObjectSchema({ type: ['object', 'null'] }, context),
       ).toBe(true);
     });
 
@@ -1878,16 +1956,10 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
         SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
       });
       expect(() =>
-        isEffectivelyObjectSchema(
-          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
-          ctx,
-        ),
+        isEffectivelyObjectSchema(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).not.toThrow();
       expect(
-        isEffectivelyObjectSchema(
-          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
-          ctx,
-        ),
+        isEffectivelyObjectSchema(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).toBe(false);
     });
   });
@@ -1953,9 +2025,9 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
         allOf: [{ $ref: '#/components/schemas/Base' }],
         properties: { a: { type: 'string', description: 'override' } },
       };
+      const property = collectPropertiesThroughAllOf(wrapper, ctx).a;
       expect(
-        (collectPropertiesThroughAllOf(wrapper, ctx).a as OpenApiSchemaObject)
-          .description,
+        typeof property === 'object' ? property.description : undefined,
       ).toBe('override');
     });
 
@@ -1965,7 +2037,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
       });
       expect(() =>
         collectPropertiesThroughAllOf(
-          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
+          ctx.spec.components!.schemas!.SelfRef,
           ctx,
         ),
       ).not.toThrow();
@@ -2020,10 +2092,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
         SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
       });
       expect(() =>
-        collectRequiredThroughAllOf(
-          ctx.spec.components!.schemas!.SelfRef as OpenApiSchemaObject,
-          ctx,
-        ),
+        collectRequiredThroughAllOf(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).not.toThrow();
     });
   });

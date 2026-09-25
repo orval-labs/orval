@@ -1,45 +1,37 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type {
-  ContextSpec,
-  GetterQueryParam,
-  OpenApiReferenceObject,
-  OpenApiRequestBodyObject,
-} from '../types';
+import {
+  createTestContextSpec,
+  createTestGeneratorVerbOptions,
+} from '../test-utils';
+import type { GetterQueryParam } from '../types';
 import { getProps } from './props';
 
 describe('getProps', () => {
   it('should make props required when optionsParamRequired is true', () => {
-    const context: ContextSpec = {
+    const context = createTestContextSpec({
       output: {
         optionsParamRequired: true,
         allParamsOptional: true,
-        override: {},
       },
-    } as ContextSpec;
+    });
 
-    const queryParams: GetterQueryParam = {
+    const queryParams = {
       schema: {
         name: 'ListPetsParams',
+        model: '',
+        imports: [],
       },
+      deps: [],
       isOptional: true,
-    } as GetterQueryParam;
+    } satisfies GetterQueryParam;
 
     const props = getProps({
       context,
       queryParams,
       operationName: 'listPets',
       params: [],
-      body: {
-        implementation: '',
-        definition: '',
-        isOptional: true,
-        isBlob: false,
-        originalSchema: {} as OpenApiReferenceObject | OpenApiRequestBodyObject,
-        imports: [],
-        schemas: [],
-        contentType: '',
-      },
+      body: createTestGeneratorVerbOptions().body,
     });
 
     expect(props).toHaveLength(1);
@@ -49,36 +41,29 @@ describe('getProps', () => {
     expect(props[0].required).toBe(true);
   });
   it('should use raw param type for query params definition when client is angular', () => {
-    const context: ContextSpec = {
+    const context = createTestContextSpec({
       output: {
         client: 'angular',
         allParamsOptional: false,
-        override: {},
       },
-    } as ContextSpec;
+    });
 
-    const queryParams: GetterQueryParam = {
+    const queryParams = {
       schema: {
         name: 'ListPetsParams',
+        model: '',
+        imports: [],
       },
+      deps: [],
       isOptional: false,
-    } as GetterQueryParam;
+    } satisfies GetterQueryParam;
 
     const props = getProps({
       context,
       queryParams,
       operationName: 'listPets',
       params: [],
-      body: {
-        implementation: '',
-        definition: '',
-        isOptional: true,
-        isBlob: false,
-        originalSchema: {} as OpenApiReferenceObject | OpenApiRequestBodyObject,
-        imports: [],
-        schemas: [],
-        contentType: '',
-      },
+      body: createTestGeneratorVerbOptions().body,
     });
 
     expect(props).toHaveLength(1);
@@ -89,15 +74,15 @@ describe('getProps', () => {
   });
 
   it('should preserve null defaults for named path parameters', () => {
-    const context: ContextSpec = {
+    const context = createTestContextSpec({
       output: {
         optionsParamRequired: false,
         allParamsOptional: false,
-        override: {
-          useNamedParameters: true,
-        },
       },
-    } as ContextSpec;
+      override: {
+        useNamedParameters: true,
+      },
+    });
 
     const props = getProps({
       context,
@@ -113,16 +98,7 @@ describe('getProps', () => {
           imports: [],
         },
       ],
-      body: {
-        implementation: '',
-        definition: '',
-        isOptional: true,
-        isBlob: false,
-        originalSchema: {} as OpenApiReferenceObject | OpenApiRequestBodyObject,
-        imports: [],
-        schemas: [],
-        contentType: '',
-      },
+      body: createTestGeneratorVerbOptions().body,
     });
 
     expect(props).toHaveLength(1);

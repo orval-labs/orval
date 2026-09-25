@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
+import { createTestContextSpec } from '../test-utils';
 import { EnumGeneration, type OpenApiParameterObject } from '../types';
 import { getParameters } from './parameters';
 import { getQueryParams } from './query-params';
@@ -162,7 +162,6 @@ describe('getQueryParams getter', () => {
               type: 'integer',
               enum: [0, 1, 2],
             },
-            // @ts-expect-error vendor extension
             'x-enum-varnames': [
               'SORT_BY_UNSPECIFIED',
               'SORT_BY_START',

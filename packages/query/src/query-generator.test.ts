@@ -5,7 +5,7 @@ import type {
   GetterProps,
   OutputClient,
 } from '@orval/core';
-import { Verbs } from '@orval/core';
+import { GetterPropType, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createFrameworkAdapter } from './frameworks';
@@ -401,10 +401,37 @@ describe('getSuppressedInfiniteQueryWarning', () => {
 
 describe('wrapPropsBodyWithMutatorBodyType', () => {
   const mutatorWithBodyType = {
+    name: 'customMutator',
+    path: './mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: false,
+    hasThirdArg: false,
+    isHook: false,
     bodyTypeName: 'BodyType',
-  } as unknown as GeneratorMutator;
+  } satisfies GeneratorMutator;
+  const mutatorWithoutBodyType = {
+    name: 'customMutator',
+    path: './mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: false,
+    hasThirdArg: false,
+    isHook: false,
+  } satisfies GeneratorMutator;
   const bodyOf = (definition: string): GetterBody =>
-    ({ definition }) as unknown as GetterBody;
+    ({
+      definition,
+      originalSchema: { content: {} },
+      imports: [],
+      implementation: '',
+      schemas: [],
+      contentType: '',
+      isOptional: true,
+      isBlob: false,
+    }) satisfies GetterBody;
 
   it('returns propsString unchanged when mutator is undefined', () => {
     expect(
@@ -421,7 +448,7 @@ describe('wrapPropsBodyWithMutatorBodyType', () => {
       wrapPropsBodyWithMutatorBodyType({
         propsString: 'createPetsBody: CreatePetsBody',
         body: bodyOf('CreatePetsBody'),
-        mutator: {} as unknown as GeneratorMutator,
+        mutator: mutatorWithoutBodyType,
       }),
     ).toBe('createPetsBody: CreatePetsBody');
   });
@@ -575,8 +602,27 @@ describe('allowUndefinedParam', () => {
     expect(
       wrapPropsBodyWithMutatorBodyType({
         propsString: widened,
-        body: { definition: 'CreatePetsBody' } as unknown as GetterBody,
-        mutator: { bodyTypeName: 'BodyType' } as unknown as GeneratorMutator,
+        body: {
+          definition: 'CreatePetsBody',
+          originalSchema: { content: {} },
+          imports: [],
+          implementation: '',
+          schemas: [],
+          contentType: '',
+          isOptional: true,
+          isBlob: false,
+        } satisfies GetterBody,
+        mutator: {
+          name: 'customMutator',
+          path: './mutator.ts',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+          bodyTypeName: 'BodyType',
+        } satisfies GeneratorMutator,
       }),
     ).toBe('createPetsBody: BodyType<CreatePetsBody> | undefined');
   });
@@ -590,8 +636,8 @@ describe('widenOptionalPropsToUndefined', () => {
       implementation,
       default: false,
       required: false,
-      type: 'param',
-    }) as unknown as GetterProps[number];
+      type: GetterPropType.PARAM,
+    }) satisfies GetterProps[number];
 
   it('widens an optional prop on the requested field only', () => {
     const [widened] = widenOptionalPropsToUndefined(

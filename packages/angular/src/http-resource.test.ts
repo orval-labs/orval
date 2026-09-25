@@ -10,6 +10,8 @@ import type {
 import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
+
 import {
   getHttpClientReturnTypes,
   resetHttpClientReturnTypes,
@@ -259,7 +261,7 @@ const baseResponse = (
     isBlob: false,
     schemas: [],
     ...overrides,
-  }) as GeneratorVerbOptions['response'];
+  }) satisfies GeneratorVerbOptions['response'];
 
 const createVerbOption = (
   overrides: Partial<GeneratorVerbOptions> = {},
@@ -280,7 +282,7 @@ const createVerbOption = (
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: { type: 'object' },
+      originalSchema: { content: {} },
       contentType: '',
       formData: '',
       formUrlEncoded: '',
@@ -315,17 +317,18 @@ const createVerbOption = (
     paramsSerializer: undefined,
     fetchReviver: undefined,
     override: {
+      ...createTestContextSpec().output.override,
       requestOptions: true,
       formData: { disabled: true, arrayHandling: 'serialize' },
       formUrlEncoded: true,
       paramsSerializerOptions: undefined,
       operations: {},
       angular: angularOverride('httpResource'),
-    } as GeneratorVerbOptions['override'],
+    },
     deprecated: false,
-    originalOperation: {} as GeneratorVerbOptions['originalOperation'],
+    originalOperation: {},
     ...overrides,
-  } as GeneratorVerbOptions;
+  } satisfies GeneratorVerbOptions;
 };
 
 /**
@@ -678,7 +681,7 @@ describe('angular httpResource generator', () => {
           definition: bodyName,
           imports: [{ name: bodyName }],
           schemas: [],
-          originalSchema: { type: 'object' },
+          originalSchema: { content: {} },
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
@@ -1523,7 +1526,7 @@ describe('angular httpResource generator', () => {
               ...angularOverride('httpResource'),
               queryObjectSerialization: 'legacy',
             },
-          } as GeneratorVerbOptions['override'],
+          },
         });
         routeRegistry.set('searchCatalog', '/api/catalog-items');
 
@@ -2231,7 +2234,7 @@ describe('angular httpResource generator', () => {
           definition: 'searchPetsBody: SearchPetsBody',
           imports: [],
           schemas: [],
-          originalSchema: { type: 'object' },
+          originalSchema: { content: {} },
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
@@ -2759,10 +2762,13 @@ describe('angular httpResource generator', () => {
           operations: {
             ...baseVerbOption.override.operations,
             searchPets: {
-              angular: { client: 'httpResource' },
+              angular: {
+                ...baseVerbOption.override.angular,
+                client: 'httpResource',
+              },
             },
           },
-        } as unknown as GeneratorVerbOptions['override'],
+        },
         body: {
           implementation: 'searchPetsBody',
           definition: 'SearchPetsBody',
@@ -3249,7 +3255,7 @@ describe('angular httpResource generator', () => {
             },
           },
           angular: angularOverride('httpResource', true),
-        } as GeneratorVerbOptions['override'],
+        },
       });
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
@@ -3878,10 +3884,10 @@ describe('angular httpResource generator', () => {
             type: GetterPropType.QUERY_PARAM,
           },
         ],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'ListPetsParams', model: '', imports: [] },
           isOptional: false,
-        } as unknown as GeneratorVerbOptions['queryParams'],
+        }),
         response: baseResponse({
           imports: [{ name: 'Pets' }],
           definition: { success: 'Pets', errors: 'Error' },
@@ -4401,7 +4407,7 @@ describe('angular httpResource generator', () => {
           definition: 'SearchPetsBody',
           imports: [],
           schemas: [],
-          originalSchema: { type: 'object' },
+          originalSchema: { content: {} },
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
@@ -4494,7 +4500,7 @@ describe('angular httpResource generator', () => {
           definition: 'CreatePetBody',
           imports: [],
           schemas: [],
-          originalSchema: { type: 'object' },
+          originalSchema: { content: {} },
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',

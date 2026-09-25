@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
+import { createTestContextSpec } from '../test-utils';
 import type { OpenApiDocument } from '../types';
 import {
   buildDynamicScope,
@@ -10,7 +10,7 @@ import {
   resolveDynamicRef,
 } from './ref';
 
-function createContext(spec: OpenApiDocument) {
+function createContext(spec: Partial<OpenApiDocument>) {
   return createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
@@ -21,7 +21,7 @@ function createContext(spec: OpenApiDocument) {
 
 describe('buildDynamicScope', () => {
   it('builds scope from top-level $dynamicAnchor (Pattern A)', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -38,7 +38,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -56,7 +56,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('builds scope from $defs $dynamicAnchor with $ref (Pattern B)', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -78,7 +78,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -93,7 +93,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('returns empty scope for schema without $dynamicAnchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -103,7 +103,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -116,7 +116,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('combines top-level and $defs anchors', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -132,7 +132,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -151,7 +151,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('ignores $defs entries without $dynamicAnchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -163,7 +163,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -178,7 +178,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('creates parameter entry for $defs with $dynamicAnchor but no $ref', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -189,7 +189,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -204,7 +204,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('only binds own $dynamicAnchor, not sibling schemas', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -222,7 +222,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -236,7 +236,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('does not bind anchors from other schemas', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -254,7 +254,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -268,7 +268,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('does not overwrite own anchor with sibling', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -282,7 +282,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -295,7 +295,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('does not overwrite $defs anchor with sibling', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -314,7 +314,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -327,7 +327,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('normalizes dynamic anchor targets with generated type names', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -337,7 +337,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -353,7 +353,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('escapes ~ and / in schema names for JSON Pointer refs', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -363,7 +363,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -377,7 +377,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('returns empty scope for schemas without $dynamicAnchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -394,7 +394,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -407,7 +407,7 @@ describe('buildDynamicScope', () => {
   });
 
   it('skips $defs entries with non-schema component refs', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -423,7 +423,7 @@ describe('buildDynamicScope', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -438,7 +438,7 @@ describe('buildDynamicScope', () => {
 
 describe('resolveDynamicRef', () => {
   it('resolves to the concrete type from dynamicScope', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -449,7 +449,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -471,10 +471,10 @@ describe('resolveDynamicRef', () => {
   });
 
   it('returns unknown when anchor is not in scope', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: { schemas: {} },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const result = resolveDynamicRef('missing', context);
@@ -483,10 +483,10 @@ describe('resolveDynamicRef', () => {
   });
 
   it('returns unknown when dynamicScope is undefined', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: { schemas: {} },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const result = resolveDynamicRef('category', context);
@@ -495,7 +495,7 @@ describe('resolveDynamicRef', () => {
   });
 
   it('resolves to User from generic pagination scope', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -505,7 +505,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: { itemType: { name: 'User', schemaName: 'User' } },
@@ -518,7 +518,7 @@ describe('resolveDynamicRef', () => {
   });
 
   it('resolves normalized dynamic scope entries using original schema names', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -528,7 +528,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -549,7 +549,7 @@ describe('resolveDynamicRef', () => {
   });
 
   it('escapes ~ and / in schemaName when resolving dynamic ref', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -559,7 +559,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -576,7 +576,7 @@ describe('resolveDynamicRef', () => {
   });
 
   it('resolves self-referencing schema with own anchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -589,7 +589,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -604,7 +604,7 @@ describe('resolveDynamicRef', () => {
   });
 
   it('merges resolved imports with pre-existing imports', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -614,7 +614,7 @@ describe('resolveDynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -635,7 +635,7 @@ describe('resolveDynamicRef', () => {
 
 describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
   it('falls back to $dynamicAnchor in another schema when not in scope', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -655,7 +655,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const result = resolveDynamicRef('Pet', context);
@@ -671,7 +671,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
   });
 
   it('returns unknown when multiple schemas share the same anchor and none matches by name', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -687,7 +687,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const result = resolveDynamicRef('node', context);
@@ -697,7 +697,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
   });
 
   it('still returns unknown when no schema declares the anchor anywhere', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -707,7 +707,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const result = resolveDynamicRef('Pet', context);
@@ -717,7 +717,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
   });
 
   it('prefers local scope over fallback', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -733,7 +733,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -750,7 +750,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
   });
 
   it('falls back when dynamicScope is undefined', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -761,7 +761,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const result = resolveDynamicRef('Pet', context);
@@ -772,7 +772,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
 
 describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
   it('builds the index once and reuses it on subsequent calls', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -783,7 +783,7 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     resolveDynamicRef('Pet', context);
@@ -807,14 +807,14 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
   });
 
   it('does not populate the index when dynamicScope already resolves the anchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
           Pet: { $dynamicAnchor: 'Pet', type: 'object' },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: { Pet: { name: 'LocalPet', schemaName: 'Pet' } },
@@ -830,7 +830,7 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
     // Regression guard for the literal "bail when count === 2" short-circuit
     // proposed in #3479: two non-exact matches arrive first, then the
     // exact-name schema. Resolution must still pick the exact name.
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -843,7 +843,7 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const result = resolveDynamicRef('node', context);
@@ -859,14 +859,14 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
   });
 
   it('getDynamicAnchorIndex returns an empty index when no schemas declare an anchor', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
           Unrelated: { type: 'object' },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = { ...createContext(spec), dynamicScope: {} };
 
     const index = getDynamicAnchorIndex(context);
@@ -877,15 +877,20 @@ describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
 
 describe('null safety in $defs entries', () => {
   it('buildDynamicScope skips null $defs entries without throwing', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
           User: { type: 'object', properties: { id: { type: 'string' } } },
           Container: {
             $defs: {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              bad: null as unknown as Record<string, unknown>,
+              // `null` is not a legal $defs value. A JSON Schema must be an object
+              // or a boolean, and each $defs member must be a valid JSON Schema.
+              // OpenAPI 3.1 Schema Objects use that dialect.
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
+              // @ts-expect-error — null is not a legal $defs value
+              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
               good: {
                 $dynamicAnchor: 'itemType',
                 $ref: '#/components/schemas/User',
@@ -895,7 +900,7 @@ describe('null safety in $defs entries', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -908,21 +913,26 @@ describe('null safety in $defs entries', () => {
   });
 
   it('buildDynamicScope skips null $defs entries alongside parameter anchors', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
           Container: {
             $defs: {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              bad: null as unknown as Record<string, unknown>,
+              // `null` is not a legal $defs value. A JSON Schema must be an object
+              // or a boolean, and each $defs member must be a valid JSON Schema.
+              // OpenAPI 3.1 Schema Objects use that dialect.
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
+              // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
+              // @ts-expect-error — null is not a legal $defs value
+              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
               param: { $dynamicAnchor: 'node', type: 'string' },
             },
             type: 'object',
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -939,7 +949,7 @@ describe('null safety in $defs entries', () => {
   });
 
   it('deduplicates colliding unbound anchor names in buildDynamicScope', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -952,7 +962,7 @@ describe('null safety in $defs entries', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const scope = buildDynamicScope(
@@ -1063,7 +1073,7 @@ describe('buildInlineDynamicScope', () => {
 
 describe('resolveDynamicRef — inline overrides', () => {
   it('returns the inline schema when the scope entry carries one', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -1074,7 +1084,7 @@ describe('resolveDynamicRef — inline overrides', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const inlineSchema = {
       $dynamicAnchor: 'Pet',
       type: 'object',
@@ -1093,7 +1103,7 @@ describe('resolveDynamicRef — inline overrides', () => {
   });
 
   it('prefers the inline schema over a same-named component', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -1104,7 +1114,7 @@ describe('resolveDynamicRef — inline overrides', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const inlineSchema = {
       type: 'object',
       properties: { purr: { type: 'boolean' } },

@@ -1,28 +1,40 @@
 import { type ContextSpec, OutputMode, OutputMockType } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../../../core/src/test-utils';
+import type { MockSchema } from '../../types';
 import {
   extractArrayItemMock,
   getArrayItemMockFileScope,
   shouldExtractArrayItemFactories,
 } from './array-item-factory';
 
+function mockSchema(schema: Record<string, unknown>): MockSchema {
+  return schema as MockSchema;
+}
+
+function extract(
+  args: Omit<Parameters<typeof extractArrayItemMock>[0], 'items'> & {
+    items: Record<string, unknown>;
+  },
+) {
+  return extractArrayItemMock({ ...args, items: mockSchema(args.items) });
+}
+
 const createContextWithArrayItems = (
   mode: OutputMode = OutputMode.SINGLE,
-): ContextSpec =>
-  ({
-    activeMockOutputType: OutputMockType.FAKER,
+): ContextSpec => ({
+  ...createTestContextSpec({
     output: {
       mode,
       mock: {
         generators: [{ type: 'faker', arrayItems: true }],
       },
-      override: {
-        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-      },
+    },
+    override: {
+      components: { schemas: { suffix: '', itemSuffix: 'Item' } },
     },
     spec: {
-      openapi: '3.1.0',
       components: {
         schemas: {
           TenantResponseModelDto: {
@@ -35,18 +47,20 @@ const createContextWithArrayItems = (
         },
       },
     },
-  }) as unknown as ContextSpec;
+  }),
+  activeMockOutputType: OutputMockType.FAKER,
+});
 
-const contextWithoutArrayItems = {
+const contextWithoutArrayItems = createTestContextSpec({
   output: {
     mock: {
       generators: [{ type: 'faker' }],
     },
-    override: {
-      components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-    },
   },
-} as unknown as ContextSpec;
+  override: {
+    components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+  },
+});
 
 const mapValue =
   '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}';
@@ -74,13 +88,13 @@ describe('shouldExtractArrayItemFactories', () => {
   });
 
   it('returns true when arrayItems is enabled on an MSW-only generator', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         mock: {
           generators: [{ type: 'msw', arrayItems: true }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     expect(shouldExtractArrayItemFactories(context)).toBe(true);
   });
@@ -97,7 +111,7 @@ describe('extractArrayItemMock', () => {
     const splitMockImplementations: string[] = [];
     const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -121,17 +135,16 @@ describe('extractArrayItemMock', () => {
 
   it('extracts a reusable factory for $ref array items with an MSW generator', () => {
     const splitMockImplementations: string[] = [];
-    const context = {
+    const context = createTestContextSpec({
       output: {
         mock: {
           generators: [{ type: 'msw', arrayItems: true }],
         },
-        override: {
-          components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-        },
+      },
+      override: {
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
       },
       spec: {
-        openapi: '3.1.0',
         components: {
           schemas: {
             TenantResponseModelDto: {
@@ -144,9 +157,9 @@ describe('extractArrayItemMock', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -166,7 +179,7 @@ describe('extractArrayItemMock', () => {
   it('extracts a reusable factory for inline object array items', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         type: 'object',
         properties: {
@@ -197,7 +210,7 @@ describe('extractArrayItemMock', () => {
     const context = createContextWithArrayItems();
     const splitMockImplementations: string[] = [];
 
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -207,7 +220,7 @@ describe('extractArrayItemMock', () => {
       splitMockImplementations,
       imports: [],
     });
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'items',
       operationId: 'getTenantsByRef',
@@ -226,7 +239,7 @@ describe('extractArrayItemMock', () => {
     const splitMockImplementationsA: string[] = [];
     const splitMockImplementationsB: string[] = [];
 
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsA',
@@ -236,7 +249,7 @@ describe('extractArrayItemMock', () => {
       splitMockImplementations: splitMockImplementationsA,
       imports: [],
     });
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsB',
@@ -261,7 +274,7 @@ describe('extractArrayItemMock', () => {
     context.activeMockOutputType = OutputMockType.MSW;
     const splitMockImplementationsMsw: string[] = [];
 
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -275,7 +288,7 @@ describe('extractArrayItemMock', () => {
     context.activeMockOutputType = OutputMockType.FAKER;
     const splitMockImplementationsFaker: string[] = [];
 
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -295,7 +308,7 @@ describe('extractArrayItemMock', () => {
     const splitMockImplementationsAlpha: string[] = [];
     const splitMockImplementationsBeta: string[] = [];
 
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getA',
@@ -305,7 +318,7 @@ describe('extractArrayItemMock', () => {
       splitMockImplementations: splitMockImplementationsAlpha,
       imports: [],
     });
-    extractArrayItemMock({
+    extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getB',
@@ -333,7 +346,7 @@ describe('extractArrayItemMock', () => {
   it('skips primitive array items', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { type: 'string' },
       propertyName: 'tags',
       operationId: 'getTenants',
@@ -351,7 +364,7 @@ describe('extractArrayItemMock', () => {
   it('skips when the value already delegates to a factory', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',
@@ -369,7 +382,7 @@ describe('extractArrayItemMock', () => {
   it('does not treat nested factory calls as already delegating', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         type: 'object',
         properties: {
@@ -394,8 +407,16 @@ describe('extractArrayItemMock', () => {
 
   it('skips $ref array items that resolve to scalar schemas', () => {
     const splitMockImplementations: string[] = [];
-    const context = {
-      ...createContextWithArrayItems(),
+    const context = createTestContextSpec({
+      output: {
+        mode: OutputMode.SINGLE,
+        mock: {
+          generators: [{ type: 'faker', arrayItems: true }],
+        },
+      },
+      override: {
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
       spec: {
         components: {
           schemas: {
@@ -403,9 +424,9 @@ describe('extractArrayItemMock', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { $ref: '#/components/schemas/Name' },
       propertyName: 'names',
       operationId: 'getNames',
@@ -423,7 +444,7 @@ describe('extractArrayItemMock', () => {
   it('skips oneOf array items', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         oneOf: [
           { $ref: '#/components/schemas/Cat' },
@@ -446,7 +467,7 @@ describe('extractArrayItemMock', () => {
   it('skips nullable object array items', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         type: ['object', 'null'],
         properties: { id: { type: 'string' } },
@@ -467,7 +488,7 @@ describe('extractArrayItemMock', () => {
   it('skips nested inline array items when parentName is not the response wrapper', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         type: 'object',
         properties: { a: { type: 'string' } },
@@ -489,7 +510,7 @@ describe('extractArrayItemMock', () => {
   it('still extracts inline allOf object array items', () => {
     const splitMockImplementations: string[] = [];
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: {
         allOf: [
           {
@@ -517,7 +538,7 @@ describe('extractArrayItemMock', () => {
       const splitMockImplementations: string[] = [];
       const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
 
-      const call = extractArrayItemMock({
+      const call = extract({
         items: {
           type: 'object',
           properties: {
@@ -552,7 +573,7 @@ describe('extractArrayItemMock', () => {
       const splitMockImplementations: string[] = [];
       const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
 
-      const call = extractArrayItemMock({
+      const call = extract({
         items: {
           type: 'object',
           properties: { id: { type: 'string' } },
@@ -575,7 +596,7 @@ describe('extractArrayItemMock', () => {
       const splitMockImplementations: string[] = [];
       const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
 
-      const call = extractArrayItemMock({
+      const call = extract({
         items: {
           type: 'object',
           properties: {
@@ -607,7 +628,7 @@ describe('extractArrayItemMock', () => {
         typeof extractArrayItemMock
       >[0]['imports'] = [];
 
-      const callUnion = extractArrayItemMock({
+      const callUnion = extract({
         items: {
           oneOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
         },
@@ -629,7 +650,7 @@ describe('extractArrayItemMock', () => {
         typeof extractArrayItemMock
       >[0]['imports'] = [];
 
-      const callReadonly = extractArrayItemMock({
+      const callReadonly = extract({
         items: {
           type: 'object',
           properties: { a: { type: 'string' } },
@@ -652,7 +673,7 @@ describe('extractArrayItemMock', () => {
       const splitMockImplementations: string[] = [];
       const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
 
-      const call = extractArrayItemMock({
+      const call = extract({
         items: {
           allOf: [
             { $ref: '#/components/schemas/A' },
@@ -679,7 +700,7 @@ describe('extractArrayItemMock', () => {
         const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
           [];
 
-        const call = extractArrayItemMock({
+        const call = extract({
           items: {
             type: 'object',
             properties: {
@@ -711,7 +732,7 @@ describe('extractArrayItemMock', () => {
         const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
           [];
 
-        const call = extractArrayItemMock({
+        const call = extract({
           items: {
             type: 'object',
             properties: {
@@ -738,7 +759,7 @@ describe('extractArrayItemMock', () => {
         const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
           [];
 
-        const call = extractArrayItemMock({
+        const call = extract({
           items: {
             type: 'object',
             properties: { a: { type: 'string' } },
@@ -761,19 +782,19 @@ describe('extractArrayItemMock', () => {
 
   it('skips $ref components/schemas items when schemas: true emits consolidated factories', () => {
     const splitMockImplementations: string[] = [];
-    const contextWithSchemas = {
+    const contextWithSchemas = createTestContextSpec({
       output: {
         schemas: './model',
         mock: {
           generators: [{ type: 'faker', arrayItems: true, schemas: true }],
         },
-        override: {
-          components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-        },
       },
-    } as unknown as ContextSpec;
+      override: {
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
+    });
 
-    const call = extractArrayItemMock({
+    const call = extract({
       items: { $ref: '#/components/schemas/TenantResponseModelDto' },
       propertyName: 'value',
       operationId: 'getTenantsByRef',

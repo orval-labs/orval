@@ -1,11 +1,26 @@
 /* eslint-disable unicorn/no-null */
-import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
+import type { ContextSpec, OpenApiPrimitiveSchemaType } from '@orval/core';
 import { EnumGeneration, getKey } from '@orval/core';
 import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../../../core/src/test-utils';
+import type { MockSchemaObject } from '../../types';
 import { getMockScalar } from './scalar';
+
+function mockItem(
+  item: Record<string, unknown> & { name: string },
+): MockSchemaObject {
+  return item as MockSchemaObject;
+}
+
+function getScalar(
+  args: Omit<Parameters<typeof getMockScalar>[0], 'item'> & {
+    item: Record<string, unknown> & { name: string };
+  },
+) {
+  return getMockScalar({ ...args, item: mockItem(args.item) });
+}
 
 const scalarContext = (
   override: Partial<ContextSpec['output']['override']> = {},
@@ -15,7 +30,7 @@ const scalarContext = (
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
     item: {
-      type: 'integer' as OpenApiSchemaObjectType,
+      type: 'integer',
       format: 'int64',
       minimum: 1,
       maximum: 100,
@@ -29,7 +44,7 @@ describe('getMockScalar (int64 format handling)', () => {
   };
 
   it('should return faker.number.bigInt() when format is int64, useBigInt is true, and mockOptions.format.int64 is NOT specified', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       context: scalarContext({ useBigInt: true }),
     });
@@ -38,7 +53,7 @@ describe('getMockScalar (int64 format handling)', () => {
   });
 
   it('should return faker.number.int() when format is int64, useBigInt is false, and mockOptions.format.int64 is NOT specified', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       context: scalarContext({ useBigInt: false }),
     });
@@ -49,7 +64,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return custom mockOptions.format.int64 when format is int64 and mockOptions.format.int64 IS specified', () => {
     const specified = 'faker.number.int({ min: 0, max: 200 }).toString()';
 
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       mockOptions: {
         format: {
@@ -66,7 +81,7 @@ describe('getMockScalar (int64 format handling)', () => {
 describe('getMockScalar (uint64 format handling)', () => {
   const baseArg = {
     item: {
-      type: 'integer' as OpenApiSchemaObjectType,
+      type: 'integer',
       format: 'uint64',
       minimum: 1,
       maximum: 100,
@@ -80,7 +95,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   };
 
   it('should return faker.number.bigInt() when format is uint64, useBigInt is true, and mockOptions.format.uint64 is NOT specified', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       context: scalarContext({ useBigInt: true }),
     });
@@ -89,7 +104,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   });
 
   it('should return faker.number.int() when format is uint64, useBigInt is false, and mockOptions.format.uint64 is NOT specified', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       context: scalarContext({ useBigInt: false }),
     });
@@ -100,7 +115,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return custom mockOptions.format.uint64 when format is uint64 and mockOptions.format.uint64 IS specified', () => {
     const specified = 'faker.number.int({ min: 0, max: 200 }).toString()';
 
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       mockOptions: {
         format: {
@@ -132,7 +147,7 @@ describe('getMockScalar null-only enum branch', () => {
   it('emits null when a declared type allows only null', () => {
     const result = getMockScalar({
       item: {
-        type: ['string', 'null'] as OpenApiSchemaObjectType[],
+        type: ['string', 'null'] as OpenApiPrimitiveSchemaType[],
         enum: [null],
         name: 'typedNullBranch',
       },
@@ -179,7 +194,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
   };
 
   it('should return the example value when it is a false value', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...baseArg.item, example: false },
     });
@@ -188,7 +203,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
   });
 
   it('should return the example value when it is a null value', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...baseArg.item, example: null },
     });
@@ -197,7 +212,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
   });
 
   it('should return a faker invocation when the example is undefined', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...baseArg.item, example: undefined },
     });
@@ -226,8 +241,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   };
 
   it('should include multipleOf when defined for integer type with Faker v9', () => {
-    const integerType: OpenApiSchemaObjectType = 'integer';
-    const result = getMockScalar({
+    const integerType = 'integer';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: integerType,
@@ -245,8 +260,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf when undefined for integer type with Faker v9', () => {
-    const integerType: OpenApiSchemaObjectType = 'integer';
-    const result = getMockScalar({
+    const integerType = 'integer';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: integerType,
@@ -262,8 +277,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf for integer type with Faker v8', () => {
-    const integerType: OpenApiSchemaObjectType = 'integer';
-    const result = getMockScalar({
+    const integerType = 'integer';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: integerType,
@@ -279,8 +294,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should include multipleOf for number type with Faker v9', () => {
-    const numberType: OpenApiSchemaObjectType = 'number';
-    const result = getMockScalar({
+    const numberType = 'number';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: numberType,
@@ -298,8 +313,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf when undefined for number type with Faker v9', () => {
-    const numberType: OpenApiSchemaObjectType = 'number';
-    const result = getMockScalar({
+    const numberType = 'number';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: numberType,
@@ -318,8 +333,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf for number type with Faker v8', () => {
-    const numberType: OpenApiSchemaObjectType = 'number';
-    const result = getMockScalar({
+    const numberType = 'number';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: numberType,
@@ -338,8 +353,8 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should use fractionDigits when multipleOf is undefined for number type', () => {
-    const numberType: OpenApiSchemaObjectType = 'number';
-    const result = getMockScalar({
+    const numberType = 'number';
+    const result = getScalar({
       ...baseArg,
       item: {
         type: numberType,
@@ -359,7 +374,7 @@ describe('getMockScalar (multipleOf handling)', () => {
 
 describe('getMockScalar (nested arrays handling)', () => {
   it('should generate valid syntax for nested arrays (array of arrays)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       item: {
         type: 'array' as const,
         name: 'coordinates',
@@ -384,7 +399,7 @@ describe('getMockScalar (nested arrays handling)', () => {
   });
 
   it('should include min/max when arrayMin/arrayMax are provided', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       item: {
         type: 'array' as const,
         name: 'coordinates',
@@ -414,7 +429,7 @@ describe('getMockScalar (undefined filtering)', () => {
   };
 
   it('should not include min/max when they are undefined for integer type', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'integer' as const,
@@ -427,7 +442,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should include only min when max is undefined for integer type', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'integer' as const,
@@ -440,7 +455,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should not include min/max when they are undefined for number/float type', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'number' as const,
@@ -453,7 +468,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should not include fractionDigits when it is undefined for number/float type', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'number' as const,
@@ -469,7 +484,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should not include min/max in string length when they are undefined', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -482,7 +497,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should include string length constraints when provided', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -498,7 +513,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp min to maxLength when only maxLength is specified and no global stringMin is set', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -513,7 +528,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp max to minLength when only minLength is specified and no global stringMax is set', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -528,7 +543,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should use global stringMin when only maxLength is specified and global stringMin does not exceed maxLength', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -544,7 +559,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp min to maxLength when global stringMin would exceed maxLength', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -558,7 +573,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should use global stringMax when only minLength is specified and global stringMax is not below minLength', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -574,7 +589,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp max to minLength when global stringMax would be below minLength', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -590,7 +605,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp both bounds to 0 when maxLength is 0 (avoids invalid faker range)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -604,7 +619,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp min to maxItems when only maxItems is specified and no global arrayMin is set', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -620,7 +635,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp max to minItems when only minItems is specified and no global arrayMax is set', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -636,7 +651,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should use global arrayMax when only minItems is specified and global arrayMax is not below minItems', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -651,7 +666,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should clamp max to minItems when global arrayMax would be below minItems', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -666,7 +681,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should use global arrayMin when only maxItems is specified and global arrayMin does not exceed maxItems', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -681,7 +696,7 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 
   it('should omit length entirely when only one global string bound is configured and no schema bound is set', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -709,13 +724,13 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
 
   describe('OpenAPI 3.0 (boolean exclusiveMinimum/exclusiveMaximum)', () => {
     it('should omit min when exclusiveMinimum is true but minimum is absent', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
-        item: {
-          type: 'integer' as const,
-          exclusiveMinimum: true as unknown as number,
+        item: mockItem({
+          type: 'integer',
+          exclusiveMinimum: true,
           name: 'test-item',
-        },
+        }),
       });
 
       expect(result.value).toBe('faker.number.int()');
@@ -723,14 +738,14 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     });
 
     it('should use minimum when exclusiveMinimum is true for integer type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
-        item: {
-          type: 'integer' as const,
+        item: mockItem({
+          type: 'integer',
           minimum: 0,
-          exclusiveMinimum: true as unknown as number,
+          exclusiveMinimum: true,
           name: 'test-item',
-        },
+        }),
       });
 
       expect(result.value).toBe('faker.number.int({min: 0})');
@@ -738,14 +753,14 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     });
 
     it('should use maximum when exclusiveMaximum is true for integer type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
-        item: {
-          type: 'integer' as const,
+        item: mockItem({
+          type: 'integer',
           maximum: 100,
-          exclusiveMaximum: true as unknown as number,
+          exclusiveMaximum: true,
           name: 'test-item',
-        },
+        }),
       });
 
       expect(result.value).toBe('faker.number.int({max: 100})');
@@ -753,16 +768,16 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     });
 
     it('should use minimum and maximum when both exclusive flags are true for number type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
-        item: {
-          type: 'number' as const,
+        item: mockItem({
+          type: 'number',
           minimum: 0,
           maximum: 100,
-          exclusiveMinimum: true as unknown as number,
-          exclusiveMaximum: true as unknown as number,
+          exclusiveMinimum: true,
+          exclusiveMaximum: true,
           name: 'test-item',
-        },
+        }),
       });
 
       expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
@@ -772,7 +787,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
 
   describe('OpenAPI 3.1 (numeric exclusiveMinimum/exclusiveMaximum)', () => {
     it('should use exclusiveMinimum value directly for integer type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
         item: {
           type: 'integer' as const,
@@ -785,7 +800,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     });
 
     it('should use exclusiveMaximum value directly for integer type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
         item: {
           type: 'integer' as const,
@@ -798,7 +813,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     });
 
     it('should use exclusiveMinimum and exclusiveMaximum values directly for number type', () => {
-      const result = getMockScalar({
+      const result = getScalar({
         ...baseArg,
         item: {
           type: 'number' as const,
@@ -824,7 +839,7 @@ describe('getMockScalar (@-prefixed property names)', () => {
   };
 
   it('should preserve @type as a quoted property key in mock objects', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         name: 'MyResource',
@@ -844,7 +859,7 @@ describe('getMockScalar (@-prefixed property names)', () => {
 
 describe('getMockScalar (pattern-backed string escaping)', () => {
   it('escapes regex patterns when generating faker.helpers.fromRegExp()', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       item: {
         type: 'string' as const,
         pattern: String.raw`^\+?[1-9]\d{1,14}$`,
@@ -864,7 +879,7 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
   });
 
   it('preserves single quotes in regex patterns when stringifying them', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       item: {
         type: 'string' as const,
         pattern: String.raw`^[a-zA-Z0-9']*$`,
@@ -900,13 +915,13 @@ describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
   };
 
   it('uses examples[0] for a string property when useExamples is true', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as const,
+        type: 'string',
         name: 'slug',
         examples: ['relaxation'],
-      } as Parameters<typeof getMockScalar>[0]['item'],
+      },
     });
 
     expect(result.value).toBe('"relaxation"');
@@ -925,7 +940,7 @@ describe('getMockScalar (useDates + useExamples)', () => {
   };
 
   it('wraps property-level date-time examples in new Date()', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -939,7 +954,7 @@ describe('getMockScalar (useDates + useExamples)', () => {
   });
 
   it('wraps property-level date examples in new Date()', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
@@ -953,7 +968,7 @@ describe('getMockScalar (useDates + useExamples)', () => {
   });
 
   it('wraps nested date fields inside property-level array examples', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -991,7 +1006,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
   };
 
   it('returns [] when items.$ref is a circular reference', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -1004,7 +1019,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
   });
 
   it('returns [] when items is allOf with a single circular $ref', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -1017,7 +1032,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
   });
 
   it('returns [] when items is oneOf with a single circular $ref', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -1030,7 +1045,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
   });
 
   it('returns [] when items is anyOf with a single circular $ref', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -1043,7 +1058,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
   });
 
   it('does not short-circuit for multi-element allOf even if one matches a visited ref', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
         type: 'array' as const,
@@ -1071,10 +1086,10 @@ describe('getMockScalar (enum value escaping #3505)', () => {
   };
 
   it('JS-escapes backslashes in string enum values', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: [
           String.raw`App\Models\Document`,
           String.raw`App\Models\Template`,
@@ -1090,10 +1105,10 @@ describe('getMockScalar (enum value escaping #3505)', () => {
   });
 
   it('JS-escapes an enum value ending in a backslash', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['C:\\logs\\'],
         name: 'directoryPrefix',
       },
@@ -1106,10 +1121,10 @@ describe('getMockScalar (enum value escaping #3505)', () => {
   });
 
   it('does not escape forward slashes in enum values (#3530)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['Asia/Tokyo', 'America/New_York'],
         name: 'timezone',
       },
@@ -1132,7 +1147,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
   };
 
   const colorItem = (parentName: string) => ({
-    type: 'string' as OpenApiSchemaObjectType,
+    type: 'string',
     name: 'color',
     parentName,
   });
@@ -1145,7 +1160,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
       },
     };
 
-    const apple = getMockScalar({
+    const apple = getScalar({
       ...baseArg,
       item: colorItem('Apple'),
       mockOptions,
@@ -1154,7 +1169,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
     expect(apple.value).toBe("'red'");
     expect(apple.overrided).toBe(true);
 
-    const car = getMockScalar({
+    const car = getScalar({
       ...baseArg,
       item: colorItem('Car'),
       mockOptions,
@@ -1164,7 +1179,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
   });
 
   it('falls through to the default mock when the schema name does not match', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: colorItem('Banana'),
       mockOptions: { schemas: { Apple: { properties: { color: "'red'" } } } },
@@ -1176,9 +1191,9 @@ describe('getMockScalar (schema-scoped overrides)', () => {
   });
 
   it('does not apply a schema-scoped override when the item has no parentName', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
-      item: { type: 'string' as OpenApiSchemaObjectType, name: 'color' },
+      item: { type: 'string', name: 'color' },
       mockOptions: { schemas: { Apple: { properties: { color: "'red'" } } } },
       context: scalarContext(),
     });
@@ -1187,7 +1202,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
   });
 
   it('prefers an operation-scoped override over a schema-scoped one', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: colorItem('Apple'),
       mockOptions: {
@@ -1203,7 +1218,7 @@ describe('getMockScalar (schema-scoped overrides)', () => {
   });
 
   it('prefers a schema-scoped override over a global property override', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: colorItem('Apple'),
       mockOptions: {
@@ -1227,14 +1242,14 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
   };
 
   const enumRefItem = {
-    type: 'string' as OpenApiSchemaObjectType,
+    type: 'string',
     enum: ['ONE', 'TWO', 'THREE'],
     name: 'MyEnum',
     isRef: true,
   };
 
   it('inlines the enum values for `union` (a union type has no runtime value)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...enumRefItem },
       context: scalarContext({ enumGenerationType: EnumGeneration.UNION }),
@@ -1250,7 +1265,7 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
   });
 
   it('uses Object.values for `enum` (a native enum is a runtime object)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...enumRefItem },
       context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
@@ -1265,7 +1280,7 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
   });
 
   it('uses Object.values for `const` (a const object is a runtime value)', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: { ...enumRefItem },
       context: scalarContext({ enumGenerationType: EnumGeneration.CONST }),
@@ -1284,12 +1299,12 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
     // map (`{1: 'NUMBER_1', NUMBER_1: 1}`). `Object.values` would then also
     // yield 'NUMBER_1'/'NUMBER_2', letting the mock return a value the schema
     // never declared, so these have to stay inlined.
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
-      item: {
+      item: mockItem({
         ...enumRefItem,
-        enum: [1, 2] as unknown as string[],
-      },
+        enum: [1, 2],
+      }),
       context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
     });
 
@@ -1315,7 +1330,7 @@ describe('getMockScalar (inline enum cast under exactOptional)', () => {
   };
 
   const statusItem = {
-    type: 'string' as OpenApiSchemaObjectType,
+    type: 'string' as OpenApiPrimitiveSchemaType,
     enum: ['DRAFT', 'PUBLISHED'],
     name: 'status',
     parentName: 'Pet',
@@ -1367,10 +1382,10 @@ describe('getMockScalar (enum member type confusion)', () => {
   // not agree. Quoting keyed off the declared type let a string member under a
   // numeric/boolean type through as a live expression.
   it('quotes a string member declared under type: integer', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'integer' as OpenApiSchemaObjectType,
+        type: 'integer',
         enum: ['(globalThis.pwned=1)'],
         name: 'numEnum',
       },
@@ -1383,10 +1398,10 @@ describe('getMockScalar (enum member type confusion)', () => {
   });
 
   it('quotes a string member declared under type: boolean', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'boolean' as OpenApiSchemaObjectType,
+        type: 'boolean',
         enum: ['(globalThis.pwned=1)'],
         name: 'boolEnum',
       },
@@ -1399,10 +1414,10 @@ describe('getMockScalar (enum member type confusion)', () => {
   });
 
   it('escapes a quote in a string member declared under type: integer', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'integer' as OpenApiSchemaObjectType,
+        type: 'integer',
         enum: ["a',(globalThis.pwned=1),'b"],
         name: 'numEnum',
       },
@@ -1415,13 +1430,13 @@ describe('getMockScalar (enum member type confusion)', () => {
   });
 
   it('emits a numeric member declared under type: string without crashing', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
-      item: {
-        type: 'string' as OpenApiSchemaObjectType,
-        enum: [1, 2] as unknown as string[],
+      item: mockItem({
+        type: 'string',
+        enum: [1, 2],
         name: 'strEnum',
-      },
+      }),
       context: scalarContext(),
     });
 
@@ -1429,13 +1444,13 @@ describe('getMockScalar (enum member type confusion)', () => {
   });
 
   it('serializes an object member instead of emitting [object Object]', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
-      item: {
-        type: 'integer' as OpenApiSchemaObjectType,
-        enum: [{ a: 1 }] as unknown as string[],
+      item: mockItem({
+        type: 'integer',
+        enum: [{ a: 1 }],
         name: 'objEnum',
-      },
+      }),
       context: scalarContext(),
     });
 
@@ -1445,25 +1460,25 @@ describe('getMockScalar (enum member type confusion)', () => {
 
   it('leaves genuine numeric and boolean members unquoted', () => {
     expect(
-      getMockScalar({
+      getScalar({
         ...baseArg,
-        item: {
-          type: 'integer' as OpenApiSchemaObjectType,
-          enum: [1, 2] as unknown as string[],
+        item: mockItem({
+          type: 'integer',
+          enum: [1, 2],
           name: 'numEnum',
-        },
+        }),
         context: scalarContext(),
       }).value,
     ).toBe('faker.helpers.arrayElement([1,2] as const)');
 
     expect(
-      getMockScalar({
+      getScalar({
         ...baseArg,
-        item: {
-          type: 'boolean' as OpenApiSchemaObjectType,
-          enum: [true, false] as unknown as string[],
+        item: mockItem({
+          type: 'boolean',
+          enum: [true, false],
           name: 'boolEnum',
-        },
+        }),
         context: scalarContext(),
       }).value,
     ).toBe('faker.helpers.arrayElement([true,false] as const)');
@@ -1479,7 +1494,7 @@ describe('getMockScalar (numeric constraint safety)', () => {
     splitMockImplementations: [],
   };
 
-  const payload = '0, x:(globalThis.pwned=1)' as unknown as number;
+  const payload = '0, x:(globalThis.pwned=1)';
 
   // These land inside faker call arguments as bare expressions
   // (`faker.number.int({min: ${numMin}})`), so a non-numeric value would be
@@ -1500,12 +1515,12 @@ describe('getMockScalar (numeric constraint safety)', () => {
     ],
   ])('rejects a non-numeric %s', (label, schema) => {
     expect(() =>
-      getMockScalar({
+      getScalar({
         ...baseArg,
-        item: {
-          ...(schema as Record<string, unknown>),
+        item: mockItem({
+          ...schema,
           name: 'field',
-        } as never,
+        }),
         // Faker v9: `multipleOf` is only emitted on that version, so the
         // constraint is only reachable there.
         context: scalarContext(
@@ -1517,10 +1532,10 @@ describe('getMockScalar (numeric constraint safety)', () => {
   });
 
   it('still emits genuine numeric bounds', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'integer' as OpenApiSchemaObjectType,
+        type: 'integer',
         minimum: 3,
         maximum: 42,
         name: 'count',
@@ -1559,10 +1574,10 @@ describe('getMockScalar (non-finite numeric constraints)', () => {
     ['maximum NaN', { maximum: Number.NaN }],
   ])('rejects %s', (_label, constraint) => {
     expect(() =>
-      getMockScalar({
+      getScalar({
         ...baseArg,
         item: {
-          type: 'number' as OpenApiSchemaObjectType,
+          type: 'number',
           ...constraint,
           name: 'field',
         } as never,
@@ -1572,10 +1587,10 @@ describe('getMockScalar (non-finite numeric constraints)', () => {
   });
 
   it('still emits finite exclusive bounds', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'integer' as OpenApiSchemaObjectType,
+        type: 'integer',
         exclusiveMinimum: 1,
         exclusiveMaximum: 9,
         name: 'field',
@@ -1632,10 +1647,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
     "k'][]), __pwned: (globalThis.__x = 1), z: (0 as unknown as Parent['k";
 
   it('escapes the property name in the parent indexed-access cast', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: PAYLOAD,
         parentName: 'Parent',
@@ -1651,10 +1666,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
   });
 
   it('leaves an ordinary property name byte-identical', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: 'status',
         parentName: 'Parent',
@@ -1676,10 +1691,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
     'Evil[]), __pwned: (globalThis.__y = 1), z: (0 as unknown as Evil';
 
   it('does not emit a non-identifier schema name bare in the type cast', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: ROOT_PAYLOAD,
       } as never,
@@ -1696,10 +1711,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
   });
 
   it('still casts to a valid identifier schema name', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: 'MyEnum',
       } as never,
@@ -1716,10 +1731,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
   });
 
   it('keeps casting a name that already carries an array suffix', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: 'MyEnum[]',
       } as never,
@@ -1741,10 +1756,10 @@ describe('getMockScalar (enum type-cast name injection)', () => {
   // in `getRefInfo`, so this is defense in depth rather than a demonstrated
   // exploit — but it sits in the same identifier position as the sink above.
   it('drops the cast when the parent reference is not an identifier', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         enum: ['A', 'B'],
         name: 'status',
         parentName: 'x',
@@ -1779,10 +1794,10 @@ describe('getMockScalar (format lookup is own-property only)', () => {
     'hasOwnProperty',
     '__proto__',
   ])('falls back to the type mock for the inherited format %s', (format) => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         format,
         name: 'foo',
       },
@@ -1793,10 +1808,10 @@ describe('getMockScalar (format lookup is own-property only)', () => {
   });
 
   it('still resolves an own format key', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         format: 'email',
         name: 'foo',
       },
@@ -1810,10 +1825,10 @@ describe('getMockScalar (format lookup is own-property only)', () => {
   // ALL_FORMAT, so the guard must let it through rather than treat the name
   // itself as suspect.
   it('resolves a user format override that shadows a prototype member', () => {
-    const result = getMockScalar({
+    const result = getScalar({
       ...baseArg,
       item: {
-        type: 'string' as OpenApiSchemaObjectType,
+        type: 'string',
         format: 'constructor',
         name: 'foo',
       },

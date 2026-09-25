@@ -2,12 +2,11 @@ import { resolveExampleRefs } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import type {
   ContextSpec,
-  OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
   ScalarValue,
 } from '../types';
-import { compareVersions } from '../utils';
+import { compareVersions, toObjectSchema } from '../utils';
 import type { FormDataContext } from './object';
 
 interface GetArrayOptions {
@@ -28,14 +27,9 @@ export function getArray({
   context,
   formDataContext,
 }: GetArrayOptions): ScalarValue {
-  // Bridge assertions: extract typed values from AnyOtherAttribute-infected schema
-  const schemaPrefixItems = schema.prefixItems as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
-  const schemaItems = schema.items as
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | undefined;
+  schema = toObjectSchema(schema);
+  const schemaPrefixItems = schema.prefixItems;
+  const schemaItems = schema.items;
   const schemaExample = schema.example as unknown;
   const schemaExamples = schema.examples as Parameters<
     typeof resolveExampleRefs

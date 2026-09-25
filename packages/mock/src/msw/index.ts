@@ -198,10 +198,18 @@ function generateDefinition(
   const isTextResponse =
     (isExactlyStringReturnType && hasTextLikeContentType) ||
     contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
-  const isSchemaBinary = (r: ResReqTypesValue) =>
-    r.originalSchema?.format === 'binary' ||
-    (r.originalSchema?.contentMediaType === 'application/octet-stream' &&
-      !r.originalSchema.contentEncoding);
+  const isSchemaBinary = (r: ResReqTypesValue) => {
+    const schema = r.originalSchema;
+    if (!schema || typeof schema !== 'object') {
+      return false;
+    }
+
+    return (
+      schema.format === 'binary' ||
+      (schema.contentMediaType === 'application/octet-stream' &&
+        !schema.contentEncoding)
+    );
+  };
   // When preferredContentType matched, only use schema-binary metadata to decide
   // the binary path — don't let the content-type name alone force it (issue #2962).
   // A structured schema (e.g. Pet) paired with application/octet-stream via

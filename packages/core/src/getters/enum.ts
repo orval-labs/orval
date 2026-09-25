@@ -1,3 +1,4 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
 
 import type { NamingConvention } from '../types';
@@ -101,7 +102,7 @@ const ENUM_DESC_EXTENSIONS = [
 function getEnumNameMetadata(
   schemaObject: OpenApiSchemaObject | undefined,
 ): EnumMetadata | undefined {
-  if (!schemaObject) return undefined;
+  if (!schemaObject || isBooleanJsonSchema(schemaObject)) return undefined;
 
   // Find the first matching extension key present in the object
   const key = ENUM_NAME_EXTENSIONS.find((ext) => ext in schemaObject);
@@ -111,7 +112,7 @@ function getEnumNameMetadata(
 function getEnumDescriptionMetadata(
   schemaObject: OpenApiSchemaObject | undefined,
 ): EnumMetadata | undefined {
-  if (!schemaObject) return undefined;
+  if (!schemaObject || isBooleanJsonSchema(schemaObject)) return undefined;
 
   const key = ENUM_DESC_EXTENSIONS.find((ext) => ext in schemaObject);
   return key ? (schemaObject[key] as EnumMetadata) : undefined;
@@ -147,7 +148,7 @@ export function getEnumMembers(
   schemaObject: OpenApiSchemaObject | undefined,
   metadataObject: OpenApiSchemaObject | undefined = schemaObject,
 ): EnumMember[] {
-  if (!schemaObject) {
+  if (!schemaObject || isBooleanJsonSchema(schemaObject)) {
     return [];
   }
 
@@ -435,7 +436,11 @@ function getEnumMembersFromBranches(
   // A spec cannot express a branch that contains itself, but a spec object
   // built or mutated in memory can. Stop on a real cycle rather than at an
   // arbitrary depth, so deeply nested acyclic compositions stay complete.
-  if (!schemaObject || seen.has(schemaObject)) {
+  if (
+    !schemaObject ||
+    isBooleanJsonSchema(schemaObject) ||
+    seen.has(schemaObject)
+  ) {
     return [];
   }
   seen.add(schemaObject);
@@ -495,7 +500,10 @@ function getEnumMembersFromBranches(
     // metadata. See #3951.
     if (enumValues.length === 0 && !isNullOnlyBranch) {
       const nestedBranch = branch as OpenApiSchemaObject;
-      if (nestedBranch.oneOf || nestedBranch.anyOf) {
+      if (
+        !isBooleanJsonSchema(nestedBranch) &&
+        (nestedBranch.oneOf || nestedBranch.anyOf)
+      ) {
         members.push(...getEnumMembersFromBranches(nestedBranch, seen));
       }
     }
@@ -517,6 +525,9 @@ function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
 }
 
 function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
+  if (isBooleanJsonSchema(schemaObject)) {
+    return [];
+  }
   if ('const' in schemaObject) {
     return [
       {
@@ -608,7 +619,7 @@ function getUnion(enumMembers: EnumMember[], enumName: string) {
 }
 
 function getEnumUnionFromSchema(schema: OpenApiSchemaObject | undefined) {
-  if (!schema?.enum) return '';
+  if (!schema || isBooleanJsonSchema(schema) || !schema.enum) return '';
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
     .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
@@ -625,7 +636,8 @@ const isSpreadableEnumRef = (
   schema: OpenApiSchemaObject | undefined,
   refName: string,
 ) => {
-  if (!schema?.enum || !refName) return false;
+  if (!schema || isBooleanJsonSchema(schema) || !schema.enum || !refName)
+    return false;
   if (!getEnumUnionFromSchema(schema)) return false;
   const type = schema.type as string | string[] | undefined;
   if (type === 'boolean' || (Array.isArray(type) && type.includes('boolean'))) {

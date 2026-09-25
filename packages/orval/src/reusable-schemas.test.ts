@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   generateReusableSchemaSet,
   resolveSchemaName,

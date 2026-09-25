@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vite-plus/test';
 
-import type { GeneratorMutator, GeneratorVerbOptions } from '../types';
+import { createTestGeneratorVerbOptions } from '../test-utils';
+import type { GeneratorMutator } from '../types';
 import {
   addDependency,
   generateDependencyImports,
@@ -22,18 +23,14 @@ const makeMutator = (path: string): GeneratorMutator => ({
 describe('imports generator helpers', () => {
   describe('generateVerbImports', () => {
     it('aliases a Zod schema named "Error" when it is required as a runtime value', () => {
-      const verbOptions = {
+      const verbOptions = createTestGeneratorVerbOptions({
         response: {
           imports: [{ name: 'Error', values: true }],
         },
         body: {
           imports: [],
         },
-        queryParams: undefined,
-        props: [],
-        headers: undefined,
-        params: [],
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateVerbImports(verbOptions);
 
@@ -46,7 +43,7 @@ describe('imports generator helpers', () => {
     });
 
     it('does not re-alias Error when it already has an alias or is type-only', () => {
-      const verbOptions = {
+      const verbOptions = createTestGeneratorVerbOptions({
         response: {
           imports: [
             { name: 'Error', alias: 'ApiError', values: true },
@@ -56,11 +53,7 @@ describe('imports generator helpers', () => {
         body: {
           imports: [],
         },
-        queryParams: undefined,
-        props: [],
-        headers: undefined,
-        params: [],
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateVerbImports(verbOptions);
 

@@ -1,8 +1,7 @@
 import {
   type ContextSpec,
   getRefInfo,
-  isReference,
-  type OpenApiSchemaObject,
+  type OpenApiNonBooleanSchemaObject,
 } from '@orval/core';
 import { getAtPath } from '@orval/core';
 
@@ -16,12 +15,17 @@ function derefAllOfMember(
   member: MockSchema,
   context: ContextSpec,
   seen: Set<string>,
-): Partial<OpenApiSchemaObject> | undefined {
+): Partial<OpenApiNonBooleanSchemaObject> | undefined {
   let current: unknown = member;
 
-  while (current && typeof current === 'object' && isReference(current)) {
+  while (
+    current &&
+    typeof current === 'object' &&
+    '$ref' in current &&
+    typeof current.$ref === 'string'
+  ) {
     const ref = current.$ref;
-    if (typeof ref !== 'string' || seen.has(ref)) {
+    if (seen.has(ref)) {
       return undefined;
     }
     seen.add(ref);
@@ -32,7 +36,7 @@ function derefAllOfMember(
   }
 
   return current && typeof current === 'object'
-    ? (current as Partial<OpenApiSchemaObject>)
+    ? (current as Partial<OpenApiNonBooleanSchemaObject>)
     : undefined;
 }
 
@@ -79,7 +83,7 @@ export function collectAllOfRequiredWithDeclared(
     }
 
     if (Array.isArray(schema.required)) {
-      required.push(...(schema.required as string[]));
+      required.push(...schema.required);
     }
 
     if (Array.isArray(schema.allOf)) {

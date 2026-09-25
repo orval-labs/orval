@@ -2,12 +2,13 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getRefInfo,
+  isInlineSchema,
   getRequiredKeys,
   getStringLiteralType,
   isFunction,
-  isReference,
   isSchemaNullable,
   type MockOptions,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
   OutputMockType,
   pascal,
@@ -101,7 +102,7 @@ export function resolveMockOverride(
 export function resolveRefTarget(
   ref: string | undefined,
   context: ContextSpec,
-): Partial<OpenApiSchemaObject> | undefined {
+): Partial<OpenApiNonBooleanSchemaObject> | undefined {
   if (typeof ref !== 'string') return undefined;
   // getRefInfo throws on refs without a '#' fragment
   const [, fragment] = ref.split('#');
@@ -110,7 +111,7 @@ export function resolveRefTarget(
   if (!Array.isArray(refPaths)) return undefined;
 
   return getAtPath(context.spec, refPaths) as
-    | Partial<OpenApiSchemaObject>
+    | Partial<OpenApiNonBooleanSchemaObject>
     | undefined;
 }
 
@@ -262,7 +263,7 @@ export function resolveMockValue({
   splitMockImplementations,
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema)) {
     const schemaReference = schema as MockSchema & {
       path?: string;
       required?: string[];
@@ -278,14 +279,14 @@ export function resolveMockValue({
       path: schemaReference.path,
       isRef: true,
       required: [
-        ...((schemaRef?.required as string[] | undefined) ?? []),
+        ...(schemaRef?.required ?? []),
         ...getRequiredKeys(schemaReference, name),
       ],
       // A reference site spells its nullability as a `type` array beside the
       // `$ref`. `core/src/resolvers/ref.ts` propagates it onto the resolved
       // schema so the type generator honours the hint; not carrying it here
       // left the mock unable to produce the `null` the type promises (#4141).
-      ...(Array.isArray(schemaReference.type)
+      ...('type' in schemaReference && Array.isArray(schemaReference.type)
         ? { type: schemaReference.type }
         : {}),
     } as MockSchemaObject;
@@ -350,7 +351,7 @@ export function resolveMockValue({
           } else {
             mutableSchema.properties = remainingProperties;
           }
-          const parentRequired = newSchema.required as string[] | undefined;
+          const parentRequired = newSchema.required;
           if (Array.isArray(parentRequired)) {
             const filteredRequired = parentRequired.filter(
               (key) => key !== parentDiscriminator.propertyName,
@@ -599,7 +600,7 @@ export function resolveMockValue({
 }
 
 function getType(schema: MockSchema) {
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema)) {
     return;
   }
 
@@ -623,9 +624,9 @@ function resolvesToObjectLike(
   context: ContextSpec,
   seen = new Set<string>(),
 ): boolean {
-  let resolved: Partial<OpenApiSchemaObject> | undefined;
+  let resolved: Partial<OpenApiNonBooleanSchemaObject> | undefined;
 
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema)) {
     // A non-string or already-visited `$ref` can't be resolved further here.
     if (typeof schema.$ref !== 'string' || seen.has(schema.$ref)) {
       return false;
@@ -633,7 +634,7 @@ function resolvesToObjectLike(
     seen = new Set(seen).add(schema.$ref);
     resolved = resolveRefTarget(schema.$ref, context);
   } else {
-    resolved = schema as Partial<OpenApiSchemaObject>;
+    resolved = schema as Partial<OpenApiNonBooleanSchemaObject>;
   }
 
   if (!resolved) {

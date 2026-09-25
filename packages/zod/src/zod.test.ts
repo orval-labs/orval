@@ -2,13 +2,14 @@ import type {
   ContextSpec,
   GeneratorMutator,
   GeneratorOptions,
-  GeneratorVerbOptions,
   NormalizedMutator,
   ZodVariantOption,
+  OpenApiDocument,
   OpenApiResponsesObject,
   OpenApiSchemaObject,
+  OpenApiSchemasObject,
 } from '@orval/core';
-import { EnumGeneration, PropertySortOrder } from '@orval/core';
+import { EnumGeneration, OutputClient, PropertySortOrder } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('@orval/core', async (importOriginal) => {
@@ -41,7 +42,11 @@ vi.mock('@orval/core', async (importOriginal) => {
   return { ...actual, generateMutator };
 });
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import {
   dereference,
   generateZod,
@@ -59,7 +64,7 @@ import {
   getZodTimeFormat,
 } from './compatible-v4';
 
-const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
+const testOutput = OutputClient.ZOD;
 
 function makeContextSpec({
   target,
@@ -70,7 +75,7 @@ function makeContextSpec({
 }: {
   target?: ContextSpec['target'];
   workspace?: ContextSpec['workspace'];
-  spec?: Partial<ContextSpec['spec']>;
+  spec?: Partial<OpenApiDocument>;
   output?: Partial<ContextSpec['output']>;
   override?: Partial<ContextSpec['output']['override']>;
 } = {}): ContextSpec {
@@ -98,6 +103,13 @@ function makeContextSpec({
       },
     },
   };
+}
+
+function schemaObject(schema: unknown): Exclude<OpenApiSchemaObject, boolean> {
+  if (typeof schema !== 'object' || schema === null) {
+    throw new Error(`expected an object schema, received ${typeof schema}`);
+  }
+  return schema as Exclude<OpenApiSchemaObject, boolean>;
 }
 
 describe.each([
@@ -188,13 +200,13 @@ describe('parseZodValidationSchemaDefinition', () => {
   it('treats additionalProperties properly', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       record,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -219,13 +231,13 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -251,13 +263,13 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -283,13 +295,13 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -315,13 +327,13 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       true,
       false,
       true,
@@ -349,13 +361,13 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -389,7 +401,7 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      { output: { override: { useDates: false } } } as ContextSpec,
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       false,
       true,
       true,
@@ -426,7 +438,7 @@ describe('parseZodValidationSchemaDefinition', () => {
         ],
         consts: [],
       },
-      { output: { override: { useDates: false } } } as ContextSpec,
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       false,
       false,
       true,
@@ -443,13 +455,13 @@ describe('parseZodValidationSchemaDefinition', () => {
   it('renders zod mini preprocess as pipe transform', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       { functions: [['string', undefined]], consts: [] },
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -484,11 +496,11 @@ describe('getZodDependencies', () => {
 });
 
 describe('parseZodValidationSchemaDefinition with params injection', () => {
-  const ctx = {
+  const ctx = createTestContextSpec({
     output: {
       override: { useDates: false },
     },
-  } as ContextSpec;
+  });
 
   const mutator = {
     name: 'zodParams',
@@ -1063,13 +1075,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
       deepRequiredSchema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'strict',
       true,
       false,
@@ -1117,13 +1129,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('generates a strict zod schema', () => {
     const result = generateZodValidationSchemaDefinition(
       objectIntoObjectSchema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'strict',
       true,
       false,
@@ -1174,13 +1186,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('additionalProperties', () => {
     const result = generateZodValidationSchemaDefinition(
       additionalPropertiesSchema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'strict',
       true,
       false,
@@ -1231,13 +1243,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('additionalProperties with maxLength', () => {
     const result = generateZodValidationSchemaDefinition(
       additionalPropertiesMaxLengthSchema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'additionalPropertiesMaxLength',
       true,
       false,
@@ -1248,13 +1260,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1280,13 +1292,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithStringAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1301,13 +1313,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // Parse and verify the result
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1361,13 +1373,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOfAndProperties,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1397,13 +1409,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // Parse and verify the result
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1439,13 +1451,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       userCreateSchema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1460,13 +1472,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // Parse and verify the result
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1498,13 +1510,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const parsed = parseZodValidationSchemaDefinition(
       generateZodValidationSchemaDefinition(
         user,
-        { output: { override: { useDates: false } } } as ContextSpec,
+        createTestContextSpec({ output: { override: { useDates: false } } }),
         'user',
         false,
         false,
         { required: true },
       ),
-      { output: { override: { useDates: false } } } as ContextSpec,
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       false,
       false,
       false,
@@ -1537,13 +1549,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const parsed = parseZodValidationSchemaDefinition(
       generateZodValidationSchemaDefinition(
         userFull,
-        { output: { override: { useDates: false } } } as ContextSpec,
+        createTestContextSpec({ output: { override: { useDates: false } } }),
         'userFull',
         false,
         false,
         { required: true },
       ),
-      { output: { override: { useDates: false } } } as ContextSpec,
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       false,
       false,
       false,
@@ -1571,13 +1583,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1590,13 +1602,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1620,13 +1632,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1639,13 +1651,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1683,13 +1695,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true, // strict mode enabled
       false, // Zod v3
@@ -1704,13 +1716,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // Parse with strict mode
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       true, // strict mode
       false, // Zod v3
@@ -1755,13 +1767,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true, // strict mode enabled
       true, // Zod v4
@@ -1776,13 +1788,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // Parse with strict mode
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       true, // strict mode
       true, // Zod v4
@@ -1817,13 +1829,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithAllOf,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       false,
       false,
@@ -1836,13 +1848,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -1863,13 +1875,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       stringWithPatternAndFormat,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true, // strict mode enabled
       true, // Zod v4
@@ -1885,13 +1897,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       true,
       true,
       false,
@@ -1913,13 +1925,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaWithPatternFormatAndMin,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       true,
@@ -1928,13 +1940,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -1952,8 +1964,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
   it('does not use stringFormat for format+pattern+minLength in v3', () => {
     const result = generateZodValidationSchemaDefinition(
-      { type: 'string', format: 'slug', pattern: '^[a-z0-9-]+$', minLength: 1 },
-      { output: { override: { useDates: false } } } as ContextSpec,
+      {
+        type: 'string',
+        format: 'slug',
+        pattern: '^[a-z0-9-]+$',
+        minLength: 1,
+      },
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       'slug',
       false,
       false, // isZodV4 = false
@@ -1962,7 +1979,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      { output: { override: { useDates: false } } } as ContextSpec,
+      createTestContextSpec({ output: { override: { useDates: false } } }),
       false,
       false,
       false,
@@ -1982,13 +1999,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       stringWithPatternAndFormat,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true, // strict mode enabled
       false,
@@ -2035,13 +2052,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const schema: OpenApiSchemaObject = {
         type: 'string',
-        format: format,
+        format,
         pattern: '^[0-9a-f-]+$',
       };
 
       const result = generateZodValidationSchemaDefinition(
         schema,
-        {
+        createTestContextSpec({
           output: {
             override: {
               useDates: false,
@@ -2051,7 +2068,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
               },
             },
           },
-        } as ContextSpec,
+        }),
         'testFormatPattern',
         true,
         true,
@@ -2060,13 +2077,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const parsed = parseZodValidationSchemaDefinition(
         result,
-        {
+        createTestContextSpec({
           output: {
             override: {
               useDates: false,
             },
           },
-        } as ContextSpec,
+        }),
         true,
         true,
         true,
@@ -2086,13 +2103,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'testHostnameV4',
       true,
       true, // Zod v4
@@ -2101,13 +2118,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       true,
       true,
@@ -2125,13 +2142,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'testHostnameV3',
       true,
       false, // Zod v3
@@ -2140,13 +2157,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       true,
       false,
@@ -2169,14 +2186,14 @@ describe('generateZodValidationSchemaDefinition`', () => {
       },
     };
 
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
           zod: { dateTimeOptions: {}, timeOptions: {} },
         },
       },
-    } as ContextSpec;
+    });
 
     const generate = (isZodV4: boolean) =>
       parseZodValidationSchemaDefinition(
@@ -2559,11 +2576,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
         default: { name: 'Fluffy', age: 3 },
       };
 
-      const context: ContextSpec = {
+      const context: ContextSpec = createTestContextSpec({
         output: {
           override: { useDates: false },
         },
-      } as ContextSpec;
+      });
 
       const result = generateZodValidationSchemaDefinition(
         schemaWithObjectDefault,
@@ -2624,13 +2641,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         default: '2025-01-01',
       };
 
-      const dateContext: ContextSpec = {
+      const dateContext: ContextSpec = createTestContextSpec({
         output: {
           override: {
             useDates: true,
           },
         },
-      } as ContextSpec;
+      });
 
       const result = generateZodValidationSchemaDefinition(
         schemaWithDateDefault,
@@ -3189,7 +3206,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       variant: 'mini' as ZodVariantOption,
     },
   ])('enum with metadata handling - $name', ({ isZodV4, variant }) => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -3202,7 +3219,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           },
         },
       },
-    } as ContextSpec;
+    });
 
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {
@@ -3482,7 +3499,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       };
 
       const withOverride = (enumGenerationType: EnumGeneration) => {
-        const overridden = {
+        const overridden = createTestContextSpec({
           ...context,
           output: {
             ...context.output,
@@ -3491,7 +3508,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
               enumGenerationType,
             },
           },
-        } as ContextSpec;
+        });
         return generateZodValidationSchemaDefinition(
           schema,
           overridden,
@@ -3517,7 +3534,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('enum handling', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -3526,7 +3543,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           },
         },
       },
-    } as ContextSpec;
+    });
 
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {
@@ -3634,7 +3651,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('skips constraints for dereferenced enum schemas with sibling minLength (#3024)', () => {
-      const dereferenceContext = {
+      const dereferenceContext = createTestContextSpec({
         ...context,
         spec: {
           components: {
@@ -3646,7 +3663,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             },
           },
         },
-      } as ContextSpec;
+      });
 
       const resolvedSchema = dereference(
         {
@@ -4470,7 +4487,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('does not append trailing enum chain for dereferenced array enum schemas (#2765)', () => {
-      const dereferenceContext = {
+      const dereferenceContext = createTestContextSpec({
         ...context,
         spec: {
           components: {
@@ -4487,7 +4504,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             },
           },
         },
-      } as ContextSpec;
+      });
 
       const resolvedSchema = dereference(
         { $ref: '#/components/schemas/EnumArray' },
@@ -4519,13 +4536,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
   describe('number handling', () => {
-    const context: ContextSpec = {
+    const context: ContextSpec = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     it('generates an number', () => {
       const schema: OpenApiSchemaObject = {
@@ -4951,13 +4968,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaFormatOnly,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       true,
@@ -4966,13 +4983,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -4992,13 +5009,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaFormatPatternMin,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       true,
@@ -5007,13 +5024,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       true,
@@ -5034,13 +5051,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaFormatPatternMin,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       true,
@@ -5059,13 +5076,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'sbu',
       false,
       false,
@@ -5087,13 +5104,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'firstName',
       false,
       true,
@@ -5115,13 +5132,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'displayName',
       false,
       true,
@@ -5142,13 +5159,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       true,
@@ -5170,13 +5187,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaFormatPattern,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       false, // Zod v3
@@ -5185,13 +5202,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5209,13 +5226,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaPatternOnly,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'word',
       false,
       false, // Zod v3
@@ -5224,13 +5241,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5249,13 +5266,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaFormatPattern,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'myId',
       false,
       false, // Zod v3
@@ -5264,13 +5281,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5289,13 +5306,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaPatternOnly,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'code',
       false,
       false, // Zod v3
@@ -5304,13 +5321,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5329,13 +5346,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaEmail,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'email',
       false,
       false, // Zod v3
@@ -5344,13 +5361,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5368,13 +5385,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaUuid,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'id',
       false,
       false, // Zod v3
@@ -5383,13 +5400,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5407,13 +5424,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaUri,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'url',
       false,
       false, // Zod v3
@@ -5422,13 +5439,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5447,13 +5464,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaMinMax,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'name',
       false,
       false, // Zod v3
@@ -5462,13 +5479,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5489,13 +5506,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const result = generateZodValidationSchemaDefinition(
       schemaPatternMin,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'slug',
       false,
       false, // Zod v3
@@ -5504,13 +5521,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       false,
       false,
       false,
@@ -5529,7 +5546,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         },
       });
       const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet' } as never,
+        { $ref: '#/components/schemas/Pet' },
         context,
         'someField',
         false,
@@ -5552,7 +5569,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         {
           $ref: '#/components/schemas/Pet',
           description: 'optional pet',
-        } as never,
+        },
         context,
         'someField',
         false,
@@ -5573,7 +5590,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         {
           $ref: '#/components/schemas/Pet',
           description: 'Subject identifier.\n\nMust be normalized first.',
-        } as never,
+        },
         context,
         'someField',
         false,
@@ -5596,7 +5613,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
       });
       const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', default: { id: 1 } } as never,
+        {
+          $ref: '#/components/schemas/Pet',
+          default: { id: 1 },
+        },
         context,
         'someField',
         false,
@@ -5617,7 +5637,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
       });
       const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet' } as never,
+        { $ref: '#/components/schemas/Pet' },
         context,
         'someField',
         false,
@@ -5635,7 +5655,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
       });
       const result = generateZodValidationSchemaDefinition(
-        { $ref: '#/components/schemas/Pet', default: { id: 1 } } as never,
+        {
+          $ref: '#/components/schemas/Pet',
+          default: { id: 1 },
+        },
         context,
         'someField',
         false,
@@ -5662,7 +5685,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         {
           $ref: '#/components/schemas/Pet',
           example: { id: 1 },
-        } as never,
+        },
         context,
         'someField',
         false,
@@ -5686,7 +5709,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         {
           $ref: '#/components/schemas/Pet',
           properties: { extra: { type: 'string' } },
-        } as never,
+        },
         context,
         'someField',
         false,
@@ -5721,7 +5744,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#Pet' } as never,
+        { $dynamicRef: '#Pet' },
         context,
         'friends',
         false,
@@ -5757,7 +5780,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#Pet' } as never,
+        { $dynamicRef: '#Pet' },
         context,
         'playmates',
         false,
@@ -5787,7 +5810,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#Pet', description: 'a friend' } as never,
+        { $dynamicRef: '#Pet', description: 'a friend' },
         context,
         'friends',
         false,
@@ -5809,7 +5832,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#nonexistent' } as never,
+        { $dynamicRef: '#nonexistent' },
         context,
         'friends',
         false,
@@ -5839,7 +5862,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         {
           $dynamicRef: '#Pet',
           properties: { extra: { type: 'string' } },
-        } as never,
+        },
         context,
         'friends',
         false,
@@ -5866,7 +5889,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       });
 
       const result = generateZodValidationSchemaDefinition(
-        { $dynamicRef: '#MyPet' } as never,
+        { $dynamicRef: '#MyPet' },
         context,
         'friends',
         false,
@@ -5882,7 +5905,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 });
 
-const basicApiSchema = {
+const basicApiSchema = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -5933,6 +5956,7 @@ const basicApiSchema = {
             },
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -5959,11 +5983,11 @@ const basicApiSchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 // An operation with a request body and a response but NO param/query/header,
 // to assert a preprocess mutator is collected only for the targets present.
-const bodyOnlyApiSchema = {
+const bodyOnlyApiSchema = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -5984,6 +6008,7 @@ const bodyOnlyApiSchema = {
             },
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -6006,11 +6031,11 @@ const bodyOnlyApiSchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 // An operation with an array query param, to assert the single→array coercion
 // (`coerce.query: ['array']`) that lets a single repeated-key value parse.
-const arrayQueryApiSchema = {
+const arrayQueryApiSchema = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -6029,6 +6054,7 @@ const arrayQueryApiSchema = {
             ],
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -6051,11 +6077,11 @@ const arrayQueryApiSchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 describe('generatePartOfSchemaGenerateZod', () => {
   it('Default Config', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6088,7 +6114,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6100,7 +6126,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('Only generate response body', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6133,7 +6159,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6158,6 +6184,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
                 ...basePostOperation,
                 responses: {
                   '2XX': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -6180,7 +6207,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
     } as typeof basicApiSchema;
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6213,7 +6240,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       wildcardResponseApiSchema,
       testOutput,
     );
@@ -6225,7 +6252,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('Only generate request body', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6258,7 +6285,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6269,7 +6296,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('Only generate query params', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6302,7 +6329,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6313,7 +6340,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('Only generate url params', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6346,7 +6373,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6357,7 +6384,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('Only generate header', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6390,7 +6417,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6401,7 +6428,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('wires override.zod.params end-to-end (schemaName + operationId + mutators array)', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationId: 'createCat',
@@ -6436,7 +6463,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6457,13 +6484,13 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
 
     // The resolved paramsMutator is returned so the import writer can emit
-    // the `import { zodParams } from './zod-params'` line in the operation file.
+    // the `import { zodParams } from './zod-params';` line in the operation file.
     expect(result.mutators?.some((m) => m.name === 'zodParams')).toBe(true);
   });
 
   it('collects a preprocess mutator for every configured target so its import is emitted, not just response', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationId: 'createCat',
@@ -6504,7 +6531,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -6528,7 +6555,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it('omits a request-side preprocess mutator when the operation has no such schema (no unused import / TS6133)', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationId: 'createCat',
@@ -6568,7 +6595,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       bodyOnlyApiSchema,
       testOutput,
     );
@@ -6584,7 +6611,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it("wraps array query params in a single→array preprocess when coerce includes 'array'", async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6617,7 +6644,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       arrayQueryApiSchema,
       testOutput,
     );
@@ -6631,7 +6658,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
   it("leaves array query params untouched when coerce does not include 'array' (opt-in)", async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -6664,7 +6691,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       arrayQueryApiSchema,
       testOutput,
     );
@@ -6678,7 +6705,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
 describe('generateResponseSchemaForNonJsonContentTypes', () => {
   it('generates zod.string() for text/plain response', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/health',
       context: {
         spec: {
@@ -6702,10 +6729,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/health',
         verb: 'get',
         operationName: 'healthCheck',
@@ -6713,7 +6740,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6724,7 +6751,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
   });
 
   it('generates zod.void() for 204 No Content response', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/pets/{petId}',
       context: {
         spec: {
@@ -6741,10 +6768,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/pets/{petId}',
         verb: 'delete',
         operationName: 'deletePet',
@@ -6752,7 +6779,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6763,7 +6790,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
   });
 
   it('generates zod.void() for 205 Reset Content response', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/cart',
       context: {
         spec: {
@@ -6780,10 +6807,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cart',
         verb: 'post',
         operationName: 'clearCart',
@@ -6791,7 +6818,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6802,7 +6829,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
   });
 
   it('generates a response schema for a 201-only response in single mode', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/items',
       context: {
         spec: {
@@ -6830,10 +6857,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/items',
         verb: 'post',
         operationName: 'createItem',
@@ -6841,7 +6868,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6852,7 +6879,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
   });
 
   it('generates a response schema for a 202-only response in single mode', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/jobs',
       context: {
         spec: {
@@ -6880,10 +6907,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/jobs',
         verb: 'post',
         operationName: 'runItem',
@@ -6891,7 +6918,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6902,7 +6929,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
   });
 
   it('generates zod.void() for a 201 response without a body in single mode', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/items',
       context: {
         spec: {
@@ -6919,10 +6946,10 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/items',
         verb: 'post',
         operationName: 'createItem',
@@ -6930,7 +6957,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -6949,14 +6976,14 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       items: { type: 'string' },
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as OpenApiSchemaObject,
-      {
+      arrayWithPrefixItemsSchema,
+      createTestContextSpec({
         output: {
           override: {
             zod: {},
           },
         },
-      } as ContextSpec,
+      }),
       'example_tuple',
       true,
       false,
@@ -7002,14 +7029,14 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       maxItems: 2,
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as OpenApiSchemaObject,
-      {
+      arrayWithPrefixItemsSchema,
+      createTestContextSpec({
         output: {
           override: {
             zod: {},
           },
         },
-      } as ContextSpec,
+      }),
       'example_tuple',
       true,
       false,
@@ -7039,7 +7066,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
   });
 });
 
-const formDataSchema = {
+const formDataSchema = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -7068,6 +7095,7 @@ const formDataSchema = {
             },
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -7094,11 +7122,11 @@ const formDataSchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 // The 3.1 spelling of a nullable multipart part. `resolveSpec` produces this
 // from `{ type: 'string', format: 'binary', nullable: true }`.
-const formDataNullableBinarySchema = {
+const formDataNullableBinarySchema = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -7148,12 +7176,12 @@ const formDataNullableBinarySchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('generateFormData', () => {
   it('Only generate request body', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -7186,7 +7214,7 @@ describe('generateFormData', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       formDataSchema,
       testOutput,
     );
@@ -7200,7 +7228,7 @@ describe('generateFormData', () => {
   // non-null while the generated TS type said `Blob | File | null` (#4141).
   it('keeps a nullable file part nullable', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -7233,7 +7261,7 @@ describe('generateFormData', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       formDataNullableBinarySchema,
       testOutput,
     );
@@ -7252,7 +7280,7 @@ describe('generateFormData', () => {
   });
 });
 
-const formUrlEncodedSchema = {
+const formUrlEncodedSchema = createTestGeneratorOptions({
   pathRoute: '/token',
   context: {
     spec: {
@@ -7296,9 +7324,9 @@ const formUrlEncodedSchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
-const formUrlEncodedBinarySchema = {
+const formUrlEncodedBinarySchema = createTestGeneratorOptions({
   pathRoute: '/upload',
   context: {
     spec: {
@@ -7343,9 +7371,9 @@ const formUrlEncodedBinarySchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
-const formUrlEncodedNestedBinarySchema = {
+const formUrlEncodedNestedBinarySchema = createTestGeneratorOptions({
   pathRoute: '/upload',
   context: {
     spec: {
@@ -7414,7 +7442,7 @@ const formUrlEncodedNestedBinarySchema = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('generateFormUrlEncoded', () => {
   // application/x-www-form-urlencoded bodies are plain objects (no file fields),
@@ -7422,7 +7450,7 @@ describe('generateFormUrlEncoded', () => {
   // client had no <Op>Body to register as the tool inputSchema.
   it('generates request body schema for application/x-www-form-urlencoded', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/token',
         verb: 'post',
         operationName: 'test',
@@ -7455,7 +7483,7 @@ describe('generateFormUrlEncoded', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       formUrlEncodedSchema,
       testOutput,
     );
@@ -7468,7 +7496,7 @@ describe('generateFormUrlEncoded', () => {
   // must stay zod.string() rather than zod.instanceof(Blob) (#3664 review).
   it('keeps binary fields as string for application/x-www-form-urlencoded', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'test',
@@ -7501,7 +7529,7 @@ describe('generateFormUrlEncoded', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       formUrlEncodedBinarySchema,
       testOutput,
     );
@@ -7515,7 +7543,7 @@ describe('generateFormUrlEncoded', () => {
   // File — matching the generated TS model (#3664 review).
   it('coerces binary to string at any depth for application/x-www-form-urlencoded', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'test',
@@ -7548,7 +7576,7 @@ describe('generateFormUrlEncoded', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       formUrlEncodedNestedBinarySchema,
       testOutput,
     );
@@ -7562,7 +7590,7 @@ describe('generateFormUrlEncoded', () => {
   });
 });
 
-const schemaWithRefProperty = {
+const schemaWithRefProperty = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -7594,7 +7622,7 @@ const schemaWithRefProperty = {
               },
             },
             responses: {
-              '200': {},
+              '200': { description: 'OK' },
             },
           },
         },
@@ -7608,12 +7636,12 @@ const schemaWithRefProperty = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('generateZodWithEdgeCases', () => {
   it('correctly handles $ref as a property name', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -7646,7 +7674,7 @@ describe('generateZodWithEdgeCases', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schemaWithRefProperty,
       testOutput,
     );
@@ -7657,7 +7685,7 @@ describe('generateZodWithEdgeCases', () => {
   });
 });
 
-const schemaWithLiteralProperty = {
+const schemaWithLiteralProperty = createTestGeneratorOptions({
   pathRoute: '/cats',
   context: {
     spec: {
@@ -7687,7 +7715,7 @@ const schemaWithLiteralProperty = {
               },
             },
             responses: {
-              '200': {},
+              '200': { description: 'OK' },
             },
           },
         },
@@ -7701,12 +7729,12 @@ const schemaWithLiteralProperty = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('generateZodWithLiteralProperty', () => {
   it('correctly handles literal as a property name', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -7739,7 +7767,7 @@ describe('generateZodWithLiteralProperty', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schemaWithLiteralProperty,
       testOutput,
     );
@@ -7750,7 +7778,7 @@ describe('generateZodWithLiteralProperty', () => {
   });
 });
 
-const schemaWithRequiredDefaults = {
+const schemaWithRequiredDefaults = createTestGeneratorOptions({
   pathRoute: '/gizmo',
   context: {
     spec: {
@@ -7765,6 +7793,7 @@ const schemaWithRequiredDefaults = {
             operationId: 'getGizmo',
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -7812,12 +7841,12 @@ const schemaWithRequiredDefaults = {
       },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('generateZod required defaults regression (#2987)', () => {
   it('keeps default values for required response properties', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/gizmo',
         verb: 'get',
         operationName: 'getGizmo',
@@ -7850,7 +7879,7 @@ describe('generateZod required defaults regression (#2987)', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schemaWithRequiredDefaults,
       testOutput,
     );
@@ -7877,13 +7906,13 @@ describe('generateZod required defaults regression (#2987)', () => {
 
 describe('generateZodWithMultiTypeArray', () => {
   it('correctly handles OpenAPI 3.1 type arrays with multiple types', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     // Test case from the issue: type: ["string", "number", "boolean", "null"]
     const schemaWithMultiType: OpenApiSchemaObject = {
@@ -7914,13 +7943,13 @@ describe('generateZodWithMultiTypeArray', () => {
   });
 
   it('handles multi-type arrays without null', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithMultiType: OpenApiSchemaObject = {
       type: ['string', 'number'],
@@ -7947,13 +7976,13 @@ describe('generateZodWithMultiTypeArray', () => {
   });
 
   it('handles multi-type arrays with optional', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithMultiType: OpenApiSchemaObject = {
       type: ['string', 'number'],
@@ -7982,14 +8011,14 @@ describe('generateZodWithMultiTypeArray', () => {
   });
 
   it('does not chain stringFormat/regex on number in multi-type with pattern and format (Zod v4)', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
           zod: {},
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithMultiTypeAndPattern: OpenApiSchemaObject = {
       type: ['integer', 'string'],
@@ -8023,14 +8052,14 @@ describe('generateZodWithMultiTypeArray', () => {
   });
 
   it('emits regex (not stringFormat) for predefined format with pattern in v4', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
           zod: { dateTimeOptions: {}, timeOptions: {} },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const result = generateZodValidationSchemaDefinition(
       { type: 'string', format: 'uuid', pattern: '^[0-9a-f-]+$' },
@@ -8055,9 +8084,9 @@ describe('generateZodWithMultiTypeArray', () => {
   });
 
   it('emits regex (not stringFormat) for pattern without format in v4', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: { override: { useDates: false, zod: {} } },
-    } as unknown as ContextSpec;
+    });
 
     const result = generateZodValidationSchemaDefinition(
       { type: 'string', pattern: '^[a-z]+$' },
@@ -8083,13 +8112,13 @@ describe('generateZodWithMultiTypeArray', () => {
 
 describe('generateZodWithNullableAnyOfRefs', () => {
   it('should generate unique schema names for nullable refs in anyOf', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     // Test case: anyOf with multiple nullable refs that could cause duplicate names
     const schemaWithAnyOfNullableRefs: OpenApiSchemaObject = {
@@ -8145,13 +8174,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique schema names for nullable refs in oneOf', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithOneOfNullableRefs: OpenApiSchemaObject = {
       oneOf: [
@@ -8203,13 +8232,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique schema names for nullable refs in allOf', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithAllOfNullableRefs: OpenApiSchemaObject = {
       anyOf: [
@@ -8262,13 +8291,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should handle allOf with additional properties and nullable refs', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schemaWithAllOfAndProperties: OpenApiSchemaObject = {
       properties: {
@@ -8319,13 +8348,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique schema names for nullable oneOf with multiple enum refs (issue #2511)', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     // Test case from issue #2511: nullable oneOf with multiple enum refs
     // This should not generate duplicate schema names like "Item1Hello" and "Item2Hello"
@@ -8406,13 +8435,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for anyOf with three nullable refs', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     // Test case: anyOf with 3 nullable refs (like Animals.animalId)
     const schemaWithThreeRefs: OpenApiSchemaObject = {
@@ -8448,13 +8477,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for multiple anyOf properties in same object', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     // Test case: object with multiple anyOf properties (like Animals)
     const schemaWithMultipleAnyOf: OpenApiSchemaObject = {
@@ -8509,13 +8538,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for multiple objects with same anyOf structure', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: multiple objects (Pets and Animals) with similar anyOf structures
     const petsSchema: OpenApiSchemaObject = {
@@ -8580,13 +8609,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for oneOf with different enum types (string, number, boolean)', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: oneOf with different enum types (like Item3.world)
     const schemaWithMixedEnums: OpenApiSchemaObject = {
@@ -8638,13 +8667,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for object with multiple oneOf properties', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: object with multiple oneOf properties (like Item3)
     const schemaWithMultipleOneOf: OpenApiSchemaObject = {
@@ -8709,13 +8738,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names when same oneOf enum structure used in three objects', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: three objects (Item1, Item2, Item3) with same oneOf structure
     const createItemSchema = (): OpenApiSchemaObject => ({
@@ -8780,13 +8809,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should handle anyOf with required and optional nullable properties', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: required anyOf property vs optional anyOf property
     const schemaRequired: OpenApiSchemaObject = {
@@ -8849,13 +8878,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for anyOf mixing nullable and not-null refs', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: anyOf mixing nullable and not-null refs (like MixedNullable.mixedId)
     const schemaWithMixedNullable: OpenApiSchemaObject = {
@@ -8897,13 +8926,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for oneOf mixing nullable and not-null enums', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: oneOf mixing nullable and not-null enum refs (like MixedEnumItem.mixed)
     const schemaWithMixedEnum: OpenApiSchemaObject = {
@@ -8951,13 +8980,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for nested objects with anyOf properties', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: nested object with anyOf properties (like NestedAnimals)
     const schemaWithNestedAnyOf: OpenApiSchemaObject = {
@@ -9019,13 +9048,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for nested objects with oneOf enum properties', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: nested object with oneOf enum properties (like NestedItem)
     const schemaWithNestedOneOf: OpenApiSchemaObject = {
@@ -9088,13 +9117,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for multiple nested objects with same anyOf structure', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: multiple nested objects with same anyOf structure
     const createNestedSchema = (): OpenApiSchemaObject => ({
@@ -9151,13 +9180,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for deeply nested objects with anyOf', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: deeply nested (3 levels) object with anyOf
     const deeplyNestedSchema: OpenApiSchemaObject = {
@@ -9215,13 +9244,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for allOf with mixed nullable and not-null refs', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: allOf with mixed nullable and not-null refs
     const schemaWithMixedAllOf: OpenApiSchemaObject = {
@@ -9266,13 +9295,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for anyOf with mixed types (string, number, integer, boolean)', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: anyOf mixing different types (like MixedTypes.mixedAnyOf)
     const schemaWithMixedTypes: OpenApiSchemaObject = {
@@ -9315,13 +9344,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for anyOf with mixed not-null types', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: anyOf with not-null types of different kinds
     const schemaWithMixedNotNullTypes: OpenApiSchemaObject = {
@@ -9363,13 +9392,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for oneOf with number enum types', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: oneOf with number enum (nullable and not-null)
     const schemaWithNumberEnum: OpenApiSchemaObject = {
@@ -9422,13 +9451,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for oneOf with integer enum types', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: oneOf with integer enum (nullable and not-null)
     const schemaWithIntegerEnum: OpenApiSchemaObject = {
@@ -9481,13 +9510,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for object with multiple oneOf properties of different types', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: object with multiple oneOf properties of different types (like MixedTypeEnums)
     const schemaWithMultipleTypeEnums: OpenApiSchemaObject = {
@@ -9558,13 +9587,13 @@ describe('generateZodWithNullableAnyOfRefs', () => {
   });
 
   it('should generate unique names for multiple objects with same mixed type anyOf', () => {
-    const context = {
+    const context = createTestContextSpec({
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    });
 
     // Test case: multiple objects with same mixed type anyOf structure
     const createMixedTypeSchema = (): OpenApiSchemaObject => ({
@@ -9649,7 +9678,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
   };
 
   it('media key precedence: application/json ignores contentMediaType', async () => {
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/upload',
       context: {
         spec: {
@@ -9677,6 +9706,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': { schema: { type: 'string' } },
                     },
@@ -9688,15 +9718,15 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'upload',
         typeName: 'upload',
         override: zodOverride,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -9707,7 +9737,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 
   it('multipart/form-data: comprehensive content type handling', async () => {
     // Matches type gen test structure in res-req-types.test.ts
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/upload-form',
       context: {
         spec: {
@@ -9772,6 +9802,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': { schema: { type: 'string' } },
                     },
@@ -9783,15 +9814,15 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
         typeName: 'uploadForm',
         override: zodOverride,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -9822,7 +9853,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 
   it('content type with charset precision: comprehensive content type handling', async () => {
     // Matches type gen test structure in res-req-types.test.ts
-    const schema = {
+    const schema = createTestGeneratorOptions({
       pathRoute: '/upload-form',
       context: {
         spec: {
@@ -9887,6 +9918,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json; charset=utf-8': {
                         schema: {
@@ -9906,9 +9938,9 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    } as unknown as GeneratorOptions;
+    });
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
@@ -9920,7 +9952,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
             generate: { ...zodOverride.zod.generate, response: true },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       schema,
       testOutput,
     );
@@ -9956,13 +9988,13 @@ export const UploadFormResponse = zod.object({
 });
 
 describe('zod split mode regressions', () => {
-  const context: ContextSpec = {
+  const context: ContextSpec = createTestContextSpec({
     output: {
       override: {
         useDates: false,
       },
     },
-  } as ContextSpec;
+  });
 
   it('preserves @ prefixed property keys', () => {
     const schema: OpenApiSchemaObject = {
@@ -9997,7 +10029,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('preserves a nullable type sibling on dereferenced refs', () => {
-    const dereferenceContext = {
+    const dereferenceContext = createTestContextSpec({
       ...context,
       spec: {
         components: {
@@ -10014,13 +10046,13 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
         $ref: '#/components/schemas/RefPet',
         type: ['object', 'null'],
-      } as unknown as OpenApiSchemaObject,
+      },
       dereferenceContext,
     );
 
@@ -10045,7 +10077,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves local component refs with schema suffix for arrays and nested objects', () => {
-    const suffixContext = {
+    const suffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10070,7 +10102,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10113,7 +10145,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves allOf/oneOf/anyOf refs with schema suffix without unknown fallback', () => {
-    const suffixContext = {
+    const suffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10151,7 +10183,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10214,7 +10246,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('handles circular $ref with suffix by breaking the cycle', () => {
-    const circularContext = {
+    const circularContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10244,7 +10276,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10283,7 +10315,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves additionalProperties with $ref and schema suffix', () => {
-    const suffixContext = {
+    const suffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10307,7 +10339,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10341,7 +10373,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves nullable $ref property with schema suffix', () => {
-    const suffixContext = {
+    const suffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10365,7 +10397,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10374,7 +10406,7 @@ describe('zod split mode regressions', () => {
           optionalPosition: {
             $ref: '#/components/schemas/Position',
             type: ['object', 'null'],
-          } as unknown as OpenApiSchemaObject,
+          },
         },
       },
       suffixContext,
@@ -10403,7 +10435,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves deep nested allOf chains with schema suffix', () => {
-    const suffixContext = {
+    const suffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10450,7 +10482,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10490,7 +10522,7 @@ describe('zod split mode regressions', () => {
   });
 
   it('resolves refs with empty suffix (default) without regression', () => {
-    const noSuffixContext = {
+    const noSuffixContext = createTestContextSpec({
       output: {
         override: {
           useDates: false,
@@ -10514,7 +10546,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const resolvedSchema = dereference(
       {
@@ -10668,13 +10700,13 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true,
       false,
@@ -10696,13 +10728,13 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
 
     const result = generateZodValidationSchemaDefinition(
       schema,
-      {
+      createTestContextSpec({
         output: {
           override: {
             useDates: false,
           },
         },
-      } as ContextSpec,
+      }),
       'test',
       true,
       false,
@@ -10758,36 +10790,35 @@ const brandedZodOverrideDisabled = {
 const withOutputZodVersion = (
   generatorOptions: GeneratorOptions,
   version: 3 | 4,
-): GeneratorOptions =>
-  ({
-    ...generatorOptions,
-    context: {
-      ...generatorOptions.context,
-      output: {
-        ...generatorOptions.context.output,
-        override: {
-          ...generatorOptions.context.output.override,
-          zod: {
-            ...generatorOptions.context.output.override.zod,
-            version,
-          },
+): GeneratorOptions => ({
+  ...generatorOptions,
+  context: {
+    ...generatorOptions.context,
+    output: {
+      ...generatorOptions.context.output,
+      override: {
+        ...generatorOptions.context.output.override,
+        zod: {
+          ...generatorOptions.context.output.override.zod,
+          version,
         },
       },
     },
-  }) as GeneratorOptions;
+  },
+});
 
 describe('generateZod (useBrandedTypes)', () => {
   // Group 1: Default behavior — no brand
 
   it('does not append .brand() when useBrandedTypes is false', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
         typeName: 'test',
         override: brandedZodOverrideDisabled,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -10797,7 +10828,7 @@ describe('generateZod (useBrandedTypes)', () => {
 
   it('does not append .brand() when useBrandedTypes is not specified', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -10830,7 +10861,7 @@ describe('generateZod (useBrandedTypes)', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -10842,13 +10873,13 @@ describe('generateZod (useBrandedTypes)', () => {
 
   it('appends .brand<"Name">() to all schemas when useBrandedTypes is true (zod v3)', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
         typeName: 'test',
         override: brandedZodOverride,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
@@ -10859,7 +10890,7 @@ describe('generateZod (useBrandedTypes)', () => {
   });
 
   it('appends .brand("Name") to schemas when useBrandedTypes is true (zod v4)', async () => {
-    const v4ApiSchema = {
+    const v4ApiSchema = createTestGeneratorOptions({
       ...basicApiSchema,
       context: {
         ...basicApiSchema.context,
@@ -10872,16 +10903,16 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
         typeName: 'test',
         override: brandedZodOverride,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       v4ApiSchema,
       testOutput,
     );
@@ -10894,7 +10925,7 @@ describe('generateZod (useBrandedTypes)', () => {
   // Group 3: Array body/response
 
   it('appends .brand() only to the array wrapper, not to the item schema (body)', async () => {
-    const arrayBodyApiSchema = {
+    const arrayBodyApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -10922,6 +10953,7 @@ describe('generateZod (useBrandedTypes)', () => {
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -10946,10 +10978,10 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -10966,7 +10998,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(arrayBodyApiSchema, 3),
       testOutput,
     );
@@ -10983,7 +11015,7 @@ describe('generateZod (useBrandedTypes)', () => {
   });
 
   it('appends .brand() only to the array wrapper, not to the item schema (response)', async () => {
-    const arrayResponseApiSchema = {
+    const arrayResponseApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -11006,6 +11038,7 @@ describe('generateZod (useBrandedTypes)', () => {
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -11033,10 +11066,10 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -11053,7 +11086,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(arrayResponseApiSchema, 3),
       testOutput,
     );
@@ -11068,7 +11101,7 @@ describe('generateZod (useBrandedTypes)', () => {
   });
 
   it('chains zod mini array response bounds checks', async () => {
-    const arrayResponseApiSchema = {
+    const arrayResponseApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -11078,6 +11111,7 @@ describe('generateZod (useBrandedTypes)', () => {
                 operationId: 'xyz',
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -11108,10 +11142,10 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'get',
         operationName: 'test',
@@ -11128,7 +11162,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(arrayResponseApiSchema, 4),
       testOutput,
     );
@@ -11142,7 +11176,7 @@ describe('generateZod (useBrandedTypes)', () => {
 
   it('appends .brand() after .strict() when both strict and useBrandedTypes are enabled (zod v3)', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -11166,7 +11200,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
@@ -11175,7 +11209,7 @@ describe('generateZod (useBrandedTypes)', () => {
   });
 
   it('appends .brand() to each HTTP status response when generateEachHttpStatus is true', async () => {
-    const multiStatusApiSchema = {
+    const multiStatusApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -11198,6 +11232,7 @@ describe('generateZod (useBrandedTypes)', () => {
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -11210,6 +11245,7 @@ describe('generateZod (useBrandedTypes)', () => {
                     },
                   },
                   '201': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -11234,10 +11270,10 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -11255,7 +11291,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(multiStatusApiSchema, 3),
       testOutput,
     );
@@ -11268,7 +11304,7 @@ describe('generateZod (useBrandedTypes)', () => {
 
   it('appends .brand() when only response is generated', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -11285,7 +11321,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
@@ -11297,7 +11333,7 @@ describe('generateZod (useBrandedTypes)', () => {
 
   it('appends .brand() when only body is generated', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -11314,7 +11350,7 @@ describe('generateZod (useBrandedTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
@@ -11381,9 +11417,9 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
 });
 
 describe('generateMeta (.meta())', () => {
-  const ctx = {
+  const ctx = createTestContextSpec({
     output: { override: { useDates: false } },
-  } as ContextSpec;
+  });
 
   it('folds id + description + deprecated into a single .meta() on zod v4', () => {
     const schema: OpenApiSchemaObject = {
@@ -11508,10 +11544,10 @@ describe('generateMeta (.meta())', () => {
   });
 
   it('emits meta on a multi-type (type array) top-level schema', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: ['string', 'number'],
       description: 'either',
-    } as unknown as OpenApiSchemaObject;
+    };
 
     const def = generateZodValidationSchemaDefinition(
       schema,
@@ -11572,9 +11608,9 @@ describe('generateMeta (.meta())', () => {
 });
 
 describe('oneOf const branch metadata (#3835)', () => {
-  const ctx = {
+  const ctx = createTestContextSpec({
     output: { override: { useDates: false } },
-  } as ContextSpec;
+  });
 
   const status = {
     oneOf: [
@@ -11590,7 +11626,7 @@ describe('oneOf const branch metadata (#3835)', () => {
         deprecated: true,
       },
     ],
-  } as unknown as OpenApiSchemaObject;
+  };
 
   const render = (
     schema: OpenApiSchemaObject,
@@ -11644,7 +11680,7 @@ describe('oneOf const branch metadata (#3835)', () => {
   it('keeps .describe() for a branch carrying no title or deprecated', () => {
     const plain = {
       oneOf: [{ const: 'ACTIVE' }, { const: 'LEGACY', description: 'gone' }],
-    } as unknown as OpenApiSchemaObject;
+    };
 
     const expected = `zod.union([zod.literal("ACTIVE"),zod.literal("LEGACY").describe('gone')])`;
 
@@ -11655,7 +11691,7 @@ describe('oneOf const branch metadata (#3835)', () => {
   it('emits a deprecated-only branch without an empty description', () => {
     const schema = {
       oneOf: [{ const: 'OLD', deprecated: true }],
-    } as unknown as OpenApiSchemaObject;
+    };
 
     expect(render(schema, true)).toBe(
       `zod.literal("OLD").meta({ deprecated: true })`,
@@ -11664,7 +11700,7 @@ describe('oneOf const branch metadata (#3835)', () => {
 
   it('still folds the schema name into .meta() when emitMeta is on', () => {
     const def = generateZodValidationSchemaDefinition(
-      { type: 'string', description: 'A name' } as OpenApiSchemaObject,
+      { type: 'string', description: 'A name' },
       ctx,
       'Name',
       false,
@@ -11709,7 +11745,7 @@ function makeZodOverride(overrides: Record<string, unknown> = {}) {
 }
 
 describe('$dynamicRef / $dynamicAnchor', () => {
-  const petstoreComponents = {
+  const petstoreComponents: OpenApiSchemasObject = {
     Pet: {
       $dynamicAnchor: 'Pet',
       type: 'object',
@@ -11749,33 +11785,24 @@ describe('$dynamicRef / $dynamicAnchor', () => {
     },
   };
 
-  function makeApiSchema(paths: Record<string, unknown>) {
-    const baseContext = createTestContextSpec({
-      output: {
-        propertySortOrder: PropertySortOrder.ALPHABETICAL,
-      },
-    });
-    return {
-      pathRoute: Object.keys(paths)[0],
+  function makeApiSchema(paths: OpenApiDocument['paths']) {
+    return createTestGeneratorOptions({
+      pathRoute: Object.keys(paths ?? {})[0] ?? '/',
       context: {
-        ...baseContext,
         spec: {
-          openapi: '3.1.0',
-          info: { title: 'Test', version: '1.0.0' },
           paths,
           components: { schemas: petstoreComponents },
         },
         output: {
-          ...baseContext.output,
+          propertySortOrder: PropertySortOrder.ALPHABETICAL,
           override: {
-            ...baseContext.output.override,
             zod: {
               generateEachHttpStatus: false,
             },
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
   }
 
   describe('dereference', () => {
@@ -11810,8 +11837,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         ctx,
       );
 
-      const playmatesItems = (resolved.properties as Record<string, unknown>)
-        .playmates;
+      const playmatesItems = schemaObject(resolved).properties?.playmates;
       expect(playmatesItems).toBeDefined();
       const items = (playmatesItems as Record<string, unknown>).items;
       expect(items).toBeDefined();
@@ -11846,7 +11872,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
       const resolved = dereference({ $ref: '#/components/schemas/Cat' }, ctx);
 
-      const playmatesItems = (resolved.properties as Record<string, unknown>)
+      const playmatesItems = (schemaObject(resolved).properties ?? {})
         .playmates;
       const items = (playmatesItems as Record<string, unknown>).items;
       expect(items).toBeDefined();
@@ -11896,8 +11922,10 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
       const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
 
-      const pet = (resolved.properties as Record<string, unknown>)
-        .pet as Record<string, unknown>;
+      const pet = (schemaObject(resolved).properties ?? {}).pet as Record<
+        string,
+        unknown
+      >;
       const inline = (pet.allOf as Record<string, unknown>[])[0];
       const playmates = (inline.properties as Record<string, unknown>)
         .playmates as Record<string, unknown>;
@@ -11942,8 +11970,10 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
       const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
 
-      const pets = (resolved.properties as Record<string, unknown>)
-        .pets as Record<string, unknown>;
+      const pets = (schemaObject(resolved).properties ?? {}).pets as Record<
+        string,
+        unknown
+      >;
       const items = pets.items as Record<string, unknown>;
       const itemsProps = items.properties as Record<string, unknown>;
 
@@ -11987,8 +12017,10 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
       const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
 
-      const pet = (resolved.properties as Record<string, unknown>)
-        .pet as Record<string, unknown>;
+      const pet = (schemaObject(resolved).properties ?? {}).pet as Record<
+        string,
+        unknown
+      >;
       const inline = (pet.allOf as Record<string, unknown>[])[0];
       const playmates = (inline.properties as Record<string, unknown>)
         .playmates as Record<string, unknown>;
@@ -12007,10 +12039,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         spec: { components: { schemas: {} } },
       });
 
-      const resolved = dereference(
-        { $dynamicRef: 'other.json#node' } as never,
-        ctx,
-      );
+      const resolved = dereference({ $dynamicRef: 'other.json#node' }, ctx);
 
       expect(resolved).toEqual({});
     });
@@ -12020,10 +12049,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         spec: { components: { schemas: {} } },
       });
 
-      const resolved = dereference(
-        { $dynamicRef: '#nonexistent' } as never,
-        ctx,
-      );
+      const resolved = dereference({ $dynamicRef: '#nonexistent' }, ctx);
 
       expect(resolved).toEqual({});
     });
@@ -12052,8 +12078,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       const resolved = dereference({ $ref: '#/components/schemas/Pet' }, ctx);
 
       expect(resolved).toBeDefined();
-      const playmates = (resolved.properties as Record<string, unknown>)
-        .playmates;
+      const playmates = (schemaObject(resolved).properties ?? {}).playmates;
       const items = (playmates as Record<string, unknown>).items;
       expect(items).toBeDefined();
       const innerPlaymates = (
@@ -12098,7 +12123,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       );
 
       const items = (
-        (resolved.properties as Record<string, unknown>).items as Record<
+        (schemaObject(resolved).properties ?? {}).items as Record<
           string,
           unknown
         >
@@ -12185,8 +12210,8 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 
       const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
 
-      const pet = (resolved.properties as Record<string, unknown>).pet;
-      const cat = (resolved.properties as Record<string, unknown>).cat;
+      const pet = (schemaObject(resolved).properties ?? {}).pet;
+      const cat = (schemaObject(resolved).properties ?? {}).cat;
 
       const petItems = (
         (pet as Record<string, unknown>).properties as Record<string, unknown>
@@ -12246,7 +12271,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         ctx,
       );
 
-      const friends = (resolved.properties as Record<string, unknown>).friends;
+      const friends = (schemaObject(resolved).properties ?? {}).friends;
       const items = (friends as Record<string, unknown>).items;
       expect(items).toBeDefined();
       expect((items as Record<string, unknown>).type).toBe('object');
@@ -12265,6 +12290,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
             operationId: 'getLizard',
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: { $ref: '#/components/schemas/Lizard' },
@@ -12277,13 +12303,13 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       });
 
       const result = await generateZod(
-        {
+        createTestGeneratorVerbOptions({
           pathRoute: '/lizard',
           verb: 'get',
           operationName: 'getLizard',
           typeName: 'getLizard',
           override: { zod: makeZodOverride() },
-        } as unknown as Parameters<typeof generateZod>[0],
+        }),
         spec,
         testOutput,
       );
@@ -12300,6 +12326,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
             operationId: 'getCat',
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: { $ref: '#/components/schemas/Cat' },
@@ -12312,13 +12339,13 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       });
 
       const result = await generateZod(
-        {
+        createTestGeneratorVerbOptions({
           pathRoute: '/cat',
           verb: 'get',
           operationName: 'getCat',
           typeName: 'getCat',
           override: { zod: makeZodOverride() },
-        } as unknown as Parameters<typeof generateZod>[0],
+        }),
         spec,
         testOutput,
       );
@@ -12333,7 +12360,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
           propertySortOrder: PropertySortOrder.ALPHABETICAL,
         },
       });
-      const spec = {
+      const spec = createTestGeneratorOptions({
         pathRoute: '/broken',
         context: {
           ...baseContext,
@@ -12346,6 +12373,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
                   operationId: 'getBroken',
                   responses: {
                     '200': {
+                      description: 'OK',
                       content: {
                         'application/json': {
                           schema: {
@@ -12374,16 +12402,16 @@ describe('$dynamicRef / $dynamicAnchor', () => {
             },
           },
         },
-      } as unknown as GeneratorOptions;
+      });
 
       const result = await generateZod(
-        {
+        createTestGeneratorVerbOptions({
           pathRoute: '/broken',
           verb: 'get',
           operationName: 'getBroken',
           typeName: 'getBroken',
           override: { zod: makeZodOverride() },
-        } as unknown as Parameters<typeof generateZod>[0],
+        }),
         spec,
         testOutput,
       );
@@ -12398,6 +12426,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
             operationId: 'getMixed',
             responses: {
               '200': {
+                description: 'OK',
                 content: {
                   'application/json': {
                     schema: {
@@ -12420,13 +12449,13 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       });
 
       const result = await generateZod(
-        {
+        createTestGeneratorVerbOptions({
           pathRoute: '/mixed',
           verb: 'get',
           operationName: 'getMixed',
           typeName: 'getMixed',
           override: { zod: makeZodOverride() },
-        } as unknown as Parameters<typeof generateZod>[0],
+        }),
         spec,
         testOutput,
       );
@@ -12442,7 +12471,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
 describe('generateZod preprocess regression (#3511)', () => {
   it('wraps the query schema using `preprocess.query` even when `preprocess.response` is not set', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -12478,7 +12507,7 @@ describe('generateZod preprocess regression (#3511)', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -12502,7 +12531,7 @@ describe('generateZod preprocess regression (#3511)', () => {
 
   it('uses a distinct mutator per target when each preprocess key is configured separately', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -12542,7 +12571,7 @@ describe('generateZod preprocess regression (#3511)', () => {
             timeOptions: {},
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -12670,10 +12699,10 @@ describe('enum/const value escaping (#3505)', () => {
   });
 
   it('JS-escapes backslashes in string const values (zod v3 branch)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       const: String.raw`App\Models\Document`,
-    } as OpenApiSchemaObject;
+    };
 
     const result = generateZodValidationSchemaDefinition(
       schema,
@@ -12691,10 +12720,10 @@ describe('enum/const value escaping (#3505)', () => {
   });
 
   it('JS-escapes backslashes in string const values (zod v4 branch)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       const: String.raw`App\Models\Document`,
-    } as OpenApiSchemaObject;
+    };
 
     const result = generateZodValidationSchemaDefinition(
       schema,
@@ -12761,11 +12790,11 @@ describe('enum/const value escaping (#3505)', () => {
     const dateContext = makeContextSpec({
       override: { useDates: true },
     });
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'string',
       format: 'date-time',
       default: '2024-01-01T00:00:00Z',
-    } as OpenApiSchemaObject;
+    };
 
     const result = generateZodValidationSchemaDefinition(
       schema,
@@ -12791,7 +12820,7 @@ describe('enum/const value escaping (#3505)', () => {
     (constValue, expectedFunction, typeName) => {
       const schema = {
         const: constValue,
-      } as OpenApiSchemaObject;
+      };
 
       const result = generateZodValidationSchemaDefinition(
         schema,
@@ -12859,13 +12888,14 @@ describe('discriminated unions (#1907, #2085)', () => {
       },
     }) as OpenApiSchemaObject;
 
+  const catDogBranches = [
+    objectBranch('cat', { meow: { type: 'boolean' } }),
+    objectBranch('dog', { bark: { type: 'boolean' } }),
+  ];
   const catDogUnion = {
-    oneOf: [
-      objectBranch('cat', { meow: { type: 'boolean' } }),
-      objectBranch('dog', { bark: { type: 'boolean' } }),
-    ],
+    oneOf: catDogBranches,
     discriminator: { propertyName: 'type' },
-  } as OpenApiSchemaObject;
+  };
 
   it('emits a discriminatedUnion for object branches with a discriminator', () => {
     const result = render(catDogUnion);
@@ -12875,9 +12905,9 @@ describe('discriminated unions (#1907, #2085)', () => {
 
   it('supports anyOf discriminators, not just oneOf', () => {
     const result = render({
-      anyOf: catDogUnion.oneOf,
+      anyOf: catDogBranches,
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain("zod.discriminatedUnion('type', [");
   });
 
@@ -12885,7 +12915,7 @@ describe('discriminated unions (#1907, #2085)', () => {
   // `allOf` (base + own props). It must be flattened into a single object so
   // `zod.discriminatedUnion` accepts it — never an `.and()` intersection.
   it('flattens allOf inheritance branches into objects instead of crashing', () => {
-    const inheritance = {
+    const inheritance: OpenApiSchemaObject = {
       oneOf: [
         {
           allOf: [
@@ -12901,7 +12931,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         },
       ],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject;
+    };
 
     const result = render(inheritance);
     expect(result).toContain("zod.discriminatedUnion('type', [");
@@ -12932,7 +12962,7 @@ describe('discriminated unions (#1907, #2085)', () => {
           { $ref: '#/components/schemas/Dog' },
         ],
         discriminator: { propertyName: 'type' },
-      } as unknown as OpenApiSchemaObject,
+      },
       { context, useReusableSchemas: true },
     );
     // __REF_X__ placeholders are rewritten to the const name by the orchestrator.
@@ -12948,12 +12978,12 @@ describe('discriminated unions (#1907, #2085)', () => {
     const result = render({
       anyOf: [
         {
-          oneOf: catDogUnion.oneOf,
+          oneOf: catDogBranches,
           discriminator: { propertyName: 'type' },
         },
         { type: 'null' },
       ],
-    } as unknown as OpenApiSchemaObject);
+    });
     expect(result).toContain("zod.discriminatedUnion('type', [");
     expect(result).toContain('zod.null()');
     expect(result.startsWith('zod.union([')).toBe(true);
@@ -12978,7 +13008,7 @@ describe('discriminated unions (#1907, #2085)', () => {
     const result = render({
       oneOf: [objectBranch('cat', {}), { type: 'string' }],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -12990,7 +13020,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         { type: 'object', properties: { bark: { type: 'boolean' } } },
       ],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -13005,7 +13035,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         { type: 'object', properties: { type: { type: 'string' } } },
       ],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -13040,7 +13070,7 @@ describe('discriminated unions (#1907, #2085)', () => {
           { $ref: '#/components/schemas/Dog' },
         ],
         discriminator: { propertyName: 'type' },
-      } as unknown as OpenApiSchemaObject,
+      },
       { context, useReusableSchemas: true },
     );
     expect(result).toContain('zod.union([');
@@ -13050,7 +13080,7 @@ describe('discriminated unions (#1907, #2085)', () => {
   it('leaves a discriminator-less oneOf as a plain union', () => {
     const result = render({
       oneOf: [objectBranch('cat', {}), objectBranch('dog', {})],
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -13073,7 +13103,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         objectBranch('cat', { purr: { type: 'boolean' } }),
       ],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -13093,7 +13123,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         },
       ],
       discriminator: { propertyName: 'type' },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain('zod.union([');
     expect(result).not.toContain('discriminatedUnion');
   });
@@ -13114,7 +13144,7 @@ describe('discriminated unions (#1907, #2085)', () => {
         },
       ],
       discriminator: { propertyName: "kind'x" },
-    } as OpenApiSchemaObject);
+    });
     expect(result).toContain("zod.discriminatedUnion('kind\\'x', [");
   });
 });
@@ -13123,9 +13153,9 @@ describe('discriminated unions (#1907, #2085)', () => {
 // / `zod.exactOptional()` (mini) so optional properties infer `{ x?: T }` under
 // `exactOptionalPropertyTypes`. Opt-in and zod v4 only; v3 has no such method.
 describe('exactOptional (opt-in)', () => {
-  const context = {
+  const context = createTestContextSpec({
     output: { override: { useDates: false } },
-  } as ContextSpec;
+  });
 
   const optionalString: ZodValidationSchemaDefinition = {
     functions: [
@@ -13198,9 +13228,9 @@ describe('exactOptional (opt-in)', () => {
 });
 
 describe('constraint-only oneOf/anyOf branches (#3780)', () => {
-  const context = {
+  const context = createTestContextSpec({
     output: { override: { useDates: false } },
-  } as unknown as ContextSpec;
+  });
 
   const render = (schema: OpenApiSchemaObject) =>
     parseZodValidationSchemaDefinition(
@@ -13253,7 +13283,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
       ...constraintOnlyOneOf,
       oneOf: undefined,
       anyOf: constraintOnlyOneOf.oneOf,
-    } as OpenApiSchemaObject);
+    });
 
     expect(zod).not.toContain('zod.unknown()');
     expect(zod).toContain(
@@ -13297,9 +13327,12 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
   ])('leaves a member carrying %s alone', (_label, extra, expected) => {
     const zod = render({
       type: 'object',
-      oneOf: [{ required: ['A'], ...extra }, { required: ['B'] }],
+      oneOf: [
+        { required: ['A'], ...extra } as OpenApiSchemaObject,
+        { required: ['B'] },
+      ],
       properties: { A: { type: 'string' }, B: { type: 'integer' } },
-    } as OpenApiSchemaObject);
+    });
 
     // the member renders on its own terms, not as the sibling properties
     expect(zod).toContain(expected);
@@ -13324,7 +13357,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
         X: { type: 'string' },
         Y: { type: 'integer' },
       },
-    } as OpenApiSchemaObject);
+    });
 
     expect(zod).not.toContain('zod.unknown()');
     // the `not` branch is still the AB shape, not an all-optional object
@@ -13352,7 +13385,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
       type: 'object',
       oneOf: [{ required: ['kind'] }, { required: ['A'] }],
       properties: { A: { type: 'string' } },
-    } as OpenApiSchemaObject);
+    });
 
     // `kind` has no schema to attach to and zod cannot require an untyped key,
     // so that branch keeps the existing behaviour instead of pretending to
@@ -13366,7 +13399,7 @@ describe('constraint-only oneOf/anyOf branches (#3780)', () => {
       type: 'object',
       oneOf: [{ required: ['A'] }, { required: ['B'] }],
       properties: {},
-    } as OpenApiSchemaObject);
+    });
 
     // nothing to mark required, so rewriting would only narrow the branch from
     // "anything" to "any object" without expressing the constraint
@@ -13403,7 +13436,7 @@ describe('misplaced boolean `required` (#3719)', () => {
     expect(() =>
       generateZodValidationSchemaDefinition(
         schema,
-        { output: { override: {} } } as ContextSpec,
+        createTestContextSpec({ output: { override: {} } }),
         'Item',
         true,
         false,
@@ -13421,7 +13454,7 @@ describe('misplaced boolean `required` (#3719)', () => {
           allOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
           required: true,
         } as unknown as OpenApiSchemaObject,
-        { output: { override: {} } } as ContextSpec,
+        createTestContextSpec({ output: { override: {} } }),
         'Composed',
         true,
         false,
@@ -13442,7 +13475,7 @@ describe('misplaced boolean `required` (#3719)', () => {
             { required: true },
           ],
         } as unknown as OpenApiSchemaObject,
-        { output: { override: {} } } as ContextSpec,
+        createTestContextSpec({ output: { override: {} } }),
         'Member',
         true,
         false,
@@ -13458,8 +13491,8 @@ describe('misplaced boolean `required` (#3719)', () => {
           type: 'object',
           required: ['name'],
           properties: { name: { type: 'string' } },
-        } as OpenApiSchemaObject,
-        { output: { override: {} } } as ContextSpec,
+        },
+        createTestContextSpec({ output: { override: {} } }),
         'Valid',
         true,
         false,
@@ -13476,8 +13509,8 @@ describe('misplaced boolean `required` (#3719)', () => {
             { type: 'object', properties: { a: { type: 'string' } } },
             { required: ['a'] },
           ],
-        } as unknown as OpenApiSchemaObject,
-        { output: { override: {} } } as ContextSpec,
+        },
+        createTestContextSpec({ output: { override: {} } }),
         'ValidMember',
         true,
         false,
@@ -13492,7 +13525,7 @@ describe('misplaced boolean `required` (#3719)', () => {
 describe('generateZod (generateCompanionTypes)', () => {
   it('emits no companion types when generateCompanionTypes is false', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -13503,7 +13536,7 @@ describe('generateZod (generateCompanionTypes)', () => {
             generateCompanionTypes: false,
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -13513,13 +13546,13 @@ describe('generateZod (generateCompanionTypes)', () => {
 
   it('emits no companion types when generateCompanionTypes is not specified', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
         typeName: 'test',
         override: brandedZodOverrideDisabled,
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -13529,7 +13562,7 @@ describe('generateZod (generateCompanionTypes)', () => {
 
   it('emits a zod.input/zod.output companion pair after every export const when enabled', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -13540,7 +13573,7 @@ describe('generateZod (generateCompanionTypes)', () => {
             generateCompanionTypes: true,
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       basicApiSchema,
       testOutput,
     );
@@ -13562,7 +13595,7 @@ describe('generateZod (generateCompanionTypes)', () => {
   });
 
   it('gives both the Item schema and the array wrapper their own companion pair', async () => {
-    const arrayBodyApiSchema = {
+    const arrayBodyApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -13588,6 +13621,7 @@ describe('generateZod (generateCompanionTypes)', () => {
                 },
                 responses: {
                   '200': {
+                    description: 'OK',
                     content: {
                       'application/json': {
                         schema: {
@@ -13610,10 +13644,10 @@ describe('generateZod (generateCompanionTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -13631,7 +13665,7 @@ describe('generateZod (generateCompanionTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       arrayBodyApiSchema,
       testOutput,
     );
@@ -13652,7 +13686,7 @@ describe('generateZod (generateCompanionTypes)', () => {
 
   it('brands only the wrapper Output type when combined with useBrandedTypes', async () => {
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -13663,7 +13697,7 @@ describe('generateZod (generateCompanionTypes)', () => {
             generateCompanionTypes: true,
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       withOutputZodVersion(basicApiSchema, 4),
       testOutput,
     );
@@ -13683,7 +13717,7 @@ describe('generateZod (generateCompanionTypes)', () => {
   });
 
   it('does not emit companion types for helper value consts (Max/Min/RegExp/Default)', async () => {
-    const constsApiSchema = {
+    const constsApiSchema = createTestGeneratorOptions({
       pathRoute: '/cats',
       context: {
         spec: {
@@ -13722,10 +13756,10 @@ describe('generateZod (generateCompanionTypes)', () => {
           },
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     const result = await generateZod(
-      {
+      createTestGeneratorVerbOptions({
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
@@ -13743,7 +13777,7 @@ describe('generateZod (generateCompanionTypes)', () => {
             },
           },
         },
-      } as unknown as Parameters<typeof generateZod>[0],
+      }),
       constsApiSchema,
       testOutput,
     );
@@ -13837,15 +13871,13 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
   it('still maps integer to int', () => {
     // Zod v4 renders the dedicated `int()` constructor rather than
     // `number().int()`; either way it must not degrade to `unknown`.
-    expect(render({ type: 'integer' } as unknown as OpenApiSchemaObject)).toBe(
-      'zod.int()',
-    );
+    expect(render({ type: 'integer' })).toBe('zod.int()');
   });
 
   it('still resolves a 3.1 array-of-types union', () => {
     const zod = render({
       type: ['string', 'number'],
-    } as unknown as OpenApiSchemaObject);
+    });
 
     expect(zod).toContain('zod.string()');
     expect(zod).toContain('zod.number()');
@@ -13855,7 +13887,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
     const zod = render({
       type: 'array',
       prefixItems: [{ type: 'string' }, { type: 'number' }],
-    } as unknown as OpenApiSchemaObject);
+    });
 
     expect(zod).toContain('zod.tuple(');
   });
@@ -13871,7 +13903,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
         {
           functions: [['string();evil()//', undefined]],
           consts: [],
-        } as unknown as ZodValidationSchemaDefinition,
+        } satisfies ZodValidationSchemaDefinition,
         context,
         false,
         false,
@@ -13891,7 +13923,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
         {
           functions: [['iso.datetime', undefined]],
           consts: [],
-        } as unknown as ZodValidationSchemaDefinition,
+        } satisfies ZodValidationSchemaDefinition,
         context,
         false,
         false,
@@ -13915,7 +13947,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
           {
             functions: [[fn, undefined]],
             consts: [],
-          } as unknown as ZodValidationSchemaDefinition,
+          } satisfies ZodValidationSchemaDefinition,
           context,
           false,
           false,
@@ -13959,7 +13991,7 @@ describe('schema type is not a code-injection sink (GHSA-v263-cp2v-vrrx)', () =>
               ],
             ],
             consts: [],
-          } as unknown as ZodValidationSchemaDefinition,
+          } satisfies ZodValidationSchemaDefinition,
           context,
           false,
           false,
@@ -13990,11 +14022,11 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
       ...zod,
     };
 
-    const verbOptions = {
+    const verbOptions = createTestGeneratorVerbOptions({
       verb: 'get',
       pathRoute: '/x',
       override: context.output.override,
-    } as GeneratorVerbOptions;
+    });
 
     return {
       object: isObjectResponseSchema(verbOptions, context),

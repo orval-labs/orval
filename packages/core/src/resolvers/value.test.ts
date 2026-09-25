@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
-import type {
-  DynamicScopeEntry,
-  OpenApiDocument,
-  OpenApiReferenceObject,
-  OpenApiSchemaObject,
-} from '../types';
+import { createTestContextSpec } from '../test-utils';
+import type { DynamicScopeEntry, OpenApiDocument } from '../types';
 import { resolveValue } from './value';
 
 function createContext(
-  spec: OpenApiDocument,
+  spec: Partial<OpenApiDocument> = {},
   dynamicScope?: Partial<Record<string, DynamicScopeEntry>>,
 ) {
   return createTestContextSpec({
@@ -37,7 +32,7 @@ describe('resolveValue', () => {
     });
 
     const result = resolveValue({
-      schema: { $ref: '#/components/schemas/Pet' } as OpenApiReferenceObject,
+      schema: { $ref: '#/components/schemas/Pet' },
       context,
     });
 
@@ -49,10 +44,57 @@ describe('resolveValue', () => {
     expect(result.isRef).toBe(true);
   });
 
+  it('keeps the non-null type of a nullable component ref', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Name: { type: ['string', 'null'] },
+          Box: {
+            type: ['object', 'null'],
+            properties: { id: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const name = resolveValue({
+      schema: { $ref: '#/components/schemas/Name' },
+      context,
+    });
+    expect(name.type).toBe('string');
+    expect(name.value).toBe('Name | null');
+
+    const box = resolveValue({
+      schema: { $ref: '#/components/schemas/Box' },
+      context,
+    });
+    expect(box.type).toBe('object');
+    expect(box.value).toBe('Box | null');
+  });
+
+  it('does not classify a mixed type array component ref as an object', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Scalar: { type: ['string', 'number'] },
+        },
+      },
+    });
+
+    const result = resolveValue({
+      schema: { $ref: '#/components/schemas/Scalar' },
+      context,
+    });
+
+    expect(result.type).toBe('unknown');
+  });
+
   // Regression for issue #398: a $ref like `#/paths/.../schema` (emitted by
   // JSON-Schema-Ref-Parser bundle()) resolves to an inline schema with no
   // corresponding `export type`. orval previously generated a broken
-  // `import { Schema } from './model'` referencing an undeclared type.
+  // `import { Schema } from './model';` referencing an undeclared type.
   it('inlines a path-based ref instead of emitting a broken import', () => {
     const context = createContext({
       openapi: '3.1.0',
@@ -82,12 +124,12 @@ describe('resolveValue', () => {
           },
         },
       },
-    } as unknown as OpenApiDocument);
+    });
 
     const result = resolveValue({
       schema: {
         $ref: '#/paths/~1%7Bid%7D/get/parameters/0/schema',
-      } as OpenApiReferenceObject,
+      },
       context,
     });
 
@@ -125,11 +167,11 @@ describe('resolveValue', () => {
           },
         },
       },
-    } as unknown as OpenApiDocument);
+    });
 
     expect(() =>
       resolveValue({
-        schema: { $ref: selfRef } as OpenApiReferenceObject,
+        schema: { $ref: selfRef },
         context,
       }),
     ).not.toThrow();
@@ -138,7 +180,7 @@ describe('resolveValue', () => {
 
 describe('resolveValue with $dynamicRef', () => {
   it('resolves dynamic ref when scope matches', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -149,7 +191,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       category: {
         name: 'LocalizedCategory',
@@ -158,7 +200,7 @@ describe('resolveValue with $dynamicRef', () => {
     });
 
     const result = resolveValue({
-      schema: { $dynamicRef: '#category' } as unknown as OpenApiSchemaObject,
+      schema: { $dynamicRef: '#category' },
       context,
     });
 
@@ -170,10 +212,10 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('returns unknown for unsupported or unbound $dynamicRef values', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: { schemas: {} },
-    } as OpenApiDocument;
+    };
     const cases = [
       { dynamicRef: '#category', dynamicScope: {} },
       { dynamicRef: '#category', dynamicScope: undefined },
@@ -183,7 +225,7 @@ describe('resolveValue with $dynamicRef', () => {
 
     for (const { dynamicRef, dynamicScope } of cases) {
       const result = resolveValue({
-        schema: { $dynamicRef: dynamicRef } as unknown as OpenApiSchemaObject,
+        schema: { $dynamicRef: dynamicRef },
         context: createContext(spec, dynamicScope),
       });
 
@@ -193,7 +235,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('resolves pagination itemType to concrete type', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -206,13 +248,13 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       itemType: { name: 'User', schemaName: 'User' },
     });
 
     const result = resolveValue({
-      schema: { $dynamicRef: '#itemType' } as unknown as OpenApiSchemaObject,
+      schema: { $dynamicRef: '#itemType' },
       context,
     });
 
@@ -221,7 +263,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('ignores $dynamicRef keys in non-schema payloads while scanning refs', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -232,7 +274,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       category: {
         name: 'LocalizedCategory',
@@ -241,7 +283,7 @@ describe('resolveValue with $dynamicRef', () => {
     });
 
     const result = resolveValue({
-      schema: { $ref: '#/components/schemas/Position' } as OpenApiSchemaObject,
+      schema: { $ref: '#/components/schemas/Position' },
       context,
     });
 
@@ -250,7 +292,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('materializes refs when dynamic scope rebinds nested dynamic refs', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -271,7 +313,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       category: {
         name: 'LocalizedCategory',
@@ -282,7 +324,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/BaseCategory',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -297,7 +339,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('parents guard prevents re-materialization of scope-affected ref', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -318,7 +360,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       category: {
         name: 'LocalizedCategory',
@@ -330,7 +372,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/BaseCategory',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -339,7 +381,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('ignores external $dynamicRef inside traversed allOf', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -351,7 +393,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       node: { name: 'SomeType', schemaName: 'SomeType' },
     });
@@ -359,7 +401,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/Container',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -368,7 +410,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('materializes when $dynamicRef is inside allOf', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -402,7 +444,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       node: { name: 'DerivedNode', schemaName: 'DerivedNode' },
     });
@@ -410,7 +452,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/Container',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -419,7 +461,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('materializes when $dynamicRef is inside $defs', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -441,7 +483,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec, {
       node: { name: 'DerivedNode', schemaName: 'DerivedNode' },
     });
@@ -449,7 +491,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/Container',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -457,10 +499,10 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('breaks cycle when hasScopeAffectedDynamicRef encounters the same object twice', () => {
-    const sharedDynamicRef: Record<string, unknown> = {
+    const sharedDynamicRef = {
       $dynamicRef: '#unknown',
     };
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -473,7 +515,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
 
     const context = createContext(spec, {
       node: { name: 'DerivedNode', schemaName: 'DerivedNode' },
@@ -482,7 +524,7 @@ describe('resolveValue with $dynamicRef', () => {
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/Container',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -491,7 +533,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('appends | null for anyOf with type null in resolved ref', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -500,13 +542,13 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     const result = resolveValue({
       schema: {
         $ref: '#/components/schemas/NullableItem',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -519,7 +561,7 @@ describe('resolveValue with $dynamicRef', () => {
     // builds the generic type expression directly instead of falling through to resolveRef.
     // The bound-alias schema must be passed inline (with $ref + $defs on the same object),
     // as it would appear on a property/parameter — not as a component reference.
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -537,7 +579,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
     const context = createContext(spec);
 
     // Pass the bound-alias schema inline: $ref + $defs on the same object.
@@ -550,7 +592,7 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
         $ref: '#/components/schemas/PaginatedTemplate',
-      } as OpenApiSchemaObject,
+      },
       context,
     });
 
@@ -567,7 +609,7 @@ describe('resolveValue with $dynamicRef', () => {
   });
 
   it('does not reuse cache across different dynamicScope bindings', () => {
-    const spec = {
+    const spec: Partial<OpenApiDocument> = {
       openapi: '3.1.0',
       components: {
         schemas: {
@@ -583,14 +625,14 @@ describe('resolveValue with $dynamicRef', () => {
           },
         },
       },
-    } as OpenApiDocument;
+    };
 
     const schema = {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         child: { $dynamicRef: '#category' },
       },
-    } as unknown as OpenApiSchemaObject;
+    };
 
     const resultA = resolveValue({
       schema,

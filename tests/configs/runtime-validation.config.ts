@@ -6,6 +6,7 @@ import { defineConfig } from 'orval';
 // per-client configs; these isolate the additive `both` output so its diff is
 // reviewed independently.
 export default defineConfig({
+  logLevel: 'error',
   fetchBoth: {
     output: {
       target: '../generated/runtime-validation/fetch-both/endpoints.ts',

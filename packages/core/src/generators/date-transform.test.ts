@@ -2,10 +2,12 @@ import vm from 'node:vm';
 
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import type {
   ContextSpec,
   GetterBody,
   GetterResponse,
+  OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
 import {
@@ -18,17 +20,14 @@ import {
 const makeContext = (
   schemas: Record<string, OpenApiSchemaObject> = {},
 ): ContextSpec =>
-  ({
+  createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'test', version: '1.0.0' },
-      paths: {},
       components: { schemas },
     },
-    output: { override: { useDates: true, useDatesTransform: true } },
-  }) as unknown as ContextSpec;
+    override: { useDates: true, useDatesTransform: true },
+  });
 
 describe('buildDateTransformStatements', () => {
   it('emits a guarded assignment for an optional date property', () => {
@@ -185,7 +184,7 @@ describe('buildDateTransformStatements', () => {
       items: {
         anyOf: [{ $ref: '#/components/schemas/LogEvent' }, { type: 'null' }],
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
@@ -578,7 +577,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
             dog: '#/components/schemas/Dog',
           },
         },
-      } as OpenApiSchemaObject,
+      } satisfies OpenApiSchemaObject,
     };
 
     const statements = buildDateTransformStatements({
@@ -1485,7 +1484,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and a scalar variant disqualifies the union', () => {
     const makeScalarSiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1532,7 +1531,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and an array variant disqualifies the union', () => {
     const makeArraySiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1575,7 +1574,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   it('emits nothing when a cycle sits behind one variant and an unresolvable variant disqualifies the union', () => {
     const makeBrokenSiblingContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -1701,7 +1700,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     // Returning only `{ Node }` from the variant loop left `Outer`
     // converting `oat` while everything under `node` stayed a string.
     const makeOuterContext = (
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Outer: {
@@ -1956,7 +1955,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     // `data.child`, typed `Date` by the model, stayed a string.
     const makeItemsCycleContext = (
       back: string,
-      variants: NonNullable<OpenApiSchemaObject['anyOf']>,
+      variants: NonNullable<OpenApiNonBooleanSchemaObject['anyOf']>,
     ) =>
       makeContext({
         Node: {
@@ -2483,14 +2482,14 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
       Vehicle: {
         type: 'object',
         properties: {
-          toString: { type: 'string', format: 'date' },
+          toString: { type: 'string' as const, format: 'date' },
           registeredOn: { type: 'string', format: 'date' },
         },
       },
       Trailer: {
         type: 'object',
         properties: {
-          toString: { type: 'string', format: 'date' },
+          toString: { type: 'string' as const, format: 'date' },
           registeredOn: { type: 'string', format: 'date' },
         },
       },
@@ -2621,7 +2620,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     const schema: OpenApiSchemaObject = {
       oneOf: [{ $ref: '#/components/schemas/Cat' }],
       discriminator: { propertyName: 'petType', mapping: { cat: 'Cat' } },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
@@ -2639,7 +2638,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     const schema: OpenApiSchemaObject = {
       oneOf: [{ $ref: '#/components/schemas/Missing' }],
       discriminator: { propertyName: 'petType', mapping: { cat: 'Missing' } },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -2684,7 +2683,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
         propertyName: 'kind',
         mapping: { a: 'TypeA', b: 'TypeB' },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
@@ -2716,7 +2715,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     const schema: OpenApiSchemaObject = {
       oneOf: [{ $ref: '#/components/schemas/TypeA' }],
       discriminator: { propertyName: 'kind', mapping: { a: 'TypeA' } },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
     const visitedRefs = new Set<string>();
 
     buildDateTransformStatements({
@@ -2816,7 +2815,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
           anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
         },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -2847,7 +2846,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
           anyOf: [{ $ref: '#/components/schemas/Audit' }, { type: 'null' }],
         },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
@@ -2871,7 +2870,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
         },
         { type: 'null' },
       ],
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -2977,7 +2976,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
                 dog: '#/components/schemas/Dog',
               },
             },
-          } as OpenApiSchemaObject,
+          } satisfies OpenApiSchemaObject,
         },
       },
     };
@@ -3027,7 +3026,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
                 properties: { on: { type: 'string', format: 'date' } },
               },
             ],
-          } as OpenApiSchemaObject,
+          } satisfies OpenApiSchemaObject,
         },
       },
     };
@@ -3176,7 +3175,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
             },
             { type: 'null' },
           ],
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -3406,7 +3405,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       type: 'object',
       propertyNames: { enum: ['a', 'b'] },
       additionalProperties: { type: 'string', format: 'date-time' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -3424,7 +3423,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       type: 'object',
       propertyNames: { const: 'a' },
       additionalProperties: { type: 'string', format: 'date-time' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -3449,7 +3448,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       type: 'object',
       propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
       additionalProperties: { type: 'string', format: 'date-time' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
@@ -3470,7 +3469,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
           type: 'object',
           propertyNames: { format: 'uuid' },
           additionalProperties: { type: 'string', format: 'date' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -3498,7 +3497,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
           type: 'object',
           propertyNames: { pattern: '^x-' },
           additionalProperties: { type: 'string', format: 'date-time' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -3560,12 +3559,12 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
                     dog: '#/components/schemas/IntakeDog',
                   },
                 },
-              } as OpenApiSchemaObject,
+              } satisfies OpenApiSchemaObject,
               propertyNames: { format: 'uuid' },
             },
             { type: 'null' },
           ],
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -3592,11 +3591,11 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     // to contribute a conversion for. It must not be mistaken for a
     // map-shaped sibling of `items` and trigger the array/map conflict drop
     // below.
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date' },
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date' },
       additionalProperties: {},
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -3612,11 +3611,17 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
   });
 
   it('still converts the array when additionalProperties is an empty array (must not regress)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'array',
       items: { type: 'string', format: 'date' },
+      // An array is not a legal `additionalProperties` value. The keyword
+      // must be a JSON Schema — an object or a boolean — and OpenAPI 3.1
+      // Schema Objects use that dialect.
+      // https://json-schema.org/draft/2020-12/json-schema-core#section-10.3.2.3
+      // https://spec.openapis.org/oas/v3.1.1#schema-object
+      // @ts-expect-error — an array is not a legal additionalProperties value
       additionalProperties: [],
-    } as unknown as OpenApiSchemaObject;
+    };
 
     expect(
       buildDateTransformStatements({
@@ -3637,15 +3642,17 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     // the empty-object/empty-array idioms above, this `additionalProperties`
     // is a genuine value schema (it has its own `properties`), so the
     // conflict guard must still fire.
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date-time' },
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date-time' },
       additionalProperties: {
-        type: 'object',
+        type: 'object' as const,
         required: ['recordedOn'],
-        properties: { recordedOn: { type: 'string', format: 'date-time' } },
+        properties: {
+          recordedOn: { type: 'string' as const, format: 'date-time' },
+        },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -4322,7 +4329,7 @@ describe('buildRequestDateSerializeStatements', () => {
           description: 'redeclared on the parent',
         },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -4393,11 +4400,11 @@ describe('buildRequestDateSerializeStatements', () => {
     // stray sibling `properties`. `.map` already builds the new array; a
     // `const copy` reassigned to that `.map` result does not compile, so the
     // whole subtree emits nothing rather than broken code.
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date' },
-      properties: { count: { type: 'string', format: 'date' } },
-    } as OpenApiSchemaObject;
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date' },
+      properties: { count: { type: 'string' as const, format: 'date' } },
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -4418,7 +4425,7 @@ describe('buildRequestDateSerializeStatements', () => {
           type: 'array',
           items: { type: 'string', format: 'date' },
           properties: { count: { type: 'string', format: 'date' } },
-        } as OpenApiSchemaObject,
+        },
       },
     };
 
@@ -4437,11 +4444,11 @@ describe('buildRequestDateSerializeStatements', () => {
     // Proves the array/object-conflict guard is request-only: the response
     // direction may freely combine an in-place array loop with property
     // writes on the same schema.
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date-time' },
-      properties: { count: { type: 'string', format: 'date-time' } },
-    } as OpenApiSchemaObject;
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date-time' },
+      properties: { count: { type: 'string' as const, format: 'date-time' } },
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildDateTransformStatements({
@@ -4562,7 +4569,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
                 dog: '#/components/schemas/Dog',
               },
             },
-          } as OpenApiSchemaObject,
+          } satisfies OpenApiSchemaObject,
         },
       },
     };
@@ -4619,7 +4626,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
                 properties: { on: { type: 'string', format: 'date' } },
               },
             ],
-          } as OpenApiSchemaObject,
+          } satisfies OpenApiSchemaObject,
         },
       },
     };
@@ -4772,7 +4779,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
             },
             { type: 'null' },
           ],
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -5027,7 +5034,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       type: 'object',
       propertyNames: { enum: ['a', 'b'] },
       additionalProperties: { type: 'string', format: 'date' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5043,7 +5050,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       type: 'object',
       propertyNames: { const: 'a' },
       additionalProperties: { type: 'string', format: 'date' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5065,7 +5072,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       type: 'object',
       propertyNames: { $ref: '#/components/schemas/SomeStringEnum' },
       additionalProperties: { type: 'string', format: 'date' },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5085,7 +5092,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
           type: 'object',
           propertyNames: { format: 'uuid' },
           additionalProperties: { type: 'string', format: 'date' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -5118,7 +5125,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
           type: 'object',
           propertyNames: { pattern: '^x-' },
           additionalProperties: { type: 'string', format: 'date' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -5174,12 +5181,12 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
                     dog: '#/components/schemas/IntakeDog',
                   },
                 },
-              } as OpenApiSchemaObject,
+              } satisfies OpenApiSchemaObject,
               propertyNames: { format: 'uuid' },
             },
             { type: 'null' },
           ],
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -5210,11 +5217,11 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
   });
 
   it('still maps the array when additionalProperties is the empty-object "extra keys allowed" idiom (must not regress)', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date' },
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date' },
       additionalProperties: {},
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5232,11 +5239,17 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
   });
 
   it('still maps the array when additionalProperties is an empty array (must not regress)', () => {
-    const schema = {
+    const schema: OpenApiSchemaObject = {
       type: 'array',
       items: { type: 'string', format: 'date' },
+      // An array is not a legal `additionalProperties` value. The keyword
+      // must be a JSON Schema — an object or a boolean — and OpenAPI 3.1
+      // Schema Objects use that dialect.
+      // https://json-schema.org/draft/2020-12/json-schema-core#section-10.3.2.3
+      // https://spec.openapis.org/oas/v3.1.1#schema-object
+      // @ts-expect-error — an array is not a legal additionalProperties value
       additionalProperties: [],
-    } as unknown as OpenApiSchemaObject;
+    };
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5254,15 +5267,15 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
   });
 
   it('emits nothing for a schema that is both array-shaped and map-shaped', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'array',
-      items: { type: 'string', format: 'date' },
+    const schema = {
+      type: 'array' as const,
+      items: { type: 'string' as const, format: 'date' },
       additionalProperties: {
-        type: 'object',
+        type: 'object' as const,
         required: ['recordedOn'],
-        properties: { recordedOn: { type: 'string', format: 'date' } },
+        properties: { recordedOn: { type: 'string' as const, format: 'date' } },
       },
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(
       buildRequestDateSerializeStatements({
@@ -5405,7 +5418,7 @@ const makeJsonBody = (
   schema: OpenApiSchemaObject,
   definition = 'Item',
   isOptional = false,
-) =>
+): GetterBody =>
   ({
     originalSchema: { content: { 'application/json': { schema } } },
     definition,
@@ -5415,7 +5428,7 @@ const makeJsonBody = (
     schemas: [],
     isOptional,
     isBlob: false,
-  }) as unknown as GetterBody;
+  }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
   it('generates a copying serializer for a date-only body field', () => {
@@ -5524,7 +5537,7 @@ describe('generateRequestDateSerializer', () => {
       schemas: [],
       isOptional: false,
       isBlob: false,
-    } as unknown as GetterBody;
+    } satisfies GetterBody;
 
     expect(
       generateRequestDateSerializer({
@@ -5565,7 +5578,7 @@ describe('generateRequestDateSerializer', () => {
       schemas: [],
       isOptional: false,
       isBlob: false,
-    } as unknown as GetterBody;
+    } satisfies GetterBody;
 
     expect(
       generateRequestDateSerializer({
@@ -5705,7 +5718,7 @@ describe('generateRequestDateSerializer', () => {
           type: 'array',
           items: { type: 'string', format: 'date' },
           properties: { count: { type: 'string', format: 'date' } },
-        } as OpenApiSchemaObject),
+        }),
         context: makeContext(),
       }),
     ).toBeUndefined();
@@ -5728,7 +5741,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
         properties: { d: { type: 'string', format: 'date' } },
       },
     ],
-  } as OpenApiSchemaObject;
+  } satisfies OpenApiSchemaObject;
 
   it('drops all statements for a property that is array-shaped via allOf and object-shaped via a sibling allOf branch', () => {
     const schema: OpenApiSchemaObject = {
@@ -5799,7 +5812,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
       properties: {
         x: {
           allOf: [{ type: 'array', items: { type: 'string', format: 'date' } }],
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     };
 
@@ -6098,7 +6111,7 @@ describe('additionalProperties maps beside an empty `properties: {}`', () => {
           type: 'array',
           properties: {},
           items: { type: 'string', format: 'date' },
-        } as OpenApiSchemaObject,
+        },
       },
     };
 

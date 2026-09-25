@@ -1,7 +1,7 @@
 import type { ContextSpec, OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   generateEffectValidationSchemaDefinition,
   generateFormDataEffectSchema,
@@ -174,7 +174,7 @@ describe('enums and literals', () => {
     const { effect } = gen({
       type: 'string',
       const: 'fixed',
-    } as OpenApiSchemaObject);
+    });
     expect(effect).toContain('S.Literal("fixed")');
   });
 
@@ -182,7 +182,7 @@ describe('enums and literals', () => {
     const { effect } = gen({
       type: 'string',
       const: String.raw`he"llo\world`,
-    } as OpenApiSchemaObject);
+    });
     expect(effect).toContain(String.raw`S.Literal("he\"llo\\world")`);
   });
 });
@@ -191,7 +191,7 @@ describe('nullable and optional', () => {
   it('wraps with S.NullOr when nullable', () => {
     const { effect } = gen({
       type: ['string', 'null'],
-    } as OpenApiSchemaObject);
+    });
     expect(effect).toContain('S.NullOr(S.String)');
   });
 
@@ -249,7 +249,7 @@ describe('defaults', () => {
         config: {
           type: 'object',
           default: { 'foo-bar': 1, 'baz qux': 'hi' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     });
     expect(consts).toContain('"foo-bar": 1');
@@ -263,7 +263,7 @@ describe('defaults', () => {
         config: {
           type: 'object',
           default: { items: [{ id: 1 }, { id: 2 }] },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     });
     expect(consts).not.toContain('[object Object]');
@@ -290,7 +290,7 @@ describe('formats', () => {
 
   it('uses S.DateFromString when useDates is enabled', () => {
     const context = createTestContextSpec({
-      override: { useDates: true } as ContextSpec['output']['override'],
+      override: { useDates: true },
     });
     const definition = generateEffectValidationSchemaDefinition(
       { type: 'string', format: 'date-time' },
@@ -370,7 +370,7 @@ describe('enum/const value escaping (#3505)', () => {
         config: {
           type: 'object',
           default: { path: 'C:\\logs\\' },
-        } as OpenApiSchemaObject,
+        } satisfies OpenApiSchemaObject,
       },
     });
     expect(consts).toContain(String.raw`"path": "C:\\logs\\" as const`);
@@ -382,7 +382,7 @@ describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
     const { effect } = gen({
       type: 'string',
       enum: ['C:\\logs\\', 1],
-    } as OpenApiSchemaObject);
+    });
     expect(effect).toContain(String.raw`S.Literal('C:\\logs\\')`);
     expect(effect).toContain('S.Literal(1)');
   });
@@ -406,7 +406,7 @@ describe('multipart file parts', () => {
       },
       notes: { type: ['string', 'null'] },
     },
-  } as unknown as OpenApiSchemaObject;
+  };
 
   const render = () => {
     const context = makeContext();

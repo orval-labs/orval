@@ -1,10 +1,15 @@
 import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import { createTestContextSpec, type TestOverride } from '../test-utils';
+import type {
+  ContextSpec,
+  OpenApiPrimitiveSchemaType,
+  OpenApiSchemaObject,
+} from '../types';
 import { combineSchemas } from './combine';
 
-const petSchema: OpenApiSchemaObject = {
+const petSchema = {
   type: 'object',
   required: ['id', 'name', 'petType'],
   properties: {
@@ -12,10 +17,43 @@ const petSchema: OpenApiSchemaObject = {
     name: { type: 'string' },
     petType: { type: 'string' },
   },
-};
+} satisfies OpenApiSchemaObject;
 
-const context = {
-  output: {
+const baseSchemas = {
+  Pet: petSchema,
+  Base: {
+    type: 'object',
+    properties: {
+      baseProp: { type: 'string' },
+    },
+  },
+  Status: {
+    type: 'string',
+    enum: ['new', 'in_progress'],
+  },
+  // A constraint-only overlay: carries `required` but no properties of its
+  // own. Used to exercise the sparse-fieldset pattern from #3663 where the
+  // required lives in a sibling that references another member's props.
+  RequiredOverlay: {
+    required: ['baseProp'],
+  },
+} satisfies Record<string, OpenApiSchemaObject>;
+
+const createCombineContext = ({
+  schemas,
+  override,
+  output,
+}: {
+  schemas?: Record<string, OpenApiSchemaObject>;
+  override?: TestOverride;
+  output?: Partial<ContextSpec['output']>;
+} = {}) =>
+  createTestContextSpec({
+    target: 'spec',
+    output: {
+      unionAddMissingProperties: false,
+      ...output,
+    },
     override: {
       enumGenerationType: 'const',
       components: {
@@ -24,35 +62,19 @@ const context = {
         parameters: { suffix: '' },
         requestBodies: { suffix: 'RequestBody' },
       },
+      ...override,
     },
-    unionAddMissingProperties: false,
-  },
-  target: 'spec',
-  workspace: '',
-  spec: {
-    components: {
-      schemas: {
-        Pet: petSchema,
-        Base: {
-          type: 'object',
-          properties: {
-            baseProp: { type: 'string' },
-          },
-        },
-        Status: {
-          type: 'string',
-          enum: ['new', 'in_progress'],
-        },
-        // A constraint-only overlay: carries `required` but no properties of its
-        // own. Used to exercise the sparse-fieldset pattern from #3663 where the
-        // required lives in a sibling that references another member's props.
-        RequiredOverlay: {
-          required: ['baseProp'],
+    spec: {
+      components: {
+        schemas: {
+          ...baseSchemas,
+          ...schemas,
         },
       },
     },
-  },
-} as unknown as ContextSpec;
+  });
+
+const context = createCombineContext();
 
 describe('combineSchemas (allOf required handling)', () => {
   it('does not add Required<Pick> when required properties are defined on parent', () => {
@@ -97,25 +119,13 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('keeps plain Required<Pick> for required keys nested in composed members', () => {
-    const contextWithWrapper = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            Base: {
-              type: 'object',
-              properties: {
-                baseProp: { type: 'string' },
-              },
-            },
-            MidWrapper: {
-              allOf: [{ $ref: '#/components/schemas/Base' }],
-            },
-          },
+    const contextWithWrapper = createCombineContext({
+      schemas: {
+        MidWrapper: {
+          allOf: [{ $ref: '#/components/schemas/Base' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -198,19 +208,13 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('keeps plain Required<Pick> when a nested allOf $ref removes the nullable parent branch (#3750)', () => {
-    const contextWithObjectWrapper = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            ObjectWrapper: {
-              allOf: [{ type: 'object' }],
-            },
-          },
+    const contextWithObjectWrapper = createCombineContext({
+      schemas: {
+        ObjectWrapper: {
+          allOf: [{ type: 'object' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
     const schema: OpenApiSchemaObject = {
       type: ['object', 'null'],
       properties: {
@@ -235,7 +239,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
-  it.each([
+  it.each<{ label: string; wrapper: OpenApiSchemaObject }>([
     {
       label: 'anyOf null member',
       wrapper: {
@@ -260,17 +264,11 @@ describe('combineSchemas (allOf required handling)', () => {
   ])(
     'keeps Extract guard when a nested object allOf cannot remove ref-propagated null ($label)',
     ({ wrapper }) => {
-      const contextWithNullableObjectWrapper = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              NullableObjectWrapper: wrapper,
-            },
-          },
+      const contextWithNullableObjectWrapper = createCombineContext({
+        schemas: {
+          NullableObjectWrapper: wrapper,
         },
-      } as unknown as ContextSpec;
+      });
       const schema: OpenApiSchemaObject = {
         type: ['object', 'null'],
         properties: {
@@ -332,19 +330,19 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('keeps Extract guard when parent properties are not emitted by its type', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'string',
+    const schema = {
+      type: 'string' as const,
       properties: {
-        id: { type: 'string' },
+        id: { type: 'string' as const },
       },
       allOf: [
         {
-          type: 'object',
+          type: 'object' as const,
           required: ['id'],
           additionalProperties: true,
         },
       ],
-    };
+    } satisfies OpenApiSchemaObject;
 
     const result = combineSchemas({
       schema,
@@ -364,38 +362,32 @@ describe('combineSchemas (allOf required handling)', () => {
   // `additionalProperties: true` the index signature collapses
   // `Extract<keyof T, K>` to `never`, silently dropping the required override.
   it('resolves required keys defined in a nested allOf $ref composition (#3748)', () => {
-    const contextWithNestedComposition = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            Contents: {
+    const contextWithNestedComposition = createCombineContext({
+      schemas: {
+        Contents: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+        ItemBase: {
+          allOf: [
+            { $ref: '#/components/schemas/Contents' },
+            {
               type: 'object',
               properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
+                status: { type: 'string' },
               },
+              required: ['status'],
               additionalProperties: true,
             },
-            ItemBase: {
-              allOf: [
-                { $ref: '#/components/schemas/Contents' },
-                {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string' },
-                  },
-                  required: ['status'],
-                  additionalProperties: true,
-                },
-              ],
-              additionalProperties: true,
-            },
-          },
+          ],
+          additionalProperties: true,
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       allOf: [
@@ -429,25 +421,19 @@ describe('combineSchemas (allOf required handling)', () => {
   // emitted type unions `| null`, so `keyof` is `never` and a plain
   // Required<Pick> would fail with TS2344.
   it('keeps Extract guard when the nested composition member is nullable', () => {
-    const contextWithNullableBase = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            NullableBase: {
-              type: ['object', 'null'],
-              properties: {
-                id: { type: 'string' },
-              },
-            },
-            NullableWrapper: {
-              allOf: [{ $ref: '#/components/schemas/NullableBase' }],
-            },
+    const contextWithNullableBase = createCombineContext({
+      schemas: {
+        NullableBase: {
+          type: ['object', 'null'],
+          properties: {
+            id: { type: 'string' },
           },
         },
+        NullableWrapper: {
+          allOf: [{ $ref: '#/components/schemas/NullableBase' }],
+        },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -470,26 +456,20 @@ describe('combineSchemas (allOf required handling)', () => {
   // Same reasoning for enum-bearing nodes: the emission is a literal union,
   // so property keys collected from the node are not in `keyof`.
   it('keeps Extract guard when the nested composition member carries an enum', () => {
-    const contextWithEnumBase = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            EnumBase: {
-              type: 'object',
-              enum: [{ id: 'a' }, { id: 'b' }],
-              properties: {
-                id: { type: 'string' },
-              },
-            },
-            EnumWrapper: {
-              allOf: [{ $ref: '#/components/schemas/EnumBase' }],
-            },
+    const contextWithEnumBase = createCombineContext({
+      schemas: {
+        EnumBase: {
+          type: 'object',
+          enum: [{ id: 'a' }, { id: 'b' }],
+          properties: {
+            id: { type: 'string' },
           },
         },
+        EnumWrapper: {
+          allOf: [{ $ref: '#/components/schemas/EnumBase' }],
+        },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -514,30 +494,24 @@ describe('combineSchemas (allOf required handling)', () => {
   // (`Wrapper = Base | null`), so the ref-site object must pass the same
   // union guard as inline nodes before dereferencing.
   it('keeps Extract guard when a nested $ref member carries a nullable sibling', () => {
-    const contextWithNullableRefSite = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            RefSiteBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-            },
-            RefSiteWrapper: {
-              allOf: [
-                {
-                  $ref: '#/components/schemas/RefSiteBase',
-                  type: ['object', 'null'],
-                },
-              ],
-            },
+    const contextWithNullableRefSite = createCombineContext({
+      schemas: {
+        RefSiteBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
           },
         },
+        RefSiteWrapper: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/RefSiteBase',
+              type: ['object', 'null'],
+            },
+          ],
+        },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -561,25 +535,19 @@ describe('combineSchemas (allOf required handling)', () => {
   // (`type: ['object', 'string']` emits `{...} | string`), so keys from such
   // nodes are not guaranteed in `keyof` either.
   it('keeps Extract guard when the nested composition member has a non-null type array union', () => {
-    const contextWithMixedType = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            MixedBase: {
-              type: ['object', 'string'],
-              properties: {
-                id: { type: 'string' },
-              },
-            },
-            MixedWrapper: {
-              allOf: [{ $ref: '#/components/schemas/MixedBase' }],
-            },
+    const contextWithMixedType = createCombineContext({
+      schemas: {
+        MixedBase: {
+          type: ['object', 'string'],
+          properties: {
+            id: { type: 'string' },
           },
         },
+        MixedWrapper: {
+          allOf: [{ $ref: '#/components/schemas/MixedBase' }],
+        },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -599,31 +567,28 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<MixedWrapper, 'id'>>");
   });
 
-  it.each([
+  it.each<{
+    label: string;
+    type: OpenApiPrimitiveSchemaType | OpenApiPrimitiveSchemaType[];
+  }>([
     { label: "type: 'string'", type: 'string' },
     { label: "type: ['string']", type: ['string'] },
   ])(
     'keeps Extract guard for properties on a deep non-object node ($label)',
     ({ type }) => {
-      const contextWithScalarBase = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              ScalarBase: {
-                type,
-                properties: {
-                  id: { type: 'string' },
-                },
-              },
-              ScalarWrapper: {
-                allOf: [{ $ref: '#/components/schemas/ScalarBase' }],
-              },
+      const contextWithScalarBase = createCombineContext({
+        schemas: {
+          ScalarBase: {
+            type,
+            properties: {
+              id: { type: 'string' },
             },
           },
+          ScalarWrapper: {
+            allOf: [{ $ref: '#/components/schemas/ScalarBase' }],
+          },
         },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -650,36 +615,30 @@ describe('combineSchemas (allOf required handling)', () => {
   it.each(['anyOf', 'oneOf'] as const)(
     'collects top-level properties shared by emitted %s branches',
     (unionKeyword) => {
-      const contextWithUnion = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              UnionBase: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                },
-                additionalProperties: true,
-                [unionKeyword]: [
-                  {
-                    type: 'object',
-                    properties: { left: { type: 'string' } },
-                  },
-                  {
-                    type: 'object',
-                    properties: { right: { type: 'string' } },
-                  },
-                ],
-              },
-              UnionWrapper: {
-                allOf: [{ $ref: '#/components/schemas/UnionBase' }],
-              },
+      const contextWithUnion = createCombineContext({
+        schemas: {
+          UnionBase: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
             },
+            additionalProperties: true,
+            [unionKeyword]: [
+              {
+                type: 'object',
+                properties: { left: { type: 'string' } },
+              },
+              {
+                type: 'object',
+                properties: { right: { type: 'string' } },
+              },
+            ],
+          },
+          UnionWrapper: {
+            allOf: [{ $ref: '#/components/schemas/UnionBase' }],
           },
         },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -701,55 +660,49 @@ describe('combineSchemas (allOf required handling)', () => {
   );
 
   it('does not repeat discriminator parent fields in every oneOf $ref branch (#3826)', () => {
-    const contextWithAnimal = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            AnimalType: { type: 'string', enum: ['DOG', 'CAT'] },
-            Animal: {
+    const animalSchema = {
+      type: 'object',
+      required: ['id', 'name', 'animalType'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        animalType: { $ref: '#/components/schemas/AnimalType' },
+      },
+      discriminator: { propertyName: 'animalType' },
+      oneOf: [
+        { $ref: '#/components/schemas/Dog' },
+        { $ref: '#/components/schemas/Cat' },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithAnimal = createCombineContext({
+      schemas: {
+        AnimalType: { type: 'string', enum: ['DOG', 'CAT'] },
+        Animal: animalSchema,
+        Dog: {
+          required: ['barkVolume'],
+          allOf: [
+            { $ref: '#/components/schemas/Animal' },
+            {
               type: 'object',
-              required: ['id', 'name', 'animalType'],
-              properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
-                animalType: { $ref: '#/components/schemas/AnimalType' },
-              },
-              discriminator: { propertyName: 'animalType' },
-              oneOf: [
-                { $ref: '#/components/schemas/Dog' },
-                { $ref: '#/components/schemas/Cat' },
-              ],
+              properties: { barkVolume: { type: 'number' } },
             },
-            Dog: {
-              required: ['barkVolume'],
-              allOf: [
-                { $ref: '#/components/schemas/Animal' },
-                {
-                  type: 'object',
-                  properties: { barkVolume: { type: 'number' } },
-                },
-              ],
+          ],
+        },
+        Cat: {
+          required: ['livesLeft'],
+          allOf: [
+            { $ref: '#/components/schemas/Animal' },
+            {
+              type: 'object',
+              properties: { livesLeft: { type: 'integer' } },
             },
-            Cat: {
-              required: ['livesLeft'],
-              allOf: [
-                { $ref: '#/components/schemas/Animal' },
-                {
-                  type: 'object',
-                  properties: { livesLeft: { type: 'integer' } },
-                },
-              ],
-            },
-          },
+          ],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const result = combineSchemas({
-      schema: contextWithAnimal.spec.components!.schemas!
-        .Animal as OpenApiSchemaObject,
+      schema: animalSchema,
       name: 'Animal',
       separator: 'oneOf',
       context: contextWithAnimal,
@@ -769,36 +722,31 @@ describe('combineSchemas (allOf required handling)', () => {
   ] as const)(
     'guards only propagated nullability from a direct %s member',
     (unionKeyword, propagatesNullability) => {
-      const contextWithNestedUnion = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              NestedUnionBase: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                },
-                additionalProperties: true,
-                [unionKeyword]: [
-                  {
-                    type: ['object', 'null'],
-                    properties: { left: { type: 'string' } },
-                  },
-                  {
-                    type: 'object',
-                    properties: { right: { type: 'string' } },
-                  },
-                ],
-              },
-              NestedUnionWrapper: {
-                allOf: [{ $ref: '#/components/schemas/NestedUnionBase' }],
-              },
-            },
+      const nestedUnionBase = {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        additionalProperties: true,
+        [unionKeyword]: [
+          {
+            type: ['object', 'null'],
+            properties: { left: { type: 'string' } },
+          },
+          {
+            type: 'object',
+            properties: { right: { type: 'string' } },
+          },
+        ],
+      } satisfies OpenApiSchemaObject;
+      const contextWithNestedUnion = createCombineContext({
+        schemas: {
+          NestedUnionBase: nestedUnionBase,
+          NestedUnionWrapper: {
+            allOf: [{ $ref: '#/components/schemas/NestedUnionBase' }],
           },
         },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -825,8 +773,7 @@ describe('combineSchemas (allOf required handling)', () => {
       }
 
       const unionBase = combineSchemas({
-        schema: contextWithNestedUnion.spec.components!.schemas!
-          .NestedUnionBase as OpenApiSchemaObject,
+        schema: nestedUnionBase,
         name: 'NestedUnionBase',
         separator: unionKeyword,
         context: contextWithNestedUnion,
@@ -841,43 +788,36 @@ describe('combineSchemas (allOf required handling)', () => {
   it.each(['anyOf', 'oneOf'] as const)(
     'collects top-level properties when a %s member contains a nested nullable union',
     (unionKeyword) => {
-      const contextWithNestedComposedUnion = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              NestedComposedUnionBase: {
+      const nestedComposedUnionBase = {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        additionalProperties: true,
+        [unionKeyword]: [
+          {
+            anyOf: [
+              {
                 type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                },
-                additionalProperties: true,
-                [unionKeyword]: [
-                  {
-                    anyOf: [
-                      {
-                        type: 'object',
-                        properties: { left: { type: 'string' } },
-                      },
-                      { type: 'null' },
-                    ],
-                  },
-                  {
-                    type: 'object',
-                    properties: { right: { type: 'string' } },
-                  },
-                ],
+                properties: { left: { type: 'string' } },
               },
-              NestedComposedUnionWrapper: {
-                allOf: [
-                  { $ref: '#/components/schemas/NestedComposedUnionBase' },
-                ],
-              },
-            },
+              { type: 'null' },
+            ],
+          },
+          {
+            type: 'object',
+            properties: { right: { type: 'string' } },
+          },
+        ],
+      } satisfies OpenApiSchemaObject;
+      const contextWithNestedComposedUnion = createCombineContext({
+        schemas: {
+          NestedComposedUnionBase: nestedComposedUnionBase,
+          NestedComposedUnionWrapper: {
+            allOf: [{ $ref: '#/components/schemas/NestedComposedUnionBase' }],
           },
         },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -897,8 +837,7 @@ describe('combineSchemas (allOf required handling)', () => {
       expect(result.value).not.toContain('Extract<');
 
       const unionBase = combineSchemas({
-        schema: contextWithNestedComposedUnion.spec.components!.schemas!
-          .NestedComposedUnionBase as OpenApiSchemaObject,
+        schema: nestedComposedUnionBase,
         name: 'NestedComposedUnionBase',
         separator: unionKeyword,
         context: contextWithNestedComposedUnion,
@@ -913,33 +852,28 @@ describe('combineSchemas (allOf required handling)', () => {
   it.each(['anyOf', 'oneOf'] as const)(
     'collects top-level properties when a %s member is a non-null scalar',
     (unionKeyword) => {
-      const contextWithDirectScalarUnion = {
-        ...context,
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              DirectScalarUnionBase: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                },
-                additionalProperties: true,
-                [unionKeyword]: [
-                  { type: 'string' },
-                  {
-                    type: 'object',
-                    properties: { right: { type: 'string' } },
-                  },
-                ],
-              },
-              DirectScalarUnionWrapper: {
-                allOf: [{ $ref: '#/components/schemas/DirectScalarUnionBase' }],
-              },
-            },
+      const directScalarUnionBase = {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        additionalProperties: true,
+        [unionKeyword]: [
+          { type: 'string' },
+          {
+            type: 'object',
+            properties: { right: { type: 'string' } },
+          },
+        ],
+      } satisfies OpenApiSchemaObject;
+      const contextWithDirectScalarUnion = createCombineContext({
+        schemas: {
+          DirectScalarUnionBase: directScalarUnionBase,
+          DirectScalarUnionWrapper: {
+            allOf: [{ $ref: '#/components/schemas/DirectScalarUnionBase' }],
           },
         },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -959,8 +893,7 @@ describe('combineSchemas (allOf required handling)', () => {
       expect(result.value).not.toContain('Extract<');
 
       const unionBase = combineSchemas({
-        schema: contextWithDirectScalarUnion.spec.components!.schemas!
-          .DirectScalarUnionBase as OpenApiSchemaObject,
+        schema: directScalarUnionBase,
         name: 'DirectScalarUnionBase',
         separator: unionKeyword,
         context: contextWithDirectScalarUnion,
@@ -972,40 +905,35 @@ describe('combineSchemas (allOf required handling)', () => {
   );
 
   it('collects top-level properties when a nullable anyOf member is a $ref', () => {
-    const contextWithNullableRefUnion = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            RefNullableBase: {
-              type: 'object',
-              properties: { left: { type: 'string' } },
-            },
-            RefMemberUnionBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-              anyOf: [
-                {
-                  $ref: '#/components/schemas/RefNullableBase',
-                  type: ['object', 'null'],
-                },
-                {
-                  type: 'object',
-                  properties: { right: { type: 'string' } },
-                },
-              ],
-            },
-            RefMemberUnionWrapper: {
-              allOf: [{ $ref: '#/components/schemas/RefMemberUnionBase' }],
-            },
-          },
+    const refMemberUnionBase = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RefNullableBase',
+          type: ['object', 'null'],
+        },
+        {
+          type: 'object',
+          properties: { right: { type: 'string' } },
+        },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithNullableRefUnion = createCombineContext({
+      schemas: {
+        RefNullableBase: {
+          type: 'object',
+          properties: { left: { type: 'string' } },
+        },
+        RefMemberUnionBase: refMemberUnionBase,
+        RefMemberUnionWrapper: {
+          allOf: [{ $ref: '#/components/schemas/RefMemberUnionBase' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1025,8 +953,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
 
     const unionBase = combineSchemas({
-      schema: contextWithNullableRefUnion.spec.components!.schemas!
-        .RefMemberUnionBase as OpenApiSchemaObject,
+      schema: refMemberUnionBase,
       name: 'RefMemberUnionBase',
       separator: 'anyOf',
       context: contextWithNullableRefUnion,
@@ -1037,37 +964,26 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('keeps Extract guard when all union members are enums', () => {
-    const contextWithEnumUnion = {
-      ...context,
-      output: {
-        ...context.output,
-        override: {
-          ...context.output.override,
-          enumGenerationType: 'union',
+    const enumUnionBase = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      anyOf: [
+        { type: 'string', enum: ['a'] },
+        { type: 'string', enum: ['b'] },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithEnumUnion = createCombineContext({
+      override: { enumGenerationType: 'union' },
+      schemas: {
+        EnumUnionBase: enumUnionBase,
+        EnumUnionWrapper: {
+          allOf: [{ $ref: '#/components/schemas/EnumUnionBase' }],
         },
       },
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            EnumUnionBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-              anyOf: [
-                { type: 'string', enum: ['a'] },
-                { type: 'string', enum: ['b'] },
-              ],
-            },
-            EnumUnionWrapper: {
-              allOf: [{ $ref: '#/components/schemas/EnumUnionBase' }],
-            },
-          },
-        },
-      },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1087,8 +1003,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<EnumUnionWrapper, 'id'>>");
 
     const unionBase = combineSchemas({
-      schema: contextWithEnumUnion.spec.components!.schemas!
-        .EnumUnionBase as OpenApiSchemaObject,
+      schema: enumUnionBase,
       name: 'EnumUnionBase',
       separator: 'anyOf',
       context: contextWithEnumUnion,
@@ -1101,43 +1016,32 @@ describe('combineSchemas (allOf required handling)', () => {
   it.each(['anyOf', 'oneOf'] as const)(
     'keeps Extract guard when an all-enum %s is a sibling composition',
     (unionKeyword) => {
-      const contextWithSiblingEnumUnion = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            enumGenerationType: 'union',
+      const siblingEnumBase = {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        additionalProperties: true,
+        allOf: [
+          {
+            type: 'object',
+            properties: { base: { type: 'string' } },
+          },
+        ],
+        [unionKeyword]: [
+          { type: 'string', enum: ['a'] },
+          { type: 'string', enum: ['b'] },
+        ],
+      } satisfies OpenApiSchemaObject;
+      const contextWithSiblingEnumUnion = createCombineContext({
+        override: { enumGenerationType: 'union' },
+        schemas: {
+          SiblingEnumBase: siblingEnumBase,
+          SiblingEnumWrapper: {
+            allOf: [{ $ref: '#/components/schemas/SiblingEnumBase' }],
           },
         },
-        spec: {
-          components: {
-            schemas: {
-              ...context.spec.components!.schemas,
-              SiblingEnumBase: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                },
-                additionalProperties: true,
-                allOf: [
-                  {
-                    type: 'object',
-                    properties: { base: { type: 'string' } },
-                  },
-                ],
-                [unionKeyword]: [
-                  { type: 'string', enum: ['a'] },
-                  { type: 'string', enum: ['b'] },
-                ],
-              },
-              SiblingEnumWrapper: {
-                allOf: [{ $ref: '#/components/schemas/SiblingEnumBase' }],
-              },
-            },
-          },
-        },
-      } as unknown as ContextSpec;
+      });
 
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -1159,8 +1063,7 @@ describe('combineSchemas (allOf required handling)', () => {
       expect(result.value).not.toContain("Pick<SiblingEnumWrapper, 'id'>>");
 
       const unionBase = combineSchemas({
-        schema: contextWithSiblingEnumUnion.spec.components!.schemas!
-          .SiblingEnumBase as OpenApiSchemaObject,
+        schema: siblingEnumBase,
         name: 'SiblingEnumBase',
         separator: 'allOf',
         context: contextWithSiblingEnumUnion,
@@ -1172,35 +1075,27 @@ describe('combineSchemas (allOf required handling)', () => {
   );
 
   it('keeps Extract guard for a canonical nullable oneOf object', () => {
-    const contextWithNullableOneOf = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            CanonicalNullableOneOfBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-              oneOf: [
-                {
-                  type: 'object',
-                  properties: { left: { type: 'string' } },
-                },
-                { type: 'null' },
-              ],
-            },
-            CanonicalNullableOneOfWrapper: {
-              allOf: [
-                { $ref: '#/components/schemas/CanonicalNullableOneOfBase' },
-              ],
-            },
+    const contextWithNullableOneOf = createCombineContext({
+      schemas: {
+        CanonicalNullableOneOfBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
           },
+          additionalProperties: true,
+          oneOf: [
+            {
+              type: 'object',
+              properties: { left: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        CanonicalNullableOneOfWrapper: {
+          allOf: [{ $ref: '#/components/schemas/CanonicalNullableOneOfBase' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1225,38 +1120,30 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('collects allOf properties beside a canonical nullable oneOf object', () => {
-    const contextWithNullableOneOfSibling = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            NullableOneOfObjectBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-            },
-            NullableOneOfSiblingBase: {
-              allOf: [{ $ref: '#/components/schemas/NullableOneOfObjectBase' }],
-              oneOf: [
-                {
-                  type: 'object',
-                  properties: { left: { type: 'string' } },
-                },
-                { type: 'null' },
-              ],
-            },
-            NullableOneOfSiblingWrapper: {
-              allOf: [
-                { $ref: '#/components/schemas/NullableOneOfSiblingBase' },
-              ],
-            },
+    const contextWithNullableOneOfSibling = createCombineContext({
+      schemas: {
+        NullableOneOfObjectBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
           },
+          additionalProperties: true,
+        },
+        NullableOneOfSiblingBase: {
+          allOf: [{ $ref: '#/components/schemas/NullableOneOfObjectBase' }],
+          oneOf: [
+            {
+              type: 'object',
+              properties: { left: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        NullableOneOfSiblingWrapper: {
+          allOf: [{ $ref: '#/components/schemas/NullableOneOfSiblingBase' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1277,41 +1164,36 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('collects allOf properties beside an inline nullable anyOf member', () => {
-    const contextWithInlineNullableAnyOf = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            InlineNullableAnyOfObjectBase: {
+    const inlineNullableAnyOfWrapper = {
+      allOf: [
+        {
+          allOf: [
+            {
+              $ref: '#/components/schemas/InlineNullableAnyOfObjectBase',
+            },
+          ],
+          anyOf: [
+            {
               type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
+              properties: { left: { type: 'string' } },
             },
-            InlineNullableAnyOfWrapper: {
-              allOf: [
-                {
-                  allOf: [
-                    {
-                      $ref: '#/components/schemas/InlineNullableAnyOfObjectBase',
-                    },
-                  ],
-                  anyOf: [
-                    {
-                      type: 'object',
-                      properties: { left: { type: 'string' } },
-                    },
-                    { type: 'null' },
-                  ],
-                },
-              ],
-            },
-          },
+            { type: 'null' },
+          ],
         },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithInlineNullableAnyOf = createCombineContext({
+      schemas: {
+        InlineNullableAnyOfObjectBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+        InlineNullableAnyOfWrapper: inlineNullableAnyOfWrapper,
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1331,8 +1213,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
 
     const wrapper = combineSchemas({
-      schema: contextWithInlineNullableAnyOf.spec.components!.schemas!
-        .InlineNullableAnyOfWrapper as OpenApiSchemaObject,
+      schema: inlineNullableAnyOfWrapper,
       name: 'InlineNullableAnyOfWrapper',
       separator: 'allOf',
       context: contextWithInlineNullableAnyOf,
@@ -1343,35 +1224,30 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('collects nullable member properties when an object allOf sibling removes null', () => {
-    const contextWithNullableAllOfMember = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            NullableAllOfMemberBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-            },
-            NullableAllOfMemberWrapper: {
-              allOf: [
-                {
-                  $ref: '#/components/schemas/NullableAllOfMemberBase',
-                  type: ['object', 'null'],
-                },
-                {
-                  type: 'object',
-                  properties: { marker: { type: 'string' } },
-                },
-              ],
-            },
-          },
+    const nullableAllOfMemberWrapper = {
+      allOf: [
+        {
+          $ref: '#/components/schemas/NullableAllOfMemberBase',
+          type: ['object', 'null'],
         },
+        {
+          type: 'object',
+          properties: { marker: { type: 'string' } },
+        },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithNullableAllOfMember = createCombineContext({
+      schemas: {
+        NullableAllOfMemberBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+        NullableAllOfMemberWrapper: nullableAllOfMemberWrapper,
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1391,8 +1267,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
 
     const wrapper = combineSchemas({
-      schema: contextWithNullableAllOfMember.spec.components!.schemas!
-        .NullableAllOfMemberWrapper as OpenApiSchemaObject,
+      schema: nullableAllOfMemberWrapper,
       name: 'NullableAllOfMemberWrapper',
       separator: 'allOf',
       context: contextWithNullableAllOfMember,
@@ -1403,33 +1278,28 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('collects nullable member properties when the parent object removes null', () => {
-    const contextWithObjectParent = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            NullableParentBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-            },
-            NullableParentWrapper: {
-              type: 'object',
-              properties: { marker: { type: 'string' } },
-              allOf: [
-                {
-                  $ref: '#/components/schemas/NullableParentBase',
-                  type: ['object', 'null'],
-                },
-              ],
-            },
-          },
+    const nullableParentWrapper = {
+      type: 'object',
+      properties: { marker: { type: 'string' } },
+      allOf: [
+        {
+          $ref: '#/components/schemas/NullableParentBase',
+          type: ['object', 'null'],
         },
+      ],
+    } satisfies OpenApiSchemaObject;
+    const contextWithObjectParent = createCombineContext({
+      schemas: {
+        NullableParentBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+        NullableParentWrapper: nullableParentWrapper,
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1449,8 +1319,7 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
 
     const wrapper = combineSchemas({
-      schema: contextWithObjectParent.spec.components!.schemas!
-        .NullableParentWrapper as OpenApiSchemaObject,
+      schema: nullableParentWrapper,
       name: 'NullableParentWrapper',
       separator: 'allOf',
       context: contextWithObjectParent,
@@ -1461,40 +1330,28 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('collects allOf properties beside an all-enum composition', () => {
-    const contextWithAllEnumSibling = {
-      ...context,
-      output: {
-        ...context.output,
-        override: {
-          ...context.output.override,
-          enumGenerationType: 'union',
-        },
-      },
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            AllEnumObjectBase: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-              },
-              additionalProperties: true,
-            },
-            AllEnumSiblingBase: {
-              allOf: [{ $ref: '#/components/schemas/AllEnumObjectBase' }],
-              anyOf: [
-                { type: 'string', enum: ['a'] },
-                { type: 'string', enum: ['b'] },
-              ],
-            },
-            AllEnumSiblingWrapper: {
-              allOf: [{ $ref: '#/components/schemas/AllEnumSiblingBase' }],
-            },
+    const contextWithAllEnumSibling = createCombineContext({
+      override: { enumGenerationType: 'union' },
+      schemas: {
+        AllEnumObjectBase: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
           },
+          additionalProperties: true,
+        },
+        AllEnumSiblingBase: {
+          allOf: [{ $ref: '#/components/schemas/AllEnumObjectBase' }],
+          anyOf: [
+            { type: 'string', enum: ['a'] },
+            { type: 'string', enum: ['b'] },
+          ],
+        },
+        AllEnumSiblingWrapper: {
+          allOf: [{ $ref: '#/components/schemas/AllEnumSiblingBase' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1515,28 +1372,22 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('does not collect properties declared only inside oneOf members', () => {
-    const contextWithOneOf = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            OneOfBase: {
-              oneOf: [
-                {
-                  type: 'object',
-                  properties: { id: { type: 'string' } },
-                },
-                { type: 'string' },
-              ],
+    const contextWithOneOf = createCombineContext({
+      schemas: {
+        OneOfBase: {
+          oneOf: [
+            {
+              type: 'object',
+              properties: { id: { type: 'string' } },
             },
-            OneOfWrapper: {
-              allOf: [{ $ref: '#/components/schemas/OneOfBase' }],
-            },
-          },
+            { type: 'string' },
+          ],
+        },
+        OneOfWrapper: {
+          allOf: [{ $ref: '#/components/schemas/OneOfBase' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1557,28 +1408,22 @@ describe('combineSchemas (allOf required handling)', () => {
   });
 
   it('terminates on cyclic allOf $ref compositions', () => {
-    const contextWithCycle = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            CycleA: {
-              properties: {
-                aProp: { type: 'string' },
-              },
-              allOf: [{ $ref: '#/components/schemas/CycleB' }],
-            },
-            CycleB: {
-              properties: {
-                bProp: { type: 'string' },
-              },
-              allOf: [{ $ref: '#/components/schemas/CycleA' }],
-            },
+    const contextWithCycle = createCombineContext({
+      schemas: {
+        CycleA: {
+          properties: {
+            aProp: { type: 'string' },
           },
+          allOf: [{ $ref: '#/components/schemas/CycleB' }],
+        },
+        CycleB: {
+          properties: {
+            bProp: { type: 'string' },
+          },
+          allOf: [{ $ref: '#/components/schemas/CycleA' }],
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -1604,25 +1449,19 @@ describe('combineSchemas (allOf required handling)', () => {
       allOf: [{ $ref: '#/components/schemas/TagMetadataItem' }],
     };
 
-    const contextWithTagMetadata = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            ...context.spec.components!.schemas,
-            TagMetadataItem: {
-              type: 'object',
-              required: ['tagId', 'label', 'color'],
-              properties: {
-                id: { type: 'integer' },
-                label: { type: 'string' },
-                color: { type: 'string' },
-              },
-            },
+    const contextWithTagMetadata = createCombineContext({
+      schemas: {
+        TagMetadataItem: {
+          type: 'object',
+          required: ['tagId', 'label', 'color'],
+          properties: {
+            id: { type: 'integer' },
+            label: { type: 'string' },
+            color: { type: 'string' },
           },
         },
       },
-    } as unknown as ContextSpec;
+    });
 
     const result = combineSchemas({
       schema,
@@ -1966,22 +1805,16 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
     expect(source.statements[0].kind).toBe(ts.SyntaxKind.TypeAliasDeclaration);
   };
 
-  const contextWithEvilBase = {
-    ...context,
-    spec: {
-      components: {
-        schemas: {
-          ...context.spec.components!.schemas,
-          // Owns the property but does not require it, so the parent's
-          // `required` drives the Pick/Extract emission.
-          EvilBase: {
-            type: 'object',
-            properties: { [payload]: { type: 'string' } },
-          },
-        },
+  const contextWithEvilBase = createCombineContext({
+    schemas: {
+      // Owns the property but does not require it, so the parent's
+      // `required` drives the Pick/Extract emission.
+      EvilBase: {
+        type: 'object',
+        properties: { [payload]: { type: 'string' } },
       },
     },
-  } as unknown as ContextSpec;
+  });
 
   it('escapes the name in the Extract<keyof …> branch', () => {
     // The required name is not a known member key, so it takes the
@@ -1990,7 +1823,7 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
       schema: {
         required: [payload],
         allOf: [{ $ref: '#/components/schemas/Base' }],
-      } as OpenApiSchemaObject,
+      } satisfies OpenApiSchemaObject,
       name: 'Evil',
       separator: 'allOf',
       context,
@@ -2007,7 +1840,7 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
       schema: {
         required: [payload],
         allOf: [{ $ref: '#/components/schemas/EvilBase' }],
-      } as OpenApiSchemaObject,
+      } satisfies OpenApiSchemaObject,
       name: 'Evil',
       separator: 'allOf',
       context: contextWithEvilBase,
@@ -2020,10 +1853,9 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
   });
 
   it('escapes the name in the unionAddMissingProperties `?: never` keys', () => {
-    const contextWithUnionFill = {
-      ...context,
-      output: { ...context.output, unionAddMissingProperties: true },
-    } as unknown as ContextSpec;
+    const contextWithUnionFill = createCombineContext({
+      output: { unionAddMissingProperties: true },
+    });
 
     const result = combineSchemas({
       schema: {
@@ -2031,7 +1863,7 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
           { type: 'object', properties: { [payload]: { type: 'string' } } },
           { type: 'object', properties: { other: { type: 'string' } } },
         ],
-      } as OpenApiSchemaObject,
+      } satisfies OpenApiSchemaObject,
       name: 'Evil',
       separator: 'oneOf',
       context: contextWithUnionFill,
@@ -2049,7 +1881,7 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
       schema: {
         required: ['baseProp'],
         allOf: [{ $ref: '#/components/schemas/Base' }],
-      } as OpenApiSchemaObject,
+      } satisfies OpenApiSchemaObject,
       name: 'Plain',
       separator: 'allOf',
       context,

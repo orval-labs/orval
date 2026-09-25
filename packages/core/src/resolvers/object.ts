@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { getEnum, getEnumMembers } from '../getters/enum';
 import type { FormDataContext } from '../getters/object';
 import type {
@@ -51,6 +53,9 @@ export function createTypeAliasIfNeeded({
   }
 
   const { originalSchema } = resolvedValue;
+  if (isBooleanJsonSchema(originalSchema)) {
+    return undefined;
+  }
   const doc = jsDoc(originalSchema);
   const isConstant = 'const' in originalSchema;
 

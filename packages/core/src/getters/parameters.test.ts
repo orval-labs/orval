@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
+import { createTestContextSpec } from '../test-utils';
 import type { OpenApiParameterObject, OpenApiReferenceObject } from '../types';
 import { getParameters } from './parameters';
 
@@ -126,7 +126,11 @@ describe('getParameters', () => {
     });
 
     expect(result.query).toHaveLength(1);
-    expect(result.query[0].parameter.schema).toEqual(whereItem);
+    expect(
+      'schema' in result.query[0].parameter
+        ? result.query[0].parameter.schema
+        : undefined,
+    ).toEqual(whereItem);
     expect(result.query[0].imports).toEqual([
       { name: 'WhereParameter', schemaName: 'Where' },
     ]);

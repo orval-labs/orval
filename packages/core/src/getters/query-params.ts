@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
@@ -6,6 +8,7 @@ import type {
   GetterParameters,
   GetterQueryParam,
   OpenApiParameterObject,
+  OpenApiParameterWithContentObject,
   OpenApiSchemaObject,
 } from '../types';
 import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
@@ -72,6 +75,9 @@ const getSchemaType = (
  * `paramsFilter` may need the raw object to flatten or stringify it.
  */
 const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   const schemaType = getSchemaType(schema);
   const type = Array.isArray(schemaType)
     ? schemaType.filter((variant) => variant !== 'null')
@@ -131,6 +137,9 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
  * Used to compute {@link GetterQueryParam.objectQueryParams}. See issue #3705.
  */
 const isPlainObjectSchema = (schema: OpenApiSchemaObject): boolean => {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   const schemaType = getSchemaType(schema);
   const type = Array.isArray(schemaType)
     ? schemaType.filter((variant) => variant !== 'null')
@@ -213,11 +222,11 @@ function getQueryParamsTypes(
       required,
       schema: schemaParam,
       content,
-    } = parameter as {
+    } = parameter as unknown as {
       name: string;
       required: boolean;
       schema: OpenApiSchemaObject | undefined;
-      content: OpenApiParameterObject['content'];
+      content: OpenApiParameterWithContentObject['content'];
     };
 
     const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {
@@ -234,6 +243,9 @@ function getQueryParamsTypes(
         `Query parameter "${name}" has no schema or content definition`,
       );
     }
+
+    const hasSchemaDefault =
+      !isBooleanJsonSchema(schema) && schema.default !== undefined;
 
     const resolvedValue = resolveValue({
       schema,
@@ -278,7 +290,7 @@ function getQueryParamsTypes(
       return {
         name,
         required,
-        definition: `${doc}${key}${!required || schema.default !== undefined ? '?' : ''}: ${
+        definition: `${doc}${key}${!required || hasSchemaDefault ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
@@ -316,7 +328,7 @@ function getQueryParamsTypes(
         name,
         required,
         definition: `${doc}${key}${
-          !required || schema.default !== undefined ? '?' : ''
+          !required || hasSchemaDefault ? '?' : ''
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
@@ -334,7 +346,7 @@ function getQueryParamsTypes(
     }
 
     const definition = `${doc}${key}${
-      !required || schema.default !== undefined ? '?' : ''
+      !required || hasSchemaDefault ? '?' : ''
     }: ${resolvedValue.value};`;
 
     return {

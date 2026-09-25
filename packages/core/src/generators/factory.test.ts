@@ -1,36 +1,29 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type {
-  ContextSpec,
-  OpenApiDocument,
-  OpenApiSchemaObject,
-} from '../types';
-import { NamingConvention } from '../types';
+import { createTestContextSpec, type TestOverride } from '../test-utils';
+import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import { OutputClient, OutputHttpClient, PropertySortOrder } from '../types';
 import { generateFactory } from './factory';
 
 const baseFactoryMethods = {
   functionNamePrefix: 'create',
-  mode: 'single',
+  mode: 'single' as const,
   outputDirectory: '',
   includeOptionalProperty: false,
 };
 
-const baseOverride = {
-  useDates: false,
-  namingConvention: {},
-  components: {
-    schemas: { suffix: '', itemSuffix: '' },
-    responses: { suffix: '' },
-    parameters: { suffix: '' },
-    requestBodies: { suffix: '' },
-  },
-};
-
-const createMockContext = (
-  overrides: Record<string, unknown> = {},
-): ContextSpec => {
-  const { override: overrideOverride, ...rest } = overrides;
-  return {
+const createMockContext = ({
+  factoryMethods,
+  propertySortOrder,
+  schemas,
+  override,
+}: {
+  factoryMethods?: ContextSpec['output']['factoryMethods'];
+  propertySortOrder?: ContextSpec['output']['propertySortOrder'];
+  schemas?: ContextSpec['output']['schemas'];
+  override?: TestOverride;
+} = {}): ContextSpec =>
+  createTestContextSpec({
     target: 'test',
     workspace: 'test',
     spec: {
@@ -66,34 +59,19 @@ const createMockContext = (
           },
         },
       },
-    } as unknown as OpenApiDocument,
+    },
     output: {
-      target: '',
-      namingConvention: NamingConvention.CAMEL_CASE,
-      fileExtension: '.ts',
-      mode: 'single' as unknown,
-      client: 'axios' as unknown,
-      httpClient: 'axios' as unknown,
-      clean: false,
-      docs: false,
-      prettier: false,
-      biome: false,
-      headers: false,
-      indexFiles: false,
-      allParamsOptional: false,
-      urlEncodeParameters: false,
-      unionAddMissingProperties: false,
-      optionsParamRequired: false,
-      propertySortOrder: 'Alphabetical' as unknown,
-      factoryMethods: baseFactoryMethods,
-      override: {
-        ...baseOverride,
-        ...(overrideOverride as object | undefined),
-      },
-      ...rest,
-    } as unknown,
-  } as unknown as ContextSpec;
-};
+      client: OutputClient.AXIOS,
+      httpClient: OutputHttpClient.AXIOS,
+      propertySortOrder: propertySortOrder ?? PropertySortOrder.ALPHABETICAL,
+      factoryMethods: factoryMethods ?? baseFactoryMethods,
+      schemas,
+    },
+    override: {
+      useDates: false,
+      ...override,
+    },
+  });
 
 describe('generateFactory', () => {
   it('returns undefined if schema is not an object/combination', () => {
@@ -122,6 +100,19 @@ describe('generateFactory', () => {
     expect(result?.model).toContain("name: ''");
     expect(result?.model).not.toContain('isActive');
     expect(result?.model).not.toContain('tags');
+  });
+
+  it('emits an empty object for a boolean property schema', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['anything'],
+      properties: {
+        anything: true,
+      },
+    };
+
+    const result = generateFactory(schema, 'Box', createMockContext());
+    expect(result?.model).toContain('anything: {}');
   });
 
   it('includes optional properties when strategy is include', () => {
@@ -459,8 +450,8 @@ describe('generateFactory', () => {
         withConst: { type: 'string', const: 'STATIC_VALUE' },
         withDefault: { type: 'number', default: 42 },
         withDefaultObj: { type: 'object', default: { key: 'val' } },
-        nullField: { type: 'null' as unknown as string },
-        multiType: { type: ['string', 'null'] as unknown as string[] },
+        nullField: { type: 'null' },
+        multiType: { type: ['string', 'null'] },
         arrayConstraints: {
           type: 'array',
           minItems: 2,
@@ -583,7 +574,11 @@ describe('generateFactory', () => {
       type: 'object',
       required: ['weirdField'],
       properties: {
-        weirdField: { type: 'weird' as unknown },
+        // `weird` is not a JSON Schema type. The instance type must be one of
+        // array, boolean, integer, null, number, object, or string.
+        // https://json-schema.org/draft/2020-12/json-schema-core#section-4.2.1
+        // @ts-expect-error — 'weird' is not a JSON Schema type
+        weirdField: { type: 'weird' },
       },
     };
 
@@ -672,11 +667,11 @@ describe('generateFactory', () => {
         user: {
           $ref: '#/components/schemas/RefTarget',
           readOnly: true,
-        } as unknown as OpenApiSchemaObject,
+        },
         token: {
           $ref: '#/components/schemas/RefTarget',
           writeOnly: true,
-        } as unknown as OpenApiSchemaObject,
+        },
       },
     };
 
@@ -731,6 +726,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -763,6 +759,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -795,6 +792,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -823,6 +821,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -861,6 +860,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );

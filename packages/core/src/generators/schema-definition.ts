@@ -1,4 +1,4 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   getEnum,
@@ -26,11 +26,13 @@ import type {
 import {
   conventionName,
   isBoolean,
+  isInlineSchema,
   isSchemaNullable,
   isString,
   jsDoc,
   pascal,
   sanitize,
+  toObjectSchema,
 } from '../utils';
 import { generateFactory } from './factory';
 import { generateInterface } from './interface';
@@ -195,6 +197,10 @@ function sortSchemasByDependencies(
 }
 
 function shouldCreateInterface(schema: OpenApiSchemaObject) {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+
   const isNullable = Array.isArray(schema.type) && schema.type.includes('null');
 
   return (
@@ -202,7 +208,7 @@ function shouldCreateInterface(schema: OpenApiSchemaObject) {
     !schema.allOf &&
     !schema.oneOf &&
     !schema.anyOf &&
-    isDereferenced(schema) &&
+    isInlineSchema(schema) &&
     !schema.enum &&
     !isNullable
   );
@@ -251,11 +257,11 @@ function generateSchemaDefinitions(
     },
   );
 
-  if (isBoolean(schema)) {
+  if (isBooleanJsonSchema(schema)) {
     return [
       {
         name: sanitizedSchemaName,
-        model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
+        model: `export type ${sanitizedSchemaName} = ${schema ? 'unknown' : 'never'};\n`,
         imports: [],
         schema: schema as OpenApiSchemaObject,
         kind: 'schema',
@@ -290,7 +296,11 @@ function generateSchemaDefinitions(
     if (alias.extraSchemas && alias.extraSchemas.length > 0) {
       const aliasScopedContext = {
         ...context,
-        dynamicScope: buildDynamicScope(schemaName, schema, context),
+        dynamicScope: buildDynamicScope(
+          schemaName,
+          toObjectSchema(schema),
+          context,
+        ),
       };
       const subSchemas: GeneratorSchema[] = [];
       const extraParts = alias.extraSchemas.map((extraSchema) => {
@@ -351,7 +361,11 @@ function generateSchemaDefinitions(
     ? context
     : {
         ...context,
-        dynamicScope: buildDynamicScope(schemaName, schema, context),
+        dynamicScope: buildDynamicScope(
+          schemaName,
+          toObjectSchema(schema),
+          context,
+        ),
       };
 
   const genericParams = collectGenericParams(schema);
@@ -396,6 +410,11 @@ function generateSchemaDefinitions(
     sanitizedSchemaName === resolvedValue.value &&
     resolvedValue.isRef
   ) {
+    if (isInlineSchema(schema)) {
+      throw new Error(
+        `Expected a reference schema for ${sanitizedSchemaName}, but received an inline schema`,
+      );
+    }
     // Don't add type if schema has same name and the referred schema will be an interface
     const { schema: referredSchema } = resolveRef(schema, scopedContext);
     if (!shouldCreateInterface(referredSchema as OpenApiSchemaObject)) {

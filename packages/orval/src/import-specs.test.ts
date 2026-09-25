@@ -4,7 +4,11 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { OpenApiDocument } from '@orval/core';
+import type {
+  OpenApiDocument,
+  OpenApiReferenceObject,
+  OpenApiResponseObject,
+} from '@orval/core';
 import { noopReporter, withReporter } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
@@ -17,6 +21,16 @@ import {
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
+
+function responseContent(
+  response: OpenApiResponseObject | OpenApiReferenceObject | undefined,
+) {
+  if (!response || !('content' in response)) {
+    return undefined;
+  }
+
+  return response.content;
+}
 
 const TEST_SPEC: OpenApiDocument = {
   openapi: '3.1.0',
@@ -139,6 +153,10 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
             description: 'Successful Response',
             content: {
               'text/event-stream': {
+                // `itemSchema` is not a Media Type Object field. OpenAPI 3.1
+                // allows schema, example, examples, encoding, and `x-` extensions.
+                // https://spec.openapis.org/oas/v3.1.1#media-type-object
+                // @ts-expect-error — itemSchema is not a Media Type Object field
                 itemSchema: {
                   type: 'object',
                   properties: {
@@ -268,10 +286,8 @@ describe('validation', () => {
         input: {
           target: SSE_ITEM_SCHEMA_SPEC,
           override: {
-            transformer: (() =>
-              undefined as unknown as OpenApiDocument) satisfies (
-              spec: OpenApiDocument,
-            ) => OpenApiDocument,
+            transformer: (_spec: OpenApiDocument): OpenApiDocument =>
+              undefined as never,
           },
         },
       },
@@ -671,7 +687,7 @@ describe('specParsing', () => {
         ApiVersion: { type: 'string', enum: ['latest', '2026-01-27'] },
       },
     },
-  };
+  } satisfies OpenApiDocument;
 
   async function importJsonSpec(content: string, prefix: string) {
     const workspace = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -738,7 +754,7 @@ describe('specParsing', () => {
 
   it('should not mutate an in-memory spec passed as input.target', async () => {
     const workspace = 'test';
-    const target = structuredClone(JSON_SPEC) as unknown as OpenApiDocument;
+    const target = structuredClone(JSON_SPEC);
     const before = structuredClone(target);
 
     const normalizedOptions = await normalizeOptions(
@@ -1427,9 +1443,9 @@ describe('externalRefs', () => {
 
       expect(result.spec.components?.schemas).toHaveProperty('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content?.[
-          'application/json'
-        ]?.schema,
+        responseContent(
+          result.spec.paths?.['/user']?.get?.responses?.['200'],
+        )?.['application/json']?.schema,
       ).toEqual({ $ref: '#/components/schemas/User_billing' });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1474,7 +1490,7 @@ describe('externalRefs', () => {
       expect(compressInputs).toEqual(['billing.yaml']);
       expect(result.spec.components?.schemas).toHaveProperty('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content,
+        responseContent(result.spec.paths?.['/user']?.get?.responses?.['200']),
       ).toEqual({
         'application/json': {
           schema: { $ref: '#/components/schemas/User_billing' },
@@ -1522,9 +1538,9 @@ describe('externalRefs', () => {
       expect(generatedName).toMatch(/^User_[a-zA-Z0-9]+$/);
       expect(generatedName).not.toBe('User_billing');
       expect(
-        result.spec.paths?.['/user']?.get?.responses?.['200']?.content?.[
-          'application/json'
-        ]?.schema,
+        responseContent(
+          result.spec.paths?.['/user']?.get?.responses?.['200'],
+        )?.['application/json']?.schema,
       ).toEqual({ $ref: `#/components/schemas/${generatedName}` });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -2762,7 +2778,9 @@ describe('dereferenceExternalRefs', () => {
 
     // Schemas from external docs should be merged into components
     expect(result.components?.schemas).toHaveProperty('Pet');
-    expect(result.paths?.['/pets']?.post?.responses?.['200']?.content).toEqual({
+    expect(
+      responseContent(result.paths?.['/pets']?.post?.responses?.['200']),
+    ).toEqual({
       'application/json': {
         schema: {
           // updated from '#/x-ext/cefada3/components/schemas/Pet'
@@ -4934,7 +4952,7 @@ describe('dereferenceExternalRef — Swagger 2.0 documents', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input) as Record<string, unknown>;
+    const result = dereferenceExternalRef(input);
 
     expect(result).not.toHaveProperty('components');
   });

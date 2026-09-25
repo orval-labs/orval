@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   petstore: {
     output: {
       target: '../generated/mock/petstore/endpoints.ts',

@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
 import type {
@@ -12,7 +14,7 @@ import {
   camel,
   filterByContentType,
   isBinaryContentType,
-  isReference,
+  isInlineSchema,
   sanitize,
 } from '../utils';
 import { getResReqTypes } from './res-req-types';
@@ -63,12 +65,12 @@ function buildBody(
       es5keyword: true,
       es5IdentifierName: true,
     });
-    if (isReference(requestBody)) {
+    if (isInlineSchema(requestBody)) {
+      isOptional = requestBody.required !== true;
+    } else {
       const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
         resolveRef(requestBody, context);
       isOptional = bodySchema.required !== true;
-    } else {
-      isOptional = requestBody.required !== true;
     }
   }
 
@@ -78,9 +80,11 @@ function buildBody(
     isBlob: filteredBodyTypes.some(
       (t) =>
         (!!t.contentType && isBinaryContentType(t.contentType)) ||
-        t.originalSchema?.format === 'binary' ||
-        (t.originalSchema?.contentMediaType === 'application/octet-stream' &&
-          !t.originalSchema.contentEncoding),
+        (t.originalSchema !== undefined &&
+          !isBooleanJsonSchema(t.originalSchema) &&
+          (t.originalSchema.format === 'binary' ||
+            (t.originalSchema.contentMediaType === 'application/octet-stream' &&
+              !t.originalSchema.contentEncoding))),
     ),
     implementation,
     imports,
@@ -181,7 +185,7 @@ function getRequestBodyExtensionName(
   context: ContextSpec,
 ): string | undefined {
   let value: unknown;
-  if (isReference(requestBody)) {
+  if (!isInlineSchema(requestBody)) {
     const { schema } = resolveRef(requestBody, context);
     value = (schema as Record<string, unknown>)?.[
       'x-codegen-request-body-name'

@@ -373,9 +373,7 @@ export const generateServer = (
       const titleImplementation = verbOption.summary
         ? `\n    title: '${jsStringEscape(verbOption.summary)}',`
         : '';
-      const operationDescription = verbOption.originalOperation.description as
-        | string
-        | undefined;
+      const operationDescription = verbOption.originalOperation.description;
       const descriptionValue =
         (operationDescription && operationDescription.length > 0
           ? operationDescription

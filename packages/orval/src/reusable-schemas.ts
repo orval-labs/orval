@@ -1,11 +1,12 @@
-import type {
-  ContextSpec,
-  GeneratorMutator,
-  OpenApiSchemaObject,
-  ZodCoerceType,
-  ZodVariantOption,
+import {
+  type ContextSpec,
+  type ZodCoerceType,
+  type GeneratorMutator,
+  type OpenApiSchemaObject,
+  type ZodVariantOption,
+  getRefInfo,
+  buildDynamicScope,
 } from '@orval/core';
-import { buildDynamicScope, getRefInfo } from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,

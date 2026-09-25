@@ -1,22 +1,36 @@
-import type {
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  NormalizedOverrideOutput,
-} from '@orval/core';
+import type { GeneratorVerbOptions, ResReqTypesValue } from '@orval/core';
 import { OutputClient, OutputHttpClient } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import {
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { builder, generateQuery } from './index';
+
+const successType = (
+  overrides: Partial<ResReqTypesValue> & Pick<ResReqTypesValue, 'value'>,
+): ResReqTypesValue => ({
+  key: '200',
+  contentType: 'application/json',
+  hasReadonlyProps: false,
+  imports: [],
+  isEnum: false,
+  isRef: true,
+  schemas: [],
+  type: 'object',
+  dependencies: [],
+  ...overrides,
+});
 
 describe('throws when trying to use named parameters with vue-query client', () => {
   it('vue-query builder type', () => {
     expect(() =>
       builder({ type: 'vue-query' })().client(
-        {} as GeneratorVerbOptions,
-        {
-          override: { useNamedParameters: true } as NormalizedOverrideOutput,
-        } as GeneratorOptions,
+        createTestGeneratorVerbOptions(),
+        createTestGeneratorOptions({
+          override: { useNamedParameters: true },
+        }),
         'axios',
       ),
     ).toThrowErrorMatchingInlineSnapshot(
@@ -26,10 +40,10 @@ describe('throws when trying to use named parameters with vue-query client', () 
   it('vue-query output client', () => {
     expect(() =>
       builder()().client(
-        {} as GeneratorVerbOptions,
-        {
-          override: { useNamedParameters: true } as NormalizedOverrideOutput,
-        } as GeneratorOptions,
+        createTestGeneratorVerbOptions(),
+        createTestGeneratorOptions({
+          override: { useNamedParameters: true },
+        }),
         'vue-query',
       ),
     ).toThrowErrorMatchingInlineSnapshot(
@@ -40,61 +54,40 @@ describe('throws when trying to use named parameters with vue-query client', () 
 
 describe('generateQuery — includeZodSchemaInArguments with a custom mutator', () => {
   const makeVerbOptions = (
-    overrides: Partial<GeneratorVerbOptions> = {},
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
   ): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       verb: 'get',
       route: '/pets',
       pathRoute: '/pets',
       operationId: 'listPets',
       operationName: 'listPets',
       typeName: 'listPets',
-      doc: '',
-      tags: [],
       response: {
         definition: { success: 'Pets', errors: 'Error' },
         imports: [{ name: 'Pets' }, { name: 'Error' }],
         types: {
           success: [
-            {
-              // `key` is required on `ResReqTypesValue` and always set by
-              // `getResReqTypes`; the cast below is what let it be omitted.
-              key: '200',
+            successType({
               value: 'Pets',
-              contentType: 'application/json',
-              hasReadonlyProps: false,
               imports: [{ name: 'Pets' }],
-              isEnum: false,
-              isRef: true,
-              schemas: [],
-              type: 'object',
-              dependencies: [],
-            },
+            }),
           ],
           errors: [],
         },
         contentTypes: ['application/json'],
-        schemas: [],
-        isBlob: false,
       },
-      body: {
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
-        contentType: '',
-        isOptional: true,
-        originalSchema: {},
-        isBlob: false,
+      mutator: {
+        name: 'customFetch',
+        path: './mutator.ts',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
       },
-      params: [],
-      props: [],
-      mutator: { name: 'customFetch', path: './mutator.ts', default: false },
       override: {
-        formData: { disabled: false, arrayHandling: 'serialize' },
-        formUrlEncoded: false,
         requestOptions: true,
         fetch: {
           includeHttpResponseReturnType: false,
@@ -103,40 +96,27 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
         },
         query: {
           useQuery: true,
-          useMutation: false,
-          useInfinite: false,
-          useSuspenseQuery: false,
-          useSuspenseInfiniteQuery: false,
-          usePrefetch: false,
-          useInvalidate: false,
           shouldExportKeys: true,
           shouldExportHttpClient: true,
           shouldExportMutatorHooks: true,
-          signal: false,
-          version: 5,
         },
       },
-      originalOperation: {},
       ...overrides,
-    }) as unknown as GeneratorVerbOptions;
+    });
 
-  const makeOptions = (
-    includeZodSchemaInArguments: boolean,
-  ): GeneratorOptions =>
-    ({
+  const makeOptions = (includeZodSchemaInArguments: boolean) =>
+    createTestGeneratorOptions({
       route: '/pets',
       pathRoute: '/pets',
-      override: { operations: {} },
-      output: '',
-      context: createTestContextSpec({
+      override: { includeZodSchemaInArguments },
+      context: {
         output: {
           client: OutputClient.REACT_QUERY,
           httpClient: OutputHttpClient.FETCH,
           schemas: { path: './model', type: 'zod', splitByTags: false },
         },
-        override: { includeZodSchemaInArguments },
-      }),
-    }) as unknown as GeneratorOptions;
+      },
+    });
 
   it('imports the response schema as a value when it is passed to the mutator', async () => {
     const { implementation, imports } = await generateQuery(
@@ -206,94 +186,52 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
 
 describe('generateQuery — angular-query runtimeValidation of an inline array response', () => {
   const makeVerbOptions = (runtimeValidation: boolean): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       verb: 'get',
       route: '/items',
       pathRoute: '/items',
       operationId: 'listItems',
       operationName: 'listItems',
       typeName: 'listItems',
-      doc: '',
-      tags: [],
       response: {
         definition: { success: 'Item[]', errors: '' },
         imports: [{ name: 'Item' }],
         types: {
           success: [
-            {
-              key: '200',
+            successType({
               value: 'Item[]',
-              contentType: 'application/json',
-              hasReadonlyProps: false,
               imports: [{ name: 'Item' }],
-              isEnum: false,
               isRef: false,
-              schemas: [],
               type: 'array',
-              dependencies: [],
-            },
+            }),
           ],
           errors: [],
         },
         contentTypes: ['application/json'],
-        schemas: [],
-        isBlob: false,
       },
-      body: {
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
-        contentType: '',
-        isOptional: true,
-        originalSchema: {},
-        isBlob: false,
-      },
-      params: [],
-      props: [],
       override: {
-        formData: { disabled: false, arrayHandling: 'serialize' },
-        formUrlEncoded: false,
         requestOptions: true,
-        fetch: {
-          includeHttpResponseReturnType: false,
-          forceSuccessResponse: false,
-          runtimeValidation: { enabled: false, strategy: 'throw' },
-        },
         query: {
           useQuery: true,
-          useMutation: false,
-          useInfinite: false,
-          useSuspenseQuery: false,
-          useSuspenseInfiniteQuery: false,
-          usePrefetch: false,
-          useInvalidate: false,
           shouldExportKeys: true,
           shouldExportHttpClient: true,
           shouldExportMutatorHooks: true,
-          signal: false,
-          version: 5,
           runtimeValidation: { enabled: runtimeValidation, strategy: 'throw' },
         },
       },
-      originalOperation: {},
-    }) as unknown as GeneratorVerbOptions;
+    });
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/items',
     pathRoute: '/items',
-    override: { operations: {} },
-    output: '',
-    context: createTestContextSpec({
+    context: {
       output: {
         client: OutputClient.ANGULAR_QUERY,
         httpClient: OutputHttpClient.ANGULAR,
         schemas: { path: './model', type: 'zod', splitByTags: false },
       },
-    }),
-  } as unknown as GeneratorOptions;
+    },
+  });
 
   it('parses the response through zod.array and imports what that needs', async () => {
     const { implementation, imports } = await generateQuery(
@@ -339,59 +277,33 @@ describe('generateQuery — fetch runtimeValidation outside Angular (#4136, #413
   }: {
     definition: string;
     imports: { name: string }[];
-    type: string;
+    type: ResReqTypesValue['type'];
     runtimeValidation?: boolean;
   }): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       verb: 'get',
       route: '/items',
       pathRoute: '/items',
       operationId: 'listItems',
       operationName: 'listItems',
       typeName: 'listItems',
-      doc: '',
-      tags: [],
       response: {
         definition: { success: definition, errors: '' },
         imports,
         types: {
           success: [
-            {
-              key: '200',
+            successType({
               value: definition,
-              contentType: 'application/json',
-              hasReadonlyProps: false,
               imports,
-              isEnum: false,
               isRef: type !== 'array',
-              schemas: [],
               type,
-              dependencies: [],
-            },
+            }),
           ],
           errors: [],
         },
         contentTypes: ['application/json'],
-        schemas: [],
-        isBlob: false,
       },
-      body: {
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
-        contentType: '',
-        isOptional: true,
-        originalSchema: {},
-        isBlob: false,
-      },
-      params: [],
-      props: [],
       override: {
-        formData: { disabled: false, arrayHandling: 'serialize' },
-        formUrlEncoded: false,
         requestOptions: true,
         fetch: {
           includeHttpResponseReturnType: false,
@@ -403,35 +315,24 @@ describe('generateQuery — fetch runtimeValidation outside Angular (#4136, #413
         },
         query: {
           useQuery: true,
-          useMutation: false,
-          useInfinite: false,
-          useSuspenseQuery: false,
-          useSuspenseInfiniteQuery: false,
-          usePrefetch: false,
-          useInvalidate: false,
           shouldExportKeys: true,
           shouldExportHttpClient: true,
           shouldExportMutatorHooks: true,
-          signal: false,
-          version: 5,
         },
       },
-      originalOperation: {},
-    }) as unknown as GeneratorVerbOptions;
+    });
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/items',
     pathRoute: '/items',
-    override: { operations: {} },
-    output: '',
-    context: createTestContextSpec({
+    context: {
       output: {
         client: OutputClient.REACT_QUERY,
         httpClient: OutputHttpClient.FETCH,
         schemas: { path: './model', type: 'zod', splitByTags: false },
       },
-    }),
-  } as unknown as GeneratorOptions;
+    },
+  });
 
   it('imports the schema as a value and the Output alias it declares', async () => {
     const { implementation, imports } = await generateQuery(
@@ -577,18 +478,16 @@ describe('generateQuery — suspense queryOptions() literal (#4163)', () => {
       originalOperation: {},
     }) as unknown as GeneratorVerbOptions;
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/pets',
     pathRoute: '/pets',
-    override: { operations: {} },
-    output: '',
-    context: createTestContextSpec({
+    context: {
       output: {
         client: OutputClient.REACT_QUERY,
         httpClient: OutputHttpClient.FETCH,
       },
-    }),
-  } as unknown as GeneratorOptions;
+    },
+  });
 
   // `Partial<UseSuspenseQueryOptions<…>>` declares `queryFn` as
   // `QueryFunction<…> | undefined`, so spreading it over a concrete `queryFn`

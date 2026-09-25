@@ -238,7 +238,7 @@ export function normalizeNullableRefs(
     return spec;
   }
 
-  const obj = spec as Record<string, unknown>;
+  const obj = spec;
 
   // A direct `allOf` member whose null branch something else in the intersection
   // already absorbs (see `absorbsNullBranch`): drop the sibling instead of
@@ -308,7 +308,7 @@ function isNullableRef(value: unknown): boolean {
   if (!isObject(value)) {
     return false;
   }
-  const obj = value as Record<string, unknown>;
+  const obj = value;
   return (
     '$ref' in obj &&
     isString(obj.$ref) &&
@@ -349,7 +349,7 @@ function isNonNullableObjectSchema(value: unknown): boolean {
   if (!isObject(value)) {
     return false;
   }
-  const obj = value as Record<string, unknown>;
+  const obj = value;
   if ((obj.nullable as boolean | undefined) === true) {
     return false;
   }
@@ -403,7 +403,7 @@ export function preserveBinarySchemas(spec: unknown): unknown {
     return spec;
   }
 
-  const document = spec as Record<string, unknown>;
+  const document = spec;
   const swagger2 = isSwagger2(document);
 
   // A 3.1 document is skipped by the upgrader, and `normalizeToOpenApi31`
@@ -444,7 +444,7 @@ function walkForBinarySchemas(
     return;
   }
 
-  const obj = node as Record<string, unknown>;
+  const obj = node;
 
   if (swagger2 ? isSwagger2BinaryBody(obj, path) : isBinaryString(obj)) {
     obj.type = 'string';
@@ -730,8 +730,8 @@ function normalizeNode(node: unknown, context: NodeContext): unknown {
   // `nullable` is a field the API has, not a keyword to resolve.
   const obj =
     context.kind === 'schema'
-      ? normalizeSchemaNode(node as Record<string, unknown>, context.mediaType)
-      : (node as Record<string, unknown>);
+      ? normalizeSchemaNode(node, context.mediaType)
+      : node;
 
   for (const [key, value] of Object.entries(obj)) {
     if (holdsData(context.kind, key)) {
@@ -1083,11 +1083,7 @@ function normalizeExclusiveBounds(obj: Record<string, unknown>): void {
 }
 
 function isNullBranch(value: unknown): boolean {
-  return (
-    isObject(value) &&
-    ((value as Record<string, unknown>).type === 'null' ||
-      isNullOnlyEnum(value))
-  );
+  return isObject(value) && (value.type === 'null' || isNullOnlyEnum(value));
 }
 
 // ─── Swagger 2.0 formData array items repair (#3857) ───────────────────────
@@ -1135,7 +1131,7 @@ function collectSwagger2FormDataItems(
   document: Record<string, unknown>,
 ): Swagger2FormDataItems {
   const reusableParameters = isObject(document.parameters)
-    ? (document.parameters as Record<string, unknown>)
+    ? document.parameters
     : {};
 
   const resolveParameter = (
@@ -1269,7 +1265,7 @@ function restoreSwagger2FormDataItems<T extends Record<string, unknown>>(
   // operation's `requestBody` as a `$ref` to them.
   const components = isObject(document.components) ? document.components : {};
   const requestBodies = isObject(components.requestBodies)
-    ? (components.requestBodies as Record<string, unknown>)
+    ? components.requestBodies
     : {};
 
   const resolveRequestBody = (
@@ -1461,7 +1457,7 @@ function parseSpec(text: string): Record<string, unknown> {
   if (!isObject(result)) {
     throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
   }
-  return result as Record<string, unknown>;
+  return result;
 }
 
 /**

@@ -1,12 +1,13 @@
-import { isBoolean } from '../utils';
-
 import type {
   ContextSpec,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import { getPropertySafe, isReference, pascal } from '../utils';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
+import { getPropertySafe, isInlineSchema, pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export function resolveDiscriminators(
@@ -15,7 +16,7 @@ export function resolveDiscriminators(
 ): OpenApiSchemasObject {
   const transformedSchemas = schemas;
   for (const schema of Object.values(transformedSchemas)) {
-    if (isBoolean(schema)) {
+    if (isBooleanJsonSchema(schema)) {
       continue; // skip boolean schemas as we can't do anything meaningful with them
     }
 
@@ -54,15 +55,15 @@ export function resolveDiscriminators(
         // is typed as always-present. This mirrors the `!variantSchema` guard in
         // the second loop below.
         if (
+          typeof propertyName !== 'string' ||
           !subTypeSchema ||
-          isBoolean(subTypeSchema) ||
-          propertyName === undefined
+          isBooleanJsonSchema(subTypeSchema)
         ) {
           continue;
         }
 
         const property = subTypeSchema.properties?.[propertyName];
-        if (isBoolean(property)) {
+        if (isBooleanJsonSchema(property)) {
           continue;
         }
 
@@ -77,13 +78,13 @@ export function resolveDiscriminators(
           property &&
           Array.isArray(property.allOf) &&
           property.allOf.length === 1 &&
-          isReference(property.allOf[0]);
+          !isInlineSchema(property.allOf[0]);
         if (isAllOfRef) {
           continue;
         }
 
         const schemaProperty =
-          property && !isReference(property) ? property : undefined;
+          property && isInlineSchema(property) ? property : undefined;
 
         const enumProperty = schemaProperty
           ? getPropertySafe(schemaProperty, 'enum')
@@ -113,11 +114,13 @@ export function resolveDiscriminators(
         ];
 
         // @see https://github.com/orval-labs/orval/issues/3139
+        // `propertyType` is a widened string, so the object is not a SchemaObject
+        // until asserted. The value is always a single primitive schema type.
         const mergedProperty = {
           ...schemaProperty,
           type: propertyType,
           enum: mergedEnumValues,
-        };
+        } as OpenApiNonBooleanSchemaObject;
         delete (mergedProperty as Record<string, unknown>).const;
 
         subTypeSchema.properties = {
@@ -139,7 +142,7 @@ export function resolveDiscriminators(
   // non-discriminator properties (or dropping the entry entirely when the parent
   // contributes nothing beyond the discriminator key). See issue #3432.
   for (const [parentName, parentSchema] of Object.entries(transformedSchemas)) {
-    if (isBoolean(parentSchema)) {
+    if (isBooleanJsonSchema(parentSchema)) {
       continue;
     }
     const variants = parentSchema.oneOf ?? parentSchema.anyOf;
@@ -153,15 +156,13 @@ export function resolveDiscriminators(
     const mappedRefs = mapping ? Object.values(mapping) : [];
     const variantArrayRefs = variants
       .filter(
-        (item): item is OpenApiReferenceObject & { $ref: string } =>
-          isReference(item) && typeof item.$ref === 'string',
+        (item): item is OpenApiNonBooleanSchemaObject & { $ref: string } =>
+          !isBooleanJsonSchema(item) && typeof item.$ref === 'string',
       )
       .map((item) => item.$ref);
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
 
-    const parentProperties = parentSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const parentProperties = parentSchema.properties;
     const parentRequired = parentSchema.required;
     const inheritableProps: Record<
       string,
@@ -189,7 +190,7 @@ export function resolveDiscriminators(
       } catch {
         variantSchema = transformedSchemas[mappingValue];
       }
-      if (!variantSchema || isBoolean(variantSchema)) {
+      if (!variantSchema || isBooleanJsonSchema(variantSchema)) {
         continue;
       }
       const variantAllOf = variantSchema.allOf as
@@ -201,7 +202,7 @@ export function resolveDiscriminators(
 
       const rewritten: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
       for (const item of variantAllOf) {
-        if (!isReference(item) || !item.$ref) {
+        if (isInlineSchema(item) || !item.$ref) {
           rewritten.push(item);
           continue;
         }
@@ -225,7 +226,7 @@ export function resolveDiscriminators(
         // the cycle or are now meaningless on the variant.
         const inlinedParent = {
           ...(parentSchema as Record<string, unknown>),
-        } as OpenApiSchemaObject;
+        } as OpenApiNonBooleanSchemaObject;
         delete (inlinedParent as Record<string, unknown>).oneOf;
         delete (inlinedParent as Record<string, unknown>).discriminator;
         delete (inlinedParent as Record<string, unknown>).allOf;

@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import { createTestContextSpec } from '../test-utils';
+import type { OpenApiSchemaObject } from '../types';
 import { getScalar, isBinaryScalarSchema } from './scalar';
 
-const context = {
-  output: {
-    override: {
-      useDates: false,
-    },
+const context = createTestContextSpec({
+  override: {
+    useDates: false,
   },
-} as ContextSpec;
+});
 
 describe('getScalar (contentMediaType: application/octet-stream)', () => {
   it('contentMediaType: application/octet-stream without formDataContext → Blob', () => {
@@ -57,7 +56,7 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
     const schema = {
       type: ['string', 'null'],
       contentMediaType: 'application/octet-stream',
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({
       item: schema,
@@ -72,7 +71,7 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
   it('nullable multipart part with a text encoding contentType → Blob | File | string | null', () => {
     const schema = {
       type: ['string', 'null'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({
       item: schema,
@@ -133,7 +132,7 @@ describe('isBinaryScalarSchema', () => {
       isBinaryScalarSchema({
         type: 'number',
         format: 'binary',
-      } as OpenApiSchemaObject),
+      }),
     ).toBe(false);
   });
 
@@ -145,7 +144,7 @@ describe('isBinaryScalarSchema', () => {
       isBinaryScalarSchema({
         type: ['string', 'null'],
         format: 'binary',
-      } as unknown as OpenApiSchemaObject),
+      } satisfies OpenApiSchemaObject),
     ).toBe(true);
   });
 
@@ -154,7 +153,7 @@ describe('isBinaryScalarSchema', () => {
       isBinaryScalarSchema({
         type: ['string', 'null'],
         contentMediaType: 'application/octet-stream',
-      } as unknown as OpenApiSchemaObject),
+      } satisfies OpenApiSchemaObject),
     ).toBe(true);
   });
 
@@ -165,7 +164,7 @@ describe('isBinaryScalarSchema', () => {
       isBinaryScalarSchema({
         type: ['string', 'integer'],
         format: 'binary',
-      } as unknown as OpenApiSchemaObject),
+      } satisfies OpenApiSchemaObject),
     ).toBe(false);
   });
 });
@@ -176,21 +175,20 @@ describe('getScalar (nullable composition: type: null + combiner)', () => {
   // `{ anyOf: [{ $ref }, { type: 'null' }] }`. Orval must treat this as a
   // nullable union (`T | null`) instead of collapsing it to `null` and
   // dropping the composition. See discussion on #3163.
-  const compositionContext = {
+  const compositionContext = createTestContextSpec({
+    target: 'spec',
     output: {
-      override: {
-        enumGenerationType: 'const',
-        components: {
-          schemas: { suffix: '', itemSuffix: 'Item' },
-          responses: { suffix: '' },
-          parameters: { suffix: '' },
-          requestBodies: { suffix: 'RequestBody' },
-        },
-      },
       unionAddMissingProperties: false,
     },
-    target: 'spec',
-    workspace: '',
+    override: {
+      enumGenerationType: 'const',
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: 'RequestBody' },
+      },
+    },
     spec: {
       components: {
         schemas: {
@@ -201,7 +199,7 @@ describe('getScalar (nullable composition: type: null + combiner)', () => {
         },
       },
     },
-  } as unknown as ContextSpec;
+  });
 
   it('type: null with allOf [$ref] produces `Ref | null`', () => {
     const schema: OpenApiSchemaObject = {
@@ -304,7 +302,7 @@ describe('getScalar (string const value escaping #3505)', () => {
     const schema = {
       type: 'string',
       const: String.raw`App\Models\Document`,
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'kind', context });
 
@@ -315,7 +313,7 @@ describe('getScalar (string const value escaping #3505)', () => {
     const schema = {
       type: 'string',
       const: 'C:\\logs\\',
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'prefix', context });
 
@@ -326,7 +324,7 @@ describe('getScalar (string const value escaping #3505)', () => {
     const schema = {
       type: 'string',
       const: 'Asia/Tokyo',
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'timezone', context });
 
@@ -405,7 +403,7 @@ describe('getScalar (const/enum type confusion)', () => {
     ['boolean const', { type: 'boolean', const: payload }],
     [
       'boolean enum member',
-      { type: 'boolean', enum: [payload] } as OpenApiSchemaObject,
+      { type: 'boolean', enum: [payload] } satisfies OpenApiSchemaObject,
     ],
   ])(
     'renders a mismatched string as a string literal for a %s',
@@ -422,7 +420,7 @@ describe('getScalar (const/enum type confusion)', () => {
     const schema = {
       type: 'number',
       const: "0'; console.log('pwned'); type Tail = 0",
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'field', context });
 
@@ -435,7 +433,7 @@ describe('getScalar (const/enum type confusion)', () => {
     const schema = {
       type: ['number', 'null'],
       const: payload,
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'field', context });
 
@@ -445,7 +443,7 @@ describe('getScalar (const/enum type confusion)', () => {
   it('still emits genuine numeric and boolean consts unquoted', () => {
     expect(
       getScalar({
-        item: { type: 'number', const: 42 } as OpenApiSchemaObject,
+        item: { type: 'number', const: 42 } satisfies OpenApiSchemaObject,
         name: 'n',
         context,
       }).value,
@@ -453,7 +451,7 @@ describe('getScalar (const/enum type confusion)', () => {
 
     expect(
       getScalar({
-        item: { type: 'boolean', const: true } as OpenApiSchemaObject,
+        item: { type: 'boolean', const: true } satisfies OpenApiSchemaObject,
         name: 'b',
         context,
       }).value,
@@ -471,7 +469,7 @@ describe('getScalar (string-schema const presence and nullability)', () => {
     const schema = {
       type: 'string',
       const: constValue,
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
       expected,
@@ -484,7 +482,7 @@ describe('getScalar (string-schema const presence and nullability)', () => {
     const schema = {
       type: ['string', 'null'],
       const: 'x',
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getScalar({ item: schema, name: 'f', context }).value).toBe(
       "'x' | null",
@@ -494,10 +492,24 @@ describe('getScalar (string-schema const presence and nullability)', () => {
   it('leaves a schema without a const alone', () => {
     expect(
       getScalar({
-        item: { type: 'string' } as OpenApiSchemaObject,
+        item: { type: 'string' } satisfies OpenApiSchemaObject,
         name: 'f',
         context,
       }).value,
     ).toBe('string');
+  });
+});
+
+describe('getScalar (boolean schemas)', () => {
+  it('emits unknown for true', () => {
+    expect(getScalar({ item: true, name: 'any', context }).value).toBe(
+      'unknown',
+    );
+  });
+
+  it('emits never for false', () => {
+    expect(getScalar({ item: false, name: 'none', context }).value).toBe(
+      'never',
+    );
   });
 });

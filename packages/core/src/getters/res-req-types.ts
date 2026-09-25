@@ -1,3 +1,4 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
 import { uniqueBy } from '../utils';
 
@@ -16,8 +17,7 @@ import {
   type OpenApiSchemaObject,
   type ResReqTypesValue,
 } from '../types';
-import { camel, sanitize } from '../utils';
-import { isReference } from '../utils/assertion';
+import { camel, isInlineSchema, sanitize } from '../utils';
 import { pascal, conventionName } from '../utils/case';
 import {
   getFormDataFieldFileType,
@@ -27,32 +27,27 @@ import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import type { FormDataContext } from './object';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 
-// Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
-// OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
-// These helpers centralize the cast so it appears once rather than at each access site.
 const getSchemaType = (s: OpenApiSchemaObject) =>
-  s.type as string | string[] | undefined;
+  isBooleanJsonSchema(s)
+    ? undefined
+    : (s.type as string | string[] | undefined);
 const getSchemaCombined = (s: OpenApiSchemaObject) =>
-  (s.oneOf ?? s.anyOf ?? s.allOf) as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  isBooleanJsonSchema(s) ? undefined : (s.oneOf ?? s.anyOf ?? s.allOf);
 const getSchemaOneOf = (s: OpenApiSchemaObject) =>
-  s.oneOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+  isBooleanJsonSchema(s) ? undefined : s.oneOf;
 const getSchemaAnyOf = (s: OpenApiSchemaObject) =>
-  s.anyOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+  isBooleanJsonSchema(s) ? undefined : s.anyOf;
 const getSchemaItems = (s: OpenApiSchemaObject) =>
-  s.items as OpenApiSchemaObject | OpenApiReferenceObject | undefined;
+  isBooleanJsonSchema(s) ? undefined : s.items;
 const getSchemaRequired = (s: OpenApiSchemaObject) =>
-  s.required as string[] | undefined;
+  isBooleanJsonSchema(s) ? undefined : s.required;
 const getSchemaProperties = (s: OpenApiSchemaObject) =>
-  s.properties as
-    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-    | undefined;
+  isBooleanJsonSchema(s) ? undefined : s.properties;
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ) =>
-  resolveRef(schema, context) as {
+  resolveRef(schema as OpenApiReferenceObject, context) as {
     schema: OpenApiSchemaObject;
     imports: GeneratorImport[];
   };
@@ -86,7 +81,9 @@ function getResReqContentTypes({
   isFormData,
   contentType,
 }: GetResReqContentTypesOptions) {
-  if (!mediaType.schema) {
+  // `false` is a JSON Schema that admits nothing (`never`). Only a missing
+  // schema means this media type has no type to emit.
+  if (mediaType.schema === undefined || mediaType.schema === null) {
     return;
   }
 
@@ -136,7 +133,7 @@ export function getResReqTypes(
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
     .map(([key, res]) => {
-      if (isReference(res)) {
+      if (!isInlineSchema(res)) {
         const {
           schema: bodySchema,
           imports: [{ name, schemaName }],
@@ -181,7 +178,7 @@ export function getResReqTypes(
               hasReadonlyProps: false,
               dependencies: [name],
               originalSchema: mediaType.schema,
-              example: mediaType.example as unknown,
+              example: mediaType.example,
               examples: resolveExampleRefs(
                 mediaType.examples as
                   | Record<string, OpenApiReferenceObject | { value?: unknown }>
@@ -194,12 +191,16 @@ export function getResReqTypes(
           ] as ResReqTypesValue[];
         }
 
+        // OpenAPI defaults requestBody.required to false when the key is absent.
+        const isRequestBodyOptional =
+          !('required' in bodySchema) || bodySchema.required !== true;
+
         const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional: bodySchema.required !== true,
+              isRequestBodyOptional,
               isRef: true,
               encoding: mediaType.encoding,
             })
@@ -210,7 +211,7 @@ export function getResReqTypes(
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional: bodySchema.required !== true,
+              isRequestBodyOptional,
               isUrlEncoded: true,
               isRef: true,
               encoding: mediaType.encoding,
@@ -266,7 +267,7 @@ export function getResReqTypes(
 
             // When schema is a $ref, use schema name for consistent param naming
             let effectivePropName = propName;
-            if (mediaType.schema && isReference(mediaType.schema)) {
+            if (mediaType.schema && !isInlineSchema(mediaType.schema)) {
               const { imports } = resolveSchemaRef(mediaType.schema, context);
               if (imports[0]?.name) {
                 effectivePropName = imports[0].name;
@@ -284,7 +285,7 @@ export function getResReqTypes(
               if (combinedRefs) {
                 const names: string[] = [];
                 for (const ref of combinedRefs) {
-                  if (!isReference(ref)) continue;
+                  if (isInlineSchema(ref)) continue;
                   const refName = resolveSchemaRef(ref, context).imports[0]
                     ?.name;
                   if (refName) {
@@ -344,7 +345,8 @@ export function getResReqTypes(
                   name: effectivePropName,
                   schemaObject: mediaType.schema,
                   context,
-                  isRequestBodyOptional: res.required !== true,
+                  isRequestBodyOptional:
+                    !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })
@@ -356,7 +358,8 @@ export function getResReqTypes(
                   schemaObject: mediaType.schema,
                   context,
                   isUrlEncoded: true,
-                  isRequestBodyOptional: res.required !== true,
+                  isRequestBodyOptional:
+                    !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })
@@ -372,7 +375,7 @@ export function getResReqTypes(
               formData,
               formUrlEncoded,
               contentType,
-              example: mediaType.example as unknown,
+              example: mediaType.example,
               examples: resolveExampleRefs(
                 mediaType.examples as
                   | Record<string, OpenApiReferenceObject | { value?: unknown }>
@@ -511,7 +514,7 @@ function getFormDataAdditionalImports({
 }: GetFormDataAdditionalImportsOptions): GeneratorImport[] {
   const { schema } = resolveSchemaRef(schemaObject, context);
 
-  if (schema.type !== 'object') {
+  if (getSchemaType(schema) !== 'object') {
     return [];
   }
 
@@ -547,7 +550,7 @@ function getSchemaFormDataAndUrlEncoded({
 }: GetSchemaFormDataAndUrlEncodedOptions): string {
   const { schema, imports } = resolveSchemaRef(schemaObject, context);
   const propName = camel(
-    !isRef && isReference(schemaObject) ? imports[0].name : name,
+    !isRef && !isInlineSchema(schemaObject) ? imports[0].name : name,
   );
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
@@ -556,9 +559,10 @@ function getSchemaFormDataAndUrlEncoded({
     : `const ${variableName} = new FormData();\n`;
 
   const combinedSchemas = getSchemaCombined(schema);
+  const schemaType = getSchemaType(schema);
   if (
-    schema.type === 'object' ||
-    (schema.type === undefined && combinedSchemas)
+    schemaType === 'object' ||
+    (schemaType === undefined && combinedSchemas)
   ) {
     if (combinedSchemas) {
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
@@ -572,10 +576,10 @@ function getSchemaFormDataAndUrlEncoded({
         const directProperties = getSchemaProperties(schema);
         const directKeys = directProperties
           ? Object.entries(directProperties)
-              .filter(
-                ([, value]) =>
-                  !resolveSchemaRef(value, context).schema.readOnly,
-              )
+              .filter(([, value]) => {
+                const resolved = resolveSchemaRef(value, context).schema;
+                return isBooleanJsonSchema(resolved) || !resolved.readOnly;
+              })
               .map(([key]) => key)
           : [];
         const skipLine =
@@ -644,7 +648,7 @@ function getSchemaFormDataAndUrlEncoded({
       }
     }
 
-    if (schema.properties) {
+    if (getSchemaProperties(schema)) {
       const formDataValues = resolveSchemaPropertiesToFormData({
         schema,
         variableName,
@@ -660,20 +664,21 @@ function getSchemaFormDataAndUrlEncoded({
     return form;
   }
 
-  if (schema.type === 'array') {
+  if (getSchemaType(schema) === 'array') {
     let valueStr = 'value';
     const schemaItems = getSchemaItems(schema);
     if (schemaItems) {
       const { schema: itemSchema } = resolveSchemaRef(schemaItems, context);
+      const itemType = getSchemaType(itemSchema);
       if (
         isEffectivelyObjectSchema(itemSchema, context) ||
         isEffectivelyArraySchema(itemSchema, context)
       ) {
         valueStr = 'JSON.stringify(value)';
       } else if (
-        itemSchema.type === 'number' ||
-        itemSchema.type === 'integer' ||
-        itemSchema.type === 'boolean'
+        itemType === 'number' ||
+        itemType === 'integer' ||
+        itemType === 'boolean'
       ) {
         valueStr = 'value.toString()';
       }
@@ -682,10 +687,11 @@ function getSchemaFormDataAndUrlEncoded({
     return `${form}${propName}.forEach(value => ${variableName}.append('data', ${valueStr}))\n`;
   }
 
+  const scalarType = getSchemaType(schema);
   if (
-    schema.type === 'number' ||
-    schema.type === 'integer' ||
-    schema.type === 'boolean'
+    scalarType === 'number' ||
+    scalarType === 'integer' ||
+    scalarType === 'boolean'
   ) {
     return `${form}${variableName}.append('data', ${propName}.toString())\n`;
   }
@@ -708,6 +714,9 @@ export function isEffectivelyObjectSchema(
   context: ContextSpec,
   seen: Set<OpenApiSchemaObject> = new Set(),
 ): boolean {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   if (seen.has(schema)) {
     // Recursive schema (e.g. a self-referential allOf chain) — bail out
     // rather than looping; nothing further down this branch can add new
@@ -726,9 +735,7 @@ export function isEffectivelyObjectSchema(
     return true;
   }
 
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
   if (Array.isArray(schemaAllOf)) {
     return schemaAllOf.some((member) => {
       const { schema: resolved } = resolveSchemaRef(member, context);
@@ -748,6 +755,9 @@ function isEffectivelyArraySchema(
   context: ContextSpec,
   seen: Set<OpenApiSchemaObject> = new Set(),
 ): boolean {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   if (seen.has(schema)) {
     return false;
   }
@@ -757,9 +767,7 @@ function isEffectivelyArraySchema(
     return true;
   }
 
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
   return (
     Array.isArray(schemaAllOf) &&
     schemaAllOf.some((member) => {
@@ -781,15 +789,16 @@ export function collectPropertiesThroughAllOf(
   context: ContextSpec,
   seen: Set<OpenApiSchemaObject> = new Set(),
 ): Record<string, OpenApiSchemaObject | OpenApiReferenceObject> {
+  if (isBooleanJsonSchema(schema)) {
+    return {};
+  }
   if (seen.has(schema)) {
     return {};
   }
   seen.add(schema);
 
   const ownProps = getSchemaProperties(schema) ?? {};
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
 
   if (!Array.isArray(schemaAllOf)) {
     return ownProps;
@@ -819,15 +828,16 @@ export function collectRequiredThroughAllOf(
   context: ContextSpec,
   seen: Set<OpenApiSchemaObject> = new Set(),
 ): string[] {
+  if (isBooleanJsonSchema(schema)) {
+    return [];
+  }
   if (seen.has(schema)) {
     return [];
   }
   seen.add(schema);
 
   const ownRequired = getSchemaRequired(schema) ?? [];
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const schemaAllOf = schema.allOf;
 
   if (!Array.isArray(schemaAllOf)) {
     return ownRequired;
@@ -884,6 +894,9 @@ function resolveSchemaPropertiesToFormData({
   );
   for (const [key, value] of Object.entries(schemaProps)) {
     const { schema: property } = resolveSchemaRef(value, context);
+    if (isBooleanJsonSchema(property)) {
+      continue;
+    }
     const escapedKey = key
       .replace(/\\/g, '\\\\')
       .replace(/`/g, '\\`')
@@ -925,8 +938,7 @@ function resolveSchemaPropertiesToFormData({
 
     // Use shared file type detection (same logic as type generation)
     const fileType = getFormDataFieldFileType(property, partContentType);
-    const effectiveContentType =
-      partContentType ?? (property.contentMediaType as string | undefined);
+    const effectiveContentType = partContentType ?? property.contentMediaType;
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)

@@ -12,15 +12,16 @@ import {
   getRoute,
   GetterPropType,
   isObject,
-  isReference,
   type MutationInvalidatesConfig,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
   type GeneratorVerbsOptions,
+  isInlineSchema,
   resolveRef,
   getUnknownMutationInvalidatesWarnings,
 } from '@orval/core';
+
 import {
   generateClientFooter,
   generateClientHeader,
@@ -88,7 +89,7 @@ export async function getApiBuilder({
     const route = getRoute(pathRoute);
     let resolvedVerbs: OpenApiPathItemObject = verbs;
 
-    if (isReference(verbs)) {
+    if (!isInlineSchema(verbs)) {
       const { schema }: { schema: OpenApiPathItemObject } = resolveRef(
         verbs,
         context,

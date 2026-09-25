@@ -1,27 +1,24 @@
 import path from 'node:path';
 
 import {
+  isBooleanJsonSchema,
+  isMultiTypeSchema,
+  isNullSchema,
+  isStringSchema,
+  isUntypedSchema,
+} from '@scalar/openapi-types/helpers';
+
+import { isInlineSchema } from './object-schema';
+
+import {
   type ClientMockBuilder,
   type GlobalMockOptions,
   type MswMockOptions,
-  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   OutputMockType,
   SchemaType,
   Verbs,
 } from '../types';
-
-/**
- * Type guard for an OpenAPI {@link OpenApiReferenceObject}.
- *
- * Returns `true` when `obj` has a `$ref` property, indicating a static
- * JSON Pointer reference rather than an inline schema.
- *
- * @param obj - Value to test.
- */
-export function isReference(obj: object): obj is OpenApiReferenceObject {
-  return !isNullish(obj) && Object.hasOwn(obj, '$ref');
-}
 
 /**
  * Represents an OpenAPI 3.1 schema object that contains a `$dynamicRef`
@@ -103,7 +100,8 @@ export function isNumeric(x: unknown): x is number {
  *
  * Returns `true` when `x` looks like a schema definition: it has a known
  * `type`, composition keywords (`allOf`, `anyOf`, `oneOf`), or `properties`.
- * Does not match reference objects; use {@link isReference} for those.
+ * Does not match reference objects (`$ref`). {@link isInlineSchema} is true
+ * for inline schemas, including JSON Schema booleans, and false for references.
  *
  * @param x - Value to test.
  */
@@ -141,16 +139,14 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
  * @param schema - Schema to test.
  */
 export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
-  const type = schema.type;
-
-  if (type === 'string') {
+  if (isStringSchema(schema)) {
     return true;
   }
 
   return (
-    Array.isArray(type) &&
-    type.includes('string') &&
-    type.every((member) => member === 'string' || member === 'null')
+    isMultiTypeSchema(schema) &&
+    schema.type.includes('string') &&
+    schema.type.every((member) => member === 'string' || member === 'null')
   );
 }
 
@@ -169,11 +165,16 @@ export function isStringLikeSchema(schema: OpenApiSchemaObject): boolean {
  * @param schema - Schema to test.
  */
 export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
-  if (schema.type === 'null') {
+  // `true` admits every instance, including null. `false` admits none.
+  if (isBooleanJsonSchema(schema)) {
+    return schema;
+  }
+
+  if (isNullSchema(schema)) {
     return true;
   }
 
-  if (Array.isArray(schema.type) && schema.type.includes('null')) {
+  if (isMultiTypeSchema(schema) && schema.type.includes('null')) {
     return true;
   }
 
@@ -188,7 +189,7 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
   // returned above, and one that does not makes the enum's `null` unreachable,
   // so honoring it would emit a `| null` the schema rejects.
   if (
-    schema.type === undefined &&
+    isUntypedSchema(schema) &&
     Array.isArray(schema.enum) &&
     schema.enum.includes(null) &&
     !someAllOfBranchRejectsNull(schema.allOf)
@@ -202,7 +203,7 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
   ] as unknown[];
 
   return variants.some((variant) => {
-    if (!isObject(variant) || isReference(variant)) {
+    if (!isObject(variant) || !isInlineSchema(variant)) {
       return false;
     }
 
@@ -244,11 +245,14 @@ function someAllOfBranchRejectsNull(allOf: unknown): boolean {
   }
 
   return allOf.some((branch) => {
-    if (!isObject(branch) || isReference(branch)) {
+    if (!isObject(branch) || !isInlineSchema(branch)) {
       return false;
     }
 
-    const { type, enum: members } = branch as OpenApiSchemaObject;
+    const { type, enum: members } = branch as Exclude<
+      OpenApiSchemaObject,
+      boolean
+    >;
 
     if (type !== undefined) {
       const admitsNull = Array.isArray(type)

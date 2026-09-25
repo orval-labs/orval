@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   basic: {
     output: {
       target: '../generated/zod/basic',

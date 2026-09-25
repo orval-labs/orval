@@ -306,43 +306,48 @@ const LARGE_ROUTED_SCHEMA_SPEC: OpenApiDocument = {
   },
 };
 
-const QUERY_METHOD_SPEC = {
-  openapi: '3.2.0',
-  info: { title: 'Search API', version: '1.0.0' },
-  paths: {
-    '/search': {
-      query: {
-        operationId: 'searchPets',
-        requestBody: {
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  term: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Search results',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'array',
-                  items: { $ref: '#/components/schemas/Pet' },
-                },
-              },
-            },
+const queryMethodOperation = {
+  operationId: 'searchPets',
+  requestBody: {
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            term: { type: 'string' },
           },
         },
       },
     },
   },
+  responses: {
+    '200': {
+      description: 'Search results',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Pet' },
+          },
+        },
+      },
+    },
+  },
+} satisfies NonNullable<
+  NonNullable<NonNullable<OpenApiDocument['paths']>[string]>['get']
+>;
+
+const QUERY_METHOD_SPEC = {
+  openapi: '3.2.0',
+  info: { title: 'Search API', version: '1.0.0' },
+  paths: {
+    '/search': {
+      // OAS 3.2 QUERY is not on Scalar's OAS 3.1 PathItemObject.
+      query: queryMethodOperation,
+    } as NonNullable<OpenApiDocument['paths']>[string],
+  },
   components: PETSTORE_SPEC.components,
-} as unknown as OpenApiDocument;
+} satisfies OpenApiDocument;
 
 const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-gen-spec-'));

@@ -15,16 +15,20 @@ import { generateTargetForTags } from './target-tags';
 // Buckets are read back through a Map because `result.constructor` resolves to
 // `Object.prototype.constructor`, not the index signature.
 
-const builderWith = (operations: Record<string, unknown>): WriteSpecBuilder =>
+const builderWith = (
+  operations: Record<string, ReturnType<typeof createSplitModeOperation>>,
+): WriteSpecBuilder =>
   ({
     ...createSplitModeBuilder('petstore.ts'),
     operations,
-  }) as unknown as WriteSpecBuilder;
+  }) satisfies WriteSpecBuilder;
 
 const bucketsOf = (result: Awaited<ReturnType<typeof generateTargetForTags>>) =>
   new Map(Object.entries(result));
 
-const generate = async (operations: Record<string, unknown>) =>
+const generate = async (
+  operations: Record<string, ReturnType<typeof createSplitModeOperation>>,
+) =>
   bucketsOf(
     await generateTargetForTags(
       builderWith(operations),

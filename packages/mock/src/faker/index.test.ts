@@ -4,16 +4,18 @@ import type {
   GeneratorImport,
   GeneratorOptions,
   GeneratorSchema,
-  GeneratorVerbOptions,
   GlobalMockOptions,
   MswMockOptions,
-  NormalizedOverrideOutput,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { EnumGeneration, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../../core/src/test-utils/context';
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../../core/src/test-utils';
 import { dedupeStrictMockTypeDeclarations } from '../mock-types';
 import {
   generateFaker,
@@ -22,7 +24,7 @@ import {
 } from './index';
 import { resolveMockValue } from './resolvers';
 
-const mockVerbOptions = {
+const mockVerbOptions = createTestGeneratorVerbOptions({
   operationId: 'getUser',
   verb: 'get',
   tags: [],
@@ -32,42 +34,14 @@ const mockVerbOptions = {
     types: { success: [{ key: '200', value: 'User' }] },
     contentTypes: ['application/json'],
   },
-} as unknown as GeneratorVerbOptions;
+});
 
-const baseOptions = {
+const baseOptions = createTestGeneratorOptions({
   route: '/users/{id}',
   pathRoute: '/users/{id}',
   output: 'test',
-  override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
-  context: {
-    target: 'test',
-    workspace: '',
-    spec: {
-      openapi: '3.1.0',
-      info: { title: 'Test', version: '1.0.0' },
-      paths: {},
-    },
-    output: {
-      target: 'test',
-      namingConvention: 'camelCase',
-      fileExtension: '.ts',
-      mode: 'single',
-      override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
-      client: 'axios-functions',
-      httpClient: 'fetch',
-      clean: false,
-      docs: false,
-      formatter: undefined,
-      headers: false,
-      indexFiles: true,
-      allParamsOptional: false,
-      urlEncodeParameters: false,
-      unionAddMissingProperties: false,
-      optionsParamRequired: false,
-      propertySortOrder: 'specification',
-    },
-  },
-} as unknown as GeneratorOptions;
+  context: { target: 'test' },
+});
 
 const generate = (overrides: Partial<GeneratorOptions> = {}) =>
   generateFaker(mockVerbOptions, { ...baseOptions, ...overrides });
@@ -948,7 +922,7 @@ describe('generateFakerForSchemas inherited format keys', () => {
             required: ['foo'],
             properties: { foo: { type: 'string', format: 'constructor' } },
           },
-        } as GeneratorSchema,
+        } satisfies GeneratorSchema,
       ],
       context,
       { type: OutputMockType.FAKER, schemas: true },

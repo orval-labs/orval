@@ -1,5 +1,4 @@
 import type { allLocales } from '@faker-js/faker';
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 
 // Type-only, so it is erased: no runtime `types` -> `writers` dependency.
 import type { SchemaOutputPlan } from './writers/schema-output-plan';
@@ -50,7 +49,15 @@ export interface OrvalLogger {
 export type OptionsFn = () => Options | Promise<Options>;
 export type OptionsExport = Options | Promise<Options> | OptionsFn;
 
-export type Config = Record<string, OptionsExport>;
+export interface Config {
+  /**
+   * Log verbosity for every project in this file.
+   *
+   * Not a project name. CLI `--log-level`, `--verbose`, and `--quiet` override it.
+   */
+  logLevel?: LogLevel;
+  [projectName: string]: OptionsExport | LogLevel | undefined;
+}
 export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
@@ -2560,43 +2567,59 @@ export class ErrorWithTag extends Error {
   }
 }
 
-export type OpenApiSchemaObjectType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'object'
-  | 'integer'
-  | 'null'
-  | 'array';
+// OpenAPI type aliases. Intended to make it easier to swap to OpenAPI v3.2 in the future
+import type {
+  ComponentsObject,
+  Document,
+  EncodingObject,
+  ExampleObject,
+  InfoObject,
+  MediaTypeObject,
+  MultiTypeObject,
+  OperationObject,
+  ParameterObject,
+  ParameterWithContentObject,
+  ParameterWithSchemaObject,
+  PathItemObject,
+  PathsObject,
+  PrimitiveSchemaType,
+  ReferenceObject,
+  RequestBodyObject,
+  ResponseObject,
+  ResponsesObject,
+  SchemaObject,
+  SchemaReferenceType,
+  ServerObject,
+} from '@scalar/openapi-types/3.1';
 
-// OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
-export type OpenApiDocument = OpenAPIV3_1.Document;
-export type OpenApiSchemaObject = OpenAPIV3_1.SchemaObject;
-export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
-export type OpenApiReferenceObject = OpenAPIV3_1.ReferenceObject & {
-  // https://github.com/scalar/scalar/issues/7405
-  $ref?: string;
-};
-export type OpenApiComponentsObject = OpenAPIV3_1.ComponentsObject;
-export type OpenApiPathsObject = OpenAPIV3_1.PathsObject;
-export type OpenApiPathItemObject = OpenAPIV3_1.PathItemObject;
-export type OpenApiResponsesObject = OpenAPIV3_1.ResponsesObject;
-export type OpenApiResponseObject = OpenAPIV3_1.ResponseObject;
-export type OpenApiParameterObject = OpenAPIV3_1.ParameterObject;
-export type OpenApiRequestBodyObject = OpenAPIV3_1.RequestBodyObject;
+export type OpenApiDocument = Document;
+export type OpenApiSchemaObject = SchemaObject;
 /**
- * The OpenAPI Info Object, as passed to the {@link OverrideOutput.header}
- * callback.
- *
- * `title` and `version` are required by the specification. `summary`,
- * `description`, `termsOfService`, `contact` and `license` are optional, so
- * guard them before use. Specification extensions (`x-*`) are also allowed.
- *
- * @see https://spec.openapis.org/oas/v3.1.1#info-object
+ * Schema Object excluding JSON Schema boolean schemas (`true` / `false`).
+ * - `true` - meaning any value allowed
+ * - `false` - meaning no value allowed
  */
-export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
-export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
-export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
-export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;
-export type OpenApiEncodingObject = OpenAPIV3_1.EncodingObject;
-export type OpenApiServerObject = OpenAPIV3_1.ServerObject;
+export type OpenApiNonBooleanSchemaObject = Exclude<
+  OpenApiSchemaObject,
+  boolean
+>;
+export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
+export type OpenApiReferenceObject = ReferenceObject;
+export type OpenApiComponentsObject = ComponentsObject;
+export type OpenApiPathsObject = PathsObject;
+export type OpenApiPathItemObject = PathItemObject;
+export type OpenApiResponsesObject = ResponsesObject;
+export type OpenApiResponseObject = ResponseObject;
+export type OpenApiParameterObject = ParameterObject;
+export type OpenApiRequestBodyObject = RequestBodyObject;
+export type OpenApiInfoObject = InfoObject;
+export type OpenApiExampleObject = ExampleObject;
+export type OpenApiOperationObject = OperationObject;
+export type OpenApiMediaTypeObject = MediaTypeObject;
+export type OpenApiEncodingObject = EncodingObject;
+export type OpenApiServerObject = ServerObject;
+export type OpenApiPrimitiveSchemaType = PrimitiveSchemaType;
+export type OpenApiParameterWithSchemaObject = ParameterWithSchemaObject;
+export type OpenApiParameterWithContentObject = ParameterWithContentObject;
+export type OpenApiMultiTypeObject = MultiTypeObject;
+export type OpenApiSchemaReference<TValue> = SchemaReferenceType<TValue>;
