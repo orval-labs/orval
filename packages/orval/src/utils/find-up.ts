@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const isFile = (file: string): boolean =>
-  fs.statSync(file, { throwIfNoEntry: false })?.isFile() ?? false;
+const isFile = (file: string): boolean => {
+  try {
+    return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ?? false;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Walks from `cwd` up to the filesystem root and returns, nearest first, one
