@@ -65,7 +65,8 @@ export function getParameters({
       ...new Map(
         result[location].map((entry) => [
           location === 'header'
-            ? entry.parameter.name?.toLowerCase()
+            ? // oxlint-disable-next-line typescript/no-unnecessary-condition
+              entry.parameter.name?.toLowerCase()
             : entry.parameter.name,
           entry,
         ]),

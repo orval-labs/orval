@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Mutator that performs a dynamic import in its body.
 // Regression fixture for https://github.com/orval-labs/orval/issues/1634:
 // esbuild preserves dynamic `import()` in ESM output even when targeting es6,

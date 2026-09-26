@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* oxlint-disable typescript/no-non-null-assertion */
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
@@ -812,7 +812,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
               // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
               // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
               // @ts-expect-error — null is not a legal $defs value
-              nullDef: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              nullDef: null,
               validDef: {
                 $dynamicAnchor: 'item',
                 type: 'object',

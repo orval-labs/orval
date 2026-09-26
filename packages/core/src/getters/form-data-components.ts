@@ -56,6 +56,7 @@ export function getFormDataComponentContexts(
   }
 
   for (const pathItem of Object.values(context.spec.paths ?? {})) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!pathItem) {
       continue;
     }
@@ -98,6 +99,7 @@ function indexRequestBody(
 
   const mediaType = requestBody.content[MULTIPART_CONTENT_TYPE];
 
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   const schema = mediaType?.schema;
 
   // `isComponentRef` is what rejects a ref that only *starts* at a component,

@@ -31,10 +31,15 @@ function writeConsole(event: OrvalReportEvent) {
 }
 
 export const noopReporter: OrvalReporter = {
+  // oxlint-disable-next-line eslint/no-empty-function
   info() {},
+  // oxlint-disable-next-line eslint/no-empty-function
   warn() {},
+  // oxlint-disable-next-line eslint/no-empty-function
   error() {},
+  // oxlint-disable-next-line eslint/no-empty-function
   verbose() {},
+  // oxlint-disable-next-line eslint/no-empty-function
   debug() {},
 };
 

@@ -30,6 +30,7 @@ export function resolveTransitiveSchemas(
   const queue = [...directNames];
 
   while (queue.length > 0) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     const name = queue.pop()!;
     if (included.has(name)) continue;
     const schema = schemaByName.get(name);

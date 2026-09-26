@@ -673,6 +673,7 @@ export async function writeZodSchemaTagsSplitBarrel(
   }
   for (const [dir, names] of verbDirs) {
     if (allDirs.has(dir)) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       allDirs.get(dir)!.push(...names);
     } else {
       allDirs.set(dir, [...names]);
@@ -1027,6 +1028,7 @@ export async function writeZodSchemas(
     for (const name of writtenSchemaNames) {
       const dir = getSchemaDir(schemaTagMap, name);
       if (!dirSchemas.has(dir)) dirSchemas.set(dir, []);
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       dirSchemas.get(dir)!.push(name);
     }
     return dirSchemas;
@@ -1147,10 +1149,13 @@ async function writeZodSchemasReusable(
       !!paramsMutator && bodyReferencesMutator(entry.zod, paramsMutator);
     const mutatorImportStr = needsParamsImport
       ? buildMutatorImportStatement({
+          // oxlint-disable-next-line typescript/no-non-null-assertion
           ...paramsMutator!,
           path: isSplit
-            ? adjustMutatorPathForDir(paramsMutator!.path, tagDir)
-            : paramsMutator!.path,
+            ? // oxlint-disable-next-line typescript/no-non-null-assertion
+              adjustMutatorPathForDir(paramsMutator!.path, tagDir)
+            : // oxlint-disable-next-line typescript/no-non-null-assertion
+              paramsMutator!.path,
         })
       : undefined;
     const imports = [
@@ -1189,6 +1194,7 @@ async function writeZodSchemasReusable(
     for (const entry of rewritten) {
       const dir = getSchemaDir(schemaTagMap, entry.name);
       if (!dirSchemas.has(dir)) dirSchemas.set(dir, []);
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       dirSchemas.get(dir)!.push(entry.name);
     }
     return dirSchemas;
@@ -1266,6 +1272,7 @@ function generateZodSchemasFromVerbs(
                 ? bodySchema
                 : dereference(bodySchema, zodContext),
               bodyContentType,
+              // oxlint-disable-next-line typescript/no-unnecessary-condition
               encoding: bodyMedia?.encoding,
             },
           ]
@@ -1300,6 +1307,7 @@ function generateZodSchemasFromVerbs(
                   pathParams
                     .filter(
                       (p): p is OpenApiParameterWithSchemaObject =>
+                        // oxlint-disable-next-line typescript/no-unnecessary-condition
                         'schema' in p && p.schema !== undefined,
                     )
                     .map((p) => [
@@ -1312,6 +1320,7 @@ function generateZodSchemasFromVerbs(
                 required: pathParams
                   .filter((p) => p.required)
                   .map((p) => p.name)
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition
                   .filter((name): name is string => name !== undefined),
               },
             },
@@ -1333,6 +1342,7 @@ function generateZodSchemasFromVerbs(
                   queryParams
                     .filter(
                       (p): p is OpenApiParameterWithSchemaObject =>
+                        // oxlint-disable-next-line typescript/no-unnecessary-condition
                         'schema' in p && p.schema !== undefined,
                     )
                     .map((p) => [
@@ -1345,6 +1355,7 @@ function generateZodSchemasFromVerbs(
                 required: queryParams
                   .filter((p) => p.required)
                   .map((p) => p.name)
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition
                   .filter((name): name is string => name !== undefined),
               },
             },
@@ -1366,6 +1377,7 @@ function generateZodSchemasFromVerbs(
                   headerParams
                     .filter(
                       (p): p is OpenApiParameterWithSchemaObject =>
+                        // oxlint-disable-next-line typescript/no-unnecessary-condition
                         'schema' in p && p.schema !== undefined,
                     )
                     .map((p) => [
@@ -1378,6 +1390,7 @@ function generateZodSchemasFromVerbs(
                 required: headerParams
                   .filter((p) => p.required)
                   .map((p) => p.name)
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition
                   .filter((name): name is string => name !== undefined),
               },
             },
@@ -1490,6 +1503,7 @@ function generateZodSchemasFromVerbs(
 
     const { name, schema } = entry;
     const fileName = conventionName(name, output.namingConvention);
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const tagDir = entry.verbTagDir ?? ROOT_DIR;
     const filePath = schemaOutputPlan
       ? getZodSchemaFilePath(
@@ -1661,8 +1675,10 @@ export async function writeZodSchemasFromVerbs(
       ) {
         continue;
       }
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       const dir = entry.verbTagDir ?? ROOT_DIR;
       if (!dirSchemas.has(dir)) dirSchemas.set(dir, []);
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       dirSchemas.get(dir)!.push(entry.name);
     }
     return dirSchemas;

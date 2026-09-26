@@ -509,11 +509,13 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
       ? mergeStrictMockSchemaKinds(
           getStrictMockSchemaKindsFromResponses(responses, context),
           Object.fromEntries(
+            /* oxlint-disable typescript/no-unnecessary-condition */
             (
               collectStrictMockSchemaTypeNamesFromImplementation(
                 mockImplementation,
               ) ?? []
             ).map((name) => [name, 'object' satisfies StrictMockSchemaKind]),
+            /* oxlint-enable typescript/no-unnecessary-condition */
           ),
         )
       : undefined,

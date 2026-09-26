@@ -11,6 +11,7 @@ export function appendImportsDelta(
   sinceIndex: number,
 ): void {
   for (let i = sinceIndex; i < source.length; i++) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     target.push(source[i]!);
   }
 }
@@ -55,6 +56,7 @@ export function collectSplitMockTypeImports(
     for (const match of impl.matchAll(
       /export const get\w+Mock[\s\S]*?MockWithNullableOverrides<(?:Extract<(\w+),[^>]+>|(\w+)),/g,
     )) {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       addType(match[1] ?? match[2]);
     }
   }

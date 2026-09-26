@@ -47,6 +47,7 @@ describe('logger', () => {
   });
 
   it('is a no-op outside a reporter scope', () => {
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
     const logger = createLogger('@orval/core');
 
@@ -209,6 +210,7 @@ describe('logger', () => {
   });
 
   it('keeps styled console output when consoleReporter is selected', () => {
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     withReporter(consoleReporter, () => {
@@ -304,6 +306,7 @@ describe('logger', () => {
     });
     expect(info).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith({
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
       message: expect.stringContaining('visible'),
       packageName: '@orval/zod',
       projectName: undefined,

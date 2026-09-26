@@ -313,6 +313,7 @@ export function getObject({
 
       const isNullableObjectComposition =
         members.some(isNullMember) &&
+        /* oxlint-disable typescript/no-unnecessary-condition */
         nonNullMembers.length === 1 &&
         nonNullMember !== undefined &&
         isInlineSchema(nonNullMember) &&
@@ -321,6 +322,7 @@ export function getObject({
             nonNullMemberProperties !== undefined)) &&
         nonNullMemberProperties !== undefined &&
         Object.keys(nonNullMemberProperties).length > 0;
+      /* oxlint-enable typescript/no-unnecessary-condition */
 
       if (isNullableObjectComposition) {
         // `nullable` is empty for the composition form (the null lives in a
@@ -398,6 +400,7 @@ export function getObject({
 
     // Phase 1: detect property-name collisions from namingConvention
     const propertyConvention =
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       context.output.override.namingConvention?.properties;
     const collisionKeys = getPropertyNameCollisionKeys(
       entries.map(([key]) => key),
@@ -454,7 +457,7 @@ export function getObject({
         formDataContext && !formDataContext.atPart
           ? {
               atPart: true,
-              partContentType: formDataContext.encoding[key]?.contentType, // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- Record index access can return undefined at runtime
+              partContentType: formDataContext.encoding[key]?.contentType,
               urlEncoded: formDataContext.urlEncoded,
             }
           : undefined;
@@ -469,9 +472,11 @@ export function getObject({
       const isReadOnly =
         Boolean(schemaItem.readOnly) ||
         Boolean(
+          /* oxlint-disable typescript/no-unnecessary-condition */
           typeof schema === 'object' &&
           schema !== null &&
           (schema as OpenApiNonBooleanSchemaObject).readOnly,
+          /* oxlint-enable typescript/no-unnecessary-condition */
         );
       if (!index) {
         acc.value += '{';
@@ -496,6 +501,7 @@ export function getObject({
       }
 
       const constValue =
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         typeof schema === 'object' && schema !== null && 'const' in schema
           ? schema.const
           : undefined;

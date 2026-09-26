@@ -187,10 +187,12 @@ function getRequestBodyExtensionName(
   let value: unknown;
   if (!isInlineSchema(requestBody)) {
     const { schema } = resolveRef(requestBody, context);
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     value = (schema as Record<string, unknown>)?.[
       'x-codegen-request-body-name'
     ];
   } else {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     value = (requestBody as Record<string, unknown>)?.[
       'x-codegen-request-body-name'
     ];

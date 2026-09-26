@@ -284,12 +284,14 @@ function getReferencedIdentifiers(implementation: string): Set<string> {
   const identifiers = new Set<string>();
 
   for (const match of implementation.matchAll(IDENTIFIER_PATTERN)) {
+    /* oxlint-disable typescript/no-unnecessary-condition */
     if (
       match.index !== undefined &&
       !isMemberName(implementation, match.index)
     ) {
       identifiers.add(match[0]);
     }
+    /* oxlint-enable typescript/no-unnecessary-condition */
   }
 
   return identifiers;
@@ -425,7 +427,6 @@ export function generateDependencyImports(
         isAllowSyntheticDefaultImports,
       }),
     )
-    // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- type predicate (x is string) required for narrowing
     .filter((x): x is string => Boolean(x))
     .toSorted((a, b) => {
       const aLib = getLibName(a);

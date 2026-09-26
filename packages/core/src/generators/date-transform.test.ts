@@ -3744,12 +3744,14 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
 
     expect(result).toBeDefined();
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation.replace(
       /\(data: [^)]*\): [^=]*=>/,
       '(data) =>',
     );
 
     const fn = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
     ) as (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -5985,6 +5987,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
 
     expect(result).toBeDefined();
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation
       .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
       .replace(/ as unknown as [\w<>[\] |]+/g, '');
@@ -5993,6 +5996,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
     // instances the test constructs are `instanceof` the same `Date` the
     // generated `instanceof Date` check compares against.
     const fn = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
     ) as (data: Record<string, unknown>) => unknown;
 
@@ -6024,11 +6028,13 @@ describe('review comment fixes — allOf array/object conflicts and required con
 
     expect(result).toBeDefined();
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation
       .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
       .replace(/ as unknown as [\w<>[\] |]+/g, '');
 
     const fn = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
     ) as (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -6304,12 +6310,14 @@ describe('response direction — required container guards', () => {
 
     expect(result).toBeDefined();
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation.replace(
       /\(data: [^)]*\): [^=]*=>/,
       '(data) =>',
     );
 
     const fn = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       `(() => {\n${runnable}\nreturn ${result!.name};\n})()`,
     ) as (data: Record<string, unknown>) => unknown;
 

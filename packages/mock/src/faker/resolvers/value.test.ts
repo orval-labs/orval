@@ -462,7 +462,6 @@ describe('nullable $ref targets spelled other ways', () => {
     ['a oneOf null branch', { oneOf: [objectBranch, { type: 'null' }] }],
     ['an anyOf null branch', { anyOf: [objectBranch, { type: 'null' }] }],
     ['a bare type: null', { type: 'null' }],
-    // eslint-disable-next-line unicorn/no-null
     ['a null enum member', { enum: ['a', null] }],
   ])(
     'reports nullWrapped for a target nullable through %s',

@@ -881,6 +881,7 @@ export const generateHttpClientImplementation = (
         const overloadParams = [
           requiredNonBodyPart,
           bodyOverloadPart,
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           `accept: '${jsStringLiteralEscape(contentType ?? '')}'`,
           optionalNonBodyPart,
         ]

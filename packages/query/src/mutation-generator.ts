@@ -233,6 +233,7 @@ const getMutationOptionsNamedPathParamName = (param: string) => {
   if (!trimmedParam || trimmedParam.startsWith('...')) return undefined;
 
   const [name] = trimmedParam.split(/[=:]/);
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   return name?.trim() || undefined;
 };
 

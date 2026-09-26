@@ -416,7 +416,7 @@ describe('escapeRouteForSingleQuotes', () => {
   it('round-trips through a single-quoted literal', () => {
     for (const path of ["/pets'/x", '/v1/path\\to', "/a`b/${c}/d'e"]) {
       const literal = `'${escapeRouteForSingleQuotes(getRoute(path))}'`;
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func, typescript/no-unsafe-call
       expect(new Function(`return ${literal}`)()).toBe(path);
     }
   });

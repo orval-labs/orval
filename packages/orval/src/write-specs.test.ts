@@ -91,6 +91,7 @@ describe('runFormatter', () => {
 
     expect(warn).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('oxfmt not found'),
       }),
     );
@@ -180,6 +181,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer(['typedoc-plugin-coverage']);
 
+    // oxlint-disable-next-line eslint/no-empty-function
     await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).toHaveBeenCalledWith('plugin', [
@@ -192,6 +194,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer(['typedoc-plugin-markdown']);
 
+    // oxlint-disable-next-line eslint/no-empty-function
     await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).not.toHaveBeenCalled();
@@ -201,6 +204,7 @@ describe('createMarkdownPluginReader', () => {
     const reader = createMarkdownPluginReader();
     const container = makeContainer();
 
+    // oxlint-disable-next-line eslint/no-empty-function
     await reader.read(container as never, undefined as never, '', () => {});
 
     expect(container.setValue).toHaveBeenCalledWith('plugin', [
@@ -271,6 +275,7 @@ describe('typedoc bootstrap with a configPath that omits the markdown plugin', (
         getDocsOutputName(app.options.getValue('theme')),
       );
 
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       await expect(app.generateOutputs(project!)).resolves.not.toThrow();
 
       const files = await fs.promises.readdir(outDir);

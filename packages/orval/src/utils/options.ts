@@ -195,6 +195,7 @@ function normalizeSchemasOption(
   if (
     schemas.mode !== undefined &&
     schemas.mode !== 'split' &&
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     schemas.mode !== 'single'
   ) {
     throw new Error('schemas.mode must be "split" or "single".');
@@ -1468,6 +1469,7 @@ function normalizeOperationsAndTags(
                   query: normalizeQueryOptions(query, workspace, global.query),
                 }
               : {}),
+            // oxlint-disable-next-line typescript/no-unnecessary-condition
             ...(hasSupportedOperationZodConfig && zod
               ? {
                   zod: {

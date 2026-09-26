@@ -1956,9 +1956,11 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
         SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
       });
       expect(() =>
+        // oxlint-disable-next-line typescript/no-non-null-assertion
         isEffectivelyObjectSchema(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).not.toThrow();
       expect(
+        // oxlint-disable-next-line typescript/no-non-null-assertion
         isEffectivelyObjectSchema(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).toBe(false);
     });
@@ -2037,6 +2039,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
       });
       expect(() =>
         collectPropertiesThroughAllOf(
+          // oxlint-disable-next-line typescript/no-non-null-assertion
           ctx.spec.components!.schemas!.SelfRef,
           ctx,
         ),
@@ -2092,6 +2095,7 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
         SelfRef: { allOf: [{ $ref: '#/components/schemas/SelfRef' }] },
       });
       expect(() =>
+        // oxlint-disable-next-line typescript/no-non-null-assertion
         collectRequiredThroughAllOf(ctx.spec.components!.schemas!.SelfRef, ctx),
       ).not.toThrow();
     });

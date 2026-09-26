@@ -7,7 +7,7 @@ export const useCustomFetch = () => {
 
     return {
       status: response.status,
-      data: body ? JSON.parse(body) : {},
+      data: body ? (JSON.parse(body) as unknown) : {},
       headers: response.headers,
     } as T;
   };

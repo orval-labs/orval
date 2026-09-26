@@ -24,6 +24,7 @@ describe('undetected query version warning', () => {
         queryVersion,
       });
     });
+    // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
     return warn.mock.calls.map(([event]) => event.message).join('\n');
   };
 

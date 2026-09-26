@@ -9,7 +9,7 @@ export const customFetchWithScss = async <T>(
   options: RequestInit,
 ): Promise<T> => {
   const response = await fetch(url, options);
-  return response.json();
+  return response.json() as Promise<T>;
 };
 
 export default customFetchWithScss;

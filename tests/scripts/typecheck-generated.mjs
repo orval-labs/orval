@@ -26,6 +26,7 @@ const folders = readdirSync(generatedDir)
 
 // Files that are generated but do not compile yet. Every entry is a defect with
 // its own fix; none of them may be widened to swallow a new failure.
+/** @type {Map<string, string[]>} */
 const excludedByFolder = new Map([
   // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
   // which ships both v3 and v4 compat types. The SDK's zod-compat.d.ts loads both
@@ -35,12 +36,21 @@ const excludedByFolder = new Map([
   ['mcp', ['generated/mcp/**/server.ts', 'generated/mcp/**/server.*.ts']],
 ]);
 
+/**
+ * @typedef {{ label: string, ok: boolean, elapsed: string, error: string }} TypecheckResult
+ */
+
+/** @type {TypecheckResult[]} */
 const results = [];
 let hasFailure = false;
 
 /**
  * Typecheck one generated corpus. `slug` names the throwaway tsconfig; `label`
  * is what the console and the summary show.
+ *
+ * @param {string} slug
+ * @param {Record<string, unknown>} config
+ * @param {string} [label]
  */
 function typecheck(slug, config, label = slug) {
   const tmpTsconfig = join(testsRoot, `tsconfig.${slug}.json`);
@@ -58,11 +68,9 @@ function typecheck(slug, config, label = slug) {
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 60_000,
     });
-  } catch (error_) {
+  } catch (caught) {
     ok = false;
-    hasFailure = true;
-    error =
-      error_.stderr?.toString() || error_.stdout?.toString() || error_.message;
+    error = readExecError(caught);
   }
 
   const elapsed = ((performance.now() - start) / 1000).toFixed(2);
@@ -79,11 +87,26 @@ function typecheck(slug, config, label = slug) {
   try {
     unlinkSync(tmpTsconfig);
   } catch {}
+
+  return ok;
+}
+
+/** @param {unknown} caught */
+function readExecError(caught) {
+  if (!(caught instanceof Error)) return 'typecheck failed';
+  const output =
+    /** @type {Error & { stderr?: { toString(): string }, stdout?: { toString(): string } }} */ (
+      caught
+    );
+  return (
+    output.stderr?.toString() || output.stdout?.toString() || caught.message
+  );
 }
 
 console.log(`\nTypechecking ${folders.length} generated clients...\n`);
 
 for (const folder of folders) {
+  /** @type {{ extends: string, include: string[], exclude?: string[] }} */
   const config = {
     extends: './tsconfig.json',
     // `regressions` holds hand-written compile-time tests that import generated
@@ -98,7 +121,7 @@ for (const folder of folders) {
     config.exclude = exclude;
   }
 
-  typecheck(folder, config);
+  if (!typecheck(folder, config)) hasFailure = true;
 }
 
 // ─── exactOptionalPropertyTypes gate (#3909) ─────────────────────────────
@@ -126,15 +149,19 @@ console.log(
   `\nTypechecking ${exactOptionalFolders.length} httpResource clients with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck(
-  'exact-optional',
-  {
-    extends: './tsconfig.json',
-    compilerOptions: { exactOptionalPropertyTypes: true },
-    include: exactOptionalFolders.map((f) => `generated/angular/${f}`),
-  },
-  'angular (exactOptionalPropertyTypes)',
-);
+if (
+  !typecheck(
+    'exact-optional',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: exactOptionalFolders.map((f) => `generated/angular/${f}`),
+    },
+    'angular (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
 
 // The same gate for react-query, where `queryOptions()` type-checks the emitted
 // literal instead of an `as` cast laundering it, so the caller-options spread
@@ -147,17 +174,21 @@ console.log(
   `\nTypechecking ${reactQueryExactOptionalFolders.length} react-query client with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck(
-  'exact-optional-react-query',
-  {
-    extends: './tsconfig.json',
-    compilerOptions: { exactOptionalPropertyTypes: true },
-    include: reactQueryExactOptionalFolders.map(
-      (f) => `generated/react-query/${f}`,
-    ),
-  },
-  'react-query (exactOptionalPropertyTypes)',
-);
+if (
+  !typecheck(
+    'exact-optional-react-query',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: reactQueryExactOptionalFolders.map(
+        (f) => `generated/react-query/${f}`,
+      ),
+    },
+    'react-query (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
 
 // Mocks only compile under the flag with `override.mock.exactOptional`, which
 // leaves an optional key out instead of setting it to `undefined` (#3912).
@@ -171,15 +202,19 @@ console.log(
   `\nTypechecking ${mockExactOptionalFolders.length} mock clients with exactOptionalPropertyTypes...\n`,
 );
 
-typecheck(
-  'exact-optional-mock',
-  {
-    extends: './tsconfig.json',
-    compilerOptions: { exactOptionalPropertyTypes: true },
-    include: mockExactOptionalFolders.map((f) => `generated/mock/${f}`),
-  },
-  'mock (exactOptionalPropertyTypes)',
-);
+if (
+  !typecheck(
+    'exact-optional-mock',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: mockExactOptionalFolders.map((f) => `generated/mock/${f}`),
+    },
+    'mock (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
 
 console.log('\n--- Summary ---\n');
 const labelWidth = Math.max(...results.map((r) => r.label.length));

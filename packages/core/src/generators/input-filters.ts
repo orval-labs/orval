@@ -31,6 +31,7 @@ export function filteredVerbs(
 
   return (Object.entries(verbs) as [string, OpenApiOperationObject][]).filter(
     ([, operation]) => {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (!operation || typeof operation !== 'object') {
         return false;
       }
@@ -194,6 +195,7 @@ export function filterPathsBySchemas(
     paths: Object.fromEntries(
       Object.entries(spec.paths ?? {})
         .map(([pathRoute, pathItem]) => {
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           if (!pathItem || typeof pathItem !== 'object') {
             return [pathRoute, pathItem] as const;
           }
