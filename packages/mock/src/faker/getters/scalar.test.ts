@@ -177,6 +177,40 @@ describe('getMockScalar null-only enum branch', () => {
   });
 });
 
+// An untyped `const` has no `type` to switch on, so it used to fall through
+// to the object mock and emit `{}` (#4204).
+describe('getMockScalar untyped const', () => {
+  const mockConst = (value: unknown, format?: string) =>
+    getMockScalar({
+      item: { const: value, format, name: 'constValue' },
+      imports: [],
+      operationId: 'getThing',
+      tags: [],
+      context: scalarContext(),
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  it('emits null for const: null and flags it as null-wrapped', () => {
+    const result = mockConst(null);
+
+    expect(result.value).toBe('null');
+    expect(result.nullWrapped).toBe(true);
+  });
+
+  it.each([
+    ['a string', 'x', `'x'`],
+    ['a number', 5, '5'],
+    ['a boolean', false, 'false'],
+  ])('emits the literal for %s', (_, value, expected) => {
+    expect(mockConst(value).value).toBe(expected);
+  });
+
+  it('emits the literal instead of a format mock', () => {
+    expect(mockConst('2026-01-01', 'date').value).toBe(`'2026-01-01'`);
+  });
+});
+
 describe('getMockScalar (example handling with falsy values)', () => {
   const baseArg = {
     item: {

@@ -19,6 +19,7 @@ import {
   jsStringLiteralEscape,
   mergeDeep,
   safeNumericConstraint,
+  toJsLiteral,
   type MockOptions,
   type OpenApiSchemaObject,
 } from '@orval/core';
@@ -170,6 +171,19 @@ export function getMockScalar({
 
   if (isNullOnlyEnum(item)) {
     return { value: 'null', imports: [], name: item.name, nullWrapped: true };
+  }
+
+  // An untyped `const` (e.g. `{ const: null }`) has no `type` to switch on;
+  // mock its literal before the format mocks can replace it, and instead of
+  // falling through to the object mock, which emitted `{}` (#4204).
+  if ('const' in item && item.type === undefined) {
+    return {
+      value: toJsLiteral(item.const),
+      imports: [],
+      name: item.name,
+      // A null const already covers both "nullable" and "omitted".
+      nullWrapped: item.const === null,
+    };
   }
 
   const formatOverrides = safeMockOptions.format ?? {};

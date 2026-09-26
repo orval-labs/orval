@@ -12,7 +12,7 @@ import type {
   OpenApiSchemaObject,
 } from '../types';
 import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
-import { getEnum, getEnumMembers } from './enum';
+import { getEnum, getEnumMembers, isEnumReferenceMissingNull } from './enum';
 import { getKey } from './keys';
 
 interface QueryParamsType {
@@ -323,13 +323,20 @@ function getQueryParamsTypes(
         context.output.override.enumGenerationType,
         context.output.override.namingConvention.enum,
       );
+      const enumType = isEnumReferenceMissingNull(
+        enumMembers,
+        isNullable,
+        context.output.override.enumGenerationType,
+      )
+        ? `${enumName} | null`
+        : enumName;
 
       return {
         name,
         required,
         definition: `${doc}${key}${
           !required || hasSchemaDefault ? '?' : ''
-        }: ${enumName};`,
+        }: ${enumType};`,
         imports: [{ name: enumName }],
         schemas: [
           ...resolvedValue.schemas,
