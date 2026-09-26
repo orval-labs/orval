@@ -32,6 +32,16 @@ const captureRequest = (): { config?: AxiosRequestConfig } => {
   return captured;
 };
 
+// Names the parsed wire body at each call.
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
+function sentJson<T>(captured: { config?: AxiosRequestConfig }): T {
+  const data = captured.config?.data as unknown;
+  if (typeof data !== 'string') {
+    throw new Error('expected the request body to be a string');
+  }
+  return JSON.parse(data) as T;
+}
+
 // The mock response body is populated with one entry per discriminated
 // variant (rather than left empty or omitted) so the response-side map
 // traversal actually runs its loop body at least once; an empty map would let
@@ -68,7 +78,12 @@ test('serializes format: date body fields as calendar days, not datetimes', asyn
     slots: [{ start: new Date('2026-07-02'), label: 'morning' }],
   });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{
+    day: string;
+    reminderOn: string;
+    slots: { start: string }[];
+    bookedAt: string;
+  }>(captured);
 
   expect(body.day).toBe('2026-07-01');
   expect(body.reminderOn).toBe('2026-06-30');
@@ -101,7 +116,7 @@ test('serializes an optional request body format: date field as a calendar day',
     remindOn: new Date('2026-06-30'),
   });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{ remindOn: string }>(captured);
 
   expect(body.remindOn).toBe('2026-06-30');
 });
@@ -127,7 +142,7 @@ test('serializes a field re-declared by an allOf branch idempotently, without th
   // and threw `TypeError: ... .toISOString is not a function`.
   await updateAppointmentDuplicateDate({ day: new Date('2026-07-01') });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{ day: string }>(captured);
 
   expect(body.day).toBe('2026-07-01');
 });
@@ -143,7 +158,7 @@ test('does not throw and omits the key when a required array body field is left 
     bookedAt: new Date('2026-07-01T09:30:00.000Z'),
   } as unknown as Parameters<typeof updateAppointment>[0]);
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<Record<string, unknown>>(captured);
 
   expect(body).not.toHaveProperty('slots');
 });
@@ -166,7 +181,12 @@ test('serializes format: date values inside an additionalProperties map, leaving
     },
   });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{
+    pets: {
+      whiskers: { arrivedOn: string };
+      rex: { vaccinatedAt: string };
+    };
+  }>(captured);
 
   expect(body.pets.whiskers.arrivedOn).toBe('2026-07-01');
   expect(body.pets.rex.vaccinatedAt).toBe('2026-07-01T09:30:00.000Z');
@@ -249,7 +269,7 @@ test('does not throw and omits the key when a required additionalProperties map 
     shelterId: 'shelter-1',
   } as unknown as Parameters<typeof updateShelterIntake>[1]);
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<Record<string, unknown>>(captured);
 
   expect(body).not.toHaveProperty('pets');
 });
@@ -319,7 +339,16 @@ test('serializes dates inside an undiscriminated union map value', async () => {
 
   await updateShelterRecords('shelter-1', { records });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{
+    records: Record<
+      string,
+      {
+        visitedOn?: string;
+        recordType?: string;
+        kilograms?: number;
+      }
+    >;
+  }>(captured);
 
   expect(body.records['record-1'].visitedOn).toBe('2026-07-01');
   // The non-date variant must come through untouched, asserted on the whole
@@ -357,7 +386,9 @@ test('reaches dates nested in an array inside a union variant', async () => {
     },
   });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{
+    records: Record<string, { entries: { visitedOn: string }[] }>;
+  }>(captured);
 
   expect(body.records['record-1'].entries[0].visitedOn).toBe('2026-07-02');
 });
@@ -447,7 +478,7 @@ test('skips a property whose union variants disagree in shape, converts the one 
     closedAt: new Date('2026-07-05T12:00:00.000Z'),
   });
 
-  const body = JSON.parse(String(captured.config?.data));
+  const body = sentJson<{ closedAt: string; openedOn: string }>(captured);
 
   expect(body.closedAt).toBe('2026-07-05');
   // Left alone entirely — not converted in either direction.

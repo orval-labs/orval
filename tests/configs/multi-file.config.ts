@@ -1,6 +1,3 @@
-/* eslint-disable simple-import-sort/exports */
-/* eslint-disable simple-import-sort/imports */
-/* eslint-disable unicorn/prefer-export-from */
 import { defineConfig } from 'orval';
 
 // test esm module import/export

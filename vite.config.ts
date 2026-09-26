@@ -105,6 +105,17 @@ export default defineConfig({
           // (`NullEnum` is `null`, two id refs are both `number`).
           'typescript/no-redundant-type-constituents': 'off',
           'typescript/no-duplicate-type-constituents': 'off',
+          // Generators emit guards the spec types make redundant
+          // (`value !== undefined`, `props ?? {}`) and pass JSON / SDK
+          // values through. These fire on that output, not on hand-written
+          // source.
+          'typescript/no-unnecessary-condition': 'off',
+          'typescript/no-unnecessary-type-parameters': 'off',
+          'typescript/no-unsafe-argument': 'off',
+          'typescript/no-unsafe-assignment': 'off',
+          'typescript/no-unsafe-call': 'off',
+          'typescript/no-unsafe-member-access': 'off',
+          'typescript/no-unsafe-return': 'off',
           // Generated clients use empty callbacks, `!`, and `reduce`.
           'eslint/no-empty-function': 'off',
           'typescript/no-non-null-assertion': 'off',

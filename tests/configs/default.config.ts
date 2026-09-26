@@ -633,7 +633,7 @@ export default defineConfig({
               'nullable',
               'enum',
             ]);
-            return Object.entries(schema || {})
+            return Object.entries(schema)
               .filter(([key]) => allowlist.has(key))
               .map(([key, value]) => {
                 return {
