@@ -99,7 +99,7 @@ export async function importOpenApi({
     schemas: [...schemas, ...api.schemas],
     target,
     // a valid spec will have info
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     info: filteredSpec.info!,
     spec: filteredSpec,
   };

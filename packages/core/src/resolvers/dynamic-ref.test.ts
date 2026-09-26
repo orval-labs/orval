@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* oxlint-disable typescript/no-non-null-assertion */
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
@@ -890,7 +890,7 @@ describe('null safety in $defs entries', () => {
               // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
               // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
               // @ts-expect-error — null is not a legal $defs value
-              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              bad: null,
               good: {
                 $dynamicAnchor: 'itemType',
                 $ref: '#/components/schemas/User',
@@ -925,7 +925,7 @@ describe('null safety in $defs entries', () => {
               // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
               // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
               // @ts-expect-error — null is not a legal $defs value
-              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              bad: null,
               param: { $dynamicAnchor: 'node', type: 'string' },
             },
             type: 'object',

@@ -32,6 +32,7 @@ function initIsInert(model: string): boolean {
   });
 
   const [statement, ...rest] = program.body;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (rest.length > 0 || statement?.type !== 'ExportNamedDeclaration') {
     return false;
   }

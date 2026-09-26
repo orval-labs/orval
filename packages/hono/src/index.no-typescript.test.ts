@@ -70,10 +70,14 @@ describe('generateHandlerFile when typescript is unavailable', () => {
   it('smart falls back to leaving the file unchanged and warns', async () => {
     const warn = vi.fn();
     const result = await run('smart', {
+      // oxlint-disable-next-line eslint/no-empty-function
       info() {},
       warn,
+      // oxlint-disable-next-line eslint/no-empty-function
       error() {},
+      // oxlint-disable-next-line eslint/no-empty-function
       verbose() {},
+      // oxlint-disable-next-line eslint/no-empty-function
       debug() {},
     });
     expect(result).toBe(existing);

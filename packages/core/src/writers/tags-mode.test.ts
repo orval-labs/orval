@@ -422,6 +422,7 @@ describe('writeTagsMode — inline mocks upgrade schema imports used at runtime'
     expect(importsCalls[0]?.imports).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
           exports: expect.arrayContaining([
             expect.objectContaining({ name: 'DisplayColor', values: true }),
           ]),

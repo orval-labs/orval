@@ -893,8 +893,11 @@ describe('includeHttpErrorResponse', () => {
 
   it.each(['default', '4XX'])('rejects unsupported error status %s', (key) => {
     const options = operation();
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     options.response.types.errors[0]!.key = key;
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     options.response.originalSchema![key] =
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       options.response.originalSchema!['404']!;
     expect(() =>
       generateImplementation(options, makeOptions(makeContext())),
@@ -915,7 +918,9 @@ describe('includeHttpErrorResponse', () => {
   it('requires a three-argument non-hook mutator', () => {
     for (const mutator of [
       undefined,
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       { ...operation().mutator!, hasThirdArg: false },
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       { ...operation().mutator!, isHook: true },
     ]) {
       const options = operation();

@@ -191,6 +191,7 @@ describe('generate - throwOnError', () => {
 
     expect(error).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('generation failed'),
         packageName: 'orval',
       }),
@@ -212,6 +213,7 @@ describe('generate - throwOnError', () => {
 
     expect(error).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('generation failed'),
         packageName: 'orval',
       }),
@@ -241,6 +243,7 @@ describe('generate - throwOnError', () => {
     await Promise.resolve();
     expect(error).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('watch generation failed'),
         packageName: 'orval',
       }),
@@ -254,6 +257,7 @@ describe('generate - reporter defaults', () => {
   });
 
   it('installs consoleReporter when no outer reporter is active', async () => {
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.mocked(generateSpec).mockRejectedValueOnce(
       new Error('generation failed'),
@@ -271,6 +275,7 @@ describe('generate - reporter defaults', () => {
   });
 
   it('installs consoleReporter after setProjectName without an outer reporter', async () => {
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.mocked(generateSpec).mockRejectedValueOnce(
       new Error('generation failed'),
@@ -290,6 +295,7 @@ describe('generate - reporter defaults', () => {
   });
 
   it('installs consoleReporter after a projectName-only scope', async () => {
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.mocked(generateSpec).mockRejectedValueOnce(
       new Error('generation failed'),
@@ -336,6 +342,7 @@ describe('generate - reporter defaults', () => {
 
     expect(error).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('petstore'),
         packageName: 'orval',
         projectName: 'petstore',
@@ -343,6 +350,7 @@ describe('generate - reporter defaults', () => {
     );
     expect(error).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('generation failed'),
       }),
     );
@@ -366,6 +374,7 @@ describe('generate - reporter defaults', () => {
 
     expect(warn).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('petstore'),
         packageName: 'orval',
         projectName: 'petstore',
@@ -373,6 +382,7 @@ describe('generate - reporter defaults', () => {
     );
     expect(warn).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('config warning'),
       }),
     );

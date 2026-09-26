@@ -273,7 +273,7 @@ const NUMBERS = {
  * getNumberWord(42) // returns "fourtwo"
  */
 export function getNumberWord(num: number) {
-  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- digits 0-9 only, no unicode concerns
+  // oxlint-disable-next-line typescript/no-misused-spread -- digits 0-9 only, no unicode concerns
   const arrayOfNumber = [...num.toString()] as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 }

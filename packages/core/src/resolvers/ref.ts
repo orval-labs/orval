@@ -54,7 +54,7 @@ interface WithOptionalExamples {
 
 const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
 
-/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
+/* oxlint-disable typescript/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
 
 /**
  * Recursively resolves a `$ref` in an OpenAPI document, following
@@ -90,9 +90,11 @@ export function resolveRef<
     }
 
     if (
+      /* oxlint-disable typescript/no-unnecessary-condition */
       typeof resolvedRef.schema === 'object' &&
       resolvedRef.schema !== null &&
       'examples' in resolvedRef.schema
+      /* oxlint-enable typescript/no-unnecessary-condition */
     ) {
       const resolvedWithExamples = resolvedRef.schema as WithOptionalExamples;
       resolvedWithExamples.examples = resolveExampleRefs(
@@ -356,7 +358,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
   };
 }
 
-/* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
+/* oxlint-enable typescript/no-unnecessary-type-parameters */
 
 function encodeJsonPointerSegment(segment: string): string {
   return segment.replaceAll('~', '~0').replaceAll('/', '~1');
@@ -402,6 +404,7 @@ export function buildDynamicScope(
       if (typeof defRecord.$dynamicAnchor === 'string') {
         const anchorName = defRecord.$dynamicAnchor;
         const refInDef = (defSchema as OpenApiReferenceObject).$ref;
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         if (refInDef?.startsWith('#/components/schemas/')) {
           const { name, originalName } = getRefInfo(refInDef, context);
           scope[anchorName] = { name, schemaName: originalName };
@@ -561,6 +564,7 @@ export function resolveDynamicRef(
   if (!scopeEntry) {
     const entry = getDynamicAnchorIndex(context).get(anchorName);
     const match =
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       entry?.exactName ?? (entry?.count === 1 ? entry?.firstName : undefined);
     if (match) {
       const refInfo = getRefInfo(

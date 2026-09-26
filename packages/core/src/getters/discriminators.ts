@@ -37,12 +37,14 @@ export function resolveDiscriminators(
         let subTypeSchema;
 
         try {
+          // oxlint-disable-next-line typescript/no-unsafe-argument
           const { originalName } = getRefInfo(mappingValue, context);
           // name from getRefInfo may contain a suffix, which we don't want
           const name = pascal(originalName);
           subTypeSchema =
             transformedSchemas[name] ?? transformedSchemas[originalName];
         } catch {
+          // oxlint-disable-next-line typescript/no-unsafe-member-access
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
@@ -160,6 +162,7 @@ export function resolveDiscriminators(
           !isBooleanJsonSchema(item) && typeof item.$ref === 'string',
       )
       .map((item) => item.$ref);
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
 
     const parentProperties = parentSchema.properties;
@@ -183,11 +186,13 @@ export function resolveDiscriminators(
     for (const mappingValue of variantRefs) {
       let variantSchema;
       try {
+        // oxlint-disable-next-line typescript/no-unsafe-argument
         const { originalName } = getRefInfo(mappingValue, context);
         const name = pascal(originalName);
         variantSchema =
           transformedSchemas[name] ?? transformedSchemas[originalName];
       } catch {
+        // oxlint-disable-next-line typescript/no-unsafe-member-access
         variantSchema = transformedSchemas[mappingValue];
       }
       if (!variantSchema || isBooleanJsonSchema(variantSchema)) {

@@ -300,7 +300,6 @@ describe('stringify', () => {
   });
 
   it('returns the null literal for null', () => {
-    // eslint-disable-next-line unicorn/no-null -- Regression test for explicit null serialization
     expect(stringify(null)).toBe('null');
   });
 
@@ -341,6 +340,7 @@ describe('stringify', () => {
       // prototype (Annex B.3.1); only the computed form `{ ['__proto__']: x }`
       // creates a normal own data property. Defaults arrive via spec parsing
       // (JSON.parse), which carries a real own `__proto__` property.
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
       const parsed = JSON.parse('{ "__proto__": "x" }');
       expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
     });
@@ -407,7 +407,7 @@ describe('toJsLiteral __proto__ handling', () => {
   it('the emitted literal keeps __proto__ as an own property', () => {
     const parsed: unknown = JSON.parse('{"__proto__": {"polluted": 1}}');
 
-    // eslint-disable-next-line no-eval
+    // oxlint-disable-next-line eslint/no-eval
     const rebuilt = eval(`(${toJsLiteral(parsed)})`) as object;
 
     expect(Object.hasOwn(rebuilt, '__proto__')).toBe(true);

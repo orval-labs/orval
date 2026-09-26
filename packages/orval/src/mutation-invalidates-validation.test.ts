@@ -86,9 +86,12 @@ describe('mutationInvalidates operation validation (#4166)', () => {
 
     await withReporter(reporter, () => generateSpec(workspace, options));
 
-    return warn.mock.calls
-      .map(([event]) => String(event.message))
-      .filter((message) => message.includes('mutationInvalidates'));
+    return (
+      warn.mock.calls
+        // oxlint-disable-next-line typescript/no-unsafe-member-access
+        .map(([event]) => String(event.message))
+        .filter((message) => message.includes('mutationInvalidates'))
+    );
   };
 
   // The raw operationId casing never matches the generated `operationName`, so

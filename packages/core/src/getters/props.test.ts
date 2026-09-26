@@ -92,7 +92,6 @@ describe('getProps', () => {
           name: 'version',
           definition: 'version?: string | null',
           implementation: 'version?: string | null',
-          // eslint-disable-next-line unicorn/no-null -- Regression test for explicit null defaults
           default: null,
           required: false,
           imports: [],

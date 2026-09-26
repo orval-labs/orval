@@ -324,6 +324,7 @@ describe('validation', () => {
     expect(spec.verbOptions).toHaveProperty('sse_endpoint');
     expect(spec.verbOptions).toHaveProperty('list_pets');
 
+    // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
     const warnings = warn.mock.calls.map(([event]) => event.message).join('\n');
     expect(warnings).toContain('OpenAPI spec validation is disabled');
   });
@@ -1255,6 +1256,7 @@ describe('externalRefs', () => {
       expect(spec.verbOptions).toHaveProperty('getX');
 
       const warnings = warn.mock.calls
+        // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
         .map(([event]) => event.message)
         .join('\n');
       expect(warnings).toContain('External $ref documents being resolved');
@@ -1304,6 +1306,7 @@ describe('externalRefs', () => {
 
       const specBuilder = await importSpecs('test', normalizedOptions);
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(specBuilder.spec.info?.title).toBe('remote');
       expect(fetchMock).toHaveBeenCalledTimes(2);
     } finally {
@@ -1787,6 +1790,7 @@ describe('externalRefs allow-list and redirects', () => {
       expect(servers.targetHits).toBe(0);
 
       const warnings = warn.mock.calls
+        // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
         .map(([event]) => event.message)
         .join('\n');
       expect(warnings).toContain('Refused to follow a redirect');
@@ -3273,6 +3277,7 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
     expect(warn).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining('circular external $ref'),
       }),
     );
@@ -3577,6 +3582,7 @@ describe('preserveBinarySchemas', () => {
 
   /** Follow `keys` down from `node`. */
   const at = (node: unknown, ...keys: string[]): unknown =>
+    // oxlint-disable-next-line unicorn/no-array-reduce
     keys.reduce<unknown>(
       (current, key) => (current as Record<string, unknown>)[key],
       node,

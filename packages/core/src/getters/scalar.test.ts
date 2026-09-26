@@ -353,7 +353,6 @@ describe('getScalar integer enum + const (#3758)', () => {
   it('preserves nullable suffix when const is present', () => {
     const schema: OpenApiSchemaObject = {
       type: ['integer', 'null'],
-      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       enum: [1, null],
       const: 1,
     };

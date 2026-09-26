@@ -3412,6 +3412,7 @@ describe('generateSpec - clean skips a symlinked mock directory', () => {
         await fs.promises.symlink(outsideTarget, mockLink, 'junction');
       } catch (error: unknown) {
         // Filesystems without reparse-point support (FAT32, some network mounts).
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         const code = (error as NodeJS.ErrnoException)?.code;
         if (code === 'EPERM' || code === 'ENOTSUP') skip();
         else throw error;
@@ -3449,6 +3450,7 @@ describe('generateSpec - reporter', () => {
 
       expect(info).toHaveBeenCalledWith(
         expect.objectContaining({
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
           message: expect.stringContaining(
             `${styleText('green', 'petstore')} - Cleaning output folder`,
           ),
@@ -3458,6 +3460,7 @@ describe('generateSpec - reporter', () => {
       );
       expect(info).toHaveBeenCalledWith(
         expect.objectContaining({
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
           message: expect.stringContaining(
             `${styleText('green', 'petstore')} - ${createSuccessMessage('Petstore')}`,
           ),
@@ -3472,6 +3475,7 @@ describe('generateSpec - reporter', () => {
 
   it('prints existing terminal output when consoleReporter is opted in', async () => {
     const workspace = await createTempWorkspace();
+    // oxlint-disable-next-line eslint/no-empty-function
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
@@ -3545,6 +3549,7 @@ describe('generateSpec - reporter', () => {
       try {
         await fs.promises.symlink(outsideTarget, mockLink, 'junction');
       } catch (error: unknown) {
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         const code = (error as NodeJS.ErrnoException)?.code;
         if (code === 'EPERM' || code === 'ENOTSUP') skip();
         else throw error;
@@ -3560,6 +3565,7 @@ describe('generateSpec - reporter', () => {
 
       expect(warn).toHaveBeenCalledWith(
         expect.objectContaining({
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
           message: expect.stringContaining('symbolic link'),
           packageName: 'orval',
           projectName: 'petstore',

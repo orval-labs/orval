@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-array-reduce */
+/* oxlint-disable unicorn/no-array-reduce */
 
 import {
   assertSafeNumericConstraint,
@@ -146,8 +146,6 @@ const removeReadOnlyProperties = (
   }
   return schema;
 };
-
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export const generateEffectValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | undefined,
@@ -547,6 +545,7 @@ export const generateEffectValidationSchemaDefinition = (
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
     const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       const safeExclusiveMin = assertSafeNumericConstraint(
         exclusiveMin,
@@ -568,6 +567,7 @@ export const generateEffectValidationSchemaDefinition = (
       }
     }
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (shouldUseExclusiveMax && exclusiveMax !== undefined) {
       const safeExclusiveMax = assertSafeNumericConstraint(
         exclusiveMax,
@@ -1346,8 +1346,6 @@ const getSingleResponse = (
   return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
 };
 
-/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-
 export const parseParameters = ({
   data,
   context,
@@ -1394,6 +1392,7 @@ export const parseParameters = ({
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!('schema' in parameter) || !parameter.in || !parameter.name) {
       return acc;
     }

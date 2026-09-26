@@ -90,6 +90,7 @@ describe('resolveDiscriminators getter', () => {
     const catSchema = result.Cat;
     const catProps = schemaProperties(catSchema);
     expect(catProps?.type).toMatchObject({
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
       enum: expect.arrayContaining(['CAT', 'DOG']),
       description: 'animal type',
     });
@@ -382,6 +383,7 @@ describe('resolveDiscriminators getter', () => {
     const allOf = schemaAllOf(result.VariantA);
     expect(allOf).toHaveLength(2);
     expect(allOf?.[0]).not.toHaveProperty('$ref');
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const inlined = allOf?.[0];
     const inlinedProps = schemaProperties(inlined);
     expect(inlined).not.toHaveProperty('$ref');
@@ -425,6 +427,7 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const inlined = schemaAllOf(result.VariantA)?.[0];
 
     expect(inlined).toMatchObject({
@@ -477,7 +480,9 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const aInlined = schemaAllOf(result.VariantA)?.[0];
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const bInlined = schemaAllOf(result.VariantB)?.[0];
 
     expect(schemaProperties(aInlined)).not.toBe(schemaProperties(bInlined));

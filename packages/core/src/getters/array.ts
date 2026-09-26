@@ -36,8 +36,10 @@ export function getArray({
   >[0];
 
   const itemPrefix =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.components.schemas.itemPrefix ?? '';
   const itemSuffix =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.components.schemas.itemSuffix ?? '';
   if (schemaPrefixItems) {
     const resolvedObjects: ResolverValue[] = schemaPrefixItems.map(
@@ -104,6 +106,7 @@ export function getArray({
       example: schemaExample,
       examples: resolveExampleRefs(schemaExamples, context),
     };
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
   } else if (compareVersions(context.spec.openapi ?? '3.0.0', '3.1', '>=')) {
     return {
       value: 'unknown[]',

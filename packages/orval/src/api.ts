@@ -82,6 +82,7 @@ export async function getApiBuilder({
   }> = [];
 
   for (const [pathRoute, verbs] of Object.entries(context.spec.paths ?? {})) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!verbs) {
       continue;
     }

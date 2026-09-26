@@ -54,6 +54,7 @@ function resolvePathParam(
   operationId: string,
 ): GetterParameters['query'][number] {
   const matching = pathParams.filter(
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     ({ parameter }) => camelPathParamName(parameter.name ?? '') === identifier,
   );
 
@@ -67,6 +68,7 @@ function resolvePathParam(
   }
 
   const pathParam = matching[0];
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!pathParam) {
     throw new Error(
       `The path params ${identifier} can't be found in parameters (${operationId})`,
@@ -100,6 +102,7 @@ export function getParams({
     const allowReserved =
       'allowReserved' in parameter ? parameter.allowReserved : false;
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const name = camelPathParamName(nameWithoutSanitize ?? '');
 
     if (!schema) {

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiPrimitiveSchemaType } from '@orval/core';
 import { EnumGeneration, getKey } from '@orval/core';
 import ts from 'typescript';

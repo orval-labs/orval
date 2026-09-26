@@ -29,12 +29,14 @@ const respondWith = (status: number, body: unknown) => {
   return fetchMock;
 };
 
-const readSentBody = (fetchMock: ReturnType<typeof respondWith>) => {
+// Names the parsed wire body at each call.
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
+const readSentBody = <T>(fetchMock: ReturnType<typeof respondWith>): T => {
   const body = fetchMock.mock.calls[0]?.[1]?.body;
   if (typeof body !== 'string') {
     throw new Error('expected the request body to be a string');
   }
-  return JSON.parse(body);
+  return JSON.parse(body) as T;
 };
 
 // Distinct from `respondWith`: sends the exact raw text given, so a 200 with
@@ -74,7 +76,11 @@ test('sends format: date body fields as calendar days', async () => {
 
   await fetchUpdateAppointment(appointment());
 
-  const sent = readSentBody(fetchMock);
+  const sent = readSentBody<{
+    day: string;
+    slots: { start: string }[];
+    bookedAt: string;
+  }>(fetchMock);
   expect(sent.day).toBe('2026-07-01');
   expect(sent.slots[0].start).toBe('2026-07-02');
   expect(sent.bookedAt).toBe('2026-07-01T09:30:00.000Z');
@@ -191,7 +197,12 @@ test('serializes and deserializes format: date values inside an additionalProper
     },
   });
 
-  const sentBody = readSentBody(fetchMock);
+  const sentBody = readSentBody<{
+    pets: {
+      whiskers: { arrivedOn: string };
+      rex: { vaccinatedAt: string };
+    };
+  }>(fetchMock);
   expect(sentBody.pets.whiskers.arrivedOn).toBe('2026-07-01');
   expect(sentBody.pets.rex.vaccinatedAt).toBe('2026-07-01T09:30:00.000Z');
 

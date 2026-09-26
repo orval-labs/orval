@@ -13,7 +13,7 @@ export const useCustomInstance = <T>(): ((
   queryClient.isFetching();
 
   return (config: AxiosRequestConfig) => {
-    const promise = AXIOS_INSTANCE({ ...config }).then(({ data }) => data);
+    const promise = AXIOS_INSTANCE({ ...config }).then(({ data }) => data as T);
 
     return promise;
   };

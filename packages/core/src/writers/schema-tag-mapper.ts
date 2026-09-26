@@ -52,6 +52,7 @@ function addTag(
   if (!schemaToTags.has(schemaName)) {
     schemaToTags.set(schemaName, new Set());
   }
+  // oxlint-disable-next-line typescript/no-non-null-assertion
   schemaToTags.get(schemaName)!.add(tag);
 }
 

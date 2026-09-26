@@ -186,7 +186,6 @@ describe('getEnumMembers', () => {
   it('should generate a nullable const enum', () => {
     const schema = {
       type: ['integer', 'null'],
-      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       enum: [10, 20, 30, null],
     } satisfies OpenApiSchemaObject;
 
@@ -478,7 +477,6 @@ describe('getEnumMembers', () => {
   it('should keep null out of the implementation of a nullable enum', () => {
     const schema = {
       type: ['integer', 'null'],
-      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       enum: [10, 20, 30, null],
     } satisfies OpenApiSchemaObject;
 
@@ -488,7 +486,6 @@ describe('getEnumMembers', () => {
       { value: 10 },
       { value: 20 },
       { value: 30 },
-      // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       { value: null },
     ]);
 

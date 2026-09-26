@@ -25,6 +25,7 @@ export default defineConfig({
     options: {
       typeAware: true,
       typeCheck: true,
+      reportUnusedDisableDirectives: 'error',
     },
     plugins: ['oxc', 'typescript', 'unicorn', 'import'],
     categories: {
@@ -41,6 +42,8 @@ export default defineConfig({
       '**/node_modules',
       'docs',
       'packages/hono/src/zValidator.ts',
+      // MSW's generated worker starts with a blanket eslint-disable.
+      '**/mockServiceWorker.js',
       // Committed TypeDoc bundles: minified vendor output, not lintable source.
       'samples/react-app/docs-html/assets',
       'samples/react-app/docs-html-plugin/assets',
@@ -56,6 +59,20 @@ export default defineConfig({
       'typescript/no-require-imports': 'error',
       'typescript/no-unnecessary-type-constraint': 'error',
       'typescript/no-unsafe-function-type': 'error',
+      'eslint/no-empty-function': 'error',
+      'eslint/no-new-func': 'error',
+      'typescript/no-non-null-assertion': 'error',
+      'typescript/no-unnecessary-condition': 'error',
+      'typescript/no-unnecessary-type-parameters': 'error',
+      'typescript/no-unsafe-argument': 'error',
+      'typescript/no-unsafe-assignment': 'error',
+      'typescript/no-unsafe-call': 'error',
+      'typescript/no-unsafe-member-access': 'error',
+      'typescript/no-unsafe-return': 'error',
+      'unicorn/new-for-builtins': 'error',
+      'unicorn/no-anonymous-default-export': 'error',
+      'unicorn/no-array-reduce': 'error',
+      'unicorn/prefer-native-coercion-functions': 'error',
       // `disallowTypeAnnotations: false` keeps `typeof import('x')` legal; the
       // test files need it for `vi.importOriginal<typeof import('@orval/core')>()`.
       'typescript/consistent-type-imports': [
@@ -88,6 +105,22 @@ export default defineConfig({
           // (`NullEnum` is `null`, two id refs are both `number`).
           'typescript/no-redundant-type-constituents': 'off',
           'typescript/no-duplicate-type-constituents': 'off',
+          // Generators emit guards the spec types make redundant
+          // (`value !== undefined`, `props ?? {}`) and pass JSON / SDK
+          // values through. These fire on that output, not on hand-written
+          // source.
+          'typescript/no-unnecessary-condition': 'off',
+          'typescript/no-unnecessary-type-parameters': 'off',
+          'typescript/no-unsafe-argument': 'off',
+          'typescript/no-unsafe-assignment': 'off',
+          'typescript/no-unsafe-call': 'off',
+          'typescript/no-unsafe-member-access': 'off',
+          'typescript/no-unsafe-return': 'off',
+          // Generated clients use empty callbacks, `!`, and `reduce`.
+          'eslint/no-empty-function': 'off',
+          'typescript/no-non-null-assertion': 'off',
+          'unicorn/no-anonymous-default-export': 'off',
+          'unicorn/no-array-reduce': 'off',
           // Generated output must not trip a consumer's linter. Stays `warn`
           // until every generator emits `import type` for type-only imports
           // (tracked per generator from #3931); then it flips to `error`

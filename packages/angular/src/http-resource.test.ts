@@ -714,6 +714,7 @@ describe('angular httpResource generator', () => {
       const imports = await generateMutationImports(requestBodies);
 
       const valueImport = { name: 'CreatePetsBody', values: true };
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
       const deferImport = expect.objectContaining({ name: 'defer' });
       if (requestBodies) {
         expect(imports).toContainEqual(valueImport);
@@ -3915,6 +3916,7 @@ describe('angular httpResource generator', () => {
         output,
         context,
       );
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       const content = file?.content ?? '';
 
       // `Pets` is parsed at runtime, so it stays a value import.
@@ -4069,6 +4071,7 @@ describe('angular httpResource generator', () => {
       );
 
       const resourceFile = extraFiles[0];
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(
         /from\s+['"]\.\/model\/pet\.js['"]/,
       );
@@ -4101,7 +4104,9 @@ describe('angular httpResource generator', () => {
       );
 
       const resourceFile = extraFiles[0];
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model\/pet['"]/);
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\/model\/pet\./);
     });
   });
@@ -4171,9 +4176,11 @@ describe('angular httpResource generator', () => {
         }),
       );
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
       // The deep relative cross-package import this fix removes: it breaks
       // module-boundary lint rules in monorepos (e.g. Nx libs).
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\.\//);
     });
 
@@ -4191,6 +4198,7 @@ describe('angular httpResource generator', () => {
         TAG_MAP,
       );
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(/from\s+['"]@acme\/models['"]/);
     });
 
@@ -4203,9 +4211,11 @@ describe('angular httpResource generator', () => {
         }),
       );
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(
         /from\s+['"]@acme\/models\/pet['"]/,
       );
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).not.toMatch(
         /from\s+['"]@acme\/models\/pet\./,
       );
@@ -4224,6 +4234,7 @@ describe('angular httpResource generator', () => {
         TAG_MAP,
       );
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(
         /from\s+['"]@acme\/models\/pets\/pet['"]/,
       );
@@ -4234,7 +4245,9 @@ describe('angular httpResource generator', () => {
         createOutput({ target: '/tmp/pets.ts', schemas: '/tmp/model' }),
       );
 
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model['"]/);
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       expect(resourceFile?.content).not.toContain('@acme/models');
     });
   });
@@ -4303,6 +4316,7 @@ describe('angular httpResource generator', () => {
       // The schema import may be pretty-printed across multiple lines, so
       // isolate the `import { ... } from './schemas'` block rather than a
       // single line.
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       const schemaImportBlock = resourceFile?.content.match(
         /import\s*\{([^}]*)\}\s*from\s*['"]\.\/schemas['"];?/,
       );

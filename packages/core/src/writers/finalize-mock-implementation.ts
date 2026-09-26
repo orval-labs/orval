@@ -27,6 +27,7 @@ export function getFinalizeMockImplementationOptions(
       ),
     ),
   ];
+  // oxlint-disable-next-line unicorn/no-array-reduce
   const strictMockSchemaKinds = outputs.reduce<
     Record<string, StrictMockSchemaKind>
   >((acc, mockOutput) => {

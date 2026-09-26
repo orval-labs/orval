@@ -103,6 +103,7 @@ describe('generateAxiosUrl', () => {
       getUri: (config) => {
         expect(config.baseURL).toBe('');
         const query = new URLSearchParams(
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           Object.entries((config.params as Record<string, unknown>) ?? {})
             .filter(([, value]) => value !== undefined)
             .flatMap(([key, value]): [string, string][] =>
@@ -1053,12 +1054,13 @@ function filterParams(
         },
       });
       const moduleObject: { exports: unknown } = { exports: {} };
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func
       const factory = new Function(
         'module',
         'exports',
         `${outputText}\nmodule.exports = filterParams;`,
       );
+      // oxlint-disable-next-line typescript/no-unsafe-call
       factory(moduleObject, moduleObject.exports);
       return moduleObject.exports as ReturnType<typeof loadFilterParams>;
     };

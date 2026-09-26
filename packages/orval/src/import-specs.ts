@@ -902,6 +902,7 @@ function resolveNullable(
   // A sibling `type` takes the null directly, as a type union.
   if (obj.type !== undefined) {
     const members = Array.isArray(obj.type) ? obj.type : [obj.type];
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     obj.type = members.includes('null') ? members : [...members, 'null'];
     return obj;
   }
@@ -935,6 +936,7 @@ function resolveNullable(
   // what the upgrader emits for the same shape.
   if (Array.isArray(obj.allOf)) {
     const { allOf, ...rest } = obj;
+    // oxlint-disable-next-line typescript/no-unsafe-assignment
     const base = allOf.length === 1 ? allOf[0] : { allOf };
     return { ...rest, anyOf: [base, { type: 'null' }] };
   }

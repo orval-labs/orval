@@ -94,6 +94,7 @@ const getCustomModuleImport = (
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   context.spec.info ?? {
     title: 'API',
     version: '1.0.0',
@@ -105,6 +106,7 @@ const getMcpTargetInfo = (
 ) =>
   getFileInfo(output.target, {
     backupFilename: conventionName(
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       info.title ?? 'filename',
       output.namingConvention,
     ),

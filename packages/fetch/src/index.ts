@@ -257,6 +257,7 @@ export const generateRequestFunction = (
         const { schema } = resolveRef(parameter, context);
         const parameterObject = schema as OpenApiParameterObject;
         return [
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           `${parameterObject.in}:${parameterObject.in === 'header' ? parameterObject.name?.toLowerCase() : parameterObject.name}`,
           parameterObject,
         ] as const;

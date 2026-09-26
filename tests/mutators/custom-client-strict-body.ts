@@ -20,7 +20,7 @@ export const customClientStrictBody = async <ResponseType>({
 }) => {
   const response = await fetch(url + new URLSearchParams(params), {
     method,
-    headers: data?.metadata?.headers,
+    headers: data?.metadata.headers,
     ...(data ? { body: JSON.stringify(data.payload) } : {}),
   });
 

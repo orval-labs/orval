@@ -382,10 +382,12 @@ export function getMockObject({
           }
 
           const hasDefault =
+            /* oxlint-disable typescript/no-unnecessary-condition */
             typeof prop === 'object' &&
             prop !== null &&
             'default' in prop &&
             prop.default !== undefined;
+          /* oxlint-enable typescript/no-unnecessary-condition */
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
             // A value that already carries its own null branch randomizes
@@ -407,11 +409,13 @@ export function getMockObject({
           }
 
           const isNullable =
+            /* oxlint-disable typescript/no-unnecessary-condition */
             typeof prop === 'object' &&
             prop !== null &&
             'type' in prop &&
             Array.isArray(prop.type) &&
             prop.type.includes('null');
+          /* oxlint-enable typescript/no-unnecessary-condition */
           if (
             isNullable &&
             !resolvedValue.nullWrapped &&

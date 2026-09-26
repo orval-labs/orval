@@ -106,8 +106,10 @@ describe('resolveRef', () => {
 
     const { schema } = resolveRef(refWithHints, context);
 
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     expect(typeof schema === 'object' && schema && 'type' in schema).toBe(true);
     expect(
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       typeof schema === 'object' && schema && 'type' in schema
         ? schema.type
         : undefined,
@@ -387,7 +389,7 @@ describe('resolveRef', () => {
               // https://json-schema.org/draft/2020-12/json-schema-core#section-4.3
               // https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
               // @ts-expect-error — null is not a legal $defs value
-              bad: null, // eslint-disable-line unicorn/no-null -- intentionally testing an illegal $defs entry
+              bad: null,
               itemType: {
                 $dynamicAnchor: 'itemType',
                 $ref: '#/components/schemas/User',

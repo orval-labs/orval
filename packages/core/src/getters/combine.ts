@@ -1010,19 +1010,24 @@ export function combineSchemas({
     unionMembers.length > 0 &&
     unionMembers.every(
       (member) =>
+        /* oxlint-disable typescript/no-unnecessary-condition */
         typeof member === 'object' && member !== null && '$ref' in member,
+      /* oxlint-enable typescript/no-unnecessary-condition */
     ) &&
     unionMembers.some((member) => {
       if (
+        /* oxlint-disable typescript/no-unnecessary-condition */
         typeof member !== 'object' ||
         member === null ||
         !('$ref' in member)
+        /* oxlint-enable typescript/no-unnecessary-condition */
       ) {
         return false;
       }
       const ref = (member as OpenApiReferenceObject).$ref;
       if (!ref) return false;
       const refName = ref.split('/').pop();
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       const refSchema = context.spec?.components?.schemas?.[refName ?? ''];
       const allOf =
         refSchema !== undefined && !isBooleanJsonSchema(refSchema)

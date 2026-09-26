@@ -87,6 +87,7 @@ describe('formatWithPrettier', () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
       expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         message: expect.stringContaining(
           `Failed to format file ${FILE_PATH} - Boom`,
         ),

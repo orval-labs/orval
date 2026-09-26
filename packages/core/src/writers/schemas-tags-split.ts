@@ -53,6 +53,7 @@ export async function writeSchemasTagsSplit({
     if (!groups.has(group)) {
       groups.set(group, []);
     }
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     groups.get(group)!.push(schema);
   }
 

@@ -21,6 +21,7 @@ export function generateComponentDefinition(
   const generatorSchemas: GeneratorSchema[] = [];
   for (const [name, response] of Object.entries(responses)) {
     const allResponseTypes = getResReqTypes(
+      // oxlint-disable-next-line typescript/no-unsafe-argument
       [[suffix, response]],
       name,
       context,
@@ -39,6 +40,7 @@ export function generateComponentDefinition(
       es5keyword: true,
       es5IdentifierName: true,
     });
+    // oxlint-disable-next-line typescript/no-unsafe-argument
     const doc = jsDoc(response);
     const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
 

@@ -83,6 +83,7 @@ function getResReqContentTypes({
 }: GetResReqContentTypesOptions) {
   // `false` is a JSON Schema that admits nothing (`never`). Only a missing
   // schema means this media type has no type to emit.
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (mediaType.schema === undefined || mediaType.schema === null) {
     return;
   }
@@ -882,6 +883,7 @@ function resolveSchemaPropertiesToFormData({
   const isUrlEncoded = variableName === 'formUrlEncoded';
   const schemaProps = collectPropertiesThroughAllOf(schema, context);
   const propertyConvention =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.namingConvention?.properties;
   // Same collision set the type renderer computes: keys that would collide
   // after conversion keep their original schema key in the TS type, so the
@@ -919,6 +921,7 @@ function resolveSchemaPropertiesToFormData({
     // keys (e.g. first_name + firstName) keep the original key in the type,
     // so read the original key too.
     const propertyConvention =
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       context.output.override.namingConvention?.properties;
     const accessorKey =
       propertyConvention && !collisionKeys.has(key)
@@ -1096,6 +1099,7 @@ function resolveSchemaPropertiesToFormData({
     }
 
     const schemaRequired = collectRequiredThroughAllOf(schema, context);
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const isRequired = schemaRequired?.includes(key) && !isRequestBodyOptional;
 
     const propType = getSchemaType(property);

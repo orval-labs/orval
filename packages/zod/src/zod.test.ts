@@ -3092,6 +3092,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
       const match = result.consts[0].match(/= `(.*)`;/);
       expect(match).toBeDefined();
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       expect(match![1]).not.toMatch(/(?<!\\)`/);
     });
 
@@ -4399,7 +4400,6 @@ describe('generateZodValidationSchemaDefinition`', () => {
             },
           },
         },
-        // eslint-disable-next-line unicorn/no-null
         default: { checklist: null, available_indexes: [] },
       };
 
@@ -8683,7 +8683,6 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
-            // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
             { type: 'null' },
           ],
@@ -8754,7 +8753,6 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           oneOf: [
             { type: 'string', enum: ['HI', 'OHA'] },
             { type: 'string', enum: [''] },
-            // eslint-disable-next-line unicorn/no-null
             { enum: [null] },
             { type: 'null' },
           ],
@@ -9067,7 +9065,6 @@ describe('generateZodWithNullableAnyOfRefs', () => {
               oneOf: [
                 { type: 'string', enum: ['HI', 'OHA'] },
                 { type: 'string', enum: [''] },
-                // eslint-disable-next-line unicorn/no-null
                 { enum: [null] },
                 { type: 'null' },
               ],

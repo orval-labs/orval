@@ -61,6 +61,7 @@ export async function writeSplitTagsMode({
 }: WriteModeProps): Promise<string[]> {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: conventionName(
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       builder.info.title ?? 'filename',
       output.namingConvention,
     ),

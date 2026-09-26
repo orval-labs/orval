@@ -243,6 +243,7 @@ export function resolveServerUrl(
 
   const server = servers.at(Math.min(options.index ?? 0, servers.length - 1));
   if (!server) return '';
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   const serverUrl = server.url ?? '';
   if (!server.variables) return serverUrl;
 
@@ -331,6 +332,7 @@ export function getFullRoute(
       // after escaping, so the expression itself is never escaped (#3734).
       // Markers are deterministic (hash of server URL + key), so recompute
       // them here to restore only what `resolveServerUrl` actually emitted.
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (baseUrl.variables && selectedServer?.url) {
         for (const [key, value] of Object.entries(baseUrl.variables)) {
           if (isVariableRuntimeValue(value)) {

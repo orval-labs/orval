@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 const isWindows = platform() === 'win32';
 const orvalBin = resolve('packages/orval/dist/bin/orval.mjs');
 
+/** @param {string} binDir */
 function linkOrval(binDir) {
   mkdirSync(binDir, { recursive: true });
   const link = join(binDir, isWindows ? 'orval.cmd' : 'orval');
@@ -29,8 +30,14 @@ function linkOrval(binDir) {
   }
 }
 
+/**
+ * @param {string} dir
+ * @param {number} [depth]
+ * @returns {string[]}
+ */
 function findBinDirs(dir, depth = 0) {
   if (depth > 5) return [];
+  /** @type {string[]} */
   const dirs = [];
 
   try {

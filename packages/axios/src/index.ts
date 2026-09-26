@@ -221,6 +221,7 @@ const generateAxiosImplementation = (
 ) => {
   const isRequestOptions = override.requestOptions !== false;
   const includeHttpResponseReturnType =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     override.axios?.includeHttpResponseReturnType;
   const axiosResponse = getAxiosResponseTypes(response, typeName);
   const emptyResponseNormalization = normalizeEmptyAxiosResponse(
@@ -405,6 +406,7 @@ ${
   ${noFunction ? '' : hasAnyMutator ? `export const ${title} = () => {\n` : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
   const hasStatusCodeTypes = Object.values(verbOptions).some(
     (verbOption) =>
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       verbOption.override?.axios?.includeHttpResponseReturnType &&
       needsHttpStatusCodeTypes(
         getAxiosResponseTypes(verbOption.response, verbOption.typeName).value,

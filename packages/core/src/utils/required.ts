@@ -21,6 +21,7 @@ export function getRequiredKeys(schema: OpenApiSchemaObject, name: string) {
   const required = schema.required as unknown;
 
   if (required === undefined) return [];
+  // oxlint-disable-next-line typescript/no-unsafe-return
   if (Array.isArray(required)) return required;
 
   throw new Error(

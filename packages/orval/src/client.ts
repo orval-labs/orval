@@ -128,6 +128,7 @@ const loadGeneratorModule = async (key: string): Promise<GeneratorModule> => {
   }
 
   const loader = GENERATOR_LOADERS[key];
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!loader) {
     throw new Error(`Unknown generator module: ${key}`);
   }
@@ -146,6 +147,7 @@ const loadFullGeneratorTable = () => {
       key,
       await loadGeneratorModule(key),
     ]),
+    // oxlint-disable-next-line typescript/no-unsafe-return
   ).then((entries) => Object.fromEntries(entries));
   return fullTableCache;
 };
@@ -299,7 +301,7 @@ export const getGeneratorClient = async (
   }
   const generator = outputClient(generators);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive guard for custom OutputClientFunc returning unexpected values
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- defensive guard for custom OutputClientFunc returning unexpected values
   if (!generator) {
     throw new Error(
       `Unknown output client provided to getGeneratorClient: ${String(outputClient)}`,

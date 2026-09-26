@@ -187,7 +187,9 @@ describe('generated Axios URL helpers', () => {
 
   it('excludes global Axios runtime defaults in functions mode', () => {
     const previousBaseURL = axios.defaults.baseURL;
-    const previousParams = axios.defaults.params;
+    const previousParams = axios.defaults.params as
+      | Record<string, unknown>
+      | undefined;
     axios.defaults.baseURL = 'https://api.example.test';
     axios.defaults.params = { tenant: 'runtime-default' };
 
