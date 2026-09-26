@@ -13,7 +13,13 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "paths": {
+      "@artifact-groups/schemas": ["./src/api/artifact-groups/schemas/index.ts"],
+      "@artifact-groups/faker": [
+        "./src/api/artifact-groups/faker/index.faker.ts"
+      ]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

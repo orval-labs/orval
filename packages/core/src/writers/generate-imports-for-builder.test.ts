@@ -800,6 +800,49 @@ describe('generateImportsForBuilder', () => {
         },
       ]);
     });
+
+    it('should import schemaFactory symbols relative to the faker schemasPath', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+          splitByTags: false,
+        },
+        mock: {
+          indexMockFiles: false,
+          inline: false,
+          generators: [
+            {
+              type: 'faker',
+              schemas: true,
+              schemasPath: '/libs/mocks/faker/schemas',
+            },
+          ],
+        },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'createUser', schemaFactory: true },
+      ];
+
+      const result = generateImportsForBuilder(
+        output,
+        imports,
+        '@acme/models',
+        undefined,
+        undefined,
+        '/libs/mocks/faker/users/users.faker.ts',
+      );
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'createUser', schemaFactory: true }],
+          dependency: '../schemas/index.faker',
+        },
+      ]);
+    });
   });
 
   describe('naming conventions', () => {

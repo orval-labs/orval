@@ -323,6 +323,18 @@ describe('buildCrossFileFakerImports', () => {
     expect(result[0].importPath).toBe('./endpoints.faker');
   });
 
+  it('uses the faker package import path instead of a relative path when given', () => {
+    const result = buildCrossFileFakerImports(
+      '/src/msw/pets/pets.msw.ts',
+      '/src/faker/pets/pets.faker.ts',
+      ': getPetResponseMock()',
+      'export const getPetResponseMock = () => ({})',
+      '.js',
+      '@acme/mocks/faker',
+    );
+    expect(result.map((imp) => imp.importPath)).toEqual(['@acme/mocks/faker']);
+  });
+
   it('builds imports for names with status suffixes', () => {
     const result = buildCrossFileFakerImports(
       '/src/api/endpoints.msw.ts',

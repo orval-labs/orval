@@ -2193,7 +2193,7 @@ describe('normalizeOptions', () => {
             workspace,
           ),
         ).rejects.toThrow(
-          '`mock.generators[faker].schemasImportPath` requires `schemas.importPath` to also be set',
+          '`mock.generators[faker].schemasImportPath` requires `schemas.importPath` or `schemasPath` to also be set',
         );
       } finally {
         await rm(workspace, { recursive: true, force: true });
@@ -2279,6 +2279,144 @@ describe('normalizeOptions', () => {
           schemasImportPath?: string;
         };
         expect(fakerGenerator.schemasImportPath).toBe('@acme/models/fakers');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('faker schemasPath and importPath validation', () => {
+    const normalizeFaker = (
+      workspace: string,
+      faker: Record<string, unknown>,
+      output: Record<string, unknown> = {},
+    ) =>
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: './models',
+            mock: { generators: [{ type: 'faker', ...faker }] },
+            ...output,
+          },
+        },
+        workspace,
+      );
+
+    it('resolves schemasPath against the workspace', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        const normalized = await normalizeFaker(workspace, {
+          schemas: true,
+          schemasPath: './mocks/faker/schemas',
+        });
+        const faker = normalized.output.mock.generators[0] as {
+          schemasPath?: string;
+        };
+        expect(faker.schemasPath).toBe(
+          path.join(workspace, 'mocks/faker/schemas'),
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('accepts schemasImportPath with schemasPath and no schemas.importPath', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(workspace, {
+            schemas: true,
+            schemasPath: './mocks/faker/schemas',
+            schemasImportPath: '@acme/mocks/faker/schemas',
+          }),
+        ).resolves.toBeDefined();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasPath without schemas: true', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(workspace, { schemasPath: './mocks/faker/schemas' }),
+        ).rejects.toThrow('requires `schemas: true`');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasPath without output.schemas', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(
+            workspace,
+            { schemas: true, schemasPath: './mocks/faker/schemas' },
+            { schemas: undefined },
+          ),
+        ).rejects.toThrow('requires `output.schemas`');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasPath equal to the faker path when indexMockFiles is on', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(
+            workspace,
+            {},
+            {
+              mock: {
+                indexMockFiles: true,
+                generators: [
+                  {
+                    type: 'faker',
+                    path: './mocks/faker',
+                    schemas: true,
+                    schemasPath: './mocks/faker',
+                  },
+                ],
+              },
+            },
+          ),
+        ).rejects.toThrow('cannot be the faker `path`');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects importPath without indexMockFiles', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(workspace, { importPath: '@acme/mocks/faker' }),
+        ).rejects.toThrow(
+          '`mock.generators[faker].importPath` requires `mock.indexMockFiles: true`',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects a relative importPath', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeFaker(workspace, { importPath: '../faker' }),
+        ).rejects.toThrow(
+          '`mock.generators[faker].importPath` must be a package specifier',
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }

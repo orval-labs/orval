@@ -42,7 +42,11 @@ import {
   collapseMswFakerFullOutputs,
   flattenMockOutput,
 } from './mock-outputs';
-import { getMockDir, resolveMockSchemasPath } from './mock-utils';
+import {
+  getFakerEntry,
+  getMockDir,
+  resolveMockSchemasPath,
+} from './mock-utils';
 import { generateTargetForTags } from './target-tags';
 
 export async function writeSplitTagsMode({
@@ -273,9 +277,7 @@ export async function writeSplitTagsMode({
         const fakerImplementation =
           mockOutputs.find((m) => m.type === OutputMockType.FAKER)
             ?.implementation ?? '';
-        const fakerEntry = output.mock.generators.find(
-          (g) => !isFunction(g) && g.type === OutputMockType.FAKER,
-        );
+        const fakerEntry = getFakerEntry(output.mock);
         const fakerDir = fakerEntry
           ? (getMockDir(fakerEntry, output.mock) ?? dirname)
           : dirname;
@@ -343,6 +345,7 @@ export async function writeSplitTagsMode({
                   mockOutput.implementation,
                   fakerImplementation,
                   fakerImportExtension,
+                  fakerEntry?.importPath,
                 )
               : [];
 
@@ -359,6 +362,7 @@ export async function writeSplitTagsMode({
             mockRelativeSchemasPath,
             schemaTagMap,
             schemaOutputPlan,
+            mockFilePath,
           );
 
           let mockData = header;

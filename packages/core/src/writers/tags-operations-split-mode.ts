@@ -314,6 +314,8 @@ export async function writeTagsOperationsSplitMode({
                 ),
                 mockRelativeSchemasPath,
                 schemaTagMap,
+                undefined,
+                mockFilePath,
               );
 
               let mockData = header;

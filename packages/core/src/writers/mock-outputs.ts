@@ -135,7 +135,8 @@ export function extractResponseMockNames(implementation: string): string[] {
  * Builds the imports that let a `.msw.ts` file call the response factories
  * declared in its `.faker.ts` file. Only imports names the handlers actually
  * call and the faker file actually declares, so the import list can't drift
- * out of sync with either file.
+ * out of sync with either file. `packageImportPath` (the faker generator's
+ * `importPath`) replaces the relative path when set.
  */
 export function buildCrossFileFakerImports(
   mswFilePath: string,
@@ -143,6 +144,7 @@ export function buildCrossFileFakerImports(
   mswImplementation: string,
   fakerImplementation: string,
   importExtension = '',
+  packageImportPath?: string,
 ): GeneratorImport[] {
   const referencedNames = extractResponseMockNames(mswImplementation);
   if (referencedNames.length === 0) return [];
@@ -154,6 +156,7 @@ export function buildCrossFileFakerImports(
   if (responseMockNames.length === 0) return [];
 
   const fakerImportPath =
+    packageImportPath ??
     upath.getRelativeImportPath(mswFilePath, fakerFilePath) + importExtension;
 
   return responseMockNames.map((name): GeneratorImport => ({

@@ -12,7 +12,9 @@ import {
   generateMutator,
   getFileInfo,
   getImportExtension,
+  getFakerEntry,
   getMockFileExtensionByTypeName,
+  getSchemasImportPath,
   isFunction,
   isObject,
   isString,
@@ -366,11 +368,20 @@ async function writeFakerSchemaMocks(
   let filePath: string;
   let schemaImportPath: string | undefined;
   const fileExtension = output.fileExtension || '.ts';
+  const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  const schemasDir = isString(output.schemas)
+    ? output.schemas
+    : output.schemas?.path;
+  // `schemasPath` moves the factories out of the schemas directory, so the
+  // schema types come from the schemas package or a path back into it.
+  const isRelocated = !!schemasDir && !!fakerEntry.schemasPath;
 
-  if (output.schemas) {
-    const schemasDir = isString(output.schemas)
-      ? output.schemas
-      : output.schemas.path;
+  if (schemasDir && fakerEntry.schemasPath) {
+    filePath = path.join(fakerEntry.schemasPath, `index.faker${fileExtension}`);
+    schemaImportPath =
+      getSchemasImportPath(output.schemas) ??
+      upath.relativeSafe(fakerEntry.schemasPath, schemasDir);
+  } else if (schemasDir) {
     filePath = path.join(schemasDir, `index.faker${fileExtension}`);
     schemaImportPath = '.';
   } else {
@@ -407,19 +418,15 @@ async function writeFakerSchemaMocks(
   // and always resolve to `'.'`.
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
-  const importExtension = getImportExtension(fileExtension, output.tsconfig);
   const schemaSuffix = isZodSchemaOutput ? '.zod' : '';
 
   // Build a pascal-cased-name → import path lookup so the consolidated file
   // can route each schema type import to its on-disk location. The map is
   // only populated when per-file routing is required (no root barrel); when
   // `indexFiles: true` every entry maps to `'.'` and the lookup short-circuits.
+  const isRelativeSchemaImport = !!schemaImportPath?.startsWith('.');
   const perSchemaImportPath = new Map<string, string>();
-  if (
-    schemaImportPath === '.' &&
-    !output.indexFiles &&
-    isObject(output.schemas)
-  ) {
+  if (isRelativeSchemaImport && !output.indexFiles && schemasDir) {
     for (const schema of builder.schemas) {
       const tsName = pascal(schema.name);
       const fileName = conventionName(schema.name, output.namingConvention);
@@ -427,9 +434,13 @@ async function writeFakerSchemaMocks(
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       perSchemaImportPath.set(
         tsName,
-        `./${tagSegment}${fileName}${schemaSuffix}${importExtension}`,
+        `${schemaImportPath}/${tagSegment}${fileName}${schemaSuffix}${importExtension}`,
       );
     }
+  } else if (isRelocated && isRelativeSchemaImport && importExtension) {
+    // A directory specifier only resolves through the barrel file under
+    // NodeNext / Node16.
+    schemaImportPath = `${schemaImportPath}/index${importExtension}`;
   }
 
   const reroutedImports = imports.map((imp) => {
@@ -475,6 +486,80 @@ async function writeFakerSchemaMocks(
   const content = `${header}${importsHeader}\n\n${finalizedImplementation}`;
   await writeGeneratedFile(filePath, content);
   return filePath;
+}
+
+const EXPORTED_NAME_RE = /^export\s+(?:const|function)\s+(\w+)/gm;
+
+/**
+ * Re-exports the relocated schema factories from the faker barrel when
+ * `schemasPath` sits inside the faker directory, so the faker group exposes
+ * them too. Names an operation mock already exports are left out: two
+ * re-exports of one name break the barrel (TS2308).
+ */
+async function reexportFakerSchemaFactories(
+  output: NormalizedOutputOptions,
+  factoriesPath: string,
+): Promise<void> {
+  const faker = getFakerEntry(output.mock);
+  if (!output.mock.indexMockFiles || !faker?.path || !faker.schemasPath) {
+    return;
+  }
+  if (upath.relativeSafe(faker.path, faker.schemasPath).startsWith('..')) {
+    return;
+  }
+
+  const fileExtension = output.fileExtension || '.ts';
+  const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  // A spec without operations gets no faker barrel from the mode writers, so
+  // start from an empty one.
+  const barrelPath = path.join(faker.path, `index.faker${fileExtension}`);
+  const barrel = fs.existsSync(barrelPath)
+    ? await fs.promises.readFile(barrelPath, 'utf8')
+    : '';
+  const taken = new Set<string>();
+  for (const specifier of readReExportSpecifiers(barrel)) {
+    const modulePath = path.resolve(
+      faker.path,
+      importExtension && specifier.endsWith(importExtension)
+        ? specifier.slice(0, -importExtension.length)
+        : specifier,
+    );
+    const content = await fs.promises
+      .readFile(`${modulePath}${fileExtension}`, 'utf8')
+      .catch(() => '');
+    for (const match of content.matchAll(EXPORTED_NAME_RE)) {
+      taken.add(match[1]);
+    }
+  }
+
+  const factories = await fs.promises.readFile(factoriesPath, 'utf8');
+  const names = [...factories.matchAll(EXPORTED_NAME_RE)]
+    .map((match) => match[1])
+    .filter((name) => !taken.has(name));
+
+  const specifier =
+    stripFileExtension(
+      upath.getRelativeImportPath(barrelPath, factoriesPath, true),
+      fileExtension,
+    ) + importExtension;
+  // Replace the named re-export a previous run left behind, so added
+  // factories show up and removed ones go away.
+  const withoutFactories = barrel
+    .split(/\r?\n/)
+    .filter((line) => !isNamedReExportOf(line, specifier))
+    .join('\n');
+  const next =
+    names.length > 0
+      ? `${withoutFactories}${withoutFactories && !withoutFactories.endsWith('\n') ? '\n' : ''}export { ${names.join(', ')} } from '${specifier}';\n`
+      : withoutFactories;
+  if (next === barrel) return;
+  await writeGeneratedFile(barrelPath, next);
+}
+
+function isNamedReExportOf(line: string, specifier: string): boolean {
+  const match =
+    /^\s*export\s*\{[^}]*\}\s*from\s*['"]([^'"]+)['"]\s*;?\s*$/.exec(line);
+  return match?.[1] === specifier;
 }
 
 function isSchemaValidatorClient(
@@ -947,6 +1032,10 @@ async function writeSpecsInternal(
             )
         : undefined,
     });
+  }
+
+  if (fakerSchemaPath) {
+    await reexportFakerSchemaFactories(output, fakerSchemaPath);
   }
 
   if (output.workspace) {

@@ -300,6 +300,8 @@ export async function writeTagsOperationsMode({
                 ),
                 mockRelativeSchemasPath,
                 schemaTagMap,
+                undefined,
+                mockFilePath,
               );
 
               let mockData = header;

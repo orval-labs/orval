@@ -28,6 +28,9 @@ export function generateImportsForBuilder(
   // for shared schemas (referenced by 0 or 2+ tags).
   schemaTagMap?: Map<string, string>,
   schemaOutputPlan?: SchemaOutputPlan,
+  // Path of the file being written. Needed to reach the schema factories when
+  // the faker generator's `schemasPath` moves them out of the schemas dir.
+  filePath?: string,
 ): GeneratorDependency[] {
   const isPackageImport = !!getSchemasImportPath(output.schemas);
 
@@ -49,12 +52,19 @@ export function generateImportsForBuilder(
   // barrel specifier (e.g. `@acme/models`) that may resolve to a single file
   // via tsconfig path mappings — appending `/index.faker` produces an
   // unresolvable sub-path in that case.
+  const schemaFactories = getSchemaFactoriesEntry(output.mock);
+  const fakerSchemasPath = schemaFactories?.schemasPath;
   const schemaFactoryDependency =
-    getFakerSchemasImportPath(output.mock) ??
-    upath.joinSafe(
-      relativeSchemasPath,
-      `index.faker${schemaFactoryImportExtension}`,
-    );
+    schemaFactories?.schemasImportPath ??
+    (fakerSchemasPath && filePath
+      ? upath.getRelativeImportPath(
+          filePath,
+          upath.join(fakerSchemasPath, 'index.faker.ts'),
+        ) + getImportExtension(output.fileExtension, output.tsconfig)
+      : upath.joinSafe(
+          relativeSchemasPath,
+          `index.faker${schemaFactoryImportExtension}`,
+        ));
 
   const schemaFactoryDeps: GeneratorDependency[] =
     schemaFactoryImports.length > 0
@@ -110,21 +120,12 @@ export function generateImportsForBuilder(
   return [...schemaImports, ...schemaFactoryDeps, ...otherImports];
 }
 
-/**
- * Extracts the faker generator's `schemasImportPath` from the normalized mock
- * config, if one is configured. Returns `undefined` when there is no faker
- * generator with schema factories enabled, or when `schemasImportPath` is not
- * set.
- */
-function getFakerSchemasImportPath(
+/** The faker generator entry that emits schema factories (`schemas: true`). */
+function getSchemaFactoriesEntry(
   mock: NormalizedMocksConfig | undefined,
-): FakerMockOptions['schemasImportPath'] | undefined {
-  if (!mock) {
-    return undefined;
-  }
-  const faker = mock.generators.find(
+): FakerMockOptions | undefined {
+  return mock?.generators.find(
     (g): g is FakerMockOptions =>
       !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
   );
-  return faker?.schemasImportPath;
 }
