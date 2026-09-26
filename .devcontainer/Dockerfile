@@ -16,13 +16,14 @@ USER node
 ENV BUN_INSTALL=/home/node/.bun
 ENV PATH="/app/node_modules/.bin:${BUN_INSTALL}/bin:${PATH}"
 
-# Bun is required: package.json declares packageManager bun@1.3.14 and
-# postinstall runs `bun scripts/link-workspace-bins.mjs`.
-# SHA-256 from https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/SHASUMS256.txt
+# Bun is required: package.json declares packageManager bun@1.4.2. Keep this in
+# step with it: from 1.4.2 `bun install` links workspace bins (the `orval` CLI
+# the samples and tests run) even before the package is built.
+# SHA-256 from https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/SHASUMS256.txt
 ARG TARGETARCH
-ARG BUN_VERSION=1.3.14
-ARG BUN_SHA256_AMD64=951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f
-ARG BUN_SHA256_ARM64=a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b
+ARG BUN_VERSION=1.4.2
+ARG BUN_SHA256_AMD64=36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913
+ARG BUN_SHA256_ARM64=54328bbc2d9c8e0c9f892c544d66c57a83b84139e34909e5ee81758f1ac8fda7
 RUN set -eux; \
   case "${TARGETARCH}" in \
     amd64) BUN_ARCH=x64;     BUN_SHA256="${BUN_SHA256_AMD64}" ;; \
