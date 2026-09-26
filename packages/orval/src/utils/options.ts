@@ -18,6 +18,7 @@ import {
   type HookOption,
   type HooksOptions,
   type InputOptions,
+  type OpenApiDocument,
   type InputTransformerFn,
   isBoolean,
   isFunction,
@@ -65,6 +66,7 @@ import {
   upath,
   type ZodOptions,
 } from '@orval/core';
+
 import pkg from '../../package.json';
 import { logger } from '../logger';
 import { loadPackageJson } from './package-json';
@@ -760,7 +762,7 @@ export async function normalizeOptions(
               workspace,
               inputOptions.parserOptions,
             )
-          : normalizePathOrUrl(inputOptions.target, workspace),
+          : normalizeInputTarget(inputOptions.target, workspace),
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
@@ -1321,6 +1323,17 @@ async function fetchWithTimeout(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function normalizeInputTarget(
+  target: string | Record<string, unknown> | OpenApiDocument,
+  workspace: string,
+): string | OpenApiDocument {
+  if (typeof target === 'string') {
+    return isUrl(target) ? target : normalizePath(target, workspace);
+  }
+
+  return target as OpenApiDocument;
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {

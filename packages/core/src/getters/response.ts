@@ -1,6 +1,11 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type {
   ContextSpec,
   GetterResponse,
+  OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
+  OpenApiResponseObject,
   OpenApiResponsesObject,
   OverrideOutputContentType,
   ResReqTypesValue,
@@ -26,7 +31,10 @@ export function getResponse({
   contentType,
 }: GetResponseOptions): GetterResponse {
   const types = getResReqTypes(
-    Object.entries(responses),
+    Object.entries(responses) as [
+      string,
+      OpenApiReferenceObject | OpenApiResponseObject | OpenApiRequestBodyObject,
+    ][],
     operationName,
     context,
     'void',
@@ -74,9 +82,11 @@ export function getResponse({
     isBlob: groupedByStatus.success.some(
       (t) =>
         (!!t.contentType && isBinaryContentType(t.contentType)) ||
-        t.originalSchema?.format === 'binary' ||
-        (t.originalSchema?.contentMediaType === 'application/octet-stream' &&
-          !t.originalSchema.contentEncoding),
+        (t.originalSchema !== undefined &&
+          !isBooleanJsonSchema(t.originalSchema) &&
+          (t.originalSchema.format === 'binary' ||
+            (t.originalSchema.contentMediaType === 'application/octet-stream' &&
+              !t.originalSchema.contentEncoding))),
     ),
     types: groupedByStatus,
     contentTypes,

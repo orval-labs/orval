@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
+import { createTestContextSpec } from '../test-utils';
 import type { ContextSpec, OpenApiResponsesObject } from '../types';
 import { getResponse } from './response';
 

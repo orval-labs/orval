@@ -1,21 +1,19 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import type { ContextSpec, OpenApiDocument } from '../types';
 import { getDynamicAnchorName, getRefInfo, isComponentRef } from './ref';
 
 function createRefContext(): ContextSpec {
-  return {
+  return createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
-    spec: {},
-    output: {
-      override: {
-        components: {
-          schemas: { suffix: '' },
-        },
+    override: {
+      components: {
+        schemas: { suffix: '' },
       },
     },
-  } as ContextSpec;
+  });
 }
 
 describe('isComponentRef', () => {
@@ -72,15 +70,13 @@ describe('getDynamicAnchorName', () => {
   });
 });
 
-function createRefInfoContext(spec: OpenApiDocument): ContextSpec {
-  return {
+function createRefInfoContext(spec: Partial<OpenApiDocument>): ContextSpec {
+  return createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
     spec,
-    output: {
-      override: { components: { schemas: { suffix: '' } } },
-    },
-  } as ContextSpec;
+    override: { components: { schemas: { suffix: '' } } },
+  });
 }
 
 describe('getRefInfo', () => {
@@ -123,7 +119,6 @@ describe('getRefInfo', () => {
 
   it('resolves a fragment-only ref to its local schema name', () => {
     const context = createRefInfoContext({
-      openapi: '3.1.0',
       components: { schemas: { Pet: { type: 'object' } } },
     });
 
@@ -137,7 +132,6 @@ describe('getRefInfo', () => {
   it('resolves an external-file ref (pathname branch) and derives name from filename', () => {
     // Exercises line 97: the return branch reached when pathname is non-empty
     const context = createRefInfoContext({
-      openapi: '3.1.0',
       components: { schemas: {} },
     });
 

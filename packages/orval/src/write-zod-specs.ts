@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import {
   compareNatural,
+  isInlineSchema,
   type ContextSpec,
   conventionName,
   DefaultTag,
@@ -9,11 +10,11 @@ import {
   getImportExtension,
   getRefInfo,
   isComponentRef,
-  isReference,
   kebab,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
+  type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
@@ -320,10 +321,7 @@ function renderReusableSchemaEntry(
       ? getRefInfo(entry.ref, context).originalName
       : undefined;
     const schema = rawName
-      ? (context.spec.components?.schemas?.[rawName] as
-          | OpenApiSchemaObject
-          | OpenApiReferenceObject
-          | undefined)
+      ? context.spec.components?.schemas?.[rawName]
       : undefined;
     const resolved = schema
       ? resolveValue({ schema, name: entry.name, context })
@@ -1237,9 +1235,7 @@ function generateZodSchemasFromVerbs(
 
     const requestBody = operation.requestBody;
     const requestBodyContent =
-      requestBody && 'content' in requestBody
-        ? (requestBody as OpenApiRequestBodyObject).content
-        : undefined;
+      requestBody && 'content' in requestBody ? requestBody.content : undefined;
     // Pick the first available body media type. JSON wins; otherwise fall back
     // to form-data / urlencoded so we still generate a `*Body` schema for
     // operations whose only payload is multipart (e.g. file uploads). Without
@@ -1259,7 +1255,7 @@ function generateZodSchemasFromVerbs(
               formUrlEncodedBodyMedia,
             ] as const)
           : [undefined, undefined];
-    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
+    const bodySchema = bodyMedia?.schema;
 
     const bodySchemas =
       shouldGenerate.body && bodySchema
@@ -1278,7 +1274,7 @@ function generateZodSchemasFromVerbs(
     const parameters = operation.parameters;
 
     const resolvedParameters = parameters?.map((p) =>
-      isReference(p) && typeof p.$ref === 'string'
+      !isInlineSchema(p) && typeof p.$ref === 'string'
         ? resolveRef<OpenApiParameterObject>(p, zodContext).schema
         : p,
     );
@@ -1302,15 +1298,15 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   pathParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: pathParams
@@ -1335,15 +1331,15 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   queryParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -1368,15 +1364,15 @@ function generateZodSchemasFromVerbs(
                 type: 'object' as const,
                 properties: Object.fromEntries(
                   headerParams
-                    .filter((p) => 'schema' in p && p.schema)
+                    .filter(
+                      (p): p is OpenApiParameterWithSchemaObject =>
+                        'schema' in p && p.schema !== undefined,
+                    )
                     .map((p) => [
                       p.name,
                       useReusableSchemas
-                        ? (p.schema as OpenApiSchemaObject)
-                        : dereference(
-                            p.schema as OpenApiSchemaObject,
-                            zodContext,
-                          ),
+                        ? p.schema
+                        : dereference(p.schema, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
@@ -1413,25 +1409,28 @@ function generateZodSchemasFromVerbs(
               // (`allOf`/`oneOf`/`anyOf`) has none, and demanding one left the
               // array unpeeled, so the entry was discarded below and no schema
               // was written — while the client still imported the `<Op>200Item`
-              // name the TS side aliases for it (#2993). `isReference` plus the
+              // name the TS side aliases for it (#2993). `isInlineSchema` plus the
               // `$ref` check already excludes component references, which is
               // the only thing this loop needs to stop at.
               while (
                 cleanSchema &&
+                typeof cleanSchema === 'object' &&
                 'type' in cleanSchema &&
                 cleanSchema.type === 'array' &&
                 cleanSchema.items &&
-                !isReference(cleanSchema.items) &&
+                typeof cleanSchema.items === 'object' &&
+                isInlineSchema(cleanSchema.items) &&
                 !('$ref' in cleanSchema.items)
               ) {
-                cleanSchema = cleanSchema.items as OpenApiSchemaObject;
+                cleanSchema = cleanSchema.items;
               }
               // If the loop didn't fully unwrap (still an array, or item is a
               // $ref), discard — the component schema writer handles it.
               if (
                 !cleanSchema ||
-                ('type' in cleanSchema &&
-                  (cleanSchema as OpenApiSchemaObject).type === 'array')
+                (typeof cleanSchema === 'object' &&
+                  'type' in cleanSchema &&
+                  cleanSchema.type === 'array')
               ) {
                 cleanSchema = undefined;
               }

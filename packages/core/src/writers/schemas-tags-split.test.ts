@@ -1,19 +1,19 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
 import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import { type GeneratorSchema, NamingConvention } from '../types';
 import { buildSchemaTagMap } from './schema-tag-mapper';
 import { writeSchemasTagsSplit } from './schemas-tags-split';
 
-const tmpDir = () => fs.mkdtemp(path.join(os.tmpdir(), 'orval-test-'));
+const tmpDir = () => fs.promises.mkdtemp(path.join(os.tmpdir(), 'orval-test-'));
 
 let dir = '';
 
 afterEach(async () => {
-  if (dir) await fs.remove(dir);
+  if (dir) await fs.promises.rm(dir, { recursive: true, force: true });
 });
 
 const makeSchema = (
@@ -51,12 +51,10 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'stores', 'store.ts'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'pets', 'index.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'stores', 'store.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'index.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'pets', 'index.ts'))).toBe(true);
   });
 
   it('places shared schemas at root', async () => {
@@ -74,9 +72,9 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'error.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, '_shared'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'error.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, '_shared'))).toBe(false);
   });
 
   it('generates correct cross-tag import paths to root', async () => {
@@ -94,7 +92,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    const petContent = await fs.readFile(
+    const petContent = await fs.promises.readFile(
       path.join(dir, 'pets', 'pet.ts'),
       'utf8',
     );
@@ -117,7 +115,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    const petContent = await fs.readFile(
+    const petContent = await fs.promises.readFile(
       path.join(dir, 'pets', 'pet.ts'),
       'utf8',
     );
@@ -137,9 +135,9 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
-    expect(await fs.pathExists(path.join(dir, 'pets', 'index.ts'))).toBe(false);
-    expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'index.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'pets', 'index.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
   });
 
   it('handles all schemas at root when no operations reference them', async () => {
@@ -157,10 +155,10 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'pet.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'store.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'pets'))).toBe(false);
-    expect(await fs.pathExists(path.join(dir, 'stores'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'pet.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'store.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'pets'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'stores'))).toBe(false);
   });
 
   it('handles all schemas in one tag', async () => {
@@ -177,8 +175,8 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
-    expect(await fs.pathExists(path.join(dir, 'pets', 'store.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'pets', 'store.ts'))).toBe(true);
   });
 
   it('handles empty schemas array', async () => {
@@ -193,7 +191,7 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'index.ts'))).toBe(false);
   });
 
   it('root barrel exports both shared files and tag directories', async () => {
@@ -222,7 +220,10 @@ describe('writeSchemasTagsSplit', () => {
       schemaTagMap: buildSchemaTagMap(operations, schemas),
     });
 
-    const indexContent = await fs.readFile(path.join(dir, 'index.ts'), 'utf8');
+    const indexContent = await fs.promises.readFile(
+      path.join(dir, 'index.ts'),
+      'utf8',
+    );
     expect(indexContent).toContain("export * from './error'");
     expect(indexContent).toContain("export * from './pagination'");
     expect(indexContent).toContain("export * from './pets'");

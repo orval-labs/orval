@@ -1,8 +1,4 @@
-import type {
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GeneratorMutator,
-} from '@orval/core';
+import type { GeneratorMutator, GeneratorVerbOptions } from '@orval/core';
 import {
   GetterPropType,
   getOperationUrlHelperNames,
@@ -10,6 +6,10 @@ import {
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import {
   generateAxios,
   generateAxiosFactory,
@@ -21,7 +21,24 @@ import {
   getAxiosFactoryDependencies,
 } from './index';
 
-const response = {
+const successType = (
+  key: string,
+  value: string,
+  contentType: string,
+): GeneratorVerbOptions['response']['types']['success'][number] => ({
+  key,
+  value,
+  contentType,
+  hasReadonlyProps: false,
+  imports: [],
+  isEnum: false,
+  isRef: false,
+  schemas: [],
+  type: value === 'void' ? 'unknown' : 'object',
+  dependencies: [],
+});
+
+const response: GeneratorVerbOptions['response'] = {
   imports: [],
   definition: { success: 'Pet', errors: 'unknown' },
   isBlob: false,
@@ -30,53 +47,29 @@ const response = {
   schemas: [],
 };
 
-const responseWithMultipleSuccessStatuses = {
+const responseWithMultipleSuccessStatuses: GeneratorVerbOptions['response'] = {
   ...response,
   definition: { success: 'Pet | void', errors: 'unknown' },
   types: {
     success: [
-      {
-        key: '200',
-        contentType: 'application/json',
-        value: 'Pet',
-      },
-      {
-        key: '204',
-        contentType: '',
-        value: 'void',
-      },
+      successType('200', 'Pet', 'application/json'),
+      successType('204', 'void', ''),
     ],
     errors: [],
   },
-} as unknown as GeneratorVerbOptions['response'];
+};
 
 const createVerbOptions = (
-  overrides: Partial<GeneratorVerbOptions> = {},
-): GeneratorVerbOptions =>
-  ({
+  overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+) =>
+  createTestGeneratorVerbOptions({
     operationId: 'getPet',
     operationName: 'getPet',
     typeName: 'getPet',
     verb: 'get',
     route: '/pets/${petId}',
     pathRoute: '/pets/{petId}',
-    tags: [],
-    summary: '',
-    doc: '',
     response,
-    body: {
-      implementation: '',
-      definition: '',
-      imports: [],
-      schemas: [],
-      originalSchema: {},
-      contentType: '',
-      formData: '',
-      formUrlEncoded: '',
-      isOptional: true,
-      isBlob: false,
-    },
-    headers: undefined,
     queryParams: {
       schema: { name: 'PetParams', model: 'PetParams', imports: [] },
       deps: [],
@@ -99,7 +92,7 @@ const createVerbOptions = (
         implementation: 'petId: string',
         default: undefined,
         required: true,
-        type: 'param',
+        type: GetterPropType.PARAM,
       },
       {
         name: 'params',
@@ -107,24 +100,18 @@ const createVerbOptions = (
         implementation: 'params?: PetParams',
         default: undefined,
         required: false,
-        type: 'queryParam',
+        type: GetterPropType.QUERY_PARAM,
       },
     ],
-    mutator: undefined,
-    formData: undefined,
-    formUrlEncoded: undefined,
-    paramsSerializer: undefined,
     override: {
       requestOptions: true,
       formData: { disabled: true, arrayHandling: 'serialize' },
       formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
     },
-    originalOperation: {},
     ...overrides,
-  }) as GeneratorVerbOptions;
+  });
 
-const generatorOptions = {
+const generatorOptions = createTestGeneratorOptions({
   route: '/pets/${petId}',
   pathRoute: '/pets/{petId}',
   context: {
@@ -132,7 +119,7 @@ const generatorOptions = {
       tsconfig: { compilerOptions: { allowSyntheticDefaultImports: true } },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 const mutator: GeneratorMutator = {
   name: 'customInstance',

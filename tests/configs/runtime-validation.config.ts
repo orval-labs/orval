@@ -6,6 +6,7 @@ import { defineConfig } from 'orval';
 // per-client configs; these isolate the additive `both` output so its diff is
 // reviewed independently.
 export default defineConfig({
+  logLevel: 'error',
   fetchBoth: {
     output: {
       target: '../generated/runtime-validation/fetch-both/endpoints.ts',
@@ -28,7 +29,8 @@ export default defineConfig({
   },
   angularHttpClientBoth: {
     output: {
-      target: '../generated/runtime-validation/angular-http-client-both/endpoints.ts',
+      target:
+        '../generated/runtime-validation/angular-http-client-both/endpoints.ts',
       schemas: {
         path: '../generated/runtime-validation/angular-http-client-both/model',
         type: 'zod',
@@ -49,7 +51,8 @@ export default defineConfig({
   },
   angularHttpResourceBoth: {
     output: {
-      target: '../generated/runtime-validation/angular-http-resource-both/endpoints.ts',
+      target:
+        '../generated/runtime-validation/angular-http-resource-both/endpoints.ts',
       schemas: {
         path: '../generated/runtime-validation/angular-http-resource-both/model',
         type: 'zod',
@@ -96,8 +99,7 @@ export default defineConfig({
   // under `generated/`, which is what turns the TS1361 into a failing build.
   reactQueryFetchValidation: {
     output: {
-      target:
-        '../generated/runtime-validation/react-query-fetch/endpoints.ts',
+      target: '../generated/runtime-validation/react-query-fetch/endpoints.ts',
       schemas: {
         path: '../generated/runtime-validation/react-query-fetch/model',
         type: 'zod',
@@ -139,7 +141,8 @@ export default defineConfig({
   },
   fetchDatesTransform: {
     output: {
-      target: '../generated/runtime-validation/fetch-dates-transform/endpoints.ts',
+      target:
+        '../generated/runtime-validation/fetch-dates-transform/endpoints.ts',
       schemas: {
         path: '../generated/runtime-validation/fetch-dates-transform/model',
         type: 'zod',

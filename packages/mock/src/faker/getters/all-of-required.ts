@@ -1,10 +1,9 @@
 import {
   type ContextSpec,
   getRefInfo,
-  isReference,
-  type OpenApiSchemaObject,
+  type OpenApiNonBooleanSchemaObject,
 } from '@orval/core';
-import { prop } from 'remeda';
+import { getAtPath } from '@orval/core';
 
 import type { MockSchema } from '../../types';
 
@@ -16,27 +15,28 @@ function derefAllOfMember(
   member: MockSchema,
   context: ContextSpec,
   seen: Set<string>,
-): Partial<OpenApiSchemaObject> | undefined {
+): Partial<OpenApiNonBooleanSchemaObject> | undefined {
   let current: unknown = member;
 
-  while (current && typeof current === 'object' && isReference(current)) {
+  while (
+    current &&
+    typeof current === 'object' &&
+    '$ref' in current &&
+    typeof current.$ref === 'string'
+  ) {
     const ref = current.$ref;
-    if (typeof ref !== 'string' || seen.has(ref)) {
+    if (seen.has(ref)) {
       return undefined;
     }
     seen.add(ref);
     const { refPaths } = getRefInfo(ref, context);
     current = Array.isArray(refPaths)
-      ? prop(
-          context.spec,
-          // @ts-expect-error: refPaths are not guaranteed to be valid keys of the spec
-          ...refPaths,
-        )
+      ? getAtPath(context.spec, refPaths)
       : undefined;
   }
 
   return current && typeof current === 'object'
-    ? (current as Partial<OpenApiSchemaObject>)
+    ? (current as Partial<OpenApiNonBooleanSchemaObject>)
     : undefined;
 }
 
@@ -83,7 +83,7 @@ export function collectAllOfRequiredWithDeclared(
     }
 
     if (Array.isArray(schema.required)) {
-      required.push(...(schema.required as string[]));
+      required.push(...schema.required);
     }
 
     if (Array.isArray(schema.allOf)) {

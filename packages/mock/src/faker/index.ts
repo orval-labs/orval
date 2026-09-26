@@ -22,10 +22,10 @@ import {
   isStrictMock,
   mergeStrictMockSchemaKinds,
 } from '../mock-types';
-import { appendImportsDelta } from './imports';
 import { generateMSW } from '../msw';
 import { getMockWithoutFunc } from '../msw/mocks';
 import { getMockScalar } from './getters';
+import { appendImportsDelta } from './imports';
 
 function getFakerDependencies(
   options?: GlobalMockOptions,

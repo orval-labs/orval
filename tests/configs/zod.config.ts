@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   basic: {
     output: {
       target: '../generated/zod/basic',
@@ -254,9 +255,9 @@ export default defineConfig({
       formatter: 'prettier',
       override: {
         zod: {
-          version: 3
-        }
-      }
+          version: 3,
+        },
+      },
     },
     input: {
       target: '../specifications/enums.yaml',

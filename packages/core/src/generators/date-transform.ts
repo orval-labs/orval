@@ -1,20 +1,22 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { hasNarrowedPropertyNames } from '../getters';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   GetterBody,
   GetterResponse,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OpenApiSchemaObject,
 } from '../types';
-import { pascal } from '../utils';
-import { isReference } from '../utils/assertion';
+import { isInlineSchema, pascal, toObjectSchema } from '../utils';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
 interface NormalizedSchema {
-  schema: OpenApiSchemaObject;
+  schema: OpenApiNonBooleanSchemaObject;
   /** Set when the schema was reached through a `$ref`; drives cycle detection. */
   ref?: string;
   /** True when the schema admits `null`, in either OAS 3.0 or 3.1 spelling. */
@@ -22,11 +24,13 @@ interface NormalizedSchema {
 }
 
 const isDateSchema = (schema: OpenApiSchemaObject): boolean =>
-  schema.format === 'date' || schema.format === 'date-time';
+  !isBooleanJsonSchema(schema) &&
+  (schema.format === 'date' || schema.format === 'date-time');
 
 const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
-  if (isReference(schemaOrRef)) return false;
-  const { type } = schemaOrRef as OpenApiSchemaObject;
+  if (!isInlineSchema(schemaOrRef) || isBooleanJsonSchema(schemaOrRef))
+    return false;
+  const { type } = schemaOrRef;
   return (
     type === 'null' ||
     (Array.isArray(type) && type.length > 0 && type.every((t) => t === 'null'))
@@ -34,7 +38,9 @@ const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
 };
 
 const hasNullableType = (schema: OpenApiSchemaObject): boolean =>
-  Array.isArray(schema.type) && schema.type.includes('null');
+  !isBooleanJsonSchema(schema) &&
+  Array.isArray(schema.type) &&
+  schema.type.includes('null');
 
 /**
  * True when the schema itself names at least one property. An empty
@@ -43,7 +49,9 @@ const hasNullableType = (schema: OpenApiSchemaObject): boolean =>
  * map, so it must not count as declaring keys or as needing an object copy.
  */
 const hasOwnProperties = (schema: OpenApiSchemaObject): boolean =>
-  schema.properties != null && Object.keys(schema.properties).length > 0;
+  !isBooleanJsonSchema(schema) &&
+  schema.properties !== undefined &&
+  Object.keys(schema.properties).length > 0;
 
 /**
  * True when this schema, or any of its `allOf` branches (recursively,
@@ -75,6 +83,7 @@ const declaresProperties = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
+  if (isBooleanJsonSchema(schema)) return false;
   if (hasOwnProperties(schema)) return true;
   if (schema.oneOf || schema.anyOf) return true;
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
@@ -136,6 +145,7 @@ const mapValueSchema = (
   schema: OpenApiSchemaObject,
   context: ContextSpec,
 ): SchemaOrRef | undefined => {
+  if (isBooleanJsonSchema(schema)) return undefined;
   if (declaresProperties(schema, context)) return undefined;
   if (schema.propertyNames && hasNarrowedPropertyNames(schema, context)) {
     return undefined;
@@ -161,12 +171,19 @@ const normalizeSchema = (
   nullable = false,
   seenRefs: Set<string> = new Set(),
 ): NormalizedSchema => {
-  if (isReference(schemaOrRef) && schemaOrRef.$ref) {
+  if (isBooleanJsonSchema(schemaOrRef)) {
+    return {
+      schema: toObjectSchema(schemaOrRef),
+      nullable: schemaOrRef,
+    };
+  }
+
+  if (!isInlineSchema(schemaOrRef) && schemaOrRef.$ref) {
     const ref: string = schemaOrRef.$ref;
     // Guard against a self-referential nullable wrapper (`A: anyOf [A, null]`)
     // sending this resolution loop infinite.
     if (seenRefs.has(ref)) {
-      return { schema: {} as OpenApiSchemaObject, ref, nullable };
+      return { schema: {}, ref, nullable };
     }
     seenRefs.add(ref);
     const { schema } = resolveRef<OpenApiSchemaObject>(schemaOrRef, context);
@@ -176,7 +193,7 @@ const normalizeSchema = (
     };
   }
 
-  const schema = schemaOrRef as OpenApiSchemaObject;
+  const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
   const variants = schema.oneOf ?? schema.anyOf;
 
   if (
@@ -333,6 +350,8 @@ const buildResolvedStatements = ({
   mode: DateTransformMode;
   mapSuppressed?: boolean;
 }): BuildResult => {
+  if (isBooleanJsonSchema(schema)) return emptyResult();
+
   let result: BuildResult;
   // An ancestor allOf branch declaring `properties` makes a map loop unsafe
   // at every branch of the composition, including one — like this schema —
@@ -720,7 +739,7 @@ const responseMode: DateTransformMode = {
   arrayStatements: buildInPlaceItemsStatements,
   mapStatements: buildInPlaceMapStatements,
   propertyWriteAccessor: (accessor, key, propertySchema) =>
-    propertySchema.readOnly
+    !isBooleanJsonSchema(propertySchema) && propertySchema.readOnly
       ? propertyAccessor(mutableCast(accessor), key)
       : undefined,
   skipProperty: () => false,
@@ -824,10 +843,22 @@ const buildMappedUnionStatements = ({
   depth: number;
   mode: DateTransformMode;
 }): BuildResult => {
+  if (isBooleanJsonSchema(schema)) return emptyResult();
+
   const variants = schema.oneOf ?? schema.anyOf;
-  const propertyName = schema.discriminator?.propertyName;
-  const mapping = schema.discriminator?.mapping;
-  if (!variants || !propertyName || !mapping) return emptyResult();
+  const discriminator = schema.discriminator as
+    | { propertyName?: unknown; mapping?: Record<string, unknown> }
+    | undefined;
+  const propertyName = discriminator?.propertyName;
+  const mapping = discriminator?.mapping;
+  if (
+    !variants ||
+    typeof propertyName !== 'string' ||
+    !mapping ||
+    typeof mapping !== 'object'
+  ) {
+    return emptyResult();
+  }
 
   const caseResults = Object.entries(mapping).map(
     ([value, target]): BuildResult => {
@@ -908,7 +939,7 @@ const buildMappedUnionStatements = ({
  * — and it's correctly rejected too, since a null schema declares no
  * properties of its own.
  */
-const isObjectVariant = (schema: OpenApiSchemaObject): boolean => {
+const isObjectVariant = (schema: OpenApiNonBooleanSchemaObject): boolean => {
   if (schema.items || schema.type === 'array') return false;
   return hasOwnProperties(schema);
 };
@@ -923,7 +954,7 @@ const isObjectVariant = (schema: OpenApiSchemaObject): boolean => {
 type ClassifiedVariant =
   | {
       kind: 'walkable';
-      schema: OpenApiSchemaObject;
+      schema: OpenApiNonBooleanSchemaObject;
       ref?: string;
       objectShaped: boolean;
     }
@@ -944,7 +975,7 @@ const classifyUnionVariant = (
   context: ContextSpec,
   visitedRefs: Set<string>,
 ): ClassifiedVariant => {
-  let variantSchema: OpenApiSchemaObject;
+  let variantSchema: OpenApiNonBooleanSchemaObject;
   let ref: string | undefined;
   try {
     ({ schema: variantSchema, ref } = normalizeSchema(variant, context));
@@ -1056,7 +1087,7 @@ const discoverVariantCycles = ({
  * spelling alone drop the schema — a disagreement where there is currently
  * none, over a branch neither spelling ever converts.
  */
-const hasUnwalkedBranches = (schema: OpenApiSchemaObject): boolean =>
+const hasUnwalkedBranches = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   (schema.allOf ?? []).length > 0 ||
   schema.oneOf != null ||
   schema.anyOf != null;
@@ -1150,7 +1181,7 @@ const buildUndiscriminatedUnionStatements = ({
   depth,
   mode,
 }: {
-  schema: OpenApiSchemaObject;
+  schema: OpenApiNonBooleanSchemaObject;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
@@ -1177,7 +1208,7 @@ const buildUndiscriminatedUnionStatements = ({
   // it emits nothing either way, so it takes the wider, statement-free walk
   // (`discoverVariantCycles`) instead of the property-by-property one.
   const perVariant: {
-    schema: OpenApiSchemaObject;
+    schema: OpenApiNonBooleanSchemaObject;
     perKey: Map<string, BuildResult>;
     /** Refs seen only in branches this walk reads for cycles, never converts. */
     branchRefs: Set<string>;
@@ -1378,7 +1409,7 @@ const buildUndiscriminatedUnionStatements = ({
  * `switch` needs, not the property name.
  */
 const buildUnionStatements = (params: {
-  schema: OpenApiSchemaObject;
+  schema: OpenApiNonBooleanSchemaObject;
   accessor: string;
   context: ContextSpec;
   visitedRefs: Set<string>;
@@ -1417,7 +1448,7 @@ export const buildDateTransformStatements = ({
   }).statements;
 
 const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
-  schema.format === 'date';
+  !isBooleanJsonSchema(schema) && schema.format === 'date';
 
 /**
  * OpenAPI `format: date` is a calendar day, but JavaScript has no date-only
@@ -1630,7 +1661,8 @@ const requestMode: DateTransformMode = {
   // still walked is written into a fresh copy the caller already owns, so a
   // plain assignment through `accessor` is always writable.
   propertyWriteAccessor: () => undefined,
-  skipProperty: (schema) => schema.readOnly === true,
+  skipProperty: (schema) =>
+    !isBooleanJsonSchema(schema) && schema.readOnly === true,
   dropArrayObjectConflict: true,
 };
 
@@ -1668,9 +1700,9 @@ const resolveJsonBodySchema = (
   body: GetterBody,
   context: ContextSpec,
 ): OpenApiSchemaObject | undefined => {
-  const requestBody = isReference(body.originalSchema)
+  const requestBody = !isInlineSchema(body.originalSchema)
     ? resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema
-    : (body.originalSchema as OpenApiRequestBodyObject);
+    : body.originalSchema;
 
   const content = requestBody.content;
   if (!content) return undefined;
@@ -1680,7 +1712,7 @@ const resolveJsonBodySchema = (
   );
   if (jsonEntries.length !== 1) return undefined;
 
-  return jsonEntries[0][1].schema as OpenApiSchemaObject | undefined;
+  return jsonEntries[0][1].schema;
 };
 
 export interface GeneratedDateSerializer {

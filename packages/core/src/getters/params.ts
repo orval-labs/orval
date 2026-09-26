@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
@@ -91,12 +93,12 @@ export function getParams({
       operationId,
     );
 
-    const {
-      name: nameWithoutSanitize,
-      required = false,
-      schema,
-      allowReserved = false,
-    } = pathParam.parameter;
+    const parameter = pathParam.parameter;
+    const nameWithoutSanitize = parameter.name;
+    const required = parameter.required ?? false;
+    const schema = 'schema' in parameter ? parameter.schema : undefined;
+    const allowReserved =
+      'allowReserved' in parameter ? parameter.allowReserved : false;
 
     const name = camelPathParamName(nameWithoutSanitize ?? '');
 
@@ -120,11 +122,13 @@ export function getParams({
     const originalSchema = resolvedValue.originalSchema;
 
     // Bridge assertion: .default returns any due to AnyOtherAttribute on OpenApiSchemaObject
-    const schemaDefault = originalSchema.default as
-      | string
-      | Record<string, unknown>
-      | unknown[]
-      | undefined;
+    const schemaDefault = !isBooleanJsonSchema(originalSchema)
+      ? (originalSchema.default as
+          | string
+          | Record<string, unknown>
+          | unknown[]
+          | undefined)
+      : undefined;
 
     let paramType = resolvedValue.value;
     if (output.allParamsOptional) {

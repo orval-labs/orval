@@ -12,7 +12,11 @@ import {
 
 import { generateSpec } from './generate-spec';
 import { logger } from './logger';
-import { findConfigFile, loadConfigFile } from './utils/config';
+import {
+  findConfigFile,
+  getConfigProjects,
+  loadConfigFile,
+} from './utils/config';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
 
@@ -31,14 +35,15 @@ async function generateWithReporter(
   workspace: string,
   options?: GlobalOptions,
 ) {
-  setLogLevel(options?.logLevel ?? 'info');
   resetWarnings();
 
   if (!optionsExport || isString(optionsExport)) {
     const configFilePath = findConfigFile(optionsExport);
     const configFile = await loadConfigFile(configFilePath);
 
-    const configs = Object.entries(configFile);
+    setLogLevel(options?.logLevel ?? configFile.logLevel ?? 'info');
+
+    const configs = getConfigProjects(configFile);
 
     let hasErrors = false;
     for (const [projectName, config] of configs) {
@@ -97,6 +102,8 @@ async function generateWithReporter(
 
     return;
   }
+
+  setLogLevel(options?.logLevel ?? 'info');
 
   const normalizedOptions = await normalizeOptions(
     optionsExport,

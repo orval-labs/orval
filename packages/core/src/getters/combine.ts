@@ -1,4 +1,4 @@
-import { isNullish, prop, unique } from 'remeda';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import type { SchemaType } from '../types';
@@ -7,17 +7,20 @@ import {
   EnumGeneration,
   type GeneratorImport,
   type GeneratorSchema,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ScalarValue,
 } from '../types';
+import { getAtPath, isNullish, unique } from '../utils';
 import {
   dedupeUnionType,
   getNumberWord,
+  isInlineSchema,
+  isNullOnlyEnum,
   isObject,
-  isReference,
-  isSchema,
   pascal,
+  toObjectSchema,
 } from '../utils';
 import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
@@ -50,6 +53,9 @@ type Separator = 'allOf' | 'anyOf' | 'oneOf';
 const mergeableAllOfKeys = new Set(['type', 'properties', 'required']);
 
 function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   // Must have properties to be worth merging
   if (isNullish(schema.properties)) {
     return false;
@@ -70,21 +76,17 @@ function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
 }
 
 function normalizeAllOfSchema(
-  schema: OpenApiSchemaObject,
-): OpenApiSchemaObject {
-  // Bridge assertions: AnyOtherAttribute infects all schema property access
-  const schemaAllOf = schema.allOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  schemaInput: OpenApiSchemaObject,
+): OpenApiNonBooleanSchemaObject {
+  const schema = toObjectSchema(schemaInput);
+  const schemaAllOf = schema.allOf;
   if (!schemaAllOf) {
     return schema;
   }
 
   let didMerge = false;
-  const schemaProperties = schema.properties as
-    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-    | undefined;
-  const schemaRequired = schema.required as string[] | undefined;
+  const schemaProperties = schema.properties;
+  const schemaRequired = schema.required;
   const mergedProperties: Record<
     string,
     OpenApiSchemaObject | OpenApiReferenceObject
@@ -93,12 +95,16 @@ function normalizeAllOfSchema(
   const remainingAllOf: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
 
   for (const subSchema of schemaAllOf) {
-    if (isSchema(subSchema) && isMergeableAllOfObject(subSchema)) {
+    if (
+      isInlineSchema(subSchema) &&
+      !isBooleanJsonSchema(subSchema) &&
+      isMergeableAllOfObject(subSchema)
+    ) {
       didMerge = true;
       if (subSchema.properties) {
         Object.assign(mergedProperties, subSchema.properties);
       }
-      const subRequired = subSchema.required as string[] | undefined;
+      const subRequired = subSchema.required;
       if (subRequired) {
         for (const prop of subRequired) {
           mergedRequired.add(prop);
@@ -121,18 +127,22 @@ function normalizeAllOfSchema(
     }),
     ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
     ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
-  } as OpenApiSchemaObject;
+  } as OpenApiNonBooleanSchemaObject;
 }
 
 /** True when the schema node itself is not a single object shape. */
 function directlyEmitsNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  // Bridge assertions: AnyOtherAttribute infects all schema property access
-  if (schema.enum) {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  // `$ref` objects may still carry sibling keywords (OAS 3.1).
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
+  if (objectSchema.enum) {
     return true;
   }
-  const type = schema.type as string | string[] | undefined;
+  const type = objectSchema.type as string | string[] | undefined;
   const isObjectType =
     !type ||
     type === 'object' ||
@@ -146,17 +156,25 @@ function directlyEmitsNonObjectType(
 function isDirectlyNullable(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  const type = schema.type as string | string[] | undefined;
+  if (isBooleanJsonSchema(schema)) {
+    return schema;
+  }
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
+  const type = objectSchema.type as string | string[] | undefined;
   return type === 'null' || (Array.isArray(type) && type.includes('null'));
 }
 
 function directlyEmitsOnlyObjectOrNull(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  if (schema.enum) {
+  if (isBooleanJsonSchema(schema)) {
     return false;
   }
-  const type = schema.type as string | string[] | undefined;
+  const objectSchema = schema as OpenApiNonBooleanSchemaObject;
+  if (objectSchema.enum) {
+    return false;
+  }
+  const type = objectSchema.type as string | string[] | undefined;
   const hasObjectType =
     !type ||
     type === 'object' ||
@@ -185,13 +203,10 @@ function hasAllEnumMembers(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean {
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
     return false;
   }
-  const compositions = [schema.allOf, schema.oneOf, schema.anyOf] as (
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined
-  )[];
+  const compositions = [schema.allOf, schema.oneOf, schema.anyOf];
   return compositions.some(
     (members) =>
       !!members?.length &&
@@ -202,19 +217,17 @@ function hasAllEnumMembers(
 function usesCanonicalNullableOneOfObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
     return false;
   }
-  const members = schema.oneOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const members = schema.oneOf;
   if (!members) {
     return false;
   }
   const isNullMember = (
     member: OpenApiSchemaObject | OpenApiReferenceObject,
   ): boolean => {
-    if (isReference(member)) {
+    if (!isInlineSchema(member) || isBooleanJsonSchema(member)) {
       return false;
     }
     const type = member.type as string | string[] | undefined;
@@ -229,7 +242,8 @@ function usesCanonicalNullableOneOfObject(
     !members.some(isNullMember) ||
     nonNullMembers.length !== 1 ||
     !nonNullMember ||
-    isReference(nonNullMember)
+    !isInlineSchema(nonNullMember) ||
+    isBooleanJsonSchema(nonNullMember)
   ) {
     return false;
   }
@@ -254,12 +268,12 @@ function propagatesNullAcrossRef(
   if (isDirectlyNullable(schema)) {
     return true;
   }
-  const anyOfMembers = (schema.anyOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
+  if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  const anyOfMembers = schema.anyOf ?? [];
   return anyOfMembers.some(
-    (member) => !isReference(member) && isDirectlyNullable(member),
+    (member) => isInlineSchema(member) && isDirectlyNullable(member),
   );
 }
 
@@ -345,11 +359,7 @@ function derefComponentSchema(
     try {
       const { refPaths } = getRefInfo(current, context);
       target = Array.isArray(refPaths)
-        ? prop(
-            context.spec,
-            // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
-            ...refPaths,
-          )
+        ? getAtPath(context.spec, refPaths)
         : undefined;
     } catch {
       // getRefInfo decodes URI components and may throw on malformed refs
@@ -358,12 +368,14 @@ function derefComponentSchema(
     if (!isObject(target)) {
       return undefined;
     }
-    if (isReference(target)) {
+    if (
+      !isInlineSchema(target as OpenApiSchemaObject | OpenApiReferenceObject)
+    ) {
       // Intermediate chain hops can carry non-object-producing siblings too
       if (cannotGuaranteeAllOfPropertyKeys(target, true)) {
         return undefined;
       }
-      current = target.$ref;
+      current = (target as OpenApiReferenceObject).$ref;
       continue;
     }
     return target as OpenApiSchemaObject;
@@ -381,9 +393,12 @@ function guaranteesNonNullableObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   seenRefs = new Set<string>(),
-  crossesComponentRefBoundary = isReference(schema),
+  crossesComponentRefBoundary = !isInlineSchema(schema),
 ): boolean {
-  if (isReference(schema)) {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  if (!isInlineSchema(schema)) {
     // A nullable/non-object sibling at the ref site can be lifted outside the
     // referenced intersection, so the target cannot prove this site non-null.
     if (
@@ -425,10 +440,7 @@ function guaranteesNonNullableObject(
     return true;
   }
 
-  const members = (schema.allOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
+  const members = schema.allOf ?? [];
   return members.some((member) =>
     guaranteesNonNullableObject(member, context, new Set(seenRefs)),
   );
@@ -459,8 +471,11 @@ function collectDeepPropertyKeys(
   nullBranchesEliminated = false,
   seenRefs = new Set<string>(),
 ): string[] {
+  if (isBooleanJsonSchema(schema)) {
+    return [];
+  }
   const resolvesComponentRef =
-    crossesComponentRefBoundary || isReference(schema);
+    crossesComponentRefBoundary || !isInlineSchema(schema);
   // Checked before dereferencing: `$ref`-site siblings (a `type` union
   // admitting null, a scalar or mixed `type`) can change the emission just
   // like inline nodes.
@@ -473,7 +488,7 @@ function collectDeepPropertyKeys(
   ) {
     return [];
   }
-  if (isReference(schema)) {
+  if (!isInlineSchema(schema)) {
     const target = derefComponentSchema(schema.$ref, context, seenRefs);
     return target
       ? collectDeepPropertyKeys(
@@ -498,10 +513,7 @@ function collectDeepPropertyKeys(
       ? Object.keys(properties)
       : [];
   const parentPropertiesEliminateNull = keys.length > 0;
-  const members = (schema.allOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
+  const members = schema.allOf ?? [];
   const guaranteedObjectMembers = members.map((member) =>
     guaranteesNonNullableObject(member, context),
   );
@@ -563,11 +575,16 @@ function combineValues({
         mapping?: Record<string, string>;
       }
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
-        (s) => {
-          const disc = s?.discriminator as Discriminator | undefined;
-          return disc && resolvedValue.value.includes(` ${disc.propertyName}:`);
-        },
-      ) as OpenApiSchemaObject[];
+        (s): s is OpenApiNonBooleanSchemaObject =>
+          s !== undefined &&
+          !isBooleanJsonSchema(s) &&
+          Boolean(
+            (s.discriminator as Discriminator | undefined)?.propertyName &&
+            resolvedValue.value.includes(
+              ` ${(s.discriminator as Discriminator | undefined)?.propertyName}:`,
+            ),
+          ),
+      );
       if (discriminatedPropertySchemas.length > 0) {
         resolvedDataValue = `Omit<${resolvedDataValue}, ${getStringLiteralTypeUnion(
           discriminatedPropertySchemas.map(
@@ -589,20 +606,21 @@ function combineValues({
     // Parent object may have set required properties that only exist in child
     // objects. Make sure the resulting object has these properties as required,
     // but there is no need to override properties that are already required
-    const parentProperties = parentSchema?.properties as
+    const parentObject =
+      parentSchema !== undefined && !isBooleanJsonSchema(parentSchema)
+        ? parentSchema
+        : undefined;
+    const parentProperties = parentObject?.properties as
       | Record<string, unknown>
       | undefined;
-    const parentRequiredProperties = parentSchema?.required as
-      | string[]
-      | undefined;
+    const parentRequiredProperties = parentObject?.required;
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
         !resolvedData.originalSchema.some((schema) => {
-          const props = schema?.properties as
-            | Record<string, unknown>
-            | undefined;
-          const req = schema?.required as string[] | undefined;
-          return props?.[prop] && req?.includes(prop);
+          if (schema === undefined || isBooleanJsonSchema(schema)) return false;
+          const props = schema.properties;
+          const req = schema.required;
+          return Boolean(props?.[prop] && req?.includes(prop));
         }) &&
         !(parentProperties?.[prop] && parentRequiredProperties?.includes(prop)),
     );
@@ -675,7 +693,12 @@ function combineValues({
     values = []; // the list of values will be rebuilt to add missing properties (if exist) in subschemas
     for (let i = 0; i < resolvedData.values.length; i += 1) {
       const subSchema = resolvedData.originalSchema[i];
-      if (subSchema?.type !== 'object' || !subSchema.properties) {
+      if (
+        subSchema === undefined ||
+        isBooleanJsonSchema(subSchema) ||
+        subSchema.type !== 'object' ||
+        !subSchema.properties
+      ) {
         values.push(resolvedData.values[i]);
         continue;
       }
@@ -713,7 +736,7 @@ function combineValues({
 
 export function combineSchemas({
   name,
-  schema,
+  schema: schemaInput,
   separator,
   context,
   nullable,
@@ -726,10 +749,8 @@ export function combineSchemas({
   nullable: string;
   formDataContext?: FormDataContext;
 }): ScalarValue {
-  const originalAllOfMembers = (schema.allOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
+  const schema = toObjectSchema(schemaInput);
+  const originalAllOfMembers = schema.allOf ?? [];
   const parentNullBranchesEliminated =
     separator === 'allOf' &&
     originalAllOfMembers.some((member) =>
@@ -749,10 +770,7 @@ export function combineSchemas({
     : schema;
 
   // Bridge assertions: AnyOtherAttribute infects all schema property access
-  const items = (normalizedSchema[separator] ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
+  const items = normalizedSchema[separator] ?? [];
 
   const resolvedData: CombinedData = {
     values: [],
@@ -773,9 +791,7 @@ export function combineSchemas({
       context,
     ),
     requiredProperties:
-      separator === 'allOf'
-        ? [...((normalizedSchema.required as string[] | undefined) ?? [])]
-        : [],
+      separator === 'allOf' ? [...(normalizedSchema.required ?? [])] : [],
   };
   for (const subSchema of items) {
     // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
@@ -806,9 +822,9 @@ export function combineSchemas({
     // raw member which hides `required` behind an unresolved `$ref` or fails
     // the `isSchema` gate when it has no `type`/`properties`. See #3663.
     if (separator === 'allOf') {
-      const memberRequired = resolvedValue.originalSchema?.required as
-        | string[]
-        | undefined;
+      const memberRequired =
+        !isBooleanJsonSchema(resolvedValue.originalSchema) &&
+        resolvedValue.originalSchema.required;
       if (Array.isArray(memberRequired)) {
         resolvedData.requiredProperties.push(...memberRequired);
       }
@@ -839,7 +855,11 @@ export function combineSchemas({
     }
 
     if (resolvedValue.type === 'object') {
-      if (separator === 'allOf' && !isReference(resolvedValue.originalSchema)) {
+      if (
+        separator === 'allOf' &&
+        typeof resolvedValue.originalSchema !== 'boolean' &&
+        isInlineSchema(resolvedValue.originalSchema)
+      ) {
         // Walk the member's allOf composition so required keys living behind
         // a nested `$ref` count as resolvable (#3748). Union separators keep
         // the shallow collection: their `allProperties` also feeds
@@ -849,14 +869,14 @@ export function combineSchemas({
           ...collectDeepPropertyKeys(
             resolvedValue.originalSchema,
             context,
-            isReference(subSchema),
+            !isInlineSchema(subSchema),
           ),
         );
       } else {
         // Bridge: originalSchema.properties is infected by AnyOtherAttribute
-        const originalProps = resolvedValue.originalSchema.properties as
-          | Record<string, unknown>
-          | undefined;
+        const originalProps = !isBooleanJsonSchema(resolvedValue.originalSchema)
+          ? resolvedValue.originalSchema.properties
+          : undefined;
         if (originalProps) {
           resolvedData.allProperties.push(...Object.keys(originalProps));
         }
@@ -864,7 +884,10 @@ export function combineSchemas({
     }
   }
 
-  const isAllEnums = resolvedData.isEnum.every(Boolean);
+  const isAllEnums = resolvedData.isEnum.every(
+    (isEnum, index) =>
+      isEnum || isNullOnlyEnum(resolvedData.originalSchema[index]),
+  );
   // OAS 3.1 spells a nullable enum as `anyOf: [{enum: [...]}, {type: 'null'}]`.
   // Without this, the {type: 'null'} variant flips `isEnum` to false and the
   // enum gets inlined instead of extracted as a named type — the
@@ -962,15 +985,9 @@ export function combineSchemas({
 
   let resolvedValue: ScalarValue | undefined;
 
-  const normalizedProperties = normalizedSchema.properties as
-    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-    | undefined;
-  const schemaOneOf = schema.oneOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
-  const schemaAnyOf = schema.anyOf as
-    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    | undefined;
+  const normalizedProperties = normalizedSchema.properties;
+  const schemaOneOf = schema.oneOf;
+  const schemaAnyOf = schema.anyOf;
 
   // A discriminator parent whose oneOf/anyOf members inherit the parent via
   // allOf already carries the parent's own properties in every variant
@@ -981,34 +998,45 @@ export function combineSchemas({
   // $ref is already dereferenced at this point so we match on property names.
   // Plain discriminator unions where variants do NOT inherit the parent still
   // need the parent fields intersected. See #3826.
-  const unionMembers = ((separator === 'oneOf'
-    ? schemaOneOf
-    : separator === 'anyOf'
-      ? schemaAnyOf
-      : undefined) ?? []) as (OpenApiSchemaObject | OpenApiReferenceObject)[];
+  const unionMembers =
+    (separator === 'oneOf'
+      ? schemaOneOf
+      : separator === 'anyOf'
+        ? schemaAnyOf
+        : undefined) ?? [];
   const parentPropKeys = new Set(Object.keys(normalizedProperties ?? {}));
   const isDiscriminatedRefCycle =
     !!schema.discriminator &&
     unionMembers.length > 0 &&
-    unionMembers.every((member) => '$ref' in member) &&
+    unionMembers.every(
+      (member) =>
+        typeof member === 'object' && member !== null && '$ref' in member,
+    ) &&
     unionMembers.some((member) => {
-      if (!('$ref' in member)) return false;
+      if (
+        typeof member !== 'object' ||
+        member === null ||
+        !('$ref' in member)
+      ) {
+        return false;
+      }
       const ref = (member as OpenApiReferenceObject).$ref;
       if (!ref) return false;
       const refName = ref.split('/').pop();
-      const refSchema = context.spec?.components?.schemas?.[refName ?? ''] as
-        | OpenApiSchemaObject
-        | undefined;
-      const allOf = (refSchema?.allOf ?? []) as (
-        | OpenApiSchemaObject
-        | OpenApiReferenceObject
-      )[];
-      return allOf.some((entry) => {
+      const refSchema = context.spec?.components?.schemas?.[refName ?? ''];
+      const allOf =
+        refSchema !== undefined && !isBooleanJsonSchema(refSchema)
+          ? refSchema.allOf
+          : undefined;
+      return (allOf ?? []).some((entry) => {
+        if (isBooleanJsonSchema(entry)) {
+          return false;
+        }
         if ('$ref' in entry) {
           return !!entry.$ref && entry.$ref.endsWith('/' + name);
         }
         const entryProps = Object.keys(
-          (entry as OpenApiSchemaObject).properties ?? {},
+          (entry as OpenApiNonBooleanSchemaObject).properties ?? {},
         );
         return entryProps.some((key) => parentPropKeys.has(key));
       });

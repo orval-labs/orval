@@ -1,12 +1,12 @@
 import type {
   GeneratorImport,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
-  OpenApiSchemaObject,
 } from '@orval/core';
 
 export interface MockDefinition {
   value: string;
-  enums?: string[];
+  enums?: (string | null)[];
   imports: GeneratorImport[];
   name: string;
   overrided?: boolean;
@@ -17,16 +17,14 @@ export interface MockDefinition {
   nullWrapped?: boolean;
 }
 
-type OpenApiObjectSchema = Extract<OpenApiSchemaObject, object>;
-
 type MockSchemaRef = OpenApiReferenceObject;
 
-export type MockSchemaObject = Omit<OpenApiObjectSchema, 'enum'> & {
+export type MockSchemaObject = OpenApiNonBooleanSchemaObject & {
   name: string;
   path?: string;
   parentName?: string;
   isRef?: boolean;
-  enum?: string[];
+  enum?: (string | null)[];
 };
 
 export type MockSchema = MockSchemaObject | MockSchemaRef;

@@ -50,7 +50,8 @@ describe('endpoints-zod-both PetsService (runtimeValidation: both)', () => {
   it('logs the raw ZodError and throws when the response is invalid', async () => {
     const error = await new Promise<unknown>((resolve, reject) => {
       service.searchPets(searchParams, 1).subscribe({
-        next: (value) => reject(new Error(`expected error, got ${value}`)),
+        next: (value) =>
+          reject(new Error(`expected error, got ${JSON.stringify(value)}`)),
         error: resolve,
       });
 

@@ -2,7 +2,7 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getRefInfo,
-  isReference,
+  isInlineSchema,
   isSchemaNullable,
   type MockOptions,
 } from '@orval/core';
@@ -72,10 +72,11 @@ export function combineSchemasMock({
   const combineImports: GeneratorImport[] = [];
   const includedProperties: string[] = [...(combine?.includedProperties ?? [])];
   const separatorItems = (item[separator] ?? []) as MockSchema[];
-  const itemRequired = item.required as string[] | undefined;
+  const itemRequired = item.required;
 
   const isRefAndNotExisting =
-    isReference(item) && !existingReferencedProperties.includes(item.name);
+    typeof item.$ref === 'string' &&
+    !existingReferencedProperties.includes(item.name);
 
   // When a oneOf schema declares a discriminator with a mapping AND the
   // discriminator property is also declared on the parent's `properties`,
@@ -157,9 +158,7 @@ export function combineSchemasMock({
     itemEntriesForResolve,
   ) as MockSchemaObject;
   if (separator === 'allOf' && allRequiredFields.length > 0) {
-    const itemResolveRequired = itemSchemaForResolve.required as
-      | string[]
-      | undefined;
+    const itemResolveRequired = itemSchemaForResolve.required;
     itemSchemaForResolve.required = [
       ...new Set([...allRequiredFields, ...(itemResolveRequired ?? [])]),
     ];
@@ -187,11 +186,14 @@ export function combineSchemasMock({
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
+  let hasNullMember = false;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
   for (const val of separatorItems) {
-    const refName = isReference(val) ? getReferenceName(val.$ref, context) : '';
+    const refName = isInlineSchema(val)
+      ? ''
+      : getReferenceName(val.$ref, context);
     // For allOf: skip a base that would otherwise re-expand forever, in any of:
     //   - `refName === item.name`: the schema lists itself as its own base;
     //   - an already-seen *inline* base (`!item.isRef`): a circular inline allOf;
@@ -289,6 +291,11 @@ export function combineSchemasMock({
           : `...{${resolvedValue.value}},`;
         continue;
       }
+    }
+
+    if (separator !== 'allOf' && resolvedValue.value === 'null') {
+      if (hasNullMember) continue;
+      hasNullMember = true;
     }
 
     value += `${resolvedValue.value},`;

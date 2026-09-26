@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type { OpenApiSchemaObject } from '../types';
 import { isStringLikeSchema } from './assertion';
 
@@ -44,7 +46,10 @@ export function getFormDataFieldFileType(
   // what `resolveSpec` makes of a 3.0 `{ type: 'string', nullable: true }`
   // part, and rejecting it left nullable file fields typed `string | null`
   // while the zod/effect validators still emitted `instanceof Blob` (#4141).
-  if (!isStringLikeSchema(resolvedSchema)) {
+  if (
+    isBooleanJsonSchema(resolvedSchema) ||
+    !isStringLikeSchema(resolvedSchema)
+  ) {
     return undefined;
   }
 
@@ -53,9 +58,7 @@ export function getFormDataFieldFileType(
     return undefined;
   }
 
-  const contentMediaType = resolvedSchema.contentMediaType as
-    | string
-    | undefined;
+  const contentMediaType = resolvedSchema.contentMediaType;
   const effectiveContentType = partContentType ?? contentMediaType;
 
   if (effectiveContentType) {

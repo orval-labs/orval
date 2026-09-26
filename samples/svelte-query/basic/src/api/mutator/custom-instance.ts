@@ -1,5 +1,17 @@
 import type { AxiosRequestConfig } from 'axios';
 
+const serializeParam = (value: unknown): string => {
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+    case 'bigint':
+      return String(value);
+    default:
+      return JSON.stringify(value) ?? '';
+  }
+};
+
 const buildUrl = (
   url: string,
   params: AxiosRequestConfig['params'],
@@ -17,12 +29,12 @@ const buildUrl = (
 
     if (Array.isArray(value)) {
       for (const item of value) {
-        searchParams.append(key, String(item));
+        searchParams.append(key, serializeParam(item));
       }
       continue;
     }
 
-    searchParams.append(key, String(value));
+    searchParams.append(key, serializeParam(value));
   }
 
   const query = searchParams.toString();

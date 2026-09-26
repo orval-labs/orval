@@ -2,109 +2,77 @@ import path from 'node:path';
 
 import {
   type GeneratorOperation,
-  NamingConvention,
   type NormalizedOutputOptions,
+  type OpenApiDocument,
   OutputClient,
   OutputMockType,
   OutputMode,
   type WriteSpecBuilder,
 } from '../types';
-
-// Test fixtures for the split-style writers (writeSplitMode, writeTagsMode,
-// writeSplitTagsMode). Construct minimal builder/output objects using `as
-// unknown as` casts to avoid hand-typing every field of the large
-// NormalizedOutputOptions / WriteSpecBuilder shapes.
+import { createTestContextSpec, mergeTestOverride } from './context';
 
 export const createSplitModeOperation = (
   overrides: Partial<GeneratorOperation> = {},
-): GeneratorOperation => ({
-  imports: [],
-  implementation: '',
-  mockOutputs: [
-    {
-      type: OutputMockType.MSW,
-      implementation: {
-        function: '',
-        handler: '',
-        handlerName: 'mockHandler',
+): GeneratorOperation =>
+  ({
+    imports: [],
+    implementation: '',
+    mockOutputs: [
+      {
+        type: OutputMockType.MSW,
+        implementation: {
+          function: '',
+          handler: '',
+          handlerName: 'mockHandler',
+        },
+        imports: [],
       },
-      imports: [],
-    },
-  ],
-  tags: ['pets'],
-  operationName: 'listPets',
-  ...overrides,
-});
+    ],
+    tags: ['pets'],
+    operationName: 'listPets',
+    ...overrides,
+  }) satisfies GeneratorOperation;
 
 export const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
   ({
     operations: { listPets: createSplitModeOperation() },
     verbOptions: {},
     schemas: [],
-    title: () => ({ implementation: '', implementationMock: '' }),
-    header: () => ({ implementation: '', implementationMock: '' }),
-    footer: () => ({ implementation: '', implementationMock: '' }),
-    imports: () => '',
+    title: async () => ({ implementation: '', implementationMock: '' }),
+    header: async () => ({ implementation: '', implementationMock: '' }),
+    footer: async () => ({ implementation: '', implementationMock: '' }),
+    imports: async () => '',
     importsMock: () => '',
     extraFiles: [],
-    info: { title: 'pet-store' },
+    info: { title: 'pet-store', version: '1.0.0' },
     target,
-    spec: {},
-  }) as unknown as WriteSpecBuilder;
+    spec: {
+      openapi: '3.1.0',
+      info: { title: 'pet-store', version: '1.0.0' },
+      paths: {},
+    } satisfies OpenApiDocument,
+  }) satisfies WriteSpecBuilder;
 
 export const createSplitModeOutput = (
   target: string,
   overrides: Partial<NormalizedOutputOptions> = {},
-): NormalizedOutputOptions =>
-  ({
-    target,
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: OutputMode.SPLIT,
-    namingConvention: NamingConvention.CAMEL_CASE,
-    client: OutputClient.AXIOS,
-    httpClient: 'axios',
-    schemas: undefined,
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    clean: false,
-    docs: false,
-    headers: false,
-    indexFiles: false,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    unionAddMissingProperties: false,
-    optionsParamRequired: false,
-    propertySortOrder: 'Alphabetical',
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    override: {
-      tags: {},
-      operations: {},
-      mutator: undefined,
-      paramsSerializerOptions: undefined,
-      requestOptions: true,
-      header: false,
-      formData: { disabled: false, mutator: undefined },
-      formUrlEncoded: false,
-      components: {
-        schemas: { suffix: '', itemSuffix: '' },
-        responses: { suffix: '' },
-        parameters: { suffix: '' },
-        requestBodies: { suffix: '' },
-      },
-      namingConvention: {},
-      hono: {},
-      mcp: {},
-      query: {},
-      angular: { provideIn: false },
-      swr: {},
-      zod: {},
-      effect: {},
-      axios: {},
-      fetch: {},
+): NormalizedOutputOptions => {
+  const base = createTestContextSpec({
+    output: {
+      target,
+      mode: OutputMode.SPLIT,
+      client: OutputClient.AXIOS,
+      httpClient: 'axios',
+      propertySortOrder: 'Alphabetical',
     },
+  }).output;
+
+  return {
+    ...base,
     ...overrides,
-  }) as unknown as NormalizedOutputOptions;
+    override: mergeTestOverride(base.override, overrides.override),
+  } satisfies NormalizedOutputOptions;
+};
 
 export const createSplitModeProps = (target: string) => ({
   builder: createSplitModeBuilder(target),

@@ -21,7 +21,11 @@ import {
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
 import { logger } from '../logger';
-import { findConfigFile, loadConfigFile } from '../utils/config';
+import {
+  findConfigFile,
+  getConfigProjects,
+  loadConfigFile,
+} from '../utils/config';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 const orvalMessage = startMessage({
@@ -107,17 +111,18 @@ cli
   )
   .action(async (options) => {
     await withReporter(consoleReporter, async () => {
-      setLogLevel(
-        resolveLogLevel({
-          verbose: options.verbose,
-          quiet: options.quiet,
-          logLevel: options.logLevel,
-        }),
-      );
       resetWarnings();
-      logger.info(orvalMessage);
 
       if (isString(options.input) && isString(options.output)) {
+        setLogLevel(
+          resolveLogLevel({
+            verbose: options.verbose,
+            quiet: options.quiet,
+            logLevel: options.logLevel,
+          }),
+        );
+        logger.info(orvalMessage);
+
         const normalizedOptions = await normalizeOptions({
           input: options.input,
           output: {
@@ -163,9 +168,19 @@ cli
         const configFilePath = findConfigFile(options.config);
         const workspace = path.dirname(configFilePath);
         const configFile = await loadConfigFile(configFilePath);
+        const projects = Object.fromEntries(getConfigProjects(configFile));
+
+        setLogLevel(
+          resolveLogLevel({
+            verbose: options.verbose,
+            quiet: options.quiet,
+            logLevel: options.logLevel ?? configFile.logLevel,
+          }),
+        );
+        logger.info(orvalMessage);
 
         const missingProjects = options.project?.filter(
-          (p) => !Object.hasOwn(configFile, p),
+          (p) => !Object.hasOwn(projects, p),
         );
 
         if (missingProjects?.length) {
@@ -175,7 +190,7 @@ cli
           process.exit(1);
         }
 
-        const configs = Object.entries(configFile).filter(
+        const configs = Object.entries(projects).filter(
           ([projectName]) =>
             // only filter by project if specified
             !Array.isArray(options.project) ||

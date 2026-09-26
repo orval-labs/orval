@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -22,7 +22,7 @@ describe('writeTagsOperationsSplitMode', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('writes a runtime file and a schemas file per operation', async () => {

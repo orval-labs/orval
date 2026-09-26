@@ -1,10 +1,5 @@
 import { defineTransformer } from 'orval';
 
-type OperationParameter = {
-  name?: string;
-  in?: string;
-} & Record<string, unknown>;
-
 const HTTP_VERBS = new Set([
   'get',
   'put',
@@ -34,18 +29,24 @@ export default defineTransformer((inputSchema) => ({
             };
           }
 
-          const existingParameters = Array.isArray(operation.parameters)
-            ? (operation.parameters as OperationParameter[])
+          const parameters =
+            'parameters' in operation ? operation.parameters : undefined;
+          const existingParameters = Array.isArray(parameters)
+            ? parameters
             : [];
 
-          const filteredParameters = existingParameters.filter(
-            (parameter) =>
-              !(
-                parameter &&
-                parameter.in === 'path' &&
-                parameter.name === 'version'
-              ),
-          );
+          const filteredParameters = existingParameters.filter((parameter) => {
+            if (!parameter || typeof parameter !== 'object') {
+              return true;
+            }
+
+            return !(
+              'in' in parameter &&
+              'name' in parameter &&
+              parameter.in === 'path' &&
+              parameter.name === 'version'
+            );
+          });
 
           return {
             ...pathItemAcc,

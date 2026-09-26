@@ -32,11 +32,12 @@ import {
   makeRouteSafe,
   needsHttpStatusCodeTypes,
   type OpenApiParameterObject,
+  type OpenApiParameterWithSchemaObject,
   type NormalizedOverrideOutput,
-  type OpenApiPathItemObject,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
+  toObjectSchema,
   OutputClient,
   pascal,
   resolveRef,
@@ -47,10 +48,19 @@ import {
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: GeneratorOptions['context'],
-) =>
-  resolveRef(schema, context) as {
+) => {
+  if (typeof schema === 'boolean') {
+    return { schema: toObjectSchema(schema) };
+  }
+  const resolved = resolveRef(schema as OpenApiReferenceObject, context) as {
     schema: OpenApiSchemaObject;
   };
+  return { schema: toObjectSchema(resolved.schema) };
+};
+
+const isSchemaParameter = (
+  parameter: OpenApiParameterObject,
+): parameter is OpenApiParameterWithSchemaObject => 'schema' in parameter;
 
 const getFetchZodDependency = (
   override?: NormalizedOverrideOutput,
@@ -128,7 +138,7 @@ const getMutatorErrorResponseArgument = (
         );
       }
       const { schema } = resolveRef<OpenApiResponseObject>(
-        declaredResponse,
+        declaredResponse as OpenApiReferenceObject,
         context,
       );
       const contentTypes = Object.keys(schema.content ?? {});
@@ -231,15 +241,15 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.spec.paths?.[pathRoute] as
-    | OpenApiPathItemObject
-    | undefined;
+  const spec = context.spec.paths?.[pathRoute];
+  // `query` is an orval verb, not an OpenAPI path-item method.
+  const operation = spec && verb !== 'query' ? spec[verb] : undefined;
   // Path-item-level parameters apply to every operation under the path, and an
   // operation-level parameter with the same name and location overrides them.
   // Same dedup rule as `getParameters` in core.
   const parameters = [
     ...(spec?.parameters ?? []),
-    ...(spec?.[verb]?.parameters ?? []),
+    ...(operation?.parameters ?? []),
   ];
   const parameterObjects = [
     ...new Map(
@@ -257,33 +267,28 @@ export const generateRequestFunction = (
   const arrayFormat = override.fetch.arrayFormat;
 
   const isArrayLikeParam = (parameterObject: OpenApiParameterObject) => {
-    if (!parameterObject.schema) return false;
+    if (!isSchemaParameter(parameterObject)) return false;
     const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
+    const compositionIncludesArray = (
+      members: readonly (OpenApiSchemaObject | OpenApiReferenceObject)[] = [],
+    ) =>
+      members.some(
+        (member) => resolveSchemaRef(member, context).schema.type === 'array',
+      );
     return (
       schemaObject.type === 'array' ||
-      (
-        (schemaObject.oneOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
-      (
-        (schemaObject.anyOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
-      (
-        (schemaObject.allOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array')
+      compositionIncludesArray(schemaObject.oneOf) ||
+      compositionIncludesArray(schemaObject.anyOf) ||
+      compositionIncludesArray(schemaObject.allOf)
     );
   };
 
   const explodeParameters = parameterObjects.filter(
-    (parameterObject) =>
+    (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
+      isSchemaParameter(parameterObject) &&
       parameterObject.in === 'query' &&
       isArrayLikeParam(parameterObject) &&
       (parameterObject.style ?? 'form') === 'form' &&
@@ -297,7 +302,10 @@ export const generateRequestFunction = (
   // Array params where the spec does not explicitly set explode — arrayFormat applies here.
   const arrayFormatParameters = arrayFormat
     ? parameterObjects.filter(
-        (parameterObject) =>
+        (
+          parameterObject,
+        ): parameterObject is OpenApiParameterWithSchemaObject =>
+          isSchemaParameter(parameterObject) &&
           parameterObject.in === 'query' &&
           isArrayLikeParam(parameterObject) &&
           parameterObject.explode === undefined,
@@ -314,10 +322,6 @@ export const generateRequestFunction = (
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some((parameter) => {
-      if (!parameter.schema) {
-        return false;
-      }
-
       const { schema } = resolveSchemaRef(parameter.schema, context);
       return schema.format === 'date-time';
     });
@@ -325,10 +329,6 @@ export const generateRequestFunction = (
   const hasArrayFormatDateParams =
     context.output.override.useDates &&
     arrayFormatParameters.some((parameter) => {
-      if (!parameter.schema) {
-        return false;
-      }
-
       const { schema } = resolveSchemaRef(parameter.schema, context);
       return schema.format === 'date-time';
     });
@@ -364,8 +364,10 @@ export const generateRequestFunction = (
       : '';
 
   const deepObjectParameters = parameterObjects.filter(
-    (parameterObject) =>
-      parameterObject.in === 'query' && parameterObject.style === 'deepObject',
+    (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
+      isSchemaParameter(parameterObject) &&
+      parameterObject.in === 'query' &&
+      parameterObject.style === 'deepObject',
   );
 
   const deepObjectParameterNames = deepObjectParameters.map(
@@ -375,22 +377,13 @@ export const generateRequestFunction = (
   const hasDeepObjectDateParams =
     context.output.override.useDates &&
     deepObjectParameters.some((parameter) => {
-      if (!parameter.schema) {
-        return false;
-      }
-
       const { schema } = resolveSchemaRef(parameter.schema, context);
 
       if (!schema.properties) {
         return false;
       }
 
-      return Object.values(
-        schema.properties as Record<
-          string,
-          OpenApiSchemaObject | OpenApiReferenceObject
-        >,
-      ).some((prop) => {
+      return Object.values(schema.properties).some((prop) => {
         const { schema: propSchema } = resolveSchemaRef(prop, context);
         return propSchema.format === 'date-time';
       });
@@ -420,7 +413,7 @@ export const generateRequestFunction = (
   const hasDateParams =
     context.output.override.useDates &&
     parameterObjects.some((parameter) => {
-      if (!parameter.schema) {
+      if (!isSchemaParameter(parameter)) {
         return false;
       }
 

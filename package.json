@@ -1,6 +1,6 @@
 {
   "name": "orval-workspaces",
-  "version": "8.36.0",
+  "version": "8.37.0",
   "private": true,
   "license": "MIT",
   "workspaces": [
@@ -25,10 +25,10 @@
     "test:samples": "vp run -F './samples/**' test",
     "test:snapshots": "vp run -F './packages/*' build:release && vp run -F './samples/**' -F orval-tests generate-api && vp run -F './samples/**' -F orval-tests test:snapshots",
     "test:snapshots:update": "vp run -F './packages/*' build:release && vp run -F './samples/**' -F orval-tests generate-api && vp run -F './samples/**' -F orval-tests test:snapshots:update",
-    "lint": "vp lint --type-aware --type-check packages",
+    "lint": "vp lint packages",
     "lint:samples": "vp lint samples",
-    "lint:snapshots": "vp lint tests/__snapshots__",
-    "lint:all": "vp run -w lint && vp run -w lint:samples && vp run -w lint:snapshots",
+    "lint:tests": "vp lint tests",
+    "lint:all": "vp run -w lint && vp run -w lint:samples && vp run -w lint:tests",
     "clean": "vp cache clean",
     "clean:all": "vp run -r clean",
     "nuke:all": "vp run -r nuke && rimraf node_modules"
@@ -52,7 +52,7 @@
   },
   "packageManager": "bun@1.4.2",
   "catalog": {
-    "@scalar/openapi-types": "0.9.6",
+    "@scalar/openapi-types": "0.9.7",
     "@types/node": "22.18.12",
     "eslint": "10.1.0",
     "globals": "17.4.0",

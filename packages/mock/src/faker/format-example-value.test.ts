@@ -1,47 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
-import {
-  formatScalarExampleValue,
-  formatSchemaExampleValue,
-} from './format-example-value';
+import { formatSchemaExampleValue } from './format-example-value';
 
 const dateContext = createTestContextSpec({ override: { useDates: true } });
 const plainContext = createTestContextSpec({ override: { useDates: false } });
-
-describe('formatScalarExampleValue', () => {
-  it('wraps date-time examples in new Date() when useDates is enabled', () => {
-    expect(
-      formatScalarExampleValue(
-        '2023-12-31T06:46:39.477Z',
-        'date-time',
-        dateContext,
-      ),
-    ).toBe('new Date("2023-12-31T06:46:39.477Z")');
-  });
-
-  it('wraps date examples in new Date() when useDates is enabled', () => {
-    expect(formatScalarExampleValue('2023-12-31', 'date', dateContext)).toBe(
-      'new Date("2023-12-31")',
-    );
-  });
-
-  it('keeps non-date examples as JSON strings', () => {
-    expect(formatScalarExampleValue('hello', undefined, dateContext)).toBe(
-      '"hello"',
-    );
-  });
-
-  it('does not wrap dates when useDates is disabled', () => {
-    expect(
-      formatScalarExampleValue(
-        '2023-12-31T06:46:39.477Z',
-        'date-time',
-        plainContext,
-      ),
-    ).toBe('"2023-12-31T06:46:39.477Z"');
-  });
-});
 
 describe('formatSchemaExampleValue', () => {
   it('converts nested response examples using schema property formats', () => {

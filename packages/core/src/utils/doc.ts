@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type { ContextSpec } from '../types';
 
 const search = String.raw`\*/`; // Find '*/'
@@ -171,28 +173,37 @@ function renderJsDocBlock(lines: string[], tryOneLine = false): string {
 }
 
 export function jsDoc(
-  schema: object & JsDocSchema,
+  schema: object | boolean,
   tryOneLine = false,
   context?: ContextSpec,
 ): string {
+  if (isBooleanJsonSchema(schema)) {
+    return '';
+  }
+  const jsDocSchema = schema as JsDocSchema;
+
   if (context?.output.override.jsDoc) {
     const { filter } = context.output.override.jsDoc;
     if (filter) {
-      return keyValuePairsToJsDoc(filter(schema));
+      return keyValuePairsToJsDoc(filter(jsDocSchema));
     }
   }
 
   const isNullable =
-    schema.type === 'null' ||
-    (Array.isArray(schema.type) && schema.type.includes('null'));
-  const itemValidationDocEntries = getItemValidationDocEntries(schema.items);
+    jsDocSchema.type === 'null' ||
+    (Array.isArray(jsDocSchema.type) && jsDocSchema.type.includes('null'));
+  const itemValidationDocEntries = getItemValidationDocEntries(
+    jsDocSchema.items,
+  );
   const lines = [
-    ...getDescriptionLines(schema.description),
-    ...getSchemaDocEntries(schema, itemValidationDocEntries, isNullable).map(
-      (entry) => formatJsDocEntry(entry),
-    ),
+    ...getDescriptionLines(jsDocSchema.description),
+    ...getSchemaDocEntries(
+      jsDocSchema,
+      itemValidationDocEntries,
+      isNullable,
+    ).map((entry) => formatJsDocEntry(entry)),
   ];
-  const eslintDisable = getEslintDisable(schema.description);
+  const eslintDisable = getEslintDisable(jsDocSchema.description);
   const doc = renderJsDocBlock(lines, tryOneLine);
 
   return `${eslintDisable ? `/* ${escapeJsDoc(eslintDisable)} */\n` : ''}${doc}`;

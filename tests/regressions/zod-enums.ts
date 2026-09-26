@@ -1,11 +1,11 @@
 import {
-  GetApiRequiredCatResponse,
-  GetApiPetTrainingResponse,
-} from '../generated/zod/enums/enums';
-import {
   GetApiRequiredCatResponse as GetApiRequiredCatResponseV3,
   GetApiPetTrainingResponse as GetApiPetTrainingResponseV3,
 } from '../generated/zod/enums-v3/enums-v3';
+import {
+  GetApiRequiredCatResponse,
+  GetApiPetTrainingResponse,
+} from '../generated/zod/enums/enums';
 
 // Zod 4
 const componentValue = GetApiPetTrainingResponse.enum;
@@ -19,8 +19,7 @@ const inlineColor: 'BLACK' = color.enum.Black;
 const componentValueV3 = GetApiPetTrainingResponseV3.enum;
 const expertV3: 4 = componentValueV3.Expert;
 
-const petV3 =
-  GetApiRequiredCatResponseV3.shape.petsRequested.unwrap().element;
+const petV3 = GetApiRequiredCatResponseV3.shape.petsRequested.unwrap().element;
 const colorV3 = petV3.shape.colours.element;
 const inlineColorV3: 'BLACK' = colorV3.enum.Black;
 

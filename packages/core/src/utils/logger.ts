@@ -1,7 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { styleText } from 'node:util';
 
-import { isString } from './assertion';
 import {
   ErrorWithTag,
   type LogLevel,
@@ -9,6 +8,7 @@ import {
   type OrvalReporter,
   type OrvalReportEvent,
 } from '../types';
+import { isString } from './assertion';
 
 type ReportStore = {
   reporter: OrvalReporter;
@@ -117,10 +117,6 @@ export function setProjectName(projectName?: string) {
   });
 }
 
-export function getProjectName(): string | undefined {
-  return storage.getStore()?.projectName;
-}
-
 /** Re-enter the current report scope from later callbacks (watchers). */
 export function bindReporter() {
   const context = storage.getStore();
@@ -156,10 +152,6 @@ export function resolveLogLevel(options: {
     return 'warn';
   }
   return options.logLevel ?? 'info';
-}
-
-export function getLogLevel(): LogLevel {
-  return logLevel;
 }
 
 export function isLogLevelEnabled(level: LogLevel): boolean {

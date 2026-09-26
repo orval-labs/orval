@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { styleText } from 'node:util';
 
 import {
@@ -8,9 +9,8 @@ import {
   resolveInstalledVersions,
 } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
-import fs from 'fs-extra';
-import JSON5 from 'json5';
 import yaml from 'js-yaml';
+import JSON5 from 'json5';
 
 import { logger } from '../logger';
 import { normalizePath } from './options';
@@ -43,7 +43,9 @@ export const loadPackageJson = async (
   if (fs.existsSync(normalizedPath)) {
     let pkg: unknown;
     try {
-      pkg = JSON5.parse(await fs.readFile(normalizedPath, 'utf8')) as unknown;
+      pkg = JSON5.parse(
+        await fs.promises.readFile(normalizedPath, 'utf8'),
+      ) as unknown;
     } catch (error) {
       throw new Error(
         `Oups... 🍺. Path: ${normalizedPath} => ${String(error)}`,
@@ -109,7 +111,7 @@ const loadPnpmWorkspaceCatalog = async (
   const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
   if (!filePath) return undefined;
   try {
-    const file = await fs.readFile(filePath, 'utf8');
+    const file = await fs.promises.readFile(filePath, 'utf8');
     const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
     return {
@@ -128,7 +130,10 @@ const loadPackageJsonCatalog = async (
 
   for (const filePath of filePaths) {
     try {
-      const pkg = (await fs.readJson(filePath)) as Record<string, unknown>;
+      // fs-extra's readJson stripped a leading BOM; JSON.parse rejects it.
+      const pkg = JSON.parse(
+        (await fs.promises.readFile(filePath, 'utf8')).replace(/^\uFEFF/, ''),
+      ) as Record<string, unknown>;
       if (pkg.catalog || pkg.catalogs) {
         return {
           catalog: pkg.catalog as CatalogData['catalog'],
@@ -148,7 +153,7 @@ const loadYarnrcCatalog = async (
   const filePath = await findUp('.yarnrc.yml', { cwd: workspace });
   if (!filePath) return undefined;
   try {
-    const file = await fs.readFile(filePath, 'utf8');
+    const file = await fs.promises.readFile(filePath, 'utf8');
     const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
     return {

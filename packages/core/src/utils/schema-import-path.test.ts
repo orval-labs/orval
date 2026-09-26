@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import {
   NamingConvention,
   type GeneratorImport,
   type NormalizedOutputOptions,
+  type NormalizedSchemaOptions,
 } from '../types';
 import { createSchemaOutputPlan } from '../writers/schema-output-plan';
 import { resolveSchemaImportDependencies } from './schema-import-path';
@@ -18,37 +20,39 @@ import { resolveSchemaImportDependencies } from './schema-import-path';
  */
 const createOutput = (
   overrides: Partial<NormalizedOutputOptions> = {},
-): NormalizedOutputOptions =>
-  ({
-    target: '/tmp/pets.ts',
-    namingConvention: 'camelCase',
-    fileExtension: '.ts',
-    // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
-    // output, or to the user's `fileExtension` when they set one.
-    schemaFileExtension: '.zod.ts',
-    indexFiles: true,
+): NormalizedOutputOptions => {
+  const base = createTestContextSpec({
+    output: {
+      target: '/tmp/pets.ts',
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
+      // output, or to the user's `fileExtension` when they set one.
+      schemaFileExtension: '.zod.ts',
+      indexFiles: true,
+    },
+  }).output;
+
+  return {
+    ...base,
     schemas: {
       path: '/models',
       type: 'typescript',
       splitByTags: false,
     },
     ...overrides,
-  }) as unknown as NormalizedOutputOptions;
+  } satisfies NormalizedOutputOptions;
+};
 
 const createSchemas = (
-  overrides: Partial<{
-    path: string;
-    type: 'typescript' | 'zod';
-    importPath?: string;
-    splitByTags: boolean;
-  }> = {},
-): NormalizedOutputOptions['schemas'] =>
+  overrides: Partial<NormalizedSchemaOptions> = {},
+): NormalizedSchemaOptions =>
   ({
     path: '/models',
     type: 'typescript',
     splitByTags: false,
     ...overrides,
-  }) as NormalizedOutputOptions['schemas'];
+  }) satisfies NormalizedSchemaOptions;
 
 const PET: GeneratorImport = { name: 'Pet', schemaName: 'pet_original' };
 const ERROR: GeneratorImport = { name: 'Error' };
@@ -226,8 +230,9 @@ describe('resolveSchemaImportDependencies', () => {
           path: '/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
           routes: { default: 'models', enum: 'enums' },
-        } as unknown as NormalizedOutputOptions['schemas'],
+        } satisfies NormalizedSchemaOptions,
       });
 
       const plan = createSchemaOutputPlan({

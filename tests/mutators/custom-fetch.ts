@@ -29,12 +29,11 @@ const getUrl = (contextUrl: string): string => {
 };
 
 // NOTE: Add headers
-const getHeaders = (headers?: HeadersInit): HeadersInit => {
-  return {
-    ...headers,
-    Authorization: 'token',
-    'Content-Type': 'multipart/form-data',
-  };
+const getHeaders = (headers?: HeadersInit): Headers => {
+  const result = new Headers(headers);
+  result.set('Authorization', 'token');
+  result.set('Content-Type', 'multipart/form-data');
+  return result;
 };
 
 export const customFetch = async <T>(

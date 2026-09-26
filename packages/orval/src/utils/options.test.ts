@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { noopReporter, withReporter } from '@orval/core';
+import type { NormalizedSchemaOptions } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -11,7 +12,6 @@ import {
   it,
   vi,
 } from 'vite-plus/test';
-import type { NormalizedSchemaOptions } from '@orval/core';
 
 import { normalizeOptions as normalizeOptionsImpl } from './options';
 

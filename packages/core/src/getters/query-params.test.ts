@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
+import { createTestContextSpec } from '../test-utils';
 import { EnumGeneration, type OpenApiParameterObject } from '../types';
 import { getParameters } from './parameters';
 import { getQueryParams } from './query-params';
@@ -162,7 +162,6 @@ describe('getQueryParams getter', () => {
               type: 'integer',
               enum: [0, 1, 2],
             },
-            // @ts-expect-error vendor extension
             'x-enum-varnames': [
               'SORT_BY_UNSPECIFIED',
               'SORT_BY_START',
@@ -387,6 +386,39 @@ describe('getQueryParams getter', () => {
     // The null variant must not leak into the const body as a `null: null`
     // member — that would emit invalid TypeScript.
     expect(statusEnum?.model).not.toContain('null: null');
+  });
+
+  // A native enum cannot hold `null`, so the reference carries it (#4203).
+  it('queryParam with nullable enum under native enum mode keeps | null on the reference', () => {
+    const enumContext = createTestContextSpec({
+      override: {
+        enumGenerationType: EnumGeneration.ENUM,
+      },
+    });
+
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: ['string', 'null'], enum: ['new', null] },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context: enumContext,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\n/**\n * @nullable\n */\nstatus?: Status | null;\n};`,
+    );
+
+    const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
+    expect(statusEnum?.model).toContain(`export enum Status {`);
+    expect(statusEnum?.model).not.toContain('null');
   });
 
   // Parallel integration coverage for `oneOf`. Same processing path as anyOf

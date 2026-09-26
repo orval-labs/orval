@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import nodePath from 'node:path';
 
 import {
@@ -34,9 +35,19 @@ import {
   upath,
 } from '@orval/core';
 import { generateZod, getZodImportSource } from '@orval/zod';
-import fs from 'fs-extra';
 
 import { logger } from './logger';
+
+function successResponseJsonSchema(
+  originalSchema: GeneratorVerbOptions['response']['originalSchema'],
+) {
+  const response = originalSchema?.['200'];
+  if (!response || !('content' in response)) {
+    return undefined;
+  }
+
+  return response.content?.['application/json'];
+}
 
 import {
   type DesiredImports,
@@ -265,10 +276,7 @@ const getDesiredValidators = (
   }
   if (
     validator !== 'hono' &&
-    verbOption.response.originalSchema?.['200']?.content?.[
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'application/json'
-    ]
+    successResponseJsonSchema(verbOption.response.originalSchema)
   ) {
     validators.push({
       target: 'response',
@@ -359,9 +367,7 @@ const getZvalidatorImports = (
 
     if (
       !isHonoValidator &&
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      response.originalSchema?.['200']?.content?.['application/json'] !=
-        undefined
+      successResponseJsonSchema(response.originalSchema) != undefined
     ) {
       specifiers.push(`${pascalTypeName}Response`);
     }
@@ -546,7 +552,7 @@ export const generateHandlerFile = async ({
     });
   }
 
-  const source = await fs.readFile(path, 'utf8');
+  const source = await fs.promises.readFile(path, 'utf8');
 
   if (strategy === 'skip') {
     return source;

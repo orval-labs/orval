@@ -1,16 +1,32 @@
 import type {
   ContextSpec,
   MockOptions,
+  OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../../../core/src/test-utils';
+import type { MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
 
-const petSchema = {
+function mockObjectItem(
+  item: Record<string, unknown> & { name: string },
+): MockSchemaObject {
+  return item as MockSchemaObject;
+}
+
+function getObject(
+  args: Omit<Parameters<typeof getMockObject>[0], 'item'> & {
+    item: Record<string, unknown> & { name: string };
+  },
+) {
+  return getMockObject({ ...args, item: mockObjectItem(args.item) });
+}
+
+const petSchema = mockObjectItem({
   name: 'Pet',
-  type: 'object' as const,
+  type: 'object',
   required: ['id', 'name'],
   properties: {
     id: { type: 'integer', format: 'int64' },
@@ -25,17 +41,17 @@ const petSchema = {
       items: { type: 'string' },
     },
   },
-};
+});
 
 describe('getMockObject', () => {
   const context: ContextSpec = createTestContextSpec();
 
   const getObjectMock = (
-    item: Parameters<typeof getMockObject>[0]['item'],
+    item: Record<string, unknown> & { name: string },
     mockOptions?: MockOptions,
   ) =>
-    getMockObject({
-      item,
+    getObject({
+      item: mockObjectItem(item),
       operationId: 'getPetById',
       tags: [],
       context,
@@ -46,7 +62,7 @@ describe('getMockObject', () => {
     });
 
   it('generates object properties for nullable object type arrays (OpenAPI 3.1)', () => {
-    const result = getMockObject({
+    const result = getObject({
       item: {
         name: 'nullableObject',
         type: ['object', 'null'],
@@ -70,7 +86,7 @@ describe('getMockObject', () => {
   });
 
   it('generates object properties for nullable object with required fields (OpenAPI 3.1)', () => {
-    const result = getMockObject({
+    const result = getObject({
       item: {
         name: 'nullableObject',
         type: ['object', 'null'],
@@ -98,7 +114,7 @@ describe('getMockObject', () => {
   });
 
   it('returns empty object variant when nullable object has no properties (OpenAPI 3.1)', () => {
-    const result = getMockObject({
+    const result = getObject({
       item: {
         name: 'nullableObject',
         type: ['object', 'null'],
@@ -454,7 +470,7 @@ describe('getMockObject', () => {
     );
 
     expect(() =>
-      getMockObject({
+      getObject({
         item: {
           name: 'Parent',
           type: 'object',
@@ -473,7 +489,7 @@ describe('getMockObject', () => {
       }),
     ).not.toThrow();
 
-    const result = getMockObject({
+    const result = getObject({
       item: {
         name: 'Parent',
         type: 'object',
@@ -504,17 +520,17 @@ describe('getMockObject recursive reference terminators', () => {
   } satisfies OpenApiSchemaObject;
 
   const buildNode = (
-    schema: Exclude<OpenApiSchemaObject, boolean>,
+    schema: OpenApiNonBooleanSchemaObject,
     mockOptions?: MockOptions,
   ) => {
     const context = createTestContextSpec({
       spec: { components: { schemas: { Node: schema } } },
     });
-    return getMockObject({
+    return getObject({
       item: {
         name: 'Node',
         ...schema,
-      } as Parameters<typeof getMockObject>[0]['item'],
+      },
       operationId: 'Node',
       tags: [],
       context,
@@ -567,7 +583,7 @@ describe('getMockObject (degenerate null values)', () => {
   const context: ContextSpec = createTestContextSpec();
 
   it('does not randomize a property whose mock is already null', () => {
-    const result = getMockObject({
+    const result = getObject({
       item: {
         name: 'Container',
         type: 'object' as const,

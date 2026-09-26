@@ -7,11 +7,12 @@
   },
   "dependencies": {
     "@hono/zod-validator": "catalog:hono",
-    "hono": "catalog:hono"
+    "hono": "catalog:hono",
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260131.0",
     "wrangler": "^4.79.0"
   },
-  "version": "8.36.0"
+  "version": "8.37.0"
 }

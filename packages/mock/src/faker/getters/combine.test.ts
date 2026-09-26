@@ -20,7 +20,11 @@ function createMockContext(): ContextSpec {
   return {
     target: 'test',
     workspace: 'test',
-    spec: { openapi: '3.1.0', info: { title: 'Test' }, paths: {} },
+    spec: {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+    },
     output: {
       target: '',
       namingConvention: NamingConvention.CAMEL_CASE,
@@ -212,6 +216,7 @@ describe('collectAllOfRequired', () => {
     const members: MockSchema[] = [
       { $ref: '#/components/schemas/B' },
       {
+        name: 'inline',
         type: 'object',
         required: ['aField'],
         properties: { aField: { type: 'string' } },
@@ -351,6 +356,26 @@ describe('combineSchemasMock', () => {
 
     expect(result).toBeDefined();
     expect(result.name).toBe('Config');
+  });
+
+  it('emits a single null member when several anyOf branches only allow null', () => {
+    const item: MockSchemaObject = {
+      name: 'MaybeLabel',
+      anyOf: [{ type: 'string' }, { enum: [null] }, { type: 'null' }],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'anyOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value.match(/\bnull\b/g)).toHaveLength(1);
   });
 
   it('should skip already referenced properties in allOf', () => {

@@ -1,6 +1,5 @@
 import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
-import { isArray } from 'remeda';
 
 import type { GeneratorMutatorParsingInfo } from '../types';
 
@@ -227,7 +226,7 @@ function parseFunction(
     const returnStatement =
       'body' in declaration.init &&
       'body' in declaration.init.body &&
-      isArray(declaration.init.body.body)
+      Array.isArray(declaration.init.body.body)
         ? declaration.init.body.body.find((b) => b.type === 'ReturnStatement')
         : undefined;
 

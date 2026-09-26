@@ -1,6 +1,12 @@
 import { defineTransformer } from 'orval';
 
-export default defineTransformer((inputSchema) => ({
+/**
+ * Prefixes every path with `/v{version}` and adds a required `version` path
+ * parameter.
+ *
+ * @type {Parameters<typeof import('orval').defineTransformer>[0]}
+ */
+const addVersion = (inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths).reduce(
     (acc, [path, pathItem]) => ({
@@ -29,4 +35,6 @@ export default defineTransformer((inputSchema) => ({
     }),
     {},
   ),
-}));
+});
+
+export default defineTransformer(addVersion);

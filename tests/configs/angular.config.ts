@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   petstore: {
     output: {
       target: '../generated/angular/petstore/endpoints.ts',
@@ -318,7 +319,8 @@ export default defineConfig({
     output: {
       target:
         '../generated/angular/http-resource-both-tags-split-barrel/endpoints.ts',
-      schemas: '../generated/angular/http-resource-both-tags-split-barrel/model',
+      schemas:
+        '../generated/angular/http-resource-both-tags-split-barrel/model',
       client: 'angular',
       mode: 'tags-split',
       mock: false,

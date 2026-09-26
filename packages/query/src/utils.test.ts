@@ -1,8 +1,7 @@
 import vm from 'node:vm';
 
-import { describe, expect, it } from 'vite-plus/test';
-
 import type { GeneratorMutator } from '@orval/core';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   getOperationMetaLiteral,

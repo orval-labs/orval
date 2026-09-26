@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { GeneratorVerbOptions, OrvalReporter } from '@orval/core';
+import type { OrvalReporter } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -12,19 +12,19 @@ import {
   vi,
 } from 'vite-plus/test';
 
+import { createTestGeneratorVerbOptions } from '../../core/src/test-utils';
+
 // Simulate the optional `typescript` peer dependency being absent.
 vi.mock('./handler-merge', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./handler-merge')>();
   return { ...actual, ensureTypeScript: vi.fn().mockResolvedValue(false) };
 });
 
-const verb = (operationName: string): GeneratorVerbOptions =>
-  ({
+const verb = (operationName: string) =>
+  createTestGeneratorVerbOptions({
     operationName,
-    params: [],
-    body: { definition: '' },
-    response: { originalSchema: {} },
-  }) as unknown as GeneratorVerbOptions;
+    typeName: operationName,
+  });
 
 const existing = `import { custom } from './x';
 const factory = createFactory();

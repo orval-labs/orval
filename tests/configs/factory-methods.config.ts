@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   inline: {
     input: '../specifications/factory-methods.yaml',
     output: {
@@ -10,7 +11,7 @@ export default defineConfig({
         mode: 'single',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   separate: {
@@ -22,7 +23,7 @@ export default defineConfig({
         mode: 'split',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   combined: {
@@ -34,7 +35,7 @@ export default defineConfig({
         mode: 'single-split',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
 });

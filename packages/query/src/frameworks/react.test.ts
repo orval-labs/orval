@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { generateQueryHeader } from '../index';
 import { createFrameworkAdapter } from '.';
+import { generateQueryHeader } from '../index';
 
 describe('react-query getQueryReturnStatement (issue #3573)', () => {
   it('attaches queryKey via the withQueryKey helper instead of spreading the query result', () => {

@@ -27,12 +27,14 @@ import {
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   pascal,
+  toObjectSchema,
   resolveDynamicRef,
   resolveRef,
   safeNumericConstraint,
@@ -45,10 +47,8 @@ import {
   getEnumImplementation,
   EnumGeneration,
 } from '@orval/core';
+import { unique } from '@orval/core';
 import jsesc from 'jsesc';
-import { unique } from 'remeda';
-
-import { logger } from './logger';
 
 import {
   getLooseObjectFunctionName,
@@ -67,6 +67,7 @@ import {
   renderZodExport,
   zodMiniCall,
 } from './export-emitter';
+import { logger } from './logger';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -122,14 +123,19 @@ type ResolvedZodType =
     };
 
 const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
-  const schemaTypeValue = schema.type as unknown;
+  // JSON Schema booleans: `true` admits every instance, `false` admits none.
+  if (typeof schema !== 'object') {
+    return schema ? 'unknown' : 'never';
+  }
+
+  const schemaTypeValue = schema.type;
 
   // Handle array of types (OpenAPI 3.1+)
   if (Array.isArray(schemaTypeValue)) {
     // Filter out 'null' type as it's handled separately via nullable
-    const nonNullTypes = schemaTypeValue
-      .filter((t): t is string => isString(t))
-      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t));
+    const nonNullTypes = schemaTypeValue.filter(
+      (t) => t !== 'null' && possibleSchemaTypes.has(t),
+    );
 
     // If multiple types, return a special marker for union handling
     if (nonNullTypes.length > 1) {
@@ -291,7 +297,11 @@ function needsInlineDefault(
 
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
-): OpenApiSchemaObject => {
+): OpenApiNonBooleanSchemaObject => {
+  if (typeof schema !== 'object') {
+    return toObjectSchema(schema);
+  }
+
   if (schema.properties && isObject(schema.properties)) {
     const filteredProperties: Record<string, OpenApiSchemaObject> = {};
 
@@ -299,7 +309,7 @@ const removeReadOnlyProperties = (
       if (isObject(value) && 'readOnly' in value && value.readOnly) {
         continue;
       }
-      filteredProperties[key] = value as OpenApiSchemaObject;
+      filteredProperties[key] = value;
     }
 
     return {
@@ -373,11 +383,15 @@ const decodeDiscriminatorSeparator = (
 const resolveUnionMemberSchema = (
   member: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiSchemaObject | undefined => {
-  if (member && '$ref' in member && typeof member.$ref === 'string') {
-    return tryResolveRefSchema(member.$ref, context);
+): OpenApiNonBooleanSchemaObject | undefined => {
+  if (typeof member !== 'object') {
+    return toObjectSchema(member);
   }
-  return member as OpenApiSchemaObject;
+  if ('$ref' in member && typeof member.$ref === 'string') {
+    const resolved = tryResolveRefSchema(member.$ref, context);
+    return resolved ? toObjectSchema(resolved) : undefined;
+  }
+  return member;
 };
 
 // A schema that renders to a single `zod.object({...})` — i.e. not a union,
@@ -385,7 +399,8 @@ const resolveUnionMemberSchema = (
 const isPlainObjectSchema = (
   schema: OpenApiSchemaObject | undefined,
 ): boolean => {
-  if (!schema || schema.oneOf || schema.anyOf || schema.allOf) return false;
+  if (!schema || typeof schema !== 'object') return false;
+  if (schema.oneOf || schema.anyOf || schema.allOf) return false;
   return (
     schema.type === 'object' ||
     (isObject(schema.properties) && Object.keys(schema.properties).length > 0)
@@ -414,8 +429,8 @@ const SHAPELESS_MEMBER_KEYS = new Set([
 const isConstraintOnlyMember = (
   member: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean => {
-  if ('$ref' in member) return false;
-  const schema = member as OpenApiSchemaObject;
+  if (typeof member !== 'object' || '$ref' in member) return false;
+  const schema: OpenApiNonBooleanSchemaObject = member;
   if (!Array.isArray(schema.required) || schema.required.length === 0) {
     return false;
   }
@@ -429,8 +444,10 @@ const isConstraintOnlyMember = (
 const getForbiddenKeys = (
   member: OpenApiSchemaObject,
 ): string[] | undefined => {
-  if (!isObject(member.not)) return undefined;
-  const not = member.not as OpenApiSchemaObject;
+  if (typeof member !== 'object' || typeof member.not !== 'object') {
+    return undefined;
+  }
+  const not = member.not;
 
   // `not: { anyOf: [ {required:[X]}, {required:[Y]} ] }` is the form emitted by
   // common OpenAPI tooling. A bare `not: { required: [X] }` is accepted too.
@@ -444,7 +461,7 @@ const getForbiddenKeys = (
   for (const branch of branches) {
     if (isObject(branch) && Array.isArray(branch.required)) {
       for (const key of branch.required) {
-        forbidden.add(key as string);
+        forbidden.add(key);
       }
     }
   }
@@ -460,7 +477,9 @@ const hasLiteralDiscriminator = (
   schema: OpenApiSchemaObject | undefined,
   property: string,
 ): boolean => {
-  if (!schema || !isObject(schema.properties)) return false;
+  if (!schema || typeof schema !== 'object' || !isObject(schema.properties)) {
+    return false;
+  }
   const propertySchema = schema.properties[property];
   if (!isObject(propertySchema)) return false;
   return (
@@ -484,7 +503,9 @@ const collectDiscriminatorValues = (
   const readValues = (
     schema: OpenApiSchemaObject | undefined,
   ): unknown[] | null => {
-    if (!schema || !isObject(schema.properties)) return null;
+    if (!schema || typeof schema !== 'object' || !isObject(schema.properties)) {
+      return null;
+    }
     const propertySchema = schema.properties[property];
     if (!isObject(propertySchema)) return null;
     const constValue = (propertySchema as { const?: unknown }).const;
@@ -498,9 +519,9 @@ const collectDiscriminatorValues = (
   if (!resolved) return null;
 
   if (resolved.allOf) {
-    const parts = (
-      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    ).map((part) => resolveUnionMemberSchema(part, context));
+    const parts = resolved.allOf.map((part) =>
+      resolveUnionMemberSchema(part, context),
+    );
     for (let index = parts.length - 1; index >= 0; index--) {
       const values = readValues(parts[index]);
       if (values) return values;
@@ -532,9 +553,9 @@ const isDiscriminatableMember = (
     // consts (potentially intersections themselves), so we can't guarantee a
     // ZodObject — leave it as a plain union.
     if (useReusableSchemas) return false;
-    const parts = (
-      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
-    ).map((part) => resolveUnionMemberSchema(part, context));
+    const parts = resolved.allOf.map((part) =>
+      resolveUnionMemberSchema(part, context),
+    );
     if (!parts.every((part) => isPlainObjectSchema(part))) return false;
     return parts.some((part) => hasLiteralDiscriminator(part, property));
   }
@@ -544,7 +565,7 @@ const isDiscriminatableMember = (
 };
 
 export const generateZodValidationSchemaDefinition = (
-  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  schemaInput: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
   name: string,
   strict: boolean,
@@ -596,7 +617,22 @@ export const generateZodValidationSchemaDefinition = (
     emitMeta?: boolean;
   },
 ): ZodValidationSchemaDefinition => {
-  if (!schema) return { functions: [], consts: [] };
+  // `false` is falsy, so it used to fall into the empty return below. Boolean
+  // schemas are real schemas: `true` ≡ `{}` (unknown) and `false` ≡ `{ not: {} }`
+  // (never), matching the models core emits for them.
+  if (schemaInput == null || typeof schemaInput !== 'object') {
+    return {
+      functions:
+        schemaInput === true
+          ? [['unknown', undefined]]
+          : schemaInput === false
+            ? [['never', undefined]]
+            : [],
+      consts: [],
+    };
+  }
+
+  let schema: OpenApiNonBooleanSchemaObject = schemaInput;
 
   const CHAINABLE_SIBLINGS = new Set(['default', 'description']);
   const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
@@ -841,16 +877,17 @@ export const generateZodValidationSchemaDefinition = (
     // notes on `isDiscriminatableMember`). Otherwise keep `separator` as-is and
     // fall back to a plain `zod.union`, which accepts any member shape.
     const discriminatorProperty = ((): string | undefined => {
+      const propertyName = schema.discriminator?.propertyName;
       if (
         !context.output?.override?.zod?.generateDiscriminatedUnion ||
         !(schema.oneOf || schema.anyOf) ||
-        !schema.discriminator?.propertyName ||
+        typeof propertyName !== 'string' ||
         schemas.length <= 1
       ) {
         return undefined;
       }
 
-      const property = schema.discriminator.propertyName;
+      const property = propertyName;
       if (
         !schemas.every((member) =>
           isDiscriminatableMember(
@@ -898,7 +935,11 @@ export const generateZodValidationSchemaDefinition = (
               // Only the member's top-level `required` is needed. For `$ref`
               // members resolve shallowly (no deep property dereference) and
               // tolerate unresolvable refs — they simply contribute no keys.
-              const isRef = '$ref' in member && typeof member.$ref === 'string';
+              const isRef =
+                typeof member === 'object' &&
+                member !== null &&
+                '$ref' in member &&
+                typeof member.$ref === 'string';
               const resolved = isRef
                 ? tryResolveRefSchema(member.$ref as string, context)
                 : (member as OpenApiSchemaObject);
@@ -933,14 +974,18 @@ export const generateZodValidationSchemaDefinition = (
         return member as OpenApiSchemaObject;
       }
 
-      const required = (member as OpenApiSchemaObject).required as string[];
+      if (typeof member !== 'object') {
+        return member as OpenApiSchemaObject;
+      }
+      const concreteMember: OpenApiNonBooleanSchemaObject = member;
+      const required = concreteMember.required;
 
       // Every key the branch requires needs a sibling schema to attach to. A key
       // with none cannot be made required in zod — both `unknown` and `any` are
       // treated as optional inside an object, so `{}` would still match — and
       // rewriting would silently drop it. Leave the whole branch as-is rather
       // than emit an object that only looks like it enforces the constraint.
-      if (!required.every((key) => Object.hasOwn(properties, key))) {
+      if (!required?.every((key) => Object.hasOwn(properties, key))) {
         return member as OpenApiSchemaObject;
       }
 
@@ -977,7 +1022,8 @@ export const generateZodValidationSchemaDefinition = (
         properties,
         required,
         // carried over so the branch keeps its `.describe(...)`
-        description: (member as OpenApiSchemaObject).description,
+        description:
+          typeof member === 'object' ? member.description : undefined,
         'x-orval-property-overrides': propertyOverrides,
       } as OpenApiSchemaObject;
     };
@@ -995,7 +1041,8 @@ export const generateZodValidationSchemaDefinition = (
           required: true,
           additionalRequired: allOfRequired,
           propertyOverrides: (
-            withSiblingProperties(schema) as OpenApiSchemaObject
+            withSiblingProperties(schema) as OpenApiNonBooleanSchemaObject &
+              Record<string, unknown>
           )['x-orval-property-overrides'] as
             | Record<string, ZodValidationSchemaDefinition>
             | undefined,
@@ -1237,6 +1284,7 @@ export const generateZodValidationSchemaDefinition = (
         Array.isArray(schema.default) &&
         type === 'array' &&
         schema.items &&
+        typeof schema.items === 'object' &&
         'enum' in schema.items &&
         schema.default.length > 0;
       const isArrayWithObjectItems =
@@ -1328,13 +1376,9 @@ export const generateZodValidationSchemaDefinition = (
          * >
          * > Omitting this keyword has the same assertion behavior as an empty array.
          */
-        if ('prefixItems' in schema) {
-          const schema31 = schema as OpenApiSchemaObject;
-          const prefixItems = Array.isArray(schema31.prefixItems)
-            ? (schema31.prefixItems as (
-                | OpenApiSchemaObject
-                | OpenApiReferenceObject
-              )[])
+        if (schema.prefixItems) {
+          const prefixItems = Array.isArray(schema.prefixItems)
+            ? schema.prefixItems
             : [];
 
           if (prefixItems.length > 0) {
@@ -1387,7 +1431,7 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           'array',
           generateZodValidationSchemaDefinition(
-            schema.items as OpenApiSchemaObject | undefined,
+            schema.items,
             context,
             camel(`${name}-item`),
             strict,
@@ -2794,14 +2838,18 @@ function extractSchemaNameFromRef($ref: string): string | undefined {
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiSchemaObject => {
-  const refName = '$ref' in schema ? schema.$ref : undefined;
+): OpenApiNonBooleanSchemaObject => {
+  if (typeof schema !== 'object') {
+    return toObjectSchema(schema);
+  }
+
+  const refName = typeof schema.$ref === 'string' ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
   }
 
   if (isDynamicReference(schema)) {
-    return dereferenceDynamicRef(schema, context);
+    return toObjectSchema(dereferenceDynamicRef(schema, context));
   }
 
   const childContext: ContextSpec = {
@@ -2812,12 +2860,15 @@ export const dereference = (
   };
 
   const resolvedSchema: OpenApiSchemaObject | undefined =
-    '$ref' in schema
+    typeof schema.$ref === 'string'
       ? (() => {
           const referencedSchema = tryResolveRefSchema(schema.$ref, context);
 
-          if (!referencedSchema || !isObject(referencedSchema)) {
+          if (!referencedSchema) {
             return;
+          }
+          if (typeof referencedSchema !== 'object') {
+            return toObjectSchema(referencedSchema);
           }
 
           const siblingProperties = Object.fromEntries(
@@ -2833,8 +2884,10 @@ export const dereference = (
         })()
       : schema;
 
-  if (!resolvedSchema) {
-    return {};
+  if (!resolvedSchema || typeof resolvedSchema !== 'object') {
+    return typeof resolvedSchema === 'boolean'
+      ? toObjectSchema(resolvedSchema)
+      : {};
   }
 
   const resolvedContext = buildScopedContext(
@@ -2844,16 +2897,18 @@ export const dereference = (
   );
 
   if (isDynamicReference(resolvedSchema)) {
-    return dereferenceDynamicRef(resolvedSchema, resolvedContext);
+    return toObjectSchema(
+      dereferenceDynamicRef(resolvedSchema, resolvedContext),
+    );
   }
 
-  return dereferenceProperties(resolvedSchema, resolvedContext);
+  return toObjectSchema(dereferenceProperties(resolvedSchema, resolvedContext));
 };
 
 function dereferenceProperties(
-  schema: OpenApiSchemaObject,
+  schema: OpenApiNonBooleanSchemaObject,
   context: ContextSpec,
-): OpenApiSchemaObject {
+): OpenApiNonBooleanSchemaObject {
   return Object.entries(schema).reduce<Record<string, unknown>>(
     (acc, [key, value]) => {
       if (key === 'properties' && isObject(value)) {
@@ -2875,7 +2930,7 @@ function dereferenceProperties(
       return acc;
     },
     {},
-  ) as OpenApiSchemaObject;
+  ) as OpenApiNonBooleanSchemaObject;
 }
 
 function buildScopedContext(
@@ -2969,10 +3024,10 @@ function dereferenceDynamicRef(
     Object.entries(schema).filter(([key]) => key !== '$dynamicRef'),
   );
 
-  const merged: OpenApiSchemaObject = {
+  const merged = {
     ...(resolvedSchema as Record<string, unknown>),
     ...siblingProperties,
-  } as OpenApiSchemaObject;
+  } as OpenApiNonBooleanSchemaObject;
 
   return dereferenceProperties(merged, scopedContext);
 }
@@ -2995,6 +3050,17 @@ export const generateFormDataZodSchema = (
   encoding?: Record<string, { contentType?: string }>,
   useReusableSchemas?: boolean,
 ): ZodValidationSchemaDefinition => {
+  if (typeof schema !== 'object') {
+    return generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      { required: true, useReusableSchemas },
+    );
+  }
+
   // Precompute file type overrides for top-level properties only
   const propertyOverrides: Record<string, ZodValidationSchemaDefinition> = {};
 
@@ -3194,18 +3260,19 @@ const parseBodyAndResponse = ({
     const rawItems: OpenApiSchemaObject | OpenApiReferenceObject =
       useReusableSchemas
         ? (() => {
-            const shallowArraySchema = resolveRef(schema, context)
-              .schema as OpenApiSchemaObject;
-            return (shallowArraySchema.items ??
-              resolvedJsonSchema.items) as OpenApiSchemaObject;
+            const shallowArraySchema = toObjectSchema(
+              typeof schema === 'boolean'
+                ? schema
+                : (resolveRef(schema as OpenApiReferenceObject, context)
+                    .schema as OpenApiSchemaObject),
+            );
+            return shallowArraySchema.items ?? resolvedJsonSchema.items;
           })()
         : resolvedJsonSchema.items;
 
     return {
       input: generateZodValidationSchemaDefinition(
-        parseType === 'body'
-          ? removeReadOnlyProperties(rawItems as OpenApiSchemaObject)
-          : (rawItems as OpenApiSchemaObject),
+        parseType === 'body' ? removeReadOnlyProperties(rawItems) : rawItems,
         context,
         name,
         strict,
@@ -3308,7 +3375,8 @@ const parseResponseSchema = (
     isZodV4,
     ...parseBodyAndResponse({
       data: getSingleResponse(
-        context.spec.paths?.[pathRoute]?.[verb]?.responses,
+        (verb === 'query' ? undefined : context.spec.paths?.[pathRoute]?.[verb])
+          ?.responses,
       ),
       context,
       name: 'response',
@@ -3454,12 +3522,14 @@ export const parseParameters = ({
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
 
-    if (!parameter.schema) {
+    if (!('schema' in parameter) || !parameter.in || !parameter.name) {
       return acc;
     }
-    if (!parameter.in || !parameter.name) {
-      return acc;
-    }
+
+    const parameterSchema =
+      typeof parameter.schema === 'boolean'
+        ? toObjectSchema(parameter.schema)
+        : parameter.schema;
 
     // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
     // generator can take the namedRef path. We only shallow-clone to attach
@@ -3468,12 +3538,12 @@ export const parseParameters = ({
     const schemaForGen: OpenApiSchemaObject | OpenApiReferenceObject =
       useReusableSchemas
         ? parameter.description
-          ? Object.assign({}, parameter.schema, {
+          ? Object.assign({}, parameterSchema, {
               description: parameter.description,
             })
-          : parameter.schema
+          : parameterSchema
         : (() => {
-            const s = dereference(parameter.schema, context);
+            const s = dereference(parameterSchema, context);
             s.description = parameter.description;
             return s;
           })();
@@ -3611,9 +3681,10 @@ const generateZodRoute = async (
     throw new Error(`No such path ${pathRoute} in ${context.projectName}`);
   }
 
+  const operation = verb === 'query' ? undefined : spec[verb];
   const parameters = [
     ...(spec.parameters ?? []),
-    ...(spec[verb]?.parameters ?? []),
+    ...(operation?.parameters ?? []),
   ];
 
   const parsedParameters = parseParameters({
@@ -3626,7 +3697,7 @@ const generateZodRoute = async (
     useReusableSchemas,
   });
 
-  const requestBody = spec[verb]?.requestBody;
+  const requestBody = operation?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
@@ -3640,8 +3711,8 @@ const generateZodRoute = async (
 
   const responses = (
     context.output.override.zod.generateEachHttpStatus
-      ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', getSingleResponse(spec[verb]?.responses)]]
+      ? Object.entries(operation?.responses ?? {})
+      : [['', getSingleResponse(operation?.responses)]]
   ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({
@@ -3946,7 +4017,7 @@ const generateZodRoute = async (
             isNoContent = noContentStatusCodes.has(statusCode);
           } else {
             const specResponseKeys = new Set(
-              Object.keys(spec[verb]?.responses ?? {}),
+              Object.keys(operation?.responses ?? {}),
             );
             const hasStandardSuccess =
               specResponseKeys.has('200') ||

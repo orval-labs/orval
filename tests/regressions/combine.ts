@@ -55,8 +55,7 @@ export type EnumUnionItemCompileCheck = EnumUnionItem;
 
 export type SiblingEnumItemCompileCheck = SiblingEnumItem;
 
-export type CanonicalNullableOneOfItemCompileCheck =
-  CanonicalNullableOneOfItem;
+export type CanonicalNullableOneOfItemCompileCheck = CanonicalNullableOneOfItem;
 
 const canonicalNullableOneOfSiblingItem: CanonicalNullableOneOfSiblingItem = {
   id: 'id',

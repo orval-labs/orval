@@ -4,251 +4,106 @@ import type {
   GeneratorVerbOptions,
   OpenApiParameterObject,
   OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResReqTypesValue,
 } from '@orval/core';
 import {
-  EnumGeneration,
-  FormDataArrayHandling,
   GetterPropType,
-  NamingConvention,
   OutputClient,
-  OutputHttpClient,
-  OutputMode,
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { generateRequestFunction } from './index';
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
-function makeOutput(useDates = false): ContextSpec['output'] {
-  return {
-    target: '',
-    namingConvention: NamingConvention.CAMEL_CASE,
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: OutputMode.SINGLE,
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    client: OutputClient.FETCH,
-    httpClient: OutputHttpClient.FETCH,
-    clean: false,
-    docs: false,
-    formatter: undefined,
-    headers: false,
-    indexFiles: false,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    unionAddMissingProperties: false,
-    optionsParamRequired: false,
-    propertySortOrder: PropertySortOrder.ALPHABETICAL,
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    factoryMethods: {
-      functionNamePrefix: 'create',
-      mode: 'single',
-      outputDirectory: '',
-      includeOptionalProperty: false,
-    },
-    override: {
-      title: undefined,
-      transformer: undefined,
-      mutator: undefined,
-      operations: {},
-      tags: {},
-      mock: undefined,
-      contentType: undefined,
-      header: false,
-      formData: {
-        disabled: false,
-        arrayHandling: FormDataArrayHandling.SERIALIZE,
-      },
-      formUrlEncoded: false,
-      paramsSerializer: undefined,
-      paramsSerializerOptions: undefined,
-      namingConvention: {},
-      components: {
-        schemas: { prefix: '', suffix: '', itemPrefix: '', itemSuffix: '' },
-        responses: { prefix: '', suffix: '' },
-        parameters: { prefix: '', suffix: '' },
-        requestBodies: { prefix: '', suffix: '' },
-      },
-      hono: {
-        handlerGenerationStrategy: 'smart',
-        compositeRoute: '',
-        validator: false,
-        validatorOutputPath: '',
-      },
-      query: {
-        useQuery: false,
-        useSuspenseQuery: false,
-        useMutation: false,
-        useInfinite: false,
-        useSuspenseInfiniteQuery: false,
-        useInfiniteQueryParam: '',
-        usePrefetch: false,
-        useInvalidate: false,
-        useSetQueryData: false,
-        useGetQueryData: false,
-        shouldExportMutatorHooks: false,
-        shouldExportHttpClient: false,
-        shouldExportKeys: false,
-        shouldSplitQueryKey: false,
-        useOperationIdAsQueryKey: false,
-        signal: false,
-        version: 5,
-      },
-      angular: {
-        provideIn: 'root',
-        client: 'httpClient',
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        queryObjectSerialization: 'spec',
-      },
-      swr: {},
-      zod: {
-        version: 'auto',
-        variant: 'classic',
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        coerce: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        generateReusableSchemas: false,
-        generateMeta: false,
-        generateDiscriminatedUnion: false,
-        exactOptional: false,
-        generateCompanionTypes: false,
-        dateTimeOptions: {},
-        timeOptions: { precision: 3 },
-      },
-      effect: {
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-      },
-      axios: {
-        includeHttpResponseReturnType: false,
-      },
-      fetch: {
-        includeHttpResponseReturnType: false,
-        forceSuccessResponse: false,
-        serializeResponseHeaders: false,
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        useRuntimeFetcher: false,
-      },
-      useDates,
-      enumGenerationType: EnumGeneration.UNION,
-      jsDoc: {},
-      requestOptions: true,
-      splitByContentType: false,
-      aliasCombinedTypes: false,
-      includeZodSchemaInArguments: false,
-      mcp: {},
-    },
-  };
-}
+type TestParameter = {
+  name: string;
+  in: string;
+  style?: string;
+  explode?: boolean;
+  // Record keeps widened fixture objects assignable. OpenApiSchemaObject
+  // adds JSON Schema booleans, which Record<string, unknown> rejects.
+  schema?: OpenApiSchemaObject | Record<string, unknown>;
+};
+
+const successType = (
+  overrides: Partial<ResReqTypesValue> &
+    Pick<ResReqTypesValue, 'key' | 'value'>,
+): ResReqTypesValue => ({
+  contentType: 'application/json',
+  hasReadonlyProps: false,
+  imports: [],
+  isEnum: false,
+  isRef: false,
+  schemas: [],
+  type: 'object',
+  dependencies: [],
+  ...overrides,
+});
 
 function makeContext(
-  parameters: OpenApiParameterLike[] = [],
+  parameters: TestParameter[] = [],
   useDates = false,
+  schemas?: ContextSpec['output']['schemas'],
 ): ContextSpec {
-  return {
-    target: '',
-    workspace: '',
+  const context = createTestContextSpec({
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Test' },
       paths: {
         '/pets': {
-          get: { parameters },
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
         },
       },
     },
-    output: makeOutput(useDates),
-  };
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      ...(schemas === undefined ? {} : { schemas }),
+    },
+    override: { useDates },
+  });
+  const operation = context.spec.paths?.['/pets']?.get;
+  if (operation) {
+    operation.parameters = parameters as OpenApiParameterLike[];
+  }
+  return context;
 }
 
 function makeVerbOptions(
-  overrides: Partial<GeneratorVerbOptions> = {},
+  overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
 ): GeneratorVerbOptions {
-  return {
+  const { override, ...rest } = overrides;
+  return createTestGeneratorVerbOptions({
     verb: Verbs.GET,
     route: '/pets',
     pathRoute: '/pets',
     operationId: 'listPets',
     operationName: 'listPets',
-    doc: '',
-    tags: [],
+    typeName: 'listPets',
     response: {
       definition: { success: 'Pet[]', errors: '' },
-      imports: [],
-      types: { success: [], errors: [] },
       contentTypes: ['application/json'],
-      schemas: [],
-      isBlob: false,
-    } as GeneratorVerbOptions['response'],
-    body: {
-      definition: '',
-      implementation: '',
-      imports: [],
-      schemas: [],
-      formData: undefined,
-      formUrlEncoded: undefined,
-      contentType: '',
-      isOptional: true,
-      originalSchema: {},
-      isBlob: false,
-    } as GeneratorVerbOptions['body'],
-    params: [],
-    props: [],
+    },
+    ...rest,
     override: {
-      formData: {
-        disabled: false,
-        arrayHandling: FormDataArrayHandling.SERIALIZE,
-      },
-      formUrlEncoded: false,
       requestOptions: false,
+      formUrlEncoded: false,
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
         runtimeValidation: { enabled: false, strategy: 'throw' },
       },
-    } as GeneratorVerbOptions['override'],
-    originalOperation: {} as GeneratorVerbOptions['originalOperation'],
-    ...overrides,
-  } as GeneratorVerbOptions;
+      ...override,
+    },
+  });
 }
 
 function makeOptions(
@@ -256,16 +111,16 @@ function makeOptions(
   overrides: Partial<GeneratorOptions> = {},
 ): GeneratorOptions {
   return {
-    route: '/pets',
-    pathRoute: '/pets',
-    override: {} as GeneratorOptions['override'],
-    output: '',
+    ...createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+    }),
     context,
     ...overrides,
-  } as GeneratorOptions;
+  } satisfies GeneratorOptions;
 }
 
-const STUB_QUERY_PARAMS: GeneratorVerbOptions['queryParams'] = {
+const STUB_QUERY_PARAMS = {
   schema: {
     name: 'ListPetsParams',
     model: 'export type ListPetsParams = { limit?: string }',
@@ -273,7 +128,7 @@ const STUB_QUERY_PARAMS: GeneratorVerbOptions['queryParams'] = {
   },
   deps: [],
   isOptional: true,
-} as GeneratorVerbOptions['queryParams'];
+} satisfies NonNullable<GeneratorVerbOptions['queryParams']>;
 
 function generateImplementation(
   verbOptions: GeneratorVerbOptions,
@@ -520,57 +375,47 @@ describe('generateRequestFunction — deepObject query parameters', () => {
 });
 
 describe('generateRequestFunction — zod runtimeValidation response typing (#3938)', () => {
-  const ZOD_RESPONSE = {
+  const ZOD_RESPONSE: GeneratorVerbOptions['response'] = {
     definition: { success: 'Pets', errors: 'Error' },
     imports: [{ name: 'Pets', schemaName: 'Pets', values: true }],
     types: {
       success: [
-        {
+        successType({
           key: '200',
-          contentType: 'application/json',
           value: 'Pets',
-          hasReadonlyProps: false,
-          imports: [],
-          isEnum: false,
           isRef: true,
-          schemas: [],
-          type: 'object',
-          dependencies: [],
-        },
+        }),
       ],
       errors: [],
     },
     contentTypes: ['application/json'],
     schemas: [],
     isBlob: false,
-  } as unknown as GeneratorVerbOptions['response'];
+  };
 
   function makeZodValidationVerbOptions(
-    overrides: Partial<GeneratorVerbOptions> = {},
+    overrides: Parameters<typeof makeVerbOptions>[0] = {},
   ): GeneratorVerbOptions {
-    const base = makeVerbOptions({ response: ZOD_RESPONSE });
-    return {
-      ...base,
+    return makeVerbOptions({
+      response: ZOD_RESPONSE,
       typeName: 'listPets',
       override: {
-        ...base.override,
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
           runtimeValidation: { enabled: true, strategy: 'throw' },
         },
-      } as GeneratorVerbOptions['override'],
+      },
       ...overrides,
-    } as GeneratorVerbOptions;
+    });
   }
 
   function makeZodContext(): ContextSpec {
-    const context = makeContext();
-    (context.output as { schemas: unknown }).schemas = {
+    return makeContext([], false, {
       path: './model',
       type: 'zod',
-    };
-    return context;
+      splitByTags: false,
+    });
   }
 
   it('declares the parsed response as the zod output alias', () => {
@@ -586,9 +431,7 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
 
   it('uses the output alias for the data field with includeHttpResponseReturnType', () => {
     const verbOptions = makeZodValidationVerbOptions();
-    (
-      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
-    ).includeHttpResponseReturnType = true;
+    verbOptions.override.fetch.includeHttpResponseReturnType = true;
 
     const implementation = generateRequestFunction(
       verbOptions,
@@ -605,7 +448,12 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
         name: 'customFetch',
         path: './mutator.ts',
         default: false,
-      } as GeneratorVerbOptions['mutator'],
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      },
     });
 
     const implementation = generateRequestFunction(
@@ -623,9 +471,12 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
         name: 'customFetch',
         path: './mutator.ts',
         default: false,
+        hasErrorType: false,
+        errorTypeName: '',
         hasSecondArg: true,
         hasThirdArg: true,
-      } as GeneratorVerbOptions['mutator'],
+        isHook: false,
+      },
     });
     Object.assign(operation.override.fetch, {
       includeHttpResponseReturnType: true,
@@ -666,55 +517,45 @@ describe('generateRequestFunction — inline array response validation (#4106)',
       imports,
       types: {
         success: [
-          {
+          successType({
             key: '200',
-            contentType: 'application/json',
             value: definition,
-            hasReadonlyProps: false,
-            imports: [],
-            isEnum: false,
-            isRef: false,
-            schemas: [],
             type: 'array',
-            dependencies: [],
-          },
+          }),
         ],
         errors: [],
       },
       contentTypes: ['application/json'],
       schemas: [],
       isBlob: false,
-    } as unknown as GeneratorVerbOptions['response'];
+    };
   }
 
   function makeArrayVerbOptions(
     definition: string,
     imports: { name: string }[],
   ): GeneratorVerbOptions {
-    const base = makeVerbOptions({
+    return makeVerbOptions({
       response: makeArrayResponse(definition, imports),
-    });
-    return {
-      ...base,
       typeName: 'listPets',
       override: {
-        ...base.override,
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
           runtimeValidation: { enabled: true, strategy: 'throw' },
         },
-      } as GeneratorVerbOptions['override'],
-    } as GeneratorVerbOptions;
+      },
+    });
   }
 
   function makeZodOptions() {
-    const context = makeContext();
-    (context.output as { schemas: unknown }).schemas = {
-      path: './model',
-      type: 'zod',
-    };
-    return makeOptions(context);
+    return makeOptions(
+      makeContext([], false, {
+        path: './model',
+        type: 'zod',
+        splitByTags: false,
+      }),
+    );
   }
 
   it('validates an inline array through its element schema', () => {
@@ -768,28 +609,26 @@ describe('generateRequestFunction — inline array response validation (#4106)',
 
 describe('generateRequestFunction — response status precedence', () => {
   it('excludes exact responses from matching wildcard responses', () => {
-    const response = {
+    const response: GeneratorVerbOptions['response'] = {
       definition: { success: 'Pet | void', errors: '' },
       imports: [],
       types: {
         success: [
-          {
-            key: '200',
-            contentType: 'application/json',
-            value: 'Pet',
-          },
-          { key: '2XX', contentType: '', value: 'void' },
+          successType({ key: '200', value: 'Pet' }),
+          successType({ key: '2XX', value: 'void', contentType: '' }),
         ],
         errors: [],
       },
       contentTypes: ['application/json'],
       schemas: [],
       isBlob: false,
-    } as unknown as GeneratorVerbOptions['response'];
-    const verbOptions = makeVerbOptions({ response });
-    (
-      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
-    ).includeHttpResponseReturnType = true;
+    };
+    const verbOptions = makeVerbOptions({
+      response,
+      override: {
+        fetch: { includeHttpResponseReturnType: true },
+      },
+    });
 
     const implementation = generateRequestFunction(
       verbOptions,
@@ -806,24 +645,26 @@ describe('generateRequestFunction — response status precedence', () => {
   it('refuses a response status key that is not a status code', () => {
     const injected =
       'number }; globalThis.__pwned = 1; type _Ignore = { _z: number';
-    const response = {
+    const response: GeneratorVerbOptions['response'] = {
       definition: { success: 'Pet', errors: '' },
       imports: [],
       types: {
         success: [
-          { key: '200', contentType: 'application/json', value: 'Pet' },
-          { key: injected, contentType: 'application/json', value: 'Pet' },
+          successType({ key: '200', value: 'Pet' }),
+          successType({ key: injected, value: 'Pet' }),
         ],
         errors: [],
       },
       contentTypes: ['application/json'],
       schemas: [],
       isBlob: false,
-    } as unknown as GeneratorVerbOptions['response'];
-    const verbOptions = makeVerbOptions({ response });
-    (
-      verbOptions.override.fetch as { includeHttpResponseReturnType: boolean }
-    ).includeHttpResponseReturnType = true;
+    };
+    const verbOptions = makeVerbOptions({
+      response,
+      override: {
+        fetch: { includeHttpResponseReturnType: true },
+      },
+    });
 
     expect(() =>
       generateRequestFunction(verbOptions, makeOptions(makeContext())),
@@ -838,15 +679,9 @@ describe('generateRequestFunction — Content-Type header escaping', () => {
       body: {
         definition: 'SubmitDataBody',
         implementation: 'submitDataBody: SubmitDataBody',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
         contentType: "application/json', 'X-Evil': 'injected",
         isOptional: false,
-        originalSchema: {},
-        isBlob: false,
-      } as GeneratorVerbOptions['body'],
+      },
     });
 
     const implementation = generateImplementation(
@@ -869,15 +704,9 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       body: {
         definition: 'CreatePetBody',
         implementation: 'createPetBody: CreatePetBody',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
         contentType: 'application/json',
         isOptional: false,
-        originalSchema: {},
-        isBlob: false,
-      } as GeneratorVerbOptions['body'],
+      },
     });
 
   it('keeps static body headers without referencing disabled request options', () => {
@@ -998,15 +827,18 @@ describe('includeHttpErrorResponse', () => {
       },
     };
     operation.response.types = {
-      success: [
-        { key: '200', contentType: 'application/json', value: 'Pet[]' },
-      ],
+      success: [successType({ key: '200', value: 'Pet[]', type: 'array' })],
       errors: [
-        { key: '404', contentType: 'application/json', value: 'NotFound' },
-        { key: '422', contentType: 'application/json', value: 'Invalid' },
-        { key: '422', contentType: 'text/plain', value: 'string' },
+        successType({ key: '404', value: 'NotFound' }),
+        successType({ key: '422', value: 'Invalid' }),
+        successType({
+          key: '422',
+          value: 'string',
+          contentType: 'text/plain',
+          type: 'string',
+        }),
       ],
-    } as GeneratorVerbOptions['response']['types'];
+    };
     return operation;
   }
 
@@ -1100,22 +932,19 @@ describe('generateRequestFunction — useDatesTransform', () => {
     type: 'object',
     required: ['day'],
     properties: { day: { type: 'string', format: 'date' } },
-  };
+  } satisfies OpenApiSchemaObject;
 
-  const entry = (key: string, value: string, originalSchema: object) =>
-    ({
+  const entry = (
+    key: string,
+    value: string,
+    originalSchema: OpenApiSchemaObject,
+  ) =>
+    successType({
       key,
       value,
-      contentType: 'application/json',
       originalSchema,
-      hasReadonlyProps: false,
-      imports: [],
-      isEnum: false,
       isRef: true,
-      schemas: [],
-      type: 'object',
-      dependencies: [],
-    }) as unknown as GeneratorVerbOptions['response']['types']['success'][number];
+    });
 
   function datedVerbOptions({
     successKey = '200',
@@ -1124,9 +953,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     fetch = {},
     useDatesTransform = true,
   } = {}): GeneratorVerbOptions {
-    const base = makeVerbOptions();
-    return {
-      ...base,
+    return makeVerbOptions({
       verb: Verbs.PUT,
       operationName: 'updateAppointment',
       typeName: 'updateAppointment',
@@ -1135,7 +962,6 @@ describe('generateRequestFunction — useDatesTransform', () => {
           success: 'Appointment',
           errors: errorKeys.length ? 'Error' : '',
         },
-        imports: [],
         types: {
           success: [entry(successKey, 'Appointment', DATED)],
           errors: errorKeys.map((key) =>
@@ -1143,19 +969,14 @@ describe('generateRequestFunction — useDatesTransform', () => {
           ),
         },
         contentTypes,
-        schemas: [],
-        isBlob: false,
-      } as unknown as GeneratorVerbOptions['response'],
+      },
       body: {
         definition: 'Appointment',
         implementation: 'appointment',
-        imports: [],
-        schemas: [],
         contentType: 'application/json',
         isOptional: false,
-        isBlob: false,
         originalSchema: { content: { 'application/json': { schema: DATED } } },
-      } as unknown as GeneratorVerbOptions['body'],
+      },
       props: [
         {
           name: 'appointment',
@@ -1165,9 +986,8 @@ describe('generateRequestFunction — useDatesTransform', () => {
           required: true,
           type: GetterPropType.BODY,
         },
-      ] as GeneratorVerbOptions['props'],
+      ],
       override: {
-        ...base.override,
         useDatesTransform,
         fetch: {
           includeHttpResponseReturnType: true,
@@ -1175,8 +995,8 @@ describe('generateRequestFunction — useDatesTransform', () => {
           runtimeValidation: { enabled: false, strategy: 'throw' },
           ...fetch,
         },
-      } as GeneratorVerbOptions['override'],
-    } as GeneratorVerbOptions;
+      },
+    });
   }
 
   const generate = (
@@ -1230,17 +1050,17 @@ describe('generateRequestFunction — useDatesTransform', () => {
   });
 
   it('converts before runtime validation parses the body', () => {
-    const context = makeContext();
-    (context.output as { schemas: unknown }).schemas = {
+    const context = makeContext([], false, {
       path: './model',
       type: 'zod',
-    };
+      splitByTags: false,
+    });
     const verbOptions = datedVerbOptions({
       fetch: { runtimeValidation: { enabled: true, strategy: 'throw' } },
     });
     verbOptions.response.imports = [
       { name: 'Appointment', schemaName: 'Appointment', values: true },
-    ] as GeneratorVerbOptions['response']['imports'];
+    ];
 
     const implementation = generate(verbOptions, context);
     const conversion = implementation.indexOf(
@@ -1303,7 +1123,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     hasSecondArg: true,
     hasThirdArg: false,
     isHook: false,
-  } as GeneratorVerbOptions['mutator'];
+  } satisfies NonNullable<GeneratorVerbOptions['mutator']>;
 
   it('guards a normal mutator response on its status', () => {
     // The conversion is assigned back onto the wrapper for the same
@@ -1328,7 +1148,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
 
   it('casts a hook mutator result once and returns the cast value', () => {
     const verbOptions = datedVerbOptions();
-    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    verbOptions.mutator = { ...MUTATOR, name: 'useCustomFetch', isHook: true };
     expect(generate(verbOptions)).toContain(
       '.then((value) => {\n    const res = value as updateAppointmentResponse;\n    if (res.status === 200) {\n      res.data = deserializeUpdateAppointmentResponse(res.data as Appointment);\n    }\n    return res;\n  })',
     );
@@ -1338,7 +1158,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     const verbOptions = datedVerbOptions({
       fetch: { includeHttpResponseReturnType: false },
     });
-    verbOptions.mutator = { ...MUTATOR!, name: 'useCustomFetch', isHook: true };
+    verbOptions.mutator = { ...MUTATOR, name: 'useCustomFetch', isHook: true };
     expect(generate(verbOptions)).toContain(
       '.then((value) => deserializeUpdateAppointmentResponse(value as Appointment))',
     );
@@ -1346,7 +1166,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
 
   it('gives an inferred mutator no response transform but still serializes the body', () => {
     const verbOptions = datedVerbOptions();
-    verbOptions.mutator = { ...MUTATOR!, inferred: true };
+    verbOptions.mutator = { ...MUTATOR, inferred: true };
     const implementation = generate(verbOptions);
     expect(implementation).not.toContain('.then(');
     expect(implementation).not.toContain(

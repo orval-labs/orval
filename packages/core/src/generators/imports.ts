@@ -1,5 +1,3 @@
-import { groupBy, unique, uniqueWith } from 'remeda';
-
 import {
   type GeneratorImport,
   type GeneratorMutator,
@@ -7,6 +5,7 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
+import { groupBy, unique, uniqueWith } from '../utils';
 import { compareNatural, conventionName } from '../utils';
 
 interface GenerateImportsOptions {
@@ -56,7 +55,7 @@ export function generateImports({
         )}|${String(imp.isConstant)}`,
   );
 
-  return Object.entries(grouped)
+  return [...grouped]
     .toSorted(([a], [b]) => compareNatural(a, b))
     .map(([, group]) => {
       const sample = group[0];

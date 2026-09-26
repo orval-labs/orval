@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   endpointParameters: {
     input: '../specifications/parameters.yaml',
     output: {
@@ -69,7 +70,8 @@ export default defineConfig({
   petstoreSingleWithCompanionTypes: {
     input: '../specifications/petstore.yaml',
     output: {
-      target: '../generated/hono/petstore-single-with-companion-types/endpoints.ts',
+      target:
+        '../generated/hono/petstore-single-with-companion-types/endpoints.ts',
       mode: 'single',
       client: 'hono',
       clean: true,

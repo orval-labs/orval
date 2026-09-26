@@ -7,8 +7,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
 import { platform } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const isWindows = platform() === 'win32';
 const orvalBin = resolve('packages/orval/dist/bin/orval.mjs');

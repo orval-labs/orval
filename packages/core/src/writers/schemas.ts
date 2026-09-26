@@ -1,7 +1,5 @@
+import fs from 'node:fs';
 import nodePath from 'node:path';
-
-import fs from 'fs-extra';
-import { groupBy } from 'remeda';
 
 import { generateImports } from '../generators';
 import {
@@ -10,6 +8,7 @@ import {
   NamingConvention,
   type Tsconfig,
 } from '../types';
+import { groupBy } from '../utils';
 import {
   compareNatural,
   conventionName,
@@ -169,7 +168,7 @@ function getSchemaGroups(
 }
 
 function getCanonicalMap(
-  schemaGroups: Record<string, GeneratorSchema[]>,
+  schemaGroups: Map<string, GeneratorSchema[]>,
   schemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
@@ -177,7 +176,7 @@ function getCanonicalMap(
   const canonicalPathMap = new Map<string, CanonicalInfo>();
   const canonicalNameMap = new Map<string, CanonicalInfo>();
 
-  for (const [key, groupSchemas] of Object.entries(schemaGroups)) {
+  for (const [key, groupSchemas] of schemaGroups) {
     const canonicalPath = getPath(
       schemaPath,
       conventionName(groupSchemas[0].name, namingConvention),
@@ -353,18 +352,6 @@ function getPath(path: string, name: string, fileExtension: string): string {
   return nodePath.join(path, `${name}${fileExtension}`);
 }
 
-export function writeModelInline(acc: string, model: string): string {
-  return acc + `${model}\n`;
-}
-
-export function writeModelsInline(array: GeneratorSchema[]): string {
-  let acc = '';
-  for (const { model } of array) {
-    acc = writeModelInline(acc, model);
-  }
-  return acc;
-}
-
 interface WriteSchemaOptions {
   path: string;
   schema: GeneratorSchema;
@@ -503,7 +490,7 @@ export async function writeSchemas({
     isCombined,
   };
 
-  for (const groupSchemas of Object.values(schemaGroups)) {
+  for (const groupSchemas of schemaGroups.values()) {
     if (groupSchemas.length === 1) {
       await writeSchema({
         path: schemaPath,
@@ -564,13 +551,12 @@ export async function writeSchemas({
 
   if (indexFiles) {
     const schemaFilePath = nodePath.join(schemaPath, `index.ts`);
-    await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception if duplicates are detected (using convention names)
     const ext = getImportExtension(fileExtension, tsconfig);
     const conventionNamesSet = new Set(
-      Object.values(schemaGroups).map((group) =>
+      [...schemaGroups.values()].map((group) =>
         conventionName(group[0].name, namingConvention),
       ),
     );
@@ -594,7 +580,6 @@ export async function writeSchemas({
           factoryOutputDirectory,
           `index.ts`,
         );
-        await fs.ensureFile(factoryIndexFilePath);
         const factoryExports: string[] = [];
         if (isCombined.value) {
           const factoryFileName = conventionName(
@@ -621,7 +606,9 @@ export async function writeSchemas({
         }
       }
 
-      const existingContent = await fs.readFile(schemaFilePath, 'utf8');
+      const existingContent = fs.existsSync(schemaFilePath)
+        ? await fs.promises.readFile(schemaFilePath, 'utf8')
+        : '';
       const existingExports = [
         ...existingContent.matchAll(
           /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,
@@ -682,7 +669,7 @@ export async function writeRoutedSchemas({
   }
 
   for (const [schemaPath, { schemas }] of grouped) {
-    await fs.ensureDir(schemaPath);
+    await fs.promises.mkdir(schemaPath, { recursive: true });
 
     for (const schema of schemas) {
       const imports = schema.imports.map((imp) => ({
@@ -735,8 +722,8 @@ export async function writeRoutedSchemas({
       for (const [route, directories] of routeDirectories) {
         const routePath = plan.routePathByKey[route];
         const routeIndexPath = nodePath.join(routePath, 'index.ts');
-        const existingContent = (await fs.pathExists(routeIndexPath))
-          ? await fs.readFile(routeIndexPath, 'utf8')
+        const existingContent = fs.existsSync(routeIndexPath)
+          ? await fs.promises.readFile(routeIndexPath, 'utf8')
           : '';
         const existingExports = [
           ...existingContent.matchAll(

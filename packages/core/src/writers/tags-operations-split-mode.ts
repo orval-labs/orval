@@ -15,7 +15,6 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
-import { assertClientSupportsTagsOperations } from './tags-operations-mode';
 import { writeGeneratedFile } from './file';
 import {
   filterLocalStrictMockTypeImports,
@@ -33,6 +32,7 @@ import {
   mergeGeneratorImports,
 } from './mock-imports';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
+import { assertClientSupportsTagsOperations } from './tags-operations-mode';
 import {
   buildTagHelpersImport,
   generateTargetForTagsOperations,

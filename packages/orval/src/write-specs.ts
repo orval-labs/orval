@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -42,7 +43,6 @@ import {
   type NormalizedOutputOptions,
 } from '@orval/core';
 import { execa, ExecaError } from 'execa';
-import fs from 'fs-extra';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
 
 import {
@@ -278,7 +278,7 @@ async function addOperationSchemasReExport(
 
   let existingContent: string | undefined;
   try {
-    existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+    existingContent = await fs.promises.readFile(schemaIndexPath, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;
@@ -513,8 +513,8 @@ async function reexportFakerSchemaFactories(
   // A spec without operations gets no faker barrel from the mode writers, so
   // start from an empty one.
   const barrelPath = path.join(faker.path, `index.faker${fileExtension}`);
-  const barrel = (await fs.pathExists(barrelPath))
-    ? await fs.readFile(barrelPath, 'utf8')
+  const barrel = fs.existsSync(barrelPath)
+    ? await fs.promises.readFile(barrelPath, 'utf8')
     : '';
   const taken = new Set<string>();
   for (const specifier of readReExportSpecifiers(barrel)) {
@@ -524,7 +524,7 @@ async function reexportFakerSchemaFactories(
         ? specifier.slice(0, -importExtension.length)
         : specifier,
     );
-    const content = await fs
+    const content = await fs.promises
       .readFile(`${modulePath}${fileExtension}`, 'utf8')
       .catch(() => '');
     for (const match of content.matchAll(EXPORTED_NAME_RE)) {
@@ -532,22 +532,34 @@ async function reexportFakerSchemaFactories(
     }
   }
 
-  const factories = await fs.readFile(factoriesPath, 'utf8');
+  const factories = await fs.promises.readFile(factoriesPath, 'utf8');
   const names = [...factories.matchAll(EXPORTED_NAME_RE)]
     .map((match) => match[1])
     .filter((name) => !taken.has(name));
-  if (names.length === 0) return;
 
   const specifier =
     stripFileExtension(
       upath.getRelativeImportPath(barrelPath, factoriesPath, true),
       fileExtension,
     ) + importExtension;
-  if (barrel.includes(`from '${specifier}'`)) return;
-  await writeGeneratedFile(
-    barrelPath,
-    `${barrel}export { ${names.join(', ')} } from '${specifier}';\n`,
-  );
+  // Replace the named re-export a previous run left behind, so added
+  // factories show up and removed ones go away.
+  const withoutFactories = barrel
+    .split(/\r?\n/)
+    .filter((line) => !isNamedReExportOf(line, specifier))
+    .join('\n');
+  const next =
+    names.length > 0
+      ? `${withoutFactories}${withoutFactories && !withoutFactories.endsWith('\n') ? '\n' : ''}export { ${names.join(', ')} } from '${specifier}';\n`
+      : withoutFactories;
+  if (next === barrel) return;
+  await writeGeneratedFile(barrelPath, next);
+}
+
+function isNamedReExportOf(line: string, specifier: string): boolean {
+  const match =
+    /^\s*export\s*\{[^}]*\}\s*from\s*['"]([^'"]+)['"]\s*;?\s*$/.exec(line);
+  return match?.[1] === specifier;
 }
 
 function isSchemaValidatorClient(
@@ -1197,7 +1209,7 @@ async function writeSpecsInternal(
       let configPath: string | undefined;
       if (isObject(output.docs)) {
         const { configPath: docsConfigPath, ...docsOptions } = output.docs;
-        configPath = docsConfigPath as string | undefined;
+        configPath = docsConfigPath;
         // `OutputDocsOptions` is typed structurally so `@orval/core`'s
         // declarations stay free of `typedoc`; the values are TypeDoc's own.
         config = docsOptions as Partial<TypeDocOptions>;

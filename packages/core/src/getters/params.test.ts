@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
-import type { GetterParameters } from '../types';
+import { createTestContextSpec } from '../test-utils';
+import type { GetterParameters, OpenApiPrimitiveSchemaType } from '../types';
 import { getParams, getParamsInPath } from './params';
 
 const context = createTestContextSpec();
@@ -13,14 +13,14 @@ const pathParam = (name: string): GetterParameters['path'][number] => ({
 
 const pathParamWithDefault = (
   name: string,
-  type: string,
+  type: OpenApiPrimitiveSchemaType,
   defaultValue: unknown,
 ): GetterParameters['path'][number] => ({
   parameter: {
     name,
     in: 'path',
     required: true,
-    schema: { type, default: defaultValue } as never,
+    schema: { type, default: defaultValue },
   },
   imports: [],
 });
@@ -97,7 +97,7 @@ describe('getParams getter', () => {
     );
   });
 
-  it.each([
+  it.each<[OpenApiPrimitiveSchemaType, unknown, string]>([
     ['number', 1, '1'],
     ['number', 0, '0'],
     ['boolean', true, 'true'],

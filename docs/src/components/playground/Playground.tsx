@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import type { Locale } from '@/lib/i18n';
 import {
@@ -8,11 +8,17 @@ import {
   getGroupedExamples,
 } from '@/lib/playground/examples';
 import { generatePlaygroundCode } from '@/lib/playground/generate';
+import {
+  convertSchema,
+  detectSchemaFormat,
+  type SchemaFormat,
+} from '@/lib/playground/schema-format';
 import type { GenerateOutput } from '@/lib/playground/types';
 
 import { EditorPanel } from './EditorPanel';
 import { ExampleSelector } from './ExampleSelector';
 import { OutputPanel, type OutputPanelCopy } from './OutputPanel';
+import { SchemaFormatToggle } from './SchemaFormatToggle';
 
 const groupedExamples = getGroupedExamples();
 
@@ -20,6 +26,8 @@ const copy = {
   en: {
     chooseExample: 'Choose an example',
     loadingEditor: 'Loading editor...',
+    schemaFormat: 'Schema format',
+    schemaConversionError: 'Fix the schema to convert it',
     outputPanel: {
       output: 'Output',
       copy: 'Copy',
@@ -33,6 +41,8 @@ const copy = {
   zh: {
     chooseExample: '选择示例',
     loadingEditor: '正在加载编辑器...',
+    schemaFormat: 'Schema 格式',
+    schemaConversionError: '请先修正 Schema 再转换',
     outputPanel: {
       output: '输出',
       copy: '复制',
@@ -48,6 +58,8 @@ const copy = {
   {
     chooseExample: string;
     loadingEditor: string;
+    schemaFormat: string;
+    schemaConversionError: string;
     outputPanel: OutputPanelCopy;
   }
 >;
@@ -68,6 +80,9 @@ export const Playground = ({ locale = 'en' }: PlaygroundProps) => {
   const [config, setConfig] = useState(
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].config,
   );
+
+  const [schemaConversionFailed, setSchemaConversionFailed] = useState(false);
+  const schemaFormat = useMemo(() => detectSchemaFormat(schema), [schema]);
 
   const [debouncedSchema] = useDebounce(schema, 500);
   const [debouncedConfig] = useDebounce(config, 500);
@@ -97,13 +112,28 @@ export const Playground = ({ locale = 'en' }: PlaygroundProps) => {
     const example = EXAMPLES[catName][index];
 
     setSelectedExample(selectId);
-    setSchema(example.schema);
+    setSchema(
+      schemaFormat === 'json'
+        ? convertSchema(example.schema, 'json')
+        : example.schema,
+    );
     setConfig(example.config);
+    setSchemaConversionFailed(false);
   };
 
   const handleSchemaChange = (value: string | undefined) => {
     if (value !== undefined) {
       setSchema(value);
+      setSchemaConversionFailed(false);
+    }
+  };
+
+  const handleSchemaFormatChange = (format: SchemaFormat) => {
+    try {
+      setSchema(convertSchema(schema, format));
+      setSchemaConversionFailed(false);
+    } catch {
+      setSchemaConversionFailed(true);
     }
   };
 
@@ -137,12 +167,26 @@ export const Playground = ({ locale = 'en' }: PlaygroundProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Schema editor */}
         <EditorPanel
-          title="schema.yaml"
-          language="yaml"
+          title={`schema.${schemaFormat}`}
+          language={schemaFormat}
           value={schema}
           onChange={handleSchemaChange}
           height="500px"
           loadingText={text.loadingEditor}
+          headerActions={
+            <div className="flex items-center gap-2">
+              {schemaConversionFailed && (
+                <span role="alert" className="text-xs text-red-400">
+                  {text.schemaConversionError}
+                </span>
+              )}
+              <SchemaFormatToggle
+                label={text.schemaFormat}
+                value={schemaFormat}
+                onChange={handleSchemaFormatChange}
+              />
+            </div>
+          }
         />
 
         {/* Config editor */}

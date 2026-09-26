@@ -29,6 +29,14 @@ const respondWith = (status: number, body: unknown) => {
   return fetchMock;
 };
 
+const readSentBody = (fetchMock: ReturnType<typeof respondWith>) => {
+  const body = fetchMock.mock.calls[0]?.[1]?.body;
+  if (typeof body !== 'string') {
+    throw new Error('expected the request body to be a string');
+  }
+  return JSON.parse(body);
+};
+
 // Distinct from `respondWith`: sends the exact raw text given, so a 200 with
 // a genuinely empty (not `null`, not `"{}"`) body can be simulated. `res.text()`
 // on a real empty-body 200 response returns `''`, not `null` — only the
@@ -66,7 +74,7 @@ test('sends format: date body fields as calendar days', async () => {
 
   await fetchUpdateAppointment(appointment());
 
-  const sent = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+  const sent = readSentBody(fetchMock);
   expect(sent.day).toBe('2026-07-01');
   expect(sent.slots[0].start).toBe('2026-07-02');
   expect(sent.bookedAt).toBe('2026-07-01T09:30:00.000Z');
@@ -183,11 +191,11 @@ test('serializes and deserializes format: date values inside an additionalProper
     },
   });
 
-  const sentBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+  const sentBody = readSentBody(fetchMock);
   expect(sentBody.pets.whiskers.arrivedOn).toBe('2026-07-01');
   expect(sentBody.pets.rex.vaccinatedAt).toBe('2026-07-01T09:30:00.000Z');
 
-  const data = response.data as {
+  const data = response.data as unknown as {
     pets: { whiskers: { arrivedOn: Date }; rex: { vaccinatedAt: Date } };
   };
   expect(data.pets.whiskers.arrivedOn).toBeInstanceOf(Date);

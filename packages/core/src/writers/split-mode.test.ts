@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -16,8 +16,8 @@ import {
   OutputMockType,
   OutputMode,
 } from '../types';
-import { writeSplitMode } from './split-mode';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
+import { writeSplitMode } from './split-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
 //
@@ -34,7 +34,7 @@ describe('writeSplitMode — schemas path follows needSchema (#2309)', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('omits the *.schemas.ts path when needSchema is false', async () => {
@@ -80,7 +80,7 @@ describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('returns and writes index.<ext>.ts re-exporting the mock file when enabled', async () => {
@@ -169,7 +169,7 @@ describe('writeSplitMode — function generator is treated as MSW (#3554)', () =
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('emits the MSW mock file when only a function generator is configured', async () => {
@@ -247,7 +247,7 @@ describe('writeSplitMode — separated mocks honor schemas.importPath', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('uses the package import path for mock schema imports', async () => {
@@ -323,7 +323,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('appends .js to the schemas specifier under module: NodeNext', async () => {
@@ -439,7 +439,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
 
     await writeSplitMode({ ...props, needSchema: false });
 
-    const content = await fs.readFile(
+    const content = await fs.promises.readFile(
       path.join(tmpDir, 'petstore.service.ts'),
       'utf8',
     );
@@ -503,7 +503,7 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
 
     await writeSplitMode({ ...props, needSchema: false });
 
-    const mockContent = await fs.readFile(
+    const mockContent = await fs.promises.readFile(
       path.join(tmpDir, 'petstore.msw.ts'),
       'utf8',
     );
@@ -521,7 +521,7 @@ describe('writeSplitMode — routes mock schema imports through schemaOutputPlan
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('mock file schema imports match the routed client imports', async () => {

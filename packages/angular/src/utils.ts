@@ -30,8 +30,6 @@ const PRIMITIVE_TYPE_VALUES = [
 
 export type PrimitiveType = (typeof PRIMITIVE_TYPE_VALUES)[number];
 
-export const PRIMITIVE_TYPES = new Set(PRIMITIVE_TYPE_VALUES);
-
 const PRIMITIVE_TYPE_LOOKUP = {
   string: true,
   number: true,
@@ -53,11 +51,6 @@ export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
  */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
   isObject(output.schemas) && output.schemas.type === 'zod';
-
-/**
- * Removes `null` and `undefined` from a value in a type-safe way.
- */
-export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
 /**
  * Maps a schema type name to its Zod output-type reference (`${typeName}Output`).

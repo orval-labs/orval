@@ -2,20 +2,11 @@ import { defineConfig } from 'vite-plus';
 
 // All fmt + lint config lives here (Vite+ recommends the config blocks over
 // .oxfmtrc.json / .oxlintrc.json).
-//
-// Lint `typeAware`/`typeCheck` are OFF at the config level so the looser default
-// works for generated sample code. The `lint` script re-enables them ONLY for
-// packages via `vp lint --type-aware --type-check packages` (CLI flags override
-// the config). Samples (generated orval output) are linted via `lint:samples`
-// with the looser ruleset in the `samples/**` override below.
-//
-// NOTE: because `samples` is not in the lint `ignorePatterns`, a BARE `vp lint`
-// would lint everything WITHOUT type-aware — always use the path-scoped `lint` /
-// `lint:samples` scripts (CI and git hooks are wired accordingly).
 export default defineConfig({
   fmt: {
     singleQuote: true,
     printWidth: 80,
+    sortImports: true,
     ignorePatterns: [
       '**/dist',
       '**/node_modules',
@@ -23,7 +14,7 @@ export default defineConfig({
       '**/*.timestamp*',
       'samples',
       'docs',
-      'tests',
+      'tests/generated',
       '**/*.yaml',
       '**/*.yml',
       'packages/hono/src/zValidator.ts',
@@ -32,8 +23,8 @@ export default defineConfig({
   },
   lint: {
     options: {
-      typeAware: false,
-      typeCheck: false,
+      typeAware: true,
+      typeCheck: true,
     },
     plugins: ['oxc', 'typescript', 'unicorn', 'import'],
     categories: {
@@ -44,22 +35,17 @@ export default defineConfig({
     },
     ignorePatterns: [
       '**/dist',
-      'packages/**/__snapshots__',
-      'samples/**/__snapshots__',
+      '**/__snapshots__',
       '**/.bun',
       '**/*.timestamp*',
       '**/node_modules',
       'docs',
-      // Everything under `tests` is ignored except the committed generated
-      // output, which `lint:snapshots` lints. Gitignore semantics: a negation
-      // can only re-include a child of a directory whose *children* are
-      // ignored, hence `tests/*` rather than `tests`.
-      'tests/*',
-      '!tests/__snapshots__',
       'packages/hono/src/zValidator.ts',
       // Committed TypeDoc bundles: minified vendor output, not lintable source.
       'samples/react-app/docs-html/assets',
       'samples/react-app/docs-html-plugin/assets',
+      'samples/**/.svelte-kit/**',
+      'samples/**/*.test-d.ts',
     ],
     rules: {
       'eslint/no-array-constructor': 'error',
@@ -79,10 +65,8 @@ export default defineConfig({
     },
     overrides: [
       {
-        // Samples and snapshots are generated orval output — relax the rules
-        // generated code legitimately trips so `lint:samples` and
-        // `lint:snapshots` stay useful, looser gates.
-        files: ['samples/**', 'tests/__snapshots__/**'],
+        // Samples and generated orval output — relax the rules
+        files: ['samples/**', 'tests/generated/**'],
         rules: {
           'eslint/no-unused-vars': 'off',
           'eslint/no-extra-boolean-cast': 'off',
@@ -95,6 +79,15 @@ export default defineConfig({
           // Generators emit empty files on purpose (e.g. a client with no
           // operations for a tag).
           'unicorn/no-empty-file': 'off',
+          'typescript/no-useless-default-assignment': 'off',
+          'typescript/no-floating-promises': 'off',
+          'typescript/no-misused-spread': 'off',
+          'typescript/unbound-method': 'off',
+          // Constraint-only allOf members are emitted as `unknown`, and
+          // distinct schema aliases can expand to the same primitive
+          // (`NullEnum` is `null`, two id refs are both `number`).
+          'typescript/no-redundant-type-constituents': 'off',
+          'typescript/no-duplicate-type-constituents': 'off',
           // Generated output must not trip a consumer's linter. Stays `warn`
           // until every generator emits `import type` for type-only imports
           // (tracked per generator from #3931); then it flips to `error`

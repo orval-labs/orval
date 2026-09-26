@@ -1,10 +1,7 @@
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
-  collectReachableComponentRefs,
-  computeLazyEdges,
   generateReusableSchemaSet,
   resolveSchemaName,
   resolveSchemaNames,
@@ -56,62 +53,6 @@ describe('resolveSchemaNames (conflict guard)', () => {
         context,
       ),
     ).toThrow(/pet_owner.*PetOwner|PetOwner.*pet_owner/);
-  });
-});
-
-describe('collectReachableComponentRefs', () => {
-  const spec = {
-    openapi: '3.1.0',
-    info: { title: 'Test', version: '1' },
-    paths: {
-      '/pet': {
-        get: {
-          responses: {
-            '200': {
-              description: 'ok',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Pet' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    components: {
-      schemas: {
-        Pet: {
-          type: 'object',
-          properties: {
-            owner: { $ref: '#/components/schemas/Owner' },
-            tags: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/Tag' },
-            },
-          },
-        },
-        Owner: { type: 'object' },
-        Tag: { type: 'object' },
-        Unused: { type: 'object' },
-      },
-    },
-  } as unknown as OpenAPIV3_1.Document;
-
-  it('finds refs reachable from operations and follows them transitively', () => {
-    const result = collectReachableComponentRefs(spec);
-    expect(result).toEqual(
-      new Set([
-        '#/components/schemas/Pet',
-        '#/components/schemas/Owner',
-        '#/components/schemas/Tag',
-      ]),
-    );
-  });
-
-  it('does not include unreachable schemas', () => {
-    const result = collectReachableComponentRefs(spec);
-    expect(result.has('#/components/schemas/Unused')).toBe(false);
   });
 });
 
@@ -294,47 +235,6 @@ describe('generateReusableSchemaSet', () => {
     // Owner must be in the result even though only Pet was seeded — the
     // orchestrator follows usedRefs to avoid dangling identifiers.
     expect(result.map((e) => e.name).toSorted()).toEqual(['Owner', 'Pet']);
-  });
-});
-
-describe('computeLazyEdges', () => {
-  it('returns empty set for a DAG', () => {
-    const edges = computeLazyEdges(
-      new Map([
-        ['a', new Set(['b', 'c'])],
-        ['b', new Set(['c'])],
-        ['c', new Set()],
-      ]),
-    );
-    expect(edges).toEqual(new Set());
-  });
-
-  it('marks one edge as lazy for a simple cycle a -> b -> a', () => {
-    const edges = computeLazyEdges(
-      new Map([
-        ['a', new Set(['b'])],
-        ['b', new Set(['a'])],
-      ]),
-    );
-    expect(edges.size).toBe(1);
-    expect([...edges][0]).toMatch(/^(a->b|b->a)$/);
-  });
-
-  it('marks a self-loop a -> a as lazy', () => {
-    const edges = computeLazyEdges(new Map([['a', new Set(['a'])]]));
-    expect(edges).toEqual(new Set(['a->a']));
-  });
-
-  it('marks at least one edge per cycle in a 3-node SCC', () => {
-    const edges = computeLazyEdges(
-      new Map([
-        ['a', new Set(['b', 'c'])],
-        ['b', new Set(['a', 'c'])],
-        ['c', new Set(['a'])],
-      ]),
-    );
-    expect(edges.size).toBeGreaterThan(0);
-    expect(edges.size).toBeLessThan(5);
   });
 });
 

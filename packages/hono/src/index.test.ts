@@ -2,14 +2,15 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type {
-  GeneratorClient,
-  GeneratorVerbOptions,
-  NormalizedOutputOptions,
-} from '@orval/core';
-import { OutputClient } from '@orval/core';
+import type { GeneratorClient, GeneratorVerbOptions } from '@orval/core';
+import { OutputClient, OutputMode } from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import {
   generateHandlerFile,
   generateHono,
@@ -17,14 +18,11 @@ import {
   resolveDefaultSchemaModule,
 } from './index';
 
-const verb = (operationName: string): GeneratorVerbOptions =>
-  ({
+const verb = (operationName: string) =>
+  createTestGeneratorVerbOptions({
     operationName,
     typeName: operationName,
-    params: [],
-    body: { definition: '' },
-    response: { originalSchema: {} },
-  }) as unknown as GeneratorVerbOptions;
+  });
 
 // A handler the user has filled in: a custom import, middleware in the chain, a
 // distinctive body marker, and a top-level helper — none of which orval owns.
@@ -122,18 +120,16 @@ describe('generateHandlerFile strategies', () => {
 
   it('uses zValidator("form") for multipart/form-data bodies', async () => {
     const file = path.join(dir, 'uploadPhoto.ts');
-    const formVerb = {
+    const formVerb = createTestGeneratorVerbOptions({
       operationName: 'uploadPhoto',
       typeName: 'uploadPhoto',
-      params: [],
+      pathRoute: '/photo',
+      tags: ['default'],
       body: {
         definition: 'UploadPhotoBody',
         contentType: 'multipart/form-data',
       },
-      response: { originalSchema: {} },
-      pathRoute: '/photo',
-      tags: ['default'],
-    } as unknown as GeneratorVerbOptions;
+    });
 
     const result = await generateHandlerFile({
       verbs: [formVerb],
@@ -199,14 +195,20 @@ describe('generateHandlerFile — NodeNext module resolution', () => {
 });
 
 describe('resolveDefaultSchemaModule', () => {
-  const output = (overrides: Partial<NormalizedOutputOptions>) =>
-    ({
-      target: '/out/client.generated.ts',
-      fileExtension: '.generated.ts',
-      mode: 'split',
-      schemas: undefined,
-      ...overrides,
-    }) as unknown as NormalizedOutputOptions;
+  const output = (
+    overrides: NonNullable<
+      Parameters<typeof createTestContextSpec>[0]
+    >['output'] = {},
+  ) =>
+    createTestContextSpec({
+      output: {
+        target: '/out/client.generated.ts',
+        fileExtension: '.generated.ts',
+        mode: OutputMode.SPLIT,
+        schemas: undefined,
+        ...overrides,
+      },
+    }).output;
 
   it('does not leave `.generated` behind for a multi-part fileExtension', () => {
     // A naive last-extension strip on `/out/client.generated.ts` leaves
@@ -244,9 +246,9 @@ describe('resolveDefaultSchemaModule', () => {
   });
 
   it('returns the target path itself in single mode', () => {
-    expect(resolveDefaultSchemaModule(output({ mode: 'single' }))).toBe(
-      '/out/client.generated.ts',
-    );
+    expect(
+      resolveDefaultSchemaModule(output({ mode: OutputMode.SINGLE })),
+    ).toBe('/out/client.generated.ts');
   });
 
   it('returns the configured schemas directory when set', () => {
@@ -266,9 +268,9 @@ describe('resolveDefaultSchemaModule', () => {
 
 describe('single-quote escaping in generated route literals', () => {
   const contextVerb = (
-    overrides: Partial<GeneratorVerbOptions> = {},
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
   ): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       operationName: 'getItem',
       typeName: 'getItem',
       verb: 'get',
@@ -280,13 +282,11 @@ describe('single-quote escaping in generated route literals', () => {
           required: true,
           imports: [],
           implementation: 'id: string',
+          default: false,
         },
       ],
-      queryParams: undefined,
-      body: { definition: '', imports: [] },
-      response: { originalSchema: {} },
       ...overrides,
-    }) as unknown as GeneratorVerbOptions;
+    });
 
   it('escapes a quote in the path of the generated context type', () => {
     const context = getContext(contextVerb());
@@ -313,10 +313,10 @@ describe('single-quote escaping in generated route literals', () => {
   it('escapes a quote in the path of the generated route registration', () => {
     const client = generateHono(
       contextVerb(),
-      {
+      createTestGeneratorOptions({
         pathRoute: "/api/v1/it's-endpoint/{id}",
         override: { hono: { compositeRoute: '' } },
-      } as unknown as Parameters<typeof generateHono>[1],
+      }),
       OutputClient.HONO,
     ) as GeneratorClient;
 

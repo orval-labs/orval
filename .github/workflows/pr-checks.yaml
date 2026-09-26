@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@v1.20.0
+        uses: voidzero-dev/setup-vp@v1.21.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: true
@@ -52,8 +52,8 @@ jobs:
       - name: Lint samples
         run: vp run -w lint:samples
 
-      - name: Lint snapshots
-        run: vp run -w lint:snapshots
+      - name: Lint tests
+        run: vp run -w lint:tests
 
       - name: Typecheck packages
         run: vp run -w typecheck
@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@v1.20.0
+        uses: voidzero-dev/setup-vp@v1.21.0
         with:
           node-version: 24
           cache: true

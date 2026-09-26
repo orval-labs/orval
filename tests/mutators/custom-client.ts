@@ -24,4 +24,4 @@ export default customClient;
 
 export type ErrorType<ErrorData> = ErrorData;
 
-export type BodyType<BodyData> = BodyData & { headers?: any };
+export type BodyType<BodyData> = BodyData & { headers?: HeadersInit };

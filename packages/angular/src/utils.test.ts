@@ -13,7 +13,6 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
-  isDefined,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -305,29 +304,6 @@ describe('isPrimitiveType', () => {
 });
 
 // ---------------------------------------------------------------------------
-// isDefined
-// ---------------------------------------------------------------------------
-
-describe('isDefined', () => {
-  it('returns true for truthy values', () => {
-    expect(isDefined('hello')).toBe(true);
-    expect(isDefined(0)).toBe(true);
-    expect(isDefined(false)).toBe(true);
-  });
-
-  it('returns false for null', () => {
-    // eslint-disable-next-line unicorn/no-null -- testing null handling explicitly
-    const value = null as string | null;
-    expect(isDefined(value)).toBe(false);
-  });
-
-  it('returns false for undefined', () => {
-    const value = undefined as string | undefined;
-    expect(isDefined(value)).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // getSchemaOutputTypeRef
 // ---------------------------------------------------------------------------
 
@@ -395,7 +371,7 @@ const makeVerb = (operationId: string, tags: string[]): GeneratorVerbOptions =>
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {},
+      originalSchema: { content: {} },
       contentType: '',
       formData: '',
       formUrlEncoded: '',

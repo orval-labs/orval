@@ -12,25 +12,15 @@ import {
   isNumber,
   isNumeric,
   isObject,
-  isReference,
   isSchema,
   isSchemaNullable,
   isString,
-  isStringLike,
   isUrl,
   isVerb,
   safeNumericConstraint,
 } from './assertion';
 
 describe('assertion testing', () => {
-  it('checks for reference objects', () => {
-    expect(isReference({ $ref: '#/components/schemas/User' })).toBeTruthy();
-    expect(isReference({} as Record<string, unknown>)).toBeFalsy();
-    expect(isReference({ $dynamicRef: '#category' })).toBeFalsy();
-    // eslint-disable-next-line unicorn/no-null -- testing null handling
-    expect(isReference(null as unknown as object)).toBeFalsy();
-  });
-
   it('checks for directory-like paths', () => {
     expect(isDirectory('src/utils')).toBeTruthy();
     expect(isDirectory('src/utils/index.ts')).toBeFalsy();
@@ -41,12 +31,6 @@ describe('assertion testing', () => {
     expect(isObject([])).toBeFalsy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isObject(null)).toBeFalsy();
-  });
-
-  it('checks for string-like values', () => {
-    expect(isStringLike('hello')).toBeTruthy();
-    expect(isStringLike(new Object('hello'))).toBeTruthy();
-    expect(isStringLike(123)).toBeFalsy();
   });
 
   it('checks for module-like objects', () => {
@@ -70,6 +54,11 @@ describe('assertion testing', () => {
     expect(isSchema({ type: 'not-a-schema' })).toBeFalsy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isSchema(null)).toBeFalsy();
+  });
+
+  it('treats boolean schemas as null-admitting or not', () => {
+    expect(isSchemaNullable(true)).toBe(true);
+    expect(isSchemaNullable(false)).toBe(false);
   });
 
   it('checks whether a schema allows null', () => {
@@ -175,8 +164,10 @@ describe('assertion testing', () => {
     expect(isVerb('QUERY')).toBeFalsy();
     expect(isVerb('unknown')).toBeFalsy();
     expect(isVerb('')).toBeFalsy();
-    expect(isVerb(undefined as unknown as string)).toBeFalsy();
-    expect(isVerb(null as unknown as string)).toBeFalsy();
+    // @ts-expect-error — isVerb is a runtime type guard
+    expect(isVerb(undefined)).toBeFalsy();
+    // @ts-expect-error — isVerb is a runtime type guard
+    expect(isVerb(null)).toBeFalsy();
   });
 
   it('checks for valid URLs', () => {
@@ -223,11 +214,13 @@ describe('isDynamicReference', () => {
 
   it('returns false for null', () => {
     // eslint-disable-next-line unicorn/no-null
-    expect(isDynamicReference(null as unknown as object)).toBe(false);
+    // @ts-expect-error — runtime null is not an object
+    expect(isDynamicReference(null)).toBe(false);
   });
 
   it('returns false for undefined', () => {
-    expect(isDynamicReference(undefined as unknown as object)).toBe(false);
+    // @ts-expect-error — runtime undefined is not an object
+    expect(isDynamicReference(undefined)).toBe(false);
   });
 
   it('returns true for objects with $dynamicRef and other properties', () => {
@@ -237,13 +230,7 @@ describe('isDynamicReference', () => {
   });
 
   it('returns false for non-string $dynamicRef', () => {
-    expect(isDynamicReference({ $dynamicRef: 123 } as unknown as object)).toBe(
-      false,
-    );
-  });
-
-  it('returns true for objects with $ref in isReference', () => {
-    expect(isReference({ $ref: '#/components/schemas/Foo' })).toBe(true);
+    expect(isDynamicReference({ $dynamicRef: 123 })).toBe(false);
   });
 });
 

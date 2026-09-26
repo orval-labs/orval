@@ -4,7 +4,7 @@ import {
   type GeneratorImport,
   getKey,
   getRefInfo,
-  isReference,
+  isInlineSchema,
   isSchemaNullable,
   type MockOptions,
   type OpenApiReferenceObject,
@@ -14,13 +14,13 @@ import {
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
+import { mergeReturnedMockImports } from '../imports';
 import {
   resolveMockValue,
   getNullable,
   isNullableSchema,
   resolveRefTarget,
 } from '../resolvers/value';
-import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
@@ -69,11 +69,11 @@ function reExpansionWouldCollapse(
   const targetProperties = target?.properties as
     | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
     | undefined;
-  const targetRequired = target?.required as string[] | undefined;
+  const targetRequired = target?.required;
   if (!targetProperties || !Array.isArray(targetRequired)) return false;
 
   return Object.entries(targetProperties).some(([key, property]) => {
-    if (!targetRequired.includes(key) || !isReference(property)) return false;
+    if (!targetRequired.includes(key) || isInlineSchema(property)) return false;
     if (
       !existingReferencedProperties.includes(
         getReferenceName(property.$ref, context),
@@ -120,7 +120,7 @@ export function getMockObject({
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
-  if (isReference(item)) {
+  if (typeof item.$ref === 'string') {
     return resolveMockValue({
       schema: {
         ...item,
@@ -143,12 +143,9 @@ export function getMockObject({
   const itemOneOf = schemaItem.oneOf as MockSchema[] | undefined;
   const itemAnyOf = schemaItem.anyOf as MockSchema[] | undefined;
   const itemType = schemaItem.type as string | string[] | undefined;
-  const itemProperties = schemaItem.properties as
-    | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
-    | undefined;
-  const itemRequired = schemaItem.required as string[] | undefined;
+  const itemProperties = schemaItem.properties;
+  const itemRequired = schemaItem.required;
   const itemAdditionalProperties = schemaItem.additionalProperties as
-    | boolean
     | OpenApiReferenceObject
     | OpenApiSchemaObject
     | undefined;
@@ -290,10 +287,9 @@ export function getMockObject({
           // Reading `nullable` directly made this dead in the CLI pipeline --
           // `resolveSpec` deletes the keyword -- so an optional nullable
           // property could never pick `null` as its omission value (#4141).
-          const hasNullable =
-            !isReference(prop) && isSchemaNullable(prop as OpenApiSchemaObject);
+          const hasNullable = isInlineSchema(prop) && isSchemaNullable(prop);
 
-          const refName = isReference(prop)
+          const refName = !isInlineSchema(prop)
             ? getReferenceName(prop.$ref, context)
             : '';
           const isRecursiveRef =
@@ -313,7 +309,8 @@ export function getMockObject({
             if (
               !mockOptions?.nonNullable &&
               (hasNullable ||
-                (isReference(prop) && isNullableRefTarget(prop.$ref, context)))
+                (!isInlineSchema(prop) &&
+                  isNullableRefTarget(prop.$ref, context)))
             ) {
               return `${keyDefinition}: null`;
             }
@@ -322,7 +319,7 @@ export function getMockObject({
               existingReferencedProperties.length;
             if (
               inReExpansion ||
-              (isReference(prop) &&
+              (!isInlineSchema(prop) &&
                 reExpansionWouldCollapse(
                   prop.$ref,
                   context,
@@ -384,7 +381,11 @@ export function getMockObject({
             return `${keyDefinition}: {} as unknown as ${refName}`;
           }
 
-          const hasDefault = 'default' in prop && prop.default !== undefined;
+          const hasDefault =
+            typeof prop === 'object' &&
+            prop !== null &&
+            'default' in prop &&
+            prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
             // A value that already carries its own null branch randomizes
@@ -406,7 +407,11 @@ export function getMockObject({
           }
 
           const isNullable =
-            Array.isArray(prop.type) && prop.type.includes('null');
+            typeof prop === 'object' &&
+            prop !== null &&
+            'type' in prop &&
+            Array.isArray(prop.type) &&
+            prop.type.includes('null');
           if (
             isNullable &&
             !resolvedValue.nullWrapped &&
@@ -465,7 +470,7 @@ export function getMockObject({
     }
     const additionalProperties = itemAdditionalProperties;
     if (
-      isReference(additionalProperties) &&
+      !isInlineSchema(additionalProperties) &&
       existingReferencedProperties.includes(
         getReferenceName(additionalProperties.$ref, context),
       )
@@ -490,7 +495,7 @@ export function getMockObject({
         ...additionalProperties,
         name: schemaItem.name,
         path: schemaItem.path ? `${schemaItem.path}.#` : '#',
-      },
+      } as MockSchemaObject,
       mockOptions,
       operationId,
       tags,

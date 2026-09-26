@@ -27,7 +27,9 @@ describe('angular inline array responses are validated (#3718)', () => {
   const resource = readGenerated('endpoints.resource.ts');
 
   it('parses every HttpClient observe branch through the element schema', () => {
-    expect(service).toContain('.pipe(map((data) => zod.array(Item).parse(data)))');
+    expect(service).toContain(
+      '.pipe(map((data) => zod.array(Item).parse(data)))',
+    );
     expect(service).toContain(
       'response.clone({ body: zod.array(Item).parse(response.body) })',
     );
@@ -80,9 +82,11 @@ describe('angular inline array responses are validated (#3718)', () => {
 
   // The point of the fix: the emitted expression actually rejects bad data.
   it('raises a ZodError for an invalid element instead of returning it', () => {
-    const parse = zod.array(Item).parse;
+    const schema = zod.array(Item);
 
-    expect(() => parse([{ id: 'not-a-number' }])).toThrow(zod.ZodError);
-    expect(parse([{ id: 1, name: 'a' }])).toEqual([{ id: 1, name: 'a' }]);
+    expect(() => schema.parse([{ id: 'not-a-number' }])).toThrow(zod.ZodError);
+    expect(schema.parse([{ id: 1, name: 'a' }])).toEqual([
+      { id: 1, name: 'a' },
+    ]);
   });
 });

@@ -5,7 +5,7 @@ import type {
   OpenApiParameterObject,
   OpenApiReferenceObject,
 } from '../types';
-import { isReference } from '../utils';
+import { isInlineSchema } from '../utils';
 import { getRefInfo, isComponentRef } from './ref';
 
 interface GetParametersOptions {
@@ -19,7 +19,7 @@ export function getParameters({
 }: GetParametersOptions): GetterParameters {
   const result: GetterParameters = { path: [], query: [], header: [] };
   for (const p of parameters) {
-    if (isReference(p)) {
+    if (!isInlineSchema(p)) {
       const { schema } = resolveRef(p, context);
       const parameter = schema as OpenApiParameterObject;
 
@@ -51,10 +51,8 @@ export function getParameters({
           : [];
         result[location].push({ parameter, imports: safeImports });
       }
-    } else {
-      if (p.in === 'query' || p.in === 'path' || p.in === 'header') {
-        result[p.in].push({ parameter: p, imports: [] });
-      }
+    } else if (p.in === 'query' || p.in === 'path' || p.in === 'header') {
+      result[p.in].push({ parameter: p, imports: [] });
     }
   }
 

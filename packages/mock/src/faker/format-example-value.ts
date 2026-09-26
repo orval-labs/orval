@@ -1,6 +1,7 @@
 import {
   type ContextSpec,
-  isReference,
+  type OpenApiNonBooleanSchemaObject,
+  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   resolveRef,
 } from '@orval/core';
@@ -13,7 +14,9 @@ function isDateFormat(
   return format !== undefined && DATE_FORMATS.has(format);
 }
 
-function isSchemaObject(schema: unknown): schema is OpenApiSchemaObject {
+function isSchemaObject(
+  schema: unknown,
+): schema is OpenApiNonBooleanSchemaObject {
   return (
     typeof schema === 'object' && schema !== null && !Array.isArray(schema)
   );
@@ -22,20 +25,24 @@ function isSchemaObject(schema: unknown): schema is OpenApiSchemaObject {
 function resolveSchema(
   schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
-): OpenApiSchemaObject | undefined {
-  if (!schema) {
+): OpenApiNonBooleanSchemaObject | undefined {
+  if (!schema || typeof schema !== 'object') {
     return undefined;
   }
 
-  if (isReference(schema)) {
-    return resolveRef<OpenApiSchemaObject>(schema, context).schema;
+  if (typeof schema.$ref === 'string') {
+    const resolved = resolveRef<OpenApiSchemaObject>(
+      schema as OpenApiReferenceObject,
+      context,
+    ).schema;
+    return resolved && typeof resolved === 'object' ? resolved : undefined;
   }
 
   return schema;
 }
 
 function mergePropertySchemas(
-  ...schemas: Array<OpenApiSchemaObject | undefined>
+  ...schemas: Array<OpenApiNonBooleanSchemaObject | undefined>
 ): Record<string, OpenApiSchemaObject> {
   const merged: Record<string, OpenApiSchemaObject> = {};
 
@@ -55,7 +62,7 @@ function mergePropertySchemas(
 }
 
 function getEffectiveScalarFormat(
-  resolved: OpenApiSchemaObject | undefined,
+  resolved: OpenApiNonBooleanSchemaObject | undefined,
   context: ContextSpec,
 ): 'date' | 'date-time' | undefined {
   if (!resolved) {
@@ -66,12 +73,11 @@ function getEffectiveScalarFormat(
     return resolved.format;
   }
 
-  const oneOf = resolved.oneOf as OpenApiSchemaObject[] | undefined;
-  const anyOf = resolved.anyOf as OpenApiSchemaObject[] | undefined;
+  const oneOf = resolved.oneOf;
+  const anyOf = resolved.anyOf;
 
   for (const variant of [...(oneOf ?? []), ...(anyOf ?? [])]) {
-    const resolvable =
-      isReference(variant) || isSchemaObject(variant) ? variant : undefined;
+    const resolvable = isSchemaObject(variant) ? variant : undefined;
     const resolvedVariant = resolveSchema(resolvable, context);
 
     if (isDateFormat(resolvedVariant?.format)) {
@@ -90,19 +96,21 @@ function resolveExampleSchema(
   schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
   seenRefs: Set<string> = new Set(),
-): OpenApiSchemaObject | undefined {
-  if (!schema) {
+): OpenApiNonBooleanSchemaObject | undefined {
+  if (!schema || typeof schema !== 'object') {
     return undefined;
   }
 
-  if (isReference(schema)) {
+  if (typeof schema.$ref === 'string') {
     const ref = schema.$ref;
-    if (ref && seenRefs.has(ref)) {
-      return resolveRef<OpenApiSchemaObject>(schema, context).schema;
+    if (seenRefs.has(ref)) {
+      const resolved = resolveRef<OpenApiSchemaObject>(
+        schema as OpenApiReferenceObject,
+        context,
+      ).schema;
+      return resolved && typeof resolved === 'object' ? resolved : undefined;
     }
-    if (ref) {
-      seenRefs = new Set(seenRefs).add(ref);
-    }
+    seenRefs = new Set(seenRefs).add(ref);
   }
 
   const resolved = resolveSchema(schema, context);
@@ -110,9 +118,9 @@ function resolveExampleSchema(
     return undefined;
   }
 
-  const allOf = resolved.allOf as OpenApiSchemaObject[] | undefined;
-  const oneOf = resolved.oneOf as OpenApiSchemaObject[] | undefined;
-  const anyOf = resolved.anyOf as OpenApiSchemaObject[] | undefined;
+  const allOf = resolved.allOf;
+  const oneOf = resolved.oneOf;
+  const anyOf = resolved.anyOf;
   const compositors = [...(allOf ?? []), ...(oneOf ?? []), ...(anyOf ?? [])];
 
   const properties = mergePropertySchemas(
@@ -134,14 +142,14 @@ function resolveExampleSchema(
       ...baseResolved,
       ...(Object.keys(properties).length > 0 ? { properties } : {}),
       items: normalizedItems ?? resolved.items,
-    } as OpenApiSchemaObject;
+    } as OpenApiNonBooleanSchemaObject;
   }
 
   if (Object.keys(properties).length > 0) {
     return {
       ...baseResolved,
       properties,
-    } as OpenApiSchemaObject;
+    } as OpenApiNonBooleanSchemaObject;
   }
 
   if (compositors.length > 0 && (oneOf ?? anyOf)) {
@@ -162,26 +170,10 @@ function resolveExampleSchema(
     return {
       ...baseResolved,
       format: scalarFormat,
-    } as OpenApiSchemaObject;
+    } as OpenApiNonBooleanSchemaObject;
   }
 
   return resolved;
-}
-
-export function formatScalarExampleValue(
-  example: unknown,
-  format: string | undefined,
-  context: ContextSpec,
-): string {
-  if (
-    context.output.override.useDates &&
-    typeof example === 'string' &&
-    isDateFormat(format)
-  ) {
-    return `new Date(${JSON.stringify(example)})`;
-  }
-
-  return JSON.stringify(example);
 }
 
 function formatLiteralValue(

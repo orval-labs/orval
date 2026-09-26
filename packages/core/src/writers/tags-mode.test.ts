@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import fs from 'fs-extra';
 import {
   afterEach,
   beforeEach,
@@ -17,13 +17,15 @@ import {
   createSplitModeProps,
 } from '../test-utils/split-modes';
 import {
+  type GenerateMockImports,
+  type GeneratorClientFooter,
   type GeneratorDependency,
   type GeneratorSchema,
   OutputMockType,
   OutputMode,
 } from '../types';
-import { writeTagsMode } from './tags-mode';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
+import { writeTagsMode } from './tags-mode';
 
 // Regression: the index mock barrel must emit tags in locale-sorted order
 // regardless of I/O completion order inside Promise.all. Without an
@@ -37,7 +39,7 @@ describe('writeTagsMode — index mock barrel has deterministic tag order', () =
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 
@@ -113,7 +115,7 @@ describe('writeTagsMode — schemas path follows needSchema (#2309)', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('omits the *.schemas.ts path when needSchema is false', async () => {
@@ -157,7 +159,7 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('uses correct schema import when MSW has no path but another generator does', async () => {
@@ -165,7 +167,7 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
     const target = path.join(tmpDir, 'petstore.ts');
 
     const mockImportsCalls: {
-      imports: { dependency: string }[];
+      imports: readonly GeneratorDependency[];
     }[] = [];
     const baseProps = createSplitModeProps(target);
 
@@ -188,12 +190,10 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
             ],
           }),
         },
-        importsMock: (args: Record<string, unknown>) => {
-          mockImportsCalls.push(
-            args as unknown as (typeof mockImportsCalls)[number],
-          );
+        importsMock: (({ imports }) => {
+          mockImportsCalls.push({ imports });
           return '';
-        },
+        }) satisfies GenerateMockImports,
       },
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS,
@@ -239,7 +239,7 @@ describe('writeTagsMode — index mock barrel re-exports get<PascalledTag>Mock',
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('re-exports the per-tag mock from the index mock barrel', async () => {
@@ -375,7 +375,7 @@ describe('writeTagsMode — inline mocks upgrade schema imports used at runtime'
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('marks an implementation schema import as a runtime import when the mock needs it', async () => {
@@ -447,7 +447,7 @@ describe('writeTagsMode — schemas import extension follows tsconfig module', (
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('appends .js to the schemas specifier under module: NodeNext', async () => {
@@ -539,7 +539,7 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 
@@ -547,7 +547,7 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);
 
-    const footerSpy = vi.fn((_args: { operationNames: string[] }) => ({
+    const footerSpy = vi.fn<GeneratorClientFooter>(async (_args) => ({
       implementation: '',
       implementationMock: '',
     }));
@@ -567,7 +567,7 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
             operationName: 'getHealth',
           }),
         },
-      } as unknown as typeof baseProps.builder,
+      } satisfies typeof baseProps.builder,
       output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
     };
 
@@ -638,7 +638,7 @@ describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
   });
 
   afterEach(() => {
-    fs.removeSync(tmpDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('writes msw code to a sibling .msw.ts file, not the per-tag implementation file', async () => {
@@ -648,13 +648,16 @@ describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
     await writeTagsMode({ ...props, needSchema: false });
 
     const implementationPath = path.join(tmpDir, 'pets.ts');
-    const implementationContent = await fs.readFile(implementationPath, 'utf8');
+    const implementationContent = await fs.promises.readFile(
+      implementationPath,
+      'utf8',
+    );
     expect(implementationContent).not.toContain('msw');
     expect(implementationContent).not.toContain('getListPetsMock');
 
     const mockPath = path.join(tmpDir, 'pets', 'pets.msw.ts');
     expect(fs.existsSync(mockPath)).toBe(true);
-    const mockContent = await fs.readFile(mockPath, 'utf8');
+    const mockContent = await fs.promises.readFile(mockPath, 'utf8');
     expect(mockContent).toContain('msw');
     expect(mockContent).toContain('getListPetsMock');
   });
@@ -666,7 +669,10 @@ describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
     await writeTagsMode({ ...props, needSchema: false });
 
     const implementationPath = path.join(tmpDir, 'pets.ts');
-    const implementationContent = await fs.readFile(implementationPath, 'utf8');
+    const implementationContent = await fs.promises.readFile(
+      implementationPath,
+      'utf8',
+    );
     expect(implementationContent).toContain('msw');
     expect(implementationContent).toContain('getListPetsMock');
 

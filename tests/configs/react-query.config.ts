@@ -1,6 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  logLevel: 'error',
   bodySchemaNameMatchesOperationId: {
     output: {
       target:
@@ -364,7 +365,8 @@ export default defineConfig({
   },
   invalidatesBaseUrlSplit: {
     output: {
-      target: '../generated/react-query/invalidates-base-url-split/endpoints.ts',
+      target:
+        '../generated/react-query/invalidates-base-url-split/endpoints.ts',
       schemas: '../generated/react-query/invalidates-base-url-split/model',
       client: 'react-query',
       // Issue #3534 (split-key variant): static baseUrl segments must be
@@ -390,7 +392,8 @@ export default defineConfig({
   },
   invalidatesBaseUrlStatic: {
     output: {
-      target: '../generated/react-query/invalidates-base-url-static/endpoints.ts',
+      target:
+        '../generated/react-query/invalidates-base-url-static/endpoints.ts',
       schemas: '../generated/react-query/invalidates-base-url-static/model',
       client: 'react-query',
       // Issue #3534 (static baseUrl, default mode): a plain string baseUrl
@@ -444,7 +447,8 @@ export default defineConfig({
   },
   invalidatesBaseUrlNonGet: {
     output: {
-      target: '../generated/react-query/invalidates-base-url-non-get/endpoints.ts',
+      target:
+        '../generated/react-query/invalidates-base-url-non-get/endpoints.ts',
       schemas: '../generated/react-query/invalidates-base-url-non-get/model',
       client: 'react-query',
       // Issue #3534 (verb-prefixed key + baseUrl): a non-GET operation routed
@@ -813,7 +817,8 @@ export default defineConfig({
   // instead, which means it has to be imported as a value (#4058).
   zodSchemaResponseMutator: {
     output: {
-      target: '../generated/react-query/zod-schema-response-mutator/endpoints.ts',
+      target:
+        '../generated/react-query/zod-schema-response-mutator/endpoints.ts',
       schemas: {
         type: 'zod',
         path: '../generated/react-query/zod-schema-response-mutator/model',
@@ -1475,8 +1480,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/react-query/prefetch-serializable-headers/endpoints.ts',
-      schemas:
-        '../generated/react-query/prefetch-serializable-headers/model',
+      schemas: '../generated/react-query/prefetch-serializable-headers/model',
       client: 'react-query',
       httpClient: 'fetch',
       override: {
@@ -1861,7 +1865,8 @@ export default defineConfig({
   // the global candidate list, so it pages on `cursor.marker`.
   infiniteQueryParamArray: {
     output: {
-      target: '../generated/react-query/infinite-query-param-array/endpoints.ts',
+      target:
+        '../generated/react-query/infinite-query-param-array/endpoints.ts',
       schemas: '../generated/react-query/infinite-query-param-array/model',
       client: 'react-query',
       mode: 'single',

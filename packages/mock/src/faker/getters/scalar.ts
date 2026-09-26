@@ -10,14 +10,16 @@ import {
   EnumGeneration,
   type GeneratorImport,
   getRefInfo,
+  isInlineSchema,
   getStringLiteralType,
   isBoolean,
+  isNullOnlyEnum,
   isNumber,
-  isReference,
   isString,
   jsStringLiteralEscape,
   mergeDeep,
   safeNumericConstraint,
+  toJsLiteral,
   type MockOptions,
   type OpenApiSchemaObject,
 } from '@orval/core';
@@ -25,13 +27,13 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
+import { formatSchemaExampleValue } from '../format-example-value';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
 import { extractArrayItemMock } from './array-item-factory';
-import { formatSchemaExampleValue } from '../format-example-value';
 import { getMockObject } from './object';
 
 interface GetMockScalarOptions {
@@ -167,6 +169,23 @@ export function getMockScalar({
     }
   }
 
+  if (isNullOnlyEnum(item)) {
+    return { value: 'null', imports: [], name: item.name, nullWrapped: true };
+  }
+
+  // An untyped `const` (e.g. `{ const: null }`) has no `type` to switch on;
+  // mock its literal before the format mocks can replace it, and instead of
+  // falling through to the object mock, which emitted `{}` (#4204).
+  if ('const' in item && item.type === undefined) {
+    return {
+      value: toJsLiteral(item.const),
+      imports: [],
+      name: item.name,
+      // A null const already covers both "nullable" and "omitted".
+      nullWrapped: item.const === null,
+    };
+  }
+
   const formatOverrides = safeMockOptions.format ?? {};
   const ALL_FORMAT: Record<string, string> = {
     ...DEFAULT_FORMAT_MOCK,
@@ -188,7 +207,7 @@ export function getMockScalar({
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
   // treat both equivalently so the mock emits the binary format value
   // (Blob) instead of falling through to the string case.
-  const schemaContentMediaType = (item as OpenApiSchemaObject).contentMediaType;
+  const schemaContentMediaType = item.contentMediaType;
   if (
     !item.format &&
     schemaContentMediaType === 'application/octet-stream' &&
@@ -369,11 +388,12 @@ export function getMockScalar({
         };
       }
 
-      if (!item.items) {
+      if (!item.items || typeof item.items !== 'object') {
         return { value: '[]', imports: [], name: item.name };
       }
 
-      const itemsRef = extractItemsRef(item.items);
+      const itemsSchema = item.items as MockSchema;
+      const itemsRef = extractItemsRef(itemsSchema);
       if (
         itemsRef &&
         existingReferencedProperties.includes(
@@ -389,7 +409,7 @@ export function getMockScalar({
       // `faker.helpers.arrayElements(...)`) and keeps recursion semantics in
       // line with direct-$ref items.
       const resolvedItems =
-        itemsRef && !('$ref' in item.items) ? { $ref: itemsRef } : item.items;
+        itemsRef && !('$ref' in itemsSchema) ? { $ref: itemsRef } : itemsSchema;
 
       const {
         value,
@@ -553,7 +573,7 @@ export function getMockScalar({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
       } else if ('const' in item) {
-        value = JSON.stringify((item as OpenApiSchemaObject).const);
+        value = JSON.stringify(item.const);
       }
 
       return {
@@ -623,7 +643,7 @@ export function getMockScalar({
 // itself) or wrapped in a single-element allOf/oneOf/anyOf composition.
 // Multi-element compositions return undefined to preserve combine semantics.
 export function extractItemsRef(items: MockSchema): string | undefined {
-  if (isReference(items)) {
+  if (!isInlineSchema(items)) {
     return items.$ref;
   }
   for (const key of ['allOf', 'oneOf', 'anyOf'] as const) {
@@ -631,7 +651,7 @@ export function extractItemsRef(items: MockSchema): string | undefined {
     if (
       Array.isArray(composed) &&
       composed.length === 1 &&
-      isReference(composed[0])
+      !isInlineSchema(composed[0])
     ) {
       return composed[0].$ref;
     }

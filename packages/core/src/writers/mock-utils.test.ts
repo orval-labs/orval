@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { type ClientMockBuilder, OutputMockType } from '../types';
-import {
-  getMockDir,
-  hasAnyMockPath,
-  resolveMockSchemasPath,
-} from './mock-utils';
+import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 
 describe('resolveMockSchemasPath', () => {
   it('keeps the .schemas suffix when output.schemas is unset', () => {
@@ -98,64 +94,5 @@ describe('getMockDir', () => {
     };
 
     expect(getMockDir(entry, mockConfig)).toBeUndefined();
-  });
-});
-
-describe('hasAnyMockPath', () => {
-  it('returns true when only the shared mockConfig.path is set', () => {
-    const mockConfig = {
-      indexMockFiles: false,
-      inline: false,
-      path: '../generated/mock/shared/mocks',
-      generators: [
-        { type: OutputMockType.MSW },
-        { type: OutputMockType.FAKER },
-      ],
-    };
-
-    expect(hasAnyMockPath(mockConfig)).toBe(true);
-  });
-
-  it('returns true when only a per-generator path is set', () => {
-    const mockConfig = {
-      indexMockFiles: false,
-      inline: false,
-      generators: [
-        { type: OutputMockType.MSW, path: '../generated/mock/per-gen/msw' },
-        { type: OutputMockType.FAKER },
-      ],
-    };
-
-    expect(hasAnyMockPath(mockConfig)).toBe(true);
-  });
-
-  it('returns false when neither shared nor any generator has a path', () => {
-    const mockConfig = {
-      indexMockFiles: false,
-      inline: false,
-      generators: [
-        { type: OutputMockType.MSW },
-        { type: OutputMockType.FAKER },
-      ],
-    };
-
-    expect(hasAnyMockPath(mockConfig)).toBe(false);
-  });
-
-  it('ignores function-form generators when checking for a path', () => {
-    const entry: ClientMockBuilder = () => ({
-      imports: [],
-      implementation: { function: '', handlerName: 'x', handler: '' },
-    });
-    const mockConfig = {
-      indexMockFiles: false,
-      inline: false,
-      generators: [
-        { type: OutputMockType.MSW, path: '../generated/mock/x/msw' },
-        entry,
-      ],
-    };
-
-    expect(hasAnyMockPath(mockConfig)).toBe(true);
   });
 });

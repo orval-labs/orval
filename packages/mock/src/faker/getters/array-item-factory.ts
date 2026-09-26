@@ -4,7 +4,8 @@ import {
   getOperationTagKey,
   getRefInfo,
   isFunction,
-  isReference,
+  isInlineSchema,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
   OutputMockType,
   OutputMode,
@@ -125,11 +126,13 @@ function isAmbiguousInlineItemContext(
   return !parentName.toLowerCase().includes(operationId.toLowerCase());
 }
 
-function isNullableArrayItem(schema: OpenApiSchemaObject): boolean {
+function isNullableArrayItem(schema: OpenApiNonBooleanSchemaObject): boolean {
   return Array.isArray(schema.type) && schema.type.includes('null');
 }
 
-function isResolvedSchemaObjectLike(schema: OpenApiSchemaObject): boolean {
+function isResolvedSchemaObjectLike(
+  schema: OpenApiNonBooleanSchemaObject,
+): boolean {
   if (schema.type === 'object' || schema.properties) {
     return true;
   }
@@ -160,17 +163,20 @@ function shouldExtractArrayItem(
         { $ref: itemsRef },
         context,
       );
+      if (typeof schema !== 'object' || schema === null) {
+        return false;
+      }
       return isResolvedSchemaObjectLike(schema);
     } catch {
       return false;
     }
   }
 
-  if (isReference(items)) {
+  if (!isInlineSchema(items)) {
     return false;
   }
 
-  const schema = items as OpenApiSchemaObject;
+  const schema = items as OpenApiNonBooleanSchemaObject;
 
   if (isNullableArrayItem(schema)) {
     return false;
@@ -279,7 +285,7 @@ function getArrayItemFactoryNames({
       }
       typeName = base;
     } else {
-      const schema = items as OpenApiSchemaObject;
+      const schema = items as OpenApiNonBooleanSchemaObject;
       if (schema.allOf && !schema.properties && schema.type !== 'object') {
         return undefined;
       }

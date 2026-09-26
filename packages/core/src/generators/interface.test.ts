@@ -550,7 +550,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
 
     expect(got).toHaveLength(1);
@@ -580,7 +580,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
 
     expect(got).toHaveLength(1);
@@ -726,7 +726,7 @@ export type ConstEnum = typeof ConstEnumValue;
     it('should not produce duplicate null in nullable object types', () => {
       const schema = {
         type: ['object', 'null'],
-      } as unknown as OpenApiSchemaObject;
+      } satisfies OpenApiSchemaObject;
 
       const result = generateInterface({
         name: 'NullableObject',

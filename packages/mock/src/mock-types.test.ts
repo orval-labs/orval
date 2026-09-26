@@ -1,6 +1,7 @@
 import type { ResReqTypesValue } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   applyStrictMockReturnType,
   buildStrictMockTypeFileHeader,
@@ -16,10 +17,8 @@ import {
   getStrictMockTypeDeclaration,
   getStrictMockTypeDeclarations,
   getStrictMockTypeName,
-  isSchemaNullableAtRoot,
   isStrictMock,
 } from './mock-types';
-import { createTestContextSpec } from '../../core/src/test-utils/context';
 
 describe('mock-types', () => {
   describe('isStrictMock', () => {
@@ -103,13 +102,6 @@ describe('mock-types', () => {
           context,
         ),
       ).toBe('alias');
-    });
-  });
-
-  describe('isSchemaNullableAtRoot', () => {
-    it('detects nullable object schemas', () => {
-      expect(isSchemaNullableAtRoot({ type: ['object', 'null'] })).toBe(true);
-      expect(isSchemaNullableAtRoot({ type: 'object' })).toBe(false);
     });
   });
 
@@ -415,8 +407,14 @@ describe('mock-types', () => {
             type: 'array',
             items: { $ref: '#/components/schemas/Pet' },
           },
+          schemas: [],
+          type: 'array',
+          isEnum: false,
+          isRef: false,
+          hasReadonlyProps: false,
+          dependencies: [],
         },
-      ] as unknown as ResReqTypesValue[];
+      ] satisfies ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
         Pet: 'object',
@@ -434,8 +432,14 @@ describe('mock-types', () => {
             type: 'string',
             enum: ['active', 'inactive'],
           },
+          schemas: [],
+          type: 'string',
+          isEnum: true,
+          isRef: false,
+          hasReadonlyProps: false,
+          dependencies: [],
         },
-      ] as unknown as ResReqTypesValue[];
+      ] satisfies ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
         Status: 'alias',
@@ -474,8 +478,14 @@ describe('mock-types', () => {
               { $ref: '#/components/schemas/Status' },
             ],
           },
+          schemas: [],
+          type: 'object',
+          isEnum: false,
+          isRef: false,
+          hasReadonlyProps: false,
+          dependencies: [],
         },
-      ] as unknown as ResReqTypesValue[];
+      ] satisfies ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses, context)).toEqual(
         {
@@ -500,14 +510,21 @@ describe('mock-types', () => {
       });
       const responses = [
         {
+          value: '',
           imports: [{ name: 'Widget', alias: 'CustomStatus', values: false }],
           key: '200',
           contentType: 'application/json',
           originalSchema: {
             oneOf: [{ $ref: '#/components/schemas/Widget' }],
           },
+          schemas: [],
+          type: 'string',
+          isEnum: true,
+          isRef: false,
+          hasReadonlyProps: false,
+          dependencies: [],
         },
-      ] as unknown as ResReqTypesValue[];
+      ] satisfies ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses, context)).toEqual(
         {
