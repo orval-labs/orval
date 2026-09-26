@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import type { Locale } from '@/lib/i18n';
 import {
@@ -82,7 +82,7 @@ export const Playground = ({ locale = 'en' }: PlaygroundProps) => {
   );
 
   const [schemaConversionFailed, setSchemaConversionFailed] = useState(false);
-  const schemaFormat = detectSchemaFormat(schema);
+  const schemaFormat = useMemo(() => detectSchemaFormat(schema), [schema]);
 
   const [debouncedSchema] = useDebounce(schema, 500);
   const [debouncedConfig] = useDebounce(config, 500);

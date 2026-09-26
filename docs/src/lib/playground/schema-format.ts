@@ -6,11 +6,30 @@ export const SCHEMA_FORMATS: SchemaFormat[] = ['yaml', 'json'];
 
 /**
  * Orval sniffs the spec format from its content rather than the file
- * extension, so the editor does the same: anything that opens like a JSON
- * document is treated as JSON, everything else as YAML.
+ * extension, so the editor does the same. Text that opens like a JSON
+ * document is JSON when it parses as JSON, and YAML when it only parses as
+ * YAML (flow style, e.g. `{openapi: 3.0.0}`). Text that parses as neither is
+ * usually JSON being edited, so it keeps the JSON label instead of flickering.
  */
-export const detectSchemaFormat = (schema: string): SchemaFormat =>
-  /^\s*[{[]/.test(schema) ? 'json' : 'yaml';
+export const detectSchemaFormat = (schema: string): SchemaFormat => {
+  if (!/^\s*[{[]/.test(schema)) {
+    return 'yaml';
+  }
+
+  try {
+    JSON.parse(schema);
+    return 'json';
+  } catch {
+    // Not JSON, maybe YAML flow style.
+  }
+
+  try {
+    parse(schema);
+    return 'yaml';
+  } catch {
+    return 'json';
+  }
+};
 
 /**
  * Re-serializes a YAML or JSON schema in the requested format.
