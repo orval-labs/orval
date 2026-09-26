@@ -83,6 +83,11 @@ export default defineConfig({
           'typescript/no-floating-promises': 'off',
           'typescript/no-misused-spread': 'off',
           'typescript/unbound-method': 'off',
+          // Constraint-only allOf members are emitted as `unknown`, and
+          // distinct schema aliases can expand to the same primitive
+          // (`NullEnum` is `null`, two id refs are both `number`).
+          'typescript/no-redundant-type-constituents': 'off',
+          'typescript/no-duplicate-type-constituents': 'off',
           // Generated output must not trip a consumer's linter. Stays `warn`
           // until every generator emits `import type` for type-only imports
           // (tracked per generator from #3931); then it flips to `error`

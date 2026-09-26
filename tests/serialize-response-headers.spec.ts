@@ -23,7 +23,7 @@ test('serialized headers survive the structured clone that dehydrate() performs'
     }),
   );
 
-  const response = await listPets({});
+  const response = await listPets({ sort: 'name' });
 
   expect(response.headers).not.toBeInstanceOf(Headers);
   expect(response.headers).toEqual({
@@ -40,7 +40,7 @@ test('set-cookie never reaches the serialized response', async () => {
   headers.append('set-cookie', 'refresh=rotate-me');
   respondWith(headers);
 
-  const response = await listPets({});
+  const response = await listPets({ sort: 'name' });
 
   expect(response.headers).not.toHaveProperty('set-cookie');
   expect(JSON.stringify(response.headers)).not.toContain('secret');
@@ -52,7 +52,7 @@ test('prefetchListPetsQuery yields a dehydrated cache that crosses the RSC bound
   respondWith(headers);
 
   const queryClient = new QueryClient();
-  await prefetchListPetsQuery(queryClient, {});
+  await prefetchListPetsQuery(queryClient, { sort: 'name' });
   const state = dehydrate(queryClient);
 
   expect(state.queries).toHaveLength(1);

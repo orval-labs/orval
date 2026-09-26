@@ -10,7 +10,7 @@ export const customInstance = <T>(
   const promise = AXIOS_INSTANCE({
     ...config,
     headers: {
-      ...config?.headers,
+      ...(config?.headers as Record<string, unknown> | undefined),
       ...(token ? { Authorization: token } : {}),
     },
   }).then(({ data }) => data);

@@ -2102,10 +2102,10 @@ test('axios split mode + schemas.splitByTags produces the same per-tag schema la
   expect(storesBarrel).toContain("export * from './store';");
   expect(storesBarrel).toContain("export * from './storeList';");
 
-  // Shared schemas still live at the root.
-  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves;
-  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves;
-  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves;
+  // Shared schemas still live at the root. A missing file rejects the read.
+  await readFile(path.join(root, 'pagination.ts'), 'utf8');
+  await readFile(path.join(root, 'sortOrder.ts'), 'utf8');
+  await readFile(path.join(root, 'error.ts'), 'utf8');
 
   // The combined `endpoints.ts` pulls every referenced schema, across both
   // tags, from the single `'./model'` barrel.

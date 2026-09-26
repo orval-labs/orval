@@ -56,9 +56,11 @@ describe('fetch inline array responses are validated (#4106)', () => {
 
   // The point of the fix: the emitted expression actually rejects bad data.
   it('raises a ZodError for an invalid element instead of returning it', () => {
-    const parse = zod.array(Item).parse;
+    const schema = zod.array(Item);
 
-    expect(() => parse([{ id: 'not-a-number' }])).toThrow(zod.ZodError);
-    expect(parse([{ id: 1, name: 'a' }])).toEqual([{ id: 1, name: 'a' }]);
+    expect(() => schema.parse([{ id: 'not-a-number' }])).toThrow(zod.ZodError);
+    expect(schema.parse([{ id: 1, name: 'a' }])).toEqual([
+      { id: 1, name: 'a' },
+    ]);
   });
 });

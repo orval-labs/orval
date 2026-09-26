@@ -11,7 +11,7 @@ export default defineConfig({
         mode: 'single',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   separate: {
@@ -23,7 +23,7 @@ export default defineConfig({
         mode: 'split',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   combined: {
@@ -35,7 +35,7 @@ export default defineConfig({
         mode: 'single-split',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
 });
