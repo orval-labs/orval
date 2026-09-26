@@ -8,11 +8,11 @@ import {
   type PackageJson,
   resolveInstalledVersions,
 } from '@orval/core';
-import { findUp, findUpMultiple } from 'find-up';
 import yaml from 'js-yaml';
 import JSON5 from 'json5';
 
 import { logger } from '../logger';
+import { findUp, findUpMultiple } from './find-up';
 import { normalizePath } from './options';
 
 type CatalogData = Pick<PackageJson, 'catalog' | 'catalogs'>;
@@ -22,7 +22,7 @@ export const loadPackageJson = async (
   workspace = process.cwd(),
 ): Promise<PackageJson | undefined> => {
   if (!packageJson) {
-    const pkgPath = await findUp(['package.json'], { cwd: workspace });
+    const pkgPath = findUp('package.json', workspace);
     if (pkgPath) {
       const pkg = await dynamicImport<unknown>(pkgPath, workspace);
 
@@ -108,7 +108,7 @@ const hasCatalogReferences = (pkg: PackageJson): boolean => {
 const loadPnpmWorkspaceCatalog = async (
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
+  const filePath = findUp('pnpm-workspace.yaml', workspace);
   if (!filePath) return undefined;
   try {
     const file = await fs.promises.readFile(filePath, 'utf8');
@@ -126,7 +126,7 @@ const loadPnpmWorkspaceCatalog = async (
 const loadPackageJsonCatalog = async (
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePaths = await findUpMultiple('package.json', { cwd: workspace });
+  const filePaths = findUpMultiple('package.json', workspace);
 
   for (const filePath of filePaths) {
     try {
@@ -150,7 +150,7 @@ const loadPackageJsonCatalog = async (
 const loadYarnrcCatalog = async (
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePath = await findUp('.yarnrc.yml', { cwd: workspace });
+  const filePath = findUp('.yarnrc.yml', workspace);
   if (!filePath) return undefined;
   try {
     const file = await fs.promises.readFile(filePath, 'utf8');
