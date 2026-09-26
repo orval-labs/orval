@@ -12,7 +12,6 @@
   "scripts": {
     "format": "vp fmt --write",
     "format:check": "vp fmt --check",
-    "postinstall": "bun scripts/link-workspace-bins.mjs",
     "prepare": "vp config",
     "commitlint": "commitlint",
     "update-samples": "vp run -F './packages/*' build:release && vp run -F './samples/**' -F orval-tests generate-api",
