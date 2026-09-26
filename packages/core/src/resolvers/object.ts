@@ -1,6 +1,10 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { getEnum, getEnumMembers } from '../getters/enum';
+import {
+  getEnum,
+  getEnumMembers,
+  isEnumReferenceMissingNull,
+} from '../getters/enum';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
@@ -118,16 +122,25 @@ function resolveObjectOriginal({
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
     const doc = jsDoc(resolvedValue.originalSchema);
+    const enumMembers = getEnumMembers(resolvedValue.originalSchema);
+    const nullable = isSchemaNullable(resolvedValue.originalSchema);
+    const { enumGenerationType } = context.output.override;
     const enumValue = getEnum(
-      getEnumMembers(resolvedValue.originalSchema),
+      enumMembers,
       propName,
-      isSchemaNullable(resolvedValue.originalSchema),
-      context.output.override.enumGenerationType,
+      nullable,
+      enumGenerationType,
       context.output.override.namingConvention.enum,
     );
 
     return {
-      value: propName,
+      value: isEnumReferenceMissingNull(
+        enumMembers,
+        nullable,
+        enumGenerationType,
+      )
+        ? `${propName} | null`
+        : propName,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,

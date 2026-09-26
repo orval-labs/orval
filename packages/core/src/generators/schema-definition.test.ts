@@ -202,6 +202,60 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].model.includes('CamelCase')).toBe(true);
   });
 
+  it('keeps | null on nullable inline enums under enumGenerationType enum (#4203)', () => {
+    const context = withContext({
+      override: { enumGenerationType: 'enum' },
+    });
+
+    const schemas: OpenApiSchemasObject = {
+      Thing: {
+        type: 'object',
+        properties: {
+          // OAS 3.0 `nullable: true` after the 3.1 upgrade
+          status: { type: ['string', 'null'], enum: ['x', null] },
+          label: { enum: ['a', null] },
+          kind: { type: 'string', enum: ['k'] },
+        },
+      },
+    };
+
+    const result = generateSchemasDefinition(schemas, context, '');
+    const thing = result.find((schema) => schema.name === 'Thing');
+    expect(thing?.model).toContain('status?: ThingStatus | null;');
+    expect(thing?.model).toContain('label?: ThingLabel | null;');
+    expect(thing?.model).toContain('kind?: ThingKind;');
+    expect(thing?.model).not.toContain('ThingKind | null');
+  });
+
+  // resolveObject caches by schema and name, not by override, so each case
+  // needs its own schema name.
+  it.each([
+    // null is not an enum member, so the union alias cannot carry it
+    ['union', ['x'], 'UnionThing', 'status?: UnionThingStatus | null;'],
+    // null is a union member, so the alias already carries it
+    ['union', ['x', null], 'UnionNullThing', 'status?: UnionNullThingStatus;'],
+    // the const type alias always carries it
+    ['const', ['x', null], 'ConstThing', 'status?: ConstThingStatus;'],
+  ] as const)(
+    'adds | null to nullable inline enum references only when the %s type lacks it (%j)',
+    (enumGenerationType, values, name, expected) => {
+      const context = withContext({ override: { enumGenerationType } });
+
+      const schemas: OpenApiSchemasObject = {
+        [name]: {
+          type: 'object',
+          properties: {
+            status: { type: ['string', 'null'], enum: [...values] },
+          },
+        },
+      };
+
+      const result = generateSchemasDefinition(schemas, context, '');
+      const thing = result.find((schema) => schema.name === name);
+      expect(thing?.model).toContain(expected);
+    },
+  );
+
   it.each([
     ['anyOf', '|', 'AnyOf'],
     ['oneOf', '|', 'OneOf'],

@@ -388,6 +388,39 @@ describe('getQueryParams getter', () => {
     expect(statusEnum?.model).not.toContain('null: null');
   });
 
+  // A native enum cannot hold `null`, so the reference carries it (#4203).
+  it('queryParam with nullable enum under native enum mode keeps | null on the reference', () => {
+    const enumContext = createTestContextSpec({
+      override: {
+        enumGenerationType: EnumGeneration.ENUM,
+      },
+    });
+
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: ['string', 'null'], enum: ['new', null] },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context: enumContext,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\n/**\n * @nullable\n */\nstatus?: Status | null;\n};`,
+    );
+
+    const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
+    expect(statusEnum?.model).toContain(`export enum Status {`);
+    expect(statusEnum?.model).not.toContain('null');
+  });
+
   // Parallel integration coverage for `oneOf`. Same processing path as anyOf
   // but worth pinning so future combine.ts refactors don't accidentally
   // narrow the fix.
