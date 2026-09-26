@@ -10,6 +10,6 @@ import type { DeepCircularC } from './deepCircularC';
 
 export function createDeepCircularC(): DeepCircularC {
   return {
-    a: {} as DeepCircularA
+    a: {} as DeepCircularA,
   };
 }

@@ -14,18 +14,18 @@ import type { Status } from './status';
 import type { User } from './user';
 
 export function createStatus(): Status {
-  return "ACTIVE";
+  return 'ACTIVE';
 }
 
 export function createCircularChild(): CircularChild {
   return {
-    parent: {} as CircularParent
+    parent: {} as CircularParent,
   };
 }
 
 export function createCircularParent(): CircularParent {
   return {
-    child: {} as CircularChild
+    child: {} as CircularChild,
   };
 }
 
@@ -37,25 +37,24 @@ export function createUser(): User {
     avatar: '',
     createdAt: '1970-01-01T00:00:00.000Z',
     tags: [],
-    circular: createCircularParent()
+    circular: createCircularParent(),
   };
 }
 
 export function createDeepCircularC(): DeepCircularC {
   return {
-    a: {} as DeepCircularA
+    a: {} as DeepCircularA,
   };
 }
 
 export function createDeepCircularB(): DeepCircularB {
   return {
-    c: {} as DeepCircularC
+    c: {} as DeepCircularC,
   };
 }
 
 export function createDeepCircularA(): DeepCircularA {
   return {
-    b: {} as DeepCircularB
+    b: {} as DeepCircularB,
   };
 }
-

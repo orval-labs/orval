@@ -12,6 +12,6 @@ export interface CircularParent {
 
 export function createCircularParent(): CircularParent {
   return {
-    child: {} as CircularChild
+    child: {} as CircularChild,
   };
 }

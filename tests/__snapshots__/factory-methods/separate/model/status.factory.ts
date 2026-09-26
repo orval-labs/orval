@@ -8,5 +8,5 @@
 import type { Status } from './status';
 
 export function createStatus(): Status {
-  return "ACTIVE";
+  return 'ACTIVE';
 }

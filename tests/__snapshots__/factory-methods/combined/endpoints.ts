@@ -5,33 +5,25 @@
  * OpenAPI spec version: 1.0.0
  */
 import axios from 'axios';
-import type {
-  AxiosRequestConfig,
-  AxiosResponse
-} from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type {
-  User
-} from './model';
+import type { User } from './model';
 
 export const getTest = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<User>> => {
-    return axios.get(
-      `/test`,options
-    );
-  }
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<User>> => {
+  return axios.get(`/test`, options);
+};
 export const getGetTestUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/test`,
+      baseURL: '',
+    });
+};
 
-  return axios.create({
-    baseURL: '',
-    params: null,
-  }).getUri({
-    url: `/test`,
-    baseURL: '',
-
-
-  });
-}
-
-export type GetTestResult = AxiosResponse<User>
+export type GetTestResult = AxiosResponse<User>;

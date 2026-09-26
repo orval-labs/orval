@@ -10,6 +10,6 @@ import type { CircularParent } from './circularParent';
 
 export function createCircularParent(): CircularParent {
   return {
-    child: {} as CircularChild
+    child: {} as CircularChild,
   };
 }
