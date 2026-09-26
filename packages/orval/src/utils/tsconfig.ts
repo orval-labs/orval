@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 
 import { isNullish, isObject, isString, type Tsconfig } from '@orval/core';
-import { findUp } from 'find-up';
 import {
   parseTsconfig,
   type TsConfigJson,
   type TsConfigJsonResolved,
 } from 'get-tsconfig';
 
+import { findUp } from './find-up';
 import { normalizePath } from './options';
 
 type LowercaseString<T extends string> = T extends `${infer First}${infer Rest}`
@@ -35,9 +35,7 @@ export const loadTsconfig = async (
   workspace = process.cwd(),
 ): Promise<Tsconfig | undefined> => {
   if (isNullish(tsconfig)) {
-    const configPath = await findUp(['tsconfig.json', 'jsconfig.json'], {
-      cwd: workspace,
-    });
+    const configPath = findUp(['tsconfig.json', 'jsconfig.json'], workspace);
     if (configPath) {
       const config = parseTsconfig(configPath);
       return convertTarget(config);

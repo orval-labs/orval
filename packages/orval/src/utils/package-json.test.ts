@@ -15,7 +15,7 @@ import {
 } from 'vite-plus/test';
 
 // Mock modules before imports
-vi.mock('find-up', () => ({
+vi.mock('./find-up', () => ({
   findUp: vi.fn(),
   findUpMultiple: vi.fn(),
 }));
@@ -55,9 +55,9 @@ vi.mock('./options', () => ({
 import fs from 'node:fs';
 
 import { dynamicImport } from '@orval/core';
-import { findUp, findUpMultiple } from 'find-up';
 import yaml from 'js-yaml';
 
+import { findUp, findUpMultiple } from './find-up';
 import { loadPackageJson as loadPackageJsonImpl } from './package-json';
 
 const loadPackageJson: typeof loadPackageJsonImpl = (...args) =>
@@ -74,13 +74,7 @@ const loadPackageJson: typeof loadPackageJsonImpl = (...args) =>
 const mockFindUp = (
   resolver: (name: string | string[] | undefined) => string | undefined,
 ) => {
-  vi.mocked(findUp).mockImplementation((matcher) => {
-    const name =
-      typeof matcher === 'string' || Array.isArray(matcher)
-        ? matcher
-        : undefined;
-    return Promise.resolve(resolver(name));
-  });
+  vi.mocked(findUp).mockImplementation((names) => resolver(names));
 };
 
 const mockReadFile = (value: string) => {
@@ -164,7 +158,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -190,7 +184,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -216,7 +210,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -244,7 +238,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -275,11 +269,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.promises.readFile).mockResolvedValue(
@@ -303,11 +297,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.promises.readFile).mockResolvedValue(
@@ -329,11 +323,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.promises.readFile).mockResolvedValue(
@@ -357,11 +351,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return '/workspace/.yarnrc.yml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.promises.readFile).mockResolvedValue(JSON.stringify({}));
@@ -387,11 +381,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       mockReadFile('');
@@ -419,11 +413,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return '/workspace/.yarnrc.yml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
+      vi.mocked(findUpMultiple).mockReturnValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.promises.readFile).mockResolvedValue(
@@ -451,7 +445,7 @@ describe('loadPackageJson - catalog resolution', () => {
       };
 
       mockFindUp((name) => {
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -472,11 +466,11 @@ describe('loadPackageJson - catalog resolution', () => {
       };
 
       mockFindUp((name) => {
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([]);
+      vi.mocked(findUpMultiple).mockReturnValue([]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
 
@@ -503,7 +497,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -535,7 +529,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -566,7 +560,7 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
@@ -594,11 +588,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([
+      vi.mocked(findUpMultiple).mockReturnValue([
         '/workspace/packages/app/package.json',
         '/workspace/package.json',
       ]);
@@ -627,11 +621,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/feature/submodule/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([
+      vi.mocked(findUpMultiple).mockReturnValue([
         '/workspace/packages/feature/submodule/package.json',
         '/workspace/packages/feature/package.json',
         '/workspace/packages/package.json',
@@ -664,11 +658,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([
+      vi.mocked(findUpMultiple).mockReturnValue([
         '/workspace/packages/app/package.json',
         '/workspace/packages/package.json',
         '/workspace/package.json',
@@ -699,11 +693,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([
+      vi.mocked(findUpMultiple).mockReturnValue([
         '/workspace/packages/app/package.json',
         '/workspace/package.json',
       ]);
@@ -731,11 +725,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([
+      vi.mocked(findUpMultiple).mockReturnValue([
         '/workspace/packages/app/package.json',
         '/workspace/package.json',
       ]);
@@ -764,11 +758,11 @@ describe('loadPackageJson - catalog resolution', () => {
       mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
-        if (Array.isArray(name) && name.includes('package.json'))
+        if (name === 'package.json')
           return '/workspace/packages/app/package.json';
         return;
       });
-      vi.mocked(findUpMultiple).mockResolvedValue([]);
+      vi.mocked(findUpMultiple).mockReturnValue([]);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
 
