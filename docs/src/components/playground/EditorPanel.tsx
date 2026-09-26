@@ -1,4 +1,5 @@
 import Editor from '@monaco-editor/react';
+import type { ReactNode } from 'react';
 
 interface EditorPanelProps {
   title: string;
@@ -8,6 +9,7 @@ interface EditorPanelProps {
   readOnly?: boolean;
   height?: string;
   loadingText?: string;
+  headerActions?: ReactNode;
 }
 
 export const EditorPanel = ({
@@ -18,11 +20,13 @@ export const EditorPanel = ({
   readOnly = false,
   height = '400px',
   loadingText = 'Loading editor...',
+  headerActions,
 }: EditorPanelProps) => {
   return (
     <div className="flex flex-col rounded-xl bg-black/60 border border-white/10 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
         <span className="text-sm font-medium text-gray-300">{title}</span>
+        {headerActions}
       </div>
       <div className="flex-1">
         <Editor
