@@ -406,7 +406,7 @@ test('deserializes dates inside an undiscriminated union map value in the respon
   const series = response.records['record-2'];
   const weight = response.records['record-3'];
 
-  if (!('visitedOn' in visit)) {
+  if (!('visitedOn' in visit) || visit.visitedOn == null) {
     throw new Error('expected a record carrying visitedOn');
   }
   if (!('entries' in series)) {

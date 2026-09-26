@@ -22,7 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Generated API files
-src/api/endpoints
-src/api/model

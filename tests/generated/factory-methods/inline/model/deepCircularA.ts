@@ -12,6 +12,6 @@ export interface DeepCircularA {
 
 export function createDeepCircularA(): DeepCircularA {
   return {
-    b: {} as DeepCircularB
+    b: {} as DeepCircularB,
   };
 }

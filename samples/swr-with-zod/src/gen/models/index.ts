@@ -5,6 +5,17 @@
  * OpenAPI spec version: 1.0.0
  */
 
+// Value schemas own names that the model modules also export as types.
+// An explicit re-export shadows `export *`, which would otherwise be ambiguous.
+export { Cat } from './cat-reusable.zod';
+export { Dachshund } from './dachshund-reusable.zod';
+export { Dog } from './dog-reusable.zod';
+export { Error } from './error-reusable.zod';
+export { Labradoodle } from './labradoodle-reusable.zod';
+export { ListPetsParams } from './listPetsParams-reusable.zod';
+export { Pet } from './pet-reusable.zod';
+export { Pets } from './pets-reusable.zod';
+
 export * from './cat';
 export * from './cat-reusable.zod';
 export * from './catType';

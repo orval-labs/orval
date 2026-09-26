@@ -5,8 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type Status = typeof Status[keyof typeof Status];
-
+export type Status = (typeof Status)[keyof typeof Status];
 
 export const Status = {
   ACTIVE: 'ACTIVE',
@@ -15,5 +14,5 @@ export const Status = {
 } as const;
 
 export function createStatus(): Status {
-  return "ACTIVE";
+  return 'ACTIVE';
 }

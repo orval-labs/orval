@@ -1,4 +1,5 @@
 // NOTE: Supports cases where `content-type` is other than `json`
+declare const process: { env: { NODE_ENV?: string } };
 const getBody = <T>(c: Response | Request): Promise<T> => {
   const contentType = c.headers.get('content-type');
 
