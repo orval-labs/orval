@@ -34,10 +34,14 @@ export const getAmbiguousBarrelExports = async (
 
   const content = await fs.promises.readFile(indexPath, 'utf8');
   const modulesByName = new Map<string, string[]>();
+  // Specifiers that resolve to one file (`./cat`, `./cat.js`) re-export the
+  // same declarations, which TypeScript does not treat as ambiguous.
+  const scannedFiles = new Set<string>();
 
   for (const [, specifier] of content.matchAll(RE_EXPORT_STAR)) {
     const file = resolveModuleFile(indexPath, specifier);
-    if (!file) continue;
+    if (!file || scannedFiles.has(file)) continue;
+    scannedFiles.add(file);
 
     const source = await fs.promises.readFile(file, 'utf8');
     // A value and its companion type (`const Cat` + `type Cat`) share a name

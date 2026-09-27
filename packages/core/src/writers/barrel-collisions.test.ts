@@ -64,6 +64,18 @@ describe('getAmbiguousBarrelExports', () => {
     ).toStrictEqual(new Map([['Shared', ['./a.js', './b.js']]]));
   });
 
+  it('does not report specifiers that resolve to the same file', async () => {
+    await write('cat.ts', 'export interface Cat {}\n');
+    await write(
+      'index.ts',
+      "export * from './cat';\nexport * from './cat.js';\n",
+    );
+
+    expect(
+      (await getAmbiguousBarrelExports(path.join(dir, 'index.ts'))).size,
+    ).toBe(0);
+  });
+
   it('skips directory re-exports and missing modules', async () => {
     await fs.promises.mkdir(path.join(dir, 'pets'));
     await write('pets/index.ts', 'export type Pet = string;\n');
