@@ -7,6 +7,15 @@ const queryKeyFnNameFor = (operationName: string) =>
   camel(`get-${operationName}-query-key`);
 
 /**
+ * The query key function name of an operation's infinite variant, shared by
+ * its infinite and suspense-infinite queries. An `invalidates` target spelled
+ * `<operation>Infinite` (or `<operation>_infinite`) folds to this same name, so
+ * it is a working reference. See #4215.
+ */
+const infiniteQueryKeyFnNameFor = (operationName: string) =>
+  camel(`get-${operationName}-infinite-query-key`);
+
+/**
  * `mutationInvalidates` names operations as plain strings, and a name that
  * matches nothing is not an error anywhere downstream — the rule is simply
  * never applied, so the configured invalidation silently never runs. These
@@ -19,7 +28,8 @@ const queryKeyFnNameFor = (operationName: string) =>
  *   so the raw `operationId` casing of the document (`PostNotes`) never
  *   matches `postNotes` and the whole rule is dead.
  * - `invalidates` is folded through `camel()` to build the query key function
- *   name, which makes `GetNotes` and `getNotes` the same reference.
+ *   name, which makes `GetNotes` and `getNotes` the same reference. The
+ *   infinite variant's key function (`getNotesInfinite`) resolves as well.
  *
  * Only existence is checked. A target that exists but was generated as a
  * mutation rather than a query emits a call to a `getXxxQueryKey` that was
@@ -42,6 +52,13 @@ export const getUnknownMutationInvalidatesWarnings = ({
   const byQueryKeyFn = new Map(
     operationNames.map((name) => [queryKeyFnNameFor(name), name]),
   );
+  // Every query key function an `invalidates` target can resolve to. Kept apart
+  // from `byQueryKeyFn` so an `onMutations` suggestion only ever names a real
+  // operation, never its infinite variant.
+  const queryKeyFns = new Set([
+    ...byQueryKeyFn.keys(),
+    ...operationNames.map((name) => infiniteQueryKeyFnNameFor(name)),
+  ]);
 
   const warnings: string[] = [];
   const reported = new Set<string>();
@@ -73,7 +90,7 @@ export const getUnknownMutationInvalidatesWarnings = ({
 
     for (const target of rule.invalidates) {
       const name = isString(target) ? target : target.query;
-      if (!byQueryKeyFn.has(queryKeyFnNameFor(name))) {
+      if (!queryKeyFns.has(queryKeyFnNameFor(name))) {
         report('invalidates', name);
       }
     }
