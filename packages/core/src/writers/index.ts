@@ -1,3 +1,4 @@
+export * from './barrel-collisions';
 export * from './file';
 export * from './mock-utils';
 export * from './schema-tag-mapper';

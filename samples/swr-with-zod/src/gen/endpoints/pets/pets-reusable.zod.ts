@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-import { Pet } from '../../models';
+import { Pet } from '../../zod-models';
 
 /**
  * @summary List all pets

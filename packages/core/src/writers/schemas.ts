@@ -15,6 +15,7 @@ import {
   getImportExtension,
   upath,
 } from '../utils';
+import { warnAmbiguousBarrelExports } from './barrel-collisions';
 import { writeGeneratedFile } from './file';
 import type { SchemaOutputPlan, SchemaRouteKey } from './schema-output-plan';
 
@@ -622,6 +623,11 @@ export async function writeSchemas({
       const fileContent = `${header}\n${exports}\n`;
 
       await writeGeneratedFile(schemaFilePath, fileContent);
+
+      // Exports merged in from another output can collide with this one's.
+      if (existingExports.length > 0) {
+        await warnAmbiguousBarrelExports(schemaFilePath);
+      }
     } catch (error) {
       throw new Error(
         `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,
