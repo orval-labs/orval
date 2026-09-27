@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: Infinite query param in the request body (#4025)
+  version: 0.0.1
+paths:
+  # The page param `offset` is a property of the JSON filter body.
+  /elements/search:
+    post:
+      operationId: searchElements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElementFilter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElementPage'
+  # A path param alongside the body must still reach the request function.
+  /groups/{groupId}/elements/search:
+    post:
+      operationId: searchGroupElements
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElementFilter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElementPage'
+  # A composed body does not list its properties directly, so the configured
+  # page param is trusted; `offset` comes from the `allOf` member.
+  /elements/search-tagged:
+    post:
+      operationId: searchTaggedElements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ElementFilter'
+                - type: object
+                  properties:
+                    tag:
+                      type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElementPage'
+  # The body has no `offset`, so this operation gets no infinite hook and a
+  # warning instead.
+  /elements/export:
+    post:
+      operationId: exportElements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElementPage'
+components:
+  schemas:
+    ElementFilter:
+      type: object
+      properties:
+        name:
+          type: string
+        offset:
+          type: integer
+          format: int32
+        limit:
+          type: integer
+          format: int32
+    ExportRequest:
+      type: object
+      properties:
+        format:
+          type: string
+    Element:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ElementPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Element'
+        nextOffset:
+          type: integer
+          format: int32

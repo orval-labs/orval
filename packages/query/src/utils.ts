@@ -6,6 +6,9 @@ import {
   isString,
   jsStringLiteralEscape,
   type GeneratorMutator,
+  type GetterProp,
+  GetterPropType,
+  type InfiniteQueryParamLocation,
   type Mutator,
   type NormalizedMutator,
   type NormalizedQueryOptions,
@@ -35,6 +38,12 @@ export const normalizeQueryOptions = (
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
+      : {}),
+    ...(queryOptions.useInfiniteQueryParamLocation
+      ? {
+          useInfiniteQueryParamLocation:
+            queryOptions.useInfiniteQueryParamLocation,
+        }
       : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(queryOptions.queryKey
@@ -166,3 +175,16 @@ export const getOperationMetaLiteral = (
   operationName: string,
 ): string =>
   `operationId: '${jsStringLiteralEscape(operationId)}', operationName: '${jsStringLiteralEscape(operationName)}'`;
+
+/**
+ * Whether `prop` is the one an infinite query injects `pageParam` into: the
+ * `params` object for a query-located page param, the request body for a
+ * body-located one (#4025).
+ */
+export const isInfinitePageParamProp = (
+  prop: GetterProp,
+  location: InfiniteQueryParamLocation,
+): boolean =>
+  location === 'body'
+    ? prop.type === GetterPropType.BODY
+    : prop.name === 'params';

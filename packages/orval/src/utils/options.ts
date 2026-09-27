@@ -1720,6 +1720,12 @@ function normalizeQueryOptions(
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
+    ...(queryOptions.useInfiniteQueryParamLocation
+      ? {
+          useInfiniteQueryParamLocation:
+            queryOptions.useInfiniteQueryParamLocation,
+        }
+      : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(globalOptions.queryKey
       ? {

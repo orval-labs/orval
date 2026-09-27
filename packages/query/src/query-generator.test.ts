@@ -5,13 +5,16 @@ import type {
   GetterProps,
   OutputClient,
 } from '@orval/core';
-import { GetterPropType, Verbs } from '@orval/core';
+import { GetterPropType, OutputHttpClient, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
 import { createFrameworkAdapter } from './frameworks';
 import {
   allowUndefinedParam,
   getBuilderQueryFnProperty,
+  getInfinitePageParamType,
+  getInfiniteQueryBody,
   getMutationInvalidatesConflictWarning,
   getQueryFnProperty,
   getQueryKeyVerbPrefix,
@@ -830,6 +833,276 @@ describe('resolveUseSkipToken', () => {
   it('is off when the option is unset', () => {
     expect(resolveUseSkipToken(undefined, adapterFor('react-query'))).toBe(
       false,
+    );
+  });
+});
+
+// #4025: a page param that lives in the JSON request body of a `POST`.
+describe('infinite query page param in the request body', () => {
+  const filterBody = (overrides: Partial<GetterBody> = {}): GetterBody => ({
+    definition: 'ElementFilter',
+    originalSchema: {
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/ElementFilter' },
+        },
+      },
+    },
+    imports: [],
+    implementation: 'elementFilter',
+    schemas: [],
+    contentType: 'application/json',
+    isOptional: false,
+    isBlob: false,
+    ...overrides,
+  });
+
+  const bodyProps = [
+    {
+      name: 'elementFilter',
+      definition: 'elementFilter: ElementFilter',
+      implementation: 'elementFilter: ElementFilter',
+      default: false,
+      required: true,
+      type: GetterPropType.BODY,
+    },
+  ] satisfies GetterProps;
+
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          ElementFilter: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              offset: { type: 'integer' },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  describe('getInfiniteQueryBody', () => {
+    it('reads the property names of a referenced JSON body schema', () => {
+      expect(
+        getInfiniteQueryBody(filterBody(), bodyProps, context),
+      ).toStrictEqual({ propertyNames: ['name', 'offset'] });
+    });
+
+    it('reads the property names of an inline JSON body schema', () => {
+      expect(
+        getInfiniteQueryBody(
+          filterBody({
+            originalSchema: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { cursor: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          }),
+          bodyProps,
+          context,
+        ),
+      ).toStrictEqual({ propertyNames: ['cursor'] });
+    });
+
+    it('leaves the property names unknown for a composed body schema', () => {
+      expect(
+        getInfiniteQueryBody(
+          filterBody({
+            originalSchema: {
+              content: {
+                'application/json': {
+                  schema: {
+                    allOf: [{ $ref: '#/components/schemas/ElementFilter' }],
+                  },
+                },
+              },
+            },
+          }),
+          bodyProps,
+          context,
+        ),
+      ).toStrictEqual({});
+    });
+
+    it('rejects a body that is not JSON', () => {
+      expect(
+        getInfiniteQueryBody(
+          filterBody({ contentType: 'multipart/form-data', formData: 'x' }),
+          bodyProps,
+          context,
+        ),
+      ).toBeUndefined();
+    });
+
+    it('rejects an operation without a body prop', () => {
+      expect(getInfiniteQueryBody(filterBody(), [], context)).toBeUndefined();
+    });
+  });
+
+  describe('resolveInfiniteQueryParam with location body', () => {
+    it('resolves a candidate the body declares', () => {
+      expect(
+        resolveInfiniteQueryParam(undefined, ['cursor', 'offset'], {
+          location: 'body',
+          body: { propertyNames: ['name', 'offset'] },
+        }),
+      ).toStrictEqual({ queryParam: 'offset', infiniteHookAllowed: true });
+    });
+
+    it('suppresses the infinite hook when the body declares no candidate', () => {
+      expect(
+        resolveInfiniteQueryParam(undefined, 'offset', {
+          location: 'body',
+          body: { propertyNames: ['format'] },
+        }),
+      ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+    });
+
+    it('trusts the first candidate when the body properties are unknown', () => {
+      expect(
+        resolveInfiniteQueryParam(undefined, ['offset', 'cursor'], {
+          location: 'body',
+          body: {},
+        }),
+      ).toStrictEqual({ queryParam: 'offset', infiniteHookAllowed: true });
+    });
+
+    it('suppresses the infinite hook when there is no JSON body', () => {
+      expect(
+        resolveInfiniteQueryParam(undefined, 'offset', { location: 'body' }),
+      ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+    });
+
+    it('ignores query params of the same name', () => {
+      expect(
+        resolveInfiniteQueryParam(
+          {
+            schema: { name: 'ListParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            paramNames: ['offset'],
+          },
+          'offset',
+          { location: 'body', body: { propertyNames: ['name'] } },
+        ),
+      ).toStrictEqual({ queryParam: undefined, infiniteHookAllowed: false });
+    });
+  });
+
+  describe('getInfinitePageParamType', () => {
+    it('indexes a named body type', () => {
+      expect(
+        getInfinitePageParamType({
+          queryParam: 'offset',
+          location: 'body',
+          queryParams: undefined,
+          body: filterBody(),
+        }),
+      ).toBe("ElementFilter['offset']");
+    });
+
+    it('wraps a body type that is not a plain name', () => {
+      expect(
+        getInfinitePageParamType({
+          queryParam: 'offset',
+          location: 'body',
+          queryParams: undefined,
+          body: filterBody({ definition: 'ElementFilter | null' }),
+        }),
+      ).toBe("NonNullable<ElementFilter | null>['offset']");
+    });
+
+    it('indexes the query params type for a query location', () => {
+      expect(
+        getInfinitePageParamType({
+          queryParam: 'page',
+          location: 'query',
+          queryParams: {
+            schema: { name: 'ListPetsParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            paramNames: ['page'],
+          },
+          body: filterBody(),
+        }),
+      ).toBe("ListPetsParams['page']");
+    });
+
+    it('returns undefined without a page param', () => {
+      expect(
+        getInfinitePageParamType({
+          queryParam: undefined,
+          location: 'body',
+          queryParams: undefined,
+          body: filterBody(),
+        }),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('getSuppressedInfiniteQueryWarning with location body', () => {
+    const base = {
+      operationName: 'exportElements',
+      infiniteHookAllowed: false,
+      operationUseInfinite: true,
+      configuredInfiniteQueryParam: 'offset',
+      queryParams: undefined,
+      location: 'body' as const,
+    };
+
+    it('lists the properties the body does declare', () => {
+      const warning = getSuppressedInfiniteQueryWarning({
+        ...base,
+        body: { propertyNames: ['format'] },
+      });
+
+      expect(warning).toContain('not a property of its request body');
+      expect(warning).toContain("only declares 'format'");
+    });
+
+    it('says when the operation has no JSON body', () => {
+      expect(getSuppressedInfiniteQueryWarning(base)).toContain(
+        'has no JSON request body',
+      );
+    });
+  });
+
+  it('points a query-located miss at the body location option', () => {
+    expect(
+      getSuppressedInfiniteQueryWarning({
+        operationName: 'searchElements',
+        infiniteHookAllowed: false,
+        operationUseInfinite: true,
+        configuredInfiniteQueryParam: 'offset',
+        queryParams: undefined,
+      }),
+    ).toContain("useInfiniteQueryParamLocation: 'body'");
+  });
+
+  it('injects pageParam into the body prop', () => {
+    const adapter = createFrameworkAdapter({
+      outputClient: 'react-query',
+      queryVersion: 5,
+    });
+
+    expect(
+      adapter.getInfiniteQueryHttpProps(
+        bodyProps,
+        'offset',
+        OutputHttpClient.FETCH,
+        false,
+        'body',
+      ),
+    ).toBe(
+      "{...elementFilter, 'offset': pageParam ?? elementFilter?.['offset']}",
     );
   });
 });

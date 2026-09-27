@@ -1,7 +1,6 @@
 import {
   type GeneratorMutator,
   type GetterParams,
-  type GetterQueryParam,
   isObject,
   pascal,
   stringify,
@@ -153,8 +152,7 @@ export const getQueryOptionsDefinition = ({
   prefix,
   hasQueryV5,
   hasQueryV5WithInfiniteQueryOptionsError,
-  queryParams,
-  queryParam,
+  pageParamType,
   isReturnType,
   initialData,
   adapter,
@@ -173,8 +171,11 @@ export const getQueryOptionsDefinition = ({
   prefix: string;
   hasQueryV5: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
-  queryParams?: GetterQueryParam;
-  queryParam?: string;
+  /**
+   * `TPageParam` of an infinite query, e.g. `ListPetsParams['page']` or
+   * `ElementFilter['offset']`. Omitted when the query has no page param.
+   */
+  pageParamType?: string;
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
   adapter?: FrameworkAdapter;
@@ -194,8 +195,8 @@ export const getQueryOptionsDefinition = ({
     const isInfiniteType = isInfiniteQuery(type);
 
     const infiniteTypeArgs =
-      hasQueryV5 && isInfiniteType && queryParam && queryParams
-        ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+      hasQueryV5 && isInfiniteType && pageParamType
+        ? `, QueryKey, ${pageParamType}`
         : '';
 
     const initialDataOptionsType =
@@ -210,9 +211,7 @@ export const getQueryOptionsDefinition = ({
           ${funcReturnType},
           TError,
           ${funcReturnType}${
-            hasQueryV5 && isInfiniteType && queryParam && queryParams
-              ? `, QueryKey`
-              : ''
+            hasQueryV5 && isInfiniteType && pageParamType ? `, QueryKey` : ''
           }
         >`;
 
@@ -265,10 +264,10 @@ export const getQueryOptionsDefinition = ({
     const optionType = optionsTypeName
       ? `${optionsTypeName}<${funcReturnType}, TError, TData${infiniteTypeArgs}>`
       : `${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
-          hasQueryV5 && isInfiniteType && queryParam && queryParams
+          hasQueryV5 && isInfiniteType && pageParamType
             ? hasQueryV5WithInfiniteQueryOptionsError
-              ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
-              : `, ${funcReturnType}, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+              ? `, QueryKey, ${pageParamType}`
+              : `, ${funcReturnType}, QueryKey, ${pageParamType}`
             : ''
         }>`;
 

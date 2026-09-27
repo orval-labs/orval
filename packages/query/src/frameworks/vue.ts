@@ -4,6 +4,7 @@ import {
   type GetterProp,
   type GetterProps,
   GetterPropType,
+  type InfiniteQueryParamLocation,
   isObject,
   OutputClient,
   OutputHttpClient,
@@ -19,6 +20,7 @@ import type {
   QueryReturnTypeContext,
 } from '../framework-adapter';
 import { QueryType } from '../query-options';
+import { isInfinitePageParamProp } from '../utils';
 
 /**
  * Vue Query v5 requires Vue 3.3+, where `MaybeRefOrGetter<T>` (a superset of
@@ -124,13 +126,15 @@ export const createVueAdapter = ({
     props: GetterProps,
     queryParam: string,
     httpClient: OutputHttpClient,
+    _hasMutator: boolean,
+    location: InfiniteQueryParamLocation,
   ): string {
     const { resolve } = getVueReactivity(hasQueryV5);
     return props
       .map((param) => {
         // Vue does NOT destructure named path params (keeps param.name)
-        if (param.name === 'params') {
-          return `{...${resolve}(params), '${queryParam}': pageParam ?? ${resolve}(params)?.['${queryParam}']}`;
+        if (isInfinitePageParamProp(param, location)) {
+          return `{...${resolve}(${param.name}), '${queryParam}': pageParam ?? ${resolve}(${param.name})?.['${queryParam}']}`;
         }
 
         // Fetch-style request functions accept plain values, but axios-style

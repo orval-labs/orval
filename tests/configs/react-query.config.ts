@@ -1891,6 +1891,80 @@ export default defineConfig({
       target: '../specifications/infinite-query-param-array.yaml',
     },
   },
+  // `useInfiniteQueryParamLocation: 'body'` (#4025): the page param `offset`
+  // is a property of the JSON request body, not a URL query parameter.
+  // `exportElements` has no `offset` in its body, so it gets no infinite hook.
+  infiniteQueryParamBody: {
+    output: {
+      target: '../generated/react-query/infinite-query-param-body/endpoints.ts',
+      schemas: '../generated/react-query/infinite-query-param-body/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useInfiniteQueryParam: 'offset',
+          useInfiniteQueryParamLocation: 'body',
+        },
+        operations: {
+          searchElements: {
+            query: {
+              useQuery: true,
+              useInfinite: true,
+              useSuspenseInfiniteQuery: true,
+            },
+          },
+          searchGroupElements: { query: { useInfinite: true } },
+          searchTaggedElements: { query: { useInfinite: true } },
+          exportElements: { query: { useInfinite: true } },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/infinite-query-param-body.yaml',
+    },
+  },
+  // The same through a mutator whose `BodyType<T>` wraps the request body, so
+  // the spread `{ ...body, offset: pageParam }` must still satisfy it.
+  infiniteQueryParamBodyMutator: {
+    output: {
+      target:
+        '../generated/react-query/infinite-query-param-body-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/infinite-query-param-body-mutator/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/custom-client.ts',
+          name: 'customClient',
+        },
+        query: {
+          useInfiniteQueryParam: 'offset',
+          useInfiniteQueryParamLocation: 'body',
+        },
+        operations: {
+          searchElements: {
+            query: {
+              useQuery: true,
+              useInfinite: true,
+              useSuspenseInfiniteQuery: true,
+            },
+          },
+          searchGroupElements: { query: { useInfinite: true } },
+          searchTaggedElements: { query: { useInfinite: true } },
+          exportElements: { query: { useInfinite: true } },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/infinite-query-param-body.yaml',
+    },
+  },
   // Named single-file zod schemas (#4100): the client import must name the
   // file itself (`./schemas.zod`), not the default `./index.zod`.
   namedSingleZodSchemas: {
