@@ -319,8 +319,19 @@ export function isBoolean(x: unknown): x is boolean {
   return typeof x === 'boolean';
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any -- callable after narrowing, as remeda typed it
-export function isFunction(x: unknown): x is (...args: any[]) => unknown {
+type AnyFunction = (...args: never) => unknown;
+
+/**
+ * Narrows `x` to the function members of its own type (all of it when nothing
+ * more precise is known), the way remeda's guard did.
+ */
+export function isFunction<T>(
+  x: T | AnyFunction,
+): x is 0 extends 1 & T
+  ? AnyFunction
+  : Extract<T, AnyFunction> extends never
+    ? AnyFunction
+    : Extract<T, AnyFunction> {
   return typeof x === 'function';
 }
 

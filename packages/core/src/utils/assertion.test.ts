@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, expectTypeOf, it } from 'vite-plus/test';
 
 import { SchemaType, Verbs } from '../types';
 import {
@@ -180,6 +180,21 @@ describe('assertion testing', () => {
       }),
     ).toBeTruthy();
     expect(isNullish(null)).toBeTruthy();
+  });
+
+  it('narrows isFunction to the function members of the input type', () => {
+    type Builder = (spec: { title: string }) => string;
+    const entry = {} as { type: 'msw' } | Builder;
+    if (isFunction(entry)) {
+      expectTypeOf(entry).toEqualTypeOf<Builder>();
+    } else {
+      expectTypeOf(entry).toEqualTypeOf<{ type: 'msw' }>();
+    }
+
+    const unknownValue = {} as unknown;
+    if (isFunction(unknownValue)) {
+      expectTypeOf(unknownValue).toEqualTypeOf<(...args: never) => unknown>();
+    }
   });
 });
 
