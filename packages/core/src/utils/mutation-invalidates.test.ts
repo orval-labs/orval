@@ -74,6 +74,32 @@ describe('getUnknownMutationInvalidatesWarnings', () => {
     ).toStrictEqual([]);
   });
 
+  // Infinite and suspense-infinite queries emit `get<Op>InfiniteQueryKey`,
+  // which an `<op>Infinite` target resolves to. See #4215.
+  it('accepts the infinite variant of an operation in invalidates', () => {
+    expect(
+      warningsFor([
+        {
+          onMutations: ['postNotes'],
+          invalidates: [
+            'getNotesInfinite',
+            { query: 'get_notes_infinite', params: ['noteId'] },
+          ],
+        },
+      ]),
+    ).toStrictEqual([]);
+  });
+
+  it('does not accept the infinite variant in onMutations', () => {
+    const [warning, ...rest] = warningsFor([
+      { onMutations: ['getNotesInfinite'], invalidates: ['getNotes'] },
+    ]);
+
+    expect(rest).toStrictEqual([]);
+    expect(warning).toContain("'getNotesInfinite'");
+    expect(warning).not.toContain('did you mean');
+  });
+
   it('omits the suggestion when no operation resembles the reference', () => {
     const [warning] = warningsFor([
       { onMutations: ['listInvoices'], invalidates: ['getNotes'] },
