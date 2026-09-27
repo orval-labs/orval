@@ -28,6 +28,7 @@ import {
   SupportedFormatter,
   stripFileExtension,
   upath,
+  warnAmbiguousBarrelExports,
   withGeneratedFileTransform,
   writeGeneratedFile,
   writeRoutedSchemas,
@@ -832,6 +833,10 @@ async function writeSpecsInternal(
             output.namingConvention,
             output.tsconfig,
           );
+        } else if (output.indexFiles) {
+          // Both writers above merge into this barrel, which may already hold
+          // another output's exports; checked once both have run.
+          await warnAmbiguousBarrelExports(path.join(schemasPath, 'index.ts'));
         }
       }
     } else {

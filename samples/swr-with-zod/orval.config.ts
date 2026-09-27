@@ -41,7 +41,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'zod',
       target: 'src/gen/endpoints',
-      schemas: 'src/gen/models',
+      schemas: 'src/gen/zod-models',
       fileExtension: '-reusable.zod.ts',
       formatter: 'prettier',
       override: {
