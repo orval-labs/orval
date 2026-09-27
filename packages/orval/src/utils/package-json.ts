@@ -105,19 +105,26 @@ const hasCatalogReferences = (pkg: PackageJson): boolean => {
   ].some(([, value]) => isString(value) && value.startsWith('catalog:'));
 };
 
-const loadPnpmWorkspaceCatalog = async (
+const pickCatalog = (
+  data: Record<string, unknown> | undefined,
+): CatalogData | undefined =>
+  data?.catalog || data?.catalogs
+    ? {
+        catalog: data.catalog as CatalogData['catalog'],
+        catalogs: data.catalogs as CatalogData['catalogs'],
+      }
+    : undefined;
+
+/** The catalog of the nearest `fileName` (pnpm-workspace.yaml, .yarnrc.yml). */
+const loadYamlCatalog = async (
+  fileName: string,
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePath = findUp('pnpm-workspace.yaml', workspace);
+  const filePath = findUp(fileName, workspace);
   if (!filePath) return undefined;
   try {
     const file = await fs.promises.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, unknown> | undefined;
-    if (!data?.catalog && !data?.catalogs) return undefined;
-    return {
-      catalog: data.catalog as CatalogData['catalog'],
-      catalogs: data.catalogs as CatalogData['catalogs'],
-    };
+    return pickCatalog(yaml.load(file) as Record<string, unknown> | undefined);
   } catch {
     return undefined;
   }
@@ -126,43 +133,20 @@ const loadPnpmWorkspaceCatalog = async (
 const loadPackageJsonCatalog = async (
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePaths = findUpMultiple('package.json', workspace);
-
-  for (const filePath of filePaths) {
+  for (const filePath of findUpMultiple('package.json', workspace)) {
     try {
       // fs-extra's readJson stripped a leading BOM; JSON.parse rejects it.
-      const pkg = JSON.parse(
-        (await fs.promises.readFile(filePath, 'utf8')).replace(/^\uFEFF/, ''),
-      ) as Record<string, unknown>;
-      if (pkg.catalog || pkg.catalogs) {
-        return {
-          catalog: pkg.catalog as CatalogData['catalog'],
-          catalogs: pkg.catalogs as CatalogData['catalogs'],
-        };
-      }
+      const catalog = pickCatalog(
+        JSON.parse(
+          (await fs.promises.readFile(filePath, 'utf8')).replace(/^\uFEFF/, ''),
+        ) as Record<string, unknown>,
+      );
+      if (catalog) return catalog;
     } catch {
       // Continue to next file
     }
   }
   return undefined;
-};
-
-const loadYarnrcCatalog = async (
-  workspace: string,
-): Promise<CatalogData | undefined> => {
-  const filePath = findUp('.yarnrc.yml', workspace);
-  if (!filePath) return undefined;
-  try {
-    const file = await fs.promises.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, unknown> | undefined;
-    if (!data?.catalog && !data?.catalogs) return undefined;
-    return {
-      catalog: data.catalog as CatalogData['catalog'],
-      catalogs: data.catalogs as CatalogData['catalogs'],
-    };
-  } catch {
-    return undefined;
-  }
 };
 
 const maybeReplaceCatalog = async (
@@ -174,9 +158,9 @@ const maybeReplaceCatalog = async (
   }
 
   const catalogData =
-    (await loadPnpmWorkspaceCatalog(workspace)) ??
+    (await loadYamlCatalog('pnpm-workspace.yaml', workspace)) ??
     (await loadPackageJsonCatalog(workspace)) ??
-    (await loadYarnrcCatalog(workspace));
+    (await loadYamlCatalog('.yarnrc.yml', workspace));
 
   if (!catalogData) {
     logger.warn(
