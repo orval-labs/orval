@@ -1411,7 +1411,9 @@ that restriction for individual operations.
 **Type:** `String | String[]`
 
 Query parameter name for infinite queries. An operation only gets an infinite
-hook when it declares the configured parameter.
+hook when it declares the configured parameter. To page through a property of
+the request body instead, set
+[`useInfiniteQueryParamLocation`](#useinfinitequeryparamlocation) to `'body'`.
 
 Pass an array when a single spec paginates in more than one way. The names are
 candidates in priority order and are resolved per operation: the first one the
@@ -1440,6 +1442,55 @@ export default defineConfig({
     },
   },
 });
+```
+
+### useInfiniteQueryParamLocation
+
+**Type:** `'query' | 'body'`
+
+**Default:** `'query'`
+
+Where the `useInfiniteQueryParam` page param lives. With `'query'` it must be
+one of the operation's URL query parameters. With `'body'` it is a property of
+the JSON request body instead, which suits `POST` endpoints that paginate
+through a filter body. The infinite query then spreads `pageParam` into the
+body, and `TPageParam` is typed from the body schema (`ElementFilter['offset']`).
+
+The candidates are matched against the body schema's properties. An operation
+without a JSON body, or whose body declares none of the candidates, gets no
+infinite hook. If the operation opted in explicitly, orval also logs a warning.
+When the body schema doesn't list its properties directly (an `allOf`, for
+example), the first candidate is used as configured.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operations: {
+          searchPageableElementsByFilter: {
+            query: {
+              useQuery: true,
+              useInfinite: true,
+              useInfiniteQueryParam: 'offset',
+              useInfiniteQueryParamLocation: 'body',
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+The generated `queryFn` then passes the page param through the body:
+
+```ts
+const queryFn = ({ signal, pageParam }) =>
+  searchPageableElementsByFilter(
+    { ...elementFilter, offset: pageParam ?? elementFilter?.['offset'] },
+    { signal },
+  );
 ```
 
 ### usePrefetch

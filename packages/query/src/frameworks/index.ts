@@ -3,6 +3,7 @@ import {
   type GetterProp,
   type GetterProps,
   GetterPropType,
+  type InfiniteQueryParamLocation,
   isObject,
   isString,
   type OutputClient,
@@ -42,6 +43,7 @@ import {
   getQueryOptionsDefinition,
   requiresUserSuppliedQueryOptions,
 } from '../query-options';
+import { isInfinitePageParamProp } from '../utils';
 import { createAngularAdapter } from './angular';
 import { createReactAdapter } from './react';
 import { createSolidAdapter } from './solid';
@@ -117,13 +119,19 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         : generateFetchRequestFunction(verbOptions, options);
     },
 
-    getInfiniteQueryHttpProps(props: GetterProps, queryParam: string) {
+    getInfiniteQueryHttpProps(
+      props: GetterProps,
+      queryParam: string,
+      _httpClient: OutputHttpClient,
+      _hasMutator: boolean,
+      location: InfiniteQueryParamLocation,
+    ) {
       return props
         .map((param) => {
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
-          return param.name === 'params'
-            ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
+          return isInfinitePageParamProp(param, location)
+            ? `{...${param.name}, '${queryParam}': pageParam ?? ${param.name}?.['${queryParam}']}`
             : param.name;
         })
         .join(',');
@@ -158,8 +166,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       mutator,
       isRequestOptions,
       type,
-      queryParams,
-      queryParam,
+      pageParamType,
       initialData,
       httpClient,
       hasInvalidation,
@@ -177,8 +184,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         hasQueryV5: composed.hasQueryV5,
         hasQueryV5WithInfiniteQueryOptionsError:
           composed.hasQueryV5WithInfiniteQueryOptionsError,
-        queryParams,
-        queryParam,
+        pageParamType,
         isReturnType: false,
         initialData,
         adapter: composed,

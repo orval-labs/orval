@@ -1,5 +1,6 @@
 import {
   camel,
+  type ContextSpec,
   generateMutator,
   type GeneratorImport,
   type GeneratorMutator,
@@ -12,11 +13,17 @@ import {
   GetterPropType,
   type GetterQueryParam,
   type GetterResponse,
+  type InfiniteQueryParamLocation,
+  isObject,
   jsDoc,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
+  type OpenApiSchemaObject,
   OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
   pascal,
+  resolveRef,
   toObjectString,
   Verbs,
 } from '@orval/core';
@@ -94,14 +101,33 @@ export const hasQueryParam = (
 };
 
 /**
+ * The JSON request body a `useInfiniteQueryParamLocation: 'body'` page param
+ * is injected into. `propertyNames` is `undefined` when the body schema does
+ * not list its properties directly (a composed `allOf`, say); the configured
+ * name is then trusted, and a wrong one fails the consumer's type check on the
+ * emitted `Body['name']` page param type instead of emitting a silent no-op.
+ */
+export interface InfiniteQueryBody {
+  propertyNames?: readonly string[];
+}
+
+/**
  * When nothing is configured, infinite hooks stay allowed, just without a
  * page param. When candidates are configured but the operation declares none
  * of them, the infinite hook is suppressed so orval does not emit a useless
  * one for a non-paginated `GET`.
+ *
+ * With `location: 'body'` the candidates are matched against the request
+ * body's properties instead, and an operation without a JSON body gets no
+ * infinite hook (#4025).
  */
 export const resolveInfiniteQueryParam = (
   queryParams: GetterQueryParam | undefined,
   useInfiniteQueryParam: string | string[] | undefined,
+  {
+    location = 'query',
+    body,
+  }: { location?: InfiniteQueryParamLocation; body?: InfiniteQueryBody } = {},
 ): { queryParam: string | undefined; infiniteHookAllowed: boolean } => {
   const candidates = (
     Array.isArray(useInfiniteQueryParam)
@@ -113,10 +139,90 @@ export const resolveInfiniteQueryParam = (
     return { queryParam: undefined, infiniteHookAllowed: true };
   }
 
-  const queryParam = candidates.find((name) =>
-    hasQueryParam(queryParams, name),
-  );
+  const queryParam =
+    location === 'body'
+      ? body &&
+        candidates.find((name) => body.propertyNames?.includes(name) ?? true)
+      : candidates.find((name) => hasQueryParam(queryParams, name));
   return { queryParam, infiniteHookAllowed: queryParam !== undefined };
+};
+
+const JSON_CONTENT_TYPE = /^application\/(?:[\w.+-]+\+)?json\b/i;
+
+/**
+ * The request body a body-located page param can be injected into: a JSON
+ * body passed as an object prop. Form data, url-encoded and binary bodies are
+ * serialized by the request function, so spreading the page param into them
+ * is not meaningful. Property names are read best-effort from the resolved
+ * body schema.
+ */
+export const getInfiniteQueryBody = (
+  body: GetterBody,
+  props: GetterProps,
+  context: ContextSpec,
+): InfiniteQueryBody | undefined => {
+  if (
+    body.isBlob ||
+    body.formData ||
+    body.formUrlEncoded ||
+    !JSON_CONTENT_TYPE.test(body.contentType) ||
+    !props.some(({ type }) => type === GetterPropType.BODY)
+  ) {
+    return undefined;
+  }
+
+  try {
+    const { schema: requestBody } = resolveRef<OpenApiRequestBodyObject>(
+      body.originalSchema,
+      context,
+    );
+    const mediaSchema = (
+      requestBody.content as
+        | Record<string, { schema?: OpenApiSchemaObject } | undefined>
+        | undefined
+    )?.[body.contentType]?.schema;
+    // A boolean schema (`true`) has no properties to read.
+    if (!isObject(mediaSchema)) return {};
+
+    const schema: object =
+      '$ref' in mediaSchema
+        ? resolveRef<object>(mediaSchema as OpenApiReferenceObject, context)
+            .schema
+        : mediaSchema;
+    return 'properties' in schema && isObject(schema.properties)
+      ? { propertyNames: Object.keys(schema.properties) }
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+/** `TPageParam` for an infinite query, indexed off the type the param lives in. */
+export const getInfinitePageParamType = ({
+  queryParam,
+  location,
+  queryParams,
+  body,
+}: {
+  queryParam: string | undefined;
+  location: InfiniteQueryParamLocation;
+  queryParams: GetterQueryParam | undefined;
+  body: GetterBody;
+}): string | undefined => {
+  if (!queryParam) return undefined;
+
+  if (location === 'body') {
+    // A named body type is indexed directly; anything else (a union with
+    // `null`, an inline literal) is wrapped so it is indexed as a whole.
+    const bodyType = /^[\w$.]+$/.test(body.definition)
+      ? body.definition
+      : `NonNullable<${body.definition}>`;
+    return `${bodyType}['${queryParam}']`;
+  }
+
+  return hasQueryParam(queryParams, queryParam) && queryParams
+    ? `${queryParams.schema.name}['${queryParam}']`
+    : undefined;
 };
 
 const quoteList = (values: readonly string[]) =>
@@ -130,7 +236,8 @@ const quoteList = (values: readonly string[]) =>
  * right, but it leaves no trace: an operation that opts in explicitly and
  * paginates through its request body instead — the common `POST` + filter-body
  * shape — simply gets no infinite hook and no diagnostic, which reads as orval
- * ignoring the config (#4025).
+ * ignoring the config (#4025). Such an operation can page through its body
+ * with `useInfiniteQueryParamLocation: 'body'`, which the message points at.
  *
  * Warn only for the explicit per-operation opt-in. There the user named both
  * the operation and the page param, so the message is actionable and cannot
@@ -143,6 +250,8 @@ export const getSuppressedInfiniteQueryWarning = ({
   operationUseSuspenseInfiniteQuery,
   configuredInfiniteQueryParam,
   queryParams,
+  location = 'query',
+  body,
 }: {
   operationName: string;
   infiniteHookAllowed: boolean;
@@ -150,6 +259,8 @@ export const getSuppressedInfiniteQueryWarning = ({
   operationUseSuspenseInfiniteQuery?: boolean;
   configuredInfiniteQueryParam: string | string[] | undefined;
   queryParams: GetterQueryParam | undefined;
+  location?: InfiniteQueryParamLocation;
+  body?: InfiniteQueryBody;
 }): string | undefined => {
   if (infiniteHookAllowed) return undefined;
 
@@ -167,6 +278,31 @@ export const getSuppressedInfiniteQueryWarning = ({
       : [configuredInfiniteQueryParam]
   ).filter((name): name is string => !!name);
 
+  const opening =
+    `'${operationName}' sets ${quoteList(requested)}, but its ` +
+    `useInfiniteQueryParam (${quoteList(candidates)})`;
+
+  if (location === 'body') {
+    if (!body) {
+      return (
+        `${opening} is configured with useInfiniteQueryParamLocation 'body' ` +
+        `and the operation has no JSON request body to page through, so no ` +
+        `infinite hook was generated.`
+      );
+    }
+
+    const declared = body.propertyNames ?? [];
+    const declaredText =
+      declared.length > 0
+        ? `only declares ${quoteList(declared)}`
+        : 'declares no properties';
+    return (
+      `${opening} is not a property of its request body — the body ` +
+      `${declaredText}, so no infinite hook was generated. Either add it to ` +
+      `the body schema, or drop the infinite options for this operation.`
+    );
+  }
+
   const declared = queryParams?.paramNames ?? [];
   const declaredText =
     declared.length > 0
@@ -174,13 +310,11 @@ export const getSuppressedInfiniteQueryWarning = ({
       : 'declares no query parameters';
 
   return (
-    `'${operationName}' sets ${quoteList(requested)}, but its ` +
-    `useInfiniteQueryParam (${quoteList(candidates)}) is not one of its query ` +
-    `parameters — the operation ${declaredText}, so no infinite hook was ` +
-    `generated. orval can only page through a URL query parameter; a page ` +
-    `param that lives in the request body is not supported yet (#4025). ` +
-    `Either declare it as a query parameter, or drop the infinite options for ` +
-    `this operation.`
+    `${opening} is not one of its query parameters — the operation ` +
+    `${declaredText}, so no infinite hook was generated. If the page param ` +
+    `is a property of the JSON request body, set ` +
+    `useInfiniteQueryParamLocation: 'body'. Otherwise declare it as a query ` +
+    `parameter, or drop the infinite options for this operation.`
   );
 };
 
@@ -558,6 +692,7 @@ const generateQueryImplementation = ({
     name,
     typeName: optionTypeName,
     queryParam,
+    pageParamLocation = 'query',
     options,
     type,
     queryKeyFnName,
@@ -600,6 +735,7 @@ const generateQueryImplementation = ({
     options?: object | boolean;
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
+    pageParamLocation?: InfiniteQueryParamLocation;
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
@@ -695,9 +831,12 @@ const generateQueryImplementation = ({
     : queryProps;
 
   const infiniteQueryParamType =
-    hasQueryParam(queryParams, queryParam) && queryParams && queryParam
-      ? `${queryParams.schema.name}['${queryParam}']`
-      : '';
+    getInfinitePageParamType({
+      queryParam,
+      location: pageParamLocation,
+      queryParams,
+      body,
+    }) ?? '';
   const hasInfiniteQueryParam = !!infiniteQueryParamType;
 
   const httpFunctionProps = queryParam
@@ -706,6 +845,7 @@ const generateQueryImplementation = ({
         queryParam,
         httpClient,
         !!mutator,
+        pageParamLocation,
       )
     : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 
@@ -744,8 +884,7 @@ const generateQueryImplementation = ({
     definitions: '',
     isRequestOptions,
     type,
-    queryParams,
-    queryParam,
+    pageParamType: infiniteQueryParamType,
     initialData: 'defined',
     httpClient,
     useRuntimeFetcher,
@@ -757,8 +896,7 @@ const generateQueryImplementation = ({
     mutator,
     isRequestOptions,
     type,
-    queryParams,
-    queryParam,
+    pageParamType: infiniteQueryParamType,
     initialData: 'undefined',
     httpClient,
     useRuntimeFetcher,
@@ -770,8 +908,7 @@ const generateQueryImplementation = ({
     mutator,
     isRequestOptions,
     type,
-    queryParams,
-    queryParam,
+    pageParamType: infiniteQueryParamType,
     httpClient,
     useRuntimeFetcher,
     options,
@@ -784,8 +921,7 @@ const generateQueryImplementation = ({
     mutator,
     isRequestOptions,
     type,
-    queryParams,
-    queryParam,
+    pageParamType: infiniteQueryParamType,
     httpClient,
     forQueryOptions: true,
     useRuntimeFetcher,
@@ -811,7 +947,14 @@ const generateQueryImplementation = ({
 
   const queryFnArguments = getQueryFnArguments({
     hasQueryParam:
-      !!queryParam && props.some(({ type }) => type === 'queryParam'),
+      !!queryParam &&
+      props.some(
+        ({ type }) =>
+          type ===
+          (pageParamLocation === 'body'
+            ? GetterPropType.BODY
+            : GetterPropType.QUERY_PARAM),
+      ),
     hasSignal,
     hasSignalParam,
   });
@@ -824,8 +967,7 @@ const generateQueryImplementation = ({
     prefix: adapter.getQueryOptionsDefinitionPrefix(),
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
-    queryParams,
-    queryParam,
+    pageParamType: infiniteQueryParamType,
     isReturnType: true,
     adapter,
   });
@@ -1263,8 +1405,19 @@ export const generateQueryHook = async (
   // would be appended after the global one and lose first-match resolution.
   const configuredInfiniteQueryParam =
     operationQueryOptions?.useInfiniteQueryParam ?? query.useInfiniteQueryParam;
+  const infiniteQueryParamLocation =
+    operationQueryOptions?.useInfiniteQueryParamLocation ??
+    query.useInfiniteQueryParamLocation ??
+    'query';
+  const infiniteQueryBody =
+    infiniteQueryParamLocation === 'body'
+      ? getInfiniteQueryBody(body, props, context)
+      : undefined;
   const { queryParam: infiniteQueryParam, infiniteHookAllowed } =
-    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam);
+    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam, {
+      location: infiniteQueryParamLocation,
+      body: infiniteQueryBody,
+    });
   const effectiveUseInfinite =
     (operationQueryOptions?.useInfinite ??
       globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
@@ -1284,6 +1437,8 @@ export const generateQueryHook = async (
       operationQueryOptions?.useSuspenseInfiniteQuery,
     configuredInfiniteQueryParam,
     queryParams,
+    location: infiniteQueryParamLocation,
+    body: infiniteQueryBody,
   });
   if (suppressedInfiniteWarning) {
     logger.warn(suppressedInfiniteWarning);
@@ -1376,6 +1531,7 @@ export const generateQueryHook = async (
               options: query.options,
               type: QueryType.INFINITE,
               queryParam: infiniteQueryParam,
+              pageParamLocation: infiniteQueryParamLocation,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -1410,6 +1566,7 @@ export const generateQueryHook = async (
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: infiniteQueryParam,
+              pageParamLocation: infiniteQueryParamLocation,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]

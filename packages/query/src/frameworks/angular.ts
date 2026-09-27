@@ -5,6 +5,7 @@ import {
   type GeneratorVerbOptions,
   type GetterProps,
   GetterPropType,
+  type InfiniteQueryParamLocation,
   OutputClient,
   type OutputHttpClient,
   toObjectString,
@@ -25,7 +26,7 @@ import type {
   QueryReturnTypeContext,
 } from '../framework-adapter';
 import { getQueryOptionsDefinition, QueryType } from '../query-options';
-import { getQueryTypeForFramework } from '../utils';
+import { getQueryTypeForFramework, isInfinitePageParamProp } from '../utils';
 
 export const createAngularAdapter = ({
   hasQueryV5,
@@ -93,13 +94,14 @@ export const createAngularAdapter = ({
       queryParam: string,
       _httpClient: OutputHttpClient,
       hasMutator: boolean,
+      location: InfiniteQueryParamLocation,
     ): string {
       let result = props
         .map((param) => {
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
-          return param.name === 'params'
-            ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
+          return isInfinitePageParamProp(param, location)
+            ? `{...${param.name}, '${queryParam}': pageParam ?? ${param.name}?.['${queryParam}']}`
             : param.name;
         })
         .join(',');
@@ -201,8 +203,7 @@ export const createAngularAdapter = ({
       mutator,
       isRequestOptions,
       type,
-      queryParams,
-      queryParam,
+      pageParamType,
       initialData,
       httpClient,
       forQueryOptions = false,
@@ -218,8 +219,7 @@ export const createAngularAdapter = ({
         prefix,
         hasQueryV5,
         hasQueryV5WithInfiniteQueryOptionsError,
-        queryParams,
-        queryParam,
+        pageParamType,
         isReturnType: false,
         initialData,
       });

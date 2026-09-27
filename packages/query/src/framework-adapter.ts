@@ -5,7 +5,7 @@ import type {
   GetterParams,
   GetterProp,
   GetterProps,
-  GetterQueryParam,
+  InfiniteQueryParamLocation,
   InvalidateTargetParam,
   OutputClient,
   OutputHttpClient,
@@ -132,6 +132,8 @@ export interface FrameworkAdapter {
     queryParam: string,
     httpClient: OutputHttpClient,
     hasMutator: boolean,
+    /** Which prop receives `pageParam`: `params` (query) or the body. */
+    location: InfiniteQueryParamLocation,
   ): string;
 
   /** Angular: 'http: HttpClient, ' when isAngularHttp && (!mutator || mutator.hasSecondArg). Others: '' */
@@ -280,8 +282,8 @@ export interface FrameworkAdapter {
     mutator?: GeneratorMutator;
     isRequestOptions: boolean;
     type?: (typeof QueryType)[keyof typeof QueryType];
-    queryParams?: GetterQueryParam;
-    queryParam?: string;
+    /** `TPageParam` of an infinite query; see `getQueryOptionsDefinition`. */
+    pageParamType?: string;
     initialData?: 'defined' | 'undefined';
     httpClient: OutputHttpClient;
     forQueryOptions?: boolean;

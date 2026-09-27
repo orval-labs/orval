@@ -1371,6 +1371,8 @@ export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeVal
   requestBodies?: boolean;
 }
 
+export type InfiniteQueryParamLocation = 'query' | 'body';
+
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
@@ -1378,6 +1380,14 @@ export interface NormalizedQueryOptions {
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string | string[];
+  /**
+   * Where the `useInfiniteQueryParam` page param lives. `'query'` pages
+   * through a URL query parameter; `'body'` pages through a property of the
+   * JSON request body, for `POST` endpoints that paginate with a filter body.
+   *
+   * @default 'query'
+   */
+  useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
@@ -1413,6 +1423,14 @@ export interface QueryOptions {
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string | string[];
+  /**
+   * Where the `useInfiniteQueryParam` page param lives. `'query'` pages
+   * through a URL query parameter; `'body'` pages through a property of the
+   * JSON request body, for `POST` endpoints that paginate with a filter body.
+   *
+   * @default 'query'
+   */
+  useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
