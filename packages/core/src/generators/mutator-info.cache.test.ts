@@ -95,6 +95,38 @@ describe('getMutatorInfo caching (#4222)', () => {
     expect(build).toHaveBeenCalledTimes(2);
   });
 
+  it('re-bundles an edit that keeps the size and mtime', async () => {
+    const file = writeMutator(
+      'same-size.ts',
+      'export default function (a: unknown, b: unknown) {}\n',
+    );
+    // A whole-second timestamp survives the round trip through `utimesSync`
+    // exactly, so the second call really does see the same `mtimeMs`.
+    const time = new Date('2026-01-01T00:00:00Z');
+    fs.utimesSync(file, time, time);
+    const before = fs.statSync(file);
+
+    expect(await getMutatorInfo(file, { root: dir })).toEqual({
+      numberOfParams: 2,
+    });
+
+    // Same length as the original: two params become one, padded with spaces.
+    fs.writeFileSync(
+      file,
+      'export default function (a: unknown            ) {}\n',
+    );
+    fs.utimesSync(file, time, time);
+    expect(fs.statSync(file)).toMatchObject({
+      size: before.size,
+      mtimeMs: before.mtimeMs,
+    });
+
+    expect(await getMutatorInfo(file, { root: dir })).toEqual({
+      numberOfParams: 1,
+    });
+    expect(build).toHaveBeenCalledTimes(2);
+  });
+
   it('evicts a failed bundle so the next call retries', async () => {
     const file = writeMutator(
       'flaky.ts',

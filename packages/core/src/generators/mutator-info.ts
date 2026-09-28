@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -32,23 +33,23 @@ export async function getMutatorInfo(
     external,
   } = options ?? {};
 
-  // A custom `external` can inline other files into the bundle, and the key
-  // below only tracks the entry file, so those results are not cached.
+  // The default `external: ['*']` keeps every import, relative ones included,
+  // out of the bundle, so the entry file is its only input. A custom `external`
+  // can inline other files the key below does not track, so it is not cached.
   if (external !== undefined) {
     const code = await bundleFile(root, filePath, alias, external);
     return parseFile(code, namedExport);
   }
 
-  // The entry file's mtime and size are part of the key so watch mode still
-  // picks up an edited mutator.
+  // Keyed on the entry file's contents, so watch mode picks up any edit, even
+  // one that leaves its mtime and size unchanged.
   const resolvedPath = path.resolve(root, filePath);
-  const stat = fs.statSync(resolvedPath, { throwIfNoEntry: false });
   const key = JSON.stringify([
     root,
     resolvedPath,
     namedExport,
     alias ?? null,
-    stat ? [stat.mtimeMs, stat.size] : null,
+    hashFile(resolvedPath),
   ]);
 
   let info = mutatorInfoCache.get(key);
@@ -62,6 +63,15 @@ export async function getMutatorInfo(
   }
 
   return info;
+}
+
+/** `null` for a missing file, which lets esbuild report the error. */
+function hashFile(filePath: string): string | null {
+  try {
+    return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+  } catch {
+    return null;
+  }
 }
 
 /**
