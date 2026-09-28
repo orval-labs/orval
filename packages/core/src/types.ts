@@ -880,6 +880,9 @@ export interface OverrideOutput {
      * TypeScript types. The original spec key is still used for `required`
      * matching and runtime serialization; only the emitted property name
      * changes. See issue #2381.
+     *
+     * Zod schemas keep validating the original keys and rename them in a
+     * `.transform()`, so `zod.output` carries the converted names (#4226).
      */
     properties?: NamingConvention;
   };

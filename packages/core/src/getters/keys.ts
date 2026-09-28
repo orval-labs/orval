@@ -34,6 +34,17 @@ export function getStringLiteralTypeUnion(names: readonly string[]) {
 }
 
 /**
+ * Whether a schema-derived name can be emitted as a local binding
+ * (`const name`, a destructuring target): a valid identifier that is not a
+ * reserved word in strict mode.
+ */
+export function isBindingIdentifier(name: string) {
+  return (
+    keyword.isIdentifierNameES5(name) && !keyword.isReservedWordES6(name, true)
+  );
+}
+
+/**
  * Emits a property access for a possibly non-identifier name: dot access for
  * valid identifier names (`.petId`), quoted bracket access otherwise
  * (`['scope.id']`).
