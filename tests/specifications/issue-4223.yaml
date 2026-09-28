@@ -1,0 +1,26 @@
+openapi: 3.0.3
+info:
+  title: Demo
+  version: 0.0.0
+paths:
+  /chats:
+    get:
+      operationId: listChats
+      parameters:
+        - name: before
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_cursor:
+                    type: string
+                    nullable: true

@@ -165,10 +165,14 @@ if (
 
 // The same gate for react-query, where `queryOptions()` type-checks the emitted
 // literal instead of an `as` cast laundering it, so the caller-options spread
-// must not widen `queryFn` to `… | undefined` (#4163). Only fixtures that emit
-// suspense query options are listed; the axios-mutator ones have unrelated
-// `exactOptionalPropertyTypes` failures of their own.
-const reactQueryExactOptionalFolders = ['prefetch-serializable-headers'];
+// must not widen `queryFn` to `… | undefined` (#4163), and the infinite-query
+// page-param merge must not set an optional param to `undefined` (#4223). The
+// axios-mutator fixtures have unrelated `exactOptionalPropertyTypes` failures
+// of their own, so they are not listed.
+const reactQueryExactOptionalFolders = [
+  'issue-4223',
+  'prefetch-serializable-headers',
+];
 
 console.log(
   `\nTypechecking ${reactQueryExactOptionalFolders.length} react-query client with exactOptionalPropertyTypes...\n`,
@@ -185,6 +189,29 @@ if (
       ),
     },
     'react-query (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
+
+// vue-query builds the same page-param merge around `toValue(params)` (#4223).
+const vueQueryExactOptionalFolders = ['issue-4223'];
+
+console.log(
+  `\nTypechecking ${vueQueryExactOptionalFolders.length} vue-query client with exactOptionalPropertyTypes...\n`,
+);
+
+if (
+  !typecheck(
+    'exact-optional-vue-query',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: vueQueryExactOptionalFolders.map(
+        (f) => `generated/vue-query/${f}`,
+      ),
+    },
+    'vue-query (exactOptionalPropertyTypes)',
   )
 ) {
   hasFailure = true;

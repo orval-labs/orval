@@ -463,4 +463,30 @@ export default defineConfig({
       target: '../specifications/infinite-query-param-body.yaml',
     },
   },
+  // The page param `before` is an optional query param, so under
+  // `exactOptionalPropertyTypes` the merge must not set it to `undefined`
+  // (#4223). Typechecked with the flag by typecheck-generated.mjs.
+  issue4223: {
+    output: {
+      target: '../generated/vue-query/issue-4223/endpoints.ts',
+      schemas: '../generated/vue-query/issue-4223/model',
+      client: 'vue-query',
+      tsconfig: {
+        compilerOptions: {
+          exactOptionalPropertyTypes: true,
+        },
+      },
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'before',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4223.yaml',
+    },
+  },
 });

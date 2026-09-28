@@ -43,7 +43,7 @@ import {
   getQueryOptionsDefinition,
   requiresUserSuppliedQueryOptions,
 } from '../query-options';
-import { isInfinitePageParamProp } from '../utils';
+import { getInfinitePageParamMerge, isInfinitePageParamProp } from '../utils';
 import { createAngularAdapter } from './angular';
 import { createReactAdapter } from './react';
 import { createSolidAdapter } from './solid';
@@ -125,13 +125,18 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       _httpClient: OutputHttpClient,
       _hasMutator: boolean,
       location: InfiniteQueryParamLocation,
+      isExactOptionalPropertyTypes = false,
     ) {
       return props
         .map((param) => {
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
           return isInfinitePageParamProp(param, location)
-            ? `{...${param.name}, '${queryParam}': pageParam ?? ${param.name}?.['${queryParam}']}`
+            ? getInfinitePageParamMerge(
+                param.name,
+                queryParam,
+                isExactOptionalPropertyTypes,
+              )
             : param.name;
         })
         .join(',');

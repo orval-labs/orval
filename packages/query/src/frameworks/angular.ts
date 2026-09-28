@@ -26,7 +26,11 @@ import type {
   QueryReturnTypeContext,
 } from '../framework-adapter';
 import { getQueryOptionsDefinition, QueryType } from '../query-options';
-import { getQueryTypeForFramework, isInfinitePageParamProp } from '../utils';
+import {
+  getInfinitePageParamMerge,
+  getQueryTypeForFramework,
+  isInfinitePageParamProp,
+} from '../utils';
 
 export const createAngularAdapter = ({
   hasQueryV5,
@@ -95,13 +99,18 @@ export const createAngularAdapter = ({
       _httpClient: OutputHttpClient,
       hasMutator: boolean,
       location: InfiniteQueryParamLocation,
+      isExactOptionalPropertyTypes = false,
     ): string {
       let result = props
         .map((param) => {
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
           return isInfinitePageParamProp(param, location)
-            ? `{...${param.name}, '${queryParam}': pageParam ?? ${param.name}?.['${queryParam}']}`
+            ? getInfinitePageParamMerge(
+                param.name,
+                queryParam,
+                isExactOptionalPropertyTypes,
+              )
             : param.name;
         })
         .join(',');

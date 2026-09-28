@@ -1105,4 +1105,97 @@ describe('infinite query page param in the request body', () => {
       "{...elementFilter, 'offset': pageParam ?? elementFilter?.['offset']}",
     );
   });
+
+  describe('under exactOptionalPropertyTypes (#4223)', () => {
+    const queryProps = [
+      {
+        name: 'params',
+        definition: 'params?: ListChatsParams',
+        implementation: 'params?: ListChatsParams',
+        default: false,
+        required: false,
+        type: GetterPropType.QUERY_PARAM,
+      },
+    ] satisfies GetterProps;
+
+    it('only sets the page param when pageParam is non-nullish', () => {
+      const adapter = createFrameworkAdapter({
+        outputClient: 'react-query',
+        queryVersion: 5,
+      });
+
+      expect(
+        adapter.getInfiniteQueryHttpProps(
+          queryProps,
+          'before',
+          OutputHttpClient.FETCH,
+          false,
+          'query',
+          true,
+        ),
+      ).toBe(
+        "{...params, ...(pageParam != null ? { 'before': pageParam } : {})}",
+      );
+    });
+
+    it('guards the body-located page param too', () => {
+      const adapter = createFrameworkAdapter({
+        outputClient: 'react-query',
+        queryVersion: 5,
+      });
+
+      expect(
+        adapter.getInfiniteQueryHttpProps(
+          bodyProps,
+          'offset',
+          OutputHttpClient.FETCH,
+          false,
+          'body',
+          true,
+        ),
+      ).toBe(
+        "{...elementFilter, ...(pageParam != null ? { 'offset': pageParam } : {})}",
+      );
+    });
+
+    it('guards the vue merge around the resolved params', () => {
+      const adapter = createFrameworkAdapter({
+        outputClient: 'vue-query',
+        queryVersion: 5,
+      });
+
+      expect(
+        adapter.getInfiniteQueryHttpProps(
+          queryProps,
+          'before',
+          OutputHttpClient.AXIOS,
+          false,
+          'query',
+          true,
+        ),
+      ).toBe(
+        "{...toValue(params), ...(pageParam != null ? { 'before': pageParam } : {})}",
+      );
+    });
+
+    it('guards the angular merge', () => {
+      const adapter = createFrameworkAdapter({
+        outputClient: 'angular-query',
+        queryVersion: 5,
+      });
+
+      expect(
+        adapter.getInfiniteQueryHttpProps(
+          queryProps,
+          'before',
+          OutputHttpClient.ANGULAR,
+          false,
+          'query',
+          true,
+        ),
+      ).toBe(
+        "http, {...params, ...(pageParam != null ? { 'before': pageParam } : {})}",
+      );
+    });
+  });
 });
