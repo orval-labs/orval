@@ -71,7 +71,7 @@ describe('buildDateTransformStatements', () => {
     expect(statements.join('\n')).toBe(
       [
         'for (let i0 = 0; i0 < data.length; i0++) {',
-        '  data[i0] = new Date(data[i0]);',
+        '  data[i0] = new Date(data[i0]!);',
         '}',
       ].join('\n'),
     );
@@ -97,7 +97,7 @@ describe('buildDateTransformStatements', () => {
     expect(statements.join('\n')).toBe(
       [
         'for (let i0 = 0; i0 < data.length; i0++) {',
-        '  const item0 = data[i0];',
+        '  const item0 = data[i0]!;',
         '  if (item0.resolvedAt != null) {',
         '    item0.resolvedAt = new Date(item0.resolvedAt);',
         '  }',
@@ -142,7 +142,7 @@ describe('buildDateTransformStatements', () => {
       [
         'if (data.log != null) {',
         '  for (let i0 = 0; i0 < data.log.length; i0++) {',
-        '    const item0 = data.log[i0];',
+        '    const item0 = data.log[i0]!;',
         '    item0.createdAt = new Date(item0.createdAt);',
         '  }',
         '}',
@@ -165,7 +165,7 @@ describe('buildDateTransformStatements', () => {
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
       '  if (data[i0] != null) {',
-      '    data[i0] = new Date(data[i0]);',
+      '    data[i0] = new Date(data[i0]!);',
       '  }',
       '}',
     ]);
@@ -190,7 +190,7 @@ describe('buildDateTransformStatements', () => {
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  const item0 = data[i0];',
+      '  const item0 = data[i0]!;',
       '  if (item0 != null) {',
       '    item0.createdAt = new Date(item0.createdAt);',
       '  }',
@@ -589,7 +589,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'for (let i0 = 0; i0 < data.length; i0++) {',
-        '  const item0 = data[i0];',
+        '  const item0 = data[i0]!;',
         '  switch (item0.petType) {',
         '    case "cat": {',
         '      item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
@@ -833,7 +833,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
       [
         'if ("entries" in data && data.entries != null) {',
         '  for (let i0 = 0; i0 < data.entries.length; i0++) {',
-        '    const item0 = data.entries[i0];',
+        '    const item0 = data.entries[i0]!;',
         '    item0.visitedOn = new Date(item0.visitedOn);',
         '  }',
         '}',
@@ -887,7 +887,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'for (const key0 of Object.keys(data)) {',
-        '  const item0 = data[key0];',
+        '  const item0 = data[key0]!;',
         '  if ("visitedOn" in item0 && item0.visitedOn != null) {',
         '    item0.visitedOn = new Date(item0.visitedOn);',
         '  }',
@@ -2084,7 +2084,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
         '    }',
         '    case "arr": {',
         '      for (let i0 = 0; i0 < data.child.length; i0++) {',
-        '        const item0 = data.child[i0];',
+        '        const item0 = data.child[i0]!;',
         '        if (item0.back != null) {',
         '          if (item0.back.pickedAt != null) {',
         '            item0.back.pickedAt = new Date(item0.back.pickedAt);',
@@ -2579,7 +2579,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  const item0 = data[i0];',
+      '  const item0 = data[i0]!;',
       '  (item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }).createdAt = new Date(item0.createdAt);',
       '}',
     ]);
@@ -2601,7 +2601,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]);',
+      '  data[i0] = new Date(data[i0]!);',
       '}',
     ]);
   });
@@ -2904,7 +2904,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.days != null) {',
       '  for (const key0 of Object.keys(data.days)) {',
-      '    data.days[key0] = new Date(data.days[key0]);',
+      '    data.days[key0] = new Date(data.days[key0]!);',
       '  }',
       '}',
     ]);
@@ -2937,7 +2937,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.fills != null) {',
       '  for (const key0 of Object.keys(data.fills)) {',
-      '    const item0 = data.fills[key0];',
+      '    const item0 = data.fills[key0]!;',
       '    item0.recordedOn = new Date(item0.recordedOn);',
       '  }',
       '}',
@@ -2986,7 +2986,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.pets != null) {',
       '  for (const key0 of Object.keys(data.pets)) {',
-      '    const item0 = data.pets[key0];',
+      '    const item0 = data.pets[key0]!;',
       '    switch (item0.petType) {',
       '      case "cat": {',
       '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
@@ -3040,7 +3040,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.pets != null) {',
       '  for (const key0 of Object.keys(data.pets)) {',
-      '    const item0 = data.pets[key0];',
+      '    const item0 = data.pets[key0]!;',
       '    if ("at" in item0 && item0.at != null) {',
       '      item0.at = new Date(item0.at);',
       '    }',
@@ -3151,7 +3151,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '  case "cat": {',
       '    if (data.fills != null) {',
       '      for (const key0 of Object.keys(data.fills)) {',
-      '        data.fills[key0] = new Date(data.fills[key0]);',
+      '        data.fills[key0] = new Date(data.fills[key0]!);',
       '      }',
       '    }',
       '    break;',
@@ -3188,7 +3188,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.labels != null) {',
       '  for (const key0 of Object.keys(data.labels)) {',
-      '    data.labels[key0] = new Date(data.labels[key0]);',
+      '    data.labels[key0] = new Date(data.labels[key0]!);',
       '  }',
       '}',
     ]);
@@ -3252,7 +3252,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       'if (data.labels != null) {',
       '  for (const key0 of Object.keys(data.labels)) {',
       '    if (data.labels[key0] != null) {',
-      '      data.labels[key0] = new Date(data.labels[key0]);',
+      '      data.labels[key0] = new Date(data.labels[key0]!);',
       '    }',
       '  }',
       '}',
@@ -3303,11 +3303,11 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.outer != null) {',
       '  for (const key0 of Object.keys(data.outer)) {',
-      '    const item0 = data.outer[key0];',
+      '    const item0 = data.outer[key0]!;',
       '    for (let i1 = 0; i1 < item0.length; i1++) {',
-      '      const item1 = item0[i1];',
+      '      const item1 = item0[i1]!;',
       '      for (const key2 of Object.keys(item1)) {',
-      '        item1[key2] = new Date(item1[key2]);',
+      '        item1[key2] = new Date(item1[key2]!);',
       '      }',
       '    }',
       '  }',
@@ -3392,7 +3392,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
       'for (const key0 of Object.keys(data)) {',
-      '  data[key0] = new Date(data[key0]);',
+      '  data[key0] = new Date(data[key0]!);',
       '}',
     ]);
   });
@@ -3482,7 +3482,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.ids != null) {',
       '  for (const key0 of Object.keys(data.ids)) {',
-      '    data.ids[key0] = new Date(data.ids[key0]);',
+      '    data.ids[key0] = new Date(data.ids[key0]!);',
       '  }',
       '}',
     ]);
@@ -3510,7 +3510,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.headers != null) {',
       '  for (const key0 of Object.keys(data.headers)) {',
-      '    data.headers[key0] = new Date(data.headers[key0]);',
+      '    data.headers[key0] = new Date(data.headers[key0]!);',
       '  }',
       '}',
     ]);
@@ -3573,7 +3573,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.pets != null) {',
       '  for (const key0 of Object.keys(data.pets)) {',
-      '    const item0 = data.pets[key0];',
+      '    const item0 = data.pets[key0]!;',
       '    switch (item0.petType) {',
       '      case "dog": {',
       '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
@@ -3605,7 +3605,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]);',
+      '  data[i0] = new Date(data[i0]!);',
       '}',
     ]);
   });
@@ -3631,7 +3631,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]);',
+      '  data[i0] = new Date(data[i0]!);',
       '}',
     ]);
   });
@@ -3712,7 +3712,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.pets != null) {',
       '  for (const key0 of Object.keys(data.pets)) {',
-      '    data.pets[key0] = new Date(data.pets[key0]);',
+      '    data.pets[key0] = new Date(data.pets[key0]!);',
       '  }',
       '}',
     ]);
@@ -3745,10 +3745,9 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation.replace(
-      /\(data: [^)]*\): [^=]*=>/,
-      '(data) =>',
-    );
+    const runnable = result!.implementation
+      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
+      .replace(/\]!/g, ']');
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -4460,7 +4459,7 @@ describe('buildRequestDateSerializeStatements', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]);',
+      '  data[i0] = new Date(data[i0]!);',
       '}',
       'if (data.count != null) {',
       '  data.count = new Date(data.count);',
@@ -4493,7 +4492,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.days != null) {',
         '  copy.days = { ...copy.days };',
         '  for (const key0 of Object.keys(copy.days)) {',
-        '    let value0 = copy.days[key0];',
+        '    let value0 = copy.days[key0]!;',
         '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '    copy.days[key0] = value0;',
         '  }',
@@ -4529,7 +4528,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.fills != null) {',
         '  copy.fills = { ...copy.fills };',
         '  for (const key0 of Object.keys(copy.fills)) {',
-        '    let value0 = copy.fills[key0];',
+        '    let value0 = copy.fills[key0]!;',
         '    value0 = { ...value0 };',
         '    value0.recordedOn = value0.recordedOn instanceof Date ? (value0.recordedOn.toISOString().slice(0, 10) as unknown as Date) : value0.recordedOn;',
         '    copy.fills[key0] = value0;',
@@ -4587,7 +4586,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.pets != null) {',
         '  copy.pets = { ...copy.pets };',
         '  for (const key0 of Object.keys(copy.pets)) {',
-        '    let value0 = copy.pets[key0];',
+        '    let value0 = copy.pets[key0]!;',
         '    value0 = { ...value0 };',
         '    switch (value0.petType) {',
         '      case "cat": {',
@@ -4643,7 +4642,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       'if (copy.pets != null) {',
       '  copy.pets = { ...copy.pets };',
       '  for (const key0 of Object.keys(copy.pets)) {',
-      '    let value0 = copy.pets[key0];',
+      '    let value0 = copy.pets[key0]!;',
       '    value0 = { ...value0 };',
       '    if ("at" in value0 && value0.at != null) {',
       '      value0.at = value0.at instanceof Date ? (value0.at.toISOString().slice(0, 10) as unknown as Date) : value0.at;',
@@ -4758,7 +4757,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       '    if (copy.fills != null) {',
       '      copy.fills = { ...copy.fills };',
       '      for (const key0 of Object.keys(copy.fills)) {',
-      '        let value0 = copy.fills[key0];',
+      '        let value0 = copy.fills[key0]!;',
       '        value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
       '        copy.fills[key0] = value0;',
       '      }',
@@ -4796,7 +4795,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.labels != null) {',
         '  copy.labels = { ...copy.labels };',
         '  for (const key0 of Object.keys(copy.labels)) {',
-        '    let value0 = copy.labels[key0];',
+        '    let value0 = copy.labels[key0]!;',
         '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '    copy.labels[key0] = value0;',
         '  }',
@@ -4866,7 +4865,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.labels != null) {',
         '  copy.labels = { ...copy.labels };',
         '  for (const key0 of Object.keys(copy.labels)) {',
-        '    let value0 = copy.labels[key0];',
+        '    let value0 = copy.labels[key0]!;',
         '    if (value0 == null) continue;',
         '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '    copy.labels[key0] = value0;',
@@ -4922,12 +4921,12 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.outer != null) {',
         '  copy.outer = { ...copy.outer };',
         '  for (const key0 of Object.keys(copy.outer)) {',
-        '    let value0 = copy.outer[key0];',
+        '    let value0 = copy.outer[key0]!;',
         '    value0 = value0.map((item1) => {',
         '      let value1 = item1;',
         '      value1 = { ...value1 };',
         '      for (const key2 of Object.keys(value1)) {',
-        '        let value2 = value1[key2];',
+        '        let value2 = value1[key2]!;',
         '        value2 = value2 instanceof Date ? (value2.toISOString().slice(0, 10) as unknown as Date) : value2;',
         '        value1[key2] = value2;',
         '      }',
@@ -5023,7 +5022,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
       [
         'copy = { ...copy };',
         'for (const key0 of Object.keys(copy)) {',
-        '  let value0 = copy[key0];',
+        '  let value0 = copy[key0]!;',
         '  value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '  copy[key0] = value0;',
         '}',
@@ -5109,7 +5108,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.ids != null) {',
         '  copy.ids = { ...copy.ids };',
         '  for (const key0 of Object.keys(copy.ids)) {',
-        '    let value0 = copy.ids[key0];',
+        '    let value0 = copy.ids[key0]!;',
         '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '    copy.ids[key0] = value0;',
         '  }',
@@ -5142,7 +5141,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.headers != null) {',
         '  copy.headers = { ...copy.headers };',
         '  for (const key0 of Object.keys(copy.headers)) {',
-        '    let value0 = copy.headers[key0];',
+        '    let value0 = copy.headers[key0]!;',
         '    value0 = value0 instanceof Date ? (value0.toISOString().slice(0, 10) as unknown as Date) : value0;',
         '    copy.headers[key0] = value0;',
         '  }',
@@ -5203,7 +5202,7 @@ describe('buildRequestDateSerializeStatements — additionalProperties maps', ()
         'if (copy.pets != null) {',
         '  copy.pets = { ...copy.pets };',
         '  for (const key0 of Object.keys(copy.pets)) {',
-        '    let value0 = copy.pets[key0];',
+        '    let value0 = copy.pets[key0]!;',
         '    value0 = { ...value0 };',
         '    switch (value0.petType) {',
         '      case "dog": {',
@@ -5797,7 +5796,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
       [
         'if (data.x != null) {',
         '  for (let i0 = 0; i0 < data.x.length; i0++) {',
-        '    data.x[i0] = new Date(data.x[i0]);',
+        '    data.x[i0] = new Date(data.x[i0]!);',
         '  }',
         '  data.x.d = new Date(data.x.d);',
         '}',
@@ -5949,7 +5948,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
     ).toEqual([
       'if (data.days != null) {',
       '  for (let i0 = 0; i0 < data.days.length; i0++) {',
-      '    data.days[i0] = new Date(data.days[i0]);',
+      '    data.days[i0] = new Date(data.days[i0]!);',
       '  }',
       '}',
     ]);
@@ -5990,7 +5989,8 @@ describe('review comment fixes — allOf array/object conflicts and required con
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation
       .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/ as unknown as [\w<>[\] |]+/g, '');
+      .replace(/ as unknown as [\w<>[\] |]+/g, '')
+      .replace(/\]!/g, ']');
 
     // Run in this realm (rather than a fresh vm context) so the `Date`
     // instances the test constructs are `instanceof` the same `Date` the
@@ -6031,7 +6031,8 @@ describe('review comment fixes — allOf array/object conflicts and required con
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const runnable = result!.implementation
       .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/ as unknown as [\w<>[\] |]+/g, '');
+      .replace(/ as unknown as [\w<>[\] |]+/g, '')
+      .replace(/\]!/g, ']');
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -6083,7 +6084,7 @@ describe('additionalProperties maps beside an empty `properties: {}`', () => {
     ).toEqual([
       'if (data.m != null) {',
       '  for (const key0 of Object.keys(data.m)) {',
-      '    data.m[key0] = new Date(data.m[key0]);',
+      '    data.m[key0] = new Date(data.m[key0]!);',
       '  }',
       '}',
     ]);
@@ -6190,7 +6191,7 @@ describe('response direction — required container guards', () => {
     ).toEqual([
       'if (data.slots != null) {',
       '  for (let i0 = 0; i0 < data.slots.length; i0++) {',
-      '    const item0 = data.slots[i0];',
+      '    const item0 = data.slots[i0]!;',
       '    item0.start = new Date(item0.start);',
       '  }',
       '}',
@@ -6311,10 +6312,9 @@ describe('response direction — required container guards', () => {
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation.replace(
-      /\(data: [^)]*\): [^=]*=>/,
-      '(data) =>',
-    );
+    const runnable = result!.implementation
+      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
+      .replace(/\]!/g, ']');
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
