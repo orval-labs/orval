@@ -243,6 +243,36 @@ if (
   hasFailure = true;
 }
 
+// ─── noUncheckedIndexedAccess gate (#4228) ───────────────────────────────
+// Nuxt enables this flag by default. The date (de)serializers index arrays and
+// maps inside bounded loops, so every such read must be asserted non-null.
+const noUncheckedIndexedAccessFolders = [
+  'dates-transform',
+  'dates-transform-hook-mutator',
+  'dates-transform-mutator',
+  'dates-transform-no-http-response',
+];
+
+console.log(
+  `\nTypechecking ${noUncheckedIndexedAccessFolders.length} fetch clients with noUncheckedIndexedAccess...\n`,
+);
+
+if (
+  !typecheck(
+    'no-unchecked-indexed-access',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { noUncheckedIndexedAccess: true },
+      include: noUncheckedIndexedAccessFolders.map(
+        (f) => `generated/fetch/${f}`,
+      ),
+    },
+    'fetch (noUncheckedIndexedAccess)',
+  )
+) {
+  hasFailure = true;
+}
+
 console.log('\n--- Summary ---\n');
 const labelWidth = Math.max(...results.map((r) => r.label.length));
 for (const r of results) {

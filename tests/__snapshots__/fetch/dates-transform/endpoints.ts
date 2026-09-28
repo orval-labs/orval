@@ -67,7 +67,7 @@ const deserializeGetOrderDetailsResponse = (
   }
   if (data.events != null) {
     for (let i0 = 0; i0 < data.events.length; i0++) {
-      const item0 = data.events[i0];
+      const item0 = data.events[i0]!;
       item0.createdAt = new Date(item0.createdAt);
       if (item0.resolvedAt != null) {
         item0.resolvedAt = new Date(item0.resolvedAt);
@@ -173,12 +173,12 @@ const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
   ).recordedAt = new Date(data.recordedAt);
   if (data.stamps != null) {
     for (let i0 = 0; i0 < data.stamps.length; i0++) {
-      data.stamps[i0] = new Date(data.stamps[i0]);
+      data.stamps[i0] = new Date(data.stamps[i0]!);
     }
   }
   if (data.entries != null) {
     for (let i0 = 0; i0 < data.entries.length; i0++) {
-      const item0 = data.entries[i0];
+      const item0 = data.entries[i0]!;
       (
         item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }
       ).changedAt = new Date(item0.changedAt);
@@ -393,7 +393,7 @@ const deserializeUpdateAppointmentResponse = (
   }
   if (data.slots != null) {
     for (let i0 = 0; i0 < data.slots.length; i0++) {
-      const item0 = data.slots[i0];
+      const item0 = data.slots[i0]!;
       item0.start = new Date(item0.start);
     }
   }
@@ -604,7 +604,7 @@ const deserializeUpdateAppointmentReminderResponse = (
   }
   if (data.slots != null) {
     for (let i0 = 0; i0 < data.slots.length; i0++) {
-      const item0 = data.slots[i0];
+      const item0 = data.slots[i0]!;
       item0.start = new Date(item0.start);
     }
   }
@@ -695,7 +695,7 @@ const deserializeUpdateShelterIntakeResponse = (
   if (data == null) return data;
   if (data.pets != null) {
     for (const key0 of Object.keys(data.pets)) {
-      const item0 = data.pets[key0];
+      const item0 = data.pets[key0]!;
       switch (item0.petType) {
         case 'cat': {
           item0.arrivedOn = new Date(item0.arrivedOn);
@@ -719,7 +719,7 @@ const serializeUpdateShelterIntakeRequest = (
   if (copy.pets != null) {
     copy.pets = { ...copy.pets };
     for (const key0 of Object.keys(copy.pets)) {
-      let value0 = copy.pets[key0];
+      let value0 = copy.pets[key0]!;
       value0 = { ...value0 };
       switch (value0.petType) {
         case 'cat': {
@@ -806,13 +806,13 @@ const deserializeUpdateShelterRecordsResponse = (
   if (data == null) return data;
   if (data.records != null) {
     for (const key0 of Object.keys(data.records)) {
-      const item0 = data.records[key0];
+      const item0 = data.records[key0]!;
       if ('visitedOn' in item0 && item0.visitedOn != null) {
         item0.visitedOn = new Date(item0.visitedOn);
       }
       if ('entries' in item0 && item0.entries != null) {
         for (let i1 = 0; i1 < item0.entries.length; i1++) {
-          const item1 = item0.entries[i1];
+          const item1 = item0.entries[i1]!;
           item1.visitedOn = new Date(item1.visitedOn);
         }
       }
@@ -832,7 +832,7 @@ const serializeUpdateShelterRecordsRequest = (
   if (copy.records != null) {
     copy.records = { ...copy.records };
     for (const key0 of Object.keys(copy.records)) {
-      let value0 = copy.records[key0];
+      let value0 = copy.records[key0]!;
       value0 = { ...value0 };
       if ('visitedOn' in value0 && value0.visitedOn != null) {
         value0.visitedOn =

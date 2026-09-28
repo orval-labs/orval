@@ -614,7 +614,10 @@ const buildInPlaceItemsStatements = ({
     const element = `${accessor}[${index}]`;
     const inner = buildStatements({
       schema: items,
-      accessor: element,
+      // The loop bound keeps the index in range, so the read is asserted
+      // non-null for `noUncheckedIndexedAccess`; the write stays unasserted.
+      accessor: `${element}!`,
+      writeAccessor: element,
       context,
       visitedRefs,
       depth: depth + 1,
@@ -655,7 +658,7 @@ const buildInPlaceItemsStatements = ({
   return {
     statements: [
       loopHeader,
-      `  const ${item} = ${accessor}[${index}];`,
+      `  const ${item} = ${accessor}[${index}]!;`,
       ...indent(body),
       '}',
     ],
@@ -688,7 +691,10 @@ const buildInPlaceMapStatements = ({
     const element = `${accessor}[${key}]`;
     const inner = buildStatements({
       schema: values,
-      accessor: element,
+      // `key` comes from `Object.keys`, so the read is asserted non-null for
+      // `noUncheckedIndexedAccess`; the write stays unasserted.
+      accessor: `${element}!`,
+      writeAccessor: element,
       context,
       visitedRefs,
       depth: depth + 1,
@@ -724,7 +730,7 @@ const buildInPlaceMapStatements = ({
   return {
     statements: [
       loopHeader,
-      `  const ${item} = ${accessor}[${key}];`,
+      `  const ${item} = ${accessor}[${key}]!;`,
       ...indent(body),
       '}',
     ],
@@ -1629,7 +1635,7 @@ const buildCopyingMapStatements = ({
   if (inner.statements.length === 0) return inner;
 
   const body = [
-    `let ${value} = ${accessor}[${key}];`,
+    `let ${value} = ${accessor}[${key}]!;`,
     ...(nullable ? [`if (${value} == null) continue;`] : []),
     ...(needsObjectCopy(values, context)
       ? [`${value} = { ...${value} };`]
