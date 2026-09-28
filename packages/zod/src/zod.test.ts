@@ -14136,3 +14136,245 @@ describe('isObjectResponseSchema / hasResponseSchema', () => {
     );
   });
 });
+
+describe('namingConvention.properties (#4226)', () => {
+  const render = (
+    schema: OpenApiSchemaObject,
+    {
+      version = 4,
+      variant = 'classic',
+      strict = false,
+      properties = 'camelCase',
+    }: {
+      version?: 3 | 4;
+      variant?: ZodVariantOption;
+      strict?: boolean;
+      properties?: 'camelCase' | false;
+    } = {},
+    spec: Partial<OpenApiDocument> = {},
+  ) => {
+    const context = makeContextSpec({
+      spec,
+      override: {
+        namingConvention: properties ? { properties } : {},
+      },
+    });
+    context.output.override.zod = {
+      ...context.output.override.zod,
+      generateDiscriminatedUnion: true,
+    };
+    const definition = generateZodValidationSchemaDefinition(
+      dereference(schema, context),
+      context,
+      'widget',
+      strict,
+      version === 4,
+      { required: true },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      strict,
+      version === 4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+  };
+
+  const widget: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['widget_id'],
+    properties: {
+      widget_id: { type: 'string' },
+      nick_name: { type: 'string' },
+    },
+  };
+
+  it('validates the spec keys and hands out the converted ones', () => {
+    expect(render(widget)).toBe(
+      'zod.object({\n  "widget_id": zod.string(),\n  "nick_name": zod.string().optional()\n}).transform(({ widget_id: widgetId, nick_name: nickName, ...rest }) => ({ ...rest, widgetId, ...(nickName !== undefined && { nickName }) }))',
+    );
+  });
+
+  it('pipes into zod.transform for the mini variant', () => {
+    const zod = render(widget, { variant: 'mini' });
+    expect(zod).toMatch(/^\/\*#__PURE__\*\/ zod\.pipe\(/);
+    expect(zod).toContain(
+      'zod.transform(({ widget_id: widgetId, nick_name: nickName, ...rest }) =>',
+    );
+  });
+
+  it('leaves the output untouched without a property convention', () => {
+    expect(render(widget, { properties: false })).not.toContain('transform');
+  });
+
+  it('emits no transform when every key already follows the convention', () => {
+    expect(
+      render({ type: 'object', properties: { widgetId: { type: 'string' } } }),
+    ).not.toContain('transform');
+  });
+
+  it('keeps colliding keys and aliases keys that are not bindings', () => {
+    const zod = render({
+      type: 'object',
+      properties: {
+        first_name: { type: 'string' },
+        firstName: { type: 'string' },
+        'special-value': { type: 'string' },
+        Class: { type: 'string' },
+      },
+    });
+    expect(zod).toContain(
+      `.transform(({ 'special-value': specialValue, Class: _1, ...rest }) => ({ ...rest, ...(specialValue !== undefined && { specialValue }), ...(_1 !== undefined && { class: _1 }) }))`,
+    );
+    expect(zod).not.toContain('first_name:');
+  });
+
+  it('renames nested objects and array items', () => {
+    const zod = render({
+      type: 'object',
+      properties: {
+        tag_list: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['tag_name'],
+            properties: { tag_name: { type: 'string' } },
+          },
+        },
+      },
+    });
+    expect(zod).toContain(
+      '.transform(({ tag_name: tagName, ...rest }) => ({ ...rest, tagName }))',
+    );
+    expect(zod).toContain(
+      '.transform(({ tag_list: tagList, ...rest }) => ({ ...rest, ...(tagList !== undefined && { tagList }) }))',
+    );
+  });
+
+  it('feeds a wire-shaped default through the transform', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        paging: {
+          type: 'object',
+          default: { page_size: 20 },
+          properties: { page_size: { type: 'integer' } },
+        },
+      },
+    };
+    expect(render(schema)).toContain('.prefault(widgetPagingDefault)');
+    expect(render(schema, { variant: 'mini' })).toContain('zod.prefault(');
+    // Zod v3 `.default()` already takes the schema input.
+    expect(render(schema, { version: 3 })).toContain(
+      '.default(widgetPagingDefault)',
+    );
+  });
+
+  it('renames a strict allOf merge once over the merged keys', () => {
+    const zod = render(
+      {
+        allOf: [
+          { $ref: '#/components/schemas/Base' },
+          {
+            type: 'object',
+            required: ['owner_id'],
+            properties: { owner_id: { type: 'string' } },
+          },
+        ],
+      },
+      { strict: true },
+      {
+        components: {
+          schemas: {
+            Base: {
+              type: 'object',
+              required: ['widget_id'],
+              properties: { widget_id: { type: 'string' } },
+            },
+          },
+        },
+      },
+    );
+    expect(zod).toContain(
+      '.transform(({ widget_id: widgetId, owner_id: ownerId, ...rest }) => ({ ...rest, widgetId, ownerId }))',
+    );
+    expect(zod.match(/\.transform\(/g)).toHaveLength(1);
+  });
+
+  describe('discriminated unions', () => {
+    const spec: Partial<OpenApiDocument> = {
+      components: {
+        schemas: {
+          Circle: {
+            type: 'object',
+            required: ['shape_type'],
+            properties: { shape_type: { type: 'string', enum: ['circle'] } },
+          },
+          Square: {
+            type: 'object',
+            required: ['shape_type'],
+            properties: { shape_type: { type: 'string', enum: ['square'] } },
+          },
+        },
+      },
+    };
+    const shape: OpenApiSchemaObject = {
+      oneOf: [
+        { $ref: '#/components/schemas/Circle' },
+        { $ref: '#/components/schemas/Square' },
+      ],
+      discriminator: { propertyName: 'shape_type' },
+    };
+
+    it('stays discriminated on zod v4, whose pipes keep the discriminator', () => {
+      expect(render(shape, {}, spec)).toMatch(
+        /^zod\.discriminatedUnion\('shape_type'/,
+      );
+    });
+
+    it('falls back to a plain union on zod v3, which only takes ZodObject options', () => {
+      const zod = render(shape, { version: 3 }, spec);
+      expect(zod).toMatch(/^zod\.union\(/);
+      expect(zod).toContain('.transform(');
+      expect(render(shape, { version: 3, properties: false }, spec)).toMatch(
+        /^zod\.discriminatedUnion\(/,
+      );
+    });
+  });
+
+  it('reports no JSON Schema for a renamed response', () => {
+    const context = makeContextSpec({
+      spec: {
+        paths: {
+          '/x': {
+            get: {
+              operationId: 'getX',
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: { 'application/json': { schema: widget } },
+                },
+              },
+            },
+          },
+        },
+      },
+      override: { namingConvention: { properties: 'camelCase' } },
+    });
+    const base = context.output.override.zod;
+    context.output.override.zod = {
+      ...base,
+      generate: { ...base.generate, response: true },
+    };
+    const verbOptions = createTestGeneratorVerbOptions({
+      verb: 'get',
+      pathRoute: '/x',
+      override: context.output.override,
+    });
+    expect(hasResponseSchema(verbOptions, context)).toBe(false);
+    expect(isObjectResponseSchema(verbOptions, context)).toBe(false);
+  });
+});

@@ -1262,12 +1262,26 @@ export default defineConfig({
       override: {
         namingConvention: {
           enum: 'PascalCase', // camelCase, PascalCase, snake_case, kebab-case
+          properties: 'camelCase', // schema property names
         },
       },
     },
   },
 });
 ```
+
+`properties` renames the keys of schema objects, e.g. `widget_id` becomes `widgetId` with `camelCase`. Keys that would collide after conversion (such as `first_name` next to `firstName`) keep their original name.
+
+- **TypeScript models** use the converted names. `required` is still matched against the original spec key, and form-data serialization writes the original key on the wire.
+- **Zod schemas** (the `zod` client and `schemas: { type: 'zod' }`) still validate the original spec keys, then a `.transform()` moves each value to its converted name. `zod.input` (the exported `X` type) is the wire shape and `zod.output` (`XOutput`) has the converted names. With `fetch` `runtimeValidation`, responses therefore come back with converted keys while request bodies are sent with the spec's keys.
+
+<Callout type="info">
+  A renamed Zod object is no longer a `ZodObject`: `.shape`, `.extend()` and
+  friends are not available on it, and it cannot be converted to JSON Schema.
+  Zod v3 only accepts `ZodObject` options in `discriminatedUnion`, so there a
+  union whose branches are renamed is emitted as a plain `zod.union`. A
+  wire-shaped object `default` is emitted as `.prefault()` on Zod v4.
+</Callout>
 
 ### header
 

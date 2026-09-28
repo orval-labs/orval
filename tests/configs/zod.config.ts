@@ -604,4 +604,44 @@ export default defineConfig({
       target: '../specifications/nullable-binary-parts.yaml',
     },
   },
+  // `namingConvention.properties` renames object keys through a `.transform()`:
+  // the schema still validates the spec's (wire) keys, while `zod.output`
+  // carries the converted names the TypeScript models use (#4226).
+  'issue-4226': {
+    output: {
+      target: '../generated/zod/issue-4226/endpoints.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        namingConvention: { properties: 'camelCase' },
+        zod: {
+          generateDiscriminatedUnion: true,
+          strict: { body: true, response: true },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-4226/spec.yaml',
+    },
+  },
+  'issue-4226-mini': {
+    output: {
+      target: '../generated/zod/issue-4226-mini/endpoints.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        namingConvention: { properties: 'camelCase' },
+        zod: {
+          variant: 'mini',
+          generateDiscriminatedUnion: true,
+          strict: { body: true, response: true },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-4226/spec.yaml',
+    },
+  },
 });

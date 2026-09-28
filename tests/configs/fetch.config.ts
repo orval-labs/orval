@@ -1208,6 +1208,31 @@ export default defineConfig({
       target: '../specifications/issue-2381/spec.yaml',
     },
   },
+  // The reporter's setup: zod models plus fetch runtime validation. Responses
+  // parse from the spec's keys and come back with camelCase keys (#4226).
+  'issue-4226': {
+    output: {
+      target: '../generated/fetch/issue-4226/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/issue-4226/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        namingConvention: {
+          properties: 'camelCase',
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-4226/spec.yaml',
+    },
+  },
   issue3734: {
     output: {
       target: '../generated/fetch/issue-3734/endpoints.ts',

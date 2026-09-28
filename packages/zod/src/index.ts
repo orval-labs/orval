@@ -5,6 +5,7 @@ import {
   buildInlineDynamicScope,
   assertSafeNumericConstraint,
   camel,
+  conventionName,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
@@ -16,9 +17,12 @@ import {
   type GeneratorVerbOptions,
   getDynamicAnchorName,
   getFormDataFieldFileType,
+  getKey,
   getNumberWord,
+  getPropertyNameCollisionKeys,
   getRefInfo,
   getRequiredKeys,
+  isBindingIdentifier,
   isBoolean,
   isDynamicReference,
   isNumber,
@@ -565,6 +569,121 @@ const isDiscriminatableMember = (
   return hasLiteralDiscriminator(resolved, property);
 };
 
+/** An object key renamed by `override.namingConvention.properties`. */
+interface PropertyRename {
+  /** The key as the spec (and the wire) spells it. */
+  from: string;
+  /** The key after applying the naming convention. */
+  to: string;
+  required: boolean;
+}
+
+const getPropertyConvention = (context: ContextSpec) =>
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
+  context.output.override.namingConvention?.properties;
+
+/**
+ * The keys of one object that `namingConvention.properties` renames. The Zod
+ * schema still validates the original (wire) keys, then a transform hands out
+ * the converted ones, so `zod.input` stays wire-shaped and `zod.output` matches
+ * the TypeScript models. Keys that would collide after conversion keep their
+ * original name, exactly as the TypeScript models do (#2381).
+ */
+const getPropertyRenames = (
+  keys: string[],
+  requiredKeys: Set<string>,
+  context: ContextSpec,
+): PropertyRename[] => {
+  const convention = getPropertyConvention(context);
+  if (!convention) return [];
+  const convert = (key: string) => conventionName(key, convention);
+  const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
+  return keys
+    .filter((key) => !collisionKeys.has(key))
+    .map((key) => ({
+      from: key,
+      to: convert(key),
+      required: requiredKeys.has(key),
+    }))
+    .filter(({ from, to }) => from !== to);
+};
+
+/**
+ * Renames gathered from the parts of a merged `allOf`. A rename is dropped
+ * when its target now clashes with another key of the merged object.
+ */
+const mergePropertyRenames = (
+  parts: ZodValidationSchemaDefinition[],
+  mergedKeys: string[],
+): PropertyRename[] => {
+  const renames = new Map<string, PropertyRename>();
+  for (const part of parts) {
+    for (const [fn, args] of part.functions) {
+      if (fn !== 'renameKeys') continue;
+      for (const rename of args as PropertyRename[]) {
+        renames.set(rename.from, rename);
+      }
+    }
+  }
+  const targetCounts = new Map<string, number>();
+  for (const key of mergedKeys) {
+    const target = renames.get(key)?.to ?? key;
+    targetCounts.set(target, (targetCounts.get(target) ?? 0) + 1);
+  }
+  return [...renames.values()].filter(
+    ({ from, to }) => mergedKeys.includes(from) && targetCounts.get(to) === 1,
+  );
+};
+
+/** Whether a union member's own top-level object keys get renamed. */
+const memberRenamesKeys = (
+  member: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean => {
+  const convention = getPropertyConvention(context);
+  if (!convention) return false;
+  const resolved = resolveUnionMemberSchema(member, context);
+  if (!resolved) return false;
+  const parts = resolved.allOf
+    ? resolved.allOf.map((part) => resolveUnionMemberSchema(part, context))
+    : [resolved];
+  return parts.some(
+    (part) =>
+      isObject(part?.properties) &&
+      Object.keys(part.properties).some(
+        (key) => conventionName(key, convention) !== key,
+      ),
+  );
+};
+
+/**
+ * The function passed to `.transform()` / `zod.transform()` that moves each
+ * renamed key's value to its converted name. Unrenamed keys (and any extra
+ * keys a loose object lets through) travel along in `rest`. An optional key
+ * is only set when present, so the output keeps it optional.
+ */
+const renderRenameTransform = (renames: PropertyRename[]): string => {
+  const taken = new Set(['rest']);
+  const bindings = renames.map((rename, index) => {
+    let binding = rename.to;
+    if (!isBindingIdentifier(binding) || taken.has(binding)) {
+      binding = `_${index}`;
+      while (taken.has(binding)) binding = `_${binding}`;
+    }
+    taken.add(binding);
+    return { ...rename, binding };
+  });
+  const pattern = bindings
+    .map(({ from, binding }) => `${getKey(from)}: ${binding}`)
+    .join(', ');
+  const entries = bindings.map(({ to, binding, required }) => {
+    const key = getKey(to);
+    const entry = key === binding ? binding : `${key}: ${binding}`;
+    return required ? entry : `...(${binding} !== undefined && { ${entry} })`;
+  });
+  return `({ ${pattern}, ...rest }) => ({ ...rest, ${entries.join(', ')} })`;
+};
+
 export const generateZodValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
@@ -786,6 +905,8 @@ export const generateZodValidationSchemaDefinition = (
   constNameRegistry[name] = constsCounter;
 
   const functions: [string, unknown][] = [];
+  // Set when this object's keys are renamed by `namingConvention.properties`.
+  let renamesKeys = false;
 
   // Emit the schema's trailing description/metadata. On zod v4 with `emitMeta`
   // (top-level component schemas only) this is a single `.meta({ id, ... })`
@@ -890,6 +1011,14 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       const property = propertyName;
+      // Zod v3 only accepts `ZodObject` options, and a renamed object is a
+      // `ZodEffects`. Zod v4 pipes keep the discriminator metadata.
+      if (
+        !isZodV4 &&
+        schemas.some((member) => memberRenamesKeys(member, context))
+      ) {
+        return undefined;
+      }
       if (
         !schemas.every((member) =>
           isDiscriminatableMember(
@@ -1647,6 +1776,16 @@ export const generateZodValidationSchemaDefinition = (
             functions.push(['strict', undefined]);
           }
 
+          const renames = getPropertyRenames(
+            Object.keys(properties),
+            requiredKeys,
+            context,
+          );
+          if (renames.length > 0) {
+            functions.push(['renameKeys', renames]);
+            renamesKeys = true;
+          }
+
           break;
         }
 
@@ -1857,7 +1996,14 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (hasDefault) {
-    functions.push(['default', defaultVarName]);
+    // The spec default is wire-shaped (original keys). Zod v4 `.default()`
+    // short-circuits with an OUTPUT value, which would skip the key renaming
+    // and not type-check; `.prefault()` feeds the value through the transform
+    // as input instead. Zod v3 `.default()` already behaves that way.
+    functions.push([
+      renamesKeys && isZodV4 ? 'prefault' : 'default',
+      defaultVarName,
+    ]);
   }
 
   pushDescriptionOrMeta();
@@ -1895,6 +2041,7 @@ const PARAMS_MODIFIER_VALIDATORS = new Set([
   'nullable',
   'nullish',
   'default',
+  'prefault',
   'describe',
   // Nullary / degenerate validators — either no params arg accepted in zod v3
   // (e.g. .unknown(), .any(), .never(), .null(), .undefined(), .void()) or no
@@ -2040,6 +2187,20 @@ export const parseZodValidationSchemaDefinition = (
 
   type MiniRendered = { expr: string; kind?: string };
 
+  const renameMiniKeys = (
+    value: MiniRendered,
+    renames: PropertyRename[],
+  ): MiniRendered =>
+    renames.length === 0
+      ? value
+      : {
+          expr: zodMiniCall(
+            'pipe',
+            `${value.expr}, ${zodMiniCall('transform', renderRenameTransform(renames))}`,
+          ),
+          kind: 'pipe',
+        };
+
   const renderMiniDefinition = (
     definition: ZodValidationSchemaDefinition,
     fieldPath: readonly string[] = [],
@@ -2082,7 +2243,7 @@ ${Object.entries(objectArgs)
     // when a part isn't a plain object. Mirrors `mergeAllOfObjectsClassic`.
     const mergeAllOfObjectsMini = (
       allOfArgs: ZodValidationSchemaDefinition[],
-    ): Record<string, ZodValidationSchemaDefinition> | null => {
+    ): MiniRendered | null => {
       const allAreObjects =
         allOfArgs.length > 0 &&
         allOfArgs.every((partSchema) => {
@@ -2111,7 +2272,10 @@ ${Object.entries(objectArgs)
           }
         }
       }
-      return mergedProperties;
+      return renameMiniKeys(
+        renderObject(mergedProperties, getObjectFunctionName(true, strict)),
+        mergePropertyRenames(allOfArgs, Object.keys(mergedProperties)),
+      );
     };
 
     // Render a single discriminated-union branch as a `ZodObject` (see
@@ -2124,7 +2288,7 @@ ${Object.entries(objectArgs)
           member.functions[0][1] as ZodValidationSchemaDefinition[],
         );
         if (merged !== null) {
-          return renderObject(merged, getObjectFunctionName(true, strict)).expr;
+          return merged.expr;
         }
       }
       appendConstsChunk(member.consts.join('\n'));
@@ -2166,15 +2330,10 @@ ${Object.entries(objectArgs)
 
       if (fn === 'allOf') {
         const allOfArgs = args as ZodValidationSchemaDefinition[];
-        const mergedProperties = strict
-          ? mergeAllOfObjectsMini(allOfArgs)
-          : null;
+        const merged = strict ? mergeAllOfObjectsMini(allOfArgs) : null;
 
-        if (mergedProperties !== null) {
-          current = renderObject(
-            mergedProperties,
-            getObjectFunctionName(true, strict),
-          );
+        if (merged !== null) {
+          current = merged;
           continue;
         }
 
@@ -2265,6 +2424,11 @@ ${Object.entries(objectArgs)
         continue;
       }
 
+      if (fn === 'renameKeys') {
+        current = renameMiniKeys(requireCurrent(fn), args as PropertyRename[]);
+        continue;
+      }
+
       if (fn === 'array') {
         const arrayArgs = args as ZodValidationSchemaDefinition;
         const rendered = renderMiniDefinition(arrayArgs, fieldPath);
@@ -2327,10 +2491,13 @@ ${Object.entries(objectArgs)
         continue;
       }
 
-      if (fn === 'default') {
+      if (fn === 'default' || fn === 'prefault') {
         const value = requireCurrent(fn);
         current = {
-          expr: zodMiniCall('_default', `${value.expr}, ${combinedArgs}`),
+          expr: zodMiniCall(
+            fn === 'default' ? '_default' : fn,
+            `${value.expr}, ${combinedArgs}`,
+          ),
           kind: value.kind,
         };
         continue;
@@ -2470,10 +2637,17 @@ ${Object.entries(mergedProperties)
 })`;
 
     // Apply strict only once for Zod v3 (v4 uses strictObject above).
-    if (strict && !isZodV4) {
-      return `${mergedObjectString}.strict()`;
-    }
-    return mergedObjectString;
+    const objectString =
+      strict && !isZodV4
+        ? `${mergedObjectString}.strict()`
+        : mergedObjectString;
+    const renames = mergePropertyRenames(
+      allOfArgs,
+      Object.keys(mergedProperties),
+    );
+    return renames.length > 0
+      ? `${objectString}.transform(${renderRenameTransform(renames)})`
+      : objectString;
   }
 
   // Render a single discriminated-union branch as a `ZodObject`. `allOf`
@@ -2659,6 +2833,10 @@ ${Object.entries(objectArgs)
 
     if (fn === 'passthrough') {
       return '.passthrough()';
+    }
+
+    if (fn === 'renameKeys') {
+      return `.transform(${renderRenameTransform(args as PropertyRename[])})`;
     }
 
     if (fn === 'array') {
@@ -3458,6 +3636,8 @@ export const hasResponseSchema = (
       return (
         // oxlint-disable-next-line typescript/no-unnecessary-condition
         (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
+        // A key-renaming `.transform()` has no JSON Schema representation.
+        functions.some(([fn]) => fn === 'renameKeys') ||
         functions.some(([, args]) => containsUnsupported(args))
       );
     }

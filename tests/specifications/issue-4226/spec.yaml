@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: Issue 4226 - property naming convention for zod schemas
+  version: 1.0.0
+paths:
+  /widgets/{widget_id}:
+    get:
+      operationId: getWidget
+      parameters:
+        - name: widget_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+    put:
+      operationId: updateWidget
+      parameters:
+        - name: widget_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetDetails'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetDetails'
+  /shapes:
+    get:
+      operationId: getShapes
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shape'
+  /collision:
+    get:
+      operationId: getCollision
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collision'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - widget_id
+        - display_name
+      properties:
+        widget_id:
+          type: string
+        display_name:
+          type: string
+        nested_data:
+          type: object
+          properties:
+            inner_value:
+              type: number
+        tag_list:
+          type: array
+          items:
+            type: object
+            required:
+              - tag_name
+            properties:
+              tag_name:
+                type: string
+        paging_options:
+          type: object
+          default:
+            page_size: 20
+          properties:
+            page_size:
+              type: integer
+        Class:
+          type: string
+    WidgetDetails:
+      allOf:
+        - $ref: '#/components/schemas/Widget'
+        - type: object
+          required:
+            - owner_id
+          properties:
+            owner_id:
+              type: string
+    Circle:
+      type: object
+      required:
+        - shape_type
+        - radius_px
+      properties:
+        shape_type:
+          type: string
+          enum: [circle]
+        radius_px:
+          type: number
+    Square:
+      type: object
+      required:
+        - shape_type
+        - side_length
+      properties:
+        shape_type:
+          type: string
+          enum: [square]
+        side_length:
+          type: number
+    Shape:
+      oneOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'
+      discriminator:
+        propertyName: shape_type
+    Collision:
+      type: object
+      properties:
+        first_name:
+          type: string
+        firstName:
+          type: string
+        "special-value":
+          type: string
+        already_camel:
+          type: string
