@@ -1,7 +1,21 @@
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 
 import type { GeneratorMutatorParsingInfo } from '../types';
+
+/**
+ * `generateMutator` runs once per operation, and every operation usually shares
+ * the same mutator, so without this each one re-bundled the same file (#4222).
+ * Holding promises lets concurrent callers share one in-flight bundle.
+ */
+const mutatorInfoCache = new Map<
+  string,
+  Promise<GeneratorMutatorParsingInfo | undefined>
+>();
 
 export async function getMutatorInfo(
   filePath: string,
@@ -19,9 +33,45 @@ export async function getMutatorInfo(
     external,
   } = options ?? {};
 
-  const code = await bundleFile(root, filePath, alias, external);
+  // The default `external: ['*']` keeps every import, relative ones included,
+  // out of the bundle, so the entry file is its only input. A custom `external`
+  // can inline other files the key below does not track, so it is not cached.
+  if (external !== undefined) {
+    const code = await bundleFile(root, filePath, alias, external);
+    return parseFile(code, namedExport);
+  }
 
-  return parseFile(code, namedExport);
+  // Keyed on the entry file's contents, so watch mode picks up any edit, even
+  // one that leaves its mtime and size unchanged.
+  const resolvedPath = path.resolve(root, filePath);
+  const key = JSON.stringify([
+    root,
+    resolvedPath,
+    namedExport,
+    alias ?? null,
+    hashFile(resolvedPath),
+  ]);
+
+  let info = mutatorInfoCache.get(key);
+  if (!info) {
+    info = bundleFile(root, filePath, alias).then((code) =>
+      parseFile(code, namedExport),
+    );
+    mutatorInfoCache.set(key, info);
+    // Evict a failed bundle so the next call retries instead of replaying it.
+    info.catch(() => mutatorInfoCache.delete(key));
+  }
+
+  return info;
+}
+
+/** `null` for a missing file, which lets esbuild report the error. */
+function hashFile(filePath: string): string | null {
+  try {
+    return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+  } catch {
+    return null;
+  }
 }
 
 /**
