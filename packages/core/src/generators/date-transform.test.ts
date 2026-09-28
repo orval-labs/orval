@@ -29,6 +29,20 @@ const makeContext = (
     override: { useDates: true, useDatesTransform: true },
   });
 
+/**
+ * Strips the TypeScript a generated transformer carries so `vm` can run it:
+ * the `(data: T): T =>` signature, `as unknown as` casts and the non-null
+ * assertions on index reads. The signature is cut with `indexOf` rather than
+ * a backtracking regex.
+ */
+const toRunnableJs = (implementation: string): string => {
+  const start = implementation.indexOf('(data: ');
+  const arrow = implementation.indexOf('=>', start);
+  return `${implementation.slice(0, start)}(data) ${implementation.slice(arrow)}`
+    .replace(/ as unknown as [\w<>[\] |]+/g, '')
+    .replaceAll(']!', ']');
+};
+
 describe('buildDateTransformStatements', () => {
   it('emits a guarded assignment for an optional date property', () => {
     const schema: OpenApiSchemaObject = {
@@ -3745,9 +3759,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation
-      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/\]!/g, ']');
+    const runnable = toRunnableJs(result!.implementation);
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -5987,10 +5999,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation
-      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/ as unknown as [\w<>[\] |]+/g, '')
-      .replace(/\]!/g, ']');
+    const runnable = toRunnableJs(result!.implementation);
 
     // Run in this realm (rather than a fresh vm context) so the `Date`
     // instances the test constructs are `instanceof` the same `Date` the
@@ -6029,10 +6038,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation
-      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/ as unknown as [\w<>[\] |]+/g, '')
-      .replace(/\]!/g, ']');
+    const runnable = toRunnableJs(result!.implementation);
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -6312,9 +6318,7 @@ describe('response direction — required container guards', () => {
     expect(result).toBeDefined();
 
     // oxlint-disable-next-line typescript/no-non-null-assertion
-    const runnable = result!.implementation
-      .replace(/\(data: [^)]*\): [^=]*=>/, '(data) =>')
-      .replace(/\]!/g, ']');
+    const runnable = toRunnableJs(result!.implementation);
 
     const fn = vm.runInThisContext(
       // oxlint-disable-next-line typescript/no-non-null-assertion
