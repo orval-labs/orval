@@ -1,7 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 
 import type { GeneratorMutatorParsingInfo } from '../types';
+
+/**
+ * `generateMutator` runs once per operation, and every operation usually shares
+ * the same mutator, so without this each one re-bundled the same file (#4222).
+ * Holding promises lets concurrent callers share one in-flight bundle.
+ */
+const mutatorInfoCache = new Map<
+  string,
+  Promise<GeneratorMutatorParsingInfo | undefined>
+>();
 
 export async function getMutatorInfo(
   filePath: string,
@@ -19,9 +32,36 @@ export async function getMutatorInfo(
     external,
   } = options ?? {};
 
-  const code = await bundleFile(root, filePath, alias, external);
+  // A custom `external` can inline other files into the bundle, and the key
+  // below only tracks the entry file, so those results are not cached.
+  if (external !== undefined) {
+    const code = await bundleFile(root, filePath, alias, external);
+    return parseFile(code, namedExport);
+  }
 
-  return parseFile(code, namedExport);
+  // The entry file's mtime and size are part of the key so watch mode still
+  // picks up an edited mutator.
+  const resolvedPath = path.resolve(root, filePath);
+  const stat = fs.statSync(resolvedPath, { throwIfNoEntry: false });
+  const key = JSON.stringify([
+    root,
+    resolvedPath,
+    namedExport,
+    alias ?? null,
+    stat ? [stat.mtimeMs, stat.size] : null,
+  ]);
+
+  let info = mutatorInfoCache.get(key);
+  if (!info) {
+    info = bundleFile(root, filePath, alias).then((code) =>
+      parseFile(code, namedExport),
+    );
+    mutatorInfoCache.set(key, info);
+    // Evict a failed bundle so the next call retries instead of replaying it.
+    info.catch(() => mutatorInfoCache.delete(key));
+  }
+
+  return info;
 }
 
 /**
