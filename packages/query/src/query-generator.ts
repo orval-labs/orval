@@ -846,6 +846,7 @@ const generateQueryImplementation = ({
         httpClient,
         !!mutator,
         pageParamLocation,
+        isExactOptionalPropertyTypes,
       )
     : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 

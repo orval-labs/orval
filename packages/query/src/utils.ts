@@ -188,3 +188,20 @@ export const isInfinitePageParamProp = (
   location === 'body'
     ? prop.type === GetterPropType.BODY
     : prop.name === 'params';
+
+/**
+ * The object literal that merges `pageParam` into the page-param prop of an
+ * infinite query's request. Under `exactOptionalPropertyTypes` the key is only
+ * set when `pageParam` is non-nullish: `pageParam ?? source?.[key]` can be
+ * `undefined`, which an optional property rejects (#4223). A nullish
+ * `pageParam` leaves the caller's own value in place through the spread, so
+ * both forms send the same request.
+ */
+export const getInfinitePageParamMerge = (
+  source: string,
+  queryParam: string,
+  isExactOptionalPropertyTypes: boolean,
+): string =>
+  isExactOptionalPropertyTypes
+    ? `{...${source}, ...(pageParam != null ? { '${queryParam}': pageParam } : {})}`
+    : `{...${source}, '${queryParam}': pageParam ?? ${source}?.['${queryParam}']}`;

@@ -2023,4 +2023,30 @@ export default defineConfig({
     },
     input: { target: '../specifications/dates-transform.yaml' },
   },
+  // The page param `before` is an optional query param, so under
+  // `exactOptionalPropertyTypes` the merge must not set it to `undefined`
+  // (#4223). Typechecked with the flag by typecheck-generated.mjs.
+  issue4223: {
+    output: {
+      target: '../generated/react-query/issue-4223/endpoints.ts',
+      schemas: '../generated/react-query/issue-4223/model',
+      client: 'react-query',
+      tsconfig: {
+        compilerOptions: {
+          exactOptionalPropertyTypes: true,
+        },
+      },
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'before',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4223.yaml',
+    },
+  },
 });

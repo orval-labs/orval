@@ -134,6 +134,8 @@ export interface FrameworkAdapter {
     hasMutator: boolean,
     /** Which prop receives `pageParam`: `params` (query) or the body. */
     location: InfiniteQueryParamLocation,
+    /** Guard the merge so it never sets the key to `undefined` (#4223). */
+    isExactOptionalPropertyTypes?: boolean,
   ): string;
 
   /** Angular: 'http: HttpClient, ' when isAngularHttp && (!mutator || mutator.hasSecondArg). Others: '' */
