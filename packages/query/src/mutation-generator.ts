@@ -348,7 +348,7 @@ const createGenerateInvalidateFilter = (
   baseUrl: NormalizedOutputOptions['baseUrl'],
   servers: OpenApiServerObject[] | undefined,
 ) => {
-  return (target: NormalizedTarget): InvalidateFilter => {
+  return (target: NormalizedTarget): InvalidateFilter | InvalidateFilter[] => {
     const method =
       target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries';
     const queryKeyFn = camel(`get-${target.query}-query-key`);
@@ -366,7 +366,13 @@ const createGenerateInvalidateFilter = (
       // so the operation name alone is a prefix of every cached key for this
       // operation and TanStack Query's partial key matching covers them all.
       // The route is not part of the key, so a URL predicate would never match.
-      return { method, key: `['${camel(target.query)}']` };
+      // Infinite query keys lead with `'infinite'`, so they need their own
+      // prefix; whether the target has an infinite variant is not known here.
+      const operationName = camel(target.query);
+      return [
+        { method, key: `['${operationName}']` },
+        { method, key: `['infinite', '${operationName}']` },
+      ];
     }
 
     if (info?.hasRequiredPathParams) {
@@ -472,7 +478,7 @@ export const createGenerateInvalidateCalls = (
   );
 
   return (targets: NormalizedTarget[]): string => {
-    const filters = targets.map((target) => generateFilter(target));
+    const filters = targets.flatMap((target) => generateFilter(target));
 
     return (['invalidateQueries', 'resetQueries'] as const)
       .flatMap((method) => {

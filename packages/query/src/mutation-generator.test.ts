@@ -157,7 +157,7 @@ describe('createGenerateInvalidateCalls — issue #4230: useOperationIdAsQueryKe
   };
 
   it.each([false, true])(
-    'uses the operation name as the key prefix for broad invalidation (shouldSplitQueryKey: %s)',
+    'uses the operation name as the key prefix for broad invalidation, including infinite keys (shouldSplitQueryKey: %s)',
     (shouldSplitQueryKey) => {
       const statement = createGenerateInvalidateCalls(
         spec,
@@ -168,7 +168,7 @@ describe('createGenerateInvalidateCalls — issue #4230: useOperationIdAsQueryKe
       )([{ query: 'getTrafficChart', invalidateMode: 'invalidate' }]);
 
       expect(statement).toBe(
-        "    queryClient.invalidateQueries({ queryKey: ['getTrafficChart'] });",
+        "    queryClient.invalidateQueries({ predicate: (query) => [['getTrafficChart'], ['infinite', 'getTrafficChart']].some((queryKey) => matchQuery({ queryKey }, query)) });",
       );
     },
   );
