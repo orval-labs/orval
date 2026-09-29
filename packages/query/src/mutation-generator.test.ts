@@ -142,6 +142,70 @@ describe('createGenerateInvalidateCalls', () => {
   });
 });
 
+describe('createGenerateInvalidateCalls — issue #4230: useOperationIdAsQueryKey', () => {
+  const spec = {
+    paths: {
+      '/traffic-chart/{source}': {
+        post: {
+          operationId: 'getTrafficChart',
+          parameters: [
+            { name: 'source', in: 'path', required: true, schema: {} },
+          ],
+        },
+      },
+    },
+  };
+
+  it.each([false, true])(
+    'uses the operation name as the key prefix for broad invalidation, including infinite keys (shouldSplitQueryKey: %s)',
+    (shouldSplitQueryKey) => {
+      const statement = createGenerateInvalidateCalls(
+        spec,
+        shouldSplitQueryKey,
+        true,
+        undefined,
+        undefined,
+      )([{ query: 'getTrafficChart', invalidateMode: 'invalidate' }]);
+
+      expect(statement).toBe(
+        "    queryClient.invalidateQueries({ predicate: (query) => [['getTrafficChart'], ['infinite', 'getTrafficChart']].some((queryKey) => matchQuery({ queryKey }, query)) });",
+      );
+    },
+  );
+
+  it('still calls the query key function when params are given', () => {
+    const statement = createGenerateInvalidateCalls(
+      spec,
+      false,
+      true,
+      undefined,
+      undefined,
+    )([
+      {
+        query: 'getTrafficChart',
+        params: ['source'],
+        invalidateMode: 'invalidate',
+      },
+    ]);
+
+    expect(statement).toBe(
+      '    queryClient.invalidateQueries({ queryKey: getGetTrafficChartQueryKey(variables.source) });',
+    );
+  });
+
+  it('keeps the URL predicate when useOperationIdAsQueryKey is off', () => {
+    const statement = createGenerateInvalidateCalls(
+      spec,
+      false,
+      false,
+      undefined,
+      undefined,
+    )([{ query: 'getTrafficChart', invalidateMode: 'invalidate' }]);
+
+    expect(statement).toContain("startsWith('/traffic-chart/')");
+  });
+});
+
 describe('createGenerateInvalidateCalls — GHSA-5g7p-r63h-5vfw: broad-invalidation predicate injection', () => {
   // The route prefix reaches the predicate as `getRoute` output, which is
   // escaped for a backtick context and so leaves `'` alone. Emitting it into a
