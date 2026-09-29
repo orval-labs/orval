@@ -361,6 +361,14 @@ const createGenerateInvalidateFilter = (
     // No params specified – check if the target query has required path params
     const info = findOperationInfo(spec, target.query);
 
+    if (info?.hasRequiredPathParams && useOperationIdAsQueryKey) {
+      // Issue #4230: operation-ID query keys are `[operationName, ...params]`,
+      // so the operation name alone is a prefix of every cached key for this
+      // operation and TanStack Query's partial key matching covers them all.
+      // The route is not part of the key, so a URL predicate would never match.
+      return { method, key: `['${camel(target.query)}']` };
+    }
+
     if (info?.hasRequiredPathParams) {
       // Route has required path parameters (no defaults) – use broad
       // invalidation instead of calling the query key function without
