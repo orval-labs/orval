@@ -1,0 +1,81 @@
+openapi: 3.1.0
+info:
+  title: Case Sensitive Schema Names
+  version: 1.0.0
+paths:
+  /upper:
+    get:
+      operationId: getUpper
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+  /lower:
+    get:
+      operationId: getLower
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/address'
+  /holder:
+    get:
+      operationId: getHolder
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holder'
+components:
+  schemas:
+    # Declared before `Address`, but `Address` keeps the plain name because it
+    # is already spelled in PascalCase; this one becomes `Address2`.
+    address:
+      type: object
+      required:
+        - kind
+        - prop3
+      properties:
+        kind:
+          type: string
+          enum: [lower]
+        prop1:
+          type: string
+        prop3:
+          type: string
+    Address:
+      type: object
+      required:
+        - kind
+        - prop1
+      properties:
+        kind:
+          type: string
+          enum: [upper]
+        prop1:
+          type: string
+        prop2:
+          type: string
+    Holder:
+      type: object
+      properties:
+        upper:
+          $ref: '#/components/schemas/Address'
+        lower:
+          $ref: '#/components/schemas/address'
+        either:
+          oneOf:
+            - $ref: '#/components/schemas/Address'
+            - $ref: '#/components/schemas/address'
+          discriminator:
+            propertyName: kind
+            mapping:
+              upper: '#/components/schemas/Address'
+              lower: '#/components/schemas/address'

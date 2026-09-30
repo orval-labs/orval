@@ -6,7 +6,7 @@ import type {
   OpenApiComponentsObject,
   OpenApiParameterObject,
 } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { getComponentBaseName, jsDoc, sanitize } from '../utils';
 
 export function generateParameterDefinition(
   parameters: OpenApiComponentsObject['parameters'] = {},
@@ -20,13 +20,16 @@ export function generateParameterDefinition(
 
   const generatorSchemas: GeneratorSchema[] = [];
   for (const [parameterName, parameter] of Object.entries(parameters)) {
-    const modelName = sanitize(`${prefix}${pascal(parameterName)}${suffix}`, {
-      underscore: '_',
-      whitespace: '_',
-      dash: true,
-      es5keyword: true,
-      es5IdentifierName: true,
-    });
+    const modelName = sanitize(
+      `${prefix}${getComponentBaseName(parameters, parameterName)}${suffix}`,
+      {
+        underscore: '_',
+        whitespace: '_',
+        dash: true,
+        es5keyword: true,
+        es5IdentifierName: true,
+      },
+    );
     const {
       schema,
       imports,

@@ -4,7 +4,7 @@ import type {
   GeneratorSchema,
   OpenApiComponentsObject,
 } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { getComponentBaseName, jsDoc, sanitize } from '../utils';
 
 export function generateComponentDefinition(
   responses:
@@ -33,13 +33,16 @@ export function generateComponentDefinition(
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-    const modelName = sanitize(`${prefix}${pascal(name)}${suffix}`, {
-      underscore: '_',
-      whitespace: '_',
-      dash: true,
-      es5keyword: true,
-      es5IdentifierName: true,
-    });
+    const modelName = sanitize(
+      `${prefix}${getComponentBaseName(responses, name)}${suffix}`,
+      {
+        underscore: '_',
+        whitespace: '_',
+        dash: true,
+        es5keyword: true,
+        es5IdentifierName: true,
+      },
+    );
     // oxlint-disable-next-line typescript/no-unsafe-argument
     const doc = jsDoc(response);
     const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;

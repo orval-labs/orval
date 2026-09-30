@@ -14,6 +14,7 @@ import {
 } from '../types';
 import {
   compareNatural,
+  getComponentBaseNames,
   isInlineSchema,
   isString,
   jsDoc,
@@ -205,9 +206,7 @@ interface GetObjectOptions {
 
 function getNormalizedComponentSchemaNames(context: ContextSpec): Set<string> {
   context.normalizedComponentSchemaNames ??= new Set(
-    Object.keys(context.spec.components?.schemas ?? {}).map((schemaName) =>
-      pascal(schemaName),
-    ),
+    getComponentBaseNames(context.spec.components?.schemas).values(),
   );
 
   return context.normalizedComponentSchemaNames;

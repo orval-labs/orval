@@ -80,6 +80,36 @@ function createRefInfoContext(spec: Partial<OpenApiDocument>): ContextSpec {
 }
 
 describe('getRefInfo', () => {
+  it('keeps component names that only differ in casing distinct (#4233)', () => {
+    const context = createRefContext();
+    context.spec = {
+      ...context.spec,
+      components: {
+        schemas: {
+          address: { type: 'object' },
+          Address: { type: 'object' },
+        },
+        responses: {
+          error: { description: 'lower' },
+          Error: { description: 'upper' },
+        },
+      },
+    } as OpenApiDocument;
+
+    expect(getRefInfo('#/components/schemas/Address', context).name).toBe(
+      'Address',
+    );
+    expect(getRefInfo('#/components/schemas/address', context).name).toBe(
+      'Address2',
+    );
+    expect(getRefInfo('#/components/responses/Error', context).name).toBe(
+      'Error',
+    );
+    expect(getRefInfo('#/components/responses/error', context).name).toBe(
+      'Error2',
+    );
+  });
+
   it('decodes ~0 tilde escape per RFC 6901', () => {
     const info = getRefInfo(
       '#/components/schemas/My~0Type',

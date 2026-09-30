@@ -1,5 +1,5 @@
 import type { ContextSpec, NormalizedOverrideOutput } from '../types';
-import { pascal, sanitize, upath } from '../utils';
+import { getComponentBaseName, pascal, sanitize, upath } from '../utils';
 
 /**
  * `$ref`s targeting these sections under `#/components/...` are emitted as
@@ -96,8 +96,22 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     : upath.getSchemaFileName(pathname);
 
   if (!pathname) {
+    // Local component refs resolve through the per-section name map so keys
+    // that only differ in casing (`Address` / `address`) stay distinct (#4233).
+    const baseName =
+      refPaths.length === 3 && refPaths[0] === 'components'
+        ? getComponentBaseName(
+            context.spec.components?.[
+              refPaths[1] as keyof NonNullable<
+                ContextSpec['spec']['components']
+              >
+            ] as object | undefined,
+            originalName,
+          )
+        : pascal(originalName);
+
     return {
-      name: sanitize(prefix + pascal(originalName) + suffix, {
+      name: sanitize(prefix + baseName + suffix, {
         es5keyword: true,
         es5IdentifierName: true,
         underscore: true,

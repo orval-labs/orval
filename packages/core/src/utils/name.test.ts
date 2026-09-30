@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { getOperationUrlHelperNames } from './name';
+import { getComponentBaseNames, getOperationUrlHelperNames } from './name';
+
+describe('getComponentBaseNames', () => {
+  it('keeps non-colliding names as their PascalCase form', () => {
+    expect([
+      ...getComponentBaseNames({ pet: {}, 'user-info': {} }).entries(),
+    ]).toEqual([
+      ['pet', 'Pet'],
+      ['user-info', 'UserInfo'],
+    ]);
+  });
+
+  it('gives the PascalCase key the plain name regardless of order', () => {
+    const names = getComponentBaseNames({
+      address: {},
+      Address: {},
+      ADDRESS: {},
+    });
+    expect(names.get('Address')).toBe('Address');
+    expect(names.get('address')).toBe('Address2');
+    expect(names.get('ADDRESS')).toBe('Address3');
+  });
+
+  it('falls back to the first declared key and skips taken suffixes', () => {
+    const names = getComponentBaseNames({
+      address: {},
+      'address-': {},
+      Address2: {},
+    });
+    expect(names.get('address')).toBe('Address');
+    expect(names.get('Address2')).toBe('Address2');
+    expect(names.get('address-')).toBe('Address3');
+  });
+});
 
 describe('getOperationUrlHelperNames', () => {
   it('reserves operation names and resolves collisions deterministically', () => {

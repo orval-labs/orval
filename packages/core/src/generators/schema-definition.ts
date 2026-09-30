@@ -25,12 +25,12 @@ import type {
 } from '../types';
 import {
   conventionName,
+  getComponentBaseName,
   isBoolean,
   isInlineSchema,
   isSchemaNullable,
   isString,
   jsDoc,
-  pascal,
   sanitize,
   toObjectSchema,
 } from '../utils';
@@ -247,7 +247,7 @@ function generateSchemaDefinitions(
   formDataContext?: FormDataContext,
 ): GeneratorSchema[] {
   const sanitizedSchemaName = sanitize(
-    `${prefix}${pascal(schemaName)}${suffix}`,
+    `${prefix}${getComponentBaseName(context.spec.components?.schemas, schemaName)}${suffix}`,
     {
       underscore: '_',
       whitespace: '_',
