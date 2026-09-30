@@ -96,6 +96,57 @@ describe('writeSingleMode — separated mocks import inline schemas from the tar
     );
   });
 
+  it('imports inline schemas from the target when mocks sit next to it', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =
+      [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [{ name: 'Pet' }],
+              },
+            ],
+          }),
+        },
+        importsMock: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsMockCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SINGLE,
+        schemas: undefined,
+        mock: {
+          indexMockFiles: false,
+          inline: false,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+      generateSchemasInline: () => 'export interface Pet {}\n',
+    };
+
+    await writeSingleMode({ ...props, needSchema: true });
+
+    expect(importsMockCalls[0]?.imports).toEqual([
+      expect.objectContaining({
+        dependency: './petstore',
+        exports: [expect.objectContaining({ name: 'Pet' })],
+      }),
+    ]);
+  });
+
   it('routes mock schema imports through schemaOutputPlan (#3967)', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =

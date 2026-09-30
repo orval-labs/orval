@@ -304,33 +304,20 @@ export async function writeSingleMode({
               )
             : [];
 
-        const importsMockForBuilder =
-          schemasPath || mockDir !== dirname
-            ? generateImportsForBuilder(
-                output,
-                filterLocalStrictMockTypeImports(
-                  mergeGeneratorImports(
-                    mockOutput.imports,
-                    recoveredSchemaFactoryImports,
-                  ),
-                  finalizeMockOptions.strictSchemaTypeNames,
-                ),
-                mockRelativeSchemasPath,
-                schemaTagMap,
-                schemaOutputPlan,
-                mockFilePath,
-              )
-            : generateImportsForBuilder(
-                output,
-                filterLocalStrictMockTypeImports(
-                  mergeGeneratorImports(
-                    mockOutput.imports,
-                    recoveredSchemaFactoryImports,
-                  ),
-                  finalizeMockOptions.strictSchemaTypeNames,
-                ).filter((imp) => !!imp.importPath),
-                '.',
-              );
+        const importsMockForBuilder = generateImportsForBuilder(
+          output,
+          filterLocalStrictMockTypeImports(
+            mergeGeneratorImports(
+              mockOutput.imports,
+              recoveredSchemaFactoryImports,
+            ),
+            finalizeMockOptions.strictSchemaTypeNames,
+          ),
+          mockRelativeSchemasPath,
+          schemaTagMap,
+          schemaOutputPlan,
+          mockFilePath,
+        );
 
         let mockData = header;
         mockData += builder.importsMock({
