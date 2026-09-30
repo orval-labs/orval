@@ -9,6 +9,7 @@ import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   generateDependencyImports,
+  generateModelsInline,
   generateMutator,
   getFileInfo,
   getImportExtension,
@@ -700,7 +701,7 @@ async function writeSpecsInternal(
         output.client === 'zod' &&
         output.override.zod.generateReusableSchemas);
 
-    const singleZodFile =
+    const singleSchemasFile =
       isObject(output.schemas) && output.schemas.mode === 'single';
     if (shouldSplitSchemasByTags && output.operationSchemas) {
       throw new Error(
@@ -722,7 +723,7 @@ async function writeSpecsInternal(
       // `single` mode the path may name the schema module itself; the mutator
       // then sits beside it.
       const schemasDir =
-        singleZodFile && namesAFile(schemasPath)
+        singleSchemasFile && namesAFile(schemasPath)
           ? path.dirname(schemasPath)
           : schemasPath;
       const schemasParamsMutator = output.override.zod.params
@@ -735,7 +736,7 @@ async function writeSpecsInternal(
           })
         : undefined;
 
-      if (singleZodFile) {
+      if (singleSchemasFile) {
         await zodWriters.writeZodSchemasSingle(
           builder,
           builder.verbOptions,
@@ -842,7 +843,16 @@ async function writeSpecsInternal(
     } else {
       const fileExtension = output.schemaFileExtension || '.ts';
 
-      if (schemaOutputPlan) {
+      if (singleSchemasFile) {
+        // Every model in one module, like the `<target>.schemas` file written
+        // without `output.schemas`, but at `schemas.path` (#4235).
+        await writeGeneratedFile(
+          namesAFile(schemasPath)
+            ? schemasPath
+            : path.join(schemasPath, `index${fileExtension}`),
+          header + generateModelsInline(schemas),
+        );
+      } else if (schemaOutputPlan) {
         await writeRoutedSchemas({
           plan: schemaOutputPlan,
           target,

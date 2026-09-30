@@ -987,4 +987,33 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  // #4235: `schemas.mode: 'single'` writes every TypeScript model to one
+  // module, whatever `output.mode` is.
+  'single-schemas-file-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/single-schemas-file/split/endpoints.ts',
+      mode: 'split',
+      schemas: {
+        path: '../generated/default/single-schemas-file/split/model',
+        mode: 'single',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'single-schemas-file-named-tags-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/single-schemas-file/tags-split/endpoints.ts',
+      mode: 'tags-split',
+      schemas: {
+        path: '../generated/default/single-schemas-file/tags-split/model/api.schemas.ts',
+        mode: 'single',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

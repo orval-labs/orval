@@ -3213,15 +3213,51 @@ describe('normalizeOptions', () => {
   });
 });
 
-describe('single-file Zod schema options', () => {
+describe('single-file schema options', () => {
+  // #4235: TypeScript types can be written to one module too, at a directory
+  // (`index.ts`) or at a named file.
+  it.each(['./model', './model/api.schemas.ts'])(
+    'accepts TypeScript single-file schemas at %s',
+    async (schemasPath) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './client.ts',
+              mode: 'split',
+              schemas: { path: schemasPath, mode: 'single' },
+            },
+          },
+          workspace,
+        );
+
+        expect(options.output.schemas).toMatchObject({
+          mode: 'single',
+          type: 'typescript',
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
   it.each([
     {
       schemas: {
         path: './model',
         mode: 'single' as const,
         type: 'typescript' as const,
+        splitByTags: true,
       },
-      error: 'requires schemas.type "zod"',
+      error: 'cannot be combined',
     },
     {
       schemas: {
@@ -3268,35 +3304,42 @@ describe('single-file Zod schema options', () => {
   );
 });
 
-describe('single-file Zod schema output combinations', () => {
+describe('single-file schema output combinations', () => {
   it.each([
-    { operationSchemas: './operations' },
-    { mock: true },
-    { factoryMethods: { outputDirectory: './factories' } },
-  ])('rejects unsupported output $0 before writing files', async (output) => {
-    const workspace = await createTempWorkspace();
-    try {
-      await expect(
-        normalizeOptions(
-          {
-            input: {
-              target: {
-                openapi: '3.1.0',
-                info: { title: 'Test', version: '1.0' },
-                paths: {},
+    { operationSchemas: './operations', type: 'zod' as const },
+    { mock: true, type: 'zod' as const },
+    {
+      factoryMethods: { outputDirectory: './factories' },
+      type: 'zod' as const,
+    },
+    { mock: true, type: 'typescript' as const },
+  ])(
+    'rejects unsupported output $0 before writing files',
+    async ({ type, ...output }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './client.ts',
+                schemas: { path: './model', type, mode: 'single' },
+                ...output,
               },
             },
-            output: {
-              target: './client.ts',
-              schemas: { path: './model', type: 'zod', mode: 'single' },
-              ...output,
-            },
-          },
-          workspace,
-        ),
-      ).rejects.toThrow('schemas.mode "single" cannot be combined');
-    } finally {
-      await rm(workspace, { recursive: true, force: true });
-    }
-  });
+            workspace,
+          ),
+        ).rejects.toThrow('schemas.mode "single" cannot be combined');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
 });

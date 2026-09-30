@@ -112,13 +112,24 @@ export function resolveSchemaImportDependencies(
         )
       : undefined;
 
+    // The split and tags-split writers pass the schemas path itself (#3624),
+    // which for a named module is the file, not its directory. Resolve from
+    // the directory either way, or the import points inside the file
+    // (`./model/api.ts/api`).
+    const relativeSchemasDir =
+      namedSingleSchemaPath &&
+      path.posix.basename(relativeSchemasPath) ===
+        path.basename(namedSingleSchemaPath)
+        ? path.posix.dirname(relativeSchemasPath)
+        : relativeSchemasPath;
+
     return [
       {
         exports: dedupeSchemaImports(resolved),
         dependency:
           schemasImportPath ??
           upath.joinSafe(
-            relativeSchemasPath,
+            relativeSchemasDir === '.' ? './' : relativeSchemasDir,
             namedSingleSchemaStem ??
               `index${getImportExtension(output.schemaFileExtension, output.tsconfig)}`,
           ),
