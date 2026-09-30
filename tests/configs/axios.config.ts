@@ -397,6 +397,24 @@ export default defineConfig({
       target: '../specifications/issue-3675.yaml',
     },
   },
+  // #4234: the colocated sibling is named with `schemaFileExtension`, and
+  // the barrel must still skip it.
+  issue3675IndexTargetSchemaFileExtension: {
+    output: {
+      target: 'index.ts',
+      workspace:
+        '../generated/axios/issue-3675-index-target-schema-file-extension/',
+      mode: 'split',
+      client: 'axios',
+      indexFiles: true,
+      schemaFileExtension: '.types.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3675.yaml',
+    },
+  },
   issue3675NonIndexTarget: {
     output: {
       target: 'endpoints.ts',
