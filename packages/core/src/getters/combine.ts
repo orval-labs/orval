@@ -52,6 +52,16 @@ interface CombinedData {
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 const mergeableAllOfKeys = new Set(['type', 'properties', 'required']);
 
+/** A `const` value a runtime enum object can hold as a member. */
+function isScalarConst(value: unknown): boolean {
+  return (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  );
+}
+
 function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
   if (isBooleanJsonSchema(schema)) {
     return false;
@@ -917,10 +927,24 @@ export function combineSchemas({
 
   const enumMembers = getEnumMembers(schema);
   const hasAnnotatedEnum = hasEnumMetadata(enumMembers);
+  // An annotated `const` branch is not flagged `isEnum`, so the metadata path
+  // cannot require `isAllEnums`. It still needs every branch to be a value the
+  // runtime enum object can hold (`enum`, scalar `const` or `null`): any other
+  // branch, such as an array, would be dropped from the merged enum (#4239),
+  // and an object or array `const` would be stringified into invalid code.
+  const isEveryBranchEnumLike = resolvedData.isEnum.every((isEnum, index) => {
+    const branch = resolvedData.originalSchema[index];
+    return (
+      isEnum ||
+      isNullOnlyEnum(branch) ||
+      resolvedData.types[index] === 'null' ||
+      (isObject(branch) && 'const' in branch && isScalarConst(branch.const))
+    );
+  });
   // Annotated enum compositions need a runtime enum object to preserve member
   // metadata. Unannotated compositions keep their existing union behavior.
   const isAvailableToGenerateCombinedEnum =
-    (isAllEnums || hasAnnotatedEnum) &&
+    (isAllEnums || (hasAnnotatedEnum && isEveryBranchEnumLike)) &&
     name &&
     items.length > 1 &&
     context.output.override.enumGenerationType !== EnumGeneration.UNION;
