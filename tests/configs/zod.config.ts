@@ -644,4 +644,23 @@ export default defineConfig({
       target: '../specifications/issue-4226/spec.yaml',
     },
   },
+  // A named single schema module in split mode is imported as that file, not
+  // as a path inside it (`./model/api.zod.ts/api.zod`).
+  'single-schemas-file-named-split': {
+    output: {
+      target: '../generated/zod/single-schemas-file-named-split/endpoints.ts',
+      mode: 'split',
+      client: 'fetch',
+      schemas: {
+        path: '../generated/zod/single-schemas-file-named-split/model/api.zod.ts',
+        type: 'zod',
+        mode: 'single',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

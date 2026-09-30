@@ -431,7 +431,14 @@ export interface SchemaOptions {
    * the path may name the schema module file directly.
    */
   path: string;
-  /** Write Zod schemas to one index file instead of separate schema files. */
+  /**
+   * `'single'` writes every schema (TypeScript types or Zod schemas) to one
+   * module — `<path>/index<schemaFileExtension>`, or `path` itself when it
+   * names a file — instead of one file per schema. Independent of
+   * `output.mode`, which only arranges client files.
+   *
+   * @default 'split'
+   */
   mode?: 'split' | 'single';
   type?: SchemaGenerationType;
   importPath?: string;

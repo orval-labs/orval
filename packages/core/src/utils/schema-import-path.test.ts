@@ -337,7 +337,7 @@ describe('resolveSchemaImportDependencies', () => {
   });
 });
 
-describe('single-file Zod schema imports', () => {
+describe('single-file schema imports', () => {
   it.each([true, false])(
     'uses the single module with indexFiles=%s',
     (indexFiles) => {
@@ -386,6 +386,56 @@ describe('single-file Zod schema imports', () => {
       },
     });
     expect(resolve(output, './model', [PET])).toEqual(['./model/schemas.zod']);
+  });
+
+  // The split and tags-split writers pass the schemas path itself (#3624), so
+  // for a named module `relativeSchemasPath` is the file, not its directory.
+  it.each([
+    ['./model/schemas.zod.ts', './model/schemas.zod'],
+    ['../model/schemas.zod.ts', '../model/schemas.zod'],
+    ['./schemas.zod.ts', './schemas.zod'],
+  ])(
+    'resolves from the directory when relativeSchemasPath is the file %s',
+    (relativeSchemasPath, expected) => {
+      const output = createOutput({
+        schemas: {
+          path: '/src/api/client/new/schemas.zod.ts',
+          type: 'zod',
+          mode: 'single',
+          splitByTags: false,
+        },
+      });
+      expect(resolve(output, relativeSchemasPath, [PET])).toEqual([expected]);
+    },
+  );
+
+  it('uses the TypeScript index module for a directory path (#4235)', () => {
+    const output = createOutput({
+      indexFiles: false,
+      schemas: {
+        path: '/models',
+        type: 'typescript',
+        mode: 'single',
+        splitByTags: false,
+      },
+    });
+    expect(resolve(output, '../models', [PET, ERROR])).toEqual([
+      '../models/index',
+    ]);
+  });
+
+  it('imports a named TypeScript schema file (#4235)', () => {
+    const output = createOutput({
+      schemas: {
+        path: '/src/types/api.schemas.ts',
+        type: 'typescript',
+        mode: 'single',
+        splitByTags: false,
+      },
+    });
+    expect(resolve(output, './types/api.schemas.ts', [PET])).toEqual([
+      './types/api.schemas',
+    ]);
   });
 
   it('rewrites a named schema file for NodeNext resolution', () => {

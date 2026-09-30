@@ -201,9 +201,6 @@ function normalizeSchemasOption(
     throw new Error('schemas.mode must be "split" or "single".');
   }
   if (schemas.mode === 'single') {
-    if (schemas.type !== 'zod') {
-      throw new Error('schemas.mode "single" requires schemas.type "zod".');
-    }
     if (schemas.splitByTags || schemas.routes) {
       throw new Error(
         'schemas.mode "single" cannot be combined with schemas.splitByTags or schemas.routes.',

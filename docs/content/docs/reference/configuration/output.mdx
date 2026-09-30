@@ -145,7 +145,7 @@ export default defineConfig({
 | `importPath`  | `string`  | Optional package import specifier (see below)   |
 | `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
 | `routes`      | `object`  | Route enums separately from other schemas |
-| `mode`        | `'split' \| 'single'` | Zod schema file layout (default `'split'`) |
+| `mode`        | `'split' \| 'single'` | Schema file layout: one file per schema, or one module (default `'split'`, see below) |
 
 `routes.default` is required and route values are relative directories under
 `schemas.path`. `routes.enum` is optional; without it, enums use the default
@@ -183,7 +183,29 @@ route. Schemas used by multiple tags (or by no operation) are placed under
 `<route>/shared`, for example `schemas/models/pets`,
 `schemas/models/shared`, and `schemas/types/pets`.
 
-### Single-file Zod schemas
+### Single-file schemas
+
+`schemas` is written independently of [`mode`](#mode), which only arranges the
+client files. By default every schema gets its own file under `schemas.path`,
+even with `mode: 'split'`. Set `schemas.mode: 'single'` to write all of them
+to one module instead:
+
+```ts
+output: {
+  target: './api/client.ts',
+  mode: 'split',
+  // Every model in ./api/model/index.ts
+  schemas: { path: './api/model', mode: 'single' },
+}
+```
+
+`path` may also name the module itself, e.g.
+`schemas: { path: './api/model/api.schemas.ts', mode: 'single' }`. A directory
+path writes `<schemas.path>/index` with [`schemaFileExtension`](#schemafileextension).
+No additional barrel is generated, regardless of `indexFiles`. The same
+restrictions as for Zod below apply.
+
+#### Zod
 
 Set `schemas.mode: 'single'` to write component and operation schemas into
 `<schemas.path>/index.zod.ts`. The API client stays in its own output file and
