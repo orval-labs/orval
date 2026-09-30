@@ -1972,6 +1972,30 @@ describe('combineSchemas — annotated const branches (#4239)', () => {
     expect(result.schemas).toEqual([]);
   });
 
+  it.each([
+    ['object', { kind: 'all' }, `{"kind":"all"} | 'a' | 'b'`],
+    ['array', ['x', 'y'], `["x","y"] | 'a' | 'b'`],
+  ])(
+    'keeps an annotated %s const as a literal type instead of an enum member',
+    (_kind, value, expected) => {
+      const result = combineSchemas({
+        schema: {
+          anyOf: [
+            { const: value, description: 'not scalar' },
+            { type: 'string', enum: ['a', 'b'] },
+          ],
+        },
+        name: 'Mixed',
+        separator: 'anyOf',
+        context,
+        nullable: '',
+      });
+
+      expect(result.value).toBe(expected);
+      expect(result.schemas).toEqual([]);
+    },
+  );
+
   it('still merges annotated const and enum branches with null', () => {
     const result = combineSchemas({
       schema: {
