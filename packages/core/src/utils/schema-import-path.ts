@@ -13,7 +13,7 @@ import { getSchemasImportPath } from './schemas-options';
 import { getImportExtension } from './tsconfig';
 
 /** Known source file extensions used to detect named single-schema files. */
-const SOURCE_FILE_EXTENSIONS = new Set([
+export const SOURCE_FILE_EXTENSIONS: ReadonlySet<string> = new Set([
   '.ts',
   '.tsx',
   '.mts',
@@ -31,8 +31,6 @@ const SOURCE_FILE_EXTENSIONS = new Set([
 export const SHARED_DIR = '.';
 
 export interface ResolveSchemaImportDependenciesOptions {
-  /** `true` when schemas are emitted as Zod schemas, not TypeScript types. */
-  isZod: boolean;
   /**
    * Schema→tag map, set when `schemas.splitByTags` is enabled. The sentinel
    * `'.'` marks a shared schema, which stays at the schemas root.
@@ -63,11 +61,7 @@ export function resolveSchemaImportDependencies(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
-  {
-    isZod,
-    schemaTagMap,
-    schemaOutputPlan,
-  }: ResolveSchemaImportDependenciesOptions,
+  { schemaTagMap, schemaOutputPlan }: ResolveSchemaImportDependenciesOptions,
 ): GeneratorDependency[] {
   // A routed plan may fold several spec names onto one emitted schema. Import
   // the canonical name, or the import names a binding the file never exports.
@@ -157,12 +151,10 @@ export function resolveSchemaImportDependencies(
     ];
   }
 
-  // Zod schema files are named with `schemaFileExtension` (`.zod.ts` by
-  // default), TypeScript ones with `fileExtension`. Derive the import tail
-  // from the same value, or the import names a file that is never emitted.
-  const schemaFileExtension = isZod
-    ? output.schemaFileExtension
-    : output.fileExtension;
+  // Schema files, Zod (`.zod.ts` by default) and TypeScript alike, are named
+  // with `schemaFileExtension`. Derive the import tail from the same value,
+  // or the import names a file that is never emitted (#4234).
+  const { schemaFileExtension } = output;
 
   // A package subpath resolves through the consumer's export map, which knows
   // nothing of our tsconfig: `pet.zod.ts` is imported as

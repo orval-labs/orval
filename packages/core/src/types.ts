@@ -474,8 +474,8 @@ export interface OutputOptions {
   fileExtension?: string;
   /**
    * Optional file extension applied only to schema artifacts (TS types or
-   * Zod schemas) under `schemas:`. Takes precedence over `fileExtension`
-   * for schema files. Defaults to `.zod.ts` when the output is Zod schemas
+   * Zod schemas), under `schemas:` or in the `<target>.schemas` file written
+   * without it. Takes precedence over `fileExtension` for schema files. Defaults to `.zod.ts` when the output is Zod schemas
    * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
    * otherwise mirrors `fileExtension`.
    */

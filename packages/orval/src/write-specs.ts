@@ -840,7 +840,7 @@ async function writeSpecsInternal(
         }
       }
     } else {
-      const fileExtension = output.fileExtension || '.ts';
+      const fileExtension = output.schemaFileExtension || '.ts';
 
       if (schemaOutputPlan) {
         await writeRoutedSchemas({

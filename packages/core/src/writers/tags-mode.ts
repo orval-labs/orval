@@ -91,7 +91,7 @@ export async function writeTagsMode({
     : './' +
       filename +
       '.schemas' +
-      getImportExtension(extension, output.tsconfig);
+      getImportExtension(output.schemaFileExtension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -100,7 +100,9 @@ export async function writeTagsMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
+        filename +
+          '.schemas' +
+          getImportExtension(output.schemaFileExtension, output.tsconfig),
       );
 
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
@@ -207,7 +209,10 @@ export async function writeTagsMode({
 
         const schemasPath =
           !output.schemas && needSchema
-            ? path.join(dirname, filename + '.schemas' + extension)
+            ? path.join(
+                dirname,
+                filename + '.schemas' + output.schemaFileExtension,
+              )
             : undefined;
 
         if (schemasPath) {

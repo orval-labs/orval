@@ -11,6 +11,7 @@ import {
   generateMutatorImports,
   type GeneratorVerbOptions,
   getFileInfo,
+  getImportExtension,
   getFullRoute,
   getParamsInPath,
   GetterPropType,
@@ -131,7 +132,11 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     ? isZodSchemaOutput && output.indexFiles
       ? upath.getRelativeImportPath(targetInfo.path, basePath, true)
       : upath.getRelativeImportPath(targetInfo.path, basePath)
-    : './' + targetInfo.filename + '.schemas';
+    : './' +
+      targetInfo.filename +
+      '.schemas' +
+      // Custom part of `schemaFileExtension` only (`.types.ts` → `.types`).
+      getImportExtension(output.schemaFileExtension);
 
   const importSchemaNames = new Set(
     Object.values(verbOptions).flatMap((verbOption) => {

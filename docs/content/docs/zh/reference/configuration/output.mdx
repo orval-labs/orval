@@ -313,7 +313,7 @@ src/gen/
 **类型：** `String`
 **默认值：** 当生成 Zod schemas（`schemas: { type: 'zod' }` 或 `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)）时为 `'.zod.ts'`，否则与 [`fileExtension`](#fileextension) 相同。
 
-仅覆盖 schema 产物的文件扩展名，而不影响全局 `fileExtension`（后者仍控制 client 输出、mock 文件等）。当你希望 client 文件使用一种扩展名，而 schema 文件使用另一种扩展名时，这会很有用：
+仅覆盖 schema 产物的文件扩展名，而不影响全局 `fileExtension`（后者仍控制 client 输出、mock 文件等）。它同时适用于 TypeScript 和 Zod schema 文件。未设置 [`schemas`](#schemas) 时，写在 target 旁边的 schemas 文件会保留 `.schemas` 标记，因此 `target: './api.ts'` 配合 `schemaFileExtension: '.types.ts'` 会生成 `api.schemas.types.ts`。当你希望 client 文件使用一种扩展名，而 schema 文件使用另一种扩展名时，这会很有用：
 
 ```ts title="orval.config.ts"
 export default defineConfig({

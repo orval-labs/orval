@@ -26,6 +26,17 @@ describe('resolveMockSchemasPath', () => {
     expect(result).toBe('../index.schemas');
   });
 
+  it('keeps a custom schemaFileExtension tail on the implicit file (#4234)', () => {
+    // `schemaFileExtension: '.types.ts'` names the file `index.schemas.types.ts`
+    // and the writers pass its import form; `.types` is not a real extension.
+    const mockFilePath = '/workspace/generated/mock/default/default.faker.ts';
+    const schemasTarget = '/workspace/generated/mock/index.schemas.types';
+
+    const result = resolveMockSchemasPath(mockFilePath, schemasTarget);
+
+    expect(result).toBe('../index.schemas.types');
+  });
+
   it('returns a directory relative import when output.schemas is a dir', () => {
     const mockFilePath = '/workspace/dist/mocks/pet/pet.msw.ts';
     const schemasTarget = '/workspace/dist/schemas';

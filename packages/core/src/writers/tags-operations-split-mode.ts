@@ -93,7 +93,7 @@ export async function writeTagsOperationsSplitMode({
     : '../' +
       filename +
       '.schemas' +
-      getImportExtension(extension, output.tsconfig);
+      getImportExtension(output.schemaFileExtension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -102,12 +102,14 @@ export async function writeTagsOperationsSplitMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
+        filename +
+          '.schemas' +
+          getImportExtension(output.schemaFileExtension, output.tsconfig),
       );
 
   const globalSchemasPath =
     !output.schemas && needSchema
-      ? path.join(dirname, filename + '.schemas' + extension)
+      ? path.join(dirname, filename + '.schemas' + output.schemaFileExtension)
       : undefined;
 
   if (globalSchemasPath) {
@@ -161,13 +163,16 @@ export async function writeTagsOperationsSplitMode({
               tagDir,
               `${operationFilename}${extension}`,
             );
-            const operationSchemasFilename = `${operationFilename}.schemas${extension}`;
+            const operationSchemasFilename = `${operationFilename}.schemas${output.schemaFileExtension}`;
             const operationSchemasPath = path.join(
               tagDir,
               operationSchemasFilename,
             );
             const operationSchemasImportPath =
-              './' + operationFilename + '.schemas' + helperImportExtension;
+              './' +
+              operationFilename +
+              '.schemas' +
+              getImportExtension(output.schemaFileExtension, output.tsconfig);
 
             const implementationImports = filterImportsUsedInImplementation(
               operation.imports,

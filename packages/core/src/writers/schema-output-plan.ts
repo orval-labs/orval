@@ -339,9 +339,7 @@ export function createSchemaOutputPlan({
  * writer runs. Both sides therefore read one plan instead of deriving the
  * layout twice — a rule derived twice is a rule that can drift.
  *
- * The file extension follows the same split the schema writers use: Zod
- * schemas are named from `schemaFileExtension`, everything else from
- * `fileExtension`.
+ * Files are named from `schemaFileExtension`, like every other schema writer.
  */
 export function createSchemaOutputPlanForOutput(
   schemas: GeneratorSchema[],
@@ -353,12 +351,6 @@ export function createSchemaOutputPlanForOutput(
     return undefined;
   }
 
-  // Mirrors `writeSpecs`: a string `schemas:` is promoted to the Zod writer
-  // when the client is zod and reusable schemas are on, but never when the
-  // user asked for `{ type: 'typescript' }`. A routed plan always has an
-  // object `schemas`, so only the explicit type matters here.
-  const isZodSchemas = schemaOptions.type === 'zod';
-
   return createSchemaOutputPlan({
     basePath: schemaOptions.path,
     schemas: schemas.map((schema) => ({
@@ -368,9 +360,7 @@ export function createSchemaOutputPlanForOutput(
     })),
     routes: schemaOptions.routes,
     namingConvention: output.namingConvention,
-    fileExtension: isZodSchemas
-      ? output.schemaFileExtension
-      : output.fileExtension || '.ts',
+    fileExtension: output.schemaFileExtension || '.ts',
     indexFiles: output.indexFiles,
     importPath: schemaOptions.importPath,
     tsconfig: output.tsconfig,
