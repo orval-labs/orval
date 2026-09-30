@@ -1335,4 +1335,20 @@ export default defineConfig({
       target: '../specifications/enums-inline.yaml',
     },
   },
+  // Schemas whose names only differ in casing must each get their own type
+  // and mock (#4233).
+  'case-sensitive-schema-names': {
+    output: {
+      target: '../generated/mock/case-sensitive-schema-names/endpoints.ts',
+      schemas: '../generated/mock/case-sensitive-schema-names/model',
+      mock: {
+        generators: [{ type: 'faker' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/case-sensitive-schema-names.yaml',
+    },
+  },
 });

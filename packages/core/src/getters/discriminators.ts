@@ -42,7 +42,7 @@ export function resolveDiscriminators(
           // name from getRefInfo may contain a suffix, which we don't want
           const name = pascal(originalName);
           subTypeSchema =
-            transformedSchemas[name] ?? transformedSchemas[originalName];
+            transformedSchemas[originalName] ?? transformedSchemas[name];
         } catch {
           // oxlint-disable-next-line typescript/no-unsafe-member-access
           subTypeSchema = transformedSchemas[mappingValue];
@@ -190,7 +190,7 @@ export function resolveDiscriminators(
         const { originalName } = getRefInfo(mappingValue, context);
         const name = pascal(originalName);
         variantSchema =
-          transformedSchemas[name] ?? transformedSchemas[originalName];
+          transformedSchemas[originalName] ?? transformedSchemas[name];
       } catch {
         // oxlint-disable-next-line typescript/no-unsafe-member-access
         variantSchema = transformedSchemas[mappingValue];

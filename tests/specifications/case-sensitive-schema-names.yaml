@@ -1,0 +1,139 @@
+openapi: 3.1.0
+info:
+  title: Case Sensitive Schema Names
+  version: 1.0.0
+paths:
+  /upper:
+    get:
+      operationId: getUpper
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+  /lower:
+    get:
+      operationId: getLower
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/address'
+  /holder:
+    get:
+      operationId: getHolder
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holder'
+  /upper-body:
+    post:
+      operationId: postUpperBody
+      requestBody:
+        $ref: '#/components/requestBodies/Note'
+      responses:
+        '400':
+          $ref: '#/components/responses/Error'
+  /lower-body:
+    post:
+      operationId: postLowerBody
+      requestBody:
+        $ref: '#/components/requestBodies/note'
+      responses:
+        '400':
+          $ref: '#/components/responses/error'
+components:
+  # Case-distinct components with different inline content must not share the
+  # generated content type.
+  responses:
+    Error:
+      description: Upper error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+    error:
+      description: Lower error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code:
+                type: integer
+  requestBodies:
+    Note:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [title]
+            properties:
+              title:
+                type: string
+    note:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [count]
+            properties:
+              count:
+                type: integer
+  schemas:
+    # Declared before `Address`, but `Address` keeps the plain name because it
+    # is already spelled in PascalCase; this one becomes `Address2`.
+    address:
+      type: object
+      required:
+        - kind
+        - prop3
+      properties:
+        kind:
+          type: string
+          enum: [lower]
+        prop1:
+          type: string
+        prop3:
+          type: string
+    Address:
+      type: object
+      required:
+        - kind
+        - prop1
+      properties:
+        kind:
+          type: string
+          enum: [upper]
+        prop1:
+          type: string
+        prop2:
+          type: string
+    Holder:
+      type: object
+      properties:
+        upper:
+          $ref: '#/components/schemas/Address'
+        lower:
+          $ref: '#/components/schemas/address'
+        either:
+          oneOf:
+            - $ref: '#/components/schemas/Address'
+            - $ref: '#/components/schemas/address'
+          discriminator:
+            propertyName: kind
+            mapping:
+              upper: '#/components/schemas/Address'
+              lower: '#/components/schemas/address'

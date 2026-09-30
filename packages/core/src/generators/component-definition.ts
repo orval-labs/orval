@@ -4,7 +4,7 @@ import type {
   GeneratorSchema,
   OpenApiComponentsObject,
 } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { getComponentBaseName, jsDoc, sanitize } from '../utils';
 
 export function generateComponentDefinition(
   responses:
@@ -20,10 +20,13 @@ export function generateComponentDefinition(
 
   const generatorSchemas: GeneratorSchema[] = [];
   for (const [name, response] of Object.entries(responses)) {
+    // Inline content types are named after the component too, so they must use
+    // the collision-aware name (`Error` / `error` → `Error` / `Error2`).
+    const baseName = getComponentBaseName(responses, name);
     const allResponseTypes = getResReqTypes(
       // oxlint-disable-next-line typescript/no-unsafe-argument
       [[suffix, response]],
-      name,
+      baseName,
       context,
       'void',
     );
@@ -33,7 +36,7 @@ export function generateComponentDefinition(
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-    const modelName = sanitize(`${prefix}${pascal(name)}${suffix}`, {
+    const modelName = sanitize(`${prefix}${baseName}${suffix}`, {
       underscore: '_',
       whitespace: '_',
       dash: true,
