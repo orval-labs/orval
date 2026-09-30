@@ -1016,4 +1016,14 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-4239': {
+    input: '../specifications/issue-4239.yaml',
+    output: {
+      target: '../generated/default/issue-4239/endpoints.ts',
+      mode: 'split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

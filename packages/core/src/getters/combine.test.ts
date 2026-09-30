@@ -1951,3 +1951,47 @@ describe('combineSchemas — OAS 3.0 null-only enum branch', () => {
     expect(result.schemas).toEqual([]);
   });
 });
+
+describe('combineSchemas — annotated const branches (#4239)', () => {
+  it('keeps a non-enum branch instead of merging into an annotated enum', () => {
+    const result = combineSchemas({
+      schema: {
+        anyOf: [
+          { type: 'string', const: '*', description: 'all' },
+          { type: 'string', enum: ['a', 'b'] },
+          { type: 'array', items: { type: 'string', enum: ['a', 'b'] } },
+        ],
+      },
+      name: 'GetXPopulate',
+      separator: 'anyOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toBe("'*' | 'a' | 'b' | ('a' | 'b')[]");
+    expect(result.schemas).toEqual([]);
+  });
+
+  it('still merges annotated const and enum branches with null', () => {
+    const result = combineSchemas({
+      schema: {
+        anyOf: [
+          { type: 'string', const: '*', description: 'all' },
+          { type: 'string', enum: ['a'] },
+          { type: 'null' },
+        ],
+      },
+      name: 'GetXPopulate',
+      separator: 'anyOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toBe(
+      'typeof GetXPopulate[keyof typeof GetXPopulate] | null',
+    );
+    expect(result.schemas.map((schema) => schema.model).join('\n')).toContain(
+      '/** all */',
+    );
+  });
+});

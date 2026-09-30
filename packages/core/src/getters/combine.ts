@@ -917,10 +917,23 @@ export function combineSchemas({
 
   const enumMembers = getEnumMembers(schema);
   const hasAnnotatedEnum = hasEnumMetadata(enumMembers);
+  // An annotated `const` branch is not flagged `isEnum`, so the metadata path
+  // cannot require `isAllEnums`. It still needs every branch to be a value the
+  // runtime enum object can hold (`enum`, `const` or `null`): any other branch,
+  // such as an array, would be dropped from the merged enum (#4239).
+  const isEveryBranchEnumLike = resolvedData.isEnum.every((isEnum, index) => {
+    const branch = resolvedData.originalSchema[index];
+    return (
+      isEnum ||
+      isNullOnlyEnum(branch) ||
+      resolvedData.types[index] === 'null' ||
+      (isObject(branch) && 'const' in branch)
+    );
+  });
   // Annotated enum compositions need a runtime enum object to preserve member
   // metadata. Unannotated compositions keep their existing union behavior.
   const isAvailableToGenerateCombinedEnum =
-    (isAllEnums || hasAnnotatedEnum) &&
+    (isAllEnums || (hasAnnotatedEnum && isEveryBranchEnumLike)) &&
     name &&
     items.length > 1 &&
     context.output.override.enumGenerationType !== EnumGeneration.UNION;

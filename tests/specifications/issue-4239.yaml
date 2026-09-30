@@ -1,0 +1,56 @@
+openapi: 3.1.0
+info:
+  title: Annotated const branch in anyOf
+  version: 1.0.0
+paths:
+  /x:
+    get:
+      operationId: getX
+      parameters:
+        # Strapi 5 emits this shape for `populate`. The described `const`
+        # branch must not merge the whole anyOf into an enum and drop the
+        # array branch (#4239).
+        - name: populate
+          in: query
+          schema:
+            anyOf:
+              - type: string
+                const: '*'
+                description: all
+              - type: string
+                enum: [a, b]
+              - type: array
+                items:
+                  type: string
+                  enum: [a, b]
+        # Every branch is enum-like, so the annotated enum object is kept.
+        - name: scope
+          in: query
+          schema:
+            anyOf:
+              - type: string
+                const: '*'
+                description: all
+              - type: string
+                enum: [a]
+              - type: 'null'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Populate'
+components:
+  schemas:
+    Populate:
+      anyOf:
+        - type: string
+          const: '*'
+          description: all
+        - type: string
+          enum: [a, b]
+        - type: array
+          items:
+            type: string
+            enum: [a, b]
