@@ -625,7 +625,7 @@ function getImplementationPathsForIndex(
     });
     const defaultSiblingSchemas = path.join(
       targetInfo.dirname,
-      `${targetInfo.filename}.schemas${output.fileExtension}`,
+      `${targetInfo.filename}.schemas${output.schemaFileExtension}`,
     );
     return excludeFilePath(paths, defaultSiblingSchemas);
   }
@@ -655,7 +655,7 @@ function getImplementationPathsForIndex(
   );
   const globalSchemas = path.join(
     targetInfo.dirname,
-    `${targetInfo.filename}.schemas${output.fileExtension}`,
+    `${targetInfo.filename}.schemas${output.schemaFileExtension}`,
   );
 
   return paths.filter(
@@ -840,7 +840,7 @@ async function writeSpecsInternal(
         }
       }
     } else {
-      const fileExtension = output.fileExtension || '.ts';
+      const fileExtension = output.schemaFileExtension || '.ts';
 
       if (schemaOutputPlan) {
         await writeRoutedSchemas({
@@ -1077,8 +1077,17 @@ async function writeSpecsInternal(
       )
       .map((p) => {
         const relative = upath.getRelativeImportPath(indexFile, p, true);
+        // The sibling `<target>.schemas` file is named with
+        // `schemaFileExtension`, which need not end in `fileExtension`
+        // (`.types.ts` next to `.gen.ts`).
+        const fileExtension =
+          !p.endsWith(output.fileExtension) &&
+          p.endsWith(output.schemaFileExtension)
+            ? output.schemaFileExtension
+            : output.fileExtension;
         return (
-          stripFileExtension(relative, output.fileExtension) + importExtension
+          stripFileExtension(relative, fileExtension) +
+          getImportExtension(fileExtension, output.tsconfig)
         );
       });
 

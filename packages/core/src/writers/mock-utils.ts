@@ -7,7 +7,7 @@ import {
   OutputMockType,
   type WriteModeProps,
 } from '../types';
-import { isFunction, upath } from '../utils';
+import { isFunction, SOURCE_FILE_EXTENSIONS, upath } from '../utils';
 
 export function getMockDir(
   entry: GlobalMockOptions | ClientMockBuilder,
@@ -72,18 +72,15 @@ export function resolveMockSchemasPath(
   schemasTarget: string,
 ): string {
   // `upath.getRelativeImportPath` strips `basepath.extname`, which would
-  // treat a trailing `.schemas` on `schemasTarget` (e.g. the implicit
-  // `<filename>.schemas` path used when `output.schemas` is unset) as a
-  // file extension and drop it. Treat `.schemas` as a logical marker
-  // (not a real extension) and always end up with a real source-file
-  // extension on the target.
-  const ext = basepath.extname(mockFilePath);
+  // treat any dotted tail on `schemasTarget` as a file extension and drop
+  // it: the `.schemas` marker of the implicit `<filename>.schemas` file used
+  // when `output.schemas` is unset, or the custom part of a
+  // `schemaFileExtension` such as `.types.ts` (`<filename>.schemas.types`,
+  // #4234). Only strip a real source-file extension; keep everything else.
   const targetExt = basepath.extname(schemasTarget);
-  const targetWithExt =
-    targetExt === '.schemas'
-      ? schemasTarget + ext
-      : targetExt
-        ? schemasTarget
-        : schemasTarget + ext;
-  return upath.getRelativeImportPath(mockFilePath, targetWithExt);
+  return upath.getRelativeImportPath(
+    mockFilePath,
+    schemasTarget,
+    !SOURCE_FILE_EXTENSIONS.has(targetExt),
+  );
 }

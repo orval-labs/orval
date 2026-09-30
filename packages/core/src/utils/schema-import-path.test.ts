@@ -8,6 +8,7 @@ import {
   type NormalizedSchemaOptions,
 } from '../types';
 import { createSchemaOutputPlan } from '../writers/schema-output-plan';
+import { isObject } from './assertion';
 import { resolveSchemaImportDependencies } from './schema-import-path';
 
 /**
@@ -26,14 +27,11 @@ const createOutput = (
       target: '/tmp/pets.ts',
       namingConvention: NamingConvention.CAMEL_CASE,
       fileExtension: '.ts',
-      // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
-      // output, or to the user's `fileExtension` when they set one.
-      schemaFileExtension: '.zod.ts',
       indexFiles: true,
     },
   }).output;
 
-  return {
+  const output = {
     ...base,
     schemas: {
       path: '/models',
@@ -42,6 +40,18 @@ const createOutput = (
     },
     ...overrides,
   } satisfies NormalizedOutputOptions;
+
+  // Mirrors `normalizeOptions`: an explicit `schemaFileExtension` wins, then
+  // the user's `fileExtension`, then `.zod.ts` for Zod schemas.
+  return {
+    ...output,
+    schemaFileExtension:
+      overrides.schemaFileExtension ??
+      overrides.fileExtension ??
+      (isObject(output.schemas) && output.schemas.type === 'zod'
+        ? '.zod.ts'
+        : '.ts'),
+  };
 };
 
 const createSchemas = (
@@ -61,10 +71,9 @@ const resolve = (
   output: NormalizedOutputOptions,
   base: string,
   imports: GeneratorImport[] = [PET, ERROR],
-  options: { isZod?: boolean; schemaTagMap?: Map<string, string> } = {},
+  options: { schemaTagMap?: Map<string, string> } = {},
 ) =>
   resolveSchemaImportDependencies(output, imports, base, {
-    isZod: options.isZod ?? false,
     schemaTagMap: options.schemaTagMap,
   }).map((dependency) => dependency.dependency);
 
@@ -182,7 +191,7 @@ describe('resolveSchemaImportDependencies', () => {
         schemas: createSchemas({ importPath: '@acme/models', type: 'zod' }),
       });
 
-      expect(resolve(output, '@acme/models', [PET], { isZod: true })).toEqual([
+      expect(resolve(output, '@acme/models', [PET])).toEqual([
         '@acme/models/pet.zod',
       ]);
     });
@@ -198,8 +207,23 @@ describe('resolveSchemaImportDependencies', () => {
         schemas: createSchemas({ type: 'zod' }),
       });
 
-      expect(resolve(output, '../models', [PET], { isZod: true })).toEqual([
+      expect(resolve(output, '../models', [PET])).toEqual([
         '../models/pet.gen',
+      ]);
+    });
+
+    it('names TypeScript files from schemaFileExtension (#4234)', () => {
+      // The TypeScript writer emits `pet.types.ts` while client files keep
+      // `fileExtension`, so the import follows `schemaFileExtension`.
+      const output = createOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemaFileExtension: '.types.ts',
+      });
+
+      expect(resolve(output, '../models')).toEqual([
+        '../models/pet.types',
+        '../models/error.types',
       ]);
     });
 
@@ -254,7 +278,6 @@ describe('resolveSchemaImportDependencies', () => {
 
       expect(
         resolveSchemaImportDependencies(output, [PET], '@acme/models', {
-          isZod: false,
           schemaOutputPlan: plan,
         }).map((dependency) => dependency.dependency),
       ).toEqual(['@acme/models/models/pet.gen']);
@@ -270,7 +293,7 @@ describe('resolveSchemaImportDependencies', () => {
           { name: 'Pet', alias: 'PetDto' },
         ],
         '../models',
-        { isZod: false },
+        {},
       );
 
       expect(dependency.exports.map((entry) => entry.alias)).toEqual([
@@ -292,7 +315,7 @@ describe('resolveSchemaImportDependencies', () => {
           { name: 'Pet', values: true },
         ],
         '../models',
-        { isZod: false },
+        {},
       );
 
       expect(dependency.exports).toHaveLength(1);
@@ -306,7 +329,7 @@ describe('resolveSchemaImportDependencies', () => {
         output,
         [{ name: 'Pet' }, { name: 'Pet' }],
         '../models',
-        { isZod: false },
+        {},
       );
 
       expect(dependency.exports).toHaveLength(1);
@@ -327,9 +350,9 @@ describe('single-file Zod schema imports', () => {
           splitByTags: false,
         },
       });
-      expect(
-        resolve(output, '../models', [PET, ERROR], { isZod: true }),
-      ).toEqual(['../models/index.zod']);
+      expect(resolve(output, '../models', [PET, ERROR])).toEqual([
+        '../models/index.zod',
+      ]);
     },
   );
 
@@ -346,7 +369,7 @@ describe('single-file Zod schema imports', () => {
         compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
       },
     });
-    expect(resolve(output, '../models', [PET], { isZod: true })).toEqual([
+    expect(resolve(output, '../models', [PET])).toEqual([
       '../models/index.schema.js',
     ]);
   });
@@ -362,9 +385,7 @@ describe('single-file Zod schema imports', () => {
         splitByTags: false,
       },
     });
-    expect(resolve(output, './model', [PET], { isZod: true })).toEqual([
-      './model/schemas.zod',
-    ]);
+    expect(resolve(output, './model', [PET])).toEqual(['./model/schemas.zod']);
   });
 
   it('rewrites a named schema file for NodeNext resolution', () => {
@@ -379,7 +400,7 @@ describe('single-file Zod schema imports', () => {
         compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
       },
     });
-    expect(resolve(output, '../model', [PET], { isZod: true })).toEqual([
+    expect(resolve(output, '../model', [PET])).toEqual([
       '../model/schemas.zod.js',
     ]);
   });
@@ -399,7 +420,7 @@ describe('single-file Zod schema imports', () => {
         compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
       },
     });
-    expect(resolve(output, '../model', [PET], { isZod: true })).toEqual([
+    expect(resolve(output, '../model', [PET])).toEqual([
       '../model/schemas.zod.mjs',
     ]);
   });
@@ -415,9 +436,7 @@ describe('single-file Zod schema imports', () => {
         importPath: '@acme/models',
       },
     });
-    expect(resolve(output, '@acme/models', [PET], { isZod: true })).toEqual([
-      '@acme/models',
-    ]);
+    expect(resolve(output, '@acme/models', [PET])).toEqual(['@acme/models']);
   });
 });
 
@@ -447,7 +466,7 @@ describe('no output.schemas (single sibling schemas file)', () => {
   it('keeps the schemas file for zod output too', () => {
     const output = noSchemasOutput({ indexFiles: false });
 
-    expect(resolve(output, './pets.schemas', [PET], { isZod: true })).toEqual([
+    expect(resolve(output, './pets.schemas', [PET])).toEqual([
       './pets.schemas',
     ]);
   });

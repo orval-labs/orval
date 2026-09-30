@@ -390,7 +390,7 @@ src/gen/
 **Type:** `String`
 **Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), otherwise the same as [`fileExtension`](#fileextension).
 
-Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). Useful when you want client files at one extension and schema files at another:
+Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). It applies to TypeScript and Zod schema files alike. Without [`schemas`](#schemas), the schemas file written next to the target keeps its `.schemas` marker, so `target: './api.ts'` with `schemaFileExtension: '.types.ts'` produces `api.schemas.types.ts`. Useful when you want client files at one extension and schema files at another:
 
 ```ts title="orval.config.ts"
 export default defineConfig({

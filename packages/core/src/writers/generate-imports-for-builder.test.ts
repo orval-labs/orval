@@ -15,7 +15,7 @@ describe('generateImportsForBuilder', () => {
       fileExtension: '.ts',
       // `normalizeOptions` sets `schemaFileExtension` to `.zod.ts` for a zod
       // output, or to the user's `fileExtension` when they set one.
-      schemaFileExtension: '.ts',
+      schemaFileExtension: overrides.fileExtension ?? '.ts',
       // Every mode writer pairs a schemas *directory* with `output.schemas`;
       // it is only absent when the schemas are folded into a single
       // `<target>.schemas` file, which these directory cases do not exercise.

@@ -118,7 +118,7 @@ export async function writeTagsOperationsMode({
     : '../' +
       filename +
       '.schemas' +
-      getImportExtension(extension, output.tsconfig);
+      getImportExtension(output.schemaFileExtension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -127,12 +127,14 @@ export async function writeTagsOperationsMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
+        filename +
+          '.schemas' +
+          getImportExtension(output.schemaFileExtension, output.tsconfig),
       );
 
   const schemasPath =
     !output.schemas && needSchema
-      ? path.join(dirname, filename + '.schemas' + extension)
+      ? path.join(dirname, filename + '.schemas' + output.schemaFileExtension)
       : undefined;
 
   if (schemasPath) {

@@ -1330,4 +1330,21 @@ export default defineConfig({
     },
     input: { target: '../specifications/dates-transform.yaml' },
   },
+  // #4234: the workspace barrel keeps the global schemas file, named with
+  // `schemaFileExtension`, alongside the root barrels.
+  tagsOperationsSchemaFileExtension: {
+    output: {
+      target: 'endpoints.ts',
+      workspace: '../generated/fetch/tags-operations-schema-file-extension/',
+      mode: 'tags-operations',
+      client: 'fetch',
+      indexFiles: true,
+      schemaFileExtension: '.types.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

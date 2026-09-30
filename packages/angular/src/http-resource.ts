@@ -20,6 +20,7 @@ import {
   getAngularFilteredParamsHelperBody,
   getAngularObjectParamStrategies,
   getFileInfo,
+  getImportExtension,
   getFullRoute,
   GetterPropType,
   getOperationTagKey,
@@ -1813,8 +1814,6 @@ const buildSchemaImportDependencies = (
   schemaTagMap?: Map<string, string>,
   schemaOutputPlan?: SchemaOutputPlan,
 ): GeneratorDependency[] => {
-  const isZod = isZodSchemaOutput(output);
-
   // Without emitted schemas, `relativeSchemasPath` is the single generated
   // `*.schemas` file and not a directory, so per-schema routing does not apply.
   //
@@ -1825,7 +1824,6 @@ const buildSchemaImportDependencies = (
   // twin, so the tag wins for the whole binding.
   return output.schemas
     ? resolveSchemaImportDependencies(output, imports, relativeSchemasPath, {
-        isZod,
         schemaTagMap,
         schemaOutputPlan,
       })
@@ -1922,13 +1920,18 @@ const getHttpResourceSchemasModule = (
     return upath.getRelativeImportPath(outputPath, schemasPath, true);
   }
 
-  const { dirname, filename, extension } = getFileInfo(output.target, {
+  // Same specifier the mode writers give the sibling service file, so both
+  // name the `<target>.schemas<schemaFileExtension>` file actually written.
+  const { dirname, filename } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
   return upath.getRelativeImportPath(
     outputPath,
-    upath.joinSafe(dirname, `${filename}.schemas${extension}`),
-    output.fileExtension !== '.ts',
+    upath.joinSafe(
+      dirname,
+      `${filename}.schemas${getImportExtension(output.schemaFileExtension, output.tsconfig)}`,
+    ),
+    true,
   );
 };
 

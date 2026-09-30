@@ -1351,4 +1351,35 @@ export default defineConfig({
       target: '../specifications/case-sensitive-schema-names.yaml',
     },
   },
+  // `schemaFileExtension` names TypeScript schema files, both the implicit
+  // `<target>.schemas` file and a schemas directory, and every import follows
+  // it, mocks included (#4234).
+  'schema-file-extension': {
+    output: {
+      target: '../generated/mock/schema-file-extension/split/endpoints.ts',
+      mode: 'split',
+      schemaFileExtension: '.types.ts',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'schema-file-extension-dir': {
+    output: {
+      target: '../generated/mock/schema-file-extension/tags-split/endpoints.ts',
+      schemas: '../generated/mock/schema-file-extension/tags-split/model',
+      mode: 'tags-split',
+      indexFiles: false,
+      schemaFileExtension: '.types.ts',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -102,7 +102,7 @@ export async function writeSplitMode({
       : './' +
         filename +
         '.schemas' +
-        getImportExtension(extension, output.tsconfig);
+        getImportExtension(output.schemaFileExtension, output.tsconfig);
 
     const schemasTarget = output.schemas
       ? // `output.schemas(.path)` already *is* the schemas directory. Use it
@@ -119,7 +119,7 @@ export async function writeSplitMode({
           dirname,
           filename +
             '.schemas' +
-            getImportExtension(extension, output.tsconfig),
+            getImportExtension(output.schemaFileExtension, output.tsconfig),
         );
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
@@ -145,7 +145,7 @@ export async function writeSplitMode({
 
     const schemasPath =
       !output.schemas && needSchema
-        ? path.join(dirname, filename + '.schemas' + extension)
+        ? path.join(dirname, filename + '.schemas' + output.schemaFileExtension)
         : undefined;
 
     if (schemasPath) {

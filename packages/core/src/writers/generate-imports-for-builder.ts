@@ -11,7 +11,6 @@ import {
   getImportExtension,
   getSchemasImportPath,
   isFunction,
-  isObject,
   resolveSchemaImportDependencies,
   upath,
 } from '../utils';
@@ -33,9 +32,6 @@ export function generateImportsForBuilder(
   filePath?: string,
 ): GeneratorDependency[] {
   const isPackageImport = !!getSchemasImportPath(output.schemas);
-
-  const isZodSchemaOutput =
-    isObject(output.schemas) && output.schemas.type === 'zod';
 
   // Schema-factory imports (`getPetMock` and friends) always resolve to the
   // consolidated `<schemas-dir>/index.faker` file emitted by the faker
@@ -87,7 +83,7 @@ export function generateImportsForBuilder(
     output,
     imports.filter((i) => !i.importPath),
     relativeSchemasPath,
-    { isZod: isZodSchemaOutput, schemaTagMap, schemaOutputPlan },
+    { schemaTagMap, schemaOutputPlan },
   );
 
   // Operations contribute these independently, so the same binding can
