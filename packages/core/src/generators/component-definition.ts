@@ -20,10 +20,13 @@ export function generateComponentDefinition(
 
   const generatorSchemas: GeneratorSchema[] = [];
   for (const [name, response] of Object.entries(responses)) {
+    // Inline content types are named after the component too, so they must use
+    // the collision-aware name (`Error` / `error` → `Error` / `Error2`).
+    const baseName = getComponentBaseName(responses, name);
     const allResponseTypes = getResReqTypes(
       // oxlint-disable-next-line typescript/no-unsafe-argument
       [[suffix, response]],
-      name,
+      baseName,
       context,
       'void',
     );
@@ -33,16 +36,13 @@ export function generateComponentDefinition(
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-    const modelName = sanitize(
-      `${prefix}${getComponentBaseName(responses, name)}${suffix}`,
-      {
-        underscore: '_',
-        whitespace: '_',
-        dash: true,
-        es5keyword: true,
-        es5IdentifierName: true,
-      },
-    );
+    const modelName = sanitize(`${prefix}${baseName}${suffix}`, {
+      underscore: '_',
+      whitespace: '_',
+      dash: true,
+      es5keyword: true,
+      es5IdentifierName: true,
+    });
     // oxlint-disable-next-line typescript/no-unsafe-argument
     const doc = jsDoc(response);
     const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;

@@ -9,4 +9,8 @@ export * from './address';
 export * from './address2';
 export * from './address2Kind';
 export * from './addressKind';
+export * from './error2Response';
+export * from './errorResponse';
 export * from './holder';
+export * from './note2Body';
+export * from './noteBody';

@@ -7,7 +7,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { Address, Address2, Holder } from './model';
+import type { Address, Address2, Holder, Note2Body, NoteBody } from './model';
 
 export const getUpper = (
   options?: AxiosRequestConfig,
@@ -60,6 +60,44 @@ export const getGetHolderUrl = () => {
     });
 };
 
+export const postUpperBody = (
+  noteBody?: NoteBody,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<unknown>> => {
+  return axios.post(`/upper-body`, noteBody, options);
+};
+export const getPostUpperBodyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/upper-body`,
+      baseURL: '',
+    });
+};
+
+export const postLowerBody = (
+  note2Body?: Note2Body,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<unknown>> => {
+  return axios.post(`/lower-body`, note2Body, options);
+};
+export const getPostLowerBodyUrl = () => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/lower-body`,
+      baseURL: '',
+    });
+};
+
 export type GetUpperResult = AxiosResponse<Address>;
 export type GetLowerResult = AxiosResponse<Address2>;
 export type GetHolderResult = AxiosResponse<Holder>;
+export type PostUpperBodyResult = AxiosResponse<unknown>;
+export type PostLowerBodyResult = AxiosResponse<unknown>;
