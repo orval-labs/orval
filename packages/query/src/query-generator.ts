@@ -43,6 +43,7 @@ import {
 import {
   getHasSignal,
   getOperationMetaLiteral,
+  getPrefetchCall,
   shouldUseOptionsHook,
 } from './utils';
 
@@ -624,6 +625,7 @@ const generatePrefetch = ({
   queryOptionsFnName,
   queryProperties,
   isRequestOptions,
+  hasQueryV5WithQueryMethod,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -640,6 +642,7 @@ const generatePrefetch = ({
   queryOptionsFnName: string;
   queryProperties: string;
   isRequestOptions: boolean;
+  hasQueryV5WithQueryMethod: boolean;
 }) => {
   const shouldGeneratePrefetch =
     usePrefetch &&
@@ -656,7 +659,11 @@ const generatePrefetch = ({
     type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
       ? 'query'
       : 'infinite-query';
-  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+  const prefetchCall = getPrefetchCall(
+    prefetchType,
+    queryOptionsVarName,
+    hasQueryV5WithQueryMethod,
+  );
 
   if (mutator?.isHook) {
     const prefetchVarName = camel(
@@ -668,7 +675,7 @@ const generatePrefetch = ({
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
   return useCallback(async (): Promise<QueryClient> => {
-    await queryClient.${prefetchFnName}(${queryOptionsVarName})
+    await ${prefetchCall}
     return queryClient;
   },[queryClient, ${queryOptionsVarName}]);
 };\n`;
@@ -680,7 +687,7 @@ const generatePrefetch = ({
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+  await ${prefetchCall};
 
   return queryClient;
 }\n`;
@@ -1149,6 +1156,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties,
     isRequestOptions,
     doc,
+    hasQueryV5WithQueryMethod: adapter.hasQueryV5WithQueryMethod,
   };
 
   const prefetch = adapter.generatePrefetch

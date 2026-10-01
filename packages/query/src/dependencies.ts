@@ -659,6 +659,34 @@ export const isQueryV5WithInfiniteQueryOptionsError = (
   return compareVersions(withoutRc, '5.80.0');
 };
 
+/**
+ * Query Core 5.102.0 added `queryClient.query()` / `queryClient.infiniteQuery()`
+ * and deprecated `prefetchQuery` / `prefetchInfiniteQuery` in their favor.
+ * Svelte Query is versioned separately and first ships that core in 6.1.39.
+ */
+export const isQueryV5WithQueryMethod = (
+  packageJson: PackageJson | undefined,
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(
+    withoutRc,
+    queryClient === 'svelte-query' ? '6.1.39' : '5.102.0',
+  );
+};
+
 export const isSolidQueryWithUsePrefix = (
   packageJson: PackageJson | undefined,
 ) => {

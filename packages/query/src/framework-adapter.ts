@@ -103,6 +103,7 @@ export interface FrameworkAdapter {
   readonly hasQueryV5WithMutationContextOnSuccess: boolean;
   readonly hasQueryV5WithOptionalOnMutateResult: boolean;
   readonly hasQueryV5WithRequiredContextOnSuccess: boolean;
+  readonly hasQueryV5WithQueryMethod: boolean;
 
   // --- Props Transformation ---
   /** Vue: wraps with MaybeRef. Others: identity. */
@@ -369,6 +370,7 @@ export interface PrefetchContext {
   queryOptionsFnName: string;
   queryProperties: string;
   isRequestOptions: boolean;
+  hasQueryV5WithQueryMethod: boolean;
 }
 
 /** Fields that have factory defaults in withDefaults(), so adapters only override what differs. */

@@ -520,3 +520,76 @@ describe('generateQuery — suspense queryOptions() literal (#4163)', () => {
     expect(implementation).not.toContain('queryOptions?.queryFn ??');
   });
 });
+
+describe('generateQuery — prefetch through queryClient.query() (#4030)', () => {
+  const verbOptions = createTestGeneratorVerbOptions({
+    verb: 'get',
+    route: '/pets',
+    pathRoute: '/pets',
+    operationId: 'listPets',
+    operationName: 'listPets',
+    typeName: 'listPets',
+    override: {
+      query: { useQuery: true, useInfinite: true, usePrefetch: true },
+    },
+  });
+
+  const generate = (
+    client: typeof OutputClient.REACT_QUERY | typeof OutputClient.ANGULAR_QUERY,
+    version: string,
+  ) => {
+    const pkgName =
+      client === OutputClient.ANGULAR_QUERY
+        ? '@tanstack/angular-query-experimental'
+        : '@tanstack/react-query';
+
+    return generateQuery(
+      verbOptions,
+      createTestGeneratorOptions({
+        route: '/pets',
+        pathRoute: '/pets',
+        context: {
+          output: {
+            client,
+            httpClient:
+              client === OutputClient.ANGULAR_QUERY
+                ? OutputHttpClient.ANGULAR
+                : OutputHttpClient.FETCH,
+            packageJson: { resolvedVersions: { [pkgName]: version } },
+          },
+        },
+      }),
+      client,
+    );
+  };
+
+  it.each([OutputClient.REACT_QUERY, OutputClient.ANGULAR_QUERY] as const)(
+    '%s: swallows errors from query() / infiniteQuery() on 5.102.0+',
+    async (client) => {
+      const { implementation } = await generate(client, '5.102.0');
+
+      expect(implementation).toContain(
+        'await queryClient.query(queryOptions).catch(() => {});',
+      );
+      expect(implementation).toContain(
+        'await queryClient.infiniteQuery(queryOptions).catch(() => {});',
+      );
+      expect(implementation).not.toContain('queryClient.prefetch');
+    },
+  );
+
+  it.each([OutputClient.REACT_QUERY, OutputClient.ANGULAR_QUERY] as const)(
+    '%s: keeps prefetchQuery / prefetchInfiniteQuery before 5.102.0',
+    async (client) => {
+      const { implementation } = await generate(client, '5.101.4');
+
+      expect(implementation).toContain(
+        'await queryClient.prefetchQuery(queryOptions);',
+      );
+      expect(implementation).toContain(
+        'await queryClient.prefetchInfiniteQuery(queryOptions);',
+      );
+      expect(implementation).not.toContain('queryClient.query(');
+    },
+  );
+});

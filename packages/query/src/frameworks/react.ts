@@ -16,6 +16,7 @@ export const createReactAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
+  hasQueryV5WithQueryMethod,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
@@ -23,6 +24,7 @@ export const createReactAdapter = ({
   hasQueryV5WithMutationContextOnSuccess: boolean;
   hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
+  hasQueryV5WithQueryMethod: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.REACT_QUERY,
   hookPrefix: 'use',
@@ -32,6 +34,7 @@ export const createReactAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
+  hasQueryV5WithQueryMethod,
 
   getQueryReturnType({
     type,

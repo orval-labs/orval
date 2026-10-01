@@ -28,6 +28,7 @@ import type {
 import { getQueryOptionsDefinition, QueryType } from '../query-options';
 import {
   getInfinitePageParamMerge,
+  getPrefetchCall,
   getQueryTypeForFramework,
   isInfinitePageParamProp,
 } from '../utils';
@@ -39,6 +40,7 @@ export const createAngularAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
+  hasQueryV5WithQueryMethod,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
@@ -46,6 +48,7 @@ export const createAngularAdapter = ({
   hasQueryV5WithMutationContextOnSuccess: boolean;
   hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
+  hasQueryV5WithQueryMethod: boolean;
 }): FrameworkAdapterConfig => {
   const prefix = 'Create';
 
@@ -59,6 +62,7 @@ export const createAngularAdapter = ({
     hasQueryV5WithMutationContextOnSuccess,
     hasQueryV5WithOptionalOnMutateResult,
     hasQueryV5WithRequiredContextOnSuccess,
+    hasQueryV5WithQueryMethod,
 
     getHookPropsDefinitions(props: GetterProps): string {
       // Angular: allow params to be a getter function for reactive signal support
@@ -326,6 +330,7 @@ export const createAngularAdapter = ({
       queryOptionsFnName,
       queryProperties,
       isRequestOptions,
+      hasQueryV5WithQueryMethod,
     }: PrefetchContext): string {
       const shouldGeneratePrefetch =
         usePrefetch &&
@@ -342,7 +347,11 @@ export const createAngularAdapter = ({
         type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
           ? 'query'
           : 'infinite-query';
-      const prefetchFnName = camel(`prefetch-${prefetchType}`);
+      const prefetchCall = getPrefetchCall(
+        prefetchType,
+        queryOptionsVarName,
+        hasQueryV5WithQueryMethod,
+      );
       const prefetchVarName = camel(
         `prefetch-${operationName}-${prefetchType}`,
       );
@@ -360,7 +369,7 @@ export const createAngularAdapter = ({
     return queryClient;
   }
 
-  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+  await ${prefetchCall};
 
   return queryClient;
 }\n`;

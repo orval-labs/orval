@@ -26,6 +26,7 @@ import {
   isQueryV5WithInfiniteQueryOptionsError,
   isQueryV5WithMutationContextOnSuccess,
   isQueryV5WithOptionalOnMutateResult,
+  isQueryV5WithQueryMethod,
   isQueryV5WithRequiredContextOnSuccess,
   isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
@@ -379,6 +380,10 @@ export const createFrameworkAdapter = ({
     isQueryV5WithOptionalOnMutateResult(packageJson, clientType);
   const _hasQueryV5WithRequiredContextOnSuccess =
     isQueryV5WithRequiredContextOnSuccess(packageJson, clientType);
+  const _hasQueryV5WithQueryMethod = isQueryV5WithQueryMethod(
+    packageJson,
+    clientType,
+  );
 
   switch (outputClient) {
     case OutputClientConst.VUE_QUERY: {
@@ -396,6 +401,7 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
+          hasQueryV5WithQueryMethod: _hasQueryV5WithQueryMethod,
         }),
       );
     }
@@ -418,6 +424,7 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
+          hasQueryV5WithQueryMethod: _hasQueryV5WithQueryMethod,
         }),
       );
     }
@@ -435,6 +442,7 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
+          hasQueryV5WithQueryMethod: _hasQueryV5WithQueryMethod,
         }),
       );
     }
@@ -455,6 +463,7 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
+          hasQueryV5WithQueryMethod: _hasQueryV5WithQueryMethod,
           hasSolidQueryUsePrefix: hasSolidQueryWithUsePrefix,
           hasSolidQueryRenamedOptionsTypes:
             hasSolidQueryWithRenamedOptionsTypes,
@@ -476,6 +485,7 @@ export const createFrameworkAdapter = ({
             _hasQueryV5WithOptionalOnMutateResult,
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
+          hasQueryV5WithQueryMethod: _hasQueryV5WithQueryMethod,
         }),
       );
     }
