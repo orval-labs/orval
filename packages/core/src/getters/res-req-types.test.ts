@@ -1306,6 +1306,190 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       });
     });
 
+    describe('nullable anyOf/oneOf wrapper properties', () => {
+      // An OAS 3.0 `nullable: true` next to a `$ref` or `allOf` reaches the
+      // generators as `anyOf: [{ $ref }, { type: 'null' }]` after the upgrade.
+      const schemas: Record<string, OpenApiSchemaObject> = {
+        Meta: { type: 'object', properties: { name: { type: 'string' } } },
+        Ids: { type: 'array', items: { type: 'integer' } },
+        Label: { type: 'string' },
+      };
+
+      const getFormData = (
+        meta: OpenApiSchemaObject,
+        {
+          arrayHandling = 'serialize',
+          contentType = 'multipart/form-data',
+        }: {
+          arrayHandling?: 'serialize' | 'explode';
+          contentType?: string;
+        } = {},
+      ) => {
+        const ctx = extendContext({
+          override: { formData: { arrayHandling, disabled: false } },
+          spec: { components: { schemas } },
+        });
+
+        const reqBody: [string, OpenApiRequestBodyObject][] = [
+          [
+            'requestBody',
+            {
+              content: {
+                [contentType]: {
+                  schema: { type: 'object', properties: { meta } },
+                },
+              },
+              required: true,
+            },
+          ],
+        ];
+
+        const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+        const formData = result.formData || result.formUrlEncoded;
+        if (!formData || !isString(formData)) {
+          throw new Error('Expected formData to be a defined string');
+        }
+        return formData;
+      };
+
+      const nullableMeta: OpenApiSchemaObject = {
+        anyOf: [{ $ref: '#/components/schemas/Meta' }, { type: 'null' }],
+      };
+
+      it('JSON.stringifies a nullable object $ref behind the null guard', () => {
+        expect(getFormData(nullableMeta)).toContain(
+          'if(uploadRequestBody.meta !== undefined && uploadRequestBody.meta !== null) {\n formData.append(`meta`, JSON.stringify(uploadRequestBody.meta));',
+        );
+        expect(
+          getFormData({
+            oneOf: [{ $ref: '#/components/schemas/Meta' }, { type: 'null' }],
+          }),
+        ).toContain(
+          'formData.append(`meta`, JSON.stringify(uploadRequestBody.meta));',
+        );
+      });
+
+      it('JSON.stringifies a single-branch oneOf object $ref', () => {
+        expect(
+          getFormData({ oneOf: [{ $ref: '#/components/schemas/Meta' }] }),
+        ).toContain(
+          'formData.append(`meta`, JSON.stringify(uploadRequestBody.meta));',
+        );
+      });
+
+      it('JSON.stringifies a nullable object $ref in url-encoded bodies', () => {
+        expect(
+          getFormData(nullableMeta, {
+            contentType: 'application/x-www-form-urlencoded',
+          }),
+        ).toContain(
+          'formUrlEncoded.append(`meta`, JSON.stringify(uploadRequestBody.meta));',
+        );
+      });
+
+      it('EXPLODE: appends the properties of a nullable object $ref', () => {
+        expect(
+          getFormData(nullableMeta, { arrayHandling: 'explode' }),
+        ).toContain(
+          'formData.append(`meta.name`, uploadRequestBody.meta.name);',
+        );
+      });
+
+      it('iterates a nullable array $ref', () => {
+        expect(
+          getFormData({
+            anyOf: [{ $ref: '#/components/schemas/Ids' }, { type: 'null' }],
+          }),
+        ).toContain(
+          'uploadRequestBody.meta.forEach(value => formData.append(`meta`, value.toString()));',
+        );
+      });
+
+      it('keeps appending a nullable scalar $ref as is', () => {
+        const formData = getFormData({
+          anyOf: [{ $ref: '#/components/schemas/Label' }, { type: 'null' }],
+        });
+
+        expect(formData).toContain(
+          'formData.append(`meta`, uploadRequestBody.meta);',
+        );
+        expect(formData).not.toContain('JSON.stringify');
+      });
+
+      it('does not pick a branch when more than one is not null', () => {
+        expect(
+          getFormData({
+            anyOf: [
+              { $ref: '#/components/schemas/Meta' },
+              { $ref: '#/components/schemas/Label' },
+              { type: 'null' },
+            ],
+          }),
+        ).toContain('formData.append(`meta`, uploadRequestBody.meta);');
+      });
+
+      it('keeps the shape of a schema that only adds constraints through oneOf', () => {
+        expect(
+          getFormData({
+            properties: { name: { type: 'string' } },
+            oneOf: [{ required: ['name'] }],
+          }),
+        ).toContain(
+          'formData.append(`meta`, JSON.stringify(uploadRequestBody.meta));',
+        );
+        expect(
+          getFormData({
+            type: 'array',
+            items: { type: 'string' },
+            oneOf: [{ minItems: 1 }],
+          }),
+        ).toContain(
+          'uploadRequestBody.meta.forEach(value => formData.append(`meta`, value));',
+        );
+      });
+
+      it('JSON.stringifies nullable object $ref array items', () => {
+        expect(getFormData({ type: 'array', items: nullableMeta })).toContain(
+          'uploadRequestBody.meta.forEach(value => formData.append(`meta`, JSON.stringify(value)));',
+        );
+      });
+
+      it('EXPLODE: skips null array items before reading their properties', () => {
+        const formData = getFormData(
+          { type: 'array', items: nullableMeta },
+          { arrayHandling: 'explode' },
+        );
+
+        expect(formData).toContain(
+          'if (value !== null && value !== undefined) {',
+        );
+        expect(formData).toContain(
+          'formData.append(`meta[${index}].name`, value.name);',
+        );
+      });
+
+      it('JSON.stringifies nullable object $ref items of an array body', () => {
+        const ctx = extendContext({ spec: { components: { schemas } } });
+        const reqBody: [string, OpenApiRequestBodyObject][] = [
+          [
+            'requestBody',
+            {
+              content: {
+                'multipart/form-data': {
+                  schema: { type: 'array', items: nullableMeta },
+                },
+              },
+              required: true,
+            },
+          ],
+        ];
+
+        expect(getResReqTypes(reqBody, 'Upload', ctx)[0].formData).toContain(
+          "uploadRequestBody.forEach(value => formData.append('data', JSON.stringify(value)))",
+        );
+      });
+    });
+
     it('allOf wrapping a non-object schema: must not JSON.stringify a scalar value', () => {
       const ctx = extendContext({
         spec: {
