@@ -80,6 +80,7 @@ export const createVueAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
+  hasQueryV5WithQueryMethod,
 }: {
   hasVueQueryV4: boolean;
   hasQueryV5: boolean;
@@ -88,6 +89,7 @@ export const createVueAdapter = ({
   hasQueryV5WithMutationContextOnSuccess: boolean;
   hasQueryV5WithOptionalOnMutateResult: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
+  hasQueryV5WithQueryMethod: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.VUE_QUERY,
   hookPrefix: 'use',
@@ -97,6 +99,7 @@ export const createVueAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithOptionalOnMutateResult,
   hasQueryV5WithRequiredContextOnSuccess,
+  hasQueryV5WithQueryMethod,
 
   transformProps(props: GetterProps): GetterProps {
     return vueWrapTypeWithMaybeRef(props, hasQueryV5);

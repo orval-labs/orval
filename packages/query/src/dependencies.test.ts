@@ -8,6 +8,7 @@ import {
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
   isQueryV5WithOptionalOnMutateResult,
+  isQueryV5WithQueryMethod,
   isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
 } from './dependencies';
@@ -164,6 +165,47 @@ describe('isQueryV5WithOptionalOnMutateResult', () => {
 
   it('returns false when the package is absent', () => {
     expect(isQueryV5WithOptionalOnMutateResult({}, 'react-query')).toBe(false);
+  });
+});
+
+describe('isQueryV5WithQueryMethod', () => {
+  it.each([
+    ['react-query', '@tanstack/react-query', '5.102.0'],
+    ['vue-query', '@tanstack/vue-query', '5.102.0'],
+    ['solid-query', '@tanstack/solid-query', '5.102.0'],
+    ['angular-query', '@tanstack/angular-query-experimental', '5.102.0'],
+    ['svelte-query', '@tanstack/svelte-query', '6.1.39'],
+  ] as const)(
+    'returns true from the first %s release on query-core 5.102.0',
+    (queryClient, pkgName, version) => {
+      expect(
+        isQueryV5WithQueryMethod(
+          { resolvedVersions: { [pkgName]: version } },
+          queryClient,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it.each([
+    ['react-query', '@tanstack/react-query', '5.101.4'],
+    ['angular-query', '@tanstack/angular-query-experimental', '5.101.4'],
+    ['svelte-query', '@tanstack/svelte-query', '6.1.38'],
+    ['svelte-query', '@tanstack/svelte-query', '5.90.2'],
+  ] as const)(
+    'returns false for %s (%s %s)',
+    (queryClient, pkgName, version) => {
+      expect(
+        isQueryV5WithQueryMethod(
+          { resolvedVersions: { [pkgName]: version } },
+          queryClient,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it('returns false when the package is absent', () => {
+    expect(isQueryV5WithQueryMethod({}, 'angular-query')).toBe(false);
   });
 });
 

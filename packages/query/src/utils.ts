@@ -2,6 +2,7 @@ import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
+  camel,
   isObject,
   isString,
   jsStringLiteralEscape,
@@ -153,6 +154,21 @@ export const getQueryTypeForFramework = (type: string): string => {
     }
   }
 };
+
+/**
+ * The `queryClient` call awaited by a generated prefetch helper. Unlike the
+ * deprecated `prefetchQuery` / `prefetchInfiniteQuery`, `query()` and
+ * `infiniteQuery()` reject on failure, so the error is swallowed to keep
+ * prefetching from throwing.
+ */
+export const getPrefetchCall = (
+  prefetchType: 'query' | 'infinite-query',
+  queryOptionsVarName: string,
+  hasQueryV5WithQueryMethod: boolean,
+) =>
+  hasQueryV5WithQueryMethod
+    ? `queryClient.${camel(prefetchType)}(${queryOptionsVarName}).catch(() => {})`
+    : `queryClient.${camel(`prefetch-${prefetchType}`)}(${queryOptionsVarName})`;
 
 export const getHasSignal = ({
   overrideQuerySignal = false,
