@@ -5632,6 +5632,26 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
     });
 
+    it('emits empty-object values in a $ref default as `{}` (#4244)', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { State: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/State',
+          default: { items: {} },
+        },
+        context,
+        'parametersState',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      expect(result.consts).toEqual([
+        'export const parametersStateDefault = { items: {}, };',
+      ]);
+    });
+
     it('chains .optional() when the parent does not list the ref as required', () => {
       const context = makeContextSpec({
         spec: { components: { schemas: { Pet: { type: 'object' } } } },

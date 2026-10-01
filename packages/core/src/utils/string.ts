@@ -108,6 +108,12 @@ export function stringify(data?: unknown): string | undefined {
   }
 
   const entries = Object.entries(data);
+  // An empty object must still be a literal: returning '' left a hole in the
+  // enclosing literal, e.g. a `{ items: {} }` default became `{ items: , }`.
+  if (entries.length === 0) {
+    return '{}';
+  }
+
   let result = '';
   for (const [index, [key, value]] of entries.entries()) {
     const strValue = stringify(

@@ -303,6 +303,18 @@ describe('stringify', () => {
     expect(stringify(null)).toBe('null');
   });
 
+  describe('empty objects emit an object literal (#4244)', () => {
+    it('stringifies an empty object as `{}`', () => {
+      expect(stringify({})).toBe('{}');
+    });
+
+    it('keeps nested empty objects valid', () => {
+      // An empty string here left a hole in the literal: `{ items: , }`.
+      expect(stringify({ items: {} })).toBe('{ items: {}, }');
+      expect(stringify([{}, { a: {} }])).toBe('[{}, { a: {}, }]');
+    });
+  });
+
   describe('string default values are JS-escaped (#3583)', () => {
     it('escapes backslashes so the value round-trips', () => {
       // Without escaping, `App\Models\Document` evaluates to `AppModelsDocument`.
