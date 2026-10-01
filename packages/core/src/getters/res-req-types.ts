@@ -1,4 +1,7 @@
-import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+import {
+  isBooleanJsonSchema,
+  isNullSchema,
+} from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
 
 import { resolveObject } from '../resolvers/object';
@@ -17,7 +20,7 @@ import {
   type ResReqTypesValue,
 } from '../types';
 import { uniqueBy } from '../utils';
-import { camel, isInlineSchema, sanitize } from '../utils';
+import { camel, isInlineSchema, isSchemaNullable, sanitize } from '../utils';
 import { pascal, conventionName } from '../utils/case';
 import {
   getFormDataFieldFileType,
@@ -669,8 +672,9 @@ function getSchemaFormDataAndUrlEncoded({
     let valueStr = 'value';
     const schemaItems = getSchemaItems(schema);
     if (schemaItems) {
-      const { schema: itemSchema } = resolveSchemaRef(schemaItems, context);
-      const itemType = getSchemaType(itemSchema);
+      const { schema: resolvedItem } = resolveSchemaRef(schemaItems, context);
+      const itemSchema = unwrapNullableSchema(resolvedItem, context);
+      const itemType = getSchemaType(resolvedItem);
       if (
         isEffectivelyObjectSchema(itemSchema, context) ||
         isEffectivelyArraySchema(itemSchema, context)
@@ -776,6 +780,31 @@ function isEffectivelyArraySchema(
       return isEffectivelyArraySchema(resolved, context, seen);
     })
   );
+}
+
+/**
+ * The only non-null branch of an `anyOf`/`oneOf` wrapper, e.g.
+ * `anyOf: [{ $ref }, { type: 'null' }]`, which is how an OAS 3.0
+ * `nullable: true` next to a `$ref` or `allOf` arrives after the upgrade.
+ * A schema that is typed or object-shaped on its own is returned as is.
+ */
+function unwrapNullableSchema(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): OpenApiSchemaObject {
+  if (
+    isBooleanJsonSchema(schema) ||
+    schema.type !== undefined ||
+    isEffectivelyObjectSchema(schema, context)
+  ) {
+    return schema;
+  }
+
+  const branches = (schema.anyOf ?? schema.oneOf ?? [])
+    .map((branch) => resolveSchemaRef(branch, context).schema)
+    .filter((branch) => !isNullSchema(branch));
+
+  return branches.length === 1 ? branches[0] : schema;
 }
 
 /**
@@ -942,6 +971,10 @@ function resolveSchemaPropertiesToFormData({
     // Use shared file type detection (same logic as type generation)
     const fileType = getFormDataFieldFileType(property, partContentType);
     const effectiveContentType = partContentType ?? property.contentMediaType;
+    // A nullable wrapper is serialized like its non-null branch; the null
+    // case is guarded below.
+    const valueSchema = unwrapNullableSchema(property, context);
+    const valueType = getSchemaType(valueSchema);
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)
@@ -954,11 +987,7 @@ function resolveSchemaPropertiesToFormData({
       formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${jsStringLiteralEscape(
         effectiveContentType ?? '',
       )}' }));\n`;
-    } else if (
-      property.type === 'object' ||
-      (Array.isArray(property.type) && property.type.includes('object')) ||
-      isEffectivelyObjectSchema(property, context)
-    ) {
+    } else if (isEffectivelyObjectSchema(valueSchema, context)) {
       // `style: deepObject` + `explode: true` encodes each property as a
       // bracketed key on the parent, e.g. `metadata[order_id]=6735`. This is
       // the default for `deepObject` and is how Swagger/OpenAPI serializers
@@ -978,9 +1007,9 @@ function resolveSchemaPropertiesToFormData({
       } else {
         formDataValue =
           context.output.override.formData.arrayHandling ===
-            FormDataArrayHandling.EXPLODE && !nestedAncestors.has(property)
+            FormDataArrayHandling.EXPLODE && !nestedAncestors.has(valueSchema)
             ? resolveSchemaPropertiesToFormData({
-                schema: property,
+                schema: valueSchema,
                 variableName,
                 propName: nonOptionalValueKey,
                 context,
@@ -993,14 +1022,18 @@ function resolveSchemaPropertiesToFormData({
             : `${variableName}.append(\`${keyPrefix}${escapedKey}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       }
     } else if (
-      property.type === 'array' ||
-      (Array.isArray(property.type) && property.type.includes('array'))
+      valueType === 'array' ||
+      (Array.isArray(valueType) && valueType.includes('array'))
     ) {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;
-      const propertyItems = getSchemaItems(property);
+      const propertyItems = getSchemaItems(valueSchema);
       if (propertyItems) {
-        const { schema: itemSchema } = resolveSchemaRef(propertyItems, context);
+        const { schema: resolvedItem } = resolveSchemaRef(
+          propertyItems,
+          context,
+        );
+        const itemSchema = unwrapNullableSchema(resolvedItem, context);
         if (
           isEffectivelyObjectSchema(itemSchema, context) ||
           isEffectivelyArraySchema(itemSchema, context)
@@ -1023,18 +1056,16 @@ function resolveSchemaPropertiesToFormData({
               : '';
           if (resolvedValue) {
             hasNonPrimitiveChild = true;
-            const itemType = getSchemaType(itemSchema);
-            const body =
-              Array.isArray(itemType) && itemType.includes('null')
-                ? `if (value !== null && value !== undefined) {\n ${resolvedValue} }\n`
-                : resolvedValue;
+            const body = isSchemaNullable(resolvedItem)
+              ? `if (value !== null && value !== undefined) {\n ${resolvedValue} }\n`
+              : resolvedValue;
             formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
     ${body}});\n`;
           } else {
             valueStr = 'JSON.stringify(value)';
           }
         } else {
-          const itemType = getSchemaType(itemSchema);
+          const itemType = getSchemaType(resolvedItem);
           if (
             itemType === 'number' ||
             (Array.isArray(itemType) && itemType.includes('number')) ||

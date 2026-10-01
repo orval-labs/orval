@@ -1,0 +1,71 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Nullable Object Parts
+  description: >-
+    OAS 3.0 input on purpose. `resolveSpec` rewrites `nullable: true` next to
+    an `allOf` into `anyOf: [{ $ref }, { type: 'null' }]`, and the form
+    serializer has to look through that wrapper to JSON-encode the part.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost
+paths:
+  /documents:
+    post:
+      summary: Upload a document with optional metadata
+      operationId: createDocument
+      tags:
+        - documents
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentForm'
+      responses:
+        '204':
+          description: Created
+    put:
+      summary: Update a document's metadata
+      operationId: updateDocument
+      tags:
+        - documents
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DocumentForm'
+      responses:
+        '204':
+          description: Updated
+components:
+  schemas:
+    Metadata:
+      type: object
+      properties:
+        title:
+          type: string
+    DocumentForm:
+      type: object
+      required:
+        - name
+        - metadata
+      properties:
+        name:
+          type: string
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+        previous:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+        history:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Metadata'
+            nullable: true

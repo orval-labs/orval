@@ -987,6 +987,17 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  // A nullable `allOf` part reaches the form serializer as
+  // `anyOf: [{ $ref }, { type: 'null' }]` and must still be JSON-encoded.
+  'nullable-object-parts': {
+    input: '../specifications/nullable-object-parts.yaml',
+    output: {
+      target: '../generated/default/nullable-object-parts/endpoints.ts',
+      schemas: '../generated/default/nullable-object-parts/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   // #4235: `schemas.mode: 'single'` writes every TypeScript model to one
   // module, whatever `output.mode` is.
   'single-schemas-file-split': {
