@@ -137,6 +137,16 @@ async function buildVerbOption({
     operationName: typeName,
     context,
     contentType: override.contentType,
+    generatePrimitiveSchemas:
+      !override.mutator &&
+      isObject(output.schemas) &&
+      output.schemas.type === 'zod' &&
+      (output.client === 'angular'
+        ? override.angular.runtimeValidation.enabled
+        : output.client === 'angular-query'
+          ? override.query.runtimeValidation?.enabled
+          : (output.client === 'fetch' || output.httpClient === 'fetch') &&
+            override.fetch.runtimeValidation.enabled),
   });
 
   const parameters = getParameters({

@@ -21,6 +21,7 @@ import {
   getZodNamespaceImportSource,
   hasSchemaImport,
   HTTP_STATUS_CODE_SHARED_TYPES,
+  isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   jsStringLiteralEscape,
   rewriteImportsForResponseValidation,
@@ -600,6 +601,15 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
   // declared types keep the schema (input) name.
   const useValidatedOutputType =
     isValidateResponse && isZodSchemasOutput && !mutator;
+  const validatesPrimitiveResponse = response.types.success.some(
+    ({ value, schemas }) =>
+      schemas.some(
+        ({ name, schema }) =>
+          name === value &&
+          schema !== undefined &&
+          isPrimitiveResponseSchema(schema),
+      ),
+  );
 
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
@@ -923,7 +933,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isValidateResponse
       ? hasMixedSuccessContentTypes || successAlwaysJson
         ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
-  const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
+  const data = ${validatesPrimitiveResponse ? 'res.ok && ' : ''}contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes

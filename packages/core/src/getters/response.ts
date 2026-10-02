@@ -22,6 +22,7 @@ interface GetResponseOptions {
   operationName: string;
   context: ContextSpec;
   contentType?: OverrideOutputContentType;
+  generatePrimitiveSchemas?: boolean;
 }
 
 export function getResponse({
@@ -29,6 +30,7 @@ export function getResponse({
   operationName,
   context,
   contentType,
+  generatePrimitiveSchemas = false,
 }: GetResponseOptions): GetterResponse {
   const types = getResReqTypes(
     Object.entries(responses) as [
@@ -39,6 +41,7 @@ export function getResponse({
     context,
     'void',
     (type) => `${type.key}-${type.value}-${type.contentType}`,
+    generatePrimitiveSchemas,
   );
 
   const filteredTypes = filterByContentType(types, contentType);

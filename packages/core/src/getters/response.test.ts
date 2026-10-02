@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
-import type { ContextSpec, OpenApiResponsesObject } from '../types';
+import type {
+  ContextSpec,
+  OpenApiResponseObject,
+  OpenApiResponsesObject,
+  OpenApiSchemaObject,
+} from '../types';
 import { getResponse } from './response';
 
 const context: ContextSpec = createTestContextSpec({
@@ -43,6 +48,83 @@ const context: ContextSpec = createTestContextSpec({
 });
 
 describe('getResponse', () => {
+  describe('primitive response schemas', () => {
+    const jsonResponse = (schema: OpenApiSchemaObject) => ({
+      description: 'Scalar response',
+      content: { 'application/json': { schema } },
+    });
+
+    it.each<OpenApiSchemaObject>([
+      { type: 'string', minLength: 2 },
+      { type: 'integer', format: 'int64', minimum: 1 },
+      { type: ['number', 'null'] },
+      { type: 'boolean', enum: [true] },
+      { type: ['string', 'null'], enum: ['ready', 'done', null] },
+    ])(
+      'retains the original schema in a named success response: %j',
+      (schema) => {
+        const result = getResponse({
+          responses: { 200: jsonResponse(schema), 400: jsonResponse(schema) },
+          operationName: 'readValue',
+          context,
+          generatePrimitiveSchemas: true,
+        });
+
+        expect(result.definition.success).toBe('ReadValue200');
+        expect(result.imports).toContainEqual({ name: 'ReadValue200' });
+        expect(
+          result.schemas.find(({ name }) => name === 'ReadValue200')?.schema,
+        ).toEqual(schema);
+        expect(
+          result.schemas.find(({ name }) => name === 'ReadValue400')?.schema,
+        ).toBeUndefined();
+      },
+    );
+
+    it('leaves primitive definitions unchanged when not requested', () => {
+      const result = getResponse({
+        responses: { 200: jsonResponse({ type: 'integer' }) },
+        operationName: 'readValue',
+        context,
+      });
+      expect(result.definition.success).toBe('number');
+      expect(result.schemas).toEqual([]);
+    });
+
+    it.each<OpenApiResponseObject>([
+      { description: 'No content' },
+      jsonResponse({}),
+      jsonResponse({ type: 'array', items: { type: 'string' } }),
+      {
+        description: 'Plain text',
+        content: { 'text/plain': { schema: { type: 'string' as const } } },
+      },
+      {
+        description: 'NDJSON stream',
+        content: {
+          'application/nd-json': { schema: { type: 'string' as const } },
+        },
+      },
+      {
+        description: 'NDJSON stream',
+        content: {
+          'application/x-ndjson': { schema: { type: 'string' as const } },
+        },
+      },
+    ])(
+      'does not synthesize schemas for empty, unknown, array, text or streaming responses',
+      (response) => {
+        const result = getResponse({
+          responses: { 200: response },
+          operationName: 'readValue',
+          context,
+          generatePrimitiveSchemas: true,
+        });
+        expect(result.schemas).toEqual([]);
+      },
+    );
+  });
+
   describe('multiple status codes with same schema', () => {
     it('should generate separate types for each status code when using custom uniqueKey function', () => {
       const responses: OpenApiResponsesObject = {

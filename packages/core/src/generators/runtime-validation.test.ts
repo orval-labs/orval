@@ -1,16 +1,46 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import type { OpenApiSchemaObject } from '../types';
 import {
   emitRequestBodyValidation,
   emitResponseValidation,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   hasSchemaImport,
+  isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
   rewriteImportsForResponseValidation,
 } from './runtime-validation';
+
+describe('isPrimitiveResponseSchema', () => {
+  it.each<OpenApiSchemaObject>([
+    { type: 'string', minLength: 2 },
+    { type: 'integer', format: 'int64', minimum: 1 },
+    { type: 'number' },
+    { type: 'boolean', enum: [true] },
+    { type: ['string', 'null'], enum: ['ready', 'done', null] },
+    { anyOf: [{ type: 'integer' }, { type: 'null' }] },
+    { enum: ['ready', 'done'] },
+    { const: false },
+  ])('recognizes a scalar source schema: %j', (schema) => {
+    expect(isPrimitiveResponseSchema(schema)).toBe(true);
+  });
+
+  it.each<OpenApiSchemaObject>([
+    true,
+    false,
+    {},
+    { $ref: '#/components/schemas/Count' },
+    { type: 'array', items: { type: 'string' } },
+    { type: 'object', properties: { count: { type: 'integer' } } },
+    { anyOf: [{ type: 'string' }, { type: 'object' }] },
+    { const: { count: 1 } },
+  ])('does not guess a scalar schema: %j', (schema) => {
+    expect(isPrimitiveResponseSchema(schema)).toBe(false);
+  });
+});
 
 describe('emitResponseValidation', () => {
   describe('rxjs-map context', () => {

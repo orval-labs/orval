@@ -4,6 +4,7 @@ import type {
   NormalizedAngularRuntimeValidation,
   NormalizedOverrideOutput,
   NormalizedRuntimeValidation,
+  OpenApiSchemaObject,
   RuntimeValidation,
   RuntimeValidationStrategy,
 } from '../types';
@@ -195,8 +196,9 @@ export const normalizeAngularRuntimeValidation = (
 };
 
 /**
- * Response types the runtime-validation generators never validate: primitives
- * and `void`/`unknown` have no generated Zod schema to parse against.
+ * Bare TypeScript definitions without a schema binding. When enabled, inline
+ * scalar responses get named schemas before reaching the client generators;
+ * `void`/`unknown` still have no schema to parse against.
  */
 const RESPONSE_PRIMITIVE_TYPES = new Set([
   'string',
@@ -212,6 +214,46 @@ const RESPONSE_PRIMITIVE_TYPES = new Set([
  */
 export const isPrimitiveResponseType = (t: string | undefined): boolean =>
   t !== undefined && RESPONSE_PRIMITIVE_TYPES.has(t);
+
+const RESPONSE_SCALAR_SCHEMA_TYPES = new Set([
+  'string',
+  'number',
+  'integer',
+  'boolean',
+  'null',
+]);
+
+/**
+ * Whether an inline response describes scalar JSON data. Inspect the source
+ * schema rather than its TypeScript definition: `integer` and `number` both
+ * become `number`, while nullable scalars and enums need their full schema.
+ * Missing/unconstrained schemas and arrays are deliberately left alone.
+ */
+export const isPrimitiveResponseSchema = (
+  schema: OpenApiSchemaObject,
+): boolean => {
+  if (typeof schema !== 'object' || '$ref' in schema) return false;
+
+  if (schema.type) {
+    const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+    return (
+      types.length > 0 &&
+      types.every((type) => RESPONSE_SCALAR_SCHEMA_TYPES.has(type))
+    );
+  }
+
+  const combined = schema.anyOf ?? schema.oneOf ?? schema.allOf;
+  if (combined) {
+    return combined.length > 0 && combined.every(isPrimitiveResponseSchema);
+  }
+
+  const isScalar = (value: unknown) =>
+    value === null || ['string', 'number', 'boolean'].includes(typeof value);
+  if (schema.enum) {
+    return schema.enum.length > 0 && schema.enum.every(isScalar);
+  }
+  return 'const' in schema && isScalar(schema.const);
+};
 
 /**
  * Indicates whether the response imports carry a schema for the given type

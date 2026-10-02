@@ -4,6 +4,7 @@ import {
 } from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
 
+import { isPrimitiveResponseSchema } from '../generators/runtime-validation';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
@@ -75,6 +76,7 @@ interface GetResReqContentTypesOptions {
   context: ContextSpec;
   isFormData?: boolean;
   contentType: string;
+  generatePrimitiveSchema?: boolean;
 }
 
 function getResReqContentTypes({
@@ -83,6 +85,7 @@ function getResReqContentTypes({
   context,
   isFormData,
   contentType,
+  generatePrimitiveSchema,
 }: GetResReqContentTypesOptions) {
   // `false` is a JSON Schema that admits nothing (`never`). Only a missing
   // schema means this media type has no type to emit.
@@ -117,6 +120,38 @@ function getResReqContentTypes({
     };
   }
 
+  if (
+    generatePrimitiveSchema &&
+    propName &&
+    isPrimitiveResponseSchema(mediaType.schema) &&
+    resolvedObject.value !== 'Blob'
+  ) {
+    // Use the normal schema writers, so Zod version/variant, integer checks,
+    // formats, enums and nullability follow the same rules as components.
+    const existingSchema = resolvedObject.schemas.find(
+      ({ name }) => name === propName,
+    );
+    return {
+      ...resolvedObject,
+      value: propName,
+      imports: [{ name: propName }],
+      schemas: [
+        ...resolvedObject.schemas.filter(({ name }) => name !== propName),
+        {
+          name: propName,
+          model:
+            existingSchema?.model ??
+            `export type ${propName} = ${resolvedObject.value};\n`,
+          imports: existingSchema?.imports ?? resolvedObject.imports,
+          dependencies:
+            existingSchema?.dependencies ?? resolvedObject.dependencies,
+          kind: existingSchema?.kind ?? ('schema' as const),
+          schema: resolvedObject.originalSchema,
+        },
+      ],
+    };
+  }
+
   return resolvedObject;
 }
 
@@ -133,6 +168,7 @@ export function getResReqTypes(
     index: number,
     data: ResReqTypesValue[],
   ) => unknown = (item) => item.value,
+  generatePrimitiveSchemas = false,
 ): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
@@ -308,6 +344,12 @@ export function getResReqTypes(
               context,
               isFormData,
               contentType,
+              generatePrimitiveSchema:
+                generatePrimitiveSchemas &&
+                key.startsWith('2') &&
+                contentType.includes('json') &&
+                !contentType.includes('ndjson') &&
+                !contentType.includes('nd-json'),
             });
 
             if (!resolvedValue) {
