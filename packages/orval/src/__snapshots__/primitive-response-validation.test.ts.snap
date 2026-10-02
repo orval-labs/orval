@@ -1,0 +1,138 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks angular HttpClient output 1`] = `
+{
+  "parse": [
+    "    ).pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ReadValue200.parse(event.body) }) : event));",
+    "    ).pipe(map(response => response.clone({ body: ReadValue200.parse(response.body) })));",
+    "    ).pipe(map(data => ReadValue200.parse(data)));",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks angular httpResource output 1`] = `
+{
+  "parse": [
+    "    parse: ReadValue200.parse",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks angular-query output 1`] = `
+{
+  "parse": [
+    "    const request$ = http.get<ReadValue200Output>(url).pipe(map(data => ReadValue200.parse(data)));",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks fetch output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks react-query output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks solid-query output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks svelte-query output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks swr output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
+
+exports[`primitive response runtime validation (#4138) > wires and typechecks vue-query output 1`] = `
+{
+  "parse": [
+    "  const data = res.ok && contentType.includes('json') ? ReadValue200.parse(parsedBody) : parsedBody",
+  ],
+  "schema": "import * as zod from 'zod';
+
+export const ReadValue200 = zod.boolean()
+
+export type ReadValue200 = zod.input<typeof ReadValue200>;
+export type ReadValue200Output = zod.output<typeof ReadValue200>;
+",
+}
+`;
