@@ -40,6 +40,10 @@ export const CreatePetsBody = S.Struct({
 });
 ```
 
+## Effect Version
+
+Orval reads the `effect` version installed in your project and emits Effect 3 or Effect 4 Schema syntax to match. When no `effect` package is found, it emits Effect 4. Set [`override.effect.version`](/docs/reference/configuration/output#overrideeffect) to pin the target.
+
 ## Usage
 
 ### Decoding Data
@@ -67,17 +71,18 @@ const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
 ### Safe Decoding
 
 ```ts
-import { Schema as S } from 'effect';
-import { Either } from 'effect';
+import { Exit, Schema as S } from 'effect';
 
-const result = S.decodeUnknownEither(CreatePetsBody)(unknownData);
+const result = S.decodeUnknownExit(CreatePetsBody)(unknownData);
 
-if (Either.isRight(result)) {
-  console.log(result.right);
+if (Exit.isSuccess(result)) {
+  console.log(result.value);
 } else {
-  console.error(result.left);
+  console.error(result.cause);
 }
 ```
+
+With Effect 3, use `S.decodeUnknownEither` and `Either.isRight` instead.
 
 ## Combining with HTTP Clients
 
