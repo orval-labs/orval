@@ -505,6 +505,7 @@ function normalizeEffectOptions(
     generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
     useBrandedTypes: effect?.useBrandedTypes ?? false,
     exactOptional: effect?.exactOptional ?? false,
+    version: effect?.version ?? 'auto',
   };
 }
 

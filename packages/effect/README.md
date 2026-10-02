@@ -12,7 +12,7 @@ npm install -D @orval/effect
 npm install effect
 ```
 
-`effect` is a peer dependency (`>=3.10`). `@orval/effect` does not bundle it.
+`effect` is a peer dependency (`>=3.10`, Effect 4 included). `@orval/effect` does not bundle it, and generates Effect 3 or Effect 4 syntax to match the installed version.
 
 ## Usage
 

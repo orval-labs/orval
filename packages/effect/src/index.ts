@@ -18,12 +18,15 @@ import {
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
+  type NormalizedOverrideOutput,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
+  type OutputHttpClient,
+  type PackageJson,
   pascal,
   resolveRef,
   toObjectSchema,
@@ -32,25 +35,44 @@ import {
 } from '@orval/core';
 import { unique } from '@orval/core';
 
+import { resolveIsEffectV4 } from './compatible-v4';
 import { logger } from './logger';
 
+const effectImport = (name: string, alias?: string) => ({
+  default: false,
+  name,
+  syntheticDefaultImport: false,
+  namespaceImport: false,
+  values: true,
+  ...(alias ? { alias } : {}),
+});
+
 const EFFECT_DEPENDENCIES: GeneratorDependency[] = [
+  { exports: [effectImport('Schema', 'S')], dependency: 'effect' },
+];
+
+const EFFECT_WITH_EFFECT_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [
-      {
-        default: false,
-        name: 'Schema',
-        syntheticDefaultImport: false,
-        namespaceImport: false,
-        values: true,
-        alias: 'S',
-      },
-    ],
+    exports: [effectImport('Schema', 'S'), effectImport('Effect')],
     dependency: 'effect',
   },
 ];
 
-export const getEffectDependencies = () => EFFECT_DEPENDENCIES;
+// Effect 4 defaults are decoding effects (`Effect.succeed`), so a file that
+// has one also imports `Effect`. Every parameter is optional so callers that
+// pass none keep the Effect 3 import.
+export const getEffectDependencies = (
+  _hasGlobalMutator?: boolean,
+  _hasParamsSerializerOptions?: boolean,
+  _packageJson?: PackageJson,
+  _httpClient?: OutputHttpClient,
+  _hasTagsMutator?: boolean,
+  _override?: NormalizedOverrideOutput,
+  implementation?: string,
+): GeneratorDependency[] =>
+  implementation?.includes('Effect.succeed(')
+    ? EFFECT_WITH_EFFECT_DEPENDENCIES
+    : EFFECT_DEPENDENCIES;
 
 const possibleSchemaTypes = new Set([
   'integer',
@@ -704,51 +726,68 @@ const FILTERS = new Set([
 ]);
 
 /**
- * Renders a single filter for a `.pipe(...)` group, choosing the right
- * Effect Schema function based on the base type (string/number/array).
+ * Renders a single filter for a `.pipe(...)` (Effect 3) or `.check(...)`
+ * (Effect 4) group, choosing the right Effect Schema function based on the
+ * base type (string/number/array).
  */
 const renderFilter = (
   fn: string,
   arg: string,
   baseType: 'string' | 'number' | 'array' | 'unknown',
+  isEffectV4: boolean,
 ): string => {
+  const filter = (v3Name: string, v4Name: string, filterArg = arg) =>
+    `S.${isEffectV4 ? v4Name : v3Name}(${filterArg})`;
+
   switch (fn) {
     case 'min': {
-      if (baseType === 'string') return `S.minLength(${arg})`;
-      if (baseType === 'array') return `S.minItems(${arg})`;
-      return `S.greaterThanOrEqualTo(${arg})`;
+      if (baseType === 'string') return filter('minLength', 'isMinLength');
+      if (baseType === 'array') return filter('minItems', 'isMinLength');
+      return filter('greaterThanOrEqualTo', 'isGreaterThanOrEqualTo');
     }
     case 'max': {
-      if (baseType === 'string') return `S.maxLength(${arg})`;
-      if (baseType === 'array') return `S.maxItems(${arg})`;
-      return `S.lessThanOrEqualTo(${arg})`;
+      if (baseType === 'string') return filter('maxLength', 'isMaxLength');
+      if (baseType === 'array') return filter('maxItems', 'isMaxLength');
+      return filter('lessThanOrEqualTo', 'isLessThanOrEqualTo');
     }
     case 'gt': {
-      return `S.greaterThan(${arg})`;
+      return filter('greaterThan', 'isGreaterThan');
     }
     case 'lt': {
-      return `S.lessThan(${arg})`;
+      return filter('lessThan', 'isLessThan');
     }
     case 'multipleOf': {
-      return `S.multipleOf(${arg})`;
+      return filter('multipleOf', 'isMultipleOf');
     }
     case 'regex': {
-      return `S.pattern(${arg})`;
+      return filter('pattern', 'isPattern');
     }
     case 'email': {
-      return String.raw`S.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)`;
+      return filter(
+        'pattern',
+        'isPattern',
+        String.raw`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`,
+      );
     }
     case 'uuid': {
-      return `S.pattern(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)`;
+      return filter(
+        'pattern',
+        'isPattern',
+        '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/',
+      );
     }
     case 'url': {
-      return String.raw`S.pattern(/^https?:\/\/.+/)`;
+      return filter('pattern', 'isPattern', String.raw`/^https?:\/\/.+/`);
     }
     case 'dateFormat': {
-      return String.raw`S.pattern(/^\d{4}-\d{2}-\d{2}$/)`;
+      return filter('pattern', 'isPattern', String.raw`/^\d{4}-\d{2}-\d{2}$/`);
     }
     case 'dateTimeFormat': {
-      return String.raw`S.pattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/)`;
+      return filter(
+        'pattern',
+        'isPattern',
+        String.raw`/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/`,
+      );
     }
     default: {
       return '';
@@ -786,6 +825,7 @@ export const parseEffectValidationSchemaDefinition = (
   strict: boolean,
   brandName?: string,
   exactOptional = false,
+  isEffectV4 = false,
 ): { effect: string; consts: string } => {
   if (input.functions.length === 0) {
     return { effect: '', consts: '' };
@@ -828,7 +868,7 @@ export const parseEffectValidationSchemaDefinition = (
         continue;
       }
       if (FILTERS.has(fn)) {
-        filters.push(renderFilter(fn, formatArg(arg), baseType));
+        filters.push(renderFilter(fn, formatArg(arg), baseType, isEffectV4));
         continue;
       }
       if (
@@ -846,7 +886,10 @@ export const parseEffectValidationSchemaDefinition = (
 
     if (!base) base = 'S.Unknown';
 
-    let out = filters.length > 0 ? `${base}.pipe(${filters.join(', ')})` : base;
+    let out =
+      filters.length > 0
+        ? `${base}.${isEffectV4 ? 'check' : 'pipe'}(${filters.join(', ')})`
+        : base;
 
     let hasDefault = false;
     let defaultValue: unknown;
@@ -893,17 +936,22 @@ export const parseEffectValidationSchemaDefinition = (
 
     if (isStructProperty) {
       if (hasDefault) {
-        out = `S.optionalWith(${out}, { default: () => ${defaultValue as string} })`;
+        out = isEffectV4
+          ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
+          : `S.optionalWith(${out}, { default: () => ${defaultValue as string} })`;
       } else if (isOptional || isNullish) {
         // `{ exact: true }` narrows a plain optional property to `{ x?: T }` for
         // `exactOptionalPropertyTypes` consumers instead of `{ x?: T | undefined }`.
         // Only `.optional()` is narrowed (matching the zod generator): a nullish
         // field intentionally admits `undefined`, which is legal under the flag, so
         // it keeps `S.optional`.
-        out =
-          exactOptional && isOptional
-            ? `S.optionalWith(${out}, { exact: true })`
-            : `S.optional(${out})`;
+        if (exactOptional && isOptional) {
+          out = isEffectV4
+            ? `S.optionalKey(${out})`
+            : `S.optionalWith(${out}, { exact: true })`;
+        } else {
+          out = `S.optional(${out})`;
+        }
       }
     } else {
       if (isNullish) {
@@ -914,7 +962,7 @@ export const parseEffectValidationSchemaDefinition = (
     }
 
     if (description !== undefined) {
-      out = `${out}.annotations({ description: ${description as string} })`;
+      out = `${out}.${isEffectV4 ? 'annotate' : 'annotations'}({ description: ${description as string} })`;
     }
 
     return out;
@@ -931,6 +979,45 @@ export const parseEffectValidationSchemaDefinition = (
     if (isNumber(value) || isBoolean(value)) return `${value}`;
     return '';
   };
+
+  // A description or default on an allOf member is not rendered once its
+  // fields are merged, so it does not stop the member from being spread.
+  const structVariants = (
+    definition: EffectValidationSchemaDefinition,
+  ): string[] => {
+    const functions = definition.functions.filter(
+      ([fn]) => fn !== 'describe' && fn !== 'default',
+    );
+    const [fn, arg] = functions[0] ?? [];
+    if (
+      functions.length === 1 &&
+      (fn === 'oneOf' || fn === 'anyOf' || fn === 'allOf')
+    ) {
+      appendConstsChunk(definition.consts.join('\n'));
+      const members = arg as EffectValidationSchemaDefinition[];
+      return fn === 'allOf'
+        ? allOfVariants(members)
+        : members.flatMap((member) => structVariants(member));
+    }
+    const rendered = renderSchema({ ...definition, functions }, false);
+    if (functions.length !== 1 || (fn !== 'object' && fn !== 'strictObject')) {
+      throw new Error(
+        `Effect 4 output merges allOf members as structs, and this member is not one: ${rendered}`,
+      );
+    }
+    return [rendered];
+  };
+
+  const allOfVariants = (members: EffectValidationSchemaDefinition[]) =>
+    members
+      .map((member) => structVariants(member))
+      .reduce((targets, sources) =>
+        targets.flatMap((target) =>
+          sources.map(
+            (source) => `${target}.pipe(S.fieldsAssign(${source}.fields))`,
+          ),
+        ),
+      );
 
   const renderConstructor = (fn: string, arg: unknown): string => {
     switch (fn) {
@@ -957,17 +1044,22 @@ export const parseEffectValidationSchemaDefinition = (
         return 'S.DateFromString';
       }
       case 'literal': {
+        // Effect 4 has no `null` literal: `S.Null` takes its place.
+        if (isEffectV4 && arg === null) return 'S.Null';
         return `S.Literal(${arg as string})`;
       }
       case 'enum': {
-        // arg is "[ 'a', 'b' ]" — strip brackets to spread as Literal args
+        // arg is "[ 'a', 'b' ]": Effect 4 takes the array, Effect 3 the spread.
+        if (isEffectV4) return `S.Literals(${arg as string})`;
         return `S.Literal(${(arg as string).replaceAll(/^\[|\]$/g, '')})`;
       }
       case 'instanceof': {
         return `S.instanceOf(${arg as string})`;
       }
       case 'fileOrString': {
-        return 'S.Union(S.instanceOf(File), S.String)';
+        return isEffectV4
+          ? 'S.Union([S.instanceOf(File), S.String])'
+          : 'S.Union(S.instanceOf(File), S.String)';
       }
       case 'array': {
         const inner = renderSchema(
@@ -980,7 +1072,7 @@ export const parseEffectValidationSchemaDefinition = (
         const items = (arg as EffectValidationSchemaDefinition[])
           .map((d) => renderSchema(d, false))
           .join(', ');
-        return `S.Tuple(${items})`;
+        return isEffectV4 ? `S.Tuple([${items}])` : `S.Tuple(${items})`;
       }
       case 'object':
       case 'strictObject':
@@ -992,7 +1084,9 @@ export const parseEffectValidationSchemaDefinition = (
         });
         const struct = `S.Struct({\n${entries.join(',\n')}\n})`;
         if (fn === 'looseObject') {
-          return `S.extend(${struct}, S.Record({ key: S.String, value: S.Unknown }))`;
+          return isEffectV4
+            ? `S.StructWithRest(${struct}, [S.Record(S.String, S.Unknown)])`
+            : `S.extend(${struct}, S.Record({ key: S.String, value: S.Unknown }))`;
         }
         return struct;
       }
@@ -1001,7 +1095,9 @@ export const parseEffectValidationSchemaDefinition = (
           arg as EffectValidationSchemaDefinition,
           false,
         );
-        return `S.Record({ key: S.String, value: ${inner} })`;
+        return isEffectV4
+          ? `S.Record(S.String, ${inner})`
+          : `S.Record({ key: S.String, value: ${inner} })`;
       }
       case 'oneOf':
       case 'anyOf': {
@@ -1010,17 +1106,26 @@ export const parseEffectValidationSchemaDefinition = (
           return renderSchema(args[0], false);
         }
         const items = args.map((d) => renderSchema(d, false)).join(', ');
-        return `S.Union(${items})`;
+        return isEffectV4 ? `S.Union([${items}])` : `S.Union(${items})`;
       }
       case 'allOf': {
         const args = arg as EffectValidationSchemaDefinition[];
         if (args.length === 1) {
           return renderSchema(args[0], false);
         }
-        // S.extend takes pairs; chain via reduce.
-        return args
-          .map((d) => renderSchema(d, false))
-          .reduce((acc, cur) => `S.extend(${acc}, ${cur})`);
+        if (!isEffectV4) {
+          // S.extend takes pairs; chain via reduce.
+          return args
+            .map((d) => renderSchema(d, false))
+            .reduce((acc, cur) => `S.extend(${acc}, ${cur})`);
+        }
+        // Effect 4 has no `extend`: assign each later member's fields to the
+        // first, distributed over union members, into a struct or a union of
+        // structs.
+        const variants = allOfVariants(args);
+        return variants.length === 1
+          ? variants[0]
+          : `S.Union([${variants.join(', ')}])`;
       }
       default: {
         return 'S.Unknown';
@@ -1526,6 +1631,34 @@ const generateEffectRoute = (
   const pascalTypeName = pascal(typeName);
   const useBrandedTypes = effectOptions.useBrandedTypes;
   const brand = (name: string) => (useBrandedTypes ? name : undefined);
+  // `version` is output-wide, like `override.zod.version`: an operation or tag
+  // override must not switch one file between Effect 3 and Effect 4.
+  const isEffectV4 = resolveIsEffectV4(
+    context.output.override.effect.version,
+    context.output.packageJson,
+  );
+  const arrayRules = (rules?: { min?: number; max?: number }) => {
+    const checks = [
+      ...(rules?.min
+        ? [
+            isEffectV4
+              ? `S.isMinLength(${rules.min})`
+              : `S.minItems(${rules.min})`,
+          ]
+        : []),
+      ...(rules?.max
+        ? [
+            isEffectV4
+              ? `S.isMaxLength(${rules.max})`
+              : `S.maxItems(${rules.max})`,
+          ]
+        : []),
+    ];
+    if (checks.length === 0) return '';
+    return isEffectV4
+      ? `.check(${checks.join(', ')})`
+      : checks.map((check) => `.pipe(${check})`).join('');
+  };
 
   const inputParams = parseEffectValidationSchemaDefinition(
     parsedParameters.params,
@@ -1533,6 +1666,7 @@ const generateEffectRoute = (
     effectOptions.strict.param,
     brand(`${pascalTypeName}Params`),
     effectOptions.exactOptional,
+    isEffectV4,
   );
   const inputQueryParams = parseEffectValidationSchemaDefinition(
     parsedParameters.queryParams,
@@ -1540,6 +1674,7 @@ const generateEffectRoute = (
     effectOptions.strict.query,
     brand(`${pascalTypeName}QueryParams`),
     effectOptions.exactOptional,
+    isEffectV4,
   );
   const inputHeaders = parseEffectValidationSchemaDefinition(
     parsedParameters.headers,
@@ -1547,6 +1682,7 @@ const generateEffectRoute = (
     effectOptions.strict.header,
     brand(`${pascalTypeName}Header`),
     effectOptions.exactOptional,
+    isEffectV4,
   );
   const inputBody = parseEffectValidationSchemaDefinition(
     parsedBody.input,
@@ -1554,6 +1690,7 @@ const generateEffectRoute = (
     effectOptions.strict.body,
     brand(`${pascalTypeName}Body`),
     effectOptions.exactOptional,
+    isEffectV4,
   );
   const inputResponses = parsedResponses.map((parsedResponse, idx) =>
     parseEffectValidationSchemaDefinition(
@@ -1562,6 +1699,7 @@ const generateEffectRoute = (
       effectOptions.strict.response,
       brand(pascal(`${typeName}-${responses[idx][0]}-response`)),
       effectOptions.exactOptional,
+      isEffectV4,
     ),
   );
 
@@ -1596,15 +1734,7 @@ const generateEffectRoute = (
         ? [
             parsedBody.isArray
               ? `export const ${pascalTypeName}BodyItem = ${inputBody.effect}
-export const ${pascalTypeName}Body = S.Array(${pascalTypeName}BodyItem)${
-                  parsedBody.rules?.min
-                    ? `.pipe(S.minItems(${parsedBody.rules.min}))`
-                    : ''
-                }${
-                  parsedBody.rules?.max
-                    ? `.pipe(S.maxItems(${parsedBody.rules.max}))`
-                    : ''
-                }`
+export const ${pascalTypeName}Body = S.Array(${pascalTypeName}BodyItem)${arrayRules(parsedBody.rules)}`
               : `export const ${pascalTypeName}Body = ${inputBody.effect}`,
           ]
         : []),
@@ -1618,15 +1748,7 @@ export const ${pascalTypeName}Body = S.Array(${pascalTypeName}BodyItem)${
             ? [
                 parsedResponses[index].isArray
                   ? `export const ${operationResponse}Item = ${inputResponse.effect}
-export const ${operationResponse} = S.Array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.pipe(S.minItems(${parsedResponses[index].rules.min}))`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.pipe(S.maxItems(${parsedResponses[index].rules.max}))`
-                        : ''
-                    }`
+export const ${operationResponse} = S.Array(${operationResponse}Item)${arrayRules(parsedResponses[index].rules)}`
                   : `export const ${operationResponse} = ${inputResponse.effect}`,
               ]
             : []),
