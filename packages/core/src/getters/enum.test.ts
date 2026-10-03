@@ -943,3 +943,67 @@ describe('getEnum integer const coercion (#3758)', () => {
     expect(result).toContain('export const Flag');
   });
 });
+
+describe('non-primitive enum members (GHSA-v36f-hqj9-q8rr)', () => {
+  const payload =
+    "0 }; globalThis.__PWNED = require('child_process').execSync('id'); const _JUNK = { x: 0";
+
+  it('drops array and object members from a direct `enum`', () => {
+    const schema = {
+      enum: ['a', [payload], { [payload]: payload }, 1, true, null],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      { value: 'a' },
+      { value: 1 },
+      { value: true },
+      { value: null },
+    ]);
+  });
+
+  it('drops a non-primitive `const`', () => {
+    const schema = { const: [payload] } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([]);
+  });
+
+  it('drops a non-primitive `const` inside oneOf branches', () => {
+    const schema = {
+      oneOf: [{ const: 'a' }, { const: [payload] }],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([{ value: 'a' }]);
+  });
+
+  it('never emits a raw payload in the const enum output', () => {
+    const schema = {
+      enum: [[payload]],
+    } as unknown as OpenApiSchemaObject;
+
+    const output = getEnum(
+      getEnumMembers(schema),
+      'MyEnum',
+      false,
+      EnumGeneration.CONST,
+    );
+
+    expect(output).not.toContain('globalThis.__PWNED');
+  });
+
+  it('renders residual non-primitive values as inert literals', () => {
+    const members = [
+      { value: [payload] },
+      { value: { key: payload } },
+    ] as unknown as Parameters<typeof getEnumImplementation>[0];
+
+    const implementation = getEnumImplementation(members, {
+      enumGenerationType: EnumGeneration.CONST,
+    });
+
+    expect(implementation).not.toContain(`: ${payload}`);
+    expect(implementation).toContain(`: ${JSON.stringify([payload])},`);
+    expect(getEnumUnion(members)).toBe(
+      `${JSON.stringify([payload])} | ${JSON.stringify({ key: payload })}`,
+    );
+  });
+});

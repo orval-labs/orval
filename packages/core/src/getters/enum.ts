@@ -6,10 +6,10 @@ import { EnumGeneration, type OpenApiSchemaObject } from '../types';
 import {
   conventionName,
   isNumeric,
-  isString,
   jsStringEscape,
   jsStringLiteralEscape,
   sanitize,
+  toJsLiteral,
 } from '../utils';
 
 type EnumConstBranch = {
@@ -533,16 +533,23 @@ function getEnumMembersFromBranches(
   return dedupeEnumMembersByValue(members);
 }
 
+/**
+ * `enum` and `const` accept any JSON value, but only primitives can become enum
+ * members. The document is untrusted, so check the runtime type rather than
+ * trusting the `SchemaEnumValue` cast: an array or object member would
+ * otherwise be spliced raw into the generated module.
+ */
+function isSchemaEnumValue(value: unknown): value is SchemaEnumValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null
+  );
+}
+
 function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is SchemaEnumValue =>
-          typeof item === 'string' ||
-          typeof item === 'number' ||
-          typeof item === 'boolean' ||
-          item === null,
-      )
-    : [];
+  return Array.isArray(value) ? value.filter(isSchemaEnumValue) : [];
 }
 
 function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
@@ -550,6 +557,10 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
     return [];
   }
   if ('const' in schemaObject) {
+    if (!isSchemaEnumValue(schemaObject.const)) {
+      return [];
+    }
+
     return [
       {
         value: schemaObject.const as SchemaEnumValue,
@@ -565,7 +576,7 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
   }
 
   if (schemaObject.enum) {
-    const enumValues = schemaObject.enum as SchemaEnumValue[];
+    const enumValues = getSchemaEnumValues(schemaObject.enum);
 
     return enumValues.map((value) => ({
       value,
@@ -644,9 +655,7 @@ function getEnumUnionFromSchema(schema: OpenApiSchemaObject | undefined) {
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
     .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
-    .map((val) =>
-      isString(val) ? `'${jsStringLiteralEscape(val)}'` : String(val),
-    )
+    .map((val) => toJsLiteral(val))
     .join(' | ');
 }
 
@@ -690,11 +699,7 @@ function replaceSpecialCharacters(key: string): string {
 }
 
 function stringifyEnumValue(value: SchemaEnumValue): string {
-  if (value === null) {
-    return 'null';
-  }
-
-  return isString(value) ? `'${jsStringLiteralEscape(value)}'` : String(value);
+  return toJsLiteral(value);
 }
 
 const toNumberKey = (value: string) => {
@@ -749,7 +754,7 @@ function deriveEnumKey(
 function hasConst(
   branch: EnumConstBranch,
 ): branch is EnumConstBranch & { const: SchemaEnumValue } {
-  return 'const' in branch;
+  return 'const' in branch && isSchemaEnumValue(branch.const);
 }
 
 function dedupeEnumMembersByValue(members: EnumMember[]): EnumMember[] {
