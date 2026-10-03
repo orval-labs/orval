@@ -15,6 +15,7 @@ import {
   setLogLevel,
   setProjectName,
   withReporter,
+  type WorkspaceExportsFn,
 } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
@@ -2879,6 +2880,103 @@ describe('generateSpec - workspace barrel idempotency (#3756)', () => {
       expect(afterRemoval).toContain('./gen/api/base/endpoints');
       expect(afterRemoval).not.toContain('./gen/api/master/endpoints');
       expect(afterRemoval).not.toContain('./gen/api/master/model');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generateSpec - workspaceExports (#2044)', () => {
+  const readSpecifiers = async (barrel: string) =>
+    [
+      ...(await fs.promises.readFile(barrel, 'utf8')).matchAll(
+        /export \* from ['"]([^'"]+)['"]/g,
+      ),
+    ].map((m) => m[1]);
+
+  const buildOptions = (
+    workspace: string,
+    workspaceExports?: WorkspaceExportsFn,
+  ) =>
+    normalizeOptions(
+      {
+        input: { target: ACTIVITY_SPEC },
+        output: {
+          workspace: './gen',
+          target: './endpoints.ts',
+          schemas: './model',
+          client: 'axios',
+          workspaceExports,
+        },
+      },
+      workspace,
+    );
+
+  it('filters generated exports and appends custom ones', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+
+    try {
+      await fs.promises.mkdir(path.dirname(barrel), { recursive: true });
+      await fs.promises.writeFile(
+        path.join(workspace, 'gen', 'custom.ts'),
+        'export const custom = 1;\n',
+      );
+
+      const received: string[][] = [];
+      await generateSpec(
+        workspace,
+        await buildOptions(workspace, (exports) => {
+          received.push(exports);
+          return [...exports.filter((e) => e !== './model'), './custom'];
+        }),
+        'default',
+      );
+
+      expect(received).toEqual([['./endpoints', './model']]);
+      expect(await readSpecifiers(barrel)).toEqual(['./endpoints', './custom']);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('removes a filtered export left in the barrel by a previous run', async () => {
+    const workspace = await createTempWorkspace();
+    const barrel = path.join(workspace, 'gen', 'index.ts');
+
+    try {
+      await generateSpec(workspace, await buildOptions(workspace), 'default');
+      expect(await readSpecifiers(barrel)).toEqual(['./endpoints', './model']);
+
+      await generateSpec(
+        workspace,
+        await buildOptions(workspace, (exports) =>
+          exports.filter((e) => e !== './model'),
+        ),
+        'default',
+      );
+
+      expect(fs.existsSync(path.join(workspace, 'gen', 'model'))).toBe(true);
+      expect(await readSpecifiers(barrel)).toEqual(['./endpoints']);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a non-array return value', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        generateSpec(
+          workspace,
+          await buildOptions(
+            workspace,
+            (() => './endpoints') as unknown as WorkspaceExportsFn,
+          ),
+          'default',
+        ),
+      ).rejects.toThrow('`output.workspaceExports` must return an array');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -39,12 +39,15 @@ export async function reExportSpecifierExists(
 }
 
 // Workspace barrel: line-preserving, prune stale exports on disk state,
-// conditional write (#3675, #3756, #3763).
+// conditional write (#3675, #3756, #3763). `excluded` specifiers are dropped
+// from existing content even when they still resolve, so exports filtered out
+// by `workspaceExports` (#2044) don't survive from a previous run.
 export async function reconcileWorkspaceBarrel(
   filePath: string,
   specifiers: string[],
   fileExtension: string,
   importExtension: string,
+  excluded: ReadonlySet<string> = new Set(),
 ): Promise<void> {
   let existingContent: string;
   try {
@@ -67,7 +70,7 @@ export async function reconcileWorkspaceBarrel(
   );
   const desired = new Set<string>(specifiers);
   declared.forEach((s, i) => {
-    if (resolvable[i]) desired.add(s);
+    if (resolvable[i] && !excluded.has(s)) desired.add(s);
   });
 
   const seen = new Set<string>();

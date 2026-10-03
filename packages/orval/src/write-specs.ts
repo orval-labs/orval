@@ -43,6 +43,7 @@ import {
   writeTagsOperationsMode,
   writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
+  type WorkspaceExportsFn,
 } from '@orval/core';
 import { execa, ExecaError } from 'execa';
 import type { OptionsReader, TypeDocOptions } from 'typedoc';
@@ -598,6 +599,19 @@ function shouldGenerateSchemas(
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
     shouldGenerateZodSchemasInline(output, hasOperations)
   );
+}
+
+function applyWorkspaceExports(
+  workspaceExports: WorkspaceExportsFn,
+  generatedExports: string[],
+): string[] {
+  const result = workspaceExports([...generatedExports]);
+  if (!Array.isArray(result) || !result.every((s) => isString(s))) {
+    throw new TypeError(
+      '`output.workspaceExports` must return an array of module specifiers',
+    );
+  }
+  return [...new Set(result)];
 }
 
 function getImplementationPathsForIndex(
@@ -1156,11 +1170,17 @@ async function writeSpecsInternal(
       // style between runs can't reintroduce duplicates (#3756). Stale
       // relative exports whose targets no longer exist are pruned so removed
       // operations/projects do not leave dangling imports behind (#3763).
+      const generatedExports = [...new Set(imports)];
+      const workspaceExports = output.workspaceExports
+        ? applyWorkspaceExports(output.workspaceExports, generatedExports)
+        : generatedExports;
+      const keptExports = new Set(workspaceExports);
       await reconcileWorkspaceBarrel(
         indexFile,
-        [...new Set(imports)],
+        workspaceExports,
         output.fileExtension,
         importExtension,
+        new Set(generatedExports.filter((s) => !keptExports.has(s))),
       );
 
       // Use the full (unfiltered) implementation paths here, not
