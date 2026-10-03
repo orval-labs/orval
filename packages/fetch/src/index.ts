@@ -198,7 +198,12 @@ export const generateRequestFunction = (
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const isFactoryMode = override.fetch.httpClientInjection === 'factory';
+  // Factory injection is output-scoped: `generateFetchHeader` and
+  // `generateFetchFooter` read `context.output.override`, so resolving it from
+  // the per-operation override here would emit non-exported declarations with
+  // no factory wrapper for a tag-level setting.
+  const isFactoryMode =
+    context.output.override.fetch.httpClientInjection === 'factory';
 
   // `RequestInit['headers']` is declared per runtime, and the old narrowing
   // chain only fitted the DOM's declaration, leaving `return h` unsound in two
