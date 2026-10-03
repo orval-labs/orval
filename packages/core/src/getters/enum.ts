@@ -6,10 +6,10 @@ import { EnumGeneration, type OpenApiSchemaObject } from '../types';
 import {
   conventionName,
   isNumeric,
-  isString,
   jsStringEscape,
   jsStringLiteralEscape,
   sanitize,
+  toJsLiteral,
 } from '../utils';
 
 type EnumConstBranch = {
@@ -39,6 +39,9 @@ export type EnumMember = {
   description?: string;
   deprecated?: boolean;
 };
+
+/** An enum member whose value has not yet been checked to be a primitive. */
+type RawEnumMember = Omit<EnumMember, 'value'> & { value: unknown };
 
 /**
  * Metadata describing the type and logical structure of an enum.
@@ -119,7 +122,7 @@ function getEnumDescriptionMetadata(
 }
 
 function applyEnumMetadata(
-  members: EnumMember[],
+  members: RawEnumMember[],
   metadata: EnumMetadata | undefined,
   key: 'name' | 'description',
 ) {
@@ -174,7 +177,9 @@ export function getEnumMembers(
     );
   }
 
-  return members;
+  return members.filter((member): member is EnumMember =>
+    isSchemaEnumValue(member.value),
+  );
 }
 
 /**
@@ -533,23 +538,34 @@ function getEnumMembersFromBranches(
   return dedupeEnumMembersByValue(members);
 }
 
-function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is SchemaEnumValue =>
-          typeof item === 'string' ||
-          typeof item === 'number' ||
-          typeof item === 'boolean' ||
-          item === null,
-      )
-    : [];
+/**
+ * `enum` and `const` accept any JSON value, but only primitives can become enum
+ * members. The document is untrusted, so check the runtime type rather than
+ * trusting the `SchemaEnumValue` cast: an array or object member would
+ * otherwise be spliced raw into the generated module.
+ */
+function isSchemaEnumValue(value: unknown): value is SchemaEnumValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null
+  );
 }
 
-function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
+function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
+  return Array.isArray(value) ? value.filter(isSchemaEnumValue) : [];
+}
+
+function getRawEnumMembers(schemaObject: OpenApiSchemaObject): RawEnumMember[] {
   if (isBooleanJsonSchema(schemaObject)) {
     return [];
   }
   if ('const' in schemaObject) {
+    if (!isSchemaEnumValue(schemaObject.const)) {
+      return [];
+    }
+
     return [
       {
         value: schemaObject.const as SchemaEnumValue,
@@ -564,10 +580,11 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
     ];
   }
 
-  if (schemaObject.enum) {
-    const enumValues = schemaObject.enum as SchemaEnumValue[];
-
-    return enumValues.map((value) => ({
+  if (Array.isArray(schemaObject.enum)) {
+    // Non-primitive values are dropped by `getEnumMembers` only after
+    // positional `x-enumNames`/`x-enumDescriptions` are applied, so the
+    // metadata stays aligned with the values that survive.
+    return (schemaObject.enum as unknown[]).map((value) => ({
       value,
     }));
   }
@@ -644,9 +661,7 @@ function getEnumUnionFromSchema(schema: OpenApiSchemaObject | undefined) {
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
     .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
-    .map((val) =>
-      isString(val) ? `'${jsStringLiteralEscape(val)}'` : String(val),
-    )
+    .map((val) => toJsLiteral(val))
     .join(' | ');
 }
 
@@ -690,11 +705,7 @@ function replaceSpecialCharacters(key: string): string {
 }
 
 function stringifyEnumValue(value: SchemaEnumValue): string {
-  if (value === null) {
-    return 'null';
-  }
-
-  return isString(value) ? `'${jsStringLiteralEscape(value)}'` : String(value);
+  return toJsLiteral(value);
 }
 
 const toNumberKey = (value: string) => {
@@ -749,10 +760,10 @@ function deriveEnumKey(
 function hasConst(
   branch: EnumConstBranch,
 ): branch is EnumConstBranch & { const: SchemaEnumValue } {
-  return 'const' in branch;
+  return 'const' in branch && isSchemaEnumValue(branch.const);
 }
 
-function dedupeEnumMembersByValue(members: EnumMember[]): EnumMember[] {
+function dedupeEnumMembersByValue<T extends RawEnumMember>(members: T[]): T[] {
   return members.filter(
     (member, index, array) =>
       array.findIndex((item) => item.value === member.value) === index,
