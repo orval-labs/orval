@@ -1154,7 +1154,6 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
-
 export const generateFetchTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
   return `get${pascal(sanTitle)}`;
@@ -1170,7 +1169,10 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
 
   const isFactoryMode = output.override.fetch.httpClientInjection === 'factory';
 
-  const statusCodeHeader = { implementation: '', sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES };
+  const statusCodeHeader = {
+    implementation: '',
+    sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
+  };
 
   if (isFactoryMode) {
     const factoryHeader = `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`;
