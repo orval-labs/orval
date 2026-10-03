@@ -1194,7 +1194,7 @@ export const generateFetchFooter: ClientFooterBuilder = ({
   output,
 }) => {
   const isFactoryMode =
-    output?.override?.fetch?.httpClientInjection === 'factory';
+    output?.override.fetch.httpClientInjection === 'factory';
   if (!isFactoryMode) return '';
   return `return { ${operationNames.join(', ')} };\n};\n`;
 };
