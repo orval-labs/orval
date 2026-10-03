@@ -30,6 +30,7 @@ import {
   camel,
   dynamicImport,
   escapeRegExp,
+  getUniqueName,
   isObject,
   isString,
   isVerb,
@@ -49,6 +50,11 @@ export interface GenerateVerbOptionsParams {
   verbParameters?: OpenApiPathItemObject['parameters'];
   components?: OpenApiComponentsObject;
   context: ContextSpec;
+  // Names already taken by another operation of the same output. Colliding
+  // names used to be emitted verbatim, which produces uncompilable output
+  // (TS2451/TS2300 within a file, TS2308 through a barrel). #2685
+  reservedOperationNames?: Set<string>;
+  reservedTypeNames?: Set<string>;
 }
 
 const renameFormIdentifier = (form: string, from: string, to: string) =>
@@ -295,6 +301,8 @@ export async function generateVerbOptions({
   pathRoute,
   verbParameters = [],
   context,
+  reservedOperationNames,
+  reservedTypeNames,
 }: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions[]> {
   const {
     requestBody,
@@ -340,6 +348,22 @@ export async function generateVerbOptions({
   } else {
     operationName = sanitize(camel(operationId), { es5keyword: true });
     typeName = operationName;
+  }
+
+  // Two operations can resolve to the same name (a `operationName` override
+  // returning a constant, or ids that sanitize together). They used to be
+  // emitted verbatim, so a file got two `export const update` declarations
+  // (TS2451) and a barrel re-exported the same name twice (TS2308). Reserve
+  // the first spelling and suffix the rest. Registered before the
+  // `splitByContentType` fan-out so a suffixed base name stays consistent
+  // across its variants. #2685
+  if (reservedOperationNames) {
+    operationName = getUniqueName(operationName, reservedOperationNames);
+    reservedOperationNames.add(operationName);
+  }
+  if (reservedTypeNames) {
+    typeName = getUniqueName(typeName, reservedTypeNames);
+    reservedTypeNames.add(typeName);
   }
 
   const splitByContentType = override.splitByContentType;
@@ -434,6 +458,10 @@ export interface GenerateVerbsOptionsParams {
   route: string;
   pathRoute: string;
   context: ContextSpec;
+  /** See {@link GenerateVerbOptionsParams.reservedOperationNames}. */
+  reservedOperationNames?: Set<string>;
+  /** See {@link GenerateVerbOptionsParams.reservedTypeNames}. */
+  reservedTypeNames?: Set<string>;
 }
 
 export function generateVerbsOptions({
@@ -443,6 +471,8 @@ export function generateVerbsOptions({
   route,
   pathRoute,
   context,
+  reservedOperationNames,
+  reservedTypeNames,
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
     filteredVerbs(verbs, input.filters),
@@ -456,6 +486,8 @@ export function generateVerbsOptions({
           pathRoute,
           operation,
           context,
+          reservedOperationNames,
+          reservedTypeNames,
         });
 
         acc.push(...verbOptions);

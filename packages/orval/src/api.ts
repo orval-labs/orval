@@ -80,6 +80,8 @@ export async function getApiBuilder({
     resolvedVerbs: OpenApiPathItemObject;
     verbsOptions: GeneratorVerbsOptions;
   }> = [];
+  const reservedOperationNames = new Set<string>();
+  const reservedTypeNames = new Set<string>();
 
   for (const [pathRoute, verbs] of Object.entries(context.spec.paths ?? {})) {
     // oxlint-disable-next-line typescript/no-unnecessary-condition
@@ -106,6 +108,8 @@ export async function getApiBuilder({
       route,
       pathRoute,
       context,
+      reservedOperationNames,
+      reservedTypeNames,
     });
 
     // GitHub #564 check if we want to exclude deprecated operations

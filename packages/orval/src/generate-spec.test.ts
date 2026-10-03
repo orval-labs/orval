@@ -4137,3 +4137,76 @@ describe('generateSpec - artifact groups (#3832)', () => {
     }
   });
 });
+
+describe('generateSpec - colliding operation names (#2685)', () => {
+  const COLLIDING_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Colliding', version: '1.0.0' },
+    paths: {
+      '/a': {
+        put: {
+          tags: ['things'],
+          responses: {
+            '200': {
+              description: 'ok',
+              content: { 'application/json': { schema: { type: 'string' } } },
+            },
+          },
+        },
+      },
+      '/b': {
+        put: {
+          tags: ['things'],
+          responses: {
+            '200': {
+              description: 'ok',
+              content: { 'application/json': { schema: { type: 'string' } } },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  it('disambiguates operations that resolve to the same name', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: COLLIDING_SPEC },
+          output: {
+            target: './endpoints.ts',
+            schemas: './model',
+            client: 'fetch',
+            override: { operationName: () => 'update' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.promises.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf-8',
+      );
+
+      // Two operations resolving to `update` must not both emit `export const
+      // update` / `updateResponse` — that is a TS2451/TS2300 in the generated
+      // file. The second one takes a numeric suffix, like component names do.
+      const declarations = [
+        ...content.matchAll(/^export const (update\w*)/gm),
+      ].map((match) => match[1]);
+      expect(declarations.length).toBeGreaterThan(0);
+      expect(new Set(declarations).size).toBe(declarations.length);
+
+      const responseTypes = [
+        ...content.matchAll(/^export type (update\w*Response\w*)/gm),
+      ].map((match) => match[1]);
+      expect(new Set(responseTypes).size).toBe(responseTypes.length);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
