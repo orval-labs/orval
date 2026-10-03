@@ -787,6 +787,7 @@ export async function normalizeOptions(
         outputOptions.fileExtension ??
         defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
+      workspaceExports: outputOptions.workspaceExports,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
         outputOptions.httpClient ??

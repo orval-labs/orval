@@ -467,6 +467,36 @@ export default defineConfig({
 });
 ```
 
+## workspaceExports
+
+**Type:** `(exports: string[]) => string[]`
+
+Controls which modules the [`workspace`](#workspace) `index.ts` re-exports.
+The function receives the relative specifiers Orval would export (for example
+`['./petstore', './model']`) and returns the list to write. Use it to keep
+generated schemas out of the public API, or to re-export your own files:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      workspace: 'src/',
+      target: './petstore.ts',
+      schemas: './model',
+      workspaceExports: (exports) => [
+        ...exports.filter((e) => e !== './model'),
+        './custom-schemas',
+      ],
+    },
+  },
+});
+```
+
+Specifiers you filter out are also removed from an existing `index.ts`.
+Specifiers you add are written as-is, so include the import extension
+(e.g. `.js`) if your module resolution requires one. Has no effect when
+[`indexFiles`](#indexfiles) is `false`.
+
 ## mode
 
 **Type:** `'single' | 'split' | 'tags' | 'tags-split' | 'tags-operations' | 'tags-operations-split'`

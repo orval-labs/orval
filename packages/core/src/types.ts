@@ -72,6 +72,7 @@ export interface NormalizedOptions {
 
 export interface NormalizedOutputOptions {
   workspace?: string;
+  workspaceExports?: WorkspaceExportsFn;
   target: string;
   schemas?: string | NormalizedSchemaOptions;
   operationSchemas?: string;
@@ -467,8 +468,18 @@ export interface NormalizedSchemaOptions {
   routes?: SchemaRouteOptions;
 }
 
+/**
+ * Receives the relative module specifiers Orval would re-export from the
+ * workspace `index.ts` (e.g. `'./endpoints'`, `'./model'`) and returns the
+ * specifiers to write instead. Use it to drop generated exports or to append
+ * exports for your own files.
+ */
+export type WorkspaceExportsFn = (exports: string[]) => string[];
+
 export interface OutputOptions {
   workspace?: string;
+  /** Filter or extend the exports written to the workspace `index.ts`. */
+  workspaceExports?: WorkspaceExportsFn;
   target: string;
   schemas?: string | SchemaOptions | false;
   /**

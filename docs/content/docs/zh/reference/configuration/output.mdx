@@ -368,6 +368,30 @@ export default defineConfig({
 });
 ```
 
+## workspaceExports
+
+**类型：** `(exports: string[]) => string[]`
+
+控制 [`workspace`](#workspace) 的 `index.ts` 重新导出哪些模块。该函数接收 Orval 将要导出的相对路径（例如 `['./petstore', './model']`），并返回实际写入的列表。可用于将生成的 schema 排除在公共 API 之外，或重新导出你自己的文件：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      workspace: 'src/',
+      target: './petstore.ts',
+      schemas: './model',
+      workspaceExports: (exports) => [
+        ...exports.filter((e) => e !== './model'),
+        './custom-schemas',
+      ],
+    },
+  },
+});
+```
+
+被过滤掉的路径也会从已存在的 `index.ts` 中移除。新增的路径会原样写入，如果模块解析需要扩展名（例如 `.js`），请自行添加。当 [`indexFiles`](#indexfiles) 为 `false` 时此选项无效。
+
 ## mode
 
 **类型：** `'single' | 'split' | 'tags' | 'tags-split' | 'tags-operations' | 'tags-operations-split'`
