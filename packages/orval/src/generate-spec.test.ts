@@ -4139,47 +4139,34 @@ describe('generateSpec - artifact groups (#3832)', () => {
 });
 
 describe('generateSpec - colliding operation names (#2685)', () => {
-  const COLLIDING_SPEC: OpenApiDocument = {
-    openapi: '3.1.0',
-    info: { title: 'Colliding', version: '1.0.0' },
-    paths: {
-      '/a': {
-        put: {
-          tags: ['things'],
-          responses: {
-            '200': {
-              description: 'ok',
-              content: { 'application/json': { schema: { type: 'string' } } },
-            },
-          },
-        },
-      },
-      '/b': {
-        put: {
-          tags: ['things'],
-          responses: {
-            '200': {
-              description: 'ok',
-              content: { 'application/json': { schema: { type: 'string' } } },
-            },
-          },
-        },
+  const putOperation = (
+    extra: Record<string, unknown> = {},
+  ): Record<string, unknown> => ({
+    tags: ['things'],
+    responses: {
+      '200': {
+        description: 'ok',
+        content: { 'application/json': { schema: { type: 'string' } } },
       },
     },
-  };
+    ...extra,
+  });
 
-  it('disambiguates operations that resolve to the same name', async () => {
+  const generateEndpoints = async (
+    spec: OpenApiDocument,
+    override: Record<string, unknown>,
+  ) => {
     const workspace = await createTempWorkspace();
 
     try {
       const options = await normalizeOptions(
         {
-          input: { target: COLLIDING_SPEC },
+          input: { target: spec },
           output: {
             target: './endpoints.ts',
             schemas: './model',
             client: 'fetch',
-            override: { operationName: () => 'update' },
+            override,
           },
         },
         workspace,
@@ -4187,26 +4174,94 @@ describe('generateSpec - colliding operation names (#2685)', () => {
 
       await generateSpec(workspace, options);
 
-      const content = await fs.promises.readFile(
+      return await fs.promises.readFile(
         path.join(workspace, 'endpoints.ts'),
         'utf-8',
       );
-
-      // Two operations resolving to `update` must not both emit `export const
-      // update` / `updateResponse` — that is a TS2451/TS2300 in the generated
-      // file. The second one takes a numeric suffix, like component names do.
-      const declarations = [
-        ...content.matchAll(/^export const (update\w*)/gm),
-      ].map((match) => match[1]);
-      expect(declarations.length).toBeGreaterThan(0);
-      expect(new Set(declarations).size).toBe(declarations.length);
-
-      const responseTypes = [
-        ...content.matchAll(/^export type (update\w*Response\w*)/gm),
-      ].map((match) => match[1]);
-      expect(new Set(responseTypes).size).toBe(responseTypes.length);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  };
+
+  const exportedNames = (content: string, pattern: RegExp) =>
+    [...content.matchAll(pattern)].map((match) => match[1]);
+
+  it('disambiguates operations that resolve to the same name', async () => {
+    const content = await generateEndpoints(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Colliding', version: '1.0.0' },
+        paths: {
+          '/a': { put: putOperation() },
+          '/b': { put: putOperation() },
+        },
+      } as OpenApiDocument,
+      { operationName: () => 'update' },
+    );
+
+    // Two operations resolving to `update` must not both emit `export const
+    // update` / `updateResponse` — that is a TS2451/TS2300 in the generated
+    // file. The second one takes a numeric suffix, like component names do.
+    const declarations = exportedNames(
+      content,
+      /^export const (update\w*) = async/gm,
+    );
+    expect(declarations).toEqual(['update', 'update2']);
+
+    const responseTypes = exportedNames(
+      content,
+      /^export type (update\d*Response) =/gm,
+    );
+    expect(responseTypes).toEqual(['updateResponse', 'update2Response']);
+  });
+
+  it('does not let a dropped deprecated operation rename an active one', async () => {
+    const content = await generateEndpoints(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Colliding', version: '1.0.0' },
+        paths: {
+          '/a': { put: putOperation({ deprecated: true }) },
+          '/b': { put: putOperation() },
+        },
+      } as OpenApiDocument,
+      { operationName: () => 'update', useDeprecatedOperations: false },
+    );
+
+    expect(
+      exportedNames(content, /^export const (update\w*) = async/gm),
+    ).toEqual(['update']);
+  });
+
+  it('reserves the names emitted by content-type variants', async () => {
+    const content = await generateEndpoints(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Colliding', version: '1.0.0' },
+        paths: {
+          '/a': {
+            put: putOperation({
+              operationId: 'update',
+              requestBody: {
+                content: {
+                  'application/json': { schema: { type: 'object' } },
+                  'multipart/form-data': { schema: { type: 'object' } },
+                },
+              },
+            }),
+          },
+          '/b': { put: putOperation({ operationId: 'updateWithJson' }) },
+        },
+      } as OpenApiDocument,
+      { splitByContentType: true },
+    );
+
+    const declarations = exportedNames(
+      content,
+      /^export const (update\w*) = async/gm,
+    );
+    expect(new Set(declarations).size).toBe(declarations.length);
+    expect(declarations).toContain('updateWithJson');
+    expect(declarations).toContain('updateWithJson2');
   });
 });
