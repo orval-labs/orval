@@ -30,6 +30,7 @@ import {
   camel,
   dynamicImport,
   escapeRegExp,
+  getUniqueName,
   isObject,
   isString,
   isVerb,
@@ -49,6 +50,11 @@ export interface GenerateVerbOptionsParams {
   verbParameters?: OpenApiPathItemObject['parameters'];
   components?: OpenApiComponentsObject;
   context: ContextSpec;
+  // Names already taken by another operation of the same output. Colliding
+  // names used to be emitted verbatim, which produces uncompilable output
+  // (TS2451/TS2300 within a file, TS2308 through a barrel). #2685
+  reservedOperationNames?: Set<string>;
+  reservedTypeNames?: Set<string>;
 }
 
 const renameFormIdentifier = (form: string, from: string, to: string) =>
@@ -295,6 +301,8 @@ export async function generateVerbOptions({
   pathRoute,
   verbParameters = [],
   context,
+  reservedOperationNames,
+  reservedTypeNames,
 }: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions[]> {
   const {
     requestBody,
@@ -342,6 +350,30 @@ export async function generateVerbOptions({
     typeName = operationName;
   }
 
+  // Two operations can resolve to the same name (a `operationName` override
+  // returning a constant, or ids that sanitize together). They used to be
+  // emitted verbatim, so a file got two `export const update` declarations
+  // (TS2451) and a barrel re-exported the same name twice (TS2308). Reserve
+  // the first spelling and suffix the rest. The base name is reserved before
+  // the `splitByContentType` fan-out so a suffixed base stays consistent
+  // across its variants, and each emitted variant name is reserved as well so
+  // a later operation cannot reuse it. An operation that
+  // `useDeprecatedOperations: false` drops afterwards reserves nothing, so it
+  // cannot push a suffix onto an active one. #2685
+  const shouldReserve =
+    !deprecated || output.override.useDeprecatedOperations !== false;
+  const reserve = (name: string, reservedNames?: Set<string>) => {
+    if (!shouldReserve || !reservedNames) {
+      return name;
+    }
+    const uniqueName = getUniqueName(name, reservedNames);
+    reservedNames.add(uniqueName);
+    return uniqueName;
+  };
+
+  operationName = reserve(operationName, reservedOperationNames);
+  typeName = reserve(typeName, reservedTypeNames);
+
   const splitByContentType = override.splitByContentType;
 
   if (splitByContentType && requestBody) {
@@ -356,10 +388,13 @@ export async function generateVerbOptions({
     for (const bodyEntry of bodies) {
       const { contentTypeSuffix, ...body } = bodyEntry;
       const suffixedName = contentTypeSuffix
-        ? `${operationName}With${contentTypeSuffix}`
+        ? reserve(
+            `${operationName}With${contentTypeSuffix}`,
+            reservedOperationNames,
+          )
         : operationName;
       const suffixedTypeName = contentTypeSuffix
-        ? `${typeName}With${contentTypeSuffix}`
+        ? reserve(`${typeName}With${contentTypeSuffix}`, reservedTypeNames)
         : typeName;
 
       const verbOption = await buildVerbOption({
@@ -434,6 +469,10 @@ export interface GenerateVerbsOptionsParams {
   route: string;
   pathRoute: string;
   context: ContextSpec;
+  /** See {@link GenerateVerbOptionsParams.reservedOperationNames}. */
+  reservedOperationNames?: Set<string>;
+  /** See {@link GenerateVerbOptionsParams.reservedTypeNames}. */
+  reservedTypeNames?: Set<string>;
 }
 
 export function generateVerbsOptions({
@@ -443,6 +482,8 @@ export function generateVerbsOptions({
   route,
   pathRoute,
   context,
+  reservedOperationNames,
+  reservedTypeNames,
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
     filteredVerbs(verbs, input.filters),
@@ -456,6 +497,8 @@ export function generateVerbsOptions({
           pathRoute,
           operation,
           context,
+          reservedOperationNames,
+          reservedTypeNames,
         });
 
         acc.push(...verbOptions);
