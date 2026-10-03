@@ -961,6 +961,19 @@ describe('non-primitive enum members (GHSA-v36f-hqj9-q8rr)', () => {
     ]);
   });
 
+  it('keeps positional enum metadata aligned after dropping members', () => {
+    const schema = {
+      enum: ['a', { [payload]: payload }, 'b'],
+      'x-enumNames': ['A', 'Invalid', 'B'],
+      'x-enumDescriptions': ['First', 'Invalid', 'Second'],
+    } as unknown as OpenApiSchemaObject;
+
+    expect(getEnumMembers(schema)).toEqual([
+      { value: 'a', name: 'A', description: 'First' },
+      { value: 'b', name: 'B', description: 'Second' },
+    ]);
+  });
+
   it('drops a non-primitive `const`', () => {
     const schema = { const: [payload] } as unknown as OpenApiSchemaObject;
 

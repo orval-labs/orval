@@ -40,6 +40,9 @@ export type EnumMember = {
   deprecated?: boolean;
 };
 
+/** An enum member whose value has not yet been checked to be a primitive. */
+type RawEnumMember = Omit<EnumMember, 'value'> & { value: unknown };
+
 /**
  * Metadata describing the type and logical structure of an enum.
  */
@@ -119,7 +122,7 @@ function getEnumDescriptionMetadata(
 }
 
 function applyEnumMetadata(
-  members: EnumMember[],
+  members: RawEnumMember[],
   metadata: EnumMetadata | undefined,
   key: 'name' | 'description',
 ) {
@@ -174,7 +177,9 @@ export function getEnumMembers(
     );
   }
 
-  return members;
+  return members.filter((member): member is EnumMember =>
+    isSchemaEnumValue(member.value),
+  );
 }
 
 /**
@@ -552,7 +557,7 @@ function getSchemaEnumValues(value: unknown): SchemaEnumValue[] {
   return Array.isArray(value) ? value.filter(isSchemaEnumValue) : [];
 }
 
-function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
+function getRawEnumMembers(schemaObject: OpenApiSchemaObject): RawEnumMember[] {
   if (isBooleanJsonSchema(schemaObject)) {
     return [];
   }
@@ -575,10 +580,11 @@ function getRawEnumMembers(schemaObject: OpenApiSchemaObject): EnumMember[] {
     ];
   }
 
-  if (schemaObject.enum) {
-    const enumValues = getSchemaEnumValues(schemaObject.enum);
-
-    return enumValues.map((value) => ({
+  if (Array.isArray(schemaObject.enum)) {
+    // Non-primitive values are dropped by `getEnumMembers` only after
+    // positional `x-enumNames`/`x-enumDescriptions` are applied, so the
+    // metadata stays aligned with the values that survive.
+    return (schemaObject.enum as unknown[]).map((value) => ({
       value,
     }));
   }
@@ -757,7 +763,7 @@ function hasConst(
   return 'const' in branch && isSchemaEnumValue(branch.const);
 }
 
-function dedupeEnumMembersByValue(members: EnumMember[]): EnumMember[] {
+function dedupeEnumMembersByValue<T extends RawEnumMember>(members: T[]): T[] {
   return members.filter(
     (member, index, array) =>
       array.findIndex((item) => item.value === member.value) === index,
