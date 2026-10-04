@@ -25,6 +25,18 @@ describe('isEffectVersionV4', () => {
     );
   });
 
+  it('reads the major from a declared range', () => {
+    expect(isEffectVersionV4({ dependencies: { effect: '^4.0.0' } })).toBe(
+      true,
+    );
+    expect(isEffectVersionV4({ dependencies: { effect: '~3.21.0' } })).toBe(
+      false,
+    );
+    expect(isEffectVersionV4({ dependencies: { effect: '^3 || ^4' } })).toBe(
+      false,
+    );
+  });
+
   it('treats a v4 prerelease as v4', () => {
     expect(
       isEffectVersionV4({ dependencies: { effect: '4.0.0-rc.118' } }),
@@ -44,6 +56,12 @@ describe('resolveIsEffectV4', () => {
   it('falls back to Effect 4 when no effect version is detectable', () => {
     expect(resolveIsEffectV4('auto', undefined)).toBe(true);
     expect(resolveIsEffectV4('auto', { dependencies: {} })).toBe(true);
+  });
+
+  it('treats a specifier that is not a version as undetectable', () => {
+    expect(
+      resolveIsEffectV4('auto', { dependencies: { effect: 'workspace:*' } }),
+    ).toBe(true);
   });
 
   it('lets a pinned version win over the installed one', () => {

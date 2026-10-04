@@ -49,5 +49,11 @@ export const resolveIsEffectV4 = (
     return true;
   }
 
-  return isEffectVersionV4(packageJson);
+  // A specifier that is not a version (`workspace:*`, `file:…`) cannot be
+  // compared, so it counts as undetectable too.
+  try {
+    return isEffectVersionV4(packageJson);
+  } catch {
+    return true;
+  }
 };
