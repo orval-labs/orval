@@ -2859,6 +2859,7 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.effect.strict.response).toBe(true);
       expect(normalized.output.override.effect.strict.body).toBe(false);
       expect(normalized.output.override.effect.useBrandedTypes).toBe(false);
+      expect(normalized.output.override.effect.version).toBe('auto');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

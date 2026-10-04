@@ -134,6 +134,7 @@ const createOutput = (
         generateEachHttpStatus: false,
         useBrandedTypes: false,
         exactOptional: false,
+        version: 'auto',
       },
       axios: {
         includeHttpResponseReturnType: false,

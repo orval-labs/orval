@@ -1,9 +1,16 @@
-import type { ContextSpec, OpenApiSchemaObject } from '@orval/core';
+import type {
+  ContextSpec,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  OpenApiSchemaObject,
+} from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  generateEffect,
   generateEffectValidationSchemaDefinition,
   generateFormDataEffectSchema,
+  getEffectDependencies,
   parseEffectValidationSchemaDefinition,
 } from '.';
 import { createTestContextSpec } from '../../core/src/test-utils';
@@ -14,7 +21,12 @@ function makeContext(): ContextSpec {
 
 function gen(
   schema: OpenApiSchemaObject,
-  options?: { required?: boolean; strict?: boolean; exactOptional?: boolean },
+  options?: {
+    required?: boolean;
+    strict?: boolean;
+    exactOptional?: boolean;
+    isEffectV4?: boolean;
+  },
 ) {
   const context = makeContext();
   const definition = generateEffectValidationSchemaDefinition(
@@ -30,9 +42,15 @@ function gen(
     options?.strict ?? false,
     undefined,
     options?.exactOptional ?? false,
+    options?.isEffectV4 ?? false,
   );
   return { effect, consts };
 }
+
+const genV4 = (
+  schema: OpenApiSchemaObject,
+  options?: { required?: boolean; exactOptional?: boolean },
+) => gen(schema, { ...options, isEffectV4: true });
 
 describe('primitives', () => {
   it('emits S.String for type: string', () => {
@@ -431,5 +449,229 @@ describe('multipart file parts', () => {
 
   it('keeps an optional nullable text part nullish', () => {
     expect(render()).toContain('"notes": S.optional(S.NullOr(');
+  });
+});
+
+describe('Effect 4 output', () => {
+  it('groups filters in .check with the is-prefixed names', () => {
+    const { effect } = genV4({ type: 'string', minLength: 1, pattern: '^a' });
+    expect(effect).toContain('S.String.check(S.isMinLength(');
+    expect(effect).toContain('S.isPattern(');
+    expect(effect).not.toContain('.pipe(');
+  });
+
+  it('checks array length with isMinLength/isMaxLength', () => {
+    const { effect } = genV4({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: 3,
+    });
+    expect(effect).toContain('S.Array(S.String).check(S.isMinLength(');
+    expect(effect).toContain('S.isMaxLength(');
+  });
+
+  it('maps number bounds to isGreaterThanOrEqualTo/isLessThan', () => {
+    const { effect } = genV4({
+      type: 'number',
+      minimum: 0,
+      exclusiveMaximum: 10,
+    });
+    expect(effect).toContain('S.isGreaterThanOrEqualTo(');
+    expect(effect).toContain('S.isLessThan(');
+  });
+
+  it('passes union and tuple members as an array', () => {
+    expect(
+      genV4({ oneOf: [{ type: 'string' }, { type: 'number' }] }).effect,
+    ).toBe('S.Union([S.String, S.Number])');
+    expect(
+      genV4({
+        type: 'array',
+        prefixItems: [{ type: 'string' }, { type: 'number' }],
+      }).effect,
+    ).toContain('S.Tuple([S.String, S.Number])');
+  });
+
+  it('emits S.Literals for a string enum and S.Null for a null literal', () => {
+    expect(genV4({ type: 'string', enum: ['a', 'b'] }).effect).toBe(
+      "S.Literals(['a', 'b'])",
+    );
+    expect(genV4({ enum: ['a', 1, null] }).effect).toBe(
+      "S.Union([S.Literal('a'), S.Literal(1), S.Null])",
+    );
+  });
+
+  it('emits S.Record(key, value) for additionalProperties', () => {
+    const { effect } = genV4({
+      type: 'object',
+      additionalProperties: { type: 'string' },
+    });
+    expect(effect).toContain('S.Record(S.String, S.String)');
+  });
+
+  it('emits S.StructWithRest for an object without declared properties', () => {
+    const { effect } = genV4({ type: 'object' });
+    expect(effect).toContain('S.StructWithRest(S.Struct(');
+    expect(effect).toContain('[S.Record(S.String, S.Unknown)]');
+  });
+
+  it('emits S.optionalKey for an exact optional property', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    };
+    expect(genV4(schema, { exactOptional: true }).effect).toContain(
+      '"name": S.optionalKey(S.String)',
+    );
+    expect(genV4(schema).effect).toContain('"name": S.optional(S.String)');
+  });
+
+  it('emits a decoding default through Effect.succeed', () => {
+    const { effect } = genV4({
+      type: 'object',
+      properties: { count: { type: 'number', default: 1 } },
+    });
+    expect(effect).toContain(
+      '"count": S.Number.pipe(S.withDecodingDefaultType(Effect.succeed(testCountDefault)))',
+    );
+  });
+
+  it('annotates with .annotate', () => {
+    expect(
+      genV4({ type: 'string', description: 'Some field' }).effect,
+    ).toContain(".annotate({ description: 'Some field' })");
+  });
+
+  it('assigns allOf members fields to the first struct', () => {
+    const { effect } = genV4({
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          required: ['a'],
+        },
+        {
+          type: 'object',
+          properties: { b: { type: 'number' } },
+          required: ['b'],
+        },
+      ],
+    });
+    expect(effect).toMatch(
+      /^S\.Struct\(\{[^}]*"a": S\.String[^}]*\}\)\.pipe\(S\.fieldsAssign\(S\.Struct\(\{[^}]*"b": S\.Number[^}]*\}\)\.fields\)\)$/,
+    );
+  });
+
+  it('distributes allOf over union members into a union of structs', () => {
+    const { effect } = genV4({
+      allOf: [
+        {
+          oneOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { type: 'object', properties: { b: { type: 'string' } } },
+          ],
+        },
+        { type: 'object', properties: { c: { type: 'string' } } },
+      ],
+    });
+    expect(effect.startsWith('S.Union([')).toBe(true);
+    expect(effect.match(/S\.fieldsAssign\(/g)).toHaveLength(2);
+    expect(effect).not.toContain('S.extend');
+  });
+
+  it('spreads a union that carries a description, in either allOf position', () => {
+    const union: OpenApiSchemaObject = {
+      description: 'Either shape',
+      oneOf: [
+        { type: 'object', properties: { a: { type: 'string' } } },
+        { type: 'object', properties: { b: { type: 'string' } } },
+      ],
+    };
+    const base: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+    };
+    for (const allOf of [
+      [union, base],
+      [base, union],
+    ]) {
+      const { effect } = genV4({ allOf });
+      expect(effect.startsWith('S.Union([')).toBe(true);
+      expect(effect.match(/S\.fieldsAssign\(/g)).toHaveLength(2);
+    }
+  });
+
+  it('refuses an allOf member that cannot merge as a struct', () => {
+    expect(() =>
+      genV4({
+        allOf: [
+          { type: 'object', properties: { id: { type: 'string' } } },
+          { type: 'object', additionalProperties: { type: 'string' } },
+        ],
+      }),
+    ).toThrow('merges allOf members as structs');
+  });
+
+  it('reads the version from the output, not from an operation override', async () => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        oneOf: [{ type: 'string' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      output: {
+        override: { effect: { version: 4, generate: { response: true } } },
+      },
+    });
+    const operationOverride = {
+      ...context.output.override,
+      effect: { ...context.output.override.effect, version: 3 as const },
+    };
+    const { implementation } = await generateEffect(
+      {
+        typeName: 'listPets',
+        verb: 'get',
+        override: operationOverride,
+      } as GeneratorVerbOptions,
+      { pathRoute: '/pets', context } as GeneratorOptions,
+      'effect',
+    );
+    expect(implementation).toContain('S.Union([S.String, S.Number])');
+  });
+
+  it('imports Effect only when the file has a decoding default', () => {
+    const exportNames = (implementation?: string) =>
+      getEffectDependencies(
+        false,
+        false,
+        undefined,
+        undefined,
+        false,
+        undefined,
+        implementation,
+      )[0].exports.map((e) => e.name);
+    expect(exportNames('S.withDecodingDefaultType(Effect.succeed(1))')).toEqual(
+      ['Schema', 'Effect'],
+    );
+    expect(exportNames("S.Literals(['Effect'])")).toEqual(['Schema']);
+    expect(getEffectDependencies()[0].exports.map((e) => e.name)).toEqual([
+      'Schema',
+    ]);
   });
 });
