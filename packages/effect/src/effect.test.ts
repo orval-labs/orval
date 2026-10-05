@@ -406,6 +406,43 @@ describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
   });
 });
 
+// A non-primitive enum member used to reach `S.Literal(...)` raw: a one-element
+// array stringifies to its bare contents, so document text became code that
+// ran on import (GHSA-f96w-763g-hg7v).
+describe('non-primitive enum members (GHSA-f96w-763g-hg7v)', () => {
+  const payload = "require('node:child_process').execSync('id')";
+
+  it('drops an array enum member instead of emitting it raw', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: [[payload] as unknown as string],
+    });
+    expect(effect).not.toContain('require(');
+  });
+
+  it('drops array and object members from a mixed enum', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: [
+        'active',
+        ['+(process.exit(1))'] as unknown as string,
+        { toString: payload } as unknown as string,
+        1,
+        true,
+      ],
+    });
+    expect(effect).toBe(
+      "S.Union(S.Literal('active'), S.Literal(1), S.Literal(true))",
+    );
+  });
+
+  it('keeps null members rendering as S.Null on Effect 4', () => {
+    expect(
+      genV4({ enum: ['a', [payload] as unknown as string, null] }).effect,
+    ).toBe("S.Union([S.Literal('a'), S.Null])");
+  });
+});
+
 // The multipart file-part override replaces the whole property definition, so
 // it has to carry nullability itself. It did not, so a nullable part validated
 // as non-null while the type generator emitted `Blob | File | null` (#4141).

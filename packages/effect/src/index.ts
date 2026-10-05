@@ -9,6 +9,7 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getEnumMembers,
   getFormDataFieldFileType,
   getNumberWord,
   isBoolean,
@@ -32,6 +33,7 @@ import {
   toObjectSchema,
   safeNumericConstraint,
   stringify,
+  toJsLiteral,
 } from '@orval/core';
 import { unique } from '@orval/core';
 
@@ -641,7 +643,12 @@ export const generateEffectValidationSchemaDefinition = (
   }
 
   if (schema.enum && type !== 'array') {
-    const uniqueEnumValues = unique(schema.enum);
+    // `getEnumMembers` dedupes and drops non-primitive members: the document is
+    // untrusted, and an array or object member would otherwise be spliced raw
+    // into `S.Literal(...)` (GHSA-f96w-763g-hg7v).
+    const uniqueEnumValues = getEnumMembers(schema).map(
+      (member) => member.value,
+    );
 
     if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
@@ -655,7 +662,8 @@ export const generateEffectValidationSchemaDefinition = (
           functions: [
             [
               'literal',
-              isString(value) ? `'${jsStringLiteralEscape(value)}'` : value,
+              // `null` stays raw so Effect 4 can render it as `S.Null`.
+              value === null ? null : toJsLiteral(value),
             ],
           ],
           consts: [],
