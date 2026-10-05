@@ -617,4 +617,23 @@ describe('getScalar (binary types shadowed by components)', () => {
       }).value,
     ).toBe('Blob | File');
   });
+
+  it('does not reuse names across outputs sharing a spec', () => {
+    const suffixed = contextWith(
+      { schemas: { File: { type: 'object' } } },
+      { schemas: { suffix: 'Dto' } },
+    );
+    const plain = contextWith({}, { schemas: { suffix: '' } });
+    const shared = { ...plain, spec: suffixed.spec };
+    const fileType = (ctx: typeof plain) =>
+      getScalar({
+        item: binary,
+        name: 'file',
+        context: ctx,
+        formDataContext: multipart,
+      }).value;
+
+    expect(fileType(suffixed)).toBe('Blob | File');
+    expect(fileType(shared)).toBe('Blob | globalThis.File');
+  });
 });
