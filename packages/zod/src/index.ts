@@ -407,20 +407,21 @@ const resolveUnionMemberSchema = (
  *
  * @param schema Schema carrying the object default
  * @param context Spec context, used to resolve `$ref` members
- * @param seen Nodes already visited, guarding against a self-referential `allOf`
+ * @param seen Nodes on the current recursion path, guarding against a
+ *   self-referential `allOf`
  */
 const getDefaultProperties = (
   schema: OpenApiNonBooleanSchemaObject,
   context: ContextSpec,
   seen = new Set<object>(),
 ): Record<string, unknown> | undefined => {
-  if (seen.has(schema)) return undefined;
-  seen.add(schema);
-
   const own = isObject(schema.properties)
     ? (schema.properties as Record<string, unknown>)
     : undefined;
   if (!schema.allOf) return own;
+
+  if (seen.has(schema)) return undefined;
+  seen.add(schema);
 
   const merged: Record<string, unknown> = {};
   for (const member of schema.allOf) {
@@ -429,6 +430,9 @@ const getDefaultProperties = (
     Object.assign(merged, getDefaultProperties(resolved, context, seen));
   }
   Object.assign(merged, own);
+  // `seen` tracks the current path only: a schema reached again through a
+  // later sibling must still be collected so that sibling wins.
+  seen.delete(schema);
 
   return Object.keys(merged).length > 0 ? merged : undefined;
 };

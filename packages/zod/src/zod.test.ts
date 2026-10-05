@@ -3000,6 +3000,64 @@ describe('generateZodValidationSchemaDefinition`', () => {
       },
     );
 
+    // A member reached again through a later sibling must still be collected,
+    // so the later member's property schema wins over an earlier override.
+    it('lets a later allOf member win when an earlier one already reached it (#4255)', () => {
+      const refContext = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Base: {
+                type: 'object',
+                properties: {
+                  top_left: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                    items: false,
+                  },
+                },
+              },
+              Child: {
+                allOf: [
+                  { $ref: '#/components/schemas/Base' },
+                  {
+                    type: 'object',
+                    properties: {
+                      top_left: { type: 'array', items: { type: 'number' } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          allOf: [
+            { $ref: '#/components/schemas/Child' },
+            { $ref: '#/components/schemas/Base' },
+          ],
+          default: { top_left: [0, 0] },
+        },
+        refContext,
+        'attr',
+        false,
+        false,
+        { required: false },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        refContext,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toContain('.default({ "top_left": [0, 0] })');
+      expect(parsed.consts).not.toContain('attrDefault =');
+    });
+
     it('keeps $ref object-array defaults inline so literal types survive (#4024)', () => {
       const result = generateZodValidationSchemaDefinition(
         {
