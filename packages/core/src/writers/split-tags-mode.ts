@@ -80,7 +80,6 @@ export async function writeSplitTagsMode({
     tags: string[];
   }
   const mockIndexEntries: MockIndexEntry[] = [];
-  const seenMockIndexKeys = new Set<string>();
 
   const schemasTarget = output.schemas
     ? // `output.schemas(.path)` already *is* the schemas directory. Use it
@@ -388,14 +387,12 @@ export async function writeSplitTagsMode({
           await writeGeneratedFile(mockFilePath, mockData);
           mockPaths.push(mockFilePath);
 
-          const indexKey = `${mockExtension}::${mockDir}`;
           let indexEntry = mockIndexEntries.find(
             (e) => e.ext === mockExtension && e.mockDir === mockDir,
           );
           if (!indexEntry) {
             indexEntry = { ext: mockExtension, mockDir, tags: [] };
             mockIndexEntries.push(indexEntry);
-            seenMockIndexKeys.add(indexKey);
           }
           if (!indexEntry.tags.includes(tag)) {
             indexEntry.tags.push(tag);
