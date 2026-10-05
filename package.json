@@ -46,7 +46,7 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": ">=22.22.3 <23 || >=24.15.0",
+      "version": "^22.22.3 || ^24.15.0 || >=26.0.0",
       "onFail": "error"
     }
   },
@@ -63,8 +63,8 @@
     "tslib": "2.8.1",
     "typescript-eslint": "8.57.2",
     "typescript": "6.0.3",
-    "vite-plus": "0.3.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.3"
+    "vite-plus": "1.0.0",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
   },
   "catalogs": {
     "angular": {

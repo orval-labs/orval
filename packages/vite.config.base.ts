@@ -23,18 +23,19 @@ export const definePackage = (
       tasks: {
         'build:release': {
           command: 'vp pack',
-          cache: true,
           dependsOn: ['clean'],
-          input: [
-            'src/**',
-            'package.json',
-            'tsconfig.json',
-            'tsconfig.build.json',
-            'vite.config.ts',
-            { pattern: 'tsconfig.base.json', base: 'workspace' },
-            { pattern: 'packages/vite.config.base.ts', base: 'workspace' },
-          ],
-          output: ['dist/**'],
+          cache: {
+            input: [
+              'src/**',
+              'package.json',
+              'tsconfig.json',
+              'tsconfig.build.json',
+              'vite.config.ts',
+              { pattern: 'tsconfig.base.json', base: 'workspace' },
+              { pattern: 'packages/vite.config.base.ts', base: 'workspace' },
+            ],
+            output: ['dist/**'],
+          },
         },
         'build:debug': {
           command: 'vp pack --unbundle --sourcemap --no-treeshake --no-minify',
