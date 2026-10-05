@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Zod tuple default behind allOf $ref (#4255)
+  version: 1.0.0
+paths:
+  /demo:
+    get:
+      operationId: getDemo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Test'
+components:
+  schemas:
+    Demo:
+      type: object
+      properties:
+        height:
+          type: integer
+        width:
+          type: integer
+        top_left:
+          type: array
+          minItems: 2
+          maxItems: 2
+          prefixItems:
+            - type: number
+            - type: number
+          items: false
+    Test:
+      type: object
+      properties:
+        attr:
+          allOf:
+            - $ref: '#/components/schemas/Demo'
+          default:
+            height: 100
+            width: 200
+            top_left:
+              - 0
+              - 0
