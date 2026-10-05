@@ -7,7 +7,7 @@ import type {
   OpenApiSchemaObject,
   ScalarValue,
 } from '../types';
-import { toJsLiteral } from '../utils';
+import { getComponentBaseNames, sanitize, toJsLiteral } from '../utils';
 import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
@@ -44,6 +44,65 @@ export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
   const contentMediaType = schema.contentMediaType;
   const contentEncoding = schema.contentEncoding;
   return contentMediaType === 'application/octet-stream' && !contentEncoding;
+}
+
+const binaryTypeNamesCache = new WeakMap<
+  object,
+  { blob: string; file: string }
+>();
+
+/**
+ * Returns the type names to emit for binary scalars. A component named `Blob`
+ * or `File` (e.g. a `File` metadata schema) is emitted as a same-named
+ * interface that shadows the DOM global wherever both live in one module, so
+ * those globals are qualified with `globalThis.` in that case (#4259).
+ */
+function getBinaryTypeNames(context: ContextSpec): {
+  blob: string;
+  file: string;
+} {
+  const cached = binaryTypeNamesCache.get(context.spec);
+  if (cached) {
+    return cached;
+  }
+
+  const { components } = context.spec;
+  // Hand-built contexts (tests, programmatic callers) may omit these.
+  const overrides: Partial<
+    Record<
+      'schemas' | 'responses' | 'requestBodies' | 'parameters',
+      { prefix?: string; suffix?: string }
+    >
+  > =
+    (context.output.override as Partial<typeof context.output.override>)
+      .components ?? {};
+  const sections = [
+    [components?.schemas, overrides.schemas],
+    [components?.responses, overrides.responses],
+    [components?.requestBodies, overrides.requestBodies],
+    [components?.parameters, overrides.parameters],
+  ] as const;
+
+  const componentNames = new Set<string>();
+  for (const [section, { prefix = '', suffix = '' } = {}] of sections) {
+    for (const baseName of getComponentBaseNames(section).values()) {
+      componentNames.add(
+        sanitize(`${prefix}${baseName}${suffix}`, {
+          underscore: '_',
+          whitespace: '_',
+          dash: true,
+          es5keyword: true,
+          es5IdentifierName: true,
+        }),
+      );
+    }
+  }
+
+  const qualify = (name: string) =>
+    componentNames.has(name) ? `globalThis.${name}` : name;
+  const names = { blob: qualify('Blob'), file: qualify('File') };
+  binaryTypeNamesCache.set(context.spec, names);
+  return names;
 }
 
 interface GetScalarOptions {
@@ -225,12 +284,13 @@ export function getScalar({
       // whose values are always strings. Skip Blob/file coercion so file/binary
       // fields stay `string`; enum unions computed above are left intact (#1624).
       if (!formDataContext?.urlEncoded) {
+        const { blob, file } = getBinaryTypeNames(context);
         if (schemaFormat === 'binary') {
           // In multipart/form-data context, accept both Blob and File so the
           // filename is preserved in the Content-Disposition header (#3662).
           // Blob | File is wider than the original Blob, so existing callers
           // keep compiling (#3915).
-          value = formDataContext ? 'Blob | File' : 'Blob';
+          value = formDataContext ? `${blob} | ${file}` : blob;
         } else if (formDataContext?.atPart) {
           const fileType = getFormDataFieldFileType(
             item,
@@ -238,7 +298,9 @@ export function getScalar({
           );
           if (fileType) {
             value =
-              fileType === 'binary' ? 'Blob | File' : 'Blob | File | string';
+              fileType === 'binary'
+                ? `${blob} | ${file}`
+                : `${blob} | ${file} | string`;
           }
         } else if (isBinaryScalarSchema(item)) {
           // The previous arm caught format: binary directly; this matches the
@@ -246,7 +308,7 @@ export function getScalar({
           // shared predicate so any future binary shapes added there flow
           // through here too (#2410). In multipart context accept both Blob and
           // File so existing callers keep compiling (#3915).
-          value = formDataContext ? 'Blob | File' : 'Blob';
+          value = formDataContext ? `${blob} | ${file}` : blob;
         }
       }
 
