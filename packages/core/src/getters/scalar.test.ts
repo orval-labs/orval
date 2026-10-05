@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
 import type { OpenApiSchemaObject } from '../types';
+import type { FormDataContext } from './object';
 import { getScalar, isBinaryScalarSchema } from './scalar';
 
 const context = createTestContextSpec({
@@ -510,5 +511,129 @@ describe('getScalar (boolean schemas)', () => {
     expect(getScalar({ item: false, name: 'none', context }).value).toBe(
       'never',
     );
+  });
+});
+
+// A component named `File` / `Blob` is emitted as a same-named interface that
+// shadows the DOM global wherever both share a module, so the binary types
+// are qualified with `globalThis.` only when such a collision exists (#4259).
+describe('getScalar (binary types shadowed by components)', () => {
+  const binary: OpenApiSchemaObject = { type: 'string', format: 'binary' };
+  const multipart: FormDataContext = { atPart: false, encoding: {} };
+
+  const contextWith = (
+    components: Record<string, Record<string, unknown>>,
+    componentOverride?: { schemas?: { prefix?: string; suffix?: string } },
+  ) => {
+    const base = createTestContextSpec({ override: { useDates: false } });
+    return {
+      ...base,
+      spec: { ...base.spec, components },
+      output: {
+        ...base.output,
+        override: {
+          ...base.output.override,
+          components: {
+            ...base.output.override.components,
+            schemas: {
+              ...base.output.override.components.schemas,
+              ...componentOverride?.schemas,
+            },
+          },
+        },
+      },
+    } as ReturnType<typeof createTestContextSpec>;
+  };
+
+  it('keeps bare globals when no component collides', () => {
+    expect(
+      getScalar({
+        item: binary,
+        name: 'file',
+        context,
+        formDataContext: multipart,
+      }).value,
+    ).toBe('Blob | File');
+  });
+
+  it('qualifies File when a `File` schema exists', () => {
+    const ctx = contextWith({ schemas: { File: { type: 'object' } } });
+
+    expect(
+      getScalar({
+        item: binary,
+        name: 'file',
+        context: ctx,
+        formDataContext: multipart,
+      }).value,
+    ).toBe('Blob | globalThis.File');
+    expect(
+      getScalar({
+        item: { type: 'string' },
+        name: 'file',
+        context: ctx,
+        formDataContext: { atPart: true, partContentType: 'text/plain' },
+      }).value,
+    ).toBe('Blob | globalThis.File | string');
+  });
+
+  it('qualifies Blob outside multipart when a `blob` schema exists', () => {
+    const ctx = contextWith({ schemas: { blob: { type: 'object' } } });
+
+    expect(getScalar({ item: binary, name: 'file', context: ctx }).value).toBe(
+      'globalThis.Blob',
+    );
+  });
+
+  it('qualifies File when a `File` request body component exists', () => {
+    const ctx = contextWith({
+      requestBodies: { File: { content: {} } },
+    });
+
+    // The test context uses an empty requestBodies suffix, so the generated
+    // type is `File` and collides.
+    expect(
+      getScalar({
+        item: binary,
+        name: 'file',
+        context: ctx,
+        formDataContext: multipart,
+      }).value,
+    ).toBe('Blob | globalThis.File');
+  });
+
+  it('respects the schemas suffix when matching names', () => {
+    const ctx = contextWith(
+      { schemas: { File: { type: 'object' } } },
+      { schemas: { suffix: 'Dto' } },
+    );
+
+    expect(
+      getScalar({
+        item: binary,
+        name: 'file',
+        context: ctx,
+        formDataContext: multipart,
+      }).value,
+    ).toBe('Blob | File');
+  });
+
+  it('does not reuse names across outputs sharing a spec', () => {
+    const suffixed = contextWith(
+      { schemas: { File: { type: 'object' } } },
+      { schemas: { suffix: 'Dto' } },
+    );
+    const plain = contextWith({}, { schemas: { suffix: '' } });
+    const shared = { ...plain, spec: suffixed.spec };
+    const fileType = (ctx: typeof plain) =>
+      getScalar({
+        item: binary,
+        name: 'file',
+        context: ctx,
+        formDataContext: multipart,
+      }).value;
+
+    expect(fileType(suffixed)).toBe('Blob | File');
+    expect(fileType(shared)).toBe('Blob | globalThis.File');
   });
 });

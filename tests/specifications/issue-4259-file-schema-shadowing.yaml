@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Reproduction
+  version: 1.0.0
+
+paths:
+  /files:
+    post:
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FilePostParameters'
+      responses:
+        '200':
+          description: File
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+  /files/inline:
+    post:
+      operationId: uploadFileInline
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+
+components:
+  schemas:
+    File:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+
+    FilePostParameters:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary

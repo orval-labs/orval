@@ -429,6 +429,20 @@ export default defineConfig({
       target: '../specifications/issue-3675.yaml',
     },
   },
+  // A `File` component must not shadow the DOM `File` in multipart bodies
+  // emitted into the same module (#4259).
+  'issue-4259-file-schema-shadowing': {
+    output: {
+      target:
+        '../generated/axios/issue-4259-file-schema-shadowing/endpoints.ts',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4259-file-schema-shadowing.yaml',
+    },
+  },
   gatewayTupleTagsSplit: {
     output: {
       target: '../generated/axios/gateway-tuple-tags-split/endpoints.ts',
