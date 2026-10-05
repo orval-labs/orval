@@ -76,7 +76,6 @@ export async function writeTagsMode({
     tags: string[];
   }
   const mockIndexEntries: MockIndexEntry[] = [];
-  const seenMockIndexKeys = new Set<string>();
 
   const schemaCustomImportPath = getSchemasImportPath(output.schemas);
   const schemasPathRelative = output.schemas
@@ -332,14 +331,12 @@ export async function writeTagsMode({
             await writeGeneratedFile(mockFilePath, mockData);
             extraPaths.push(mockFilePath);
 
-            const indexKey = `${mockExtension}::${mockDir}`;
             let indexEntry = mockIndexEntries.find(
               (e) => e.ext === mockExtension && e.mockDir === mockDir,
             );
             if (!indexEntry) {
               indexEntry = { ext: mockExtension, mockDir, tags: [] };
               mockIndexEntries.push(indexEntry);
-              seenMockIndexKeys.add(indexKey);
             }
             if (!indexEntry.tags.includes(kebabTag)) {
               indexEntry.tags.push(kebabTag);
