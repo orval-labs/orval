@@ -663,4 +663,27 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // A tuple property reached through an `allOf: [$ref]` wrapper with a sibling
+  // object default: the default must stay inline, or TS widens the tuple to
+  // `0[]` and `.default(...)` no longer type-checks (#4255).
+  'issue-4255': {
+    output: {
+      target: '../generated/zod/issue-4255/client.ts',
+      mode: 'single',
+      client: 'fetch',
+      schemas: {
+        path: '../generated/zod/issue-4255/schemas.zod.ts',
+        type: 'zod',
+        mode: 'single',
+      },
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: { generateReusableSchemas: true },
+      },
+    },
+    input: {
+      target: '../specifications/issue-4255.yaml',
+    },
+  },
 });

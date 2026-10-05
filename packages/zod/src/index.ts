@@ -398,6 +398,45 @@ const resolveUnionMemberSchema = (
   return member;
 };
 
+/**
+ * The property schemas an object default is formatted against. An `allOf`
+ * wrapper (e.g. `allOf: [$ref]` plus a sibling `default`) has none of its own,
+ * so they are gathered from its resolved members; without them a tuple property
+ * is hoisted as a plain array and widens to `T[]` (#4255). A later member
+ * overrides an earlier one, and the schema's own properties win.
+ *
+ * @param schema Schema carrying the object default
+ * @param context Spec context, used to resolve `$ref` members
+ * @param seen Nodes on the current recursion path, guarding against a
+ *   self-referential `allOf`
+ */
+const getDefaultProperties = (
+  schema: OpenApiNonBooleanSchemaObject,
+  context: ContextSpec,
+  seen = new Set<object>(),
+): Record<string, unknown> | undefined => {
+  const own = isObject(schema.properties)
+    ? (schema.properties as Record<string, unknown>)
+    : undefined;
+  if (!schema.allOf) return own;
+
+  if (seen.has(schema)) return undefined;
+  seen.add(schema);
+
+  const merged: Record<string, unknown> = {};
+  for (const member of schema.allOf) {
+    const resolved = resolveUnionMemberSchema(member, context);
+    if (!resolved) continue;
+    Object.assign(merged, getDefaultProperties(resolved, context, seen));
+  }
+  Object.assign(merged, own);
+  // `seen` tracks the current path only: a schema reached again through a
+  // later sibling must still be collected so that sibling wins.
+  seen.delete(schema);
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
+};
+
 // A schema that renders to a single `zod.object({...})` — i.e. not a union,
 // not an intersection (`allOf`), and shaped like an object.
 const isPlainObjectSchema = (
@@ -1370,10 +1409,7 @@ export const generateZodValidationSchemaDefinition = (
         return undefined;
       };
 
-      const properties =
-        schema.properties && isObject(schema.properties)
-          ? (schema.properties as Record<string, unknown>)
-          : undefined;
+      const properties = getDefaultProperties(schema, context);
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           const formatted = formatDefaultEntryValue(value, properties?.[key]);
