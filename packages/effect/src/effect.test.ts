@@ -197,6 +197,18 @@ describe('enums and literals', () => {
     expect(effect).toContain('S.Literal("fixed")');
   });
 
+  it('skips length and pattern checks on a string const', () => {
+    const { effect, consts } = gen({
+      type: 'string',
+      const: 'fixed',
+      minLength: 2,
+      maxLength: 10,
+      pattern: '^f',
+    });
+    expect(effect).toBe('S.Literal("fixed")');
+    expect(consts).toBe('');
+  });
+
   it('escapes quotes and backslashes in const values', () => {
     const { effect } = gen({
       type: 'string',
@@ -538,6 +550,18 @@ describe('Effect 4 output', () => {
     expect(genV4({ enum: ['a', 1, null] }).effect).toBe(
       "S.Union([S.Literal('a'), S.Literal(1), S.Null])",
     );
+  });
+
+  it('skips length and pattern checks on a string const', () => {
+    const { effect, consts } = genV4({
+      type: 'string',
+      const: 'fixed',
+      minLength: 2,
+      maxLength: 10,
+      pattern: '^f',
+    });
+    expect(effect).toBe('S.Literal("fixed")');
+    expect(consts).toBe('');
   });
 
   it('emits S.Record(key, value) for additionalProperties', () => {

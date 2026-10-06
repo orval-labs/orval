@@ -565,7 +565,10 @@ export const generateEffectValidationSchemaDefinition = (
     }
   }
 
-  if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
+  const hasFixedValue =
+    hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
+
+  if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
     const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
@@ -628,7 +631,7 @@ export const generateEffectValidationSchemaDefinition = (
     }
   }
 
-  if (matches && !hasNonArrayEnum && type === 'string') {
+  if (matches && !hasFixedValue && type === 'string') {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
