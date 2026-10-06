@@ -173,6 +173,72 @@ describe.each([
   },
 );
 
+// A `const` renders as `zod.literal(...)`. Chaining bound or pattern checks
+// onto it did not compile with Zod 3 or Zod 4 classic (TS2339), nor with Zod 4
+// mini for a numeric const (TS2345), so they are skipped.
+describe.each([
+  { version: 3, variant: 'classic' },
+  { version: 4, variant: 'classic' },
+  { version: 4, variant: 'mini' },
+] as const)(
+  'const with scalar constraints (Zod $version, $variant)',
+  ({ version, variant }) => {
+    const render = (schema: OpenApiSchemaObject) => {
+      const context = makeContextSpec();
+      const definition = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'fixed',
+        false,
+        version === 4,
+        { required: true },
+      );
+      return parseZodValidationSchemaDefinition(
+        definition,
+        context,
+        false,
+        false,
+        version === 4,
+        undefined,
+        undefined,
+        variant,
+      );
+    };
+    const pure = variant === 'mini' ? '/*#__PURE__*/ ' : '';
+
+    it('skips length checks on a string const', () => {
+      const parsed = render({
+        type: 'string',
+        const: 'fixed',
+        minLength: 2,
+        maxLength: 10,
+      });
+
+      expect(parsed.zod).toBe(`${pure}zod.literal("fixed")`);
+      expect(parsed.consts).toBe('');
+    });
+
+    it('skips the pattern check on a string const', () => {
+      const parsed = render({ type: 'string', const: 'fixed', pattern: '^f' });
+
+      expect(parsed.zod).toBe(`${pure}zod.literal("fixed")`);
+      expect(parsed.consts).toBe('');
+    });
+
+    it('skips bound checks on a numeric const', () => {
+      const parsed = render({
+        type: 'integer',
+        const: 5,
+        minimum: 2,
+        maximum: 10,
+      });
+
+      expect(parsed.zod).toBe(`${pure}zod.literal(5)`);
+      expect(parsed.consts).toBe('');
+    });
+  },
+);
+
 const record: ZodValidationSchemaDefinition = {
   functions: [
     [

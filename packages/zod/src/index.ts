@@ -1871,7 +1871,16 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
+  // A `const` renders as `zod.literal(...)`, which has none of the bound or
+  // pattern methods below (`.min()`, `.max()`, `.gt()`, `.lt()`,
+  // `.multipleOf()`, `.regex()`), so treat it like an enum and skip them. Key
+  // on the rendered literal, not on `schema.const`: a `const` that renders
+  // otherwise (allOf/oneOf/anyOf, a date with `useDates`, binary) is left as
+  // it was.
+  const hasFixedValue =
+    hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
+
+  if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
@@ -1948,7 +1957,7 @@ export const generateZodValidationSchemaDefinition = (
 
   if (
     matches &&
-    !hasNonArrayEnum &&
+    !hasFixedValue &&
     type === 'string' &&
     !stringFormatAlreadyEmitted
   ) {
