@@ -226,7 +226,9 @@ export const generateEffectValidationSchemaDefinition = (
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
-  const hasNonArrayEnum = !!schema.enum && type !== 'array';
+  const hasFixedValue =
+    (!!schema.enum && type !== 'array') ||
+    (type === 'string' && 'const' in schema);
 
   let skipSwitchStatement = false;
   if (schema.allOf || schema.oneOf || schema.anyOf) {
@@ -565,7 +567,7 @@ export const generateEffectValidationSchemaDefinition = (
     }
   }
 
-  if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
+  if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
     const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
@@ -628,7 +630,7 @@ export const generateEffectValidationSchemaDefinition = (
     }
   }
 
-  if (matches && !hasNonArrayEnum && type === 'string') {
+  if (matches && !hasFixedValue && type === 'string') {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
