@@ -183,15 +183,16 @@ export const generateEffectValidationSchemaDefinition = (
   },
 ): EffectValidationSchemaDefinition => {
   if (schemaInput == null || typeof schemaInput !== 'object') {
-    return {
-      functions:
-        schemaInput === true
-          ? [['unknown', undefined]]
-          : schemaInput === false
-            ? [['never', undefined]]
-            : [],
-      consts: [],
-    };
+    const functions: [string, unknown][] =
+      schemaInput === true
+        ? [['unknown', undefined]]
+        : schemaInput === false
+          ? [['never', undefined]]
+          : [];
+    if (functions.length > 0 && !rules?.required) {
+      functions.push(['optional', undefined]);
+    }
+    return { functions, consts: [] };
   }
 
   const schema: OpenApiNonBooleanSchemaObject = schemaInput;
@@ -696,6 +697,7 @@ export const generateEffectValidationSchemaDefinition = (
  * (constructor base, pipe filter, or schema wrapper).
  */
 const CONSTRUCTORS = new Set([
+  'never',
   'string',
   'number',
   'integer',
@@ -1029,6 +1031,9 @@ export const parseEffectValidationSchemaDefinition = (
 
   const renderConstructor = (fn: string, arg: unknown): string => {
     switch (fn) {
+      case 'never': {
+        return 'S.Never';
+      }
       case 'string': {
         return 'S.String';
       }
@@ -1074,6 +1079,11 @@ export const parseEffectValidationSchemaDefinition = (
           arg as EffectValidationSchemaDefinition,
           false,
         );
+        // An array that rejects every item only accepts `[]`. Effect 3's
+        // `S.Array` does not type-check with `S.Never`.
+        if (inner === 'S.Never') {
+          return isEffectV4 ? 'S.Tuple([])' : 'S.Tuple()';
+        }
         return `S.Array(${inner})`;
       }
       case 'tuple': {
