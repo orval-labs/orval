@@ -2,6 +2,7 @@ import type {
   ContextSpec,
   GeneratorOptions,
   GeneratorVerbOptions,
+  OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
@@ -648,6 +649,74 @@ describe('Effect 4 output', () => {
         ],
       }),
     ).toThrow('merges allOf members as structs');
+  });
+
+  describe('allOf members that are not plain structs', () => {
+    const a: OpenApiNonBooleanSchemaObject = {
+      type: 'object',
+      required: ['a'],
+      properties: { a: { type: 'string' } },
+    };
+    const b: OpenApiNonBooleanSchemaObject = {
+      type: 'object',
+      properties: { b: { type: 'number' } },
+    };
+    const nullable = (
+      schema: OpenApiNonBooleanSchemaObject,
+    ): OpenApiSchemaObject => ({
+      ...schema,
+      type: ['object', 'null'],
+    });
+    const structA = 'S.Struct({\n  "a": S.String\n})';
+    const structB = 'S.Struct({\n  "b": S.optional(S.Number)\n})';
+    const record = 'S.Record(S.String, S.Unknown)';
+
+    it('merges a nullable member as its struct', () => {
+      expect(genV4({ allOf: [a, nullable(b)] }).effect).toBe(
+        `${structA}.pipe(S.fieldsAssign(${structB}.fields))`,
+      );
+    });
+
+    it('wraps the merge in S.NullOr when every member is nullable', () => {
+      expect(genV4({ allOf: [nullable(a), nullable(b)] }).effect).toBe(
+        `S.NullOr(${structA}.pipe(S.fieldsAssign(${structB}.fields)))`,
+      );
+    });
+
+    it('keeps null when a nested union admits it', () => {
+      const c = nullable({ properties: { c: { type: 'string' } } });
+      const structC = 'S.Struct({\n  "c": S.optional(S.String)\n})';
+      expect(genV4({ allOf: [nullable(a), { oneOf: [b, c] }] }).effect).toBe(
+        `S.NullOr(S.Union([${structA}.pipe(S.fieldsAssign(${structB}.fields)), ${structA}.pipe(S.fieldsAssign(${structC}.fields))]))`,
+      );
+    });
+
+    it('keeps the index signature of an empty object member', () => {
+      expect(genV4({ allOf: [a, { type: 'object' }] }).effect).toBe(
+        `S.StructWithRest(${structA}, [${record}])`,
+      );
+    });
+
+    it('keeps the index signature of an additionalProperties: true member', () => {
+      expect(
+        genV4({ allOf: [a, { type: 'object', additionalProperties: true }] })
+          .effect,
+      ).toBe(`S.StructWithRest(${structA}, [${record}])`);
+    });
+
+    it('keeps the index signature on each variant of a distributed union', () => {
+      expect(
+        genV4({ allOf: [{ oneOf: [a, b] }, { type: 'object' }] }).effect,
+      ).toBe(
+        `S.Union([S.StructWithRest(${structA}, [${record}]), S.StructWithRest(${structB}, [${record}])])`,
+      );
+    });
+
+    it('still refuses a member that is not an object', () => {
+      expect(() => genV4({ allOf: [a, { type: 'string' }] })).toThrow(
+        'merges allOf members as structs',
+      );
+    });
   });
 
   it('reads the version from the output, not from an operation override', async () => {

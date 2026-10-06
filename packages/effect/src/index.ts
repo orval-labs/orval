@@ -988,13 +988,19 @@ export const parseEffectValidationSchemaDefinition = (
     return '';
   };
 
-  // A description or default on an allOf member is not rendered once its
-  // fields are merged, so it does not stop the member from being spread.
+  // A description, default or `null` on an allOf member is not rendered once
+  // its fields are merged, so it does not stop the member from being spread.
+  // `{ type: 'object' }` and `additionalProperties: true` add no fields: they
+  // only leave the merged struct open to extra keys.
   const structVariants = (
     definition: EffectValidationSchemaDefinition,
-  ): string[] => {
+  ): { struct?: string; open: boolean }[] => {
     const functions = definition.functions.filter(
-      ([fn]) => fn !== 'describe' && fn !== 'default',
+      ([fn]) =>
+        fn !== 'describe' &&
+        fn !== 'default' &&
+        fn !== 'nullable' &&
+        fn !== 'nullish',
     );
     const [fn, arg] = functions[0] ?? [];
     if (
@@ -1007,13 +1013,23 @@ export const parseEffectValidationSchemaDefinition = (
         ? allOfVariants(members)
         : members.flatMap((member) => structVariants(member));
     }
+    if (
+      functions.length === 1 &&
+      (fn === 'looseObject' ||
+        (fn === 'additionalProperties' &&
+          (arg as EffectValidationSchemaDefinition).functions.every(
+            ([value]) => value === 'unknown',
+          )))
+    ) {
+      return [{ open: true }];
+    }
     const rendered = renderSchema({ ...definition, functions }, false);
     if (functions.length !== 1 || (fn !== 'object' && fn !== 'strictObject')) {
       throw new Error(
         `Effect 4 output merges allOf members as structs, and this member is not one: ${rendered}`,
       );
     }
-    return [rendered];
+    return [{ struct: rendered, open: false }];
   };
 
   const allOfVariants = (members: EffectValidationSchemaDefinition[]) =>
@@ -1021,11 +1037,28 @@ export const parseEffectValidationSchemaDefinition = (
       .map((member) => structVariants(member))
       .reduce((targets, sources) =>
         targets.flatMap((target) =>
-          sources.map(
-            (source) => `${target}.pipe(S.fieldsAssign(${source}.fields))`,
-          ),
+          sources.map((source) => ({
+            struct:
+              target.struct && source.struct
+                ? `${target.struct}.pipe(S.fieldsAssign(${source.struct}.fields))`
+                : (target.struct ?? source.struct),
+            open: target.open || source.open,
+          })),
         ),
       );
+
+  // A union admits `null` when one of its members does, an intersection when
+  // all of them do.
+  const admitsNull = (definition: EffectValidationSchemaDefinition): boolean =>
+    definition.functions.some(
+      ([fn, arg]) =>
+        fn === 'nullable' ||
+        fn === 'nullish' ||
+        ((fn === 'oneOf' || fn === 'anyOf') &&
+          (arg as EffectValidationSchemaDefinition[]).some(admitsNull)) ||
+        (fn === 'allOf' &&
+          (arg as EffectValidationSchemaDefinition[]).every(admitsNull)),
+    );
 
   const renderConstructor = (fn: string, arg: unknown): string => {
     switch (fn) {
@@ -1129,11 +1162,18 @@ export const parseEffectValidationSchemaDefinition = (
         }
         // Effect 4 has no `extend`: assign each later member's fields to the
         // first, distributed over union members, into a struct or a union of
-        // structs.
-        const variants = allOfVariants(args);
-        return variants.length === 1
-          ? variants[0]
-          : `S.Union([${variants.join(', ')}])`;
+        // structs. The result admits `null` only when every member does.
+        const variants = allOfVariants(args).map(
+          ({ struct = 'S.Struct({})', open }) =>
+            open
+              ? `S.StructWithRest(${struct}, [S.Record(S.String, S.Unknown)])`
+              : struct,
+        );
+        const merged =
+          variants.length === 1
+            ? variants[0]
+            : `S.Union([${variants.join(', ')}])`;
+        return args.every(admitsNull) ? `S.NullOr(${merged})` : merged;
       }
       default: {
         return 'S.Unknown';

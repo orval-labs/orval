@@ -25,6 +25,18 @@ export default defineConfig({
       target: '../specifications/all-of-one-of.yaml',
     },
   },
+  'all-of-open-and-nullable-members': {
+    output: {
+      target:
+        '../generated/effect/all-of-open-and-nullable-members/all-of-open-and-nullable-members.ts',
+      client: 'effect',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/all-of-open-and-nullable-members.yaml',
+    },
+  },
   defaults: {
     output: {
       target: '../generated/effect/defaults/defaults.ts',
