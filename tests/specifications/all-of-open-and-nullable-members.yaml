@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: allOf open and nullable members
+  version: 1.0.0
+paths:
+  /something:
+    get:
+      responses:
+        '200':
+          description: Something
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - nullableMember
+                  - allNullable
+                  - emptyObjectMember
+                  - openRecordMember
+                  - unionWithOpenMember
+                  - mergedWithOpenMember
+                  - nestedNullableUnion
+                  - nullableRefMember
+                properties:
+                  nullableMember:
+                    allOf:
+                      - $ref: '#/components/schemas/Base'
+                      - type: [object, 'null']
+                        properties:
+                          b:
+                            type: number
+                  allNullable:
+                    allOf:
+                      - type: [object, 'null']
+                        required:
+                          - a
+                        properties:
+                          a:
+                            type: string
+                      - type: [object, 'null']
+                        properties:
+                          b:
+                            type: number
+                  emptyObjectMember:
+                    allOf:
+                      - $ref: '#/components/schemas/Base'
+                      - type: object
+                  openRecordMember:
+                    allOf:
+                      - $ref: '#/components/schemas/Base'
+                      - type: object
+                        additionalProperties: true
+                  unionWithOpenMember:
+                    allOf:
+                      - oneOf:
+                          - $ref: '#/components/schemas/Base'
+                          - type: object
+                            properties:
+                              b:
+                                type: number
+                      - type: object
+                  mergedWithOpenMember:
+                    allOf:
+                      - $ref: '#/components/schemas/Base'
+                      - type: object
+                        additionalProperties: true
+                      - type: object
+                        properties:
+                          b:
+                            type: number
+                  nestedNullableUnion:
+                    allOf:
+                      - type: [object, 'null']
+                        required:
+                          - a
+                        properties:
+                          a:
+                            type: string
+                      - oneOf:
+                          - type: object
+                            properties:
+                              b:
+                                type: number
+                          - type: [object, 'null']
+                            properties:
+                              c:
+                                type: string
+                  nullableRefMember:
+                    allOf:
+                      - anyOf:
+                          - $ref: '#/components/schemas/Base'
+                          - type: 'null'
+                      - type: object
+                        properties:
+                          b:
+                            type: number
+components:
+  schemas:
+    Base:
+      type: object
+      required:
+        - a
+      properties:
+        a:
+          type: string
