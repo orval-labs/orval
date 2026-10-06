@@ -988,10 +988,11 @@ export const parseEffectValidationSchemaDefinition = (
     return '';
   };
 
-  // A description, default or `null` on an allOf member is not rendered once
-  // its fields are merged, so it does not stop the member from being spread.
-  // `{ type: 'object' }` and `additionalProperties: true` add no fields: they
-  // only leave the merged struct open to extra keys.
+  // A description, default or `null` on an allOf member does not stop the
+  // member from being spread, and a `null` branch of a union adds no struct:
+  // `admitsNull` decides whether the merge admits `null`. `{ type: 'object' }`
+  // and `additionalProperties: true` add no fields: they only leave the merged
+  // struct open to extra keys.
   const structVariants = (
     definition: EffectValidationSchemaDefinition,
   ): { struct?: string; open: boolean }[] => {
@@ -1011,7 +1012,9 @@ export const parseEffectValidationSchemaDefinition = (
       const members = arg as EffectValidationSchemaDefinition[];
       return fn === 'allOf'
         ? allOfVariants(members)
-        : members.flatMap((member) => structVariants(member));
+        : members
+            .filter((member) => member.functions[0]?.[0] !== 'null')
+            .flatMap((member) => structVariants(member));
     }
     if (
       functions.length === 1 &&
@@ -1052,6 +1055,7 @@ export const parseEffectValidationSchemaDefinition = (
   const admitsNull = (definition: EffectValidationSchemaDefinition): boolean =>
     definition.functions.some(
       ([fn, arg]) =>
+        fn === 'null' ||
         fn === 'nullable' ||
         fn === 'nullish' ||
         ((fn === 'oneOf' || fn === 'anyOf') &&

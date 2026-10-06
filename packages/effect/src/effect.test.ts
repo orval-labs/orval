@@ -691,6 +691,16 @@ describe('Effect 4 output', () => {
       );
     });
 
+    it('merges a union with a null branch as its other members', () => {
+      expect(
+        genV4({ allOf: [{ anyOf: [a, { type: 'null' }] }, b] }).effect,
+      ).toBe(`${structA}.pipe(S.fieldsAssign(${structB}.fields))`);
+      expect(
+        genV4({ allOf: [{ anyOf: [a, { type: 'null' }] }, nullable(b)] })
+          .effect,
+      ).toBe(`S.NullOr(${structA}.pipe(S.fieldsAssign(${structB}.fields)))`);
+    });
+
     it('keeps the index signature of an empty object member', () => {
       expect(genV4({ allOf: [a, { type: 'object' }] }).effect).toBe(
         `S.StructWithRest(${structA}, [${record}])`,
@@ -713,9 +723,15 @@ describe('Effect 4 output', () => {
     });
 
     it('still refuses a member that is not an object', () => {
-      expect(() => genV4({ allOf: [a, { type: 'string' }] })).toThrow(
-        'merges allOf members as structs',
-      );
+      for (const member of [
+        { type: 'string' },
+        { type: ['string', 'null'] },
+        { type: 'null' },
+      ] satisfies OpenApiSchemaObject[]) {
+        expect(() => genV4({ allOf: [a, member] })).toThrow(
+          'merges allOf members as structs',
+        );
+      }
     });
   });
 

@@ -20,6 +20,7 @@ paths:
                   - unionWithOpenMember
                   - mergedWithOpenMember
                   - nestedNullableUnion
+                  - nullableRefMember
                 properties:
                   nullableMember:
                     allOf:
@@ -84,6 +85,15 @@ paths:
                             properties:
                               c:
                                 type: string
+                  nullableRefMember:
+                    allOf:
+                      - anyOf:
+                          - $ref: '#/components/schemas/Base'
+                          - type: 'null'
+                      - type: object
+                        properties:
+                          b:
+                            type: number
 components:
   schemas:
     Base:

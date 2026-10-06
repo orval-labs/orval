@@ -87,4 +87,13 @@ export const GetSomethingResponse = S.Struct({
       ),
     ]),
   ),
+  nullableRefMember: S.Struct({
+    a: S.String,
+  }).pipe(
+    S.fieldsAssign(
+      S.Struct({
+        b: S.optional(S.Number),
+      }).fields,
+    ),
+  ),
 });
