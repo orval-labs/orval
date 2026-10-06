@@ -156,6 +156,29 @@ describe('boolean schemas', () => {
       '"optionalFalse": S.optionalWith(S.Never, { exact: true })',
     );
   });
+
+  it('wraps a non-required false outside a struct in S.UndefinedOr', () => {
+    expect(gen(false, { required: false }).effect).toBe(
+      'S.UndefinedOr(S.Never)',
+    );
+  });
+
+  it('renders the same schemas in Effect 4 output', () => {
+    expect(genV4(schema).effect).toBe(
+      [
+        'S.Struct({',
+        '  "requiredFalse": S.Never,',
+        '  "optionalFalse": S.optional(S.Never),',
+        '  "requiredTrue": S.Unknown,',
+        '  "optionalTrue": S.optional(S.Unknown),',
+        '  "emptyArray": S.optional(S.Tuple([]))',
+        '})',
+      ].join('\n'),
+    );
+    expect(genV4(schema, { exactOptional: true }).effect).toContain(
+      '"optionalFalse": S.optionalKey(S.Never)',
+    );
+  });
 });
 
 describe('composites', () => {
@@ -570,34 +593,6 @@ describe('Effect 4 output', () => {
     );
     expect(genV4({ enum: ['a', 1, null] }).effect).toBe(
       "S.Union([S.Literal('a'), S.Literal(1), S.Null])",
-    );
-  });
-
-  it('renders boolean schemas', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'object',
-      required: ['requiredFalse', 'requiredTrue'],
-      properties: {
-        requiredFalse: false,
-        optionalFalse: false,
-        requiredTrue: true,
-        optionalTrue: true,
-        emptyArray: { type: 'array', items: false },
-      },
-    };
-    expect(genV4(schema).effect).toBe(
-      [
-        'S.Struct({',
-        '  "requiredFalse": S.Never,',
-        '  "optionalFalse": S.optional(S.Never),',
-        '  "requiredTrue": S.Unknown,',
-        '  "optionalTrue": S.optional(S.Unknown),',
-        '  "emptyArray": S.optional(S.Tuple([]))',
-        '})',
-      ].join('\n'),
-    );
-    expect(genV4(schema, { exactOptional: true }).effect).toContain(
-      '"optionalFalse": S.optionalKey(S.Never)',
     );
   });
 
