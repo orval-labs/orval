@@ -226,9 +226,7 @@ export const generateEffectValidationSchemaDefinition = (
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
-  const hasFixedValue =
-    (!!schema.enum && type !== 'array') ||
-    (type === 'string' && 'const' in schema);
+  const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
   let skipSwitchStatement = false;
   if (schema.allOf || schema.oneOf || schema.anyOf) {
@@ -566,6 +564,9 @@ export const generateEffectValidationSchemaDefinition = (
       }
     }
   }
+
+  const hasFixedValue =
+    hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
 
   if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
