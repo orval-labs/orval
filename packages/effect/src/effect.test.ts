@@ -125,6 +125,63 @@ describe('constraints', () => {
   });
 });
 
+describe('boolean schemas', () => {
+  const schema: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['requiredFalse', 'requiredTrue'],
+    properties: {
+      requiredFalse: false,
+      optionalFalse: false,
+      requiredTrue: true,
+      optionalTrue: true,
+      emptyArray: { type: 'array', items: false },
+    },
+  };
+
+  it('renders false as S.Never and keeps a non-required key optional', () => {
+    expect(gen(schema).effect).toBe(
+      [
+        'S.Struct({',
+        '  "requiredFalse": S.Never,',
+        '  "optionalFalse": S.optional(S.Never),',
+        '  "requiredTrue": S.Unknown,',
+        '  "optionalTrue": S.optional(S.Unknown),',
+        '  "emptyArray": S.optional(S.Tuple())',
+        '})',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps an absent non-required key exact with exactOptional', () => {
+    expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"optionalFalse": S.optionalWith(S.Never, { exact: true })',
+    );
+  });
+
+  it('wraps a non-required false outside a struct in S.UndefinedOr', () => {
+    expect(gen(false, { required: false }).effect).toBe(
+      'S.UndefinedOr(S.Never)',
+    );
+  });
+
+  it('renders the same schemas in Effect 4 output', () => {
+    expect(genV4(schema).effect).toBe(
+      [
+        'S.Struct({',
+        '  "requiredFalse": S.Never,',
+        '  "optionalFalse": S.optional(S.Never),',
+        '  "requiredTrue": S.Unknown,',
+        '  "optionalTrue": S.optional(S.Unknown),',
+        '  "emptyArray": S.optional(S.Tuple([]))',
+        '})',
+      ].join('\n'),
+    );
+    expect(genV4(schema, { exactOptional: true }).effect).toContain(
+      '"optionalFalse": S.optionalKey(S.Never)',
+    );
+  });
+});
+
 describe('composites', () => {
   it('emits S.Array for arrays', () => {
     const { effect } = gen({ type: 'array', items: { type: 'number' } });
