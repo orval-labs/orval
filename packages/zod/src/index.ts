@@ -1871,10 +1871,12 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  // A `const` renders as `zod.literal(...)`, which has no `.min()`, `.max()`
-  // or `.regex()`, so treat it like an enum and skip those checks. Key on the
-  // rendered literal, not on `schema.const`: a `const` that renders otherwise
-  // (allOf/oneOf/anyOf, a date with `useDates`, binary) keeps its checks.
+  // A `const` renders as `zod.literal(...)`, which has none of the bound or
+  // pattern methods below (`.min()`, `.max()`, `.gt()`, `.lt()`,
+  // `.multipleOf()`, `.regex()`), so treat it like an enum and skip them. Key
+  // on the rendered literal, not on `schema.const`: a `const` that renders
+  // otherwise (allOf/oneOf/anyOf, a date with `useDates`, binary) is left as
+  // it was.
   const hasFixedValue =
     hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
 

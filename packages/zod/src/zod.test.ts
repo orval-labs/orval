@@ -173,8 +173,9 @@ describe.each([
   },
 );
 
-// A `const` renders as `zod.literal(...)`, which has no `.min()`, `.max()` or
-// `.regex()`. Chaining them failed to compile (TS2339), so they are skipped.
+// A `const` renders as `zod.literal(...)`. Chaining bound or pattern checks
+// onto it did not compile with Zod 3 or Zod 4 classic (TS2339), nor with Zod 4
+// mini for a numeric const (TS2345), so they are skipped.
 describe.each([
   { version: 3, variant: 'classic' },
   { version: 4, variant: 'classic' },
