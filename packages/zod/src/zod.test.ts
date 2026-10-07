@@ -1401,6 +1401,37 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('zod.string()');
   });
 
+  it('applies the parent type to an allOf member without one (#4267)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: String.raw`^[\s\S]*?-[\s\S]*?$`,
+      allOf: [{ pattern: '^[0-9a-fA-F-]{36}$', format: 'uuid' }],
+    };
+    const context = createTestContextSpec({
+      output: { override: { useDates: false } },
+    });
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'test',
+        false,
+        true,
+        {
+          required: true,
+        },
+      ),
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('unknown');
+    expect(parsed.zod).toMatch(/^zod\.uuid\(\)\.regex\(.+\)\.regex\(.+\)$/);
+  });
+
   it('handles allOf with additional properties', () => {
     const pagingResultSchema: OpenApiSchemaObject = {
       type: 'object',
