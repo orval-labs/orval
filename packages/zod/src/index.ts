@@ -1201,11 +1201,44 @@ export const generateZodValidationSchemaDefinition = (
       } as OpenApiSchemaObject;
     };
 
+    // Every value an `allOf` accepts must also match the composing schema, so
+    // an inline member without its own `type` takes a scalar parent's `type`.
+    // Without it the member renders as `zod.unknown()`, dropping its `format`
+    // and `pattern`, and the parent's checks then chain onto `ZodUnknown`. (#4267)
+    const parentScalarType = (() => {
+      if (!schema.allOf) return undefined;
+      const types = (
+        Array.isArray(schema.type) ? schema.type : [schema.type]
+      ).filter((t) => t !== 'null');
+      return types.length === 1 &&
+        ['string', 'number', 'integer', 'boolean'].includes(types[0] as string)
+        ? (types[0] as string)
+        : undefined;
+    })();
+    const withParentType = (
+      member: OpenApiSchemaObject | OpenApiReferenceObject,
+    ) => {
+      if (
+        !parentScalarType ||
+        !isObject(member) ||
+        '$ref' in member ||
+        'type' in member ||
+        member.allOf ||
+        member.oneOf ||
+        member.anyOf ||
+        member.enum ||
+        'const' in member
+      ) {
+        return member;
+      }
+      return { ...member, type: parentScalarType } as OpenApiSchemaObject;
+    };
+
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
       generateZodValidationSchemaDefinition(
-        withSiblingProperties(schema),
+        withSiblingProperties(withParentType(schema)),
         context,
         `${camel(name)}${pascal(getNumberWord(index + 1))}`,
         strict,
