@@ -15,6 +15,7 @@ import {
   isString,
   type NormalizedOutputOptions,
   type OpenApiServerObject,
+  OPERATION_METHODS,
   type OutputHttpClient,
   pascal,
   type Verbs,
@@ -57,17 +58,6 @@ const serializeTarget = (target: NormalizedTarget): string =>
     invalidateMode: target.invalidateMode,
     file: target.file ?? '',
   });
-
-const HTTP_METHODS = [
-  'get',
-  'post',
-  'put',
-  'delete',
-  'patch',
-  'options',
-  'head',
-  'trace',
-];
 
 const MUTATION_OPERATION_LOCAL_NAMES = new Set([
   'backupQueryClient',
@@ -148,7 +138,7 @@ const findOperationInfo = (
     if (!rawPathItem || typeof rawPathItem !== 'object') continue;
     const pathItem = rawPathItem as SpecPathItem;
 
-    for (const method of HTTP_METHODS) {
+    for (const method of OPERATION_METHODS) {
       const operation = pathItem[method] as SpecOperation | undefined;
       const opId = operation?.operationId;
       if (!opId) continue;
@@ -396,7 +386,7 @@ const createGenerateInvalidateFilter = (
         // would never match a verb-prefixed cache key and the broad
         // invalidation would silently no-op. We share the helper from
         // `query-generator.ts` so both sites stay in sync.
-        // `info.method` is narrowed by the spec walker to one of HTTP_METHODS
+        // `info.method` is narrowed by the spec walker to one of OPERATION_METHODS
         // (a superset of `Verbs` that also includes `options`/`trace`); the
         // helper only branches on `Verbs.GET`, so the cast is safe for any
         // non-GET method.

@@ -1,3 +1,5 @@
+import type { OpenAPIV3_2 } from '@scalar/openapi-types';
+
 import { Verbs } from './types';
 
 export const generalJSTypes = [
@@ -23,6 +25,24 @@ export const VERBS_WITH_BODY = [
   Verbs.DELETE,
   Verbs.QUERY,
 ];
+
+/**
+ * Every Path Item Object key that holds an Operation Object, up to OpenAPI 3.2
+ * (`query`). A superset of {@link Verbs}: `trace` operations are valid in a
+ * spec but orval does not generate clients for them. Use this when walking a
+ * document, and `Verbs` when deciding what to generate.
+ */
+export const OPERATION_METHODS = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace',
+  'query',
+] as const satisfies readonly OpenAPIV3_2.HttpMethods[];
 
 /**
  * Matches a `${thing}` tag in template-literal source.

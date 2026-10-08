@@ -7,6 +7,7 @@ import {
   isObject,
   isString,
   isUrl,
+  OPERATION_METHODS,
   type ExternalRefNamingStrategy,
   type NormalizedOptions,
   type OpenApiDocument,
@@ -22,7 +23,6 @@ import {
   readFiles,
 } from '@scalar/json-magic/bundle/plugins/node';
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
@@ -208,19 +208,6 @@ async function resolveSpec(
 }
 
 // ─── Missing response description defaulting (#4271) ──────────────────────
-
-// @scalar/openapi-types only ships `HttpMethods` as a type, so spell the
-// values out and let the compiler hold them to it.
-const OPERATION_METHODS = [
-  'get',
-  'put',
-  'post',
-  'delete',
-  'options',
-  'head',
-  'patch',
-  'trace',
-] as const satisfies readonly OpenAPIV3_1.HttpMethods[];
 
 const MAX_LISTED_MISSING_DESCRIPTIONS = 10;
 
