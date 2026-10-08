@@ -14,6 +14,7 @@ import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
   dereferenceExternalRef,
+  fillMissingResponseDescriptions,
   importSpecs,
   normalizeNullableRefs,
   normalizeToOpenApi31,
@@ -301,6 +302,48 @@ describe('validation', () => {
     await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
       /input\.override\.transformer must return an OpenAPI document object; got undefined from transformer/,
     );
+  });
+
+  it('should accept a 3.1 response without a description and warn (#4271)', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.1.0',
+            info: { title: 'example' },
+            paths: {
+              '/': {
+                get: {
+                  operationId: 'hello',
+                  responses: {
+                    '200': {
+                      content: {
+                        'text/plain': { schema: { type: 'string' } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          } as unknown as OpenApiDocument,
+        },
+      },
+      workspace,
+      {},
+    );
+
+    const warn = vi.fn();
+    const spec = await withReporter({ ...noopReporter, warn }, () =>
+      importSpecs(workspace, normalizedOptions),
+    );
+
+    expect(spec.verbOptions).toHaveProperty('hello');
+
+    // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
+    const warnings = warn.mock.calls.map(([event]) => event.message).join('\n');
+    expect(warnings).toContain('#/paths/~1/get/responses/200');
   });
 
   it('should skip validation when input.unsafeDisableValidation is true', async () => {
@@ -3351,6 +3394,204 @@ describe('validateComponentKeys', () => {
     expect(() => {
       validateComponentKeys(data);
     }).not.toThrow();
+  });
+});
+
+describe('fillMissingResponseDescriptions', () => {
+  const okResponse = { content: {} };
+
+  it('should default missing descriptions everywhere responses live', () => {
+    const data: Record<string, unknown> = {
+      openapi: '3.1.0',
+      paths: {
+        '/pets': {
+          get: {
+            responses: { '200': { ...okResponse } },
+            callbacks: {
+              onEvent: {
+                '{$request.body#/url}': {
+                  post: { responses: { '204': {} } },
+                },
+              },
+            },
+          },
+        },
+      },
+      webhooks: { newPet: { post: { responses: { '200': {} } } } },
+      components: {
+        responses: { NotFound: {} },
+        callbacks: {
+          cb: { '/hook': { put: { responses: { default: {} } } } },
+        },
+        pathItems: { Shared: { delete: { responses: { '204': {} } } } },
+      },
+    };
+
+    const warn = vi.fn();
+    withReporter({ ...noopReporter, warn }, () => {
+      fillMissingResponseDescriptions(data);
+    });
+
+    expect(data).toMatchObject({
+      paths: {
+        '/pets': {
+          get: {
+            responses: { '200': { description: '' } },
+            callbacks: {
+              onEvent: {
+                '{$request.body#/url}': {
+                  post: { responses: { '204': { description: '' } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      webhooks: {
+        newPet: { post: { responses: { '200': { description: '' } } } },
+      },
+      components: {
+        responses: { NotFound: { description: '' } },
+        callbacks: {
+          cb: {
+            '/hook': { put: { responses: { default: { description: '' } } } },
+          },
+        },
+        pathItems: {
+          Shared: { delete: { responses: { '204': { description: '' } } } },
+        },
+      },
+    });
+    expect(warn).toHaveBeenCalledTimes(1);
+    // oxlint-disable-next-line typescript/no-unsafe-member-access
+    const message = warn.mock.calls[0][0].message as string;
+    expect(message).toContain('6 responses are missing');
+    expect(message).toContain('#/paths/~1pets/get/responses/200');
+  });
+
+  it('should skip `x-` extensions only where the spec allows them', () => {
+    const data: Record<string, unknown> = {
+      openapi: '3.1.0',
+      paths: {
+        // Paths, Callback and Responses Objects allow extensions.
+        'x-paths-ext': { post: { responses: { '200': {} } } },
+        '/': {
+          get: {
+            responses: { '200': { description: 'OK' }, 'x-meta': {} },
+            callbacks: {
+              cb: { 'x-cb-ext': { post: { responses: { '200': {} } } } },
+            },
+          },
+        },
+      },
+      // Plain name maps, where an `x-` key is a name like any other.
+      webhooks: { 'x-hook': { post: { responses: { '200': {} } } } },
+      components: {
+        responses: { 'x-named': {} },
+        pathItems: { 'x-item': { get: { responses: { '200': {} } } } },
+      },
+    };
+
+    const warn = vi.fn();
+    withReporter({ ...noopReporter, warn }, () => {
+      fillMissingResponseDescriptions(data);
+    });
+
+    expect(data).toMatchObject({
+      paths: {
+        'x-paths-ext': { post: { responses: { '200': {} } } },
+        '/': {
+          get: {
+            responses: { 'x-meta': {} },
+            callbacks: {
+              cb: { 'x-cb-ext': { post: { responses: { '200': {} } } } },
+            },
+          },
+        },
+      },
+      webhooks: {
+        'x-hook': { post: { responses: { '200': { description: '' } } } },
+      },
+      components: {
+        responses: { 'x-named': { description: '' } },
+        pathItems: {
+          'x-item': { get: { responses: { '200': { description: '' } } } },
+        },
+      },
+    });
+    const paths = data.paths as Record<string, Record<string, unknown>>;
+    expect(paths['x-paths-ext']).not.toHaveProperty(
+      'post.responses.200.description',
+    );
+    expect(paths['/']).not.toHaveProperty('get.responses.x-meta.description');
+    expect(paths['/']).not.toHaveProperty([
+      'get',
+      'callbacks',
+      'cb',
+      'x-cb-ext',
+      'post',
+      'responses',
+      '200',
+      'description',
+    ]);
+    // oxlint-disable-next-line typescript/no-unsafe-member-access
+    expect(warn.mock.calls[0][0].message).toContain('3 responses are missing');
+  });
+
+  it('should leave existing descriptions and $refs alone without warning', () => {
+    const data: Record<string, unknown> = {
+      openapi: '3.0.3',
+      paths: {
+        '/': {
+          get: {
+            responses: {
+              '200': { description: 'OK' },
+              '404': { $ref: '#/components/responses/NotFound' },
+            },
+          },
+        },
+      },
+    };
+    const before = structuredClone(data);
+
+    const warn = vi.fn();
+    withReporter({ ...noopReporter, warn }, () => {
+      fillMissingResponseDescriptions(data);
+    });
+
+    expect(data).toEqual(before);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('should fill Swagger 2.0 operation and top-level responses', () => {
+    const data: Record<string, unknown> = {
+      swagger: '2.0',
+      paths: { '/': { get: { responses: { '200': {} } } } },
+      responses: { Error: {} },
+    };
+
+    withReporter(noopReporter, () => {
+      fillMissingResponseDescriptions(data);
+    });
+
+    expect(data).toMatchObject({
+      paths: { '/': { get: { responses: { '200': { description: '' } } } } },
+      responses: { Error: { description: '' } },
+    });
+  });
+
+  it('should not touch OpenAPI 3.2, where description is optional', () => {
+    const data: Record<string, unknown> = {
+      openapi: '3.2.0',
+      paths: { '/': { get: { responses: { '200': {} } } } },
+    };
+
+    fillMissingResponseDescriptions(data);
+
+    expect(data).toEqual({
+      openapi: '3.2.0',
+      paths: { '/': { get: { responses: { '200': {} } } } },
+    });
   });
 });
 

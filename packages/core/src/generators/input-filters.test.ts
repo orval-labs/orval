@@ -856,6 +856,36 @@ describe('filterPathsBySchemas', () => {
     expect(Object.keys(result.paths ?? {})).toEqual(['/users']);
   });
 
+  it('filters OpenAPI 3.2 query operations like any other method', () => {
+    const result = filterPathsBySchemas(
+      makeSpec({
+        paths: {
+          '/users': {
+            post: schemaFilterSpec.paths?.['/users']?.post,
+            query: {
+              operationId: 'searchUsers',
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/UpdateUserRequest' },
+                  },
+                },
+              },
+              responses: { 200: { description: 'OK' } },
+            },
+          },
+        },
+        components: schemaFilterSpec.components,
+      } as Parameters<typeof makeSpec>[0]),
+      ['CreateUserRequest'],
+      'include',
+    );
+
+    // `query` is treated as an operation rather than kept as path-item
+    // metadata, so the non-matching one is filtered out next to the `post`.
+    expect(Object.keys(result.paths?.['/users'] ?? {})).toEqual(['post']);
+  });
+
   it('keeps operations referencing any schema when mode is exclude', () => {
     const result = filterPathsBySchemas(
       schemaFilterSpec,
