@@ -229,9 +229,17 @@ export function fillMissingResponseDescriptions(
 
   const missing: string[] = [];
 
-  const fillResponses = (responses: unknown, pointer: string) => {
+  // Responses, Paths and Callback Objects allow `x-` extensions next to their
+  // entries; the component maps, webhooks and Swagger 2.0 `responses` are
+  // plain name maps, where an `x-` key is a name like any other.
+  const fillResponses = (
+    responses: unknown,
+    pointer: string,
+    skipExtensions: boolean,
+  ) => {
     if (!isObject(responses)) return;
     for (const [code, response] of Object.entries(responses)) {
+      if (skipExtensions && isExtension(code)) continue;
       if (!isObject(response) || '$ref' in response) continue;
       if (response.description === undefined) {
         response.description = '';
@@ -240,16 +248,25 @@ export function fillMissingResponseDescriptions(
     }
   };
 
-  const fillPathItems = (pathItems: unknown, pointer: string) => {
+  const fillPathItems = (
+    pathItems: unknown,
+    pointer: string,
+    skipExtensions: boolean,
+  ) => {
     if (!isObject(pathItems)) return;
     for (const [key, pathItem] of Object.entries(pathItems)) {
+      if (skipExtensions && isExtension(key)) continue;
       if (!isObject(pathItem)) continue;
       const pathItemPointer = `${pointer}/${escapePointerToken(key)}`;
       for (const method of OPERATION_METHODS) {
         const operation = pathItem[method];
         if (!isObject(operation)) continue;
         const operationPointer = `${pathItemPointer}/${method}`;
-        fillResponses(operation.responses, `${operationPointer}/responses`);
+        fillResponses(
+          operation.responses,
+          `${operationPointer}/responses`,
+          true,
+        );
         fillCallbacks(operation.callbacks, `${operationPointer}/callbacks`);
       }
     }
@@ -258,19 +275,19 @@ export function fillMissingResponseDescriptions(
   const fillCallbacks = (callbacks: unknown, pointer: string) => {
     if (!isObject(callbacks)) return;
     for (const [name, callback] of Object.entries(callbacks)) {
-      fillPathItems(callback, `${pointer}/${escapePointerToken(name)}`);
+      fillPathItems(callback, `${pointer}/${escapePointerToken(name)}`, true);
     }
   };
 
-  fillPathItems(spec.paths, '#/paths');
-  fillPathItems(spec.webhooks, '#/webhooks');
+  fillPathItems(spec.paths, '#/paths', true);
+  fillPathItems(spec.webhooks, '#/webhooks', false);
   // Swagger 2.0 keeps reusable responses at the top level.
-  fillResponses(spec.responses, '#/responses');
+  fillResponses(spec.responses, '#/responses', false);
 
   if (isObject(spec.components)) {
-    fillResponses(spec.components.responses, '#/components/responses');
+    fillResponses(spec.components.responses, '#/components/responses', false);
     fillCallbacks(spec.components.callbacks, '#/components/callbacks');
-    fillPathItems(spec.components.pathItems, '#/components/pathItems');
+    fillPathItems(spec.components.pathItems, '#/components/pathItems', false);
   }
 
   if (missing.length === 0) return;

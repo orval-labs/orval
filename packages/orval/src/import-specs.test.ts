@@ -3469,6 +3469,75 @@ describe('fillMissingResponseDescriptions', () => {
     expect(message).toContain('#/paths/~1pets/get/responses/200');
   });
 
+  it('should skip `x-` extensions only where the spec allows them', () => {
+    const data: Record<string, unknown> = {
+      openapi: '3.1.0',
+      paths: {
+        // Paths, Callback and Responses Objects allow extensions.
+        'x-paths-ext': { post: { responses: { '200': {} } } },
+        '/': {
+          get: {
+            responses: { '200': { description: 'OK' }, 'x-meta': {} },
+            callbacks: {
+              cb: { 'x-cb-ext': { post: { responses: { '200': {} } } } },
+            },
+          },
+        },
+      },
+      // Plain name maps, where an `x-` key is a name like any other.
+      webhooks: { 'x-hook': { post: { responses: { '200': {} } } } },
+      components: {
+        responses: { 'x-named': {} },
+        pathItems: { 'x-item': { get: { responses: { '200': {} } } } },
+      },
+    };
+
+    const warn = vi.fn();
+    withReporter({ ...noopReporter, warn }, () => {
+      fillMissingResponseDescriptions(data);
+    });
+
+    expect(data).toMatchObject({
+      paths: {
+        'x-paths-ext': { post: { responses: { '200': {} } } },
+        '/': {
+          get: {
+            responses: { 'x-meta': {} },
+            callbacks: {
+              cb: { 'x-cb-ext': { post: { responses: { '200': {} } } } },
+            },
+          },
+        },
+      },
+      webhooks: {
+        'x-hook': { post: { responses: { '200': { description: '' } } } },
+      },
+      components: {
+        responses: { 'x-named': { description: '' } },
+        pathItems: {
+          'x-item': { get: { responses: { '200': { description: '' } } } },
+        },
+      },
+    });
+    const paths = data.paths as Record<string, Record<string, unknown>>;
+    expect(paths['x-paths-ext']).not.toHaveProperty(
+      'post.responses.200.description',
+    );
+    expect(paths['/']).not.toHaveProperty('get.responses.x-meta.description');
+    expect(paths['/']).not.toHaveProperty([
+      'get',
+      'callbacks',
+      'cb',
+      'x-cb-ext',
+      'post',
+      'responses',
+      '200',
+      'description',
+    ]);
+    // oxlint-disable-next-line typescript/no-unsafe-member-access
+    expect(warn.mock.calls[0][0].message).toContain('3 responses are missing');
+  });
+
   it('should leave existing descriptions and $refs alone without warning', () => {
     const data: Record<string, unknown> = {
       openapi: '3.0.3',
