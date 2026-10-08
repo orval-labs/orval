@@ -3313,7 +3313,11 @@ describe('single-file schema output combinations', () => {
       factoryMethods: { outputDirectory: './factories' },
       type: 'zod' as const,
     },
-    { mock: true, type: 'typescript' as const },
+    { operationSchemas: './operations', type: 'typescript' as const },
+    {
+      factoryMethods: { outputDirectory: './factories' },
+      type: 'typescript' as const,
+    },
   ])(
     'rejects unsupported output $0 before writing files',
     async ({ type, ...output }) => {
@@ -3343,4 +3347,31 @@ describe('single-file schema output combinations', () => {
       }
     },
   );
+
+  // #4235
+  it('accepts mock generators with TypeScript single-file schemas', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './client.ts',
+            schemas: { path: './model', mode: 'single' },
+            mock: { generators: [{ type: 'msw' }] },
+          },
+        },
+        workspace,
+      );
+      expect(options.output.mock.generators).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });

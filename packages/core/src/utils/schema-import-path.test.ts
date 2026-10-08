@@ -438,6 +438,21 @@ describe('single-file schema imports', () => {
     ]);
   });
 
+  // Mock writers pass the named file with its source extension stripped.
+  it('resolves from the directory when relativeSchemasPath is the extensionless file (#4235)', () => {
+    const output = createOutput({
+      schemas: {
+        path: '/src/types/api.schemas.ts',
+        type: 'typescript',
+        mode: 'single',
+        splitByTags: false,
+      },
+    });
+    expect(resolve(output, '../types/api.schemas', [PET])).toEqual([
+      '../types/api.schemas',
+    ]);
+  });
+
   it('rewrites a named schema file for NodeNext resolution', () => {
     const output = createOutput({
       schemas: {

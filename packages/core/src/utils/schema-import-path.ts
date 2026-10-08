@@ -115,11 +115,17 @@ export function resolveSchemaImportDependencies(
     // The split and tags-split writers pass the schemas path itself (#3624),
     // which for a named module is the file, not its directory. Resolve from
     // the directory either way, or the import points inside the file
-    // (`./model/api.ts/api`).
+    // (`./model/api.ts/api`). Mock writers pass it with the source extension
+    // stripped (`./model/api`), so match that form too.
+    const relativeSchemasBasename = path.posix.basename(relativeSchemasPath);
     const relativeSchemasDir =
       namedSingleSchemaPath &&
-      path.posix.basename(relativeSchemasPath) ===
-        path.basename(namedSingleSchemaPath)
+      (relativeSchemasBasename === path.basename(namedSingleSchemaPath) ||
+        relativeSchemasBasename ===
+          path.basename(
+            namedSingleSchemaPath,
+            path.extname(namedSingleSchemaPath),
+          ))
         ? path.posix.dirname(relativeSchemasPath)
         : relativeSchemasPath;
 
