@@ -3237,9 +3237,9 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
-  it('should break cycles when an external ref recursively points back to itself (#1642)', () => {
-    // A self-referencing x-ext entry outside components.schemas would
-    // otherwise inline forever and OOM; the inner ref must collapse to `{}`.
+  it('should turn an external schema that references itself into a component (#1642)', () => {
+    // A self-referencing x-ext entry outside components.schemas cannot be
+    // inlined; it takes the place of its placeholder and refers to itself.
     const warn = vi.fn();
     const input = {
       openapi: '3.0.0',
@@ -3271,16 +3271,67 @@ describe('dereferenceExternalRefs', () => {
       type: 'object',
       properties: {
         name: { type: 'string' },
-        self: {},
+        self: { $ref: '#/components/schemas/Foo' },
       },
     });
     expect(result).not.toHaveProperty('x-ext');
-    expect(warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        // oxlint-disable-next-line typescript/no-unsafe-assignment
-        message: expect.stringContaining('circular external $ref'),
-      }),
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('should name a recursive external document after its title', () => {
+    // A whole external file whose root schema nests itself, referenced from
+    // an inline schema rather than from components.schemas.
+    const input = {
+      openapi: '3.1.0',
+      paths: {
+        '/users': {
+          post: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    additionalProperties: { $ref: '#/x-ext/abc' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        abc: {
+          title: 'UserProperty',
+          type: 'object',
+          properties: {
+            properties: {
+              type: 'object',
+              additionalProperties: { $ref: '#/x-ext/abc' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      paths: Record<string, unknown>;
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(result.components.schemas.UserProperty).toEqual({
+      title: 'UserProperty',
+      type: 'object',
+      properties: {
+        properties: {
+          type: 'object',
+          additionalProperties: { $ref: '#/components/schemas/UserProperty' },
+        },
+      },
+    });
+    expect(JSON.stringify(result.paths)).toContain(
+      '"additionalProperties":{"$ref":"#/components/schemas/UserProperty"}',
     );
+    expect(JSON.stringify(result)).not.toContain('#/x-ext/');
   });
 
   it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {
