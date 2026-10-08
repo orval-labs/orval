@@ -202,8 +202,9 @@ output: {
 `path` may also name the module itself, e.g.
 `schemas: { path: './api/model/api.schemas.ts', mode: 'single' }`. A directory
 path writes `<schemas.path>/index` with [`schemaFileExtension`](#schemafileextension).
-No additional barrel is generated, regardless of `indexFiles`. The same
-restrictions as for Zod below apply.
+No additional barrel is generated, regardless of `indexFiles`. Mock generators
+import their types from this module. This mode cannot be combined with
+`splitByTags`, `routes`, `operationSchemas`, or `factoryMethods`.
 
 #### Zod
 
@@ -228,8 +229,8 @@ directory path keeps the `index.zod.ts` behavior. The filename uses
 `schemaFileExtension` (default `.zod.ts`). No additional barrel is generated,
 regardless of `indexFiles`.
 `importPath`, when provided, must resolve to the single module.
-This mode cannot be combined with `splitByTags`, `routes`, `operationSchemas`,
-mock generators, or `factoryMethods`.
+Zod single mode cannot be combined with `splitByTags`, `routes`,
+`operationSchemas`, mock generators, or `factoryMethods`.
 Omitting `schemas.mode` preserves the existing split-file schema output.
 `output.mode` independently controls how API client files are organized.
 

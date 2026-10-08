@@ -1,3 +1,4 @@
+import { OPERATION_METHODS } from '../constants';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -206,16 +207,7 @@ export function filterPathsBySchemas(
               } as unknown as ContextSpec).schema
             : pathItem;
 
-          const httpMethods = new Set([
-            'get',
-            'put',
-            'post',
-            'delete',
-            'options',
-            'head',
-            'patch',
-            'trace',
-          ]);
+          const httpMethods = new Set<string>(OPERATION_METHODS);
 
           const keptVerbs: Record<string, unknown> = {};
           const pathMetadata: Record<string, unknown> = {};

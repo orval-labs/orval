@@ -1,5 +1,7 @@
 import type { allLocales } from '@faker-js/faker';
 
+// Type-only, so it is erased: no runtime `types` -> `constants` cycle.
+import type { OPERATION_METHODS } from './constants';
 // Type-only, so it is erased: no runtime `types` -> `writers` dependency.
 import type { SchemaOutputPlan } from './writers/schema-output-plan';
 
@@ -1722,15 +1724,11 @@ export type HooksOptions<T = HookCommand | NormalizedHookCommand> = Partial<
 
 export type NormalizedHookOptions = HooksOptions<NormalizedHookCommand>;
 
-export type Verbs =
-  | 'get'
-  | 'put'
-  | 'post'
-  | 'delete'
-  | 'options'
-  | 'head'
-  | 'patch'
-  | 'query';
+/**
+ * Operation methods orval generates clients for: every one in
+ * {@link OPERATION_METHODS} but `trace`, which browsers' `fetch` refuses.
+ */
+export type Verbs = Exclude<(typeof OPERATION_METHODS)[number], 'trace'>;
 
 export const Verbs = {
   GET: 'get' as Verbs,
