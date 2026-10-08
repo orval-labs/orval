@@ -127,6 +127,11 @@ async function resolveSpec(
   } else {
     validateComponentKeys(transformedData);
 
+    // Response `description` is required before OpenAPI 3.2 but routinely
+    // omitted, and orval does not need it. Default it rather than fail
+    // validation over it (#4271).
+    fillMissingResponseDescriptions(transformedData);
+
     const { valid, errors } = await validateSpec(transformedData);
     if (!valid) {
       throw new Error(
@@ -199,6 +204,99 @@ async function resolveSpec(
   specification = normalizeToOpenApi31(specification) as typeof specification;
 
   return specification as OpenApiDocument;
+}
+
+// ─── Missing response description defaulting (#4271) ──────────────────────
+
+const OPERATION_METHODS = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace',
+];
+
+const MAX_LISTED_MISSING_DESCRIPTIONS = 10;
+
+/**
+ * Swagger 2.0 and OpenAPI 3.0/3.1 mark the Response Object's `description` as
+ * REQUIRED, so the validator rejects a response without one. OpenAPI 3.2 made
+ * it optional, and plenty of 3.0/3.1 specs already leave it out. orval only
+ * ever reads it as documentation, so set a missing one to `''` (what an
+ * explicit empty description already produces) and warn instead of failing.
+ *
+ * Mutates `spec` in place, like the other pre-upgrade normalizations.
+ */
+export function fillMissingResponseDescriptions(
+  spec: Record<string, unknown>,
+): void {
+  if (isString(spec.openapi) && !/^3\.[01]\./.test(spec.openapi)) {
+    return;
+  }
+
+  const missing: string[] = [];
+
+  const fillResponses = (responses: unknown, pointer: string) => {
+    if (!isObject(responses)) return;
+    for (const [code, response] of Object.entries(responses)) {
+      if (!isObject(response) || '$ref' in response) continue;
+      if (response.description === undefined) {
+        response.description = '';
+        missing.push(`${pointer}/${escapePointerToken(code)}`);
+      }
+    }
+  };
+
+  const fillPathItems = (pathItems: unknown, pointer: string) => {
+    if (!isObject(pathItems)) return;
+    for (const [key, pathItem] of Object.entries(pathItems)) {
+      if (!isObject(pathItem)) continue;
+      const pathItemPointer = `${pointer}/${escapePointerToken(key)}`;
+      for (const method of OPERATION_METHODS) {
+        const operation = pathItem[method];
+        if (!isObject(operation)) continue;
+        const operationPointer = `${pathItemPointer}/${method}`;
+        fillResponses(operation.responses, `${operationPointer}/responses`);
+        fillCallbacks(operation.callbacks, `${operationPointer}/callbacks`);
+      }
+    }
+  };
+
+  const fillCallbacks = (callbacks: unknown, pointer: string) => {
+    if (!isObject(callbacks)) return;
+    for (const [name, callback] of Object.entries(callbacks)) {
+      fillPathItems(callback, `${pointer}/${escapePointerToken(name)}`);
+    }
+  };
+
+  fillPathItems(spec.paths, '#/paths');
+  fillPathItems(spec.webhooks, '#/webhooks');
+  // Swagger 2.0 keeps reusable responses at the top level.
+  fillResponses(spec.responses, '#/responses');
+
+  if (isObject(spec.components)) {
+    fillResponses(spec.components.responses, '#/components/responses');
+    fillCallbacks(spec.components.callbacks, '#/components/callbacks');
+    fillPathItems(spec.components.pathItems, '#/components/pathItems');
+  }
+
+  if (missing.length === 0) return;
+
+  const listed = missing.slice(0, MAX_LISTED_MISSING_DESCRIPTIONS);
+  const more = missing.length - listed.length;
+  logger.warn(
+    `${missing.length} response${missing.length > 1 ? 's are' : ' is'} missing the required \`description\` field; defaulting to "".\n` +
+      `  \`description\` is only optional from OpenAPI 3.2 on. Add it to the source spec to silence this warning.\n` +
+      listed.map((p) => `    - ${p}`).join('\n') +
+      (more > 0 ? `\n    ... and ${more} more` : ''),
+  );
+}
+
+function escapePointerToken(token: string): string {
+  return token.replaceAll('~', '~0').replaceAll('/', '~1');
 }
 
 // ─── Invalid nullable $ref normalization (#3714) ───────────────────────────
