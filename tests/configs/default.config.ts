@@ -1027,6 +1027,38 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  // Mocks import their types from the single module, including a named file
+  // in tags-split mode, where the mock path loses its source extension.
+  'single-schemas-file-named-tags-split-mock': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/single-schemas-file/tags-split-mock/endpoints.ts',
+      mode: 'tags-split',
+      schemas: {
+        path: '../generated/default/single-schemas-file/tags-split-mock/model/api.schemas.ts',
+        mode: 'single',
+      },
+      mock: { generators: [{ type: 'msw' }] },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'single-schemas-file-split-mock': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/single-schemas-file/split-mock/endpoints.ts',
+      mode: 'split',
+      schemas: {
+        path: '../generated/default/single-schemas-file/split-mock/model',
+        mode: 'single',
+      },
+      mock: { generators: [{ type: 'msw' }] },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'issue-4239': {
     input: '../specifications/issue-4239.yaml',
     output: {

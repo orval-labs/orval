@@ -297,13 +297,16 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
   if (!schemas || isString(schemas)) return;
   if (schemas.mode === 'single') {
-    if (
-      output.operationSchemas ||
-      output.mock.generators.length > 0 ||
-      output.factoryMethods
-    ) {
+    if (output.operationSchemas || output.factoryMethods) {
       throw new Error(
-        'schemas.mode "single" cannot be combined with operationSchemas, mock generators, or factoryMethods.',
+        'schemas.mode "single" cannot be combined with operationSchemas or factoryMethods.',
+      );
+    }
+    // TypeScript mocks import types from the single module (#4235); Zod
+    // single mode has not been checked with mocks yet.
+    if (schemas.type === 'zod' && output.mock.generators.length > 0) {
+      throw new Error(
+        'schemas.mode "single" cannot be combined with mock generators when schemas.type is "zod".',
       );
     }
   }
