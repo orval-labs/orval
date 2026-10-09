@@ -2052,9 +2052,40 @@ export function dereferenceExternalRef(
     data,
     extensions,
     recursiveRefs,
+    schemaNameMappings,
     strategy,
   );
-  return replaceAllXExtRefs(hoistedRefs, new Set());
+  const unresolvedRefs = new Set<string>();
+  const hoistedResult = replaceAllXExtRefs(hoistedRefs, unresolvedRefs);
+
+  // Every recursive ref should now point at a component. Any cycle still cut
+  // with `{}` loses its recursion, so say so.
+  for (const refValue of unresolvedRefs) {
+    logger.warn(
+      `Detected a circular external $ref while inlining "${refValue}". ` +
+        `Replacing with an empty schema to avoid infinite recursion. ` +
+        `Move the schema under "components.schemas" in its source file ` +
+        `or pre-bundle the spec to keep the recursion intact.`,
+    );
+  }
+
+  return hoistedResult;
+}
+
+/**
+ * Split an x-ext `$ref` into the key of its external document and the raw
+ * JSON Pointer tokens that follow it.
+ */
+function parseXExtRef(refValue: string): { extKey: string; parts: string[] } {
+  const [extKey, ...parts] = refValue.replace('#/x-ext/', '').split('/');
+  return { extKey, parts };
+}
+
+/**
+ * The suffix an external document's key contributes to a component name.
+ */
+function externalSuffix(extKey: string): string {
+  return extKey.replaceAll(/[^a-zA-Z0-9]/g, '_');
 }
 
 /**
@@ -2123,7 +2154,7 @@ function mergeExternalSchemas(
 
           let finalSchemaName = schemaName;
 
-          const suffix = extKey.replaceAll(/[^a-zA-Z0-9]/g, '_');
+          const suffix = externalSuffix(extKey);
           if (strategy === 'always' && suffix.length === 0) {
             throw new Error(
               `External schema "${schemaName}" from "${extKey}" cannot be named with the always strategy because its external document identity is empty after sanitization.`,
@@ -2253,6 +2284,59 @@ function updateInternalRefs(
 }
 
 /**
+ * JSON Schema keywords a ref can end in. They say where a schema sits, not
+ * what it is, so they make poor component names.
+ */
+const SCHEMA_LOCATION_KEYWORDS = new Set([
+  'additionalItems',
+  'additionalProperties',
+  'allOf',
+  'anyOf',
+  'contains',
+  'contentSchema',
+  'else',
+  'if',
+  'items',
+  'not',
+  'oneOf',
+  'prefixItems',
+  'propertyNames',
+  'schema',
+  'then',
+  'unevaluatedItems',
+  'unevaluatedProperties',
+]);
+
+/**
+ * The component name for a schema that contains itself: the last part of its
+ * ref when that names it, else its title, else the key of its external
+ * document. It starts with a letter so it can become a type name.
+ */
+function getRecursiveSchemaName(
+  extKey: string,
+  parts: string[],
+  schema: unknown,
+): string {
+  const lastPart = decodeRefToken(parts.at(-1) ?? '');
+  const title =
+    isObject(schema) && isString(schema.title) ? schema.title.trim() : '';
+
+  let name = extKey;
+  if (
+    lastPart.length > 0 &&
+    !/^\d+$/.test(lastPart) &&
+    !SCHEMA_LOCATION_KEYWORDS.has(lastPart)
+  ) {
+    name = lastPart;
+  } else if (title.length > 0) {
+    name = title;
+  }
+
+  name = name.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_');
+  return /^[a-zA-Z]/.test(name) ? name : `Schema_${name}`;
+}
+
+/**
  * Add each schema that contains itself to the schema container, and return
  * the component name for each of their refs.
  */
@@ -2260,48 +2344,55 @@ function hoistRecursiveExternalRefs(
   data: Record<string, unknown>,
   extensions: Record<string, unknown>,
   recursiveRefs: Set<string>,
+  schemaNameMappings: Record<string, Record<string, string>>,
   strategy: ExternalRefNamingStrategy,
 ): Map<string, string> {
   const schemas = getSchemaContainer(data);
+  const refPrefix = schemaRefPrefix(data);
   const hoistedRefs = new Map<string, string>();
 
   for (const refValue of recursiveRefs) {
-    const [extKey, ...parts] = refValue.replace('#/x-ext/', '').split('/');
+    const { extKey, parts } = parseXExtRef(refValue);
     const schema = resolveXExtRef(extensions, extKey, parts);
 
-    // Name it after the last part of the ref, else its title, else the key
-    // of its external document.
-    let name = extKey;
-    const lastPart = parts.at(-1);
-    if (lastPart !== undefined) {
-      name = decodeRefToken(lastPart);
-    } else if (isObject(schema) && isString(schema.title)) {
-      name = schema.title;
-    }
-    name = name.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_');
-
     // The main document may already have a component that only points at
-    // this ref. The schema then takes its place under the same name.
-    const existing = schemas[name];
-    const isPlaceholder =
-      isObject(existing) &&
-      Object.keys(existing).length === 1 &&
-      existing.$ref === refValue;
+    // this ref. Unless every name must carry the document key, the schema
+    // takes its place under that name, whatever the name is.
+    const placeholder =
+      strategy === 'always'
+        ? undefined
+        : Object.entries(schemas).find(
+            ([, existing]) =>
+              isObject(existing) &&
+              Object.keys(existing).length === 1 &&
+              existing.$ref === refValue,
+          );
 
-    // Otherwise a taken name gets the document key as a suffix, the same way
-    // mergeExternalSchemas does.
-    const isTaken = Object.hasOwn(schemas, name) && !isPlaceholder;
-    if (strategy === 'always' || isTaken) {
-      name = `${name}_${extKey.replaceAll(/[^a-zA-Z0-9]/g, '_')}`;
+    let name = placeholder?.[0];
+    if (name === undefined) {
+      name = getRecursiveSchemaName(extKey, parts, schema);
 
-      if (Object.hasOwn(schemas, name)) {
-        throw new Error(
-          `Recursive external schema "${refValue}" cannot be added as "${name}" because that component name is already occupied.`,
-        );
+      // A taken name gets the document key as a suffix, the same way
+      // mergeExternalSchemas does.
+      if (strategy === 'always' || Object.hasOwn(schemas, name)) {
+        name = `${name}_${externalSuffix(extKey)}`;
+
+        if (Object.hasOwn(schemas, name)) {
+          throw new Error(
+            `Recursive external schema "${refValue}" cannot be added as "${name}" because that component name is already occupied.`,
+          );
+        }
       }
     }
 
-    schemas[name] = scrubUnwantedKeys(schema);
+    // Refs to components of its own document follow them to their merged
+    // names, the same way mergeExternalSchemas rewrites them.
+    schemas[name] = updateInternalRefs(
+      scrubUnwantedKeys(schema),
+      extKey,
+      schemaNameMappings,
+      refPrefix,
+    );
     hoistedRefs.set(refValue, name);
   }
 
@@ -2391,10 +2482,7 @@ function replaceXExtRefs(
     if ('$ref' in record && isString(record.$ref)) {
       const refValue = record.$ref;
       if (refValue.startsWith('#/x-ext/')) {
-        // Parse the x-ext ref
-        const pathStr = refValue.replace('#/x-ext/', '');
-        const parts = pathStr.split('/');
-        const extKey = parts.shift();
+        const { extKey, parts } = parseXExtRef(refValue);
 
         if (extKey) {
           // Check if this is a ref to components/schemas - if so, replace with standard ref
@@ -2412,7 +2500,7 @@ function replaceXExtRefs(
 
           // A schema that contains itself became a component; point at it.
           const hoistedName = hoistedRefs.get(refValue);
-          if (hoistedName) {
+          if (hoistedName !== undefined) {
             return { $ref: `${refPrefix}${hoistedName}` };
           }
 
