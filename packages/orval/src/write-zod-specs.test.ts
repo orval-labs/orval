@@ -735,6 +735,61 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     await fs.promises.rm(root, { recursive: true, force: true });
   });
 
+  it('references a direct self-$ref by its own name in the recursive TS type (#4278)', async () => {
+    // A property that `$ref`s straight back to its parent makes `resolveValue`
+    // alias the self-import to `__Node`. The writer drops self-imports, so the
+    // alias must not leak into the TS body or `__Node` is undeclared (TS2304).
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-self-'),
+    );
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+        components: {
+          schemas: {
+            Node: {
+              type: 'object',
+              properties: {
+                child: { $ref: '#/components/schemas/Node' },
+                text: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Node', schema: { $ref: '#/components/schemas/Node' } },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    // The self-import alias only kicks in when `output.schemas` is set, which
+    // is always the case on the real `schemas: { type: 'zod' }` path.
+    const options = {
+      ...createOutputOptions(),
+      schemas: { path: schemasPath, type: 'zod' },
+    } as Parameters<typeof writeZodSchemas>[4];
+    options.override.zod.generateReusableSchemas = true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const nodeContent = await fs.promises.readFile(
+      path.join(schemasPath, 'Node.ts'),
+      'utf8',
+    );
+
+    expect(nodeContent).toMatch(/child\?: Node;/);
+    expect(nodeContent).not.toContain('__Node');
+    expect(nodeContent).not.toContain('__REF_');
+    expect(nodeContent).toContain('zod.lazy(() => Node)');
+    expect(nodeContent).not.toMatch(/from '\.\/Node'/);
+
+    await fs.promises.rm(root, { recursive: true, force: true });
+  });
+
   it('emits the implicit sub-model an inline nested object hoists in a recursive schema', async () => {
     // A recursive schema (self-loop via `next`) takes the explicit
     // `zod.ZodType<T>` path, whose TS body is hand-written from

@@ -6,6 +6,7 @@ import {
   type ContextSpec,
   conventionName,
   DefaultTag,
+  escapeRegExp,
   type GeneratorMutator,
   getImportExtension,
   getRefInfo,
@@ -326,7 +327,20 @@ function renderReusableSchemaEntry(
     const resolved = schema
       ? resolveValue({ schema, name: entry.name, context })
       : undefined;
-    const typeBody = resolved ? resolved.value : 'unknown';
+    // A direct self-`$ref` makes `resolveValue` alias the self-import (e.g.
+    // `__Node`, see `getAliasedImports`). Self-imports are dropped below, so
+    // point those aliases back at the type being declared here.
+    let typeBody = resolved ? resolved.value : 'unknown';
+    for (const imp of resolved?.imports ?? []) {
+      if (imp.name !== entry.name || !imp.alias) continue;
+      typeBody = typeBody.replaceAll(
+        new RegExp(
+          String.raw`(?<![\w$])${escapeRegExp(imp.alias)}(?![\w$])`,
+          'g',
+        ),
+        entry.name,
+      );
+    }
     // The recursive type body is hand-written from `resolved.value`, which
     // references the implicit sub-models `resolveValue` generates for inline
     // enums and nested objects (e.g. `<Name>Type`, `<Name>Target`,
