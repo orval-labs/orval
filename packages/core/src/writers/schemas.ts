@@ -345,7 +345,8 @@ function getSchema({
     importExtension,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
-  file += model;
+  const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
+  file += model.replaceAll(SENTINEL_PATTERN, (_, name) => name);
   return file;
 }
 
