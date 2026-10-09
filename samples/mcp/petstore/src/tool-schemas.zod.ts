@@ -268,6 +268,52 @@ export const DeleteUserParams = zod.object({
 
 export const DeleteUserResponse = zod.unknown();
 
+export const FilterPetsByStatusInput = zod.object({
+  queryParams: FilterPetsByStatusQueryParams,
+  bodyParams: FilterPetsByStatusBody.optional(),
+});
+
+export const FindPetsByStatusInput = zod.object({
+  queryParams: FindPetsByStatusQueryParams,
+});
+
+export const FindPetsByTagsInput = zod.object({
+  queryParams: FindPetsByTagsQueryParams,
+});
+
+export const GetPetByIdInput = zod.object({
+  pathParams: GetPetByIdParams,
+});
+
+export const UpdatePetWithFormInput = zod.object({
+  pathParams: UpdatePetWithFormParams,
+  queryParams: UpdatePetWithFormQueryParams,
+});
+
+export const DeletePetInput = zod.object({
+  pathParams: DeletePetParams,
+});
+
+export const GetOrderByIdInput = zod.object({
+  pathParams: GetOrderByIdParams,
+});
+
+export const DeleteOrderInput = zod.object({
+  pathParams: DeleteOrderParams,
+});
+
+export const LoginUserInput = zod.object({
+  queryParams: LoginUserQueryParams,
+});
+
+export const GetUserByNameInput = zod.object({
+  pathParams: GetUserByNameParams,
+});
+
+export const DeleteUserInput = zod.object({
+  pathParams: DeleteUserParams,
+});
+
 export const FilterPetsByStatusOutput = zod.object({
   result: FilterPetsByStatusResponse,
 });

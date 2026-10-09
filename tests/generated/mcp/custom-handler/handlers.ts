@@ -20,11 +20,7 @@ import {
 } from './http-client';
 
 import { customHandler } from '../../../mutators/mcp-custom-handler';
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type {
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+import type { ServerContext } from '@modelcontextprotocol/server';
 
 /**
  * @summary List all pets
@@ -37,7 +33,7 @@ export type listPetsArgs = {
 export const listPetsHandler = async (
   args: listPetsArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -69,7 +65,7 @@ export type createPetsArgs = {
 export const createPetsHandler = async (
   args: createPetsArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -102,7 +98,7 @@ export type showPetByIdArgs = {
 export const showPetByIdHandler = async (
   args: showPetByIdArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -135,7 +131,7 @@ export type deletePetByIdArgs = {
 export const deletePetByIdHandler = async (
   args: deletePetByIdArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -161,7 +157,7 @@ export const deletePetByIdHandler = async (
 
 export const healthCheckHandler = async (
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -194,7 +190,7 @@ export type showPetWithOwnerArgs = {
 export const showPetWithOwnerHandler = async (
   args: showPetWithOwnerArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>

@@ -1,15 +1,13 @@
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type {
   CallToolResult,
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+  ServerContext,
+} from '@modelcontextprotocol/server';
 
 export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -21,7 +19,7 @@ export const customHandler = async (
 
   if (res.status >= 400) {
     return {
-      content: [{ type: 'text', text: `[${ctx.requestId}] ${text}` }],
+      content: [{ type: 'text', text: `[${ctx.mcpReq.id}] ${text}` }],
       isError: true,
     };
   }

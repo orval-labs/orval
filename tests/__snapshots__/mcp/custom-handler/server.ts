@@ -5,12 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
-import {
-  McpServer,
-  type RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
 import {
   listPetsHandler,
@@ -21,13 +18,12 @@ import {
   showPetWithOwnerHandler,
 } from './handlers';
 import {
-  ListPetsQueryParams,
-  CreatePetsQueryParams,
-  CreatePetsBody,
-  ShowPetByIdParams,
-  DeletePetByIdParams,
+  ListPetsInput,
+  CreatePetsInput,
+  ShowPetByIdInput,
+  DeletePetByIdInput,
   HealthCheckOutput,
-  ShowPetWithOwnerParams,
+  ShowPetWithOwnerInput,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -44,9 +40,7 @@ const createMcpServer = (
     {
       title: 'List all pets',
       description: 'List all pets',
-      inputSchema: {
-        queryParams: ListPetsQueryParams,
-      },
+      inputSchema: ListPetsInput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -55,8 +49,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -68,10 +62,7 @@ const createMcpServer = (
     {
       title: 'Create a pet',
       description: 'Create a pet',
-      inputSchema: {
-        queryParams: CreatePetsQueryParams,
-        bodyParams: CreatePetsBody,
-      },
+      inputSchema: CreatePetsInput,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -80,8 +71,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -93,9 +84,7 @@ const createMcpServer = (
     {
       title: 'Info for a specific pet',
       description: 'Info for a specific pet',
-      inputSchema: {
-        pathParams: ShowPetByIdParams,
-      },
+      inputSchema: ShowPetByIdInput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -104,8 +93,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -117,9 +106,7 @@ const createMcpServer = (
     {
       title: 'Deletes a specific pet',
       description: 'Deletes a specific pet',
-      inputSchema: {
-        pathParams: DeletePetByIdParams,
-      },
+      inputSchema: DeletePetByIdInput,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -128,8 +115,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -149,8 +136,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => HealthCheckOutput.safeParse({ result: data }),
@@ -162,9 +149,7 @@ const createMcpServer = (
     {
       title: 'combinate nullable and $ref',
       description: 'combinate nullable and $ref',
-      inputSchema: {
-        pathParams: ShowPetWithOwnerParams,
-      },
+      inputSchema: ShowPetWithOwnerInput,
       annotations: { readOnlyHint: true },
     },
     (args, ctx) =>
@@ -173,8 +158,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -184,12 +169,4 @@ const createMcpServer = (
   return { server, tools };
 };
 
-const { server } = createMcpServer();
-const transport = new StdioServerTransport();
-
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+serveStdio(() => createMcpServer().server);

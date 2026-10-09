@@ -27,4 +27,16 @@ export const OptionsThingsResponse = zod.void();
 
 export const HeadThingsResponse = zod.unknown();
 
+export const CreateThingInput = zod.object({
+  bodyParams: CreateThingBody.optional(),
+});
+
+export const ReplaceThingInput = zod.object({
+  bodyParams: ReplaceThingBody.optional(),
+});
+
+export const PatchThingInput = zod.object({
+  bodyParams: PatchThingBody.optional(),
+});
+
 export const GetThingsOutput = zod.object({ result: GetThingsResponse });

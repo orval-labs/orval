@@ -11,7 +11,7 @@
     "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "catalog:mcp",
+    "@modelcontextprotocol/server": "catalog:mcp",
     "zod": "catalog:zod4"
   },
   "devDependencies": {

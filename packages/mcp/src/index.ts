@@ -101,6 +101,21 @@ const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
     version: '1.0.0',
   };
 
+// Entries of the per-tool `XInput` object schema; empty means the tool takes
+// no arguments and its callback receives only `ctx`.
+const getInputShape = (verbOption: GeneratorVerbOptions) => {
+  const name = pascal(verbOption.typeName);
+  const pathParams = verbOption.params.length > 0 ? `${name}Params` : undefined;
+  const queryParams = verbOption.queryParams ? `${name}QueryParams` : undefined;
+  const bodyParams = verbOption.body.definition
+    ? `${name}Body${verbOption.body.isOptional ? '.optional()' : ''}`
+    : undefined;
+
+  return Object.entries({ pathParams, queryParams, bodyParams })
+    .filter(([, schema]) => schema !== undefined)
+    .map(([key, schema]) => `${key}: ${schema}`);
+};
+
 const getMcpTargetInfo = (
   output: NormalizedOutputOptions,
   info: OpenApiInfoObject,
@@ -188,11 +203,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const handlerOptions = output.override.mcp.handler;
   const importCustomHandlerImplementation = handlerOptions
     ? `${getCustomModuleImport(handlerOptions, 'customHandler', targetInfo.path)}
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type {
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+import type { ServerContext } from '@modelcontextprotocol/server';
 `
     : '';
 
@@ -268,7 +279,7 @@ ${handlerArgsTypes.join('\n')}
   const customHandler = options.override.mcp.handler;
   const handlerImplementation = customHandler
     ? `
-export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: RequestHandlerExtra<ServerRequest, ServerNotification>, toStructuredContent: (data: unknown) => { success: true; data: Record<string, unknown> | undefined } | { success: false; error: { message: string } }) => {
+export const ${handlerName} = async (${handlerArgsSignature}options: RequestInit, ctx: ServerContext, toStructuredContent: (data: unknown) => { success: true; data: Record<string, unknown> | undefined } | { success: false; error: { message: string } }) => {
   const fetcher = (overrides?: RequestInit) => ${verbOptions.operationName}(${fetchArgs}{
     ...options,
     ...overrides,
@@ -340,20 +351,10 @@ export const generateServer = (
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
       const pascalOperationName = pascal(verbOption.typeName);
-      const inputSchemaTypes = [];
-      if (verbOption.params.length > 0)
-        inputSchemaTypes.push(`pathParams: ${pascalOperationName}Params`);
-      if (verbOption.queryParams)
-        inputSchemaTypes.push(`queryParams: ${pascalOperationName}QueryParams`);
-      if (verbOption.body.definition)
-        inputSchemaTypes.push(
-          `bodyParams: ${pascalOperationName}Body${verbOption.body.isOptional ? '.optional()' : ''}`,
-        );
-
-      const inputSchemaImplementation =
-        inputSchemaTypes.length > 0
-          ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
-          : '';
+      const hasInputSchema = getInputShape(verbOption).length > 0;
+      const inputSchemaImplementation = hasInputSchema
+        ? `\n    inputSchema: ${pascalOperationName}Input,`
+        : '';
 
       // `outputSchema` and `toStructuredContent` use the same schema so the
       // structured content always matches the declared schema. Parsing drops
@@ -391,13 +392,12 @@ export const generateServer = (
 
       const requestInitWithSignal = `{
     ...options,
-    signal: options?.signal ? AbortSignal.any([options.signal, ctx.signal]) : ctx.signal,
+    signal: options?.signal ? AbortSignal.any([options.signal, ctx.mcpReq.signal]) : ctx.mcpReq.signal,
   }`;
       const ctxArgument = output.override.mcp.handler ? ', ctx' : '';
-      const handlerCallImplementation =
-        inputSchemaTypes.length > 0
-          ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`
-          : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`;
+      const handlerCallImplementation = hasInputSchema
+        ? `(args, ctx) => ${verbOption.operationName}Handler(args, ${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`
+        : `(ctx) => ${verbOption.operationName}Handler(${requestInitWithSignal}${ctxArgument}, ${toStructuredContent})`;
 
       const toolImplementation = `
 tools.${verbOption.operationName} = server.registerTool(
@@ -417,13 +417,8 @@ tools.${verbOption.operationName} = server.registerTool(
 
       const pascalOperationName = pascal(verbOption.typeName);
 
-      if (verbOption.headers) imports.push(`  ${pascalOperationName}Header`);
-      if (verbOption.params.length > 0)
-        imports.push(`  ${pascalOperationName}Params`);
-      if (verbOption.queryParams)
-        imports.push(`  ${pascalOperationName}QueryParams`);
-      if (verbOption.body.definition)
-        imports.push(`  ${pascalOperationName}Body`);
+      if (getInputShape(verbOption).length > 0)
+        imports.push(`  ${pascalOperationName}Input`);
       if (hasResponseSchema(verbOption, context))
         imports.push(
           `  ${pascalOperationName}${isObjectResponseSchema(verbOption, context) ? 'Response' : 'Output'}`,
@@ -466,30 +461,23 @@ ${toolImplementations}
 
   const serverFunctionName = mcpServerOptions?.name ?? 'customServer';
 
-  const importMcpServer = `import {
-  McpServer,
-  type RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+  const importMcpServer = `import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 `;
 
   const importTransport = mcpServerOptions
     ? getCustomModuleImport(mcpServerOptions, 'customServer', serverPath)
-    : `import {
-  StdioServerTransport
-} from '@modelcontextprotocol/sdk/server/stdio.js';`;
+    : `import { serveStdio } from '@modelcontextprotocol/server/stdio';`;
 
   const importDependenciesImplementation = `${importMcpServer}
 ${importTransport}
 `;
 
   const customServerConnectImplementation = `\n${serverFunctionName}(createMcpServer);\n`;
+  // `serveStdio` calls the factory per connection (and per `server/discover`
+  // probe) and pins one instance to the connection, so a pre-built server
+  // cannot be shared across openings.
   const stdioServerConnectImplementation = `
-const { server } = createMcpServer();
-const transport = new StdioServerTransport();
-
-server.connect(transport).then(() => {
-  console.error('MCP server running on stdio');
-}).catch(console.error);
+serveStdio(() => createMcpServer().server);
 `;
 
   const serverConnectImplementation = mcpServerOptions
@@ -554,6 +542,20 @@ const generateZodFiles = async (
   const zodPath = path.join(dirname, `tool-schemas.zod${extension}`);
 
   content += zods.map((zod) => zod.implementation).join('\n');
+
+  const inputs = Object.values(verbOptions)
+    .map((verbOption) => {
+      const shape = getInputShape(verbOption);
+
+      return shape.length > 0
+        ? `export const ${pascal(verbOption.typeName)}Input = zod.object({\n  ${shape.join(',\n  ')},\n});`
+        : undefined;
+    })
+    .filter(Boolean);
+
+  if (inputs.length > 0) {
+    content += `\n${inputs.join('\n\n')}\n`;
+  }
 
   // Non-object responses are exposed to MCP wrapped as `{ result }`; the
   // wrapping schema is emitted here so server.ts can use it for both

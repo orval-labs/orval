@@ -1,7 +1,4 @@
-import type {
-  McpServer,
-  RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer, RegisteredTool } from '@modelcontextprotocol/server';
 
 export const customServer = (
   _createMcpServer: () => {

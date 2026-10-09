@@ -13,10 +13,7 @@
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-import {
-  McpServer,
-  type RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 
 import { customServer } from '../custom-server';
 
@@ -35,25 +32,24 @@ import {
   deleteUserHandler,
 } from './handlers';
 import {
-  FindPetsByStatusQueryParams,
+  FindPetsByStatusInput,
   FindPetsByStatusOutput,
-  FindPetsByTagsQueryParams,
+  FindPetsByTagsInput,
   FindPetsByTagsOutput,
-  GetPetByIdParams,
+  GetPetByIdInput,
   GetPetByIdResponse,
-  UpdatePetWithFormParams,
-  UpdatePetWithFormQueryParams,
+  UpdatePetWithFormInput,
   UpdatePetWithFormResponse,
-  DeletePetParams,
+  DeletePetInput,
   GetInventoryOutput,
-  GetOrderByIdParams,
+  GetOrderByIdInput,
   GetOrderByIdResponse,
-  DeleteOrderParams,
-  LoginUserQueryParams,
+  DeleteOrderInput,
+  LoginUserInput,
   LoginUserOutput,
-  GetUserByNameParams,
+  GetUserByNameInput,
   GetUserByNameResponse,
-  DeleteUserParams,
+  DeleteUserInput,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -71,9 +67,7 @@ const createMcpServer = (
       title: 'Finds Pets by status.',
       description:
         'Multiple status values can be provided with comma separated strings.',
-      inputSchema: {
-        queryParams: FindPetsByStatusQueryParams,
-      },
+      inputSchema: FindPetsByStatusInput,
       outputSchema: FindPetsByStatusOutput,
       annotations: { readOnlyHint: true },
     },
@@ -83,8 +77,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
@@ -97,9 +91,7 @@ const createMcpServer = (
       title: 'Finds Pets by tags.',
       description:
         'Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.',
-      inputSchema: {
-        queryParams: FindPetsByTagsQueryParams,
-      },
+      inputSchema: FindPetsByTagsInput,
       outputSchema: FindPetsByTagsOutput,
       annotations: { readOnlyHint: true },
     },
@@ -109,8 +101,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => FindPetsByTagsOutput.safeParse({ result: data }),
@@ -122,9 +114,7 @@ const createMcpServer = (
     {
       title: 'Find pet by ID.',
       description: 'Returns a single pet.',
-      inputSchema: {
-        pathParams: GetPetByIdParams,
-      },
+      inputSchema: GetPetByIdInput,
       outputSchema: GetPetByIdResponse,
       annotations: { readOnlyHint: true },
     },
@@ -134,8 +124,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => GetPetByIdResponse.safeParse(data),
@@ -147,10 +137,7 @@ const createMcpServer = (
     {
       title: 'Updates a pet in the store with form data.',
       description: 'Updates a pet resource based on the form data.',
-      inputSchema: {
-        pathParams: UpdatePetWithFormParams,
-        queryParams: UpdatePetWithFormQueryParams,
-      },
+      inputSchema: UpdatePetWithFormInput,
       outputSchema: UpdatePetWithFormResponse,
       annotations: { destructiveHint: true },
     },
@@ -160,8 +147,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => UpdatePetWithFormResponse.safeParse(data),
@@ -173,9 +160,7 @@ const createMcpServer = (
     {
       title: 'Deletes a pet.',
       description: 'Delete a pet.',
-      inputSchema: {
-        pathParams: DeletePetParams,
-      },
+      inputSchema: DeletePetInput,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -184,8 +169,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -205,8 +190,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => GetInventoryOutput.safeParse({ result: data }),
@@ -219,9 +204,7 @@ const createMcpServer = (
       title: 'Find purchase order by ID.',
       description:
         'For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions.',
-      inputSchema: {
-        pathParams: GetOrderByIdParams,
-      },
+      inputSchema: GetOrderByIdInput,
       outputSchema: GetOrderByIdResponse,
       annotations: { readOnlyHint: true },
     },
@@ -231,8 +214,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => GetOrderByIdResponse.safeParse(data),
@@ -245,9 +228,7 @@ const createMcpServer = (
       title: 'Delete purchase order by identifier.',
       description:
         'For valid response try integer IDs with value < 1000. Anything above 1000 or non-integers will generate API errors.',
-      inputSchema: {
-        pathParams: DeleteOrderParams,
-      },
+      inputSchema: DeleteOrderInput,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -256,8 +237,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -269,9 +250,7 @@ const createMcpServer = (
     {
       title: 'Logs user into the system.',
       description: 'Log into the system.',
-      inputSchema: {
-        queryParams: LoginUserQueryParams,
-      },
+      inputSchema: LoginUserInput,
       outputSchema: LoginUserOutput,
       annotations: { readOnlyHint: true },
     },
@@ -281,8 +260,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => LoginUserOutput.safeParse({ result: data }),
@@ -301,8 +280,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),
@@ -314,9 +293,7 @@ const createMcpServer = (
     {
       title: 'Get user by user name.',
       description: 'Get user detail based on username.',
-      inputSchema: {
-        pathParams: GetUserByNameParams,
-      },
+      inputSchema: GetUserByNameInput,
       outputSchema: GetUserByNameResponse,
       annotations: { readOnlyHint: true },
     },
@@ -326,8 +303,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         (data: unknown) => GetUserByNameResponse.safeParse(data),
@@ -339,9 +316,7 @@ const createMcpServer = (
     {
       title: 'Delete user resource.',
       description: 'This can only be done by the logged in user.',
-      inputSchema: {
-        pathParams: DeleteUserParams,
-      },
+      inputSchema: DeleteUserInput,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -350,8 +325,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         ctx,
         () => ({ success: true as const, data: undefined }),

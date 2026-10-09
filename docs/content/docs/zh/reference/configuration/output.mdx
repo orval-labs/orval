@@ -2346,17 +2346,24 @@ export default defineConfig({
 
 **类型：** `String | Object`
 
-使用自定义 server 函数来替代默认的 `StdioServerTransport`。设置后，生成的 `server.ts` 会用 `createMcpServer` 作为参数调用该函数。
+使用自定义 server 函数来替代默认的 stdio 启动方式（`serveStdio`）。设置后，生成的 `server.ts` 会用 `createMcpServer` 作为参数调用该函数。
 
-使用 `@hono/mcp` 的实现示例：
+使用 `@modelcontextprotocol/hono` 的实现示例：
 
 ```ts title="custom-server.ts"
-import type {
-  McpServer,
-  RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPTransport } from '@hono/mcp';
-import { Hono } from 'hono';
+import { createMcpHonoApp } from '@modelcontextprotocol/hono';
+import {
+  type McpServer,
+  type RegisteredTool,
+  WebStandardStreamableHTTPServerTransport,
+} from '@modelcontextprotocol/server';
+
+// `createMcpHonoApp` parses JSON bodies into this variable.
+declare module 'hono' {
+  interface ContextVariableMap {
+    parsedBody?: unknown;
+  }
+}
 
 export const customServer = (
   createMcpServer: (options?: RequestInit) => {
@@ -2364,15 +2371,18 @@ export const customServer = (
     tools: Record<string, RegisteredTool>;
   },
 ) => {
-  const app = new Hono();
-  const { server } = createMcpServer();
-  const transport = new StreamableHTTPTransport();
+  const app = createMcpHonoApp();
 
   app.all('/mcp', async (c) => {
-    if (!server.isConnected()) {
-      await server.connect(transport);
-    }
-    return transport.handleRequest(c);
+    // Stateless: a fresh server and transport per request.
+    const { server } = createMcpServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+    return transport.handleRequest(c.req.raw, {
+      parsedBody: c.get('parsedBody'),
+    });
   });
 
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
@@ -2386,18 +2396,16 @@ export const customServer = (
 自定义 handler 函数，用于替代每个生成的 handler 默认的响应整形和错误映射。设置后，每个 handler 会把工具参数绑定到一个 `fetcher`，并把它、工具调用上下文以及由 `server.ts` 为该操作构建的 `toStructuredContent` 函数一起传给你的函数。该函数会用响应 schema 校验响应体并返回 `safeParse` 的结果：成功时 `data` 对普通对象为原样的响应体（已移除 spec 中不存在的字段），对其他响应为 `{ result: body }`，工具未声明 `outputSchema` 时为 `undefined`；失败时 `error.message` 描述了不匹配之处。返回值会直接作为工具结果使用。
 
 ```ts title="custom-handler.ts"
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type {
   CallToolResult,
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+  ServerContext,
+} from '@modelcontextprotocol/server';
 
 export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>

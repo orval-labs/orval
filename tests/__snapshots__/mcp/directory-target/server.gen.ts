@@ -5,15 +5,12 @@
  * OpenAPI spec version: 1
  */
 
-import {
-  McpServer,
-  type RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
 import { addHandler } from './sample.gen';
-import { AddBody } from './tool-schemas.zod.gen';
+import { AddInput } from './tool-schemas.zod.gen';
 
 const createMcpServer = (
   options?: RequestInit,
@@ -27,9 +24,7 @@ const createMcpServer = (
   tools.add = server.registerTool(
     'add',
     {
-      inputSchema: {
-        bodyParams: AddBody.optional(),
-      },
+      inputSchema: AddInput,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -38,8 +33,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -48,12 +43,4 @@ const createMcpServer = (
   return { server, tools };
 };
 
-const { server } = createMcpServer();
-const transport = new StdioServerTransport();
-
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+serveStdio(() => createMcpServer().server);

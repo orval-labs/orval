@@ -2811,17 +2811,24 @@ export default defineConfig({
 
 **Type:** `String | Object`
 
-Custom server function to use instead of the default `StdioServerTransport`. When set, the generated `server.ts` calls the function with `createMcpServer`.
+Custom server function to use instead of the default stdio bootstrap (`serveStdio`). When set, the generated `server.ts` calls the function with `createMcpServer`.
 
-Example implementation using `@hono/mcp`:
+Example implementation using `@modelcontextprotocol/hono`:
 
 ```ts title="custom-server.ts"
-import type {
-  McpServer,
-  RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPTransport } from '@hono/mcp';
-import { Hono } from 'hono';
+import { createMcpHonoApp } from '@modelcontextprotocol/hono';
+import {
+  type McpServer,
+  type RegisteredTool,
+  WebStandardStreamableHTTPServerTransport,
+} from '@modelcontextprotocol/server';
+
+// `createMcpHonoApp` parses JSON bodies into this variable.
+declare module 'hono' {
+  interface ContextVariableMap {
+    parsedBody?: unknown;
+  }
+}
 
 export const customServer = (
   createMcpServer: (options?: RequestInit) => {
@@ -2829,15 +2836,18 @@ export const customServer = (
     tools: Record<string, RegisteredTool>;
   },
 ) => {
-  const app = new Hono();
-  const { server } = createMcpServer();
-  const transport = new StreamableHTTPTransport();
+  const app = createMcpHonoApp();
 
   app.all('/mcp', async (c) => {
-    if (!server.isConnected()) {
-      await server.connect(transport);
-    }
-    return transport.handleRequest(c);
+    // Stateless: a fresh server and transport per request.
+    const { server } = createMcpServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+    return transport.handleRequest(c.req.raw, {
+      parsedBody: c.get('parsedBody'),
+    });
   });
 
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
@@ -2851,18 +2861,16 @@ export const customServer = (
 Custom handler function that replaces the default response shaping and error mapping of every generated handler. When set, each handler binds the tool arguments to a `fetcher` and calls your function with it, the tool call context, and a `toStructuredContent` function built in `server.ts` for that operation. It validates the body with the response schema and returns the `safeParse` result: on success `data` is the body as is for a plain object (fields not in the spec dropped), `{ result: body }` for any other response, or `undefined` when the tool declares no `outputSchema`; on failure `error.message` describes the mismatch. The return value is used as the tool result as is.
 
 ```ts title="custom-handler.ts"
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type {
   CallToolResult,
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+  ServerContext,
+} from '@modelcontextprotocol/server';
 
 export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>

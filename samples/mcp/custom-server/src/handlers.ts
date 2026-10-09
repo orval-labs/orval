@@ -35,11 +35,7 @@ import {
 } from './http-client';
 
 import { customHandler } from '../custom-handler';
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type {
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+import type { ServerContext } from '@modelcontextprotocol/server';
 
 /**
  * Multiple status values can be provided with comma separated strings.
@@ -53,7 +49,7 @@ export type findPetsByStatusArgs = {
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -85,7 +81,7 @@ export type findPetsByTagsArgs = {
 export const findPetsByTagsHandler = async (
   args: findPetsByTagsArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -119,7 +115,7 @@ export type getPetByIdArgs = {
 export const getPetByIdHandler = async (
   args: getPetByIdArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -154,7 +150,7 @@ export type updatePetWithFormArgs = {
 export const updatePetWithFormHandler = async (
   args: updatePetWithFormArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -188,7 +184,7 @@ export type deletePetArgs = {
 export const deletePetHandler = async (
   args: deletePetArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -215,7 +211,7 @@ export const deletePetHandler = async (
 
 export const getInventoryHandler = async (
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -249,7 +245,7 @@ export type getOrderByIdArgs = {
 export const getOrderByIdHandler = async (
   args: getOrderByIdArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -283,7 +279,7 @@ export type deleteOrderArgs = {
 export const deleteOrderHandler = async (
   args: deleteOrderArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -315,7 +311,7 @@ export type loginUserArgs = {
 export const loginUserHandler = async (
   args: loginUserArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -342,7 +338,7 @@ export const loginUserHandler = async (
 
 export const logoutUserHandler = async (
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -376,7 +372,7 @@ export type getUserByNameArgs = {
 export const getUserByNameHandler = async (
   args: getUserByNameArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -410,7 +406,7 @@ export type deleteUserArgs = {
 export const deleteUserHandler = async (
   args: deleteUserArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
