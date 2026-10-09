@@ -70,13 +70,13 @@ export default defineConfig({
 
 The `footer` function receives a single object:
 
-| Property         | Type                   | Description                                        |
-| ---------------- | ---------------------- | -------------------------------------------------- |
-| `operationNames` | `string[]`             | Names of the operations generated into the file    |
-| `operations`     | `GeneratorOperation[]` | The generated operations                           |
-| `title`          | `string`               | The generated implementation title                 |
-| `hasMutator`     | `boolean`              | Whether a mutator is used in the file              |
-| `hasAwaitedType` | `boolean`              | Whether the TypeScript version supports `Awaited`  |
+| Property         | Type                                  | Description                                       |
+| ---------------- | ------------------------------------- | ------------------------------------------------- |
+| `operationNames` | `string[]`                            | Names of the operations generated into the file   |
+| `operations`     | `GeneratorOperation[] \| undefined`   | The generated operations                          |
+| `title`          | `string \| undefined`                 | The generated implementation title                |
+| `hasMutator`     | `boolean`                             | Whether a mutator is used in the file             |
+| `hasAwaitedType` | `boolean`                             | Whether the TypeScript version supports `Awaited` |
 
 It must return the string to append to the file.
 
