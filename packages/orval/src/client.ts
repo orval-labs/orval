@@ -26,8 +26,6 @@ import {
   pascal,
 } from '@orval/core';
 
-import { logger } from './logger';
-
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
 type GeneratorModule = { default: unknown };
@@ -407,36 +405,14 @@ export const generateClientFooter: GeneratorClientFooter = async ({
     };
   }
 
-  let implementation: string;
-  try {
-    if (isFunction(outputClient)) {
-      implementation = (
-        footer as unknown as (operationNames: string[]) => string
-      )(operationNames);
-      // being here means that the previous call worked
-      logger.warn(
-        'Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
-      );
-    } else {
-      implementation = footer({
-        operationNames,
-        operations,
-        title: titles.implementation,
-        hasMutator,
-        hasAwaitedType,
-        output,
-      });
-    }
-  } catch {
-    implementation = footer({
-      operationNames,
-      operations,
-      title: titles.implementation,
-      hasMutator,
-      hasAwaitedType,
-      output,
-    });
-  }
+  const implementation = footer({
+    operationNames,
+    operations,
+    title: titles.implementation,
+    hasMutator,
+    hasAwaitedType,
+    output,
+  });
 
   return {
     implementation,
