@@ -2018,20 +2018,91 @@ export function dereferenceExternalRef(
   // Step 1: Merge external schemas into main spec with collision handling
   const schemaNameMappings = mergeExternalSchemas(data, extensions, strategy);
 
-  // Step 2: Replace all x-ext refs throughout the document
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (key !== 'x-ext') {
-      result[key] = replaceXExtRefs(
-        value,
-        extensions,
-        schemaNameMappings,
-        refPrefix,
-      );
+  const replaceAllXExtRefs = (
+    hoistedRefs: Map<string, string>,
+    recursiveRefs: Set<string>,
+  ) => {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key !== 'x-ext') {
+        result[key] = replaceXExtRefs(
+          value,
+          extensions,
+          schemaNameMappings,
+          refPrefix,
+          hoistedRefs,
+          recursiveRefs,
+        );
+      }
     }
+    return result;
+  };
+
+  // Step 2: Replace all x-ext refs throughout the document. A schema that
+  // contains itself cannot be inlined, so its ref is collected instead.
+  const recursiveRefs = new Set<string>();
+  const result = replaceAllXExtRefs(new Map(), recursiveRefs);
+  if (recursiveRefs.size === 0) {
+    return result;
   }
 
-  return result;
+  // Step 3: Add those schemas as components, so they can refer to themselves
+  // by name, and replace the refs again, now pointing at the components.
+  const hoistedRefs = hoistRecursiveExternalRefs(
+    data,
+    extensions,
+    recursiveRefs,
+    schemaNameMappings,
+    strategy,
+  );
+  const unresolvedRefs = new Set<string>();
+  const hoistedResult = replaceAllXExtRefs(hoistedRefs, unresolvedRefs);
+
+  // Every recursive ref should now point at a component. Any cycle still cut
+  // with `{}` loses its recursion, so say so.
+  for (const refValue of unresolvedRefs) {
+    logger.warn(
+      `Detected a circular external $ref while inlining "${refValue}". ` +
+        `Replacing with an empty schema to avoid infinite recursion. ` +
+        `Move the schema under "components.schemas" in its source file ` +
+        `or pre-bundle the spec to keep the recursion intact.`,
+    );
+  }
+
+  return hoistedResult;
+}
+
+/**
+ * Split an x-ext `$ref` into the key of its external document and the raw
+ * JSON Pointer tokens that follow it.
+ */
+function parseXExtRef(refValue: string): { extKey: string; parts: string[] } {
+  const [extKey, ...parts] = refValue.replace('#/x-ext/', '').split('/');
+  return { extKey, parts };
+}
+
+/**
+ * The suffix an external document's key contributes to a component name.
+ */
+function externalSuffix(extKey: string): string {
+  return extKey.replaceAll(/[^a-zA-Z0-9]/g, '_');
+}
+
+/**
+ * The container a document keeps its reusable schemas in, created if missing.
+ */
+function getSchemaContainer(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  if (isSwagger2(data)) {
+    data.definitions ??= {};
+    return data.definitions as Record<string, unknown>;
+  }
+
+  data.components ??= {};
+  const components = data.components as Record<string, unknown>;
+  components.schemas ??= {};
+  return components.schemas as Record<string, unknown>;
 }
 
 /**
@@ -2047,26 +2118,15 @@ function mergeExternalSchemas(
 
   if (Object.keys(extensions).length === 0) return schemaNameMappings;
 
-  const swagger2 = isSwagger2(data);
-
   // Materialized on the first schema actually merged. An external document that
   // contributes none — the common case, where it holds bare schemas at its root
   // and the ref is inlined instead — must not leave an empty container behind:
   // on a Swagger 2.0 document that stray `components` fails validation (#2993).
   let mainSchemas: Record<string, unknown> | undefined;
   const getMainSchemas = () => {
-    if (mainSchemas) return mainSchemas;
-
-    if (swagger2) {
-      data.definitions ??= {};
-      mainSchemas = data.definitions as Record<string, unknown>;
-      return mainSchemas;
+    if (!mainSchemas) {
+      mainSchemas = getSchemaContainer(data);
     }
-
-    data.components ??= {};
-    const mainComponents = data.components as Record<string, unknown>;
-    mainComponents.schemas ??= {};
-    mainSchemas = mainComponents.schemas as Record<string, unknown>;
     return mainSchemas;
   };
 
@@ -2094,7 +2154,7 @@ function mergeExternalSchemas(
 
           let finalSchemaName = schemaName;
 
-          const suffix = extKey.replaceAll(/[^a-zA-Z0-9]/g, '_');
+          const suffix = externalSuffix(extKey);
           if (strategy === 'always' && suffix.length === 0) {
             throw new Error(
               `External schema "${schemaName}" from "${extKey}" cannot be named with the always strategy because its external document identity is empty after sanitization.`,
@@ -2224,6 +2284,146 @@ function updateInternalRefs(
 }
 
 /**
+ * JSON Schema keywords a ref can end in. They say where a schema sits, not
+ * what it is, so they make poor component names.
+ */
+const SCHEMA_LOCATION_KEYWORDS = new Set([
+  'additionalItems',
+  'additionalProperties',
+  'allOf',
+  'anyOf',
+  'contains',
+  'contentSchema',
+  'else',
+  'if',
+  'items',
+  'not',
+  'oneOf',
+  'prefixItems',
+  'propertyNames',
+  'schema',
+  'then',
+  'unevaluatedItems',
+  'unevaluatedProperties',
+]);
+
+/**
+ * The component name for a schema that contains itself: the last part of its
+ * ref when that names it, else its title, else the key of its external
+ * document. It starts with a letter so it can become a type name.
+ */
+function getRecursiveSchemaName(
+  extKey: string,
+  parts: string[],
+  schema: unknown,
+): string {
+  const lastPart = decodeRefToken(parts.at(-1) ?? '');
+  const title =
+    isObject(schema) && isString(schema.title) ? schema.title.trim() : '';
+
+  let name = extKey;
+  if (
+    lastPart.length > 0 &&
+    !/^\d+$/.test(lastPart) &&
+    !SCHEMA_LOCATION_KEYWORDS.has(lastPart)
+  ) {
+    name = lastPart;
+  } else if (title.length > 0) {
+    name = title;
+  }
+
+  name = name.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_');
+  return /^[a-zA-Z]/.test(name) ? name : `Schema_${name}`;
+}
+
+/**
+ * Add each schema that contains itself to the schema container, and return
+ * the component name for each of their refs.
+ */
+function hoistRecursiveExternalRefs(
+  data: Record<string, unknown>,
+  extensions: Record<string, unknown>,
+  recursiveRefs: Set<string>,
+  schemaNameMappings: Record<string, Record<string, string>>,
+  strategy: ExternalRefNamingStrategy,
+): Map<string, string> {
+  const schemas = getSchemaContainer(data);
+  const refPrefix = schemaRefPrefix(data);
+  const hoistedRefs = new Map<string, string>();
+
+  for (const refValue of recursiveRefs) {
+    const { extKey, parts } = parseXExtRef(refValue);
+    const schema = resolveXExtRef(extensions, extKey, parts);
+
+    // The main document may already have a component that only points at
+    // this ref. Unless every name must carry the document key, the schema
+    // takes its place under that name, whatever the name is.
+    const placeholder =
+      strategy === 'always'
+        ? undefined
+        : Object.entries(schemas).find(
+            ([, existing]) =>
+              isObject(existing) &&
+              Object.keys(existing).length === 1 &&
+              existing.$ref === refValue,
+          );
+
+    let name = placeholder?.[0];
+    if (name === undefined) {
+      name = getRecursiveSchemaName(extKey, parts, schema);
+
+      // A taken name gets the document key as a suffix, the same way
+      // mergeExternalSchemas does.
+      if (strategy === 'always' || Object.hasOwn(schemas, name)) {
+        name = `${name}_${externalSuffix(extKey)}`;
+
+        if (Object.hasOwn(schemas, name)) {
+          throw new Error(
+            `Recursive external schema "${refValue}" cannot be added as "${name}" because that component name is already occupied.`,
+          );
+        }
+      }
+    }
+
+    // Refs to components of its own document follow them to their merged
+    // names, the same way mergeExternalSchemas rewrites them.
+    schemas[name] = updateInternalRefs(
+      scrubUnwantedKeys(schema),
+      extKey,
+      schemaNameMappings,
+      refPrefix,
+    );
+    hoistedRefs.set(refValue, name);
+  }
+
+  return hoistedRefs;
+}
+
+/**
+ * Follow the JSON Pointer of an x-ext `$ref` into its external document.
+ */
+function resolveXExtRef(
+  extensions: Record<string, unknown>,
+  extKey: string,
+  parts: string[],
+): unknown {
+  let refObj: unknown = extensions[extKey];
+  for (const rawPart of parts) {
+    const p = decodeRefToken(rawPart);
+    if (
+      refObj &&
+      (isObject(refObj) || Array.isArray(refObj)) &&
+      p in (refObj as Record<string, unknown>)
+    ) {
+      refObj = (refObj as Record<string, unknown>)[p];
+    } else {
+      return undefined;
+    }
+  }
+  return refObj;
+}
+
+/**
  * Decode a single JSON Pointer reference token taken from an x-ext `$ref`.
  *
  * The token carries two layers of encoding: it sits in a URI fragment, so it
@@ -2245,14 +2445,18 @@ function decodeRefToken(token: string): string {
 
 /**
  * Replace x-ext refs with standard component refs, or inline the content.
- * `inliningRefs` tracks the inline chain to break cycles in recursive
- * external schemas that aren't under `components.schemas` (#1642).
+ * `hoistedRefs` maps the refs of schemas that contain themselves to the
+ * components they became. `inliningRefs` tracks the inline chain; a ref that
+ * comes back while it is still being inlined is added to `recursiveRefs` and
+ * replaced with `{}` (#1642).
  */
 function replaceXExtRefs(
   obj: unknown,
   extensions: Record<string, unknown>,
   schemaNameMappings: Record<string, Record<string, string>>,
   refPrefix: string,
+  hoistedRefs: Map<string, string>,
+  recursiveRefs: Set<string>,
   inliningRefs = new Set<string>(),
 ): unknown {
   if (isNullish(obj)) return obj;
@@ -2264,6 +2468,8 @@ function replaceXExtRefs(
         extensions,
         schemaNameMappings,
         refPrefix,
+        hoistedRefs,
+        recursiveRefs,
         inliningRefs,
       ),
     );
@@ -2276,10 +2482,7 @@ function replaceXExtRefs(
     if ('$ref' in record && isString(record.$ref)) {
       const refValue = record.$ref;
       if (refValue.startsWith('#/x-ext/')) {
-        // Parse the x-ext ref
-        const pathStr = refValue.replace('#/x-ext/', '');
-        const parts = pathStr.split('/');
-        const extKey = parts.shift();
+        const { extKey, parts } = parseXExtRef(refValue);
 
         if (extKey) {
           // Check if this is a ref to components/schemas - if so, replace with standard ref
@@ -2295,33 +2498,20 @@ function replaceXExtRefs(
             return { $ref: `${refPrefix}${finalName}` };
           }
 
-          // Otherwise inline the content; break cycles with `{}`.
+          // A schema that contains itself became a component; point at it.
+          const hoistedName = hoistedRefs.get(refValue);
+          if (hoistedName !== undefined) {
+            return { $ref: `${refPrefix}${hoistedName}` };
+          }
+
+          // Otherwise inline the content. A ref that is already being inlined
+          // contains itself, so it is collected and cut with `{}` for now.
           if (inliningRefs.has(refValue)) {
-            logger.warn(
-              `Detected a circular external $ref while inlining "${refValue}". ` +
-                `Replacing with an empty schema to avoid infinite recursion. ` +
-                `Move the schema under "components.schemas" in its source file ` +
-                `or pre-bundle the spec to keep the recursion intact.`,
-            );
+            recursiveRefs.add(refValue);
             return {};
           }
 
-          const extDoc = extensions[extKey];
-          let refObj: unknown = extDoc;
-          for (const rawPart of parts) {
-            const p = decodeRefToken(rawPart);
-            if (
-              refObj &&
-              (isObject(refObj) || Array.isArray(refObj)) &&
-              p in (refObj as Record<string, unknown>)
-            ) {
-              refObj = (refObj as Record<string, unknown>)[p];
-            } else {
-              refObj = undefined;
-              break;
-            }
-          }
-
+          const refObj = resolveXExtRef(extensions, extKey, parts);
           if (refObj) {
             const cleaned = scrubUnwantedKeys(refObj);
             const nextInlining = new Set(inliningRefs);
@@ -2331,6 +2521,8 @@ function replaceXExtRefs(
               extensions,
               schemaNameMappings,
               refPrefix,
+              hoistedRefs,
+              recursiveRefs,
               nextInlining,
             );
           }
@@ -2346,6 +2538,8 @@ function replaceXExtRefs(
         extensions,
         schemaNameMappings,
         refPrefix,
+        hoistedRefs,
+        recursiveRefs,
         inliningRefs,
       );
     }

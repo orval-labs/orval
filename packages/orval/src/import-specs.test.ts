@@ -3280,9 +3280,9 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
-  it('should break cycles when an external ref recursively points back to itself (#1642)', () => {
-    // A self-referencing x-ext entry outside components.schemas would
-    // otherwise inline forever and OOM; the inner ref must collapse to `{}`.
+  it('should turn an external schema that references itself into a component (#1642)', () => {
+    // A self-referencing x-ext entry outside components.schemas cannot be
+    // inlined; it takes the place of its placeholder and refers to itself.
     const warn = vi.fn();
     const input = {
       openapi: '3.0.0',
@@ -3314,16 +3314,310 @@ describe('dereferenceExternalRefs', () => {
       type: 'object',
       properties: {
         name: { type: 'string' },
-        self: {},
+        self: { $ref: '#/components/schemas/Foo' },
       },
     });
     expect(result).not.toHaveProperty('x-ext');
-    expect(warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        // oxlint-disable-next-line typescript/no-unsafe-assignment
-        message: expect.stringContaining('circular external $ref'),
-      }),
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('should name a recursive external document after its title', () => {
+    // A whole external file whose root schema nests itself, referenced from
+    // an inline schema rather than from components.schemas.
+    const input = {
+      openapi: '3.1.0',
+      paths: {
+        '/users': {
+          post: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    additionalProperties: { $ref: '#/x-ext/abc' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        abc: {
+          title: 'UserProperty',
+          type: 'object',
+          properties: {
+            properties: {
+              type: 'object',
+              additionalProperties: { $ref: '#/x-ext/abc' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      paths: Record<string, unknown>;
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(result.components.schemas.UserProperty).toEqual({
+      title: 'UserProperty',
+      type: 'object',
+      properties: {
+        properties: {
+          type: 'object',
+          additionalProperties: { $ref: '#/components/schemas/UserProperty' },
+        },
+      },
+    });
+    expect(JSON.stringify(result.paths)).toContain(
+      '"additionalProperties":{"$ref":"#/components/schemas/UserProperty"}',
     );
+    expect(JSON.stringify(result)).not.toContain('#/x-ext/');
+  });
+
+  it('should keep the name of a placeholder whose name the schema cannot give', () => {
+    // A whole external document with no title would be named after its key;
+    // the component that points at it already has a better name.
+    const input = {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Tree: { $ref: '#/x-ext/a1b2c3' },
+        },
+      },
+      'x-ext': {
+        a1b2c3: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: { $ref: '#/x-ext/a1b2c3' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(Object.keys(result.components.schemas)).toEqual(['Tree']);
+    expect(result.components.schemas.Tree).toEqual({
+      type: 'object',
+      properties: {
+        children: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Tree' },
+        },
+      },
+    });
+  });
+
+  it('should name a recursive schema after its title when its ref ends in a keyword', () => {
+    const input = {
+      openapi: '3.0.0',
+      paths: {
+        '/nodes': {
+          get: {
+            responses: {
+              '200': {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/x-ext/abc/properties/children/items' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        abc: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: {
+                title: 'Node',
+                type: 'object',
+                properties: {
+                  next: { $ref: '#/x-ext/abc/properties/children/items' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(Object.keys(result.components.schemas)).toEqual(['Node']);
+    expect(result.components.schemas.Node).toEqual({
+      title: 'Node',
+      type: 'object',
+      properties: { next: { $ref: '#/components/schemas/Node' } },
+    });
+  });
+
+  it.each([
+    ['an array index', '#/x-ext/abc/allOf/0', 'abc'],
+    ['a document key starting with a digit', '#/x-ext/1a2b', 'Schema_1a2b'],
+  ])(
+    'should give a recursive schema a type-safe name when its ref ends in %s',
+    (_, ref, expectedName) => {
+      const recursive = {
+        type: 'object',
+        properties: { self: { $ref: ref } },
+      };
+      const input = {
+        openapi: '3.0.0',
+        paths: {
+          '/x': {
+            get: {
+              responses: {
+                '200': {
+                  description: 'OK',
+                  content: { 'application/json': { schema: { $ref: ref } } },
+                },
+              },
+            },
+          },
+        },
+        'x-ext': {
+          abc: { allOf: [recursive] },
+          '1a2b': recursive,
+        },
+      };
+
+      const result = dereferenceExternalRef(input) as {
+        components: { schemas: Record<string, unknown> };
+      };
+
+      expect(Object.keys(result.components.schemas)).toEqual([expectedName]);
+      expect(result.components.schemas[expectedName]).toEqual({
+        type: 'object',
+        properties: {
+          self: { $ref: `#/components/schemas/${expectedName}` },
+        },
+      });
+    },
+  );
+
+  it('should keep the recursion of a schema whose title is empty', () => {
+    const warn = vi.fn();
+    const input = {
+      openapi: '3.0.0',
+      paths: {
+        '/x': {
+          get: {
+            responses: {
+              '200': {
+                description: 'OK',
+                content: {
+                  'application/json': { schema: { $ref: '#/x-ext/abc' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        abc: {
+          title: '  ',
+          type: 'object',
+          properties: { self: { $ref: '#/x-ext/abc' } },
+        },
+      },
+    };
+
+    const result = withReporter({ ...noopReporter, warn }, () =>
+      dereferenceExternalRef(input),
+    ) as { components: { schemas: Record<string, unknown> } };
+
+    expect(Object.keys(result.components.schemas)).toEqual(['abc']);
+    expect(result.components.schemas.abc).toEqual({
+      title: '  ',
+      type: 'object',
+      properties: { self: { $ref: '#/components/schemas/abc' } },
+    });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('should point refs in a recursive schema at the merged names of its own components', () => {
+    // The external Bar collides with the main document's Bar and is merged
+    // as Bar_abc; the recursive Node must follow it there.
+    const input = {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Bar: { type: 'string' },
+          Node: { $ref: '#/x-ext/abc/Node' },
+        },
+      },
+      'x-ext': {
+        abc: {
+          components: { schemas: { Bar: { type: 'integer' } } },
+          Node: {
+            type: 'object',
+            properties: {
+              bar: { $ref: '#/components/schemas/Bar' },
+              next: { $ref: '#/x-ext/abc/Node' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(result.components.schemas.Bar_abc).toEqual({ type: 'integer' });
+    expect(result.components.schemas.Node).toEqual({
+      type: 'object',
+      properties: {
+        bar: { $ref: '#/components/schemas/Bar_abc' },
+        next: { $ref: '#/components/schemas/Node' },
+      },
+    });
+  });
+
+  it('should suffix a recursive schema with its document key under the always strategy', () => {
+    const input = {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Foo: { $ref: '#/x-ext/abc/Foo' },
+        },
+      },
+      'x-ext': {
+        abc: {
+          Foo: {
+            type: 'object',
+            properties: { self: { $ref: '#/x-ext/abc/Foo' } },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input, 'always') as {
+      components: { schemas: Record<string, unknown> };
+    };
+
+    expect(result.components.schemas.Foo).toEqual({
+      $ref: '#/components/schemas/Foo_abc',
+    });
+    expect(result.components.schemas.Foo_abc).toEqual({
+      type: 'object',
+      properties: { self: { $ref: '#/components/schemas/Foo_abc' } },
+    });
   });
 
   it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {
