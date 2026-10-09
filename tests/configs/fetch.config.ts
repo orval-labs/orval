@@ -1347,4 +1347,64 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'fetch-factory': {
+    output: {
+      target: '../generated/fetch/fetch-factory/endpoints.ts',
+      schemas: '../generated/fetch/fetch-factory/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          useRuntimeFetcher: true,
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Without response return types the header emits no status-code types, but
+  // must still open the factory closure the footer closes.
+  'fetch-factory-no-http-response': {
+    output: {
+      target: '../generated/fetch/fetch-factory-no-http-response/endpoints.ts',
+      schemas: '../generated/fetch/fetch-factory-no-http-response/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // A hook mutator declares `use{Op}Hook`, which the factory must return.
+  'fetch-factory-hook-mutator': {
+    output: {
+      target: '../generated/fetch/fetch-factory-hook-mutator/endpoints.ts',
+      schemas: '../generated/fetch/fetch-factory-hook-mutator/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        useDatesTransform: true,
+        mutator: {
+          path: '../mutators/use-custom-fetch.ts',
+          name: 'useCustomFetch',
+        },
+        fetch: {
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+    input: { target: '../specifications/dates-transform.yaml' },
+  },
 });

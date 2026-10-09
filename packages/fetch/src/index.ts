@@ -34,6 +34,7 @@ import {
   needsHttpStatusCodeTypes,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
+  type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
@@ -42,6 +43,9 @@ import {
   OutputClient,
   pascal,
   resolveRef,
+  sanitize,
+  type ClientFooterBuilder,
+  type ClientTitleBuilder,
   stringify,
   toObjectString,
 } from '@orval/core';
@@ -157,12 +161,37 @@ const getMutatorErrorResponseArgument = (
 };
 
 /**
+ * Whether the fetch client is wrapped in an `httpClientInjection: 'factory'`
+ * closure. Factory injection is output-scoped (the header and footer only see
+ * `output.override`), and limited to the plain fetch client: query, swr, mcp
+ * and pinia-colada reuse these generators but emit no factory wrapper.
+ */
+const isFetchFactoryMode = (output: NormalizedOutputOptions | undefined) =>
+  output?.client === OutputClient.FETCH &&
+  output.override.fetch.httpClientInjection === 'factory';
+
+/**
  * Generates the URL helper function and the fetch request function for a single
  * OpenAPI operation. Handles query-param serialization (explode, arrayFormat,
  * paramsSerializer), request body encoding, response parsing, and optional
  * runtime Zod validation.
  */
 export const generateRequestFunction = (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => {
+  const { responseTypes, implementation } = generateRequestFunctionParts(
+    verbOptions,
+    options,
+  );
+  return responseTypes + implementation;
+};
+
+/**
+ * Like `generateRequestFunction`, but keeps the exported response types apart
+ * from the functions so factory mode can emit them outside the closure.
+ */
+const generateRequestFunctionParts = (
   {
     queryParams,
     headers,
@@ -195,6 +224,7 @@ export const generateRequestFunction = (
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
+  const isFactoryMode = isFetchFactoryMode(context.output);
 
   // `RequestInit['headers']` is declared per runtime, and the old narrowing
   // chain only fitted the DOM's declaration, leaving `return h` unsound in two
@@ -427,13 +457,13 @@ export const generateRequestFunction = (
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
     }`;
 
+  const getUrlExportKeyword = isFactoryMode ? 'const' : 'export const';
   const getUrlFnImplementation = paramsSerializer
-    ? `export const ${getUrlFnName} = (${getUrlFnProps}) => {
-${
-  queryParams
-    ? `  const stringifiedParams = ${paramsSerializer.name}(params);`
-    : ''
-}
+    ? `${getUrlExportKeyword} ${getUrlFnName} = (${getUrlFnProps}) => {\n${
+        queryParams
+          ? `  const stringifiedParams = ${paramsSerializer.name}(params);`
+          : ''
+      }
 
   ${
     queryParams
@@ -441,17 +471,16 @@ ${
       : `return \`${route}\``
   }
 }\n`
-    : `export const ${getUrlFnName} = (${getUrlFnProps}) => {
-${
-  queryParams
-    ? `  const normalizedParams = new URLSearchParams();
+    : `${getUrlExportKeyword} ${getUrlFnName} = (${getUrlFnProps}) => {\n${
+        queryParams
+          ? `  const normalizedParams = new URLSearchParams();
 ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
-    : ''
-}
+          : ''
+      }
 
   ${queryParams ? (deepObjectParameters.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
 
@@ -723,7 +752,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
   const fetchFnParam =
-    useRuntimeFetcher && isRequestOptions && !mutator
+    useRuntimeFetcher && isRequestOptions && !mutator && !isFactoryMode
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
@@ -895,8 +924,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
-  const fetchFnCall =
-    useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
+  const fetchFnCall = isFactoryMode
+    ? 'fetchFn'
+    : useRuntimeFetcher && isRequestOptions
+      ? '(fetchFn ?? fetch)'
+      : 'fetch';
   // Drop `set-cookie`: a dehydrated cache reaches the client. Names are lowercased.
   const responseHeadersValue = (responseVarName: string) =>
     override.fetch.serializeResponseHeaders
@@ -1003,12 +1035,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  let fetchImplementation = `export const ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
+  const exportKeyword = isFactoryMode ? 'const' : 'export const';
+  let fetchImplementation = `${exportKeyword} ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
-    fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
+    fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
     ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
   `;
   }
@@ -1018,12 +1051,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     .map(({ implementation }) => `\n${implementation}`)
     .join('');
 
-  return (
-    responseTypeImplementation +
-    `${getUrlFnImplementation}\n` +
-    `${doc}${fetchImplementation}\n` +
-    dateTransformImplementations
-  );
+  return {
+    responseTypes: responseTypeImplementation,
+    implementation:
+      `${getUrlFnImplementation}\n` +
+      `${doc}${fetchImplementation}\n` +
+      dateTransformImplementations,
+  };
 };
 
 /**
@@ -1132,33 +1166,92 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
     : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
-  const functionImplementation = generateRequestFunction(
+  const { responseTypes, implementation } = generateRequestFunctionParts(
     normalizedVerbOptions,
     options,
   );
 
+  // Types declared inside the factory closure would be unreachable for
+  // consumers, so factory mode hands them to the footer to emit after it.
+  if (isFetchFactoryMode(options.context.output)) {
+    return {
+      implementation: `${implementation}\n`,
+      imports,
+      docComment: '',
+      ...(responseTypes ? { returnType: () => responseTypes } : {}),
+    };
+  }
+
   return {
-    implementation: `${functionImplementation}\n`,
+    implementation: `${responseTypes}${implementation}\n`,
     imports,
     docComment: '',
   };
 };
 
-/** Emits HTTP status-code union types at the top of the generated file when they are needed. */
+export const generateFetchTitle: ClientTitleBuilder = (title) => {
+  const sanTitle = sanitize(title);
+  return `get${pascal(sanTitle)}`;
+};
+
+/**
+ * Emits HTTP status-code union types at the top of the generated file when they
+ * are needed, and opens the factory closure in `httpClientInjection: 'factory'` mode.
+ */
 export const generateFetchHeader: ClientHeaderBuilder = ({
+  title,
   clientImplementation,
+  output,
 }) => {
-  if (!needsHttpStatusCodeTypes(clientImplementation)) return '';
+  const isFactoryMode = isFetchFactoryMode(output);
+  const implementation = isFactoryMode
+    ? `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`
+    : '';
+  // Factory mode moves the response types to the footer, out of the
+  // implementation scanned here, so they are assumed to need the status codes.
+  const needsStatusCodeTypes = isFactoryMode
+    ? output.override.fetch.includeHttpResponseReturnType
+    : needsHttpStatusCodeTypes(clientImplementation);
+
+  if (!needsStatusCodeTypes) return implementation;
 
   return {
-    implementation: '',
+    implementation,
     sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
   };
+};
+
+/**
+ * Closes the factory closure by returning its operations and URL helpers, then
+ * emits the response types the client builder kept outside of it.
+ */
+export const generateFetchFooter: ClientFooterBuilder = ({
+  operationNames,
+  operations,
+  output,
+}) => {
+  if (!isFetchFactoryMode(output)) return '';
+
+  // Hook mutators declare `use{Op}Hook` instead of the operation itself.
+  const returnedNames = operations
+    ? operations.flatMap(({ operationName, mutator }) => [
+        mutator?.isHook ? `use${pascal(operationName)}Hook` : operationName,
+        camel(`get-${operationName}-url`),
+      ])
+    : operationNames;
+  const responseTypes = (operations ?? [])
+    .map((operation) => operation.types?.result())
+    .filter(Boolean)
+    .join('\n');
+
+  return `return { ${returnedNames.join(', ')} };\n};\n${responseTypes ? `\n${responseTypes}\n` : ''}`;
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
   header: generateFetchHeader,
+  title: generateFetchTitle,
+  footer: generateFetchFooter,
   dependencies: getFetchDependencies,
 };
 
