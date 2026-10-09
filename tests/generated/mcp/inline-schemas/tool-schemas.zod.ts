@@ -10,8 +10,8 @@ export const AddBody = zod.object({
   id: zod.string().optional(),
 });
 
-export const AddResponse = zod.void();
-
 export const AddInput = zod.object({
   bodyParams: AddBody.optional(),
 });
+
+export const AddResponse = zod.void();

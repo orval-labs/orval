@@ -27,10 +27,23 @@ const context = createTestContextSpec({
   output: { target: '/project/src/handlers.ts' },
 });
 
+const generateAllZodSchemas = {
+  zod: {
+    generate: {
+      param: true,
+      query: true,
+      header: true,
+      body: true,
+      response: true,
+    },
+  },
+};
+
 const verbOptions = {
   listPets: createTestGeneratorVerbOptions({
     operationName: 'listPets',
     typeName: 'listPets',
+    override: generateAllZodSchemas,
     queryParams: {
       schema: { name: 'ListPetsParams', model: '', imports: [] },
       deps: [],
@@ -50,6 +63,7 @@ const verbOptions = {
   healthCheck: createTestGeneratorVerbOptions({
     operationName: 'healthCheck',
     typeName: 'healthCheck',
+    override: generateAllZodSchemas,
     route: '/health',
     pathRoute: '/health',
   }),
@@ -86,6 +100,14 @@ describe('MCP SDK v2 output', () => {
       'export const ListPetsInput = zod.object({\n  queryParams: ListPetsQueryParams,\n});',
     );
     expect(zodFile?.content).not.toContain('HealthCheckInput');
+
+    const content = zodFile?.content ?? '';
+    expect(content.indexOf('ListPetsQueryParams')).toBeLessThan(
+      content.indexOf('ListPetsInput'),
+    );
+    expect(content.indexOf('ListPetsInput')).toBeLessThan(
+      content.indexOf('ListPetsResponse'),
+    );
   });
 
   it('types the custom handler context as ServerContext', () => {
