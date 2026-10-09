@@ -3164,6 +3164,60 @@ export const load = async ({ fetch }) => {
 };
 ```
 
+### httpClientInjection
+
+**Type:** `'factory'`
+**Default:** `undefined`
+
+Only for `client: 'fetch'`. Wraps the generated operations and URL helpers in a factory that receives a `fetch` implementation once, instead of passing it on every call. The factory's name is the OpenAPI title (or the tag in split modes) prefixed with `get`; [`override.title`](#title) renames it. Response types stay exported at the top level. Set it on `output.override.fetch`; tag and operation overrides are ignored.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        fetch: {
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+  },
+});
+```
+
+**Generated output example**
+
+```ts
+export const getSwaggerPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {
+  const getListPetsUrl = (params: ListPetsParams) => {
+    // ...
+  };
+
+  const listPets = async (
+    params: ListPetsParams,
+    options?: RequestInit,
+  ): Promise<listPetsResponse> => {
+    const res = await fetchFn(getListPetsUrl(params), {
+      ...options,
+      method: 'GET',
+    });
+    // ...
+  };
+
+  return { listPets, getListPetsUrl };
+};
+
+export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
+```
+
+**Usage**
+
+```ts
+const api = getSwaggerPetstore(myFetch);
+const pets = await api.listPets({ limit: '10' });
+```
+
 ---
 
 ## Runtime validation support matrix

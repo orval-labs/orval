@@ -34,6 +34,7 @@ import {
   needsHttpStatusCodeTypes,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
+  type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
@@ -160,12 +161,37 @@ const getMutatorErrorResponseArgument = (
 };
 
 /**
+ * Whether the fetch client is wrapped in an `httpClientInjection: 'factory'`
+ * closure. Factory injection is output-scoped (the header and footer only see
+ * `output.override`), and limited to the plain fetch client: query, swr, mcp
+ * and pinia-colada reuse these generators but emit no factory wrapper.
+ */
+const isFetchFactoryMode = (output: NormalizedOutputOptions | undefined) =>
+  output?.client === OutputClient.FETCH &&
+  output.override.fetch.httpClientInjection === 'factory';
+
+/**
  * Generates the URL helper function and the fetch request function for a single
  * OpenAPI operation. Handles query-param serialization (explode, arrayFormat,
  * paramsSerializer), request body encoding, response parsing, and optional
  * runtime Zod validation.
  */
 export const generateRequestFunction = (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => {
+  const { responseTypes, implementation } = generateRequestFunctionParts(
+    verbOptions,
+    options,
+  );
+  return responseTypes + implementation;
+};
+
+/**
+ * Like `generateRequestFunction`, but keeps the exported response types apart
+ * from the functions so factory mode can emit them outside the closure.
+ */
+const generateRequestFunctionParts = (
   {
     queryParams,
     headers,
@@ -198,12 +224,7 @@ export const generateRequestFunction = (
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
-  // Factory injection is output-scoped: `generateFetchHeader` and
-  // `generateFetchFooter` read `context.output.override`, so resolving it from
-  // the per-operation override here would emit non-exported declarations with
-  // no factory wrapper for a tag-level setting.
-  const isFactoryMode =
-    context.output.override.fetch.httpClientInjection === 'factory';
+  const isFactoryMode = isFetchFactoryMode(context.output);
 
   // `RequestInit['headers']` is declared per runtime, and the old narrowing
   // chain only fitted the DOM's declaration, leaving `return h` unsound in two
@@ -1030,15 +1051,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     .map(({ implementation }) => `\n${implementation}`)
     .join('');
 
-  const responseBlock =
-    responseTypeImplementation +
-    `${getUrlFnImplementation}\n` +
-    `${doc}${fetchImplementation}\n` +
-    dateTransformImplementations;
-  // Inside a factory wrapper, `export type` is invalid; strip the export keyword.
-  return isFactoryMode
-    ? responseBlock.replace(/^export type /gm, 'type ')
-    : responseBlock;
+  return {
+    responseTypes: responseTypeImplementation,
+    implementation:
+      `${getUrlFnImplementation}\n` +
+      `${doc}${fetchImplementation}\n` +
+      dateTransformImplementations,
+  };
 };
 
 /**
@@ -1147,13 +1166,24 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
     : verbOptions;
 
   const imports = generateVerbImports(normalizedVerbOptions);
-  const functionImplementation = generateRequestFunction(
+  const { responseTypes, implementation } = generateRequestFunctionParts(
     normalizedVerbOptions,
     options,
   );
 
+  // Types declared inside the factory closure would be unreachable for
+  // consumers, so factory mode hands them to the footer to emit after it.
+  if (isFetchFactoryMode(options.context.output)) {
+    return {
+      implementation: `${implementation}\n`,
+      imports,
+      docComment: '',
+      ...(responseTypes ? { returnType: () => responseTypes } : {}),
+    };
+  }
+
   return {
-    implementation: `${functionImplementation}\n`,
+    implementation: `${responseTypes}${implementation}\n`,
     imports,
     docComment: '',
   };
@@ -1164,44 +1194,57 @@ export const generateFetchTitle: ClientTitleBuilder = (title) => {
   return `get${pascal(sanTitle)}`;
 };
 
-/** Emits HTTP status-code union types at the top of the generated file when they are needed. */
+/**
+ * Emits HTTP status-code union types at the top of the generated file when they
+ * are needed, and opens the factory closure in `httpClientInjection: 'factory'` mode.
+ */
 export const generateFetchHeader: ClientHeaderBuilder = ({
   title,
   clientImplementation,
   output,
 }) => {
-  if (!needsHttpStatusCodeTypes(clientImplementation)) return '';
+  const isFactoryMode = isFetchFactoryMode(output);
+  const implementation = isFactoryMode
+    ? `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`
+    : '';
+  // Factory mode moves the response types to the footer, out of the
+  // implementation scanned here, so they are assumed to need the status codes.
+  const needsStatusCodeTypes = isFactoryMode
+    ? output.override.fetch.includeHttpResponseReturnType
+    : needsHttpStatusCodeTypes(clientImplementation);
 
-  const isFactoryMode = output.override.fetch.httpClientInjection === 'factory';
+  if (!needsStatusCodeTypes) return implementation;
 
-  const statusCodeHeader = {
-    implementation: '',
+  return {
+    implementation,
     sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
   };
-
-  if (isFactoryMode) {
-    const factoryHeader = `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`;
-    if (typeof statusCodeHeader === 'string') {
-      return factoryHeader;
-    }
-    return {
-      implementation: factoryHeader,
-      sharedTypes: statusCodeHeader.sharedTypes,
-    };
-  }
-
-  return statusCodeHeader;
 };
 
-/** Closes the factory wrapper by returning all generated functions. */
+/**
+ * Closes the factory closure by returning its operations and URL helpers, then
+ * emits the response types the client builder kept outside of it.
+ */
 export const generateFetchFooter: ClientFooterBuilder = ({
   operationNames,
+  operations,
   output,
 }) => {
-  const isFactoryMode =
-    output?.override.fetch.httpClientInjection === 'factory';
-  if (!isFactoryMode) return '';
-  return `return { ${operationNames.join(', ')} };\n};\n`;
+  if (!isFetchFactoryMode(output)) return '';
+
+  // Hook mutators declare `use{Op}Hook` instead of the operation itself.
+  const returnedNames = operations
+    ? operations.flatMap(({ operationName, mutator }) => [
+        mutator?.isHook ? `use${pascal(operationName)}Hook` : operationName,
+        camel(`get-${operationName}-url`),
+      ])
+    : operationNames;
+  const responseTypes = (operations ?? [])
+    .map((operation) => operation.types?.result())
+    .filter(Boolean)
+    .join('\n');
+
+  return `return { ${returnedNames.join(', ')} };\n};\n${responseTypes ? `\n${responseTypes}\n` : ''}`;
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {

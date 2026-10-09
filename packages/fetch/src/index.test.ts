@@ -1,5 +1,6 @@
 import type {
   ContextSpec,
+  GeneratorOperation,
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiParameterObject,
@@ -9,6 +10,7 @@ import type {
 } from '@orval/core';
 import {
   GetterPropType,
+  HTTP_STATUS_CODE_SHARED_TYPES,
   OutputClient,
   PropertySortOrder,
   Verbs,
@@ -20,7 +22,12 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { generateRequestFunction } from './index';
+import {
+  generateClient,
+  generateFetchFooter,
+  generateFetchHeader,
+  generateRequestFunction,
+} from './index';
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
@@ -1179,6 +1186,123 @@ describe('generateRequestFunction — useDatesTransform', () => {
     );
     expect(implementation).toContain(
       'serializeUpdateAppointmentRequest(appointment)',
+    );
+  });
+});
+
+describe('httpClientInjection: factory', () => {
+  const factoryContext = (client: OutputClient = OutputClient.FETCH) =>
+    createTestContextSpec({
+      output: {
+        client,
+        override: { fetch: { httpClientInjection: 'factory' } },
+      },
+    });
+
+  const headerParams = (
+    output: ContextSpec['output'],
+    clientImplementation = '',
+  ) => ({
+    title: 'getPetstore',
+    isRequestOptions: true,
+    isMutator: false,
+    isGlobalMutator: false,
+    provideIn: false as const,
+    hasAwaitedType: true,
+    output,
+    verbOptions: {},
+    clientImplementation,
+  });
+
+  it('opens the closure even when no status-code types are needed', () => {
+    const output = factoryContext().output;
+    output.override.fetch.includeHttpResponseReturnType = false;
+
+    expect(generateFetchHeader(headerParams(output))).toBe(
+      'export const getPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {\n',
+    );
+  });
+
+  it('emits status-code types with the closure for response return types', () => {
+    const output = factoryContext().output;
+    output.override.fetch.includeHttpResponseReturnType = true;
+
+    const header = generateFetchHeader(headerParams(output));
+
+    expect(typeof header === 'string' ? undefined : header).toEqual({
+      implementation:
+        'export const getPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {\n',
+      sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
+    });
+  });
+
+  it('ignores the factory option for clients that reuse the fetch generators', () => {
+    const context = factoryContext(OutputClient.REACT_QUERY);
+
+    expect(generateFetchHeader(headerParams(context.output))).toBe('');
+    expect(
+      generateFetchFooter({
+        operationNames: ['listPets'],
+        hasAwaitedType: true,
+        hasMutator: false,
+        output: context.output,
+      }),
+    ).toBe('');
+    expect(
+      generateRequestFunction(makeVerbOptions(), makeOptions(context)),
+    ).toContain('export const listPets = async');
+  });
+
+  it('declares operations locally and hands response types to the footer', () => {
+    const response: GeneratorVerbOptions['response'] = {
+      definition: { success: 'Pet', errors: '' },
+      imports: [],
+      types: {
+        success: [successType({ key: '200', value: 'Pet' })],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    };
+    const verbOptions = makeVerbOptions({
+      response,
+      override: { fetch: { includeHttpResponseReturnType: true } },
+    });
+
+    const client = generateClient(
+      verbOptions,
+      makeOptions(factoryContext()),
+      OutputClient.FETCH,
+    ) as Awaited<ReturnType<typeof generateClient>>;
+
+    expect(client.implementation).toContain('const getListPetsUrl = (');
+    expect(client.implementation).toContain('const listPets = async');
+    expect(client.implementation).not.toContain('export ');
+    expect(client.returnType?.()).toContain('export type listPetsResponse =');
+  });
+
+  it('returns hook names and URL helpers, then emits the response types', () => {
+    const footer = generateFetchFooter({
+      operationNames: ['listPets', 'createPets'],
+      operations: [
+        {
+          operationName: 'listPets',
+          types: { result: () => 'export type listPetsResponse = unknown;' },
+        },
+        {
+          operationName: 'createPets',
+          mutator: { isHook: true },
+        },
+      ] as GeneratorOperation[],
+      hasAwaitedType: true,
+      hasMutator: true,
+      output: factoryContext().output,
+    });
+
+    expect(footer).toBe(
+      'return { listPets, getListPetsUrl, useCreatePetsHook, getCreatePetsUrl };\n};\n' +
+        '\nexport type listPetsResponse = unknown;\n',
     );
   });
 });

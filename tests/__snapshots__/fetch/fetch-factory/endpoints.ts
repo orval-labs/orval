@@ -59,25 +59,6 @@ export type HTTPStatusCodes =
 export const getSwaggerPetstore = (
   fetchFn: typeof globalThis.fetch = fetch,
 ) => {
-  type listPetsResponse200 = {
-    data: Pets;
-    status: 200;
-  };
-
-  type listPetsResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 200>;
-  };
-
-  type listPetsResponseSuccess = listPetsResponse200 & {
-    headers: Headers;
-  };
-  type listPetsResponseError = listPetsResponseDefault & {
-    headers: Headers;
-  };
-
-  type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
-
   const getListPetsUrl = (params: ListPetsParams) => {
     const normalizedParams = new URLSearchParams();
 
@@ -115,25 +96,6 @@ export const getSwaggerPetstore = (
       headers: res.headers,
     } as listPetsResponse;
   };
-
-  type createPetsResponse200 = {
-    data: Pet;
-    status: 200;
-  };
-
-  type createPetsResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 200>;
-  };
-
-  type createPetsResponseSuccess = createPetsResponse200 & {
-    headers: Headers;
-  };
-  type createPetsResponseError = createPetsResponseDefault & {
-    headers: Headers;
-  };
-
-  type createPetsResponse = createPetsResponseSuccess | createPetsResponseError;
 
   const getCreatePetsUrl = (params: CreatePetsParams) => {
     const normalizedParams = new URLSearchParams();
@@ -200,27 +162,6 @@ export const getSwaggerPetstore = (
     } as createPetsResponse;
   };
 
-  type showPetByIdResponse200 = {
-    data: Pet;
-    status: 200;
-  };
-
-  type showPetByIdResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 200>;
-  };
-
-  type showPetByIdResponseSuccess = showPetByIdResponse200 & {
-    headers: Headers;
-  };
-  type showPetByIdResponseError = showPetByIdResponseDefault & {
-    headers: Headers;
-  };
-
-  type showPetByIdResponse =
-    | showPetByIdResponseSuccess
-    | showPetByIdResponseError;
-
   const getShowPetByIdUrl = (petId: string) => {
     return `/pets/${petId}`;
   };
@@ -246,27 +187,6 @@ export const getSwaggerPetstore = (
       headers: res.headers,
     } as showPetByIdResponse;
   };
-
-  type deletePetByIdResponse204 = {
-    data: void;
-    status: 204;
-  };
-
-  type deletePetByIdResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 204>;
-  };
-
-  type deletePetByIdResponseSuccess = deletePetByIdResponse204 & {
-    headers: Headers;
-  };
-  type deletePetByIdResponseError = deletePetByIdResponseDefault & {
-    headers: Headers;
-  };
-
-  type deletePetByIdResponse =
-    | deletePetByIdResponseSuccess
-    | deletePetByIdResponseError;
 
   const getDeletePetByIdUrl = (petId: string) => {
     return `/pets/${petId}`;
@@ -295,27 +215,6 @@ export const getSwaggerPetstore = (
       headers: res.headers,
     } as deletePetByIdResponse;
   };
-
-  type healthCheckResponse200 = {
-    data: string;
-    status: 200;
-  };
-
-  type healthCheckResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 200>;
-  };
-
-  type healthCheckResponseSuccess = healthCheckResponse200 & {
-    headers: Headers;
-  };
-  type healthCheckResponseError = healthCheckResponseDefault & {
-    headers: Headers;
-  };
-
-  type healthCheckResponse =
-    | healthCheckResponseSuccess
-    | healthCheckResponseError;
 
   const getHealthCheckUrl = () => {
     return `/health`;
@@ -347,27 +246,6 @@ export const getSwaggerPetstore = (
     } as healthCheckResponse;
   };
 
-  type showPetWithOwnerResponse200 = {
-    data: PetWithTag;
-    status: 200;
-  };
-
-  type showPetWithOwnerResponseDefault = {
-    data: Error;
-    status: Exclude<HTTPStatusCodes, 200>;
-  };
-
-  type showPetWithOwnerResponseSuccess = showPetWithOwnerResponse200 & {
-    headers: Headers;
-  };
-  type showPetWithOwnerResponseError = showPetWithOwnerResponseDefault & {
-    headers: Headers;
-  };
-
-  type showPetWithOwnerResponse =
-    | showPetWithOwnerResponseSuccess
-    | showPetWithOwnerResponseError;
-
   const getShowPetWithOwnerUrl = (petId: string) => {
     return `/pets/${petId}/owner`;
   };
@@ -396,10 +274,140 @@ export const getSwaggerPetstore = (
 
   return {
     listPets,
+    getListPetsUrl,
     createPets,
+    getCreatePetsUrl,
     showPetById,
+    getShowPetByIdUrl,
     deletePetById,
+    getDeletePetByIdUrl,
     healthCheck,
+    getHealthCheckUrl,
     showPetWithOwner,
+    getShowPetWithOwnerUrl,
   };
 };
+
+export type listPetsResponse200 = {
+  data: Pets;
+  status: 200;
+};
+
+export type listPetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type listPetsResponseSuccess = listPetsResponse200 & {
+  headers: Headers;
+};
+export type listPetsResponseError = listPetsResponseDefault & {
+  headers: Headers;
+};
+
+export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
+
+export type createPetsResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type createPetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type createPetsResponseSuccess = createPetsResponse200 & {
+  headers: Headers;
+};
+export type createPetsResponseError = createPetsResponseDefault & {
+  headers: Headers;
+};
+
+export type createPetsResponse =
+  | createPetsResponseSuccess
+  | createPetsResponseError;
+
+export type showPetByIdResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type showPetByIdResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type showPetByIdResponseSuccess = showPetByIdResponse200 & {
+  headers: Headers;
+};
+export type showPetByIdResponseError = showPetByIdResponseDefault & {
+  headers: Headers;
+};
+
+export type showPetByIdResponse =
+  | showPetByIdResponseSuccess
+  | showPetByIdResponseError;
+
+export type deletePetByIdResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deletePetByIdResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 204>;
+};
+
+export type deletePetByIdResponseSuccess = deletePetByIdResponse204 & {
+  headers: Headers;
+};
+export type deletePetByIdResponseError = deletePetByIdResponseDefault & {
+  headers: Headers;
+};
+
+export type deletePetByIdResponse =
+  | deletePetByIdResponseSuccess
+  | deletePetByIdResponseError;
+
+export type healthCheckResponse200 = {
+  data: string;
+  status: 200;
+};
+
+export type healthCheckResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type healthCheckResponseSuccess = healthCheckResponse200 & {
+  headers: Headers;
+};
+export type healthCheckResponseError = healthCheckResponseDefault & {
+  headers: Headers;
+};
+
+export type healthCheckResponse =
+  | healthCheckResponseSuccess
+  | healthCheckResponseError;
+
+export type showPetWithOwnerResponse200 = {
+  data: PetWithTag;
+  status: 200;
+};
+
+export type showPetWithOwnerResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type showPetWithOwnerResponseSuccess = showPetWithOwnerResponse200 & {
+  headers: Headers;
+};
+export type showPetWithOwnerResponseError = showPetWithOwnerResponseDefault & {
+  headers: Headers;
+};
+
+export type showPetWithOwnerResponse =
+  | showPetWithOwnerResponseSuccess
+  | showPetWithOwnerResponseError;

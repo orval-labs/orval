@@ -1656,6 +1656,7 @@ export interface FetchOptions {
   /**
    * When `'factory'`, wraps all generated functions inside a factory closure
    * that accepts a `fetch` implementation once, instead of passing it per-call.
+   * Applies to `client: 'fetch'` only, and is read from `output.override.fetch`.
    *
    * @default undefined (top-level functions, fetchFn passed per-call)
    */
