@@ -207,6 +207,49 @@ describe('composites', () => {
     expect(effect).toContain('S.Record({ key: S.String, value: S.String })');
   });
 
+  it('keeps an object with properties open when additionalProperties allows extra keys', () => {
+    const properties = { id: { type: 'string' } } as const;
+    const open =
+      'S.extend(S.Struct({\n  "id": S.optional(S.String)\n}), S.Record({ key: S.String, value: S.Unknown }))';
+    expect(
+      gen({ type: 'object', properties, additionalProperties: true }).effect,
+    ).toBe(open);
+    expect(
+      gen({
+        type: 'object',
+        properties,
+        additionalProperties: { type: 'string' },
+      }).effect,
+    ).toBe(open);
+    expect(
+      gen({ type: 'object', properties, additionalProperties: false }).effect,
+    ).toBe('S.Struct({\n  "id": S.optional(S.String)\n})');
+  });
+
+  it('adds the index signature of open allOf members once', () => {
+    const open = (key: string): OpenApiNonBooleanSchemaObject => ({
+      type: 'object',
+      properties: { [key]: { type: 'string' } },
+      additionalProperties: true,
+    });
+    const struct = (key: string) =>
+      `S.Struct({\n  "${key}": S.optional(S.String)\n})`;
+    const record = 'S.Record({ key: S.String, value: S.Unknown })';
+    expect(
+      gen({ allOf: [{ ...open('a'), description: 'A' }, open('b')] }).effect,
+    ).toBe(`S.extend(S.extend(${struct('a')}, ${struct('b')}), ${record})`);
+    expect(
+      gen({
+        allOf: [open('a')],
+        properties: { b: { type: 'string' } },
+        additionalProperties: true,
+      }).effect,
+    ).toBe(`S.extend(S.extend(${struct('a')}, ${struct('b')}), ${record})`);
+    expect(
+      gen({ allOf: [{ type: 'object' }, { type: 'object' }] }).effect,
+    ).toBe(record);
+  });
+
   it('emits S.Union for oneOf', () => {
     const { effect } = gen({
       oneOf: [{ type: 'string' }, { type: 'number' }],
@@ -635,6 +678,20 @@ describe('Effect 4 output', () => {
     expect(effect).toContain('[S.Record(S.String, S.Unknown)]');
   });
 
+  it('emits S.StructWithRest for an object with properties and additionalProperties', () => {
+    for (const additionalProperties of [true, { type: 'string' } as const]) {
+      expect(
+        genV4({
+          type: 'object',
+          properties: { id: { type: 'string' } },
+          additionalProperties,
+        }).effect,
+      ).toBe(
+        'S.StructWithRest(S.Struct({\n  "id": S.optional(S.String)\n}), [S.Record(S.String, S.Unknown)])',
+      );
+    }
+  });
+
   it('emits S.optionalKey for an exact optional property', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -895,6 +952,24 @@ describe('Effect 4 output', () => {
         genV4({ allOf: [a, { type: 'object', additionalProperties: true }] })
           .effect,
       ).toBe(`S.StructWithRest(${structA}, [${record}])`);
+    });
+
+    it('merges the fields of an open member that declares properties', () => {
+      const structC = 'S.Struct({\n  "c": S.optional(S.String)\n})';
+      expect(
+        genV4({
+          allOf: [
+            a,
+            {
+              type: 'object',
+              additionalProperties: true,
+              properties: { c: { type: 'string' } },
+            },
+          ],
+        }).effect,
+      ).toBe(
+        `S.StructWithRest(${structA}.pipe(S.fieldsAssign(${structC}.fields)), [${record}])`,
+      );
     });
 
     it('keeps the index signature on each variant of a distributed union', () => {

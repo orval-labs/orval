@@ -96,4 +96,22 @@ export const GetSomethingResponse = S.Struct({
       }).fields,
     ),
   ),
+  openMemberWithFields: S.StructWithRest(
+    S.Struct({
+      a: S.String,
+    }).pipe(
+      S.fieldsAssign(
+        S.Struct({
+          c: S.optional(S.String),
+        }).fields,
+      ),
+    ),
+    [S.Record(S.String, S.Unknown)],
+  ),
+  openObjectWithFields: S.StructWithRest(
+    S.Struct({
+      c: S.optional(S.Number),
+    }),
+    [S.Record(S.String, S.Unknown)],
+  ),
 });
