@@ -37,6 +37,18 @@ export default defineConfig({
       target: '../specifications/all-of-open-and-nullable-members.yaml',
     },
   },
+  'all-of-required-in-parent': {
+    output: {
+      target:
+        '../generated/effect/all-of-required-in-parent/all-of-required-in-parent.ts',
+      client: 'effect',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/all-of-required-in-parent.yaml',
+    },
+  },
   defaults: {
     output: {
       target: '../generated/effect/defaults/defaults.ts',
