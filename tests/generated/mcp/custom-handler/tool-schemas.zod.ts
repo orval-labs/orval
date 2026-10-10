@@ -22,6 +22,10 @@ export const ListPetsHeader = zod.object({
   'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']).describe('Header parameters'),
 });
 
+export const ListPetsInput = zod.object({
+  queryParams: ListPetsQueryParams,
+});
+
 export const ListPetsResponseItem = zod
   .union([
     zod
@@ -80,6 +84,11 @@ export const CreatePetsBody = zod.object({
   tag: zod.string(),
 });
 
+export const CreatePetsInput = zod.object({
+  queryParams: CreatePetsQueryParams,
+  bodyParams: CreatePetsBody,
+});
+
 export const CreatePetsResponse = zod
   .union([
     zod
@@ -118,6 +127,10 @@ export const CreatePetsResponse = zod
 
 export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
+});
+
+export const ShowPetByIdInput = zod.object({
+  pathParams: ShowPetByIdParams,
 });
 
 export const ShowPetByIdResponse = zod
@@ -160,12 +173,22 @@ export const DeletePetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to delete'),
 });
 
+export const DeletePetByIdInput = zod.object({
+  pathParams: DeletePetByIdParams,
+});
+
 export const DeletePetByIdResponse = zod.void();
 
 export const HealthCheckResponse = zod.string();
 
+export const HealthCheckOutput = zod.object({ result: HealthCheckResponse });
+
 export const ShowPetWithOwnerParams = zod.object({
   petId: zod.string().describe('The id of the pet'),
+});
+
+export const ShowPetWithOwnerInput = zod.object({
+  pathParams: ShowPetWithOwnerParams,
 });
 
 export const ShowPetWithOwnerResponse = zod.object({
@@ -211,26 +234,3 @@ export const ShowPetWithOwnerResponse = zod.object({
     zod.null(),
   ]),
 });
-
-export const ListPetsInput = zod.object({
-  queryParams: ListPetsQueryParams,
-});
-
-export const CreatePetsInput = zod.object({
-  queryParams: CreatePetsQueryParams,
-  bodyParams: CreatePetsBody,
-});
-
-export const ShowPetByIdInput = zod.object({
-  pathParams: ShowPetByIdParams,
-});
-
-export const DeletePetByIdInput = zod.object({
-  pathParams: DeletePetByIdParams,
-});
-
-export const ShowPetWithOwnerInput = zod.object({
-  pathParams: ShowPetWithOwnerParams,
-});
-
-export const HealthCheckOutput = zod.object({ result: HealthCheckResponse });

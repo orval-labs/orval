@@ -29,7 +29,7 @@ import {
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import {
-  generateZod,
+  generateZodSections,
   getZodImportSource,
   hasResponseSchema,
   isObjectResponseSchema,
@@ -511,9 +511,10 @@ const generateZodFiles = async (
 
   const header = getHeader(output.override.header, info);
 
-  const zods = await Promise.all(
-    Object.values(verbOptions).map(async (verbOption) =>
-      generateZod(
+  // One block per tool: request schemas, Input, response schemas, Output.
+  const tools = await Promise.all(
+    Object.values(verbOptions).map(async (verbOption) => {
+      const { request, response, mutators } = await generateZodSections(
         verbOption,
         {
           route: verbOption.route,
@@ -522,13 +523,33 @@ const generateZodFiles = async (
           context,
           output: output.target,
         },
-        output.client,
-      ),
-    ),
+      );
+      const name = pascal(verbOption.typeName);
+      const shape = getInputShape(verbOption);
+      const inputSchema =
+        shape.length > 0
+          ? `export const ${name}Input = zod.object({\n  ${shape.join(',\n  ')},\n});`
+          : undefined;
+      // Non-object responses are exposed to MCP wrapped as `{ result }`; the
+      // wrapping schema is emitted here so server.ts can use it for both
+      // `outputSchema` and `structuredContent` validation.
+      const outputSchema =
+        hasResponseSchema(verbOption, context) &&
+        !isObjectResponseSchema(verbOption, context)
+          ? `export const ${name}Output = zod.object({ result: ${name}Response });`
+          : undefined;
+
+      return {
+        implementation: [request, inputSchema, response, outputSchema]
+          .filter(Boolean)
+          .join('\n\n'),
+        mutators,
+      };
+    }),
   );
 
   const allMutators = new Map(
-    zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+    tools.flatMap((tool) => tool.mutators).map((m) => [m.name, m]),
   )
     .values()
     .toArray();
@@ -537,47 +558,15 @@ const generateZodFiles = async (
     mutators: allMutators,
   });
 
-  let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
-
-  const zodPath = path.join(dirname, `tool-schemas.zod${extension}`);
-
-  content += zods.map((zod) => zod.implementation).join('\n');
-
-  const inputs = Object.values(verbOptions)
-    .map((verbOption) => {
-      const shape = getInputShape(verbOption);
-
-      return shape.length > 0
-        ? `export const ${pascal(verbOption.typeName)}Input = zod.object({\n  ${shape.join(',\n  ')},\n});`
-        : undefined;
-    })
-    .filter(Boolean);
-
-  if (inputs.length > 0) {
-    content += `\n${inputs.join('\n\n')}\n`;
-  }
-
-  // Non-object responses are exposed to MCP wrapped as `{ result }`; the
-  // wrapping schema is emitted here so server.ts can use it for both
-  // `outputSchema` and `structuredContent` validation.
-  const outputs = Object.values(verbOptions)
-    .filter(
-      (verbOption) =>
-        hasResponseSchema(verbOption, context) &&
-        !isObjectResponseSchema(verbOption, context),
-    )
-    .map(
-      (verbOption) =>
-        `export const ${pascal(verbOption.typeName)}Output = zod.object({ result: ${pascal(verbOption.typeName)}Response });`,
-    );
-  if (outputs.length > 0) {
-    content += `\n${outputs.join('\n\n')}\n`;
-  }
+  const content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n${tools
+    .map((tool) => tool.implementation)
+    .filter(Boolean)
+    .join('\n\n')}\n`;
 
   return [
     {
       content,
-      path: zodPath,
+      path: path.join(dirname, `tool-schemas.zod${extension}`),
     },
   ];
 };

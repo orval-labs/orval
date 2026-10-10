@@ -9,15 +9,29 @@ import * as zod from 'zod';
 export const GetThingsResponseItem = zod.string();
 export const GetThingsResponse = zod.array(GetThingsResponseItem);
 
+export const GetThingsOutput = zod.object({ result: GetThingsResponse });
+
 export const CreateThingBody = zod.looseObject({});
+
+export const CreateThingInput = zod.object({
+  bodyParams: CreateThingBody.optional(),
+});
 
 export const CreateThingResponse = zod.void();
 
 export const ReplaceThingBody = zod.looseObject({});
 
+export const ReplaceThingInput = zod.object({
+  bodyParams: ReplaceThingBody.optional(),
+});
+
 export const ReplaceThingResponse = zod.unknown();
 
 export const PatchThingBody = zod.looseObject({});
+
+export const PatchThingInput = zod.object({
+  bodyParams: PatchThingBody.optional(),
+});
 
 export const PatchThingResponse = zod.unknown();
 
@@ -26,17 +40,3 @@ export const DeleteThingResponse = zod.void();
 export const OptionsThingsResponse = zod.void();
 
 export const HeadThingsResponse = zod.unknown();
-
-export const CreateThingInput = zod.object({
-  bodyParams: CreateThingBody.optional(),
-});
-
-export const ReplaceThingInput = zod.object({
-  bodyParams: ReplaceThingBody.optional(),
-});
-
-export const PatchThingInput = zod.object({
-  bodyParams: PatchThingBody.optional(),
-});
-
-export const GetThingsOutput = zod.object({ result: GetThingsResponse });

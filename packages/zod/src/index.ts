@@ -4249,7 +4249,7 @@ const generateZodRoute = async (
   );
 
   return {
-    implementation: [
+    request: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod ? [renderExport(paramsName, inputParams.zod)] : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
@@ -4268,7 +4268,9 @@ const generateZodRoute = async (
             ),
           ]
         : []),
-      ...inputResponses.flatMap((inputResponse, index) => {
+    ].join('\n\n'),
+    response: inputResponses
+      .flatMap((inputResponse, index) => {
         const operationResponse = allocateExportName(
           pascal(`${typeName}-${responses[index][0]}-response`),
           parsedResponses[index].isArray,
@@ -4317,8 +4319,8 @@ const generateZodRoute = async (
               : undefined,
           ),
         ];
-      }),
-    ].join('\n\n'),
+      })
+      .join('\n\n'),
     mutators: [
       // Gate each request-side preprocess mutator on its parsed `.zod`: it is
       // computed for every operation once the target is configured, so without
@@ -4341,11 +4343,26 @@ const generateZodRoute = async (
   };
 };
 
-export const generateZod: ClientBuilder = async (verbOptions, options) => {
-  const { implementation, mutators, usedRefs } = await generateZodRoute(
+// Request-side (params, query, header, body) and response-side schemas as
+// separate blocks, for clients that interleave their own schemas between them.
+export const generateZodSections = async (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => {
+  const { request, response, mutators } = await generateZodRoute(
     verbOptions,
     options,
   );
+
+  return { request, response, mutators };
+};
+
+export const generateZod: ClientBuilder = async (verbOptions, options) => {
+  const { request, response, mutators, usedRefs } = await generateZodRoute(
+    verbOptions,
+    options,
+  );
+  const implementation = [request, response].filter(Boolean).join('\n\n');
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',

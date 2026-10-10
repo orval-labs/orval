@@ -21,6 +21,10 @@ export const FindPetsByStatusQueryParams = zod.object({
     .describe('Status values that need to be considered for filter'),
 });
 
+export const FindPetsByStatusInput = zod.object({
+  queryParams: FindPetsByStatusQueryParams,
+});
+
 export const FindPetsByStatusResponseItem = zod.object({
   id: zod.int().optional(),
   name: zod.string(),
@@ -46,8 +50,16 @@ export const FindPetsByStatusResponseItem = zod.object({
 });
 export const FindPetsByStatusResponse = zod.array(FindPetsByStatusResponseItem);
 
+export const FindPetsByStatusOutput = zod.object({
+  result: FindPetsByStatusResponse,
+});
+
 export const FindPetsByTagsQueryParams = zod.object({
   tags: zod.array(zod.string()).optional().describe('Tags to filter by'),
+});
+
+export const FindPetsByTagsInput = zod.object({
+  queryParams: FindPetsByTagsQueryParams,
 });
 
 export const FindPetsByTagsResponseItem = zod.object({
@@ -75,8 +87,16 @@ export const FindPetsByTagsResponseItem = zod.object({
 });
 export const FindPetsByTagsResponse = zod.array(FindPetsByTagsResponseItem);
 
+export const FindPetsByTagsOutput = zod.object({
+  result: FindPetsByTagsResponse,
+});
+
 export const GetPetByIdParams = zod.object({
   petId: zod.int().describe('ID of pet to return'),
+});
+
+export const GetPetByIdInput = zod.object({
+  pathParams: GetPetByIdParams,
 });
 
 export const GetPetByIdResponse = zod.object({
@@ -118,6 +138,11 @@ export const UpdatePetWithFormQueryParams = zod.object({
     .describe('Status of pet that needs to be updated'),
 });
 
+export const UpdatePetWithFormInput = zod.object({
+  pathParams: UpdatePetWithFormParams,
+  queryParams: UpdatePetWithFormQueryParams,
+});
+
 export const UpdatePetWithFormResponse = zod.object({
   id: zod.int().optional(),
   name: zod.string(),
@@ -150,12 +175,22 @@ export const DeletePetHeader = zod.object({
   api_key: zod.string().optional(),
 });
 
+export const DeletePetInput = zod.object({
+  pathParams: DeletePetParams,
+});
+
 export const DeletePetResponse = zod.unknown();
 
 export const GetInventoryResponse = zod.record(zod.string(), zod.int());
 
+export const GetInventoryOutput = zod.object({ result: GetInventoryResponse });
+
 export const GetOrderByIdParams = zod.object({
   orderId: zod.int().describe('ID of order that needs to be fetched'),
+});
+
+export const GetOrderByIdInput = zod.object({
+  pathParams: GetOrderByIdParams,
 });
 
 export const GetOrderByIdResponse = zod.object({
@@ -174,6 +209,10 @@ export const DeleteOrderParams = zod.object({
   orderId: zod.int().describe('ID of the order that needs to be deleted'),
 });
 
+export const DeleteOrderInput = zod.object({
+  pathParams: DeleteOrderParams,
+});
+
 export const DeleteOrderResponse = zod.unknown();
 
 export const LoginUserQueryParams = zod.object({
@@ -184,7 +223,13 @@ export const LoginUserQueryParams = zod.object({
     .describe('The password for login in clear text'),
 });
 
+export const LoginUserInput = zod.object({
+  queryParams: LoginUserQueryParams,
+});
+
 export const LoginUserResponse = zod.string();
+
+export const LoginUserOutput = zod.object({ result: LoginUserResponse });
 
 export const LogoutUserResponse = zod.unknown();
 
@@ -192,6 +237,10 @@ export const GetUserByNameParams = zod.object({
   username: zod
     .string()
     .describe('The name that needs to be fetched. Use user1 for testing'),
+});
+
+export const GetUserByNameInput = zod.object({
+  pathParams: GetUserByNameParams,
 });
 
 export const GetUserByNameResponse = zod.object({
@@ -209,57 +258,8 @@ export const DeleteUserParams = zod.object({
   username: zod.string().describe('The name that needs to be deleted'),
 });
 
-export const DeleteUserResponse = zod.unknown();
-
-export const FindPetsByStatusInput = zod.object({
-  queryParams: FindPetsByStatusQueryParams,
-});
-
-export const FindPetsByTagsInput = zod.object({
-  queryParams: FindPetsByTagsQueryParams,
-});
-
-export const GetPetByIdInput = zod.object({
-  pathParams: GetPetByIdParams,
-});
-
-export const UpdatePetWithFormInput = zod.object({
-  pathParams: UpdatePetWithFormParams,
-  queryParams: UpdatePetWithFormQueryParams,
-});
-
-export const DeletePetInput = zod.object({
-  pathParams: DeletePetParams,
-});
-
-export const GetOrderByIdInput = zod.object({
-  pathParams: GetOrderByIdParams,
-});
-
-export const DeleteOrderInput = zod.object({
-  pathParams: DeleteOrderParams,
-});
-
-export const LoginUserInput = zod.object({
-  queryParams: LoginUserQueryParams,
-});
-
-export const GetUserByNameInput = zod.object({
-  pathParams: GetUserByNameParams,
-});
-
 export const DeleteUserInput = zod.object({
   pathParams: DeleteUserParams,
 });
 
-export const FindPetsByStatusOutput = zod.object({
-  result: FindPetsByStatusResponse,
-});
-
-export const FindPetsByTagsOutput = zod.object({
-  result: FindPetsByTagsResponse,
-});
-
-export const GetInventoryOutput = zod.object({ result: GetInventoryResponse });
-
-export const LoginUserOutput = zod.object({ result: LoginUserResponse });
+export const DeleteUserResponse = zod.unknown();

@@ -45,6 +45,7 @@ vi.mock('@orval/core', async (importOriginal) => {
 import {
   dereference,
   generateZod,
+  generateZodSections,
   generateZodValidationSchemaDefinition,
   getZodDependencies,
   hasResponseSchema,
@@ -6347,6 +6348,36 @@ describe('generatePartOfSchemaGenerateZod', () => {
 
     expect(result.implementation).toBe(
       'export const TestParams = zod.object({\n  "id": zod.string()\n})\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n})\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n})\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+    );
+  });
+
+  it('splits request and response schemas', async () => {
+    const { request, response } = await generateZodSections(
+      createTestGeneratorVerbOptions({
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        typeName: 'test',
+        override: {
+          zod: {
+            generate: {
+              param: true,
+              query: true,
+              header: true,
+              body: true,
+              response: true,
+            },
+          },
+        },
+      }),
+      basicApiSchema,
+    );
+
+    expect(request).toContain('export const TestParams');
+    expect(request).toContain('export const TestBody');
+    expect(request).not.toContain('TestResponse');
+    expect(response).toBe(
+      'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n})',
     );
   });
 
