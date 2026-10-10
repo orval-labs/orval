@@ -610,8 +610,15 @@ export const generateEffectValidationSchemaDefinition = (
           !hasAdditionalPropertiesSchema;
 
         if (hasProperties && hasDefinedProperties) {
+          // Effect checks an index signature against declared keys too, so a
+          // typed `additionalProperties` would reject them: any extra key is
+          // left unknown.
           functions.push([
-            strict ? 'strictObject' : 'object',
+            schema.additionalProperties
+              ? 'looseObject'
+              : strict
+                ? 'strictObject'
+                : 'object',
             Object.keys(properties)
               .map((key) => ({
                 [key]:
@@ -1096,11 +1103,39 @@ export const parseEffectValidationSchemaDefinition = (
     return '';
   };
 
+  // A member open to extra keys (`{ type: 'object' }`, `additionalProperties`)
+  // leaves the merged struct open, and adds its own fields when it declares
+  // any. Returns `undefined` for a member that is not open.
+  const openMember = (
+    definition: EffectValidationSchemaDefinition,
+    functions: [string, unknown][],
+  ): { struct?: string; open: true } | undefined => {
+    const [fn, arg] = functions[0] ?? [];
+    if (functions.length !== 1) return undefined;
+    if (fn === 'looseObject') {
+      const fields = arg as Record<string, EffectValidationSchemaDefinition>;
+      return {
+        struct:
+          Object.keys(fields).length > 0
+            ? renderSchema(
+                { ...definition, functions: [['object', fields]] },
+                false,
+              )
+            : undefined,
+        open: true,
+      };
+    }
+    return fn === 'additionalProperties' &&
+      (arg as EffectValidationSchemaDefinition).functions.every(
+        ([value]) => value === 'unknown',
+      )
+      ? { open: true }
+      : undefined;
+  };
+
   // A description, default or `null` on an allOf member does not stop the
   // member from being spread, and a `null` branch of a union adds no struct:
-  // `admitsNull` decides whether the merge admits `null`. `{ type: 'object' }`
-  // and `additionalProperties: true` add no fields: they only leave the merged
-  // struct open to extra keys.
+  // `admitsNull` decides whether the merge admits `null`.
   const structVariants = (
     definition: EffectValidationSchemaDefinition,
   ): { struct?: string; open: boolean }[] => {
@@ -1124,16 +1159,8 @@ export const parseEffectValidationSchemaDefinition = (
             .filter((member) => member.functions[0]?.[0] !== 'null')
             .flatMap((member) => structVariants(member));
     }
-    if (
-      functions.length === 1 &&
-      (fn === 'looseObject' ||
-        (fn === 'additionalProperties' &&
-          (arg as EffectValidationSchemaDefinition).functions.every(
-            ([value]) => value === 'unknown',
-          )))
-    ) {
-      return [{ open: true }];
-    }
+    const open = openMember(definition, functions);
+    if (open) return [open];
     const rendered = renderSchema({ ...definition, functions }, false);
     if (functions.length !== 1 || (fn !== 'object' && fn !== 'strictObject')) {
       throw new Error(
@@ -1275,10 +1302,24 @@ export const parseEffectValidationSchemaDefinition = (
           return renderSchema(args[0], false);
         }
         if (!isEffectV4) {
-          // S.extend takes pairs; chain via reduce.
-          return args
-            .map((d) => renderSchema(d, false))
-            .reduce((acc, cur) => `S.extend(${acc}, ${cur})`);
+          // S.extend takes pairs; chain via reduce. Effect 3 throws on a second
+          // string index signature, so an open member adds only its fields and
+          // the merge adds the index signature once.
+          const members = args.map(
+            (member) =>
+              openMember(
+                member,
+                member.functions.filter(
+                  ([fn]) => fn !== 'describe' && fn !== 'default',
+                ),
+              ) ?? { struct: renderSchema(member, false), open: false },
+          );
+          return [
+            ...members.flatMap(({ struct }) => (struct ? [struct] : [])),
+            ...(members.some(({ open }) => open)
+              ? ['S.Record({ key: S.String, value: S.Unknown })']
+              : []),
+          ].reduce((acc, cur) => `S.extend(${acc}, ${cur})`);
         }
         // Effect 4 has no `extend`: assign each later member's fields to the
         // first, distributed over union members, into a struct or a union of

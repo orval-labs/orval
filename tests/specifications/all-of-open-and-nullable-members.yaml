@@ -21,6 +21,8 @@ paths:
                   - mergedWithOpenMember
                   - nestedNullableUnion
                   - nullableRefMember
+                  - openMemberWithFields
+                  - openObjectWithFields
                 properties:
                   nullableMember:
                     allOf:
@@ -94,6 +96,21 @@ paths:
                         properties:
                           b:
                             type: number
+                  openMemberWithFields:
+                    allOf:
+                      - $ref: '#/components/schemas/Base'
+                      - type: object
+                        additionalProperties: true
+                        properties:
+                          c:
+                            type: string
+                  openObjectWithFields:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    properties:
+                      c:
+                        type: number
 components:
   schemas:
     Base:
