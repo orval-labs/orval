@@ -8,6 +8,7 @@ import type {
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  dereference,
   generateEffect,
   generateEffectValidationSchemaDefinition,
   generateFormDataEffectSchema,
@@ -162,6 +163,25 @@ describe('boolean schemas', () => {
     expect(gen(false, { required: false }).effect).toBe(
       'S.UndefinedOr(S.Never)',
     );
+  });
+
+  it('keeps a false property as S.Never through dereference', () => {
+    const dereferenced = dereference(
+      {
+        type: 'object',
+        required: ['requiredFalse'],
+        properties: { requiredFalse: false, optionalFalse: false },
+      },
+      makeContext(),
+    );
+    const struct = [
+      'S.Struct({',
+      '  "requiredFalse": S.Never,',
+      '  "optionalFalse": S.optional(S.Never)',
+      '})',
+    ].join('\n');
+    expect(gen(dereferenced).effect).toBe(struct);
+    expect(genV4(dereferenced).effect).toBe(struct);
   });
 
   it('renders the same schemas in Effect 4 output', () => {

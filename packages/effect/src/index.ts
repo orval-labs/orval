@@ -1407,10 +1407,14 @@ export const dereference = (
         acc[key] = Object.entries(value).reduce<
           Record<string, OpenApiSchemaObject>
         >((props, [propKey, propSchema]) => {
-          props[propKey] = dereference(
-            propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
-            resolvedContext,
-          );
+          // `dereference(false)` returns `{ not: {} }`, which the generator
+          // renders as unknown. Keep a boolean so it renders `S.Never`.
+          props[propKey] = isBoolean(propSchema)
+            ? propSchema
+            : dereference(
+                propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
+                resolvedContext,
+              );
           return props;
         }, {});
       } else if (key === 'default' || key === 'example' || key === 'examples') {
