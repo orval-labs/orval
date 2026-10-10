@@ -1,9 +1,16 @@
-import type {
-  McpServer,
-  RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPTransport } from '@hono/mcp';
-import { Hono } from 'hono';
+import { createMcpHonoApp } from '@modelcontextprotocol/hono';
+import {
+  type McpServer,
+  type RegisteredTool,
+  WebStandardStreamableHTTPServerTransport,
+} from '@modelcontextprotocol/server';
+
+// `createMcpHonoApp` parses JSON bodies into this variable.
+declare module 'hono' {
+  interface ContextVariableMap {
+    parsedBody?: unknown;
+  }
+}
 
 export const customServer = (
   createMcpServer: () => {
@@ -11,16 +18,18 @@ export const customServer = (
     tools: Record<string, RegisteredTool>;
   },
 ) => {
-  const app = new Hono();
-
-  const { server } = createMcpServer();
-  const transport = new StreamableHTTPTransport();
+  const app = createMcpHonoApp();
 
   app.all('/mcp', async (c) => {
-    if (!server.isConnected()) {
-      await server.connect(transport);
-    }
-    return transport.handleRequest(c);
+    // Stateless: a fresh server and transport per request.
+    const { server } = createMcpServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+    return transport.handleRequest(c.req.raw, {
+      parsedBody: c.get('parsedBody'),
+    });
   });
 
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });

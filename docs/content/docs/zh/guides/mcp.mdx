@@ -34,6 +34,24 @@ export default defineConfig({
 `mcp` Client 目前仅支持在 `single` 模式下使用。
 </Callout>
 
+## 环境要求
+
+生成的 server 面向 [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2。请安装 `@modelcontextprotocol/server` 2.x 以及 `zod` 4.2 或更高版本。SDK 需要 Node.js 20 或更高版本。
+
+```bash
+npm install @modelcontextprotocol/server zod
+```
+
+<Callout type="info">
+要升级为 SDK v1（`@modelcontextprotocol/sdk`）生成的 server？请先用当前版本的 orval 重新生成，然后对自定义 server、自定义 handler 等手写文件运行官方 codemod：
+
+```bash
+npx @modelcontextprotocol/codemod@latest v1-to-v2 .
+```
+
+工具调用上下文现在是 `ServerContext`：`ctx.signal` 变为 `ctx.mcpReq.signal`，`ctx.requestId` 变为 `ctx.mcpReq.id`。
+</Callout>
+
 ## 生成结构
 
 ```
@@ -90,8 +108,8 @@ tools.findPetsByStatus = server.registerTool(
     findPetsByStatusHandler(args, {
       ...options,
       signal: options?.signal
-        ? AbortSignal.any([options.signal, ctx.signal])
-        : ctx.signal,
+        ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+        : ctx.mcpReq.signal,
     }),
 );
 ```
@@ -143,16 +161,12 @@ export default defineConfig({
 
 ```ts title="src/handlers.ts (generated)"
 import { customHandler } from '../custom-handler';
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type {
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+import type { ServerContext } from '@modelcontextprotocol/server';
 
 export const findPetsByStatusHandler = async (
   args: findPetsByStatusArgs,
   options: RequestInit,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -177,7 +191,7 @@ export const findPetsByStatusHandler = async (
 tools.findPetsByStatus = server.registerTool(
   'findPetsByStatus',
   {
-    inputSchema: { queryParams: FindPetsByStatusQueryParams },
+    inputSchema: FindPetsByStatusInput,
     outputSchema: FindPetsByStatusOutput,
     annotations: { readOnlyHint: true },
   },
@@ -187,8 +201,8 @@ tools.findPetsByStatus = server.registerTool(
       {
         ...options,
         signal: options?.signal
-          ? AbortSignal.any([options.signal, ctx.signal])
-          : ctx.signal,
+          ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+          : ctx.mcpReq.signal,
       },
       ctx,
       (data: unknown) => FindPetsByStatusOutput.safeParse({ result: data }),
@@ -199,18 +213,16 @@ tools.findPetsByStatus = server.registerTool(
 请按下面的签名实现 handler。它的返回值会直接作为工具结果使用。请把响应体交给 `toStructuredContent` 处理，这样 `structuredContent` 才能与生成的 server 为该工具声明的 `outputSchema` 一致。
 
 ```ts title="custom-handler.ts"
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type {
   CallToolResult,
-  ServerNotification,
-  ServerRequest,
-} from '@modelcontextprotocol/sdk/types.js';
+  ServerContext,
+} from '@modelcontextprotocol/server';
 
 export const customHandler = async (
   fetcher: (
     overrides?: RequestInit,
   ) => Promise<{ status: number; data: unknown; headers: Headers }>,
-  ctx: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ctx: ServerContext,
   toStructuredContent: (
     data: unknown,
   ) =>
@@ -227,7 +239,7 @@ export const customHandler = async (
         {
           type: 'text',
           text: JSON.stringify({
-            requestId: ctx.requestId,
+            requestId: ctx.mcpReq.id,
             status: res.status,
             error: res.data ?? null,
           }),
@@ -254,7 +266,7 @@ export const customHandler = async (
 
 `fetcher` 已经绑定了工具参数以及传给 `createMcpServer` 的 `RequestInit`，其中包含上文描述的取消信号。传入 overrides 可以追加请求头或替换信号。overrides 中的请求头会合并到基础请求头中而不是整体替换，因此通过 `createMcpServer(options)` 设置的 `Authorization` 等请求头仍会保留在请求上。
 
-`ctx` 是 SDK 为当前工具调用提供的 `RequestHandlerExtra`，包含 `signal`、`requestId`、`sessionId`、`authInfo`、`requestInfo`、`sendNotification` 和 `sendRequest`。
+`ctx` 是 SDK 为当前工具调用提供的 `ServerContext`，包含 `sessionId`、`mcpReq`（含 `id`、`signal`、`send` 和 `notify`）以及 `http`（通过 HTTP 提供服务时含 `req` 和 `authInfo`）。
 
 `toStructuredContent` 会用该操作的响应 schema 校验响应体并返回 `safeParse` 的结果。成功时，`data` 在响应是普通对象时为原样的响应体（spec 中不存在的字段已移除），对其他响应为 `{ result: body }`，在工具未声明 `outputSchema` 时为 `undefined`。失败时，`error.message` 描述了不匹配之处；请连同原始响应体一起返回，这样 Agent 仍然能看到 API 实际返回的内容。
 
@@ -264,7 +276,7 @@ export const customHandler = async (
 
 ## Custom Server（自定义服务端）
 
-默认情况下，生成的 `server.ts` 会通过 `StdioServerTransport` 建立连接。如果你想使用不同的 transport（传输方式，例如用于容器部署的 Streamable HTTP），可以通过 `override.mcp.server` 提供自定义 Server 函数。
+默认情况下，生成的 `server.ts` 会通过 `serveStdio` 在 stdio 上提供服务。如果你想使用不同的 transport（传输方式，例如用于容器部署的 Streamable HTTP），可以通过 `override.mcp.server` 提供自定义 Server 函数。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -307,15 +319,22 @@ const createMcpServer = (
 customServer(createMcpServer);
 ```
 
-你可以实现这个自定义 Server 函数，以建立任意 transport（传输方式）。下面的例子使用 [Hono](https://hono.dev) 和 [`@hono/mcp`](https://github.com/honojs/middleware/tree/main/packages/mcp) 来提供 Streamable HTTP：
+你可以实现这个自定义 Server 函数，以建立任意 transport（传输方式）。下面的例子使用 [Hono](https://hono.dev) 和 [`@modelcontextprotocol/hono`](https://www.npmjs.com/package/@modelcontextprotocol/hono) 来提供 Streamable HTTP：
 
 ```ts title="custom-server.ts"
-import type {
-  McpServer,
-  RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPTransport } from '@hono/mcp';
-import { Hono } from 'hono';
+import { createMcpHonoApp } from '@modelcontextprotocol/hono';
+import {
+  type McpServer,
+  type RegisteredTool,
+  WebStandardStreamableHTTPServerTransport,
+} from '@modelcontextprotocol/server';
+
+// `createMcpHonoApp` parses JSON bodies into this variable.
+declare module 'hono' {
+  interface ContextVariableMap {
+    parsedBody?: unknown;
+  }
+}
 
 export const customServer = (
   createMcpServer: (options?: RequestInit) => {
@@ -323,15 +342,18 @@ export const customServer = (
     tools: Record<string, RegisteredTool>;
   },
 ) => {
-  const app = new Hono();
-  const { server } = createMcpServer();
-  const transport = new StreamableHTTPTransport();
+  const app = createMcpHonoApp();
 
   app.all('/mcp', async (c) => {
-    if (!server.isConnected()) {
-      await server.connect(transport);
-    }
-    return transport.handleRequest(c);
+    // Stateless: a fresh server and transport per request.
+    const { server } = createMcpServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+    return transport.handleRequest(c.req.raw, {
+      parsedBody: c.get('parsedBody'),
+    });
   });
 
   Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });

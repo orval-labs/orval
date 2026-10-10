@@ -40,7 +40,7 @@
     "@angular/core": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "catalog:hono",
-    "@modelcontextprotocol/sdk": "catalog:mcp",
+    "@modelcontextprotocol/server": "catalog:mcp",
     "@orval/core": "workspace:*",
     "@solidjs/router": "catalog:solid",
     "@tanstack/angular-query-experimental": "catalog:angular",

@@ -33,10 +33,10 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": ">=1"
+    "@modelcontextprotocol/server": ">=2"
   },
   "peerDependenciesMeta": {
-    "@modelcontextprotocol/sdk": {
+    "@modelcontextprotocol/server": {
       "optional": true
     }
   }

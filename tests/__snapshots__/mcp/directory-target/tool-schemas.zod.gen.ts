@@ -11,3 +11,7 @@ export const AddBody = zod.object({
 });
 
 export const AddResponse = zod.void();
+
+export const AddInput = zod.object({
+  bodyParams: AddBody.optional(),
+});

@@ -212,4 +212,25 @@ export const ShowPetWithOwnerResponse = zod.object({
   ]),
 });
 
+export const ListPetsInput = zod.object({
+  queryParams: ListPetsQueryParams,
+});
+
+export const CreatePetsInput = zod.object({
+  queryParams: CreatePetsQueryParams,
+  bodyParams: CreatePetsBody,
+});
+
+export const ShowPetByIdInput = zod.object({
+  pathParams: ShowPetByIdParams,
+});
+
+export const DeletePetByIdInput = zod.object({
+  pathParams: DeletePetByIdParams,
+});
+
+export const ShowPetWithOwnerInput = zod.object({
+  pathParams: ShowPetWithOwnerParams,
+});
+
 export const HealthCheckOutput = zod.object({ result: HealthCheckResponse });

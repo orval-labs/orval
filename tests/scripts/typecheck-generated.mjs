@@ -27,14 +27,7 @@ const folders = readdirSync(generatedDir)
 // Files that are generated but do not compile yet. Every entry is a defect with
 // its own fix; none of them may be widened to swallow a new failure.
 /** @type {Map<string, string[]>} */
-const excludedByFolder = new Map([
-  // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
-  // which ships both v3 and v4 compat types. The SDK's zod-compat.d.ts loads both
-  // type systems, causing exponential type inference in server.registerTool() calls.
-  // Yarn avoided this by nesting a separate zod@4.x for the SDK.
-  // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
-  ['mcp', ['generated/mcp/**/server.ts', 'generated/mcp/**/server.*.ts']],
-]);
+const excludedByFolder = new Map();
 
 /**
  * @typedef {{ label: string, ok: boolean, elapsed: string, error: string }} TypecheckResult

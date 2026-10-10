@@ -5,12 +5,9 @@
  * OpenAPI spec version: 1
  */
 
-import {
-  McpServer,
-  type RegisteredTool,
-} from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
 import {
   getThingsHandler,
@@ -23,9 +20,9 @@ import {
 } from './handlers';
 import {
   GetThingsOutput,
-  CreateThingBody,
-  ReplaceThingBody,
-  PatchThingBody,
+  CreateThingInput,
+  ReplaceThingInput,
+  PatchThingInput,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -48,8 +45,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         (data: unknown) => GetThingsOutput.safeParse({ result: data }),
       ),
@@ -58,9 +55,7 @@ const createMcpServer = (
   tools.createThing = server.registerTool(
     'createThing',
     {
-      inputSchema: {
-        bodyParams: CreateThingBody.optional(),
-      },
+      inputSchema: CreateThingInput,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -69,8 +64,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -79,9 +74,7 @@ const createMcpServer = (
   tools.replaceThing = server.registerTool(
     'replaceThing',
     {
-      inputSchema: {
-        bodyParams: ReplaceThingBody.optional(),
-      },
+      inputSchema: ReplaceThingInput,
       annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args, ctx) =>
@@ -90,8 +83,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -100,9 +93,7 @@ const createMcpServer = (
   tools.patchThing = server.registerTool(
     'patchThing',
     {
-      inputSchema: {
-        bodyParams: PatchThingBody.optional(),
-      },
+      inputSchema: PatchThingInput,
       annotations: { destructiveHint: true },
     },
     (args, ctx) =>
@@ -111,8 +102,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -128,8 +119,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -145,8 +136,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -162,8 +153,8 @@ const createMcpServer = (
         {
           ...options,
           signal: options?.signal
-            ? AbortSignal.any([options.signal, ctx.signal])
-            : ctx.signal,
+            ? AbortSignal.any([options.signal, ctx.mcpReq.signal])
+            : ctx.mcpReq.signal,
         },
         () => ({ success: true as const, data: undefined }),
       ),
@@ -172,12 +163,4 @@ const createMcpServer = (
   return { server, tools };
 };
 
-const { server } = createMcpServer();
-const transport = new StdioServerTransport();
-
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+serveStdio(() => createMcpServer().server);
