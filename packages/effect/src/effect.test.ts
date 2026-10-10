@@ -732,6 +732,108 @@ describe('Effect 4 output', () => {
     ).toThrow('merges allOf members as structs');
   });
 
+  describe('allOf keys that a member or the parent requires', () => {
+    const base: OpenApiNonBooleanSchemaObject = {
+      type: 'object',
+      required: ['a'],
+      properties: { a: { type: 'string' } },
+    };
+    const redeclared: OpenApiNonBooleanSchemaObject = {
+      type: 'object',
+      properties: { a: { type: 'string' }, b: { type: 'number' } },
+    };
+    const structA = 'S.Struct({\n  "a": S.String\n})';
+
+    it('keeps a key required when a later member redeclares it optional', () => {
+      expect(genV4({ allOf: [base, redeclared] }).effect).toBe(
+        `${structA}.pipe(S.fieldsAssign(S.Struct({\n  "a": S.String,\n  "b": S.optional(S.Number)\n}).fields))`,
+      );
+    });
+
+    it('requires the keys that the allOf parent lists', () => {
+      const schema: OpenApiSchemaObject = {
+        required: ['a', 'b'],
+        allOf: [
+          { type: 'object', properties: { a: { type: 'string' } } },
+          { type: 'object', properties: { b: { type: 'number' } } },
+        ],
+      };
+      const structB = 'S.Struct({\n  "b": S.Number\n})';
+      expect(genV4(schema).effect).toBe(
+        `${structA}.pipe(S.fieldsAssign(${structB}.fields))`,
+      );
+      expect(gen(schema).effect).toBe(`S.extend(${structA}, ${structB})`);
+    });
+
+    it('keeps a nullable redeclaration nullable, and required', () => {
+      expect(
+        genV4({
+          allOf: [
+            base,
+            { type: 'object', properties: { a: { type: ['string', 'null'] } } },
+          ],
+        }).effect,
+      ).toContain('"a": S.NullOr(S.String)\n}).fields');
+    });
+
+    it('leaves a readOnly or writeOnly property as its own member declares it', () => {
+      const { effect } = genV4({
+        required: ['id', 'secret', 'name'],
+        allOf: [
+          {
+            type: 'object',
+            properties: {
+              id: { type: 'string', readOnly: true },
+              secret: { type: 'string', writeOnly: true },
+            },
+          },
+          { type: 'object', properties: { name: { type: 'string' } } },
+        ],
+      });
+      expect(effect).toContain('"id": S.optional(S.String)');
+      expect(effect).toContain('"secret": S.optional(S.String)');
+      expect(effect).toContain('"name": S.String');
+    });
+
+    it('requires the key in each branch of a union member', () => {
+      const { effect } = genV4({
+        allOf: [
+          base,
+          {
+            oneOf: [
+              redeclared,
+              { type: 'object', properties: { c: { type: 'string' } } },
+            ],
+          },
+        ],
+      });
+      expect(effect).toContain('"a": S.String,\n  "b": S.optional(S.Number)');
+      expect(effect).not.toContain('"a": S.optional');
+    });
+
+    it("requires a key that the parent's own properties redeclare", () => {
+      const schema: OpenApiSchemaObject = {
+        allOf: [base],
+        properties: { a: { type: 'string' }, b: { type: 'number' } },
+      };
+      const parentStruct =
+        'S.Struct({\n  "a": S.String,\n  "b": S.optional(S.Number)\n})';
+      expect(genV4(schema).effect).toBe(
+        `${structA}.pipe(S.fieldsAssign(${parentStruct}.fields))`,
+      );
+      expect(gen(schema).effect).toBe(`S.extend(${structA}, ${parentStruct})`);
+    });
+
+    it('reports a `required` that is not an array', () => {
+      expect(() =>
+        genV4({
+          required: true as unknown as string[],
+          allOf: [base],
+        }),
+      ).toThrow('must be an array of property names');
+    });
+  });
+
   describe('allOf members that are not plain structs', () => {
     const a: OpenApiNonBooleanSchemaObject = {
       type: 'object',

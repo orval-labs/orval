@@ -12,6 +12,7 @@ import {
   getEnumMembers,
   getFormDataFieldFileType,
   getNumberWord,
+  getRequiredKeys,
   isBoolean,
   isNumber,
   isObject,
@@ -171,6 +172,95 @@ const removeReadOnlyProperties = (
   return schema;
 };
 
+// Keys required by the schema and by its nested allOf members. A oneOf or anyOf
+// branch only constrains its own variant, so it adds none.
+const requiredKeysOf = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  name: string,
+): string[] =>
+  isObject(schema) && !('$ref' in schema)
+    ? [
+        ...(getRequiredKeys(schema as OpenApiSchemaObject, name) as string[]),
+        ...((schema as OpenApiNonBooleanSchemaObject).allOf ?? []).flatMap(
+          (member, index) => requiredKeysOf(member, `${name}.allOf[${index}]`),
+        ),
+      ]
+    : [];
+
+// OpenAPI requires a readOnly property in responses only and a writeOnly one
+// in requests only. The generator does not know which side it renders, so a
+// key required elsewhere in the allOf is not forced onto such a property.
+const directionalKeysOf = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): string[] => {
+  if (!isObject(schema) || '$ref' in schema) return [];
+  const { properties, allOf, oneOf, anyOf } =
+    schema as OpenApiNonBooleanSchemaObject;
+  return [
+    ...Object.entries(properties ?? {}).flatMap(([key, property]) =>
+      isObject(property) &&
+      ((property as OpenApiNonBooleanSchemaObject).readOnly ||
+        (property as OpenApiNonBooleanSchemaObject).writeOnly)
+        ? [key]
+        : [],
+    ),
+    ...[...(allOf ?? []), ...(oneOf ?? []), ...(anyOf ?? [])].flatMap(
+      directionalKeysOf,
+    ),
+  ];
+};
+
+const exceptKeys = (
+  keys: ReadonlySet<string> | undefined,
+  excluded: readonly string[],
+): ReadonlySet<string> | undefined =>
+  keys && new Set([...keys].filter((key) => !excluded.includes(key)));
+
+const requireField = (
+  field: EffectValidationSchemaDefinition,
+): EffectValidationSchemaDefinition => ({
+  ...field,
+  functions: field.functions.flatMap(([fn, arg]): [string, unknown][] => {
+    if (fn === 'optional') return [];
+    if (fn === 'nullish') return [['nullable', arg]];
+    return [[fn, arg]];
+  }),
+});
+
+const requireFields = (
+  definition: EffectValidationSchemaDefinition,
+  keys: ReadonlySet<string> | undefined,
+): EffectValidationSchemaDefinition => {
+  if (!keys?.size) return definition;
+  return {
+    ...definition,
+    functions: definition.functions.map(([fn, arg]): [string, unknown] => {
+      if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
+        return [
+          fn,
+          Object.fromEntries(
+            Object.entries(
+              arg as Record<string, EffectValidationSchemaDefinition>,
+            ).map(([key, field]) => [
+              key,
+              keys.has(key) ? requireField(field) : field,
+            ]),
+          ),
+        ];
+      }
+      if (fn === 'allOf' || fn === 'oneOf' || fn === 'anyOf') {
+        return [
+          fn,
+          (arg as EffectValidationSchemaDefinition[]).map((member) =>
+            requireFields(member, keys),
+          ),
+        ];
+      }
+      return [fn, arg];
+    }),
+  };
+};
+
 export const generateEffectValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | undefined,
   context: ContextSpec,
@@ -238,16 +328,24 @@ export const generateEffectValidationSchemaDefinition = (
       | OpenApiReferenceObject
     )[];
 
+    // An instance of an allOf satisfies every member, so a key that the parent
+    // or any member requires is required wherever it is declared.
+    const requiredKeys =
+      separator === 'allOf' ? new Set(requiredKeysOf(schema, name)) : undefined;
+
     const baseSchemas = schemas.map((schema, index) =>
-      generateEffectValidationSchemaDefinition(
-        schema as OpenApiSchemaObject,
-        context,
-        `${camel(name)}${pascal(getNumberWord(index + 1))}`,
-        strict,
-        {
-          required: true,
-          constNameRegistry,
-        },
+      requireFields(
+        generateEffectValidationSchemaDefinition(
+          schema as OpenApiSchemaObject,
+          context,
+          `${camel(name)}${pascal(getNumberWord(index + 1))}`,
+          strict,
+          {
+            required: true,
+            constNameRegistry,
+          },
+        ),
+        exceptKeys(requiredKeys, directionalKeysOf(schema)),
       ),
     );
 
@@ -260,7 +358,7 @@ export const generateEffectValidationSchemaDefinition = (
       } as OpenApiSchemaObject;
 
       const additionalIndex = baseSchemas.length + 1;
-      const additionalPropertiesDefinition =
+      const additionalPropertiesDefinition = requireFields(
         generateEffectValidationSchemaDefinition(
           additionalPropertiesSchema,
           context,
@@ -270,7 +368,12 @@ export const generateEffectValidationSchemaDefinition = (
             required: true,
             constNameRegistry,
           },
-        );
+        ),
+        exceptKeys(
+          requiredKeys,
+          directionalKeysOf({ properties: schema.properties }),
+        ),
+      );
 
       if (schema.oneOf || schema.anyOf) {
         functions.push([
