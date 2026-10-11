@@ -686,6 +686,7 @@ async function writeSpecsInternal(
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
+  preformatted = false,
 ) {
   const { info, schemas, target } = builder;
   const { output } = options;
@@ -1246,7 +1247,10 @@ async function writeSpecsInternal(
     );
   }
 
-  await runFormatter(output.formatter, paths);
+  // Files were already formatted on write by the prettier transform.
+  if (!preformatted) {
+    await runFormatter(output.formatter, paths);
+  }
 
   if (output.docs) {
     try {
@@ -1325,7 +1329,7 @@ export async function writeSpecs(
 
   if (transform) {
     return withGeneratedFileTransform(transform, () =>
-      writeSpecsInternal(builder, workspace, options, projectName),
+      writeSpecsInternal(builder, workspace, options, projectName, true),
     );
   }
 
