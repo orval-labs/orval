@@ -67,10 +67,6 @@ src/
 └── tool-schemas.zod.ts # Zod schemas for tool inputs and outputs, grouped per tool
 ```
 
-## Server Instructions
-
-When the spec has an `info.description`, the generated server returns it as the `instructions` of `initialize`. MCP clients add them to the agent's system prompt, so the description is the place to state what applies to every tool, such as which calls to make first or which identifiers to pass around. Keep it short: the per-tool `description` and `inputSchema` cover the rest.
-
 ## Usage
 
 ### 1. Build Docker Image
