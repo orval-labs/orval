@@ -1351,23 +1351,11 @@ export interface NormalizedMcpHandlerOptions {
 export interface McpOptions {
   server?: McpServerOptions;
   handler?: McpHandlerOptions;
-  /**
-   * The `instructions` the generated server returns from `initialize`. Agents
-   * add them to their system prompt, so keep them short.
-   *
-   * When omitted, orval emits the spec's `info.description` followed by a
-   * fixed note on how the generated tools take arguments and return results.
-   * Pass `false` to omit them, a string to use it verbatim, or a function
-   * receiving the spec's {@link OpenApiInfoObject} and returning the string.
-   * Only `title` and `version` are guaranteed to be present on `info`.
-   */
-  instructions?: false | string | ((info: OpenApiInfoObject) => string);
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
-  instructions?: false | string | ((info: OpenApiInfoObject) => string);
 }
 
 /**

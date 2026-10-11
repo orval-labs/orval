@@ -69,7 +69,7 @@ src/
 
 ## Server Instructions（服务端说明）
 
-生成的服务端会在 `initialize` 中返回 `instructions`，MCP 客户端会把它加入智能体的系统提示词。默认内容是 spec 的 `info.description`，后接一段关于工具如何接收参数和返回结果的说明。可以把 [`override.mcp.instructions`](/zh/docs/reference/configuration/output#instructions) 设为字符串或接收 spec `info` 的函数来替换它，或设为 `false` 来省略。
+当 spec 含有 `info.description` 时，生成的服务端会把它作为 `initialize` 的 `instructions` 返回。MCP 客户端会把它加入智能体的系统提示词，因此适合在描述中写明对所有工具都适用的内容，例如应先调用哪些接口、需要传递哪些标识符。请保持简短：各工具自身的 `description` 和 `inputSchema` 会覆盖其余部分。
 
 ## 用法
 

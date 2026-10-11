@@ -2335,8 +2335,6 @@ export default defineConfig({
             path: './custom-handler.ts',
             name: 'customHandler',
           },
-          instructions: (info) =>
-            `${info.description}\n\n请先调用 listPets，再调用其他工具。`,
         },
       },
     },
@@ -2439,30 +2437,6 @@ export const customHandler = async (
 ```
 
 关于 `fetcher` 和 `ctx` 的详细说明，请参阅 [MCP 指南](/zh/docs/guides/mcp#custom-handler自定义-handler)。
-
-### instructions
-
-**类型：** `false | String | Function`
-**默认值：** spec 的 `info.description`，后接一段关于工具约定的说明
-
-生成的服务端在 `initialize` 中返回的 `instructions`。MCP 客户端会把它加入智能体的系统提示词，因此请保持简短，只描述对所有工具都适用的内容；各工具自身的 `description` 和 `inputSchema` 会覆盖其余部分。
-
-默认情况下，orval 会输出 spec 的 `info.description`（如果有），后接一段固定说明，描述生成的工具如何接收参数（`pathParams`、`queryParams`、`bodyParams`）以及如何返回结果（`structuredContent`、`isError`）。传入 `false` 可省略 instructions，传入字符串则原样使用，传入函数则会收到 spec 的 `info` 对象并返回字符串。`info` 上只有 `title` 和 `version` 保证存在。
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      override: {
-        mcp: {
-          instructions: (info) =>
-            `${info.description}\n\n请先调用 listPets，再调用其他工具。`,
-        },
-      },
-    },
-  },
-});
-```
 
 ---
 

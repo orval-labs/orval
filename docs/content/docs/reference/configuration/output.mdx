@@ -2845,8 +2845,6 @@ export default defineConfig({
             path: './custom-handler.ts',
             name: 'customHandler',
           },
-          instructions: (info) =>
-            `${info.description}\n\nCall listPets before any other tool.`,
         },
       },
     },
@@ -2949,30 +2947,6 @@ export const customHandler = async (
 ```
 
 See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` and `ctx`.
-
-### instructions
-
-**Type:** `false | String | Function`
-**Default:** the spec `info.description` followed by a note on the tool conventions
-
-The `instructions` the generated server returns from `initialize`. MCP clients add them to the agent's system prompt, so keep them short and describe only what applies to every tool; the per-tool `description` and `inputSchema` cover the rest.
-
-By default orval emits the spec's `info.description`, if any, followed by a fixed note describing how the generated tools take arguments (`pathParams`, `queryParams`, `bodyParams`) and return results (`structuredContent`, `isError`). Pass `false` to omit the instructions, a string to use it verbatim, or a function receiving the spec's `info` object and returning the string. Only `title` and `version` are guaranteed to be present on `info`.
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      override: {
-        mcp: {
-          instructions: (info) =>
-            `${info.description}\n\nCall listPets before any other tool.`,
-        },
-      },
-    },
-  },
-});
-```
 
 ---
 
