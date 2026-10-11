@@ -19,6 +19,7 @@ import {
   isString,
   jsDoc,
   jsStringEscape,
+  jsStringLiteralEscape,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   getKey,
@@ -446,12 +447,35 @@ tools.${verbOption.operationName} = server.registerTool(
   );
   const importHandlersImplementation = `import {\n${importHandlers}\n} from '${relativeHandlersPath}';`;
 
+  const instructionsOption = output.override.mcp.instructions;
+  const instructions =
+    instructionsOption === false
+      ? ''
+      : isString(instructionsOption)
+        ? instructionsOption
+        : instructionsOption
+          ? instructionsOption(info)
+          : `${info.description ? `${info.description.trim()}\n\n` : ''}Each tool wraps one REST operation of this API. Tool arguments are split into \`pathParams\`, \`queryParams\` and \`bodyParams\`, matching the OpenAPI definition. Successful calls return the response body as JSON in \`structuredContent\` (non-object bodies are wrapped as \`{ "result": ... }\`). HTTP responses with status 400 or above are returned as \`isError\` results containing the raw body.`;
+  const serverName = `${camel(info.title)}Server`;
+  const serverVersion = jsStringEscape(info.version);
+  const newMcpServerImplementation = instructions
+    ? `new McpServer(
+    {
+      name: '${serverName}',
+      version: '${serverVersion}',
+    },
+    {
+      instructions: '${jsStringLiteralEscape(instructions)}',
+    },
+  )`
+    : `new McpServer({
+    name: '${serverName}',
+    version: '${serverVersion}',
+  })`;
+
   const createMcpServerImplementation = `
 const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({
-    name: '${camel(info.title)}Server',
-    version: '${jsStringEscape(info.version)}',
-  });
+  const server = ${newMcpServerImplementation};
   const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}
 

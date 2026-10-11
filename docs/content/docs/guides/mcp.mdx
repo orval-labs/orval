@@ -67,6 +67,10 @@ src/
 └── tool-schemas.zod.ts # Zod schemas for tool inputs and outputs, grouped per tool
 ```
 
+## Server Instructions
+
+The generated server returns `instructions` from `initialize`, which MCP clients add to the agent's system prompt. By default they consist of the spec's `info.description` followed by a note on how the tools take arguments and return results. Set [`override.mcp.instructions`](/docs/reference/configuration/output#instructions) to a string or to a function of the spec `info` to replace them, or to `false` to omit them.
+
 ## Usage
 
 ### 1. Build Docker Image

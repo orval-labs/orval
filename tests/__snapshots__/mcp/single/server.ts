@@ -29,10 +29,16 @@ import {
 const createMcpServer = (
   options?: RequestInit,
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({
-    name: 'swaggerPetstoreServer',
-    version: '1.0.0',
-  });
+  const server = new McpServer(
+    {
+      name: 'swaggerPetstoreServer',
+      version: '1.0.0',
+    },
+    {
+      instructions:
+        'Each tool wraps one REST operation of this API. Tool arguments are split into `pathParams`, `queryParams` and `bodyParams`, matching the OpenAPI definition. Successful calls return the response body as JSON in `structuredContent` (non-object bodies are wrapped as `{ "result": ... }`). HTTP responses with status 400 or above are returned as `isError` results containing the raw body.',
+    },
+  );
   const tools: Record<string, RegisteredTool> = {};
 
   tools.listPets = server.registerTool(

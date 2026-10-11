@@ -95,6 +95,22 @@ export default defineConfig({
       },
     },
   },
+  serverOptions: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/server-options/handlers.ts',
+      schemas: '../generated/mcp/server-options/http-schemas',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mcp: {
+          instructions: false,
+        },
+      },
+    },
+  },
   customHandler: {
     input: '../specifications/petstore.yaml',
     output: {

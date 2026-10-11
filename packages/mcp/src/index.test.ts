@@ -1,4 +1,4 @@
-import { GetterPropType } from '@orval/core';
+import { GetterPropType, type OpenApiInfoObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -136,5 +136,63 @@ describe('MCP SDK v2 output', () => {
       "import type { ServerContext } from '@modelcontextprotocol/server';",
     );
     expect(header).not.toContain('@modelcontextprotocol/sdk');
+  });
+});
+
+describe('McpServer instructions', () => {
+  const generate = (override?: object, info?: OpenApiInfoObject) => {
+    const instructionsContext = createTestContextSpec({
+      spec: { ...spec, ...(info && { info }) },
+      output: { target: '/project/src/handlers.ts', override },
+    });
+    const [{ content }] = generateServer(
+      verbOptions,
+      instructionsContext.output,
+      instructionsContext,
+    );
+    return content;
+  };
+
+  it('emits the spec description followed by the tool conventions', () => {
+    const content = generate(undefined, {
+      title: 'Pets',
+      version: '2.0.0',
+      description: 'Pets API.\nSee https://example.com/docs\n',
+    });
+
+    expect(content).toContain(
+      "instructions: 'Pets API.\\nSee https://example.com/docs\\n\\nEach tool wraps one REST operation of this API.",
+    );
+    expect(content).toContain(
+      "new McpServer(\n    {\n      name: 'petsServer',\n      version: '2.0.0',\n    },\n    {\n      instructions:",
+    );
+  });
+
+  it('emits only the tool conventions without a spec description', () => {
+    expect(generate()).toContain(
+      "instructions: 'Each tool wraps one REST operation of this API.",
+    );
+  });
+
+  it('omits the server options when instructions is false', () => {
+    const content = generate({ mcp: { instructions: false } });
+
+    expect(content).toContain(
+      "new McpServer({\n    name: 'testServer',\n    version: '1.0.0',\n  });",
+    );
+    expect(content).not.toContain('instructions');
+  });
+
+  it('uses a string verbatim and calls a function with the spec info', () => {
+    expect(
+      generate({ mcp: { instructions: "Use 'listPets' first." } }),
+    ).toContain("instructions: 'Use \\'listPets\\' first.',");
+    expect(
+      generate({
+        mcp: {
+          instructions: (info: { title: string }) => `${info.title} tools`,
+        },
+      }),
+    ).toContain("instructions: 'Test tools',");
   });
 });

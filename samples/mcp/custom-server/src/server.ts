@@ -55,10 +55,16 @@ import {
 const createMcpServer = (
   options?: RequestInit,
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({
-    name: 'swaggerPetstoreOpenAPI30Server',
-    version: '1.0.27-SNAPSHOT',
-  });
+  const server = new McpServer(
+    {
+      name: 'swaggerPetstoreOpenAPI30Server',
+      version: '1.0.27-SNAPSHOT',
+    },
+    {
+      instructions:
+        'This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about\nSwagger at [https://swagger.io](https://swagger.io). In the third iteration of the pet store, we\'ve switched to the design first approach!\nYou can now help us improve the API whether it\'s by making changes to the definition itself or to the code.\nThat way, with time, we can improve the API in general, and expose some of the new features in OAS3.\n\nSome useful links:\n- [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)\n- [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)\n\nEach tool wraps one REST operation of this API. Tool arguments are split into `pathParams`, `queryParams` and `bodyParams`, matching the OpenAPI definition. Successful calls return the response body as JSON in `structuredContent` (non-object bodies are wrapped as `{ "result": ... }`). HTTP responses with status 400 or above are returned as `isError` results containing the raw body.',
+    },
+  );
   const tools: Record<string, RegisteredTool> = {};
 
   tools.findPetsByStatus = server.registerTool(
