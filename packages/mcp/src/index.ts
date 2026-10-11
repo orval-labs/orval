@@ -19,6 +19,7 @@ import {
   isString,
   jsDoc,
   jsStringEscape,
+  jsStringLiteralEscape,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   getKey,
@@ -446,12 +447,49 @@ tools.${verbOption.operationName} = server.registerTool(
   );
   const importHandlersImplementation = `import {\n${importHandlers}\n} from '${relativeHandlersPath}';`;
 
+  // The spec description is the only server-wide context an agent gets
+  // beyond the per-tool descriptions.
+  const instructions = info.description?.trim() ?? '';
+  // `ttlMs` is validated by the SDK (`RangeError`), so the hints are passed
+  // through verbatim.
+  const cacheHints = Object.entries(output.override.mcp.cacheHints ?? {})
+    .map(
+      ([method, hint]) =>
+        `'${method}': { ${Object.entries(hint)
+          .map(
+            ([key, value]) =>
+              `${key}: ${isString(value) ? `'${value}'` : value}`,
+          )
+          .join(', ')} }`,
+    )
+    .join(', ');
+  const serverOptions = [
+    instructions
+      ? `instructions: '${jsStringLiteralEscape(instructions)}'`
+      : '',
+    cacheHints ? `cacheHints: { ${cacheHints} }` : '',
+  ].filter(Boolean);
+  const serverName = `${camel(info.title)}Server`;
+  const serverVersion = jsStringEscape(info.version);
+  const newMcpServerImplementation =
+    serverOptions.length > 0
+      ? `new McpServer(
+    {
+      name: '${serverName}',
+      version: '${serverVersion}',
+    },
+    {
+      ${serverOptions.join(',\n      ')},
+    },
+  )`
+      : `new McpServer({
+    name: '${serverName}',
+    version: '${serverVersion}',
+  })`;
+
   const createMcpServerImplementation = `
 const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({
-    name: '${camel(info.title)}Server',
-    version: '${jsStringEscape(info.version)}',
-  });
+  const server = ${newMcpServerImplementation};
   const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}
 

@@ -2335,6 +2335,9 @@ export default defineConfig({
             path: './custom-handler.ts',
             name: 'customHandler',
           },
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
         },
       },
     },
@@ -2437,6 +2440,29 @@ export const customHandler = async (
 ```
 
 关于 `fetcher` 和 `ctx` 的详细说明，请参阅 [MCP 指南](/zh/docs/guides/mcp#custom-handler自定义-handler)。
+
+### cacheHints
+
+**类型：** `Object`
+**默认值：** 无（使用 SDK 默认值 `ttlMs: 0` 和 `cacheScope: 'private'`）
+
+按方法（如 `tools/list`）指定并原样传给 `McpServer` 的缓存提示，仅对 MCP 2026-07-28 连接生效。生成的工具列表在构建时就已固定，因此 `tools/list` 通常可设为 `public` 并配以几分钟到一小时的 TTL。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
+});
+```
 
 ---
 
