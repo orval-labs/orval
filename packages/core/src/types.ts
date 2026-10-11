@@ -1362,13 +1362,46 @@ export interface McpOptions {
    * Only `title` and `version` are guaranteed to be present on `info`.
    */
   instructions?: false | string | ((info: OpenApiInfoObject) => string);
+  /**
+   * Cache hints the generated server attaches to list and read results on
+   * MCP 2026-07-28 connections. Passed to `McpServer` as is; omitted by
+   * default so the SDK's own default (`ttlMs: 0`, `private`) applies.
+   *
+   * The generated tool list is fixed at build time, so `tools/list` is a
+   * typical candidate for `cacheScope: 'public'` with a TTL of a few minutes
+   * to an hour. The server never sends `listChanged`, so a redeploy with new
+   * tools becomes visible only once the TTL expires.
+   */
+  cacheHints?: McpCacheHints;
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
   instructions?: false | string | ((info: OpenApiInfoObject) => string);
+  cacheHints?: McpCacheHints;
 }
+
+/** The methods whose results are cacheable on the MCP 2026-07-28 revision. */
+export type McpCacheableResultMethod =
+  | 'tools/list'
+  | 'prompts/list'
+  | 'resources/list'
+  | 'resources/templates/list'
+  | 'resources/read'
+  | 'server/discover';
+
+export type McpCacheHints = Partial<
+  Record<
+    McpCacheableResultMethod,
+    {
+      /** Cache lifetime in milliseconds. Must be a non-negative safe integer. */
+      ttlMs?: number;
+      /** `public` may be served to other users by a shared cache, `private` only to the requesting client. */
+      cacheScope?: 'public' | 'private';
+    }
+  >
+>;
 
 /**
  * Strategy controlling how a Zod-backed client reacts to a response that fails

@@ -107,6 +107,9 @@ export default defineConfig({
       override: {
         mcp: {
           instructions: false,
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
         },
       },
     },

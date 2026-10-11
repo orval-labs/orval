@@ -29,10 +29,15 @@ import {
 const createMcpServer = (
   options?: RequestInit,
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({
-    name: 'swaggerPetstoreServer',
-    version: '1.0.0',
-  });
+  const server = new McpServer(
+    {
+      name: 'swaggerPetstoreServer',
+      version: '1.0.0',
+    },
+    {
+      cacheHints: { 'tools/list': { ttlMs: 3600000, cacheScope: 'public' } },
+    },
+  );
   const tools: Record<string, RegisteredTool> = {};
 
   tools.listPets = server.registerTool(

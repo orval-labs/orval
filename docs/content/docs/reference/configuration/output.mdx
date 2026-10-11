@@ -2847,6 +2847,9 @@ export default defineConfig({
           },
           instructions: (info) =>
             `${info.description}\n\nCall listPets before any other tool.`,
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
         },
       },
     },
@@ -2967,6 +2970,31 @@ export default defineConfig({
         mcp: {
           instructions: (info) =>
             `${info.description}\n\nCall listPets before any other tool.`,
+        },
+      },
+    },
+  },
+});
+```
+
+### cacheHints
+
+**Type:** `Object`
+**Default:** none (the SDK default of `ttlMs: 0` and `cacheScope: 'private'` applies)
+
+Cache hints the generated server attaches to its list and read results on MCP 2026-07-28 connections, passed to `McpServer` as is. Keys are the cacheable methods (`tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, `resources/read`, `server/discover`); each value takes `ttlMs` (a non-negative integer) and `cacheScope` (`'public'` for shared caches such as a gateway, `'private'` for the requesting client only). Connections on earlier protocol revisions are not affected.
+
+The generated tool list is fixed at build time and does not depend on the caller, so `tools/list` is a typical candidate for `public` with a TTL of a few minutes to an hour. This pays off when every request creates a new server, as in the stateless custom server above, or when several users share the server through a gateway. The generated server never sends `listChanged`, so after a redeploy that adds tools, clients see them only once the TTL expires.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
         },
       },
     },

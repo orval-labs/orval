@@ -1666,6 +1666,7 @@ function normalizeMcpOptions(
     // The function form needs the spec `info`, which is only known at
     // generation time, so it is passed through like `override.header`.
     ...(mcp.instructions !== undefined && { instructions: mcp.instructions }),
+    ...(mcp.cacheHints && { cacheHints: mcp.cacheHints }),
   };
 }
 
