@@ -95,6 +95,23 @@ export default defineConfig({
       },
     },
   },
+  cacheHints: {
+    input: '../specifications/empty-response.yaml',
+    output: {
+      target: '../generated/mcp/cache-hints/handlers.ts',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mcp: {
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
   customHandler: {
     input: '../specifications/petstore.yaml',
     output: {
