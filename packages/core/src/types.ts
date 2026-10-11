@@ -1,4 +1,5 @@
 import type { allLocales } from '@faker-js/faker';
+import type { McpServerOptions as McpSdkServerOptions } from '@modelcontextprotocol/server';
 
 // Type-only, so it is erased: no runtime `types` -> `constants` cycle.
 import type { OPERATION_METHODS } from './constants';
@@ -1361,35 +1362,14 @@ export interface McpOptions {
    * to an hour. The server never sends `listChanged`, so a redeploy with new
    * tools becomes visible only once the TTL expires.
    */
-  cacheHints?: McpCacheHints;
+  cacheHints?: McpSdkServerOptions['cacheHints'];
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
-  cacheHints?: McpCacheHints;
+  cacheHints?: McpSdkServerOptions['cacheHints'];
 }
-
-/** The methods whose results are cacheable on the MCP 2026-07-28 revision. */
-export type McpCacheableResultMethod =
-  | 'tools/list'
-  | 'prompts/list'
-  | 'resources/list'
-  | 'resources/templates/list'
-  | 'resources/read'
-  | 'server/discover';
-
-export type McpCacheHints = Partial<
-  Record<
-    McpCacheableResultMethod,
-    {
-      /** Cache lifetime in milliseconds. Must be a non-negative safe integer. */
-      ttlMs?: number;
-      /** `public` may be served to other users by a shared cache, `private` only to the requesting client. */
-      cacheScope?: 'public' | 'private';
-    }
-  >
->;
 
 /**
  * Strategy controlling how a Zod-backed client reacts to a response that fails

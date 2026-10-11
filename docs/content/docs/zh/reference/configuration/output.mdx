@@ -2446,7 +2446,7 @@ export const customHandler = async (
 **类型：** `Object`
 **默认值：** 无（使用 SDK 默认值 `ttlMs: 0` 和 `cacheScope: 'private'`）
 
-按方法（`tools/list`、`prompts/list`、`resources/list`、`resources/templates/list`、`resources/read`、`server/discover`）指定并原样传给 `McpServer` 的缓存提示，仅对 MCP 2026-07-28 连接生效。生成的工具列表在构建时就已固定，因此 `tools/list` 通常可设为 `public` 并配以几分钟到一小时的 TTL。
+按方法（如 `tools/list`）指定并原样传给 `McpServer` 的缓存提示，仅对 MCP 2026-07-28 连接生效。生成的工具列表在构建时就已固定，因此 `tools/list` 通常可设为 `public` 并配以几分钟到一小时的 TTL。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
