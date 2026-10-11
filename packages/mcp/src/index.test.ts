@@ -1,4 +1,4 @@
-import { GetterPropType } from '@orval/core';
+import { GetterPropType, type OpenApiInfoObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -136,5 +136,41 @@ describe('MCP SDK v2 output', () => {
       "import type { ServerContext } from '@modelcontextprotocol/server';",
     );
     expect(header).not.toContain('@modelcontextprotocol/sdk');
+  });
+});
+
+describe('McpServer instructions', () => {
+  const generate = (info?: OpenApiInfoObject) => {
+    const instructionsContext = createTestContextSpec({
+      spec: { ...spec, ...(info && { info }) },
+      output: { target: '/project/src/handlers.ts' },
+    });
+    const [{ content }] = generateServer(
+      verbOptions,
+      instructionsContext.output,
+      instructionsContext,
+    );
+    return content;
+  };
+
+  it('emits the spec description as the server instructions', () => {
+    const content = generate({
+      title: 'Pets',
+      version: '2.0.0',
+      description: "Pets API.\nSee https://example.com/docs ('v2')\n",
+    });
+
+    expect(content).toContain(
+      "new McpServer(\n    {\n      name: 'petsServer',\n      version: '2.0.0',\n    },\n    {\n      instructions: 'Pets API.\\nSee https://example.com/docs (\\'v2\\')',\n    },\n  );",
+    );
+  });
+
+  it('omits the server options without a spec description', () => {
+    const content = generate();
+
+    expect(content).toContain(
+      "new McpServer({\n    name: 'testServer',\n    version: '1.0.0',\n  });",
+    );
+    expect(content).not.toContain('instructions');
   });
 });
