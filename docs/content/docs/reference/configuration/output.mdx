@@ -2956,9 +2956,7 @@ See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` an
 **Type:** `Object`
 **Default:** none (the SDK default of `ttlMs: 0` and `cacheScope: 'private'` applies)
 
-Cache hints the generated server attaches to its list and read results on MCP 2026-07-28 connections, passed to `McpServer` as is. Keys are the cacheable methods (`tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, `resources/read`, `server/discover`); each value takes `ttlMs` (a non-negative integer) and `cacheScope` (`'public'` for shared caches such as a gateway, `'private'` for the requesting client only). Connections on earlier protocol revisions are not affected.
-
-The generated tool list is fixed at build time and does not depend on the caller, so `tools/list` is a typical candidate for `public` with a TTL of a few minutes to an hour. This pays off when every request creates a new server, as in the stateless custom server above, or when several users share the server through a gateway. The generated server never sends `listChanged`, so after a redeploy that adds tools, clients see them only once the TTL expires.
+Cache hints passed to `McpServer` as is, keyed by method (`tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, `resources/read`, `server/discover`). They only take effect on MCP 2026-07-28 connections. The generated tool list is fixed at build time, so `tools/list` can usually be `public` with a TTL of a few minutes to an hour.
 
 ```ts title="orval.config.ts"
 export default defineConfig({

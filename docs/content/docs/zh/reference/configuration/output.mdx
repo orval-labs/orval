@@ -2446,9 +2446,7 @@ export const customHandler = async (
 **类型：** `Object`
 **默认值：** 无（使用 SDK 默认值 `ttlMs: 0` 和 `cacheScope: 'private'`）
 
-生成的服务端在 MCP 2026-07-28 连接上为 list 和 read 结果附加的缓存提示，会原样传给 `McpServer`。键是可缓存的方法（`tools/list`、`prompts/list`、`resources/list`、`resources/templates/list`、`resources/read`、`server/discover`）；每个值接受 `ttlMs`（非负整数）和 `cacheScope`（`'public'` 表示可由网关等共享缓存分发，`'private'` 表示仅限发起请求的客户端）。使用更早协议版本的连接不受影响。
-
-生成的工具列表在构建时就已固定，且不依赖调用方，因此 `tools/list` 很适合设为 `public` 并配以几分钟到一小时的 TTL。当每个请求都会新建服务端（如上文的无状态自定义服务端），或多个用户通过网关共用同一服务端时，这会带来收益。生成的服务端不会发送 `listChanged`，因此重新部署并新增工具后，客户端要等 TTL 过期才能看到它们。
+按方法（`tools/list`、`prompts/list`、`resources/list`、`resources/templates/list`、`resources/read`、`server/discover`）指定并原样传给 `McpServer` 的缓存提示，仅对 MCP 2026-07-28 连接生效。生成的工具列表在构建时就已固定，因此 `tools/list` 通常可设为 `public` 并配以几分钟到一小时的 TTL。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
