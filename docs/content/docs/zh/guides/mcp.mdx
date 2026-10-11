@@ -67,10 +67,6 @@ src/
 └── tool-schemas.zod.ts # 按 tool 分组的输入/输出 Zod schema
 ```
 
-## Server Instructions（服务端说明）
-
-当 spec 含有 `info.description` 时，生成的服务端会把它作为 `initialize` 的 `instructions` 返回。MCP 客户端会把它加入智能体的系统提示词，因此适合在描述中写明对所有工具都适用的内容，例如应先调用哪些接口、需要传递哪些标识符。请保持简短：各工具自身的 `description` 和 `inputSchema` 会覆盖其余部分。
-
 ## 用法
 
 ### 1. 构建 Docker 镜像
