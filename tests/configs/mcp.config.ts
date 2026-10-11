@@ -95,16 +95,6 @@ export default defineConfig({
       },
     },
   },
-  instructions: {
-    input: '../specifications/translation.yaml',
-    output: {
-      target: '../generated/mcp/instructions/handlers.ts',
-      mode: 'single',
-      client: 'mcp',
-      clean: true,
-      formatter: 'prettier',
-    },
-  },
   customHandler: {
     input: '../specifications/petstore.yaml',
     output: {
