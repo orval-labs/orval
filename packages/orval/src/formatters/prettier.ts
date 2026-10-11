@@ -16,13 +16,24 @@ export async function createPrettierFileTransform(): Promise<
 
   return async (filePath, content) => {
     try {
-      const config = await prettier.resolveConfig(filePath);
-
-      return await prettier.format(content, {
-        ...config,
+      const options = {
+        ...(await prettier.resolveConfig(filePath)),
         // filepath lets Prettier infer the parser from the file extension.
         filepath: filePath,
-      });
+      };
+
+      // A single pass is not always stable (e.g. an expanded object literal
+      // inside a member chain re-breaks on the next pass), so format until
+      // the output settles, capped at the three passes orval used to run.
+      let formatted = await prettier.format(content, options);
+      for (let pass = 1; pass < 3; pass++) {
+        const next = await prettier.format(formatted, options);
+        if (next === formatted) {
+          break;
+        }
+        formatted = next;
+      }
+      return formatted;
     } catch (error) {
       // prettier currently doesn't export UndefinedParserError, so having to do it the crude way
       if (error instanceof Error && error.name === 'UndefinedParserError') {

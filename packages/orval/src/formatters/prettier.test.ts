@@ -111,6 +111,30 @@ describe('formatWithPrettier', () => {
     );
   });
 
+  it('reformats until prettier output is stable', async () => {
+    mocks.format
+      .mockResolvedValueOnce('pass1')
+      .mockResolvedValueOnce('pass2')
+      .mockResolvedValueOnce('pass2');
+
+    await formatWithPrettier([FILE_PATH]);
+
+    expect(mocks.format).toHaveBeenCalledTimes(3);
+    expect(mocks.writeGeneratedFile).toHaveBeenCalledWith(FILE_PATH, 'pass2');
+  });
+
+  it('stops reformatting after three passes', async () => {
+    mocks.format
+      .mockResolvedValueOnce('pass1')
+      .mockResolvedValueOnce('pass2')
+      .mockResolvedValueOnce('pass3');
+
+    await formatWithPrettier([FILE_PATH]);
+
+    expect(mocks.format).toHaveBeenCalledTimes(3);
+    expect(mocks.writeGeneratedFile).toHaveBeenCalledWith(FILE_PATH, 'pass3');
+  });
+
   it('resolves prettier config for each file', async () => {
     const schemaPath = path.resolve('/tmp/pets.schema.ts');
 

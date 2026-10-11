@@ -29,11 +29,16 @@ vi.mock('execa', () => ({
 
 vi.mock('./formatters/prettier', () => ({
   formatWithPrettier: vi.fn(),
+  createPrettierFileTransform: vi.fn(),
 }));
 
 import { execa } from 'execa';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
+import {
+  createPrettierFileTransform,
+  formatWithPrettier,
+} from './formatters/prettier';
 import {
   createMarkdownPluginReader,
   getDocsOutputName,
@@ -339,4 +344,59 @@ describe('writeSpecs', () => {
       await fs.promises.rm(root, { recursive: true, force: true });
     }
   });
+
+  it.each([
+    ['active', (content: string) => Promise.resolve(content), 0],
+    ['unavailable', undefined, 1],
+  ] as const)(
+    'runs the prettier post-pass only when the write-time transform is unavailable (%s)',
+    async (_, transform, postPassCalls) => {
+      vi.mocked(createPrettierFileTransform).mockResolvedValue(transform);
+      const root = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'orval-prettier-pass-'),
+      );
+      const builder = {
+        operations: {},
+        verbOptions: {},
+        schemas: [],
+        title: vi.fn(),
+        header: vi.fn(),
+        footer: vi.fn(),
+        imports: vi.fn(),
+        importsMock: vi.fn(),
+        extraFiles: [],
+        info: { title: 'Prettier', version: '1.0.0' },
+        target: '',
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        } satisfies OpenApiDocument,
+      } satisfies WriteSpecBuilder;
+      const options = {
+        output: createTestContextSpec({
+          output: {
+            target: path.join(root, 'endpoints.ts'),
+            docs: false,
+            formatter: SupportedFormatter.PRETTIER,
+          },
+          override: { header: false },
+        }).output,
+        input: {
+          target: '',
+          override: {},
+          unsafeDisableValidation: false,
+        },
+        hooks: {},
+      } satisfies NormalizedOptions;
+
+      try {
+        await writeSpecs(builder, root, options);
+
+        expect(formatWithPrettier).toHaveBeenCalledTimes(postPassCalls);
+      } finally {
+        await fs.promises.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
 });
