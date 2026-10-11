@@ -1352,17 +1352,6 @@ export interface McpOptions {
   server?: McpServerOptions;
   handler?: McpHandlerOptions;
   /**
-   * The `instructions` the generated server returns from `initialize`. Agents
-   * add them to their system prompt, so keep them short.
-   *
-   * When omitted, orval emits the spec's `info.description` followed by a
-   * fixed note on how the generated tools take arguments and return results.
-   * Pass `false` to omit them, a string to use it verbatim, or a function
-   * receiving the spec's {@link OpenApiInfoObject} and returning the string.
-   * Only `title` and `version` are guaranteed to be present on `info`.
-   */
-  instructions?: false | string | ((info: OpenApiInfoObject) => string);
-  /**
    * Cache hints the generated server attaches to list and read results on
    * MCP 2026-07-28 connections. Passed to `McpServer` as is; omitted by
    * default so the SDK's own default (`ttlMs: 0`, `private`) applies.
@@ -1378,7 +1367,6 @@ export interface McpOptions {
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
-  instructions?: false | string | ((info: OpenApiInfoObject) => string);
   cacheHints?: McpCacheHints;
 }
 

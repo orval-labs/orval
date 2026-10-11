@@ -140,10 +140,10 @@ describe('MCP SDK v2 output', () => {
 });
 
 describe('McpServer instructions', () => {
-  const generate = (override?: object, info?: OpenApiInfoObject) => {
+  const generate = (info?: OpenApiInfoObject) => {
     const instructionsContext = createTestContextSpec({
       spec: { ...spec, ...(info && { info }) },
-      output: { target: '/project/src/handlers.ts', override },
+      output: { target: '/project/src/handlers.ts' },
     });
     const [{ content }] = generateServer(
       verbOptions,
@@ -153,55 +153,36 @@ describe('McpServer instructions', () => {
     return content;
   };
 
-  it('emits the spec description followed by the tool conventions', () => {
-    const content = generate(undefined, {
+  it('emits the spec description as the server instructions', () => {
+    const content = generate({
       title: 'Pets',
       version: '2.0.0',
-      description: 'Pets API.\nSee https://example.com/docs\n',
+      description: "Pets API.\nSee https://example.com/docs ('v2')\n",
     });
 
     expect(content).toContain(
-      "instructions: 'Pets API.\\nSee https://example.com/docs\\n\\nEach tool wraps one REST operation of this API.",
-    );
-    expect(content).toContain(
-      "new McpServer(\n    {\n      name: 'petsServer',\n      version: '2.0.0',\n    },\n    {\n      instructions:",
+      "new McpServer(\n    {\n      name: 'petsServer',\n      version: '2.0.0',\n    },\n    {\n      instructions: 'Pets API.\\nSee https://example.com/docs (\\'v2\\')',\n    },\n  );",
     );
   });
 
-  it('emits only the tool conventions without a spec description', () => {
-    expect(generate()).toContain(
-      "instructions: 'Each tool wraps one REST operation of this API.",
-    );
-  });
-
-  it('omits the server options when instructions is false', () => {
-    const content = generate({ mcp: { instructions: false } });
+  it('omits the server options without a spec description', () => {
+    const content = generate();
 
     expect(content).toContain(
       "new McpServer({\n    name: 'testServer',\n    version: '1.0.0',\n  });",
     );
     expect(content).not.toContain('instructions');
   });
-
-  it('uses a string verbatim and calls a function with the spec info', () => {
-    expect(
-      generate({ mcp: { instructions: "Use 'listPets' first." } }),
-    ).toContain("instructions: 'Use \\'listPets\\' first.',");
-    expect(
-      generate({
-        mcp: {
-          instructions: (info: { title: string }) => `${info.title} tools`,
-        },
-      }),
-    ).toContain("instructions: 'Test tools',");
-  });
 });
 
 describe('McpServer cacheHints', () => {
-  const generate = (mcp: object) => {
+  const generate = (cacheHints: object, info?: OpenApiInfoObject) => {
     const cacheHintsContext = createTestContextSpec({
-      spec,
-      output: { target: '/project/src/handlers.ts', override: { mcp } },
+      spec: { ...spec, ...(info && { info }) },
+      output: {
+        target: '/project/src/handlers.ts',
+        override: { mcp: { cacheHints } },
+      },
     });
     const [{ content }] = generateServer(
       verbOptions,
@@ -212,26 +193,21 @@ describe('McpServer cacheHints', () => {
   };
 
   it('passes the hints through next to the instructions', () => {
-    const content = generate({
-      cacheHints: {
+    const content = generate(
+      {
         'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
         'server/discover': { ttlMs: 60_000 },
       },
-    });
+      { title: 'Pets', version: '2.0.0', description: 'Pets API.' },
+    );
 
     expect(content).toContain(
-      "instructions: 'Each tool wraps one REST operation of this API.",
-    );
-    expect(content).toContain(
-      "cacheHints: { 'tools/list': { ttlMs: 3600000, cacheScope: 'public' }, 'server/discover': { ttlMs: 60000 } },",
+      "    {\n      instructions: 'Pets API.',\n      cacheHints: { 'tools/list': { ttlMs: 3600000, cacheScope: 'public' }, 'server/discover': { ttlMs: 60000 } },\n    },\n  );",
     );
   });
 
-  it('emits only the hints when instructions is false', () => {
-    const content = generate({
-      instructions: false,
-      cacheHints: { 'tools/list': { cacheScope: 'private' } },
-    });
+  it('emits only the hints without a spec description', () => {
+    const content = generate({ 'tools/list': { cacheScope: 'private' } });
 
     expect(content).toContain(
       "    {\n      cacheHints: { 'tools/list': { cacheScope: 'private' } },\n    },\n  );",

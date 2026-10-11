@@ -95,18 +95,27 @@ export default defineConfig({
       },
     },
   },
-  serverOptions: {
+  instructions: {
+    input: '../specifications/translation.yaml',
+    output: {
+      target: '../generated/mcp/instructions/handlers.ts',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  cacheHints: {
     input: '../specifications/petstore.yaml',
     output: {
-      target: '../generated/mcp/server-options/handlers.ts',
-      schemas: '../generated/mcp/server-options/http-schemas',
+      target: '../generated/mcp/cache-hints/handlers.ts',
+      schemas: '../generated/mcp/cache-hints/http-schemas',
       mode: 'single',
       client: 'mcp',
       clean: true,
       formatter: 'prettier',
       override: {
         mcp: {
-          instructions: false,
           cacheHints: {
             'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
           },

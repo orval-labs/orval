@@ -69,7 +69,7 @@ src/
 
 ## Server Instructions
 
-The generated server returns `instructions` from `initialize`, which MCP clients add to the agent's system prompt. By default they consist of the spec's `info.description` followed by a note on how the tools take arguments and return results. Set [`override.mcp.instructions`](/docs/reference/configuration/output#instructions) to a string or to a function of the spec `info` to replace them, or to `false` to omit them.
+When the spec has an `info.description`, the generated server returns it as the `instructions` of `initialize`. MCP clients add them to the agent's system prompt, so the description is the place to state what applies to every tool, such as which calls to make first or which identifiers to pass around. Keep it short: the per-tool `description` and `inputSchema` cover the rest.
 
 ## Usage
 
