@@ -33,7 +33,16 @@ import {
   generateFetchHeader,
   generateRequestFunction,
 } from './index';
+import {
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getParameterObjects,
+  hasDateTimeParameter,
+  hasDateTimeProperty,
+} from './query-params';
 import { RUNTIME_TEMPLATE } from './runtime';
+import { generateFetchExtraFiles } from './shared-runtime-style';
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
@@ -1310,6 +1319,234 @@ describe('httpClientInjection: factory', () => {
       'return { listPets, getListPetsUrl, useCreatePetsHook, getCreatePetsUrl };\n};\n' +
         '\nexport type listPetsResponse = unknown;\n',
     );
+  });
+});
+
+describe('query-params', () => {
+  const arrayParam = (name: string, extra: Partial<TestParameter> = {}) => ({
+    name,
+    in: 'query',
+    schema: { type: 'array', items: { type: 'string' } },
+    ...extra,
+  });
+  const parameterObjects = (parameters: TestParameter[]) => {
+    const context = makeContext(parameters);
+    return {
+      context,
+      parameters: getParameterObjects(
+        { verb: Verbs.GET },
+        { context, pathRoute: '/pets' },
+      ),
+    };
+  };
+
+  it('merges path-item parameters and lets the operation override them', () => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/pets': {
+            parameters: [
+              { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              { name: 'X-Trace', in: 'header', schema: { type: 'string' } },
+            ],
+            get: {
+              parameters: [
+                { name: 'limit', in: 'query', schema: { type: 'string' } },
+                { name: 'x-trace', in: 'header', schema: { type: 'string' } },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      },
+    });
+
+    const parameters = getParameterObjects(
+      { verb: Verbs.GET },
+      { context, pathRoute: '/pets' },
+    );
+
+    expect(parameters.map((p) => [p.name, p.in])).toEqual([
+      ['limit', 'query'],
+      ['x-trace', 'header'],
+    ]);
+    expect(parameters[0]).toMatchObject({ schema: { type: 'string' } });
+  });
+
+  it('selects form-style arrays that explode, deferring unset explode to arrayFormat', () => {
+    const { context, parameters } = parameterObjects([
+      arrayParam('tags'),
+      arrayParam('ids', { explode: false }),
+      arrayParam('csv', { style: 'spaceDelimited' }),
+      {
+        name: 'any',
+        in: 'query',
+        schema: { oneOf: [{ type: 'string' }, { type: 'array' }] },
+      },
+      { name: 'q', in: 'query', schema: { type: 'string' } },
+    ]);
+
+    expect(
+      getExplodeParameters(parameters, undefined, context).map((p) => p.name),
+    ).toEqual(['tags', 'any']);
+    expect(
+      getExplodeParameters(parameters, 'comma', context).map((p) => p.name),
+    ).toEqual([]);
+  });
+
+  it('selects arrays without an explicit explode only when arrayFormat is set', () => {
+    const { context, parameters } = parameterObjects([
+      arrayParam('tags'),
+      arrayParam('ids', { explode: true }),
+    ]);
+
+    expect(
+      getArrayFormatParameters(parameters, 'brackets', context).map(
+        (p) => p.name,
+      ),
+    ).toEqual(['tags']);
+    expect(getArrayFormatParameters(parameters, undefined, context)).toEqual(
+      [],
+    );
+  });
+
+  it('selects deepObject query parameters', () => {
+    const { parameters } = parameterObjects([
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        schema: { type: 'object', properties: { id: { type: 'string' } } },
+      },
+      { name: 'filter', in: 'query', schema: { type: 'object' } },
+    ]);
+
+    expect(getDeepObjectParameters(parameters).map((p) => p.name)).toEqual([
+      'scope',
+    ]);
+  });
+
+  it('detects date-time schemas on parameters and on deepObject properties', () => {
+    const { context, parameters } = parameterObjects([
+      {
+        name: 'since',
+        in: 'query',
+        schema: { type: 'string', format: 'date-time' },
+      },
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        schema: {
+          type: 'object',
+          properties: { at: { type: 'string', format: 'date-time' } },
+        },
+      },
+    ]);
+    const [since, scope] = parameters;
+
+    expect(hasDateTimeParameter([since], context)).toBe(true);
+    expect(hasDateTimeParameter([scope], context)).toBe(false);
+    expect(hasDateTimeProperty(getDeepObjectParameters([scope]), context)).toBe(
+      true,
+    );
+    expect(hasDateTimeProperty(getDeepObjectParameters([since]), context)).toBe(
+      false,
+    );
+  });
+});
+
+describe('generateFetchExtraFiles', () => {
+  const extraFiles = ({
+    style = 'shared',
+    mutator,
+    hook = false,
+  }: {
+    style?: 'inline' | 'shared';
+    mutator?: { name: string; default: boolean };
+    hook?: boolean;
+  } = {}) => {
+    const context = makeContext();
+    context.output.target = '/proj/src/api/endpoints.ts';
+    Object.assign(context.output.override.fetch, {
+      runtimeImplementationStyle: style,
+      runtimeOutputPath: '/proj/src/runtime.ts',
+      clientConfigOutputPath: '/proj/src/api/config/client.ts',
+    });
+    if (mutator) {
+      context.output.override.mutator = {
+        path: '/proj/src/custom-fetch.ts',
+        ...mutator,
+      };
+    }
+    const verbMutator = mutator && {
+      name: hook ? `use${mutator.name}` : mutator.name,
+      path: '../custom-fetch',
+      default: mutator.default,
+      hasErrorType: false,
+      errorTypeName: 'ErrorType',
+      hasSecondArg: true,
+      hasThirdArg: false,
+      isHook: hook,
+    };
+    return generateFetchExtraFiles(
+      { listPets: makeVerbOptions({ mutator: verbMutator }) },
+      context.output,
+      context,
+    );
+  };
+
+  it('emits nothing for the inline style', async () => {
+    expect(await extraFiles({ style: 'inline' })).toEqual([]);
+  });
+
+  it('emits the versioned runtime at runtimeOutputPath', async () => {
+    const files = await extraFiles();
+
+    expect(files.map((file) => file.path)).toEqual(['/proj/src/runtime.ts']);
+    expect(files[0].content.split('\n')[0]).toMatch(
+      /^\/\/ Generated by orval v\d+\.\d+\.\d+/,
+    );
+    expect(files[0].content).toContain(RUNTIME_TEMPLATE);
+  });
+
+  it('wires a global mutator through the client config', async () => {
+    const files = await extraFiles({
+      mutator: { name: 'customFetch', default: false },
+    });
+
+    expect(files.map((file) => file.path)).toEqual([
+      '/proj/src/runtime.ts',
+      '/proj/src/api/config/client.ts',
+    ]);
+    expect(files[1].content).toBe(`import * as runtime from '../../runtime';
+import type { ExecuteArgs } from '../../runtime';
+import { customFetch } from '../../custom-fetch';
+
+const config = { mutator: customFetch };
+
+export const execute = <R>(args: ExecuteArgs) =>
+  runtime.execute<R>(args, config);
+`);
+  });
+
+  it('imports a default-export mutator as such', async () => {
+    const files = await extraFiles({
+      mutator: { name: 'customFetch', default: true },
+    });
+
+    expect(files[1].content).toContain(
+      "import customFetch from '../../custom-fetch';",
+    );
+  });
+
+  it('skips the client config for a hook mutator', async () => {
+    const files = await extraFiles({
+      mutator: { name: 'CustomFetch', default: false },
+      hook: true,
+    });
+
+    expect(files.map((file) => file.path)).toEqual(['/proj/src/runtime.ts']);
   });
 });
 
