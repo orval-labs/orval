@@ -174,13 +174,7 @@ that directory.
 The per-status type aliases of the inline style (`listPetsResponse200`, ...) are
 not generated; use `StatusOf<listPetsResponse, 404>['data']` instead.
 
-The shared style ignores these `override.fetch` options for now:
-`includeHttpResponseReturnType: false`, `forceSuccessResponse`,
-`includeHttpErrorResponse`, `serializeResponseHeaders`, `jsonReviver`,
-`runtimeValidation`, `useRuntimeFetcher` (pass `fetch` in the call options
-instead), `httpClientInjection`, as well as `useDatesTransform`,
-`requestOptions`, hook and per-operation mutators, and `fetch` settings under
-`override.operations` / `override.tags`. See the
+See the
 [`runtimeImplementationStyle` reference](/docs/reference/configuration/output#runtimeimplementationstyle).
 
 ## Full Example
