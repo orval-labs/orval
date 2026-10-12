@@ -57,7 +57,7 @@ import {
   generateSharedClient,
   generateSharedRequestFunction,
   isSharedRuntimeStyle,
-} from './shared';
+} from './shared-runtime-style';
 
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
