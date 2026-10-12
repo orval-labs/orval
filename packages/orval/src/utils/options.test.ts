@@ -3342,6 +3342,104 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('override.fetch shared runtime options', () => {
+    const inlineSpec = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+    };
+
+    it('defaults to inline with the runtime and client config next to the target', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: inlineSpec },
+            output: { target: './src/api/endpoints.ts', client: 'fetch' },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.fetch).toMatchObject({
+          runtimeImplementationStyle: 'inline',
+          runtimeOutputPath: path.join(workspace, 'src/api/runtime.ts'),
+          clientConfigOutputPath: path.join(
+            workspace,
+            'src/api/client-config.ts',
+          ),
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('resolves explicit paths against the workspace and keeps the style', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: inlineSpec },
+            output: {
+              target: './src/api/endpoints.ts',
+              client: 'fetch',
+              override: {
+                fetch: {
+                  runtimeImplementationStyle: 'shared',
+                  runtimeOutputPath: './src/runtime.ts',
+                  clientConfigOutputPath: './src/api/config.ts',
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.fetch).toMatchObject({
+          runtimeImplementationStyle: 'shared',
+          runtimeOutputPath: path.join(workspace, 'src/runtime.ts'),
+          clientConfigOutputPath: path.join(workspace, 'src/api/config.ts'),
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns and ignores the options on an operation override', async () => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+
+      try {
+        await normalizeOptions(
+          {
+            input: { target: inlineSpec },
+            output: {
+              target: './generated.ts',
+              client: 'fetch',
+              override: {
+                operations: {
+                  listPets: {
+                    fetch: { runtimeImplementationStyle: 'shared' },
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'override.operations.listPets.fetch.runtimeImplementationStyle is not supported',
+          ),
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe('optionsParamRequired with fetch httpClient', () => {
     const fetchOptionsRequiredWarningPattern =
       /httpClient: 'fetch'.*optionsParamRequired.*cannot make.*options.*required/s;
