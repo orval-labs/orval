@@ -133,7 +133,13 @@ const stringifyValue = (value: unknown) =>
     ? 'null'
     : value instanceof Date
       ? value.toISOString()
-      : String(value);
+      : Array.isArray(value)
+        ? value.join(',')
+        : typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean'
+          ? String(value)
+          : JSON.stringify(value);
 
 export const serializeQuery = (
   params: Record<string, unknown> | undefined,
