@@ -26,7 +26,12 @@ import {
 } from '@orval/core';
 
 import pkg from '../package.json' with { type: 'json' };
-import { analyzeQueryParams } from './query-params';
+import {
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getParameterObjects,
+} from './query-params';
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 
 const logger = createLogger('@orval/fetch');
@@ -179,16 +184,25 @@ export const generateSharedRequestFunction = (
     )
     .join(',');
 
-  const {
-    arrayFormat,
-    explodeParameterNames,
-    arrayFormatParameterNames,
-    deepObjectParameterNames,
-  } = analyzeQueryParams({ verb, override }, { context, pathRoute });
+  const parameterObjects = getParameterObjects(
+    { verb },
+    { context, pathRoute },
+  );
+  const arrayFormat = override.fetch.arrayFormat;
+  const names = (parameters: { name: string }[]) =>
+    parameters.map((parameter) => parameter.name);
   const meta = Object.entries({
-    explode: explodeParameterNames,
-    ...(arrayFormat ? { [arrayFormat]: arrayFormatParameterNames } : {}),
-    deepObject: deepObjectParameterNames,
+    explode: names(
+      getExplodeParameters(parameterObjects, arrayFormat, context),
+    ),
+    ...(arrayFormat
+      ? {
+          [arrayFormat]: names(
+            getArrayFormatParameters(parameterObjects, arrayFormat, context),
+          ),
+        }
+      : {}),
+    deepObject: names(getDeepObjectParameters(parameterObjects)),
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);

@@ -50,7 +50,14 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import { analyzeQueryParams } from './query-params';
+import {
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getParameterObjects,
+  hasDateTimeParameter,
+  hasDateTimeProperty,
+} from './query-params';
 import { GET_HEADERS_HELPER } from './runtime';
 import {
   generateFetchExtraFiles,
