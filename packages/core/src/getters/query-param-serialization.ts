@@ -31,10 +31,12 @@ export interface QueryParamSerialization {
   explodeOnly: boolean;
 }
 
+/** Whether the parameter declares a `schema` (rather than `content`). */
 export const isSchemaParameter = (
   parameter: OpenApiParameterObject,
 ): parameter is OpenApiParameterWithSchemaObject => 'schema' in parameter;
 
+/** Resolves a schema `$ref` and normalizes a boolean schema to an object. */
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,

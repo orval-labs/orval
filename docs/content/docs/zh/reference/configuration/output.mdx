@@ -796,7 +796,7 @@ export default defineConfig({
 - 条目以 `operationName`（即生成函数的名称）为键。
 - `path` 是 spec 中的路径。`url` 加上静态 base URL；当 base URL 只能在运行时确定时则省略。
 - `pathParams` 将每个占位符在 spec 中的名称与 client 接收的标识符对应起来。
-- `serialization` 列出 query 参数写入 URL 的方式，与 fetch client 的 `get<Op>Url` 一致。
+- `serialization` 列出 query 参数写入 URL 的方式，与 fetch client 的 `get<Op>Url` 一致。`override.fetch.arrayFormat` 仅对由 fetch client 生成 URL 的客户端生效：`fetch`、`mcp`，以及 `httpClient: 'fetch'` 下的 query、SWR 和 Pinia Colada 客户端。
 - `mock` 是 [mock generator](#mock) 为该 operation 生成的 `get<Op>ResponseMock` 工厂名称，没有则为 `null`。manifest 只记录名称，不会导入 mock 代码。
 - `OperationTypes` 引用 orval 已生成的类型。`response` 是响应体类型，而不是 client 的返回类型。`zod`、`effect` client 以及 Zod schemas 不生成该类型映射。
 

@@ -74,6 +74,37 @@ export interface OperationManifestTypes {
   imports: GeneratorImport[];
 }
 
+/** Clients that build URLs with `@orval/fetch` when `httpClient` is fetch. */
+const FETCH_HTTP_CLIENTS = new Set<string>([
+  OutputClient.REACT_QUERY,
+  OutputClient.VUE_QUERY,
+  OutputClient.SVELTE_QUERY,
+  OutputClient.SOLID_QUERY,
+  OutputClient.SWR,
+  OutputClient.PINIA_COLADA,
+]);
+
+/**
+ * Whether the generated client builds its URLs with `@orval/fetch`, the only
+ * URL builder that reads `override.fetch.arrayFormat`. `httpClient` defaults to
+ * fetch for every client, so it alone doesn't tell: Axios, Angular and
+ * solid-start serialize query params their own way.
+ */
+const usesFetchUrlBuilder = (output: NormalizedOutputOptions) => {
+  if (!isString(output.client)) return false;
+  if (
+    output.client === OutputClient.FETCH ||
+    output.client === OutputClient.MCP
+  ) {
+    return true;
+  }
+  return (
+    FETCH_HTTP_CLIENTS.has(output.client) &&
+    output.httpClient === OutputHttpClient.FETCH
+  );
+};
+
+/** Joins a base URL and a route without doubling the `/` between them. */
 const joinUrl = (base: string, route: string) =>
   base.endsWith('/') && route.startsWith('/')
     ? `${base}${route.slice(1)}`
@@ -95,9 +126,7 @@ export function getOperationManifestEntry(
   const serialization = getQueryParamSerialization(
     verbOptions,
     context,
-    output.httpClient === OutputHttpClient.FETCH
-      ? output.override.fetch.arrayFormat
-      : undefined,
+    usesFetchUrlBuilder(output) ? output.override.fetch.arrayFormat : undefined,
   );
 
   // `getParams` returns the path params in path order, one per placeholder.
@@ -186,9 +215,11 @@ export function getOperationManifestTypes(
   };
 }
 
+/** Renders the `operations` data as an `as const` object literal. */
 const renderEntries = (entries: Record<string, OperationManifestEntry>) =>
   `export const operations = ${JSON.stringify(entries, undefined, 2)} as const;\n`;
 
+/** Renders the `OperationTypes` map from each operation's type references. */
 const renderTypes = (types: Record<string, OperationManifestTypes>) => {
   const lines = Object.entries(types).map(
     ([name, t]) =>

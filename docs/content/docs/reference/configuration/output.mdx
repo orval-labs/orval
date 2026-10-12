@@ -1071,7 +1071,7 @@ export type OperationTypes = {
 - Entries are keyed by `operationName`, the name of the generated function.
 - `path` is the spec path. `url` adds the static base URL, and is left out when the base URL is only known at runtime.
 - `pathParams` pairs each placeholder's spec name with the identifier the client takes.
-- `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat`, and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
+- `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat` (only for clients whose URLs are built by the fetch client: `fetch`, `mcp`, and the query, SWR and Pinia Colada clients over `httpClient: 'fetch'`), and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
 - `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod` and `effect` clients and for Zod schemas.
 

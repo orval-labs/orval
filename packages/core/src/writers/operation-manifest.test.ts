@@ -150,6 +150,39 @@ describe('getOperationManifestEntry', () => {
     expect(entry).not.toHaveProperty('url');
   });
 
+  it.each([
+    ['fetch', 'fetch', ['ids']],
+    ['react-query', 'fetch', ['ids']],
+    ['react-query', 'axios', []],
+    // httpClient defaults to fetch, but these clients ignore fetch.arrayFormat.
+    ['axios', 'fetch', []],
+    ['axios-functions', 'fetch', []],
+    ['angular', 'fetch', []],
+  ] as const)(
+    'applies override.fetch.arrayFormat only to the fetch URL builder (%s over %s)',
+    (client, httpClient, arrayFormat) => {
+      const context = createTestContextSpec({
+        spec,
+        output: {
+          client,
+          httpClient,
+          override: { fetch: { arrayFormat: 'comma' } },
+        },
+      });
+
+      const entry = getOperationManifestEntry(
+        verbOptions(),
+        operation(),
+        context,
+      );
+
+      expect(entry.serialization.arrayFormat).toEqual(arrayFormat);
+      expect(entry.serialization.explode).toEqual(
+        arrayFormat.length > 0 ? [] : ['ids'],
+      );
+    },
+  );
+
   it('has no mock when no generator declares the response factory', () => {
     const entry = getOperationManifestEntry(
       verbOptions(),

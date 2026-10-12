@@ -172,6 +172,10 @@ function assertSchemasPathIsDirectory(path: string, option: string): void {
   );
 }
 
+/**
+ * Normalizes `output.operationManifest`: off when unset or `false`, types on
+ * by default, and `path` resolved against the workspace.
+ */
 function normalizeOperationManifestOption(
   operationManifest: boolean | OperationManifestOptions | undefined,
   workspace: string,
