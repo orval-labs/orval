@@ -28,24 +28,16 @@ const isSchemaParameter = (
 
 export interface QueryParamsAnalysis {
   arrayFormat: GeneratorVerbOptions['override']['fetch']['arrayFormat'];
-  /** Array params serialized as repeated keys (`explode: true`). */
   explodeParameterNames: string[];
-  /** Array params without an explicit `explode`, serialized per `arrayFormat`. */
   arrayFormatParameterNames: string[];
-  /** Object params with `style: deepObject`. */
   deepObjectParameterNames: string[];
   hasExplodedDateParams: boolean;
   hasArrayFormatDateParams: boolean;
   hasDeepObjectDateParams: boolean;
   hasDateParams: boolean;
-  /** Every query param is covered by one of the lists above. */
   isExplodeParametersOnly: boolean;
 }
 
-/**
- * Resolves, from the spec, how each query parameter of an operation has to be
- * serialized. Shared by the inline and shared-runtime emitters.
- */
 export const analyzeQueryParams = (
   { verb, override }: Pick<GeneratorVerbOptions, 'verb' | 'override'>,
   { context, pathRoute }: Pick<GeneratorOptions, 'context' | 'pathRoute'>,

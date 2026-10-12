@@ -1,7 +1,4 @@
-/**
- * Source shared verbatim between the inline emitter and the shared runtime
- * template, so a fix lands in both implementations at once.
- */
+// Shared verbatim by the inline emitter and the runtime template.
 
 // `RequestInit['headers']` is declared per runtime, and the old narrowing
 // chain only fitted the DOM's declaration, leaving `return h` unsound in two
