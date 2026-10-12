@@ -1663,6 +1663,7 @@ function normalizeMcpOptions(
     ...(mcp.handler && {
       handler: normalizeMcpModuleOptions(mcp.handler, workspace),
     }),
+    ...(mcp.cacheHints && { cacheHints: mcp.cacheHints }),
   };
 }
 

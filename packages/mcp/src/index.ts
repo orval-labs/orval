@@ -450,19 +450,39 @@ tools.${verbOption.operationName} = server.registerTool(
   // The spec description is the only server-wide context an agent gets
   // beyond the per-tool descriptions.
   const instructions = info.description?.trim() ?? '';
+  // `ttlMs` is validated by the SDK (`RangeError`), so the hints are passed
+  // through verbatim.
+  const cacheHints = Object.entries(output.override.mcp.cacheHints ?? {})
+    .map(
+      ([method, hint]) =>
+        `'${method}': { ${Object.entries(hint)
+          .map(
+            ([key, value]) =>
+              `${key}: ${isString(value) ? `'${value}'` : value}`,
+          )
+          .join(', ')} }`,
+    )
+    .join(', ');
+  const serverOptions = [
+    instructions
+      ? `instructions: '${jsStringLiteralEscape(instructions)}'`
+      : '',
+    cacheHints ? `cacheHints: { ${cacheHints} }` : '',
+  ].filter(Boolean);
   const serverName = `${camel(info.title)}Server`;
   const serverVersion = jsStringEscape(info.version);
-  const newMcpServerImplementation = instructions
-    ? `new McpServer(
+  const newMcpServerImplementation =
+    serverOptions.length > 0
+      ? `new McpServer(
     {
       name: '${serverName}',
       version: '${serverVersion}',
     },
     {
-      instructions: '${jsStringLiteralEscape(instructions)}',
+      ${serverOptions.join(',\n      ')},
     },
   )`
-    : `new McpServer({
+      : `new McpServer({
     name: '${serverName}',
     version: '${serverVersion}',
   })`;

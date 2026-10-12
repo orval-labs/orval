@@ -174,3 +174,48 @@ describe('McpServer instructions', () => {
     expect(content).not.toContain('instructions');
   });
 });
+
+describe('McpServer cacheHints', () => {
+  const generate = (cacheHints: object, info?: OpenApiInfoObject) => {
+    const cacheHintsContext = createTestContextSpec({
+      spec: { ...spec, ...(info && { info }) },
+      output: {
+        target: '/project/src/handlers.ts',
+        override: { mcp: { cacheHints } },
+      },
+    });
+    const [{ content }] = generateServer(
+      verbOptions,
+      cacheHintsContext.output,
+      cacheHintsContext,
+    );
+    return content;
+  };
+
+  it('passes the hints through next to the instructions', () => {
+    const content = generate(
+      {
+        'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+        'server/discover': { ttlMs: 60_000 },
+      },
+      { title: 'Pets', version: '2.0.0', description: 'Pets API.' },
+    );
+
+    expect(content).toContain(
+      "    {\n      instructions: 'Pets API.',\n      cacheHints: { 'tools/list': { ttlMs: 3600000, cacheScope: 'public' }, 'server/discover': { ttlMs: 60000 } },\n    },\n  );",
+    );
+  });
+
+  it('emits only the hints without a spec description', () => {
+    const content = generate({ 'tools/list': { cacheScope: 'private' } });
+
+    expect(content).toContain(
+      "    {\n      cacheHints: { 'tools/list': { cacheScope: 'private' } },\n    },\n  );",
+    );
+    expect(content).not.toContain('instructions');
+  });
+
+  it('omits the hints by default', () => {
+    expect(generate({})).not.toContain('cacheHints');
+  });
+});
