@@ -30,6 +30,7 @@ import {
   type McpOptions,
   type McpHandlerOptions,
   type McpServerOptions,
+  type OperationManifestOptions,
   type Mutator,
   NamingConvention,
   type NormalizedEffectOptions,
@@ -38,6 +39,7 @@ import {
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
+  type NormalizedOperationManifestOptions,
   type NormalizedMcpHandlerOptions,
   type NormalizedMcpServerOptions,
   type NormalizedMocksConfig,
@@ -168,6 +170,24 @@ function assertSchemasPathIsDirectory(path: string, option: string): void {
       `\`${option}\` is a directory, but "${path}" names a file. Orval writes one file per schema into that directory, so a filename would become a directory with that name.\nPass the directory instead (e.g. \`${option}: './model'\`), or omit \`schemas\` to generate them alongside the target.`,
     ),
   );
+}
+
+/**
+ * Normalizes `output.operationManifest`: off when unset or `false`, types on
+ * by default, and `path` resolved against the workspace.
+ */
+function normalizeOperationManifestOption(
+  operationManifest: boolean | OperationManifestOptions | undefined,
+  workspace: string,
+): NormalizedOperationManifestOptions | undefined {
+  if (!operationManifest) return undefined;
+  if (operationManifest === true) return { types: true };
+  return {
+    path: operationManifest.path
+      ? normalizePath(operationManifest.path, workspace)
+      : undefined,
+    types: operationManifest.types ?? true,
+  };
 }
 
 function normalizeSchemasOption(
@@ -815,6 +835,10 @@ export async function normalizeOptions(
       factoryMethods,
       tagsSplitDeduplication: outputOptions.tagsSplitDeduplication ?? false,
       commonTypesFileName: outputOptions.commonTypesFileName ?? 'common-types',
+      operationManifest: normalizeOperationManifestOption(
+        outputOptions.operationManifest,
+        outputWorkspace,
+      ),
       override: {
         ...outputOptions.override,
         mock: {

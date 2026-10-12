@@ -10,6 +10,7 @@ export * from './operation';
 export * from './parameters';
 export * from './params';
 export * from './props';
+export * from './query-param-serialization';
 export * from './query-params';
 export * from './ref';
 export * from './res-req-types';

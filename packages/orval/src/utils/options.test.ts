@@ -515,6 +515,42 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes output.operationManifest', async () => {
+    const workspace = await createTempWorkspace();
+    const normalize = (
+      operationManifest: boolean | { path?: string; types?: boolean },
+    ) =>
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: { target: './generated.ts', operationManifest },
+        },
+        workspace,
+      );
+
+    try {
+      expect((await normalize(false)).output.operationManifest).toBeUndefined();
+      expect((await normalize(true)).output.operationManifest).toEqual({
+        types: true,
+      });
+      expect(
+        (await normalize({ path: './operations.ts', types: false })).output
+          .operationManifest,
+      ).toEqual({
+        path: path.join(workspace, 'operations.ts'),
+        types: false,
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('defaults angular runtimeValidation to disabled', async () => {
     const workspace = await createTempWorkspace();
 

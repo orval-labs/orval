@@ -32,6 +32,7 @@ import {
   warnAmbiguousBarrelExports,
   withGeneratedFileTransform,
   writeGeneratedFile,
+  writeOperationManifest,
   writeRoutedSchemas,
   writeSchemas,
   writeSchemasTagsSplit,
@@ -1069,6 +1070,13 @@ async function writeSpecsInternal(
     await reexportFakerSchemaFactories(output, fakerSchemaPath);
   }
 
+  // After the mode writers, which produce the mock factories it lists.
+  const operationManifestPath = await writeOperationManifest(
+    builder,
+    output,
+    header,
+  );
+
   if (output.workspace) {
     const workspacePath = output.workspace;
     const indexFile = path.join(workspacePath, 'index.ts');
@@ -1233,6 +1241,7 @@ async function writeSpecsInternal(
           ]
         : []),
     ...(fakerSchemaPath ? [fakerSchemaPath] : []),
+    ...(operationManifestPath ? [operationManifestPath] : []),
     ...(output.operationSchemas
       ? [getFileInfo(output.operationSchemas).dirname]
       : []),
