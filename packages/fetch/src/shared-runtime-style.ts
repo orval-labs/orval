@@ -88,6 +88,14 @@ export const getSharedRuntimeImports = (
   ];
 };
 
+// Exact codes stay numeric keys so `ResponseOf` can narrow on them; a
+// wildcard is a quoted `WildcardKey` ('2XX').
+const statusKeyLiteral = (key: string) => {
+  if (key === 'default') return key;
+  assertSafeResponseStatusKey(key);
+  return /^\d+$/.test(key) ? key : `'${key.toUpperCase()}'`;
+};
+
 const getResponseMap = ({ response, typeName }: GeneratorVerbOptions) => {
   const allResponses = [...response.types.success, ...response.types.errors];
   const entries = new Map<string, string[]>();
@@ -101,15 +109,9 @@ const getResponseMap = ({ response, typeName }: GeneratorVerbOptions) => {
   }
   if (entries.size === 0) entries.set('default', ['unknown']);
 
-  const members = [...entries.entries()].map(([key, dataTypes]) => {
-    const literal =
-      key === 'default'
-        ? key
-        : /^[1-5]XX$/i.test(key)
-          ? `'${key.toUpperCase()}'`
-          : assertSafeResponseStatusKey(key);
-    return `${literal}: ${dataTypes.join(' | ')}`;
-  });
+  const members = [...entries.entries()].map(
+    ([key, dataTypes]) => `${statusKeyLiteral(key)}: ${dataTypes.join(' | ')}`,
+  );
 
   return `export type ${typeName}Response = ResponseOf<{ ${members.join('; ')} }>;\n`;
 };
