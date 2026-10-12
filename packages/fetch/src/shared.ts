@@ -46,7 +46,6 @@ type SharedRuntimeOutput = NormalizedOutputOptions & {
   };
 };
 
-// Output-scoped: query, mcp and pinia-colada reuse the fetch generators but stay inline.
 export const isSharedRuntimeStyle = (
   output: NormalizedOutputOptions | undefined,
 ): output is SharedRuntimeOutput =>

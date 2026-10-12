@@ -135,11 +135,6 @@ export function generateOrvalHelperTypes(implementation: string): string {
   return data;
 }
 
-/**
- * Relative `importPath`s are authored against the target file's directory.
- * A writer that places an implementation deeper (tag directories) rebases
- * them onto that file, as `split-tags-mode` does for tag files.
- */
 export function rebaseRelativeImportPaths(
   imports: GeneratorImport[],
   {
