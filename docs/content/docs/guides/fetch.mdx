@@ -126,6 +126,63 @@ export const listPets = async (
 };
 ```
 
+## Shared Runtime
+
+By default every generated function carries its own request and response
+handling. With `override.fetch.runtimeImplementationStyle: 'shared'`, that
+logic is generated once into a shared `runtime.ts` and each operation becomes a
+thin wrapper around it. Call signatures and the `{ data, status, headers }`
+response shape are the same as the inline style, and MSW handlers written with
+`getXxxUrl` keep working.
+
+```ts title="orval.config.ts"
+override: {
+  fetch: {
+    runtimeImplementationStyle: 'shared',
+    // optional, defaults to runtime.ts next to the target
+    runtimeOutputPath: './src/runtime.ts',
+  },
+},
+```
+
+```ts
+import { execute, serializeQuery } from './runtime';
+import type { CallOptions, ResponseOf } from './runtime';
+
+export type listPetsResponse = ResponseOf<{ 200: Pets; default: Error }>;
+
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  const stringifiedParams = serializeQuery(params);
+
+  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
+};
+
+export const listPets = (params?: ListPetsParams, options?: CallOptions) =>
+  execute<listPetsResponse>({
+    url: getListPetsUrl(params),
+    method: 'GET',
+    options,
+  });
+```
+
+Several outputs can point at the same `runtimeOutputPath` to share one
+runtime. A `mutator` is wired through a per-output `client-config.ts` and keeps
+its existing contract. Keep a shared runtime outside the target directory of
+any output that uses `clean: true` with the inline style, since `clean` wipes
+that directory.
+
+The per-status type aliases of the inline style (`listPetsResponse200`, ...) are
+not generated; use `StatusOf<listPetsResponse, 404>['data']` instead.
+
+The shared style ignores these `override.fetch` options for now:
+`includeHttpResponseReturnType: false`, `forceSuccessResponse`,
+`includeHttpErrorResponse`, `serializeResponseHeaders`, `jsonReviver`,
+`runtimeValidation`, `useRuntimeFetcher` (pass `fetch` in the call options
+instead), `httpClientInjection`, as well as `useDatesTransform`,
+`requestOptions`, hook and per-operation mutators, and `fetch` settings under
+`override.operations` / `override.tags`. See the
+[`runtimeImplementationStyle` reference](/docs/reference/configuration/output#runtimeimplementationstyle).
+
 ## Full Example
 
 See the [Next.js with Fetch example](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch) on GitHub.
