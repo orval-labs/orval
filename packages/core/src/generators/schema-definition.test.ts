@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { getResReqTypes } from '../getters/res-req-types';
 import {
   createTestContextSpec,
   type CreateTestContextSpecOptions,
@@ -37,6 +38,69 @@ describe('generateSchemasDefinition', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');
     expect(result).toEqual([]);
   });
+
+  it.each([
+    ['object', 'null'],
+    ['null', 'object'],
+  ] as const)(
+    'should emit a single nullable object alias for type order %j',
+    (...types) => {
+      const schemas: OpenApiSchemasObject = {
+        ArbitraryErrorResponse: {
+          description: 'Optional arbitrary JSON data.',
+          type: [...types],
+          additionalProperties: true,
+        },
+      };
+      const nullableContext = withContext({
+        spec: { openapi: '3.1.0', components: { schemas } },
+        override: { aliasCombinedTypes: true },
+      });
+      const result = generateSchemasDefinition(schemas, nullableContext, '');
+      const responses = getResReqTypes(
+        [
+          [
+            '400',
+            {
+              description: 'err',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/ArbitraryErrorResponse',
+                  },
+                },
+              },
+            },
+          ],
+        ],
+        'getA',
+        { ...nullableContext, projectName: types.join('-') },
+      );
+      expect(responses[0].schemas).toEqual([]);
+      expect(responses[0].value).toBe('ArbitraryErrorResponse | null');
+      const schema = result.find(
+        (entry) => entry.name === 'ArbitraryErrorResponse',
+      );
+      expect(schema).toBeDefined();
+      expect(
+        schema?.model.match(/export type ArbitraryErrorResponse =/g),
+      ).toHaveLength(1);
+      expect(schema?.model).toContain(
+        types[0] === 'null'
+          ? 'export type ArbitraryErrorResponse = null | ArbitraryErrorResponseAnyOf;'
+          : 'export type ArbitraryErrorResponse = ArbitraryErrorResponseAnyOf | null;',
+      );
+      expect(schema?.model).not.toContain(
+        'export type ArbitraryErrorResponse = ArbitraryErrorResponse | null;',
+      );
+      expect(schema?.imports.map((entry) => entry.name)).not.toContain(
+        'ArbitraryErrorResponse',
+      );
+      expect(
+        result.some((entry) => entry.name === 'ArbitraryErrorResponseAnyOf'),
+      ).toBe(true);
+    },
+  );
 
   it('should generate schemas without filters', () => {
     const schemas: OpenApiSchemasObject = {

@@ -43,6 +43,15 @@ export function createTypeAliasIfNeeded({
     return undefined;
   }
 
+  // A referenced component already defines this name. Wrapping its nullable
+  // value in another alias would emit `Foo = Foo | null` alongside that type.
+  if (
+    resolvedValue.isRef &&
+    resolvedValue.imports.some((imp) => imp.name === propName)
+  ) {
+    return undefined;
+  }
+
   if (resolvedValue.isEnum || resolvedValue.type !== 'object') {
     return undefined;
   }
