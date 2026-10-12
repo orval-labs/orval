@@ -9,6 +9,8 @@ import {
   toObjectSchema,
 } from '@orval/core';
 
+type ArrayFormat = GeneratorVerbOptions['override']['fetch']['arrayFormat'];
+
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: GeneratorOptions['context'],
@@ -26,22 +28,10 @@ const isSchemaParameter = (
   parameter: OpenApiParameterObject,
 ): parameter is OpenApiParameterWithSchemaObject => 'schema' in parameter;
 
-export interface QueryParamsAnalysis {
-  arrayFormat: GeneratorVerbOptions['override']['fetch']['arrayFormat'];
-  explodeParameterNames: string[];
-  arrayFormatParameterNames: string[];
-  deepObjectParameterNames: string[];
-  hasExplodedDateParams: boolean;
-  hasArrayFormatDateParams: boolean;
-  hasDeepObjectDateParams: boolean;
-  hasDateParams: boolean;
-  isExplodeParametersOnly: boolean;
-}
-
-export const analyzeQueryParams = (
-  { verb, override }: Pick<GeneratorVerbOptions, 'verb' | 'override'>,
+export const getParameterObjects = (
+  { verb }: Pick<GeneratorVerbOptions, 'verb'>,
   { context, pathRoute }: Pick<GeneratorOptions, 'context' | 'pathRoute'>,
-): QueryParamsAnalysis => {
+): OpenApiParameterObject[] => {
   const spec = context.spec.paths?.[pathRoute];
   // `query` is an orval verb, not an OpenAPI path-item method.
   const operation = spec && verb !== 'query' ? spec[verb] : undefined;
@@ -52,7 +42,7 @@ export const analyzeQueryParams = (
     ...(spec?.parameters ?? []),
     ...(operation?.parameters ?? []),
   ];
-  const parameterObjects = [
+  return [
     ...new Map(
       parameters.map((parameter) => {
         const { schema } = resolveRef(parameter, context);
@@ -65,34 +55,41 @@ export const analyzeQueryParams = (
       }),
     ).values(),
   ];
+};
 
-  const arrayFormat = override.fetch.arrayFormat;
-
-  const isArrayLikeParam = (parameterObject: OpenApiParameterObject) => {
-    if (!isSchemaParameter(parameterObject)) return false;
-    const { schema: schemaObject } = resolveSchemaRef(
-      parameterObject.schema,
-      context,
+const isArrayLikeParam = (
+  parameterObject: OpenApiParameterObject,
+  context: GeneratorOptions['context'],
+) => {
+  if (!isSchemaParameter(parameterObject)) return false;
+  const { schema: schemaObject } = resolveSchemaRef(
+    parameterObject.schema,
+    context,
+  );
+  const compositionIncludesArray = (
+    members: readonly (OpenApiSchemaObject | OpenApiReferenceObject)[] = [],
+  ) =>
+    members.some(
+      (member) => resolveSchemaRef(member, context).schema.type === 'array',
     );
-    const compositionIncludesArray = (
-      members: readonly (OpenApiSchemaObject | OpenApiReferenceObject)[] = [],
-    ) =>
-      members.some(
-        (member) => resolveSchemaRef(member, context).schema.type === 'array',
-      );
-    return (
-      schemaObject.type === 'array' ||
-      compositionIncludesArray(schemaObject.oneOf) ||
-      compositionIncludesArray(schemaObject.anyOf) ||
-      compositionIncludesArray(schemaObject.allOf)
-    );
-  };
+  return (
+    schemaObject.type === 'array' ||
+    compositionIncludesArray(schemaObject.oneOf) ||
+    compositionIncludesArray(schemaObject.anyOf) ||
+    compositionIncludesArray(schemaObject.allOf)
+  );
+};
 
-  const explodeParameters = parameterObjects.filter(
+export const getExplodeParameters = (
+  parameterObjects: OpenApiParameterObject[],
+  arrayFormat: ArrayFormat,
+  context: GeneratorOptions['context'],
+) =>
+  parameterObjects.filter(
     (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
       isSchemaParameter(parameterObject) &&
       parameterObject.in === 'query' &&
-      isArrayLikeParam(parameterObject) &&
+      isArrayLikeParam(parameterObject, context) &&
       (parameterObject.style ?? 'form') === 'form' &&
       // Respect the OpenAPI default `explode: true` for form-style array query
       // params, but defer params without an explicit `explode` to arrayFormat
@@ -101,92 +98,60 @@ export const analyzeQueryParams = (
       !(arrayFormat && parameterObject.explode === undefined),
   );
 
-  // Array params where the spec does not explicitly set explode — arrayFormat applies here.
-  const arrayFormatParameters = arrayFormat
+// Array params where the spec does not explicitly set explode — arrayFormat applies here.
+export const getArrayFormatParameters = (
+  parameterObjects: OpenApiParameterObject[],
+  arrayFormat: ArrayFormat,
+  context: GeneratorOptions['context'],
+) =>
+  arrayFormat
     ? parameterObjects.filter(
         (
           parameterObject,
         ): parameterObject is OpenApiParameterWithSchemaObject =>
           isSchemaParameter(parameterObject) &&
           parameterObject.in === 'query' &&
-          isArrayLikeParam(parameterObject) &&
+          isArrayLikeParam(parameterObject, context) &&
           parameterObject.explode === undefined,
       )
     : [];
 
-  const explodeParameterNames = explodeParameters.map(
-    (parameter) => parameter.name,
-  );
-  const arrayFormatParameterNames = arrayFormatParameters.map(
-    (parameter) => parameter.name,
-  );
-
-  const hasExplodedDateParams =
-    context.output.override.useDates &&
-    explodeParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
-
-  const hasArrayFormatDateParams =
-    context.output.override.useDates &&
-    arrayFormatParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
-
-  const deepObjectParameters = parameterObjects.filter(
+export const getDeepObjectParameters = (
+  parameterObjects: OpenApiParameterObject[],
+) =>
+  parameterObjects.filter(
     (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
       isSchemaParameter(parameterObject) &&
       parameterObject.in === 'query' &&
       parameterObject.style === 'deepObject',
   );
 
-  const deepObjectParameterNames = deepObjectParameters.map(
-    (parameter) => parameter.name,
-  );
+export const hasDateTimeParameter = (
+  parameters: OpenApiParameterObject[],
+  context: GeneratorOptions['context'],
+) =>
+  parameters.some((parameter) => {
+    if (!isSchemaParameter(parameter)) {
+      return false;
+    }
 
-  const hasDeepObjectDateParams =
-    context.output.override.useDates &&
-    deepObjectParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
+    const { schema } = resolveSchemaRef(parameter.schema, context);
+    return schema.format === 'date-time';
+  });
 
-      if (!schema.properties) {
-        return false;
-      }
+export const hasDateTimeProperty = (
+  parameters: OpenApiParameterWithSchemaObject[],
+  context: GeneratorOptions['context'],
+) =>
+  parameters.some((parameter) => {
+    const { schema } = resolveSchemaRef(parameter.schema, context);
 
-      return Object.values(schema.properties).some((prop) => {
-        const { schema: propSchema } = resolveSchemaRef(prop, context);
-        return propSchema.format === 'date-time';
-      });
+    if (!schema.properties) {
+      return false;
+    }
+
+    return Object.values(schema.properties).some((prop) => {
+      const { schema: propSchema } = resolveSchemaRef(prop, context);
+      return propSchema.format === 'date-time';
     });
-
-  const isExplodeParametersOnly =
-    explodeParameters.length +
-      arrayFormatParameters.length +
-      deepObjectParameters.length ===
-    parameterObjects.filter((p) => p.in === 'query').length;
-
-  const hasDateParams =
-    context.output.override.useDates &&
-    parameterObjects.some((parameter) => {
-      if (!isSchemaParameter(parameter)) {
-        return false;
-      }
-
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
-
-  return {
-    arrayFormat,
-    explodeParameterNames,
-    arrayFormatParameterNames,
-    deepObjectParameterNames,
-    hasExplodedDateParams: !!hasExplodedDateParams,
-    hasArrayFormatDateParams: !!hasArrayFormatDateParams,
-    hasDeepObjectDateParams: !!hasDeepObjectDateParams,
-    hasDateParams: !!hasDateParams,
-    isExplodeParametersOnly,
-  };
-};
+  });
