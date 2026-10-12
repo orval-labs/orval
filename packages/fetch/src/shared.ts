@@ -46,12 +46,7 @@ type SharedRuntimeOutput = NormalizedOutputOptions & {
   };
 };
 
-/**
- * Whether an output emits the shared-runtime style. Output-scoped: the query
- * wrappers, mcp and pinia-colada reuse the fetch generators but keep the
- * inline style until they are wired up. The paths are always resolved by
- * `normalizeOptions`; narrowing them here spares every reader a check.
- */
+// Output-scoped: query, mcp and pinia-colada reuse the fetch generators but stay inline.
 export const isSharedRuntimeStyle = (
   output: NormalizedOutputOptions | undefined,
 ): output is SharedRuntimeOutput =>
@@ -60,7 +55,6 @@ export const isSharedRuntimeStyle = (
   !!output.override.fetch.runtimeOutputPath &&
   !!output.override.fetch.clientConfigOutputPath;
 
-/** A global mutator the runtime can delegate to; hook mutators are ignored. */
 const usesClientConfig = (
   output: NormalizedOutputOptions,
   mutator: GeneratorVerbOptions['mutator'],
@@ -74,10 +68,6 @@ const getRuntimeImportPath = (
   upath.getRelativeImportPath(importer, target) +
   getImportExtension(output.fileExtension, output.tsconfig);
 
-/**
- * The runtime imports of one operation, written relative to the target file
- * so the mode writers can rebase them into tag directories.
- */
 export const getSharedRuntimeImports = (
   { mutator, response }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
@@ -153,7 +143,6 @@ const getResponseType = ({
   return undefined;
 };
 
-/** The operation as "response type + URL builder + thin wrapper". */
 export const generateSharedRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
@@ -217,8 +206,7 @@ export const generateSharedRequestFunction = (
     ? `${paramsSerializer.name}(params)`
     : `serializeQuery(params${meta.length > 0 ? `, { ${meta.join(', ')} }` : ''})`;
 
-  // Same slot layout as the inline builder, so a path-only builder is
-  // byte-identical to it.
+  // Same slot layout as the inline builder: a path-only builder stays byte-identical.
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {\n
 
   ${queryParams ? `const stringifiedParams = ${serializeCall};` : ''}
@@ -296,7 +284,6 @@ export const generateSharedClient = (
   docComment: '',
 });
 
-/** The shared runtime and, for a spec with a mutator, its client config. */
 export const generateFetchExtraFiles: ClientExtraFilesBuilder = async (
   verbOptions,
   output,
@@ -352,8 +339,7 @@ export const generateFetchExtraFiles: ClientExtraFilesBuilder = async (
   return files;
 };
 
-// Several outputs may share one runtime; a different orval version rewriting
-// it is the one case where "last write wins" is not idempotent.
+// Overwriting a shared runtime is only idempotent within one orval version.
 const warnOnVersionMismatch = async (runtimeOutputPath: string) => {
   let firstLine: string;
   try {
