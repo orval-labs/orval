@@ -673,7 +673,7 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `indexMockFiles` | `Boolean` | `false` | 在 `split` 和 `tags-split` 模式下，为每个 generator 条目额外输出一个根级 `index.<ext>.ts` 文件来 re-export mocks（例如 `index.msw.ts`、`index.faker.ts`）。在 `tags-split` 中会 re-export 每个 tag 的 mocks；在 `split` 中会 re-export 单个 mock 文件。适合将 mocks（如 MSW）放在独立的 barrel 中，避免被生产代码或 model 的 barrel 导入。 |
+| `indexMockFiles` | `Boolean` | `false` | 在 `split`、`tags-split`、`tags-operations` 和 `tags-operations-split` 模式下，为每个 generator 条目额外输出一个根级 `index.<ext>.ts` 文件来 re-export mocks（例如 `index.msw.ts`、`index.faker.ts`）。在 `tags-split` 中会 re-export 每个 tag 的 mocks；在 `tags-operations` 模式中会 re-export 每个 operation 的 mocks；在 `split` 中会 re-export 单个 mock 文件。适合将 mocks（如 MSW）放在独立的 barrel 中，避免被生产代码或 model 的 barrel 导入。 |
 | `path` | `String` | `undefined` | 所有 mock 文件共享的输出目录。单个 generator 的 `path` 会覆盖该值。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `inline`。函数形式的 generator 会忽略自身的 `path`，始终回退到共享的 `path`。 |
 | `inline` | `Boolean` | `false` | 在 `single` 和 `tags` 模式下，默认会像 `split` 和 `tags-split` 一样，把 mock 代码写到实现文件旁边的独立 `.msw.ts` / `.faker.ts` 文件中。设为 `true` 后，会把 mock 代码追加到实现文件中，恢复到该选项出现之前 Orval 的布局方式。在 `split` 或 `tags-split` 中无效，因为这两种模式始终生成独立 mock 文件。 |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | 每个条目对应一个 mock 输出文件。每个条目可以是对象（`MockOptions`），也可以是自定义 `ClientMockBuilder` 函数。 |
@@ -700,7 +700,7 @@ export default defineConfig({
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | 用于 MSW handler 生成的判别字段。 |
 | `path` | `String` | `undefined` | 当前 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `mock.inline`。 |
-| `operationResponses` | `Boolean` | `true` | 在 MSW 输出中生成 `get<Op>ResponseMock` 工厂。设为 `false` 时只生成 handlers，response fallback 会变成 `undefined`。如果同时配置了会生成这些工厂的 Faker generator，则该选项不会重复生效，handlers 会从 `.faker` 文件中导入这些工厂。在 `split` 和 `tags-split` 模式下有效。 |
+| `operationResponses` | `Boolean` | `true` | 在 MSW 输出中生成 `get<Op>ResponseMock` 工厂。设为 `false` 时只生成 handlers，response fallback 会变成 `undefined`。如果同时配置了会生成这些工厂的 Faker generator，则该选项不会重复生效，handlers 会从 `.faker` 文件中导入这些工厂。在 `split`、`tags-split`、`tags-operations` 和 `tags-operations-split` 模式下有效。 |
 | `delay` | `Number \| Function \| false` | `false` | 以毫秒为单位的响应延迟。 |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | 在运行时而不是构建时执行延迟函数。 |
 | `baseUrl` | `String` | `''` | 生成的 MSW handlers 的 base URL。 |
@@ -713,7 +713,7 @@ export default defineConfig({
 
 Faker generator 会生成与 MSW 相同的 `get<Op>ResponseMock` 工厂，但不包含任何 `msw` 依赖或 HTTP handler 代码。适合只需要伪造响应数据的测试或 story。
 
-在 `split` 和 `tags-split` 模式下，如果同时配置 Faker 和 MSW，则 `get<Op>ResponseMock` 工厂会被移动到 `.faker` 文件中。`.msw` 文件只保留 handlers，并通过导入（和再导出）来复用这些工厂，而不会重复生成。如果 Faker generator 配置了 `operationResponses: false`，它就不会生成这些工厂，因此也就没有可移动的内容，此时 `.msw` 文件会继续内联这些工厂。
+在 `split`、`tags-split`、`tags-operations` 和 `tags-operations-split` 模式下，如果同时配置 Faker 和 MSW，则 `get<Op>ResponseMock` 工厂会被移动到 `.faker` 文件中。`.msw` 文件只保留 handlers，并通过导入（和再导出）来复用这些工厂，而不会重复生成。如果 Faker generator 配置了 `operationResponses: false`，它就不会生成这些工厂，因此也就没有可移动的内容，此时 `.msw` 文件会继续内联这些工厂。
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

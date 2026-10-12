@@ -4,7 +4,6 @@ import { generateModelsInline } from '../generators';
 import {
   OutputClient,
   type OutputClientFunc,
-  OutputMockType,
   type WriteModeProps,
 } from '../types';
 import {
@@ -12,19 +11,12 @@ import {
   getFileInfo,
   getImportExtension,
   getSchemasImportPath,
-  isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
   kebab,
-  pascal,
   upath,
 } from '../utils';
-import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { writeGeneratedFile } from './file';
-import {
-  filterLocalStrictMockTypeImports,
-  getFinalizeMockImplementationOptions,
-} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
   filterImportsUsedInImplementation,
@@ -33,10 +25,10 @@ import {
   generateTargetMutatorImports,
 } from './implementation-parts';
 import {
-  collectRecoveredSchemaFactoryImports,
-  mergeGeneratorImports,
-} from './mock-imports';
-import { getMockDir, resolveMockSchemasPath } from './mock-utils';
+  type TagsOperationsMockIndexEntry,
+  writeTagsOperationsMockFiles,
+  writeTagsOperationsMockIndexes,
+} from './tags-operations-mocks';
 import {
   buildTagHelpersImport,
   generateTargetForTagsOperations,
@@ -149,19 +141,13 @@ export async function writeTagsOperationsMode({
     a.localeCompare(b),
   );
 
-  interface MockIndexEntry {
-    ext: OutputMockType;
-    mockDir: string;
-    operations: { tag: string; opName: string; handlerName: string }[];
-  }
-
   // Accumulated across every tag and written once after `Promise.all`
   // resolves. The mock index lives at a tag-independent `mockDir`-root path
   // whose entries reference `./<tag>/<op>`, so writing it per tag would let
   // concurrent tags overwrite each other, leaving only the last tag's
   // operations. This mirrors `split-tags-mode.ts`'s function-scoped
   // accumulation.
-  const mockIndexEntries: MockIndexEntry[] = [];
+  const mockIndexEntries: TagsOperationsMockIndexEntry[] = [];
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, { helpers, operations }]) => {
@@ -235,111 +221,22 @@ export async function writeTagsOperationsMode({
 
             await writeGeneratedFile(implementationPath, data);
 
-            const extraPaths: string[] = [];
-
-            for (const mockOutput of operation.mockOutputsFull) {
-              if (!mockOutput.implementation.handlerName) continue;
-
-              const rawEntry = output.mock.generators.find((g) => {
-                if (isFunction(g))
-                  return mockOutput.type === OutputMockType.MSW;
-                return g.type === mockOutput.type;
-              });
-              if (!rawEntry) continue;
-
-              const mockExtension = isFunction(rawEntry)
-                ? OutputMockType.MSW
-                : getMockFileExtensionByTypeName(rawEntry);
-              const mockDir = getMockDir(rawEntry, output.mock) ?? dirname;
-
-              const kebabOperation = kebab(operation.operationName);
-              const mockFilePath = path.join(
-                mockDir,
-                tag,
-                kebabOperation + '.' + mockExtension + extension,
-              );
-
-              const mockRelativeSchemasPath =
-                schemaCustomImportPath ??
-                resolveMockSchemasPath(mockFilePath, schemasTarget);
-
-              const finalizeMockOptions = getFinalizeMockImplementationOptions(
-                output,
-                mockOutput,
-              );
-
-              const finalizedMockImplementation =
-                builder.finalizeMockImplementation
-                  ? builder.finalizeMockImplementation(
-                      mockOutput.implementation.function +
-                        mockOutput.implementation.handler,
-                      finalizeMockOptions,
-                    )
-                  : mockOutput.implementation.function +
-                    mockOutput.implementation.handler;
-
-              const usesSchemaFactories =
-                !isFunction(rawEntry) &&
-                rawEntry.type === OutputMockType.FAKER &&
-                rawEntry.schemas === true;
-              const recoveredSchemaFactoryImports =
-                usesSchemaFactories && output.schemas
-                  ? collectRecoveredSchemaFactoryImports(
-                      finalizedMockImplementation,
-                      builder.schemas
-                        .filter((s) => s.schema)
-                        .map((s) => s.name),
-                    )
-                  : [];
-
-              const importsMockForBuilder = generateImportsForBuilder(
-                output,
-                filterLocalStrictMockTypeImports(
-                  mergeGeneratorImports(
-                    mockOutput.imports,
-                    recoveredSchemaFactoryImports,
-                  ),
-                  finalizeMockOptions.strictSchemaTypeNames,
-                ),
-                mockRelativeSchemasPath,
-                schemaTagMap,
-                undefined,
-                mockFilePath,
-              );
-
-              let mockData = header;
-              mockData += builder.importsMock({
-                implementation: finalizedMockImplementation,
-                imports: importsMockForBuilder,
-                projectName,
-                hasSchemaDir: !!output.schemas,
-                isAllowSyntheticDefaultImports,
-                options: isFunction(rawEntry) ? undefined : rawEntry,
-              });
-              mockData += `\n${finalizedMockImplementation}`;
-
-              await writeGeneratedFile(mockFilePath, mockData);
-              extraPaths.push(mockFilePath);
-
-              let indexEntry = mockIndexEntries.find(
-                (e) => e.ext === mockExtension && e.mockDir === mockDir,
-              );
-              if (!indexEntry) {
-                indexEntry = { ext: mockExtension, mockDir, operations: [] };
-                mockIndexEntries.push(indexEntry);
-              }
-              if (
-                !indexEntry.operations.some(
-                  (o) => o.tag === tag && o.opName === kebabOperation,
-                )
-              ) {
-                indexEntry.operations.push({
-                  tag,
-                  opName: kebabOperation,
-                  handlerName: mockOutput.implementation.handlerName,
-                });
-              }
-            }
+            const extraPaths = await writeTagsOperationsMockFiles({
+              builder,
+              output,
+              projectName,
+              header,
+              schemaTagMap,
+              schemaOutputPlan,
+              isAllowSyntheticDefaultImports,
+              tag,
+              operation,
+              dirname,
+              extension,
+              schemasTarget,
+              schemaCustomImportPath,
+              mockIndexEntries,
+            });
 
             return {
               operationFilename,
@@ -385,38 +282,11 @@ export async function writeTagsOperationsMode({
   // shared `mockIndexEntries`, so the tag-independent mock index at
   // `<mockDir>/index.<ext><ext>` lists operations from all tags rather than
   // just the last-completing one.
-  const mockIndexPaths: string[] = [];
-  if (output.mock.indexMockFiles) {
-    const mockImportExtension = getImportExtension(extension, output.tsconfig);
-    for (const { ext, mockDir, operations } of mockIndexEntries) {
-      const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-      const indexContent = operations
-        .toSorted(
-          (a, b) =>
-            a.tag.localeCompare(b.tag) || a.opName.localeCompare(b.opName),
-        )
-        .map(({ tag, opName, handlerName }) => {
-          const localMockPath = upath.joinSafe(
-            './',
-            tag,
-            opName + '.' + ext + mockImportExtension,
-          );
-          // Alias by `{tag, opName}` (this entry's dedup key, therefore
-          // always unique) rather than re-exporting `handlerName` verbatim:
-          // `handlerName` is derived from `operationName`, which a user's
-          // `override.operationName` function can map to the same value for
-          // multiple operations, producing two identically-named exports in
-          // this shared barrel.
-          const alias = `${pascal(tag)}${pascal(opName)}MockHandler`;
-          return ext === OutputMockType.MSW
-            ? `export { ${handlerName} as ${alias} } from '${localMockPath}'\n`
-            : `export * from '${localMockPath}'\n`;
-        })
-        .join('');
-      await writeGeneratedFile(indexPath, indexContent);
-      mockIndexPaths.push(indexPath);
-    }
-  }
+  const mockIndexPaths = await writeTagsOperationsMockIndexes(
+    mockIndexEntries,
+    output,
+    extension,
+  );
 
   let rootIndexPath: string | undefined;
   if (output.indexFiles) {
