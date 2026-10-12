@@ -14,6 +14,7 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   getArrayResponseSchema,
+  getQueryParamSerialization,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -30,10 +31,9 @@ import {
   type GeneratorMutator,
   GetterPropType,
   isObject,
+  isSchemaParameter,
   makeRouteSafe,
   needsHttpStatusCodeTypes,
-  type OpenApiParameterObject,
-  type OpenApiParameterWithSchemaObject,
   type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
   type OpenApiReferenceObject,
@@ -62,10 +62,6 @@ const resolveSchemaRef = (
   };
   return { schema: toObjectSchema(resolved.schema) };
 };
-
-const isSchemaParameter = (
-  parameter: OpenApiParameterObject,
-): parameter is OpenApiParameterWithSchemaObject => 'schema' in parameter;
 
 const getFetchZodDependency = (
   override?: NormalizedOverrideOutput,
@@ -272,77 +268,14 @@ const generateRequestFunctionParts = (
     'implementation',
   );
 
-  const spec = context.spec.paths?.[pathRoute];
-  // `query` is an orval verb, not an OpenAPI path-item method.
-  const operation = spec && verb !== 'query' ? spec[verb] : undefined;
-  // Path-item-level parameters apply to every operation under the path, and an
-  // operation-level parameter with the same name and location overrides them.
-  // Same dedup rule as `getParameters` in core.
-  const parameters = [
-    ...(spec?.parameters ?? []),
-    ...(operation?.parameters ?? []),
-  ];
-  const parameterObjects = [
-    ...new Map(
-      parameters.map((parameter) => {
-        const { schema } = resolveRef(parameter, context);
-        const parameterObject = schema as OpenApiParameterObject;
-        return [
-          // oxlint-disable-next-line typescript/no-unnecessary-condition
-          `${parameterObject.in}:${parameterObject.in === 'header' ? parameterObject.name?.toLowerCase() : parameterObject.name}`,
-          parameterObject,
-        ] as const;
-      }),
-    ).values(),
-  ];
-
   const arrayFormat = override.fetch.arrayFormat;
-
-  const isArrayLikeParam = (parameterObject: OpenApiParameterObject) => {
-    if (!isSchemaParameter(parameterObject)) return false;
-    const { schema: schemaObject } = resolveSchemaRef(
-      parameterObject.schema,
-      context,
-    );
-    const compositionIncludesArray = (
-      members: readonly (OpenApiSchemaObject | OpenApiReferenceObject)[] = [],
-    ) =>
-      members.some(
-        (member) => resolveSchemaRef(member, context).schema.type === 'array',
-      );
-    return (
-      schemaObject.type === 'array' ||
-      compositionIncludesArray(schemaObject.oneOf) ||
-      compositionIncludesArray(schemaObject.anyOf) ||
-      compositionIncludesArray(schemaObject.allOf)
-    );
-  };
-
-  const explodeParameters = parameterObjects.filter(
-    (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
-      isSchemaParameter(parameterObject) &&
-      parameterObject.in === 'query' &&
-      isArrayLikeParam(parameterObject) &&
-      (parameterObject.style ?? 'form') === 'form' &&
-      // Respect the OpenAPI default `explode: true` for form-style array query
-      // params, but defer params without an explicit `explode` to arrayFormat
-      // when an `arrayFormat` override is set.
-      (parameterObject.explode ?? true) &&
-      !(arrayFormat && parameterObject.explode === undefined),
-  );
-
-  // Array params where the spec does not explicitly set explode — arrayFormat applies here.
-  const arrayFormatParameters = arrayFormat
-    ? parameterObjects.filter(
-        (
-          parameterObject,
-        ): parameterObject is OpenApiParameterWithSchemaObject =>
-          isSchemaParameter(parameterObject) &&
-          parameterObject.in === 'query' &&
-          isArrayLikeParam(parameterObject) &&
-          parameterObject.explode === undefined,
-      )
-    : [];
+  const {
+    parameters: parameterObjects,
+    explode: explodeParameters,
+    arrayFormat: arrayFormatParameters,
+    deepObject: deepObjectParameters,
+    explodeOnly: isExplodeParametersOnly,
+  } = getQueryParamSerialization({ pathRoute, verb }, context, arrayFormat);
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
@@ -395,13 +328,6 @@ const generateRequestFunctionParts = (
       `
       : '';
 
-  const deepObjectParameters = parameterObjects.filter(
-    (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
-      isSchemaParameter(parameterObject) &&
-      parameterObject.in === 'query' &&
-      parameterObject.style === 'deepObject',
-  );
-
   const deepObjectParameterNames = deepObjectParameters.map(
     (parameter) => parameter.name,
   );
@@ -435,12 +361,6 @@ const generateRequestFunctionParts = (
     }
       `
       : '';
-
-  const isExplodeParametersOnly =
-    explodeParameters.length +
-      arrayFormatParameters.length +
-      deepObjectParameters.length ===
-    parameterObjects.filter((p) => p.in === 'query').length;
 
   const hasDateParams =
     context.output.override.useDates &&

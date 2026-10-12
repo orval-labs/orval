@@ -1011,6 +1011,72 @@ Orval writes the groups and their barrels. Nx project files, `ng-package.json` a
 
 Generate `index.ts` files for schemas.
 
+## operationManifest
+
+**Type:** `Boolean | { path?: String; types?: Boolean }`
+**Default:** `false`
+
+Writes one file that describes every generated operation, for test helpers and tooling that need to know an API's operations without parsing the generated code: route matchers, cache seeding, typed mock factories.
+
+With `true`, the file is `<target>.operations.ts` next to the target. `path` writes it elsewhere, and `types: false` leaves out the `OperationTypes` type map.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      baseUrl: '/api',
+      operationManifest: true, // writes ./src/api/endpoints.operations.ts
+    },
+  },
+});
+```
+
+```ts title="endpoints.operations.ts"
+import type { Error, Pet } from './model';
+
+export const operations = {
+  showPetById: {
+    operationId: 'showPetById',
+    operationName: 'showPetById',
+    method: 'GET',
+    path: '/pets/{petId}',
+    url: '/api/pets/{petId}',
+    tag: 'pets',
+    tags: ['pets'],
+    pathParams: [{ name: 'petId', key: 'petId' }],
+    queryParams: [],
+    serialization: { explode: [], arrayFormat: [], deepObject: [], explodeOnly: true },
+    body: null,
+    mock: 'getShowPetByIdResponseMock',
+    deprecated: false,
+  },
+} as const;
+
+export type OperationName = keyof typeof operations;
+
+export type OperationTypes = {
+  showPetById: {
+    pathParams: { petId: string };
+    query: never;
+    body: never;
+    headers: never;
+    response: Pet;
+    error: Error;
+  };
+};
+```
+
+- Entries are keyed by `operationName`, the name of the generated function.
+- `path` is the spec path. `url` adds the static base URL, and is left out when the base URL is only known at runtime.
+- `pathParams` pairs each placeholder's spec name with the identifier the client takes.
+- `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat`, and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
+- `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
+- `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod` and `effect` clients and for Zod schemas.
+
+The manifest isn't re-exported from the workspace `index.ts`.
+
 ## tagsSplitDeduplication
 
 **Type:** `Boolean`

@@ -360,6 +360,40 @@ export function getFullRoute(
 }
 
 /**
+ * The base URL as plain text, for metadata such as the operation manifest
+ * rather than generated code: nothing is escaped, unlike {@link getFullRoute}.
+ *
+ * @returns `''` when no base URL is configured, `undefined` when it is only
+ * known at runtime (`{ runtime }`, or a runtime server variable).
+ */
+export function getStaticBaseUrl(
+  servers: OpenApiServerObject[] | undefined,
+  baseUrl:
+    | string
+    | BaseUrlFromConstant
+    | BaseUrlFromSpec
+    | BaseUrlRuntime
+    | undefined,
+): string | undefined {
+  if (!baseUrl) return '';
+  if (isString(baseUrl)) return baseUrl;
+  if (isBaseUrlRuntime(baseUrl)) return undefined;
+  if (baseUrl.getBaseUrlFromSpecification) {
+    if (
+      baseUrl.variables &&
+      Object.values(baseUrl.variables).some(isVariableRuntimeValue)
+    ) {
+      return undefined;
+    }
+    return resolveServerUrl(servers, {
+      index: baseUrl.index,
+      variables: baseUrl.variables,
+    });
+  }
+  return baseUrl.baseUrl;
+}
+
+/**
  * Returns `GeneratorImport` entries for {@link BaseUrlRuntime.imports} when `baseUrl` is a runtime config.
  *
  * Defaults `values` to true so symbols in `runtime` emit as value imports in the

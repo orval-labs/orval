@@ -203,6 +203,7 @@ export async function getApiBuilder({
 
       for (const verbOption of resolvedVerbOptions) {
         acc.verbOptions[verbOption.operationId] = verbOption;
+        acc.operationVerbOptions?.push(verbOption);
       }
       acc.schemas.push(...schemas);
       for (const [key, value] of Object.entries(pathOperations)) {
@@ -219,6 +220,7 @@ export async function getApiBuilder({
     {
       operations: {},
       verbOptions: {},
+      operationVerbOptions: [],
       schemas: [],
     } as GeneratorApiOperations,
   );
@@ -260,6 +262,7 @@ export async function getApiBuilder({
     schemaTagMap,
     schemaOutputPlan,
     verbOptions: api.verbOptions,
+    operationVerbOptions: api.operationVerbOptions,
     title: generateClientTitle,
     header: generateClientHeader,
     footer: generateClientFooter,

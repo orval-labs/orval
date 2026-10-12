@@ -1,6 +1,7 @@
 export * from './barrel-collisions';
 export * from './file';
 export * from './mock-utils';
+export * from './operation-manifest';
 export * from './schema-tag-mapper';
 export * from './schema-output-plan';
 export * from './schemas';

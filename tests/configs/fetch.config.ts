@@ -108,6 +108,7 @@ export default defineConfig({
       target: '../generated/fetch/petstore-tags-operations-split/endpoints.ts',
       schemas: '../generated/fetch/petstore-tags-operations-split/model',
       mock: true,
+      operationManifest: true,
       mode: 'tags-operations-split',
       client: 'fetch',
       clean: true,
@@ -1406,5 +1407,17 @@ export default defineConfig({
       },
     },
     input: { target: '../specifications/dates-transform.yaml' },
+  },
+  operationManifestSingle: {
+    output: {
+      target: '../generated/fetch/operation-manifest-single/endpoints.ts',
+      client: 'fetch',
+      operationManifest: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/parameters.yaml',
+    },
   },
 });

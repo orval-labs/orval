@@ -111,6 +111,13 @@ export interface NormalizedOutputOptions {
   factoryMethods?: NormalizedFactoryMethodsOptions;
   tagsSplitDeduplication: boolean;
   commonTypesFileName: string;
+  operationManifest?: NormalizedOperationManifestOptions;
+}
+
+export interface NormalizedOperationManifestOptions {
+  /** Absolute path of the manifest file. Unset: next to the target. */
+  path?: string;
+  types: boolean;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -526,6 +533,19 @@ export interface OutputOptions {
   factoryMethods?: FactoryMethodsOptions;
   tagsSplitDeduplication?: boolean;
   commonTypesFileName?: string;
+  /**
+   * Write a manifest of every operation: method, path, params, serialization,
+   * mock factory and request/response types. `true` writes it to
+   * `<target>.operations<ext>`.
+   */
+  operationManifest?: boolean | OperationManifestOptions;
+}
+
+export interface OperationManifestOptions {
+  /** File to write. Defaults to `<target>.operations<ext>` next to the target. */
+  path?: string;
+  /** Emit the `OperationTypes` type map. Defaults to `true`. */
+  types?: boolean;
 }
 
 export interface InputFiltersOptions {
@@ -2523,6 +2543,8 @@ export interface FinalizeMockImplementationOptions {
 export interface WriteSpecBuilder {
   operations: GeneratorOperations;
   verbOptions: Record<string, GeneratorVerbOptions>;
+  /** See {@link GeneratorApiOperations.operationVerbOptions}. */
+  operationVerbOptions?: GeneratorVerbOptions[];
   schemas: GeneratorSchema[];
   title: GeneratorClientTitle;
   header: GeneratorClientHeader;
@@ -2566,6 +2588,11 @@ export interface WriteModeProps {
 
 export interface GeneratorApiOperations {
   verbOptions: Record<string, GeneratorVerbOptions>;
+  /**
+   * Every operation's verb options, in generation order. Unlike `verbOptions`
+   * (keyed by `operationId`), keeps each `splitByContentType` variant.
+   */
+  operationVerbOptions?: GeneratorVerbOptions[];
   operations: GeneratorOperations;
   schemas: GeneratorSchema[];
 }
