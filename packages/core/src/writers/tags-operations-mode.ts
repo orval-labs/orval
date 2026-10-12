@@ -20,6 +20,7 @@ import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
   filterImportsUsedInImplementation,
+  rebaseRelativeImportPaths,
   generateClientImports,
   generateOrvalHelperTypes,
   generateTargetMutatorImports,
@@ -175,9 +176,12 @@ export async function writeTagsOperationsMode({
               `${operationFilename}${extension}`,
             );
 
-            const implementationImports = filterImportsUsedInImplementation(
-              operation.imports,
-              operation.implementation,
+            const implementationImports = rebaseRelativeImportPaths(
+              filterImportsUsedInImplementation(
+                operation.imports,
+                operation.implementation,
+              ),
+              { dirname, importerPath: implementationPath, extension },
             );
 
             const importsForBuilder = generateImportsForBuilder(
