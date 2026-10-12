@@ -1585,19 +1585,6 @@ function normalizeOperationsAndTags(
           );
         }
 
-        const sharedRuntimeKeys = (
-          [
-            'runtimeImplementationStyle',
-            'runtimeOutputPath',
-            'clientConfigOutputPath',
-          ] as const
-        ).filter((fetchKey) => rest.fetch?.[fetchKey] !== undefined);
-        if (sharedRuntimeKeys.length > 0) {
-          logger.warn(
-            `override.${source}.${key}.fetch.${sharedRuntimeKeys.join(' / ')} is not supported — the shared runtime is an output-level concern and is configured via \`override.fetch\`. Ignoring.`,
-          );
-        }
-
         return [
           key,
           {

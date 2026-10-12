@@ -3405,39 +3405,6 @@ describe('normalizeOptions', () => {
         await rm(workspace, { recursive: true, force: true });
       }
     });
-
-    it('warns and ignores the options on an operation override', async () => {
-      const workspace = await createTempWorkspace();
-      logWarningSpy.mockClear();
-
-      try {
-        await normalizeOptions(
-          {
-            input: { target: inlineSpec },
-            output: {
-              target: './generated.ts',
-              client: 'fetch',
-              override: {
-                operations: {
-                  listPets: {
-                    fetch: { runtimeImplementationStyle: 'shared' },
-                  },
-                },
-              },
-            },
-          },
-          workspace,
-        );
-
-        expect(logWarningSpy).toHaveBeenCalledWith(
-          expect.stringContaining(
-            'override.operations.listPets.fetch.runtimeImplementationStyle is not supported',
-          ),
-        );
-      } finally {
-        await rm(workspace, { recursive: true, force: true });
-      }
-    });
   });
 
   describe('optionsParamRequired with fetch httpClient', () => {
