@@ -567,6 +567,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // The faker response factories used to be dropped in the tags-operations
+  // modes, leaving only the msw files.
+  fakerSchemasTagsOperationsSplit: {
+    output: {
+      target:
+        '../generated/mock/faker-schemas-tags-operations-split/endpoints.ts',
+      schemas: '../generated/mock/faker-schemas-tags-operations-split/model',
+      mode: 'tags-operations-split',
+      client: 'fetch',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-array-items-tags-split.yaml',
+    },
+  },
   stringEnumRefFakerSchemasTagsSplit: {
     output: {
       workspace: '../generated/mock/string-enum-ref-faker-schemas-tags-split/',

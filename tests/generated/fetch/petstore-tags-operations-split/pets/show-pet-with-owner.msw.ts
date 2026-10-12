@@ -4,94 +4,14 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Cat, Dachshund, Dog, Labradoodle, PetWithTag } from '../model';
+import type { PetWithTag } from '../model';
 
-export const getShowPetWithOwnerResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
+import { getShowPetWithOwnerResponseMock } from './show-pet-with-owner.faker';
 
-export const getShowPetWithOwnerResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseLabradoodleMock() },
-      { ...getShowPetWithOwnerResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseMock = (
-  overrideResponse: Partial<Extract<PetWithTag, object>> = {},
-): PetWithTag => ({
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: faker.helpers.arrayElement([
-    {
-      ...faker.helpers.arrayElement([
-        { ...getShowPetWithOwnerResponseDogMock() },
-        { ...getShowPetWithOwnerResponseCatMock() },
-      ]),
-      '@id': faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-    },
-    null,
-  ]),
-  ...overrideResponse,
-});
+export { getShowPetWithOwnerResponseMock } from './show-pet-with-owner.faker';
 
 export const getShowPetWithOwnerMockHandler = (
   overrideResponse?:
