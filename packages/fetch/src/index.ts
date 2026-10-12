@@ -50,8 +50,8 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import { GET_HEADERS_HELPER } from './fragments';
 import { analyzeQueryParams } from './query-params';
+import { GET_HEADERS_HELPER } from './runtime';
 import {
   generateFetchExtraFiles,
   generateSharedClient,
