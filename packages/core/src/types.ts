@@ -1684,19 +1684,10 @@ export interface NormalizedFetchOptions {
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
   runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
-  /** Absolute path of the shared runtime module; resolved by normalization. */
   runtimeOutputPath?: string;
-  /** Absolute path of the per-spec client config module; resolved by normalization. */
   clientConfigOutputPath?: string;
 }
 
-/**
- * How the fetch execution logic is laid out in the generated code.
- *
- * - `inline` — every operation carries its own request/response handling.
- * - `shared` — the execution logic is generated once into a shared runtime
- *   module and each operation becomes a thin wrapper around it.
- */
 export type FetchRuntimeImplementationStyle = 'inline' | 'shared';
 
 export interface FetchOptions {
@@ -1741,27 +1732,15 @@ export interface FetchOptions {
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
   /**
-   * `'shared'` generates the execution logic once into a shared runtime module
-   * (see `runtimeOutputPath`) and turns every operation into a thin wrapper
-   * around it, instead of inlining the logic into each operation.
-   * Read from `output.override.fetch` only.
+   * `'shared'` generates the execution logic once into a shared runtime and
+   * turns every operation into a thin wrapper. Read from `output.override.fetch` only.
    *
    * @default 'inline'
    */
   runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
-  /**
-   * Where the shared runtime is generated. Several outputs may point at the
-   * same file to share one runtime.
-   *
-   * @default `runtime.ts` next to the target
-   */
+  /** @default `runtime.ts` next to the target */
   runtimeOutputPath?: string;
-  /**
-   * Where the per-spec client config (wiring the global `mutator` to the
-   * shared runtime) is generated. Only emitted when a `mutator` is configured.
-   *
-   * @default `client-config.ts` next to the target
-   */
+  /** Emitted only with a global `mutator`. @default `client-config.ts` next to the target */
   clientConfigOutputPath?: string;
 }
 

@@ -1387,8 +1387,6 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  // `runtimeImplementationStyle: 'shared'`: one runtime next to the target,
-  // operations as thin wrappers.
   sharedRuntime: {
     output: {
       target: '../generated/fetch/shared-runtime/endpoints.ts',
@@ -1407,7 +1405,6 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  // Explicit paths, with a global mutator wired through the client config.
   sharedRuntimeMutator: {
     output: {
       target: '../generated/fetch/shared-runtime-mutator/api/endpoints.ts',

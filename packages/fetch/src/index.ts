@@ -1138,7 +1138,6 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
   output,
 }) => {
-  // The shared runtime exports the status-code types itself.
   if (isSharedRuntimeStyle(output)) return '';
   const isFactoryMode = isFetchFactoryMode(output);
   const implementation = isFactoryMode
