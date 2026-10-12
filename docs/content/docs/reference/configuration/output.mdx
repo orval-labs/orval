@@ -2845,6 +2845,9 @@ export default defineConfig({
             path: './custom-handler.ts',
             name: 'customHandler',
           },
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
         },
       },
     },
@@ -2947,6 +2950,29 @@ export const customHandler = async (
 ```
 
 See the [MCP guide](/docs/guides/mcp#custom-handler) for details on `fetcher` and `ctx`.
+
+### cacheHints
+
+**Type:** `Object`
+**Default:** none (the SDK default of `ttlMs: 0` and `cacheScope: 'private'` applies)
+
+Cache hints passed to `McpServer` as is, keyed by method such as `tools/list`. They only take effect on MCP 2026-07-28 connections. The generated tool list is fixed at build time, so `tools/list` can usually be `public` with a TTL of a few minutes to an hour.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          cacheHints: {
+            'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
+});
+```
 
 ---
 

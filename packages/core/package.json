@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
+    "@modelcontextprotocol/server": "catalog:mcp",
     "@types/esutils": "^2.0.2",
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
@@ -41,10 +42,14 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@faker-js/faker": ">=8"
+    "@faker-js/faker": ">=8",
+    "@modelcontextprotocol/server": ">=2"
   },
   "peerDependenciesMeta": {
     "@faker-js/faker": {
+      "optional": true
+    },
+    "@modelcontextprotocol/server": {
       "optional": true
     }
   }
