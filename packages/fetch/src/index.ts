@@ -50,6 +50,16 @@ import {
   toObjectString,
 } from '@orval/core';
 
+import { isContentTypeJson, isContentTypeNdJson } from './content-types';
+import { EMPTY_BODY_STATUSES, GET_HEADERS_HELPER } from './fragments';
+import { analyzeQueryParams } from './query-params';
+import {
+  generateFetchExtraFiles,
+  generateSharedClient,
+  generateSharedRequestFunction,
+  isSharedRuntimeStyle,
+} from './shared';
+
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: GeneratorOptions['context'],
@@ -176,6 +186,9 @@ export const generateRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
+  if (isSharedRuntimeStyle(options.context.output)) {
+    return generateSharedRequestFunction(verbOptions, options);
+  }
   const { responseTypes, implementation } = generateRequestFunctionParts(
     verbOptions,
     options,
@@ -410,13 +423,6 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
       : `return \`${route}\``
   }
 }\n`;
-
-  const isContentTypeNdJson = (contentType: string) =>
-    contentType === 'application/nd-json' ||
-    contentType === 'application/x-ndjson';
-
-  const isContentTypeJson = (contentType: string) =>
-    contentType.toLowerCase().includes('json');
 
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
@@ -1070,6 +1076,9 @@ export const getFetchResponseValidationImports = (
 
 /** Builds the full fetch client output (imports + implementation) for one verb. */
 export const generateClient: ClientBuilder = (verbOptions, options) => {
+  if (isSharedRuntimeStyle(options.context.output)) {
+    return generateSharedClient(verbOptions, options);
+  }
   const responseValidationImports = getFetchResponseValidationImports(
     verbOptions,
     options,
@@ -1123,6 +1132,8 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
   output,
 }) => {
+  // The shared runtime exports the status-code types itself.
+  if (isSharedRuntimeStyle(output)) return '';
   const isFactoryMode = isFetchFactoryMode(output);
   const implementation = isFactoryMode
     ? `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`
@@ -1150,7 +1161,7 @@ export const generateFetchFooter: ClientFooterBuilder = ({
   operations,
   output,
 }) => {
-  if (!isFetchFactoryMode(output)) return '';
+  if (!isFetchFactoryMode(output) || isSharedRuntimeStyle(output)) return '';
 
   // Hook mutators declare `use{Op}Hook` instead of the operation itself.
   const returnedNames = operations
@@ -1173,6 +1184,7 @@ const fetchClientBuilder: ClientGeneratorsBuilder = {
   title: generateFetchTitle,
   footer: generateFetchFooter,
   dependencies: getFetchDependencies,
+  extraFiles: generateFetchExtraFiles,
 };
 
 /** Returns the fetch client builder factory used by orval's plugin system. */

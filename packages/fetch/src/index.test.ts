@@ -1313,6 +1313,396 @@ describe('httpClientInjection: factory', () => {
   });
 });
 
+describe('runtimeImplementationStyle: shared', () => {
+  const sharedOptions = (
+    parameters: TestParameter[] = [],
+    {
+      client = OutputClient.FETCH,
+      useDates = false,
+      mutator,
+    }: {
+      client?: OutputClient;
+      useDates?: boolean;
+      mutator?: boolean;
+    } = {},
+  ) => {
+    const options = makeOptions(makeContext(parameters, useDates));
+    options.context.output.target = '/proj/src/api/endpoints.ts';
+    options.context.output.client = client;
+    Object.assign(options.context.output.override.fetch, {
+      runtimeImplementationStyle: 'shared',
+      runtimeOutputPath: '/proj/src/runtime.ts',
+      clientConfigOutputPath: '/proj/src/api/client-config.ts',
+    });
+    if (mutator) {
+      options.context.output.override.mutator = {
+        path: '/proj/src/custom-fetch.ts',
+        name: 'customFetch',
+        default: false,
+      };
+    }
+    return options;
+  };
+  const params = [
+    {
+      name: 'params',
+      definition: 'params: ListPetsParams',
+      implementation: 'params: ListPetsParams',
+      default: undefined,
+      required: true,
+      type: GetterPropType.QUERY_PARAM,
+    },
+  ];
+  const mutator = (isHook = false) => ({
+    name: isHook ? 'useCustomFetch' : 'customFetch',
+    path: '../custom-fetch',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: 'ErrorType',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook,
+  });
+
+  it('delegates query serialization to the runtime with the resolved meta', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        queryParams: STUB_QUERY_PARAMS,
+        props: params,
+        override: {
+          requestOptions: false,
+          formUrlEncoded: false,
+          fetch: {
+            includeHttpResponseReturnType: false,
+            forceSuccessResponse: false,
+            runtimeValidation: { enabled: false, strategy: 'throw' },
+            arrayFormat: 'brackets',
+          },
+        },
+      }),
+      sharedOptions([
+        {
+          name: 'tags',
+          in: 'query',
+          schema: { type: 'array', items: { type: 'string' } },
+        },
+        {
+          name: 'ids',
+          in: 'query',
+          schema: { type: 'array', items: { type: 'string' } },
+        },
+        {
+          name: 'scope',
+          in: 'query',
+          style: 'deepObject',
+          explode: true,
+          schema: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      'const stringifiedParams = serializeQuery(params, { brackets: ["tags","ids"], deepObject: ["scope"] });',
+    );
+    expect(implementation).toContain(
+      'return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`',
+    );
+    expect(implementation).not.toContain('URLSearchParams');
+  });
+
+  it('omits the meta when no query param needs special serialization', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({ queryParams: STUB_QUERY_PARAMS, props: params }),
+      sharedOptions([
+        { name: 'limit', in: 'query', schema: { type: 'string' } },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      'const stringifiedParams = serializeQuery(params);',
+    );
+  });
+
+  it('keeps a path-only URL builder identical to the inline one', () => {
+    const verbOptions = makeVerbOptions();
+    const builder = (implementation: string) =>
+      implementation.slice(
+        implementation.indexOf('export const getListPetsUrl'),
+        implementation.indexOf('\n}\n') + 3,
+      );
+
+    const inline = builder(
+      generateImplementation(verbOptions, makeOptions(makeContext())),
+    );
+    const shared = builder(
+      generateImplementation(verbOptions, sharedOptions()),
+    );
+
+    expect(shared).toBe(inline);
+    expect(shared).toContain('return `/pets`');
+  });
+
+  it('derives the response union from the status map', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        response: {
+          definition: { success: 'Pet', errors: 'Error' },
+          contentTypes: ['application/json', 'text/plain'],
+          types: {
+            success: [
+              successType({ key: '200', value: 'Pet' }),
+              successType({
+                key: '200',
+                value: 'string',
+                contentType: 'text/plain',
+              }),
+              successType({ key: '2XX', value: 'Pet' }),
+            ],
+            errors: [
+              successType({ key: '404', value: 'NotFound' }),
+              successType({ key: 'default', value: 'Error' }),
+            ],
+          },
+        },
+      }),
+      sharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      "export type listPetsResponse = ResponseOf<{ 200: Pet | string; '2XX': Pet; 404: NotFound; default: Error }>;",
+    );
+    expect(implementation).not.toContain('listPetsResponse200');
+    expect(implementation).toContain("responseType: 'auto'");
+  });
+
+  it('marks a streamed response and sends its Accept header', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        response: {
+          definition: { success: 'StreamEntry', errors: '' },
+          contentTypes: ['application/x-ndjson'],
+          types: {
+            success: [
+              successType({
+                key: '200',
+                value: 'StreamEntry',
+                contentType: 'application/x-ndjson',
+              }),
+            ],
+          },
+        },
+      }),
+      sharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'export type listPetsResponse = ResponseOf<{ 200: Stream<StreamEntry> }>;',
+    );
+    expect(implementation).toContain(
+      "headers: { Accept: 'application/x-ndjson' }",
+    );
+    expect(implementation).toContain("responseType: 'stream'");
+  });
+
+  it.each([
+    [
+      'void',
+      { success: 'void', contentTypes: [] as string[] },
+      "responseType: 'void'",
+    ],
+    [
+      'text',
+      { success: 'string', contentTypes: ['text/plain'] },
+      "responseType: 'text'",
+    ],
+    ['json', { success: 'Pet', contentTypes: ['application/json'] }, undefined],
+  ])('picks the %s decoding', (_, { success, contentTypes }, expected) => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        response: {
+          definition: { success, errors: '' },
+          contentTypes,
+          types: {
+            success: [
+              successType({
+                key: '200',
+                value: success,
+                contentType: contentTypes[0] ?? '',
+              }),
+            ],
+          },
+        },
+      }),
+      sharedOptions(),
+    );
+
+    if (expected) {
+      expect(implementation).toContain(expected);
+    } else {
+      expect(implementation).not.toContain('responseType');
+    }
+  });
+
+  it('passes the typed body with its media type', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        body: {
+          definition: 'CreatePetsBody',
+          implementation: 'createPetsBody',
+          contentType: 'application/vnd.api+json',
+        },
+        props: [
+          {
+            name: 'createPetsBody',
+            definition: 'createPetsBody: CreatePetsBody',
+            implementation: 'createPetsBody: CreatePetsBody',
+            default: undefined,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+      }),
+      sharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'export const listPets = (createPetsBody: CreatePetsBody, options?: CallOptions) =>',
+    );
+    expect(implementation).toContain("method: 'POST'");
+    expect(implementation).toContain('body: createPetsBody');
+    expect(implementation).toContain("contentType: 'application/vnd.api+json'");
+    expect(implementation).not.toContain('JSON.stringify');
+  });
+
+  it('wraps the generated FormData builder as the body encoder', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        body: {
+          definition: 'Pet',
+          implementation: 'pet',
+          contentType: 'multipart/form-data',
+          formData:
+            "const formData = new FormData();\nformData.append('name', pet.name);",
+        },
+        override: { formData: { disabled: false, arrayHandling: 'serialize' } },
+      }),
+      sharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'const listPetsEncodeBody = (pet: Pet) => {',
+    );
+    expect(implementation).toContain("formData.append('name', pet.name);");
+    expect(implementation).toContain('return formData;');
+    expect(implementation).toContain("contentType: 'multipart/form-data'");
+    expect(implementation).toContain('encodeBody: listPetsEncodeBody');
+  });
+
+  it('forwards spec header parameters', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        headers: {
+          schema: { name: 'ListPetsHeaders', model: '', imports: [] },
+          deps: [],
+          isOptional: false,
+        },
+      }),
+      sharedOptions(),
+    );
+
+    expect(implementation).toContain('    headers,\n');
+  });
+
+  it('imports the runtime relative to the target file, split by value and type', async () => {
+    const { imports, implementation } = await generateClient(
+      makeVerbOptions({ queryParams: STUB_QUERY_PARAMS, props: params }),
+      sharedOptions(),
+      OutputClient.FETCH,
+    );
+
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        { name: 'execute', values: true, importPath: '../runtime' },
+        { name: 'serializeQuery', values: true, importPath: '../runtime' },
+        { name: 'CallOptions', importPath: '../runtime' },
+        { name: 'ResponseOf', importPath: '../runtime' },
+      ]),
+    );
+    expect(implementation).not.toContain('HTTPStatusCodes');
+  });
+
+  it('routes execute through the client config when a global mutator is set', async () => {
+    const { imports, implementation } = await generateClient(
+      makeVerbOptions({ mutator: mutator() }),
+      sharedOptions([], { mutator: true }),
+      OutputClient.FETCH,
+    );
+
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        { name: 'execute', values: true, importPath: './client-config' },
+        { name: 'CallOptions', importPath: '../runtime' },
+      ]),
+    );
+    expect(implementation).not.toContain('customFetch');
+  });
+
+  it('ignores a hook mutator', async () => {
+    const { imports } = await generateClient(
+      makeVerbOptions({ mutator: mutator(true) }),
+      sharedOptions([], { mutator: true }),
+      OutputClient.FETCH,
+    );
+
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        { name: 'execute', values: true, importPath: '../runtime' },
+      ]),
+    );
+  });
+
+  it('emits no header types and no factory closure', () => {
+    const output = sharedOptions().context.output;
+    output.override.fetch.httpClientInjection = 'factory';
+
+    expect(
+      generateFetchHeader({
+        title: 'getPetstore',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: false,
+        hasAwaitedType: true,
+        output,
+        verbOptions: {},
+        clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
+      }),
+    ).toBe('');
+    expect(
+      generateFetchFooter({
+        operationNames: ['listPets'],
+        output,
+        hasMutator: false,
+        hasAwaitedType: true,
+        title: 'getPetstore',
+      }),
+    ).toBe('');
+  });
+
+  it('keeps the inline style for other clients reusing the fetch generator', () => {
+    for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
+      const implementation = generateImplementation(
+        makeVerbOptions(),
+        sharedOptions([], { client }),
+      );
+      expect(implementation).toContain('export const listPets = async (');
+      expect(implementation).not.toContain('execute<');
+    }
+  });
+});
+
 describe('shared runtime behaviour', () => {
   type QueryMeta = Record<string, string[]>;
   type ExecuteArgs = {
