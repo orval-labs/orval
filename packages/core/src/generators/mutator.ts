@@ -8,7 +8,8 @@ import { getMutatorInfo } from './mutator-info';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
-const getImport = (
+/** The import specifier of a mutator as seen from the generated `output` file. */
+export const getMutatorImportPath = (
   output: string,
   mutator: NormalizedMutator,
   tsconfig?: Tsconfig,
@@ -104,7 +105,7 @@ export async function generateMutator({
     );
   }
 
-  const importStatementPath = getImport(output, mutator, tsconfig);
+  const importStatementPath = getMutatorImportPath(output, mutator, tsconfig);
 
   const isHook = mutator.name
     ? mutator.name.startsWith('use') && !mutatorInfo.numberOfParams

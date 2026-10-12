@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { generateMutatorImports } from '../generators';
 import type {
   GeneratorDependency,
@@ -6,6 +8,7 @@ import type {
   NormalizedOutputOptions,
   WriteSpecBuilder,
 } from '../types';
+import { upath } from '../utils';
 import { escapeRegExp } from '../utils/string';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -130,4 +133,27 @@ export function generateOrvalHelperTypes(implementation: string): string {
   }
 
   return data;
+}
+
+/**
+ * Relative `importPath`s are authored against the target file's directory.
+ * A writer that places an implementation deeper (tag directories) rebases
+ * them onto that file, as `split-tags-mode` does for tag files.
+ */
+export function rebaseRelativeImportPaths(
+  imports: GeneratorImport[],
+  {
+    dirname,
+    importerPath,
+    extension,
+  }: { dirname: string; importerPath: string; extension: string },
+): GeneratorImport[] {
+  return imports.map((imp) => {
+    if (!imp.importPath?.startsWith('.')) return imp;
+    const targetFile = path.resolve(dirname, imp.importPath) + extension;
+    return {
+      ...imp,
+      importPath: upath.getRelativeImportPath(importerPath, targetFile),
+    };
+  });
 }
