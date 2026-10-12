@@ -248,7 +248,6 @@ export const execute = async <R>(
   config?: ClientConfig,
 ): Promise<R> => {
   const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
-  const body = encodeRequestBody(args);
   const init: RequestInit = {
     ...options,
     method: args.method,
@@ -259,7 +258,7 @@ export const execute = async <R>(
       ...getHeaders(args.headers),
       ...getHeaders(options.headers),
     },
-    ...(body !== undefined ? { body } : {}),
+    body: encodeRequestBody(args),
   };
 
   if (config?.mutator) {
