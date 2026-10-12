@@ -50,8 +50,7 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import { isContentTypeJson, isContentTypeNdJson } from './content-types';
-import { EMPTY_BODY_STATUSES, GET_HEADERS_HELPER } from './fragments';
+import { GET_HEADERS_HELPER } from './fragments';
 import { analyzeQueryParams } from './query-params';
 import {
   generateFetchExtraFiles,
@@ -423,6 +422,13 @@ ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n
       : `return \`${route}\``
   }
 }\n`;
+
+  const isContentTypeNdJson = (contentType: string) =>
+    contentType === 'application/nd-json' ||
+    contentType === 'application/x-ndjson';
+
+  const isContentTypeJson = (contentType: string) =>
+    contentType.toLowerCase().includes('json');
 
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),

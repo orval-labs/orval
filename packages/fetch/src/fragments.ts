@@ -1,10 +1,7 @@
 /**
- * Source fragments shared verbatim between the inline emitter and the shared
- * runtime template, so a behaviour fix lands in both implementations at once.
+ * Source shared verbatim between the inline emitter and the shared runtime
+ * template, so a fix lands in both implementations at once.
  */
-
-/** Statuses whose body is never read (RFC 9110: no content). */
-export const EMPTY_BODY_STATUSES = '[204, 205, 304]';
 
 // `RequestInit['headers']` is declared per runtime, and the old narrowing
 // chain only fitted the DOM's declaration, leaving `return h` unsound in two

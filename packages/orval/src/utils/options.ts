@@ -749,11 +749,11 @@ export async function normalizeOptions(
   const defaultFileExtension = '.ts';
   const outputFileExtension =
     outputOptions.fileExtension ?? defaultFileExtension;
-  // Same resolution as `clean`: an existing directory target means inside it,
-  // otherwise the target's parent directory.
   const outputTarget = globalOptions.output
     ? normalizePath(globalOptions.output, process.cwd())
     : normalizePath(outputOptions.target, outputWorkspace);
+  // Same resolution as `clean`: an existing directory target means inside it,
+  // otherwise the target's parent directory.
   const outputTargetDirname = getFileInfo(outputTarget, {
     extension: outputFileExtension,
   }).dirname;

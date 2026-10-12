@@ -1,6 +1,6 @@
 import { HTTP_STATUS_CODE_SHARED_TYPES } from '@orval/core';
 
-import { EMPTY_BODY_STATUSES, GET_HEADERS_HELPER } from './fragments';
+import { GET_HEADERS_HELPER } from './fragments';
 
 const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
   ({ code }) => `export ${code}`,
@@ -206,10 +206,10 @@ const decodeResponseBody = async (
   responseType: ExecuteArgs['responseType'],
 ): Promise<unknown> => {
   if (responseType === 'blob') {
-    return ${EMPTY_BODY_STATUSES}.includes(res.status) ? null : await res.blob();
+    return [204, 205, 304].includes(res.status) ? null : await res.blob();
   }
 
-  const body = ${EMPTY_BODY_STATUSES}.includes(res.status) ? null : await res.text();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
   if (responseType === 'text') return body !== null ? body : '';
 

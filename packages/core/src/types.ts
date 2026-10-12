@@ -1683,11 +1683,11 @@ export interface NormalizedFetchOptions {
    * - `comma` — join values with a comma: `foo=1,2`
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
-  runtimeImplementationStyle: FetchRuntimeImplementationStyle;
-  /** Absolute path of the shared runtime module. */
-  runtimeOutputPath: string;
-  /** Absolute path of the per-spec client config module. */
-  clientConfigOutputPath: string;
+  runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
+  /** Absolute path of the shared runtime module; resolved by normalization. */
+  runtimeOutputPath?: string;
+  /** Absolute path of the per-spec client config module; resolved by normalization. */
+  clientConfigOutputPath?: string;
 }
 
 /**
