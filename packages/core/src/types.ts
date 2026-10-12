@@ -1660,9 +1660,9 @@ export interface NormalizedFetchOptions {
    * - `comma` — join values with a comma: `foo=1,2`
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
-  runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
-  runtimeOutputPath?: string;
-  clientConfigOutputPath?: string;
+  runtimeImplementationStyle: FetchRuntimeImplementationStyle;
+  runtimeOutputPath: string;
+  clientConfigOutputPath: string;
 }
 
 export type FetchRuntimeImplementationStyle = 'inline' | 'shared';
