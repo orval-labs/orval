@@ -1407,12 +1407,13 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  // A global mutator is wired through `client-config.ts`.
+  // Explicit paths, with a global mutator wired through the client config.
   sharedRuntimeMutator: {
     output: {
-      target: '../generated/fetch/shared-runtime-mutator/endpoints.ts',
-      schemas: '../generated/fetch/shared-runtime-mutator/model',
+      target: '../generated/fetch/shared-runtime-mutator/api/endpoints.ts',
+      schemas: '../generated/fetch/shared-runtime-mutator/api/model',
       client: 'fetch',
+      mode: 'tags-split',
       clean: true,
       formatter: 'prettier',
       override: {
@@ -1422,58 +1423,15 @@ export default defineConfig({
         },
         fetch: {
           runtimeImplementationStyle: 'shared',
+          runtimeOutputPath:
+            '../generated/fetch/shared-runtime-mutator/runtime.ts',
           clientConfigOutputPath:
-            '../generated/fetch/shared-runtime-mutator/config/client.ts',
+            '../generated/fetch/shared-runtime-mutator/client-config.ts',
         },
       },
     },
     input: {
       target: '../specifications/petstore.yaml',
-    },
-  },
-  // Two specs share one runtime through `runtimeOutputPath`, from modes that
-  // rebase relative imports into tag directories.
-  sharedRuntimeMultiPetstore: {
-    output: {
-      target: '../generated/fetch/shared-runtime-multi/petstore/endpoints.ts',
-      schemas: '../generated/fetch/shared-runtime-multi/petstore/model',
-      client: 'fetch',
-      mode: 'tags-split',
-      clean: true,
-      formatter: 'prettier',
-      override: {
-        fetch: {
-          runtimeImplementationStyle: 'shared',
-          runtimeOutputPath:
-            '../generated/fetch/shared-runtime-multi/runtime.ts',
-        },
-      },
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
-  },
-  sharedRuntimeMultiFormData: {
-    output: {
-      target: '../generated/fetch/shared-runtime-multi/form-data/endpoints.ts',
-      schemas: '../generated/fetch/shared-runtime-multi/form-data/model',
-      client: 'fetch',
-      mode: 'tags-operations-split',
-      clean: true,
-      formatter: 'prettier',
-      override: {
-        fetch: {
-          runtimeImplementationStyle: 'shared',
-          runtimeOutputPath:
-            '../generated/fetch/shared-runtime-multi/runtime.ts',
-        },
-      },
-    },
-    input: {
-      target: '../specifications/form-data-optional-request.yaml',
-      override: {
-        transformer: '../transformers/add-version.js',
-      },
     },
   },
   // A hook mutator declares `use{Op}Hook`, which the factory must return.
