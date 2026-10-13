@@ -1,6 +1,7 @@
 import {
   defineFixtures,
   type FixtureRoute,
+  type FixtureRoutes,
   respond,
 } from '../generated/mock/fixtures/tags-operations-split/index.fixtures';
 
@@ -36,13 +37,15 @@ defineFixtures({
   'GET /api/pets/:petId/owner': { colour: 'red' },
 });
 
-defineFixtures({
+// Handler params are the route's params.
+const params: FixtureRoutes['GET /api/pets/:petId']['params'] = { petId: '1' };
+const wrongParams: FixtureRoutes['GET /api/pets/:petId']['params'] = {
   // @ts-expect-error the route has no `id` param
-  'GET /api/pets/:petId': ({ params }) => ({ name: params.id }),
-});
+  id: '1',
+};
 
 const route: FixtureRoute = 'GET /api/pets';
 // @ts-expect-error routes include the method
 const missingMethod: FixtureRoute = '/api/pets';
 
-export { extended, missingMethod, route };
+export { extended, missingMethod, params, route, wrongParams };
