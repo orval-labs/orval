@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { getRefInfo, isComponentRef, type RefInfo } from '../getters/ref';
 import type {
   ContextSpec,
@@ -74,6 +76,12 @@ export function resolveRef<
   schema: TSchema;
   imports: GeneratorImport[];
 } {
+  // A ref can land on a boolean component (`true` / `false`), which is inline
+  // but would make the `in` checks below throw.
+  if (isBooleanJsonSchema(schema)) {
+    return { schema: schema as TSchema, imports };
+  }
+
   const refPath = '$ref' in schema ? schema.$ref : undefined;
   const nestedSchema = 'schema' in schema ? schema.schema : undefined;
 

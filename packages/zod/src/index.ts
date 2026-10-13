@@ -3399,6 +3399,25 @@ export const generateFormDataZodSchema = (
  * array roots. The url-encoded string-contract rationale lives where the flag
  * is derived (see `isFormUrlEncoded` below).
  */
+/**
+ * Resolves one level of `$ref`, keeping keywords declared next to it (e.g.
+ * `maxItems`) on top of the target, as `dereference` does, while leaving
+ * nested refs untouched.
+ */
+const resolveShallow = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiSchemaObject => {
+  const { $ref: _, ...siblings } = schema as Record<string, unknown>;
+  const target = resolveRef<OpenApiSchemaObject>(
+    schema as OpenApiReferenceObject,
+    context,
+  ).schema;
+  return typeof target === 'boolean'
+    ? target
+    : ({ ...target, ...siblings } as OpenApiSchemaObject);
+};
+
 const parseBodyAndResponse = ({
   data,
   context,
@@ -3507,10 +3526,7 @@ const parseBodyAndResponse = ({
   // shared refs (e.g. Stripe runs out of memory).
   const resolvedJsonSchema = useReusableSchemas
     ? toObjectSchema(
-        typeof schema === 'boolean'
-          ? schema
-          : (resolveRef(schema as OpenApiReferenceObject, context)
-              .schema as OpenApiSchemaObject),
+        typeof schema === 'boolean' ? schema : resolveShallow(schema, context),
       )
     : dereference(schema, context);
 
