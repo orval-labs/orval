@@ -3401,6 +3401,25 @@ export const generateFormDataZodSchema = (
  * array roots. The url-encoded string-contract rationale lives where the flag
  * is derived (see `isFormUrlEncoded` below).
  */
+/**
+ * Resolves one level of `$ref`, keeping keywords declared next to it (e.g.
+ * `maxItems`) on top of the target, as `dereference` does, while leaving
+ * nested refs untouched.
+ */
+const resolveShallow = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiSchemaObject => {
+  const { $ref: _, ...siblings } = schema as Record<string, unknown>;
+  const target = resolveRef<OpenApiSchemaObject>(
+    schema as OpenApiReferenceObject,
+    context,
+  ).schema;
+  return typeof target === 'boolean'
+    ? target
+    : ({ ...target, ...siblings } as OpenApiSchemaObject);
+};
+
 const parseBodyAndResponse = ({
   data,
   context,
@@ -3503,7 +3522,15 @@ const parseBodyAndResponse = ({
   }
 
   const encoding = mediaType.encoding;
-  const resolvedJsonSchema = dereference(schema, context);
+  // Reusable schemas emit nested $refs by name, so only the top level
+  // (`items` and the bounds below) is read here. Resolve one level instead of
+  // inlining the whole tree, which grows exponentially on specs with widely
+  // shared refs (e.g. Stripe runs out of memory).
+  const resolvedJsonSchema = useReusableSchemas
+    ? toObjectSchema(
+        typeof schema === 'boolean' ? schema : resolveShallow(schema, context),
+      )
+    : dereference(schema, context);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
@@ -3521,22 +3548,10 @@ const parseBodyAndResponse = ({
     const min = safeNumericConstraint(rawMin, 'minimum/minLength/minItems');
     const max = safeNumericConstraint(rawMax, 'maximum/maxLength/maxItems');
 
-    // When useReusableSchemas is on, shallow-resolve one level so that $ref
-    // references inside the items schema are preserved for named-ref emission.
-    // E.g. Pets = array of {$ref: Pet} → we want to emit Pet (namedRef)
-    // rather than inlining Pet's full schema.
+    // With useReusableSchemas the items keep their $refs for named-ref
+    // emission, e.g. Pets = array of {$ref: Pet} emits Pet, not Pet inlined.
     const rawItems: OpenApiSchemaObject | OpenApiReferenceObject =
-      useReusableSchemas
-        ? (() => {
-            const shallowArraySchema = toObjectSchema(
-              typeof schema === 'boolean'
-                ? schema
-                : (resolveRef(schema as OpenApiReferenceObject, context)
-                    .schema as OpenApiSchemaObject),
-            );
-            return shallowArraySchema.items ?? resolvedJsonSchema.items;
-          })()
-        : resolvedJsonSchema.items;
+      resolvedJsonSchema.items;
 
     return {
       input: generateZodValidationSchemaDefinition(

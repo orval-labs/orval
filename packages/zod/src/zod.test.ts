@@ -5,6 +5,7 @@ import type {
   NormalizedMutator,
   ZodVariantOption,
   OpenApiDocument,
+  OpenApiReferenceObject,
   OpenApiResponsesObject,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
@@ -6957,6 +6958,116 @@ describe('generatePartOfSchemaGenerateZod', () => {
       '"tags": zod.array(zod.string()).optional()',
     );
     expect(result.implementation).not.toContain('zod.preprocess');
+  });
+});
+
+describe('generateZod with generateReusableSchemas', () => {
+  const generateBody = async (
+    schemas: Record<string, OpenApiSchemaObject>,
+    body: OpenApiSchemaObject | OpenApiReferenceObject,
+  ) => {
+    const result = await generateZod(
+      createTestGeneratorVerbOptions({
+        pathRoute: '/nodes',
+        verb: 'post',
+        operationName: 'createNode',
+        typeName: 'createNode',
+        override: {
+          zod: {
+            generate: {
+              param: false,
+              query: false,
+              header: false,
+              body: true,
+              response: false,
+            },
+          },
+        },
+      }),
+      createTestGeneratorOptions({
+        pathRoute: '/nodes',
+        context: {
+          spec: {
+            paths: {
+              '/nodes': {
+                post: {
+                  operationId: 'createNode',
+                  requestBody: {
+                    content: { 'application/json': { schema: body } },
+                  },
+                  responses: { '204': { description: 'No content' } },
+                },
+              },
+            },
+            components: { schemas },
+          },
+          output: {
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+      }),
+      testOutput,
+    );
+    return result.implementation;
+  };
+
+  it('does not inline the shared $ref graph of the body', async () => {
+    // Each level references the next one twice, so inlining the body resolves
+    // 2^DEPTH refs; reusable schemas only need the top level.
+    const DEPTH = 20;
+    let schemaReads = 0;
+    const nodes: Record<string, OpenApiSchemaObject> = Object.fromEntries(
+      Array.from({ length: DEPTH }, (_, i) => [
+        `Node${i}`,
+        i === DEPTH - 1
+          ? { type: 'string' }
+          : {
+              type: 'object',
+              properties: {
+                left: { $ref: `#/components/schemas/Node${i + 1}` },
+                right: { $ref: `#/components/schemas/Node${i + 1}` },
+              },
+            },
+      ]),
+    );
+    const schemas = new Proxy(nodes, {
+      get(target, key, receiver) {
+        if (typeof key === 'string' && key in target) schemaReads++;
+        return Reflect.get(target, key, receiver) as unknown;
+      },
+    });
+
+    const implementation = await generateBody(schemas, {
+      $ref: '#/components/schemas/Node0',
+    });
+
+    expect(implementation).toContain('CreateNodeBody = Node0');
+    expect(schemaReads).toBeLessThan(100);
+  });
+
+  it('keeps array bounds declared next to the $ref', async () => {
+    const implementation = await generateBody(
+      {
+        Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        Pets: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Pet' },
+          maxItems: 10,
+        },
+      },
+      { $ref: '#/components/schemas/Pets', maxItems: 5 },
+    );
+
+    expect(implementation).toContain('zod.array(CreateNodeBodyItem).max(5)');
+  });
+
+  it('accepts a $ref to a boolean schema', async () => {
+    const implementation = await generateBody(
+      { Anything: true },
+      { $ref: '#/components/schemas/Anything' },
+    );
+
+    expect(implementation).toContain('CreateNodeBody');
   });
 });
 
