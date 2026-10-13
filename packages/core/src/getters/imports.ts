@@ -11,7 +11,13 @@ export function getAliasedImports({
   resolvedValue,
   context,
 }: GetAliasedImportsOptions): GeneratorImport[] {
-  return context.output.schemas && resolvedValue.isRef
+  const { schemas } = context.output;
+  // In `mode: 'single'` every schema is written to one file without imports,
+  // so an alias such as `__Address` would never be defined (#4290).
+  const isSingleSchemasFile =
+    typeof schemas === 'object' && schemas.mode === 'single';
+
+  return schemas && !isSingleSchemasFile && resolvedValue.isRef
     ? resolvedValue.imports.map((imp) => {
         if (
           !needCreateImportAlias({
