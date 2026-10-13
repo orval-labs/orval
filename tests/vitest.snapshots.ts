@@ -17,6 +17,7 @@ export default defineConfig({
       'dates-transform-request.spec.ts',
       'dates-transform-fetch.spec.ts',
       'mutation-invalidates-options-mutator.spec.ts',
+      'fixtures-runtime.spec.ts',
     ],
     silent: 'passed-only',
   },
