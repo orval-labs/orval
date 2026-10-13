@@ -12098,6 +12098,25 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       expect((items as Record<string, unknown>).type).toBe('object');
     });
 
+    it('keeps null property values in extensions instead of crashing', () => {
+      // GitHub's spec carries JSON merge-patch bodies in an extension, where
+      // `null` means "remove this property".
+      const extension = { properties: { removed: null } };
+
+      const resolved = dereference(
+        {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          'x-breaking-changes': extension,
+        } as OpenApiSchemaObject,
+        makeContextSpec(),
+      );
+
+      expect(
+        (resolved as Record<string, unknown>)['x-breaking-changes'],
+      ).toEqual(extension);
+    });
+
     it('resolves $dynamicRef via local scope when schema overrides $dynamicAnchor', () => {
       const ctx = makeContextSpec({
         spec: {
