@@ -3,18 +3,117 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { GetterPropType } from '@orval/core';
+import type {
+  ContextSpec,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  OpenApiParameterObject,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '@orval/core';
+import { GetterPropType, PropertySortOrder, Verbs } from '@orval/core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { generateRequestFunction } from './index';
 import { RUNTIME_TEMPLATE } from './runtime';
-import {
-  makeContext,
-  makeOptions,
-  makeVerbOptions,
-  STUB_QUERY_PARAMS,
-  type TestParameter,
-} from './test-utils';
+
+type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
+
+type TestParameter = {
+  name: string;
+  in: string;
+  style?: string;
+  explode?: boolean;
+  // Record keeps widened fixture objects assignable. OpenApiSchemaObject
+  // adds JSON Schema booleans, which Record<string, unknown> rejects.
+  schema?: OpenApiSchemaObject | Record<string, unknown>;
+};
+
+function makeContext(
+  parameters: TestParameter[] = [],
+  useDates = false,
+  schemas?: ContextSpec['output']['schemas'],
+): ContextSpec {
+  const context = createTestContextSpec({
+    spec: {
+      paths: {
+        '/pets': {
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      },
+    },
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      ...(schemas === undefined ? {} : { schemas }),
+    },
+    override: { useDates },
+  });
+  const operation = context.spec.paths?.['/pets']?.get;
+  if (operation) {
+    operation.parameters = parameters as OpenApiParameterLike[];
+  }
+  return context;
+}
+
+function makeVerbOptions(
+  overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+): GeneratorVerbOptions {
+  const { override, ...rest } = overrides;
+  return createTestGeneratorVerbOptions({
+    verb: Verbs.GET,
+    route: '/pets',
+    pathRoute: '/pets',
+    operationId: 'listPets',
+    operationName: 'listPets',
+    typeName: 'listPets',
+    response: {
+      definition: { success: 'Pet[]', errors: '' },
+      contentTypes: ['application/json'],
+    },
+    ...rest,
+    override: {
+      requestOptions: false,
+      formUrlEncoded: false,
+      fetch: {
+        includeHttpResponseReturnType: false,
+        forceSuccessResponse: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
+      },
+      ...override,
+    },
+  });
+}
+
+function makeOptions(
+  context: ContextSpec,
+  overrides: Partial<GeneratorOptions> = {},
+): GeneratorOptions {
+  return {
+    ...createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+    }),
+    context,
+    ...overrides,
+  } satisfies GeneratorOptions;
+}
+
+const STUB_QUERY_PARAMS = {
+  schema: {
+    name: 'ListPetsParams',
+    model: 'type ListPetsParams = { limit?: string }',
+    imports: [],
+  },
+  deps: [],
+  isOptional: true,
+} satisfies NonNullable<GeneratorVerbOptions['queryParams']>;
 
 describe('shared runtime behaviour', () => {
   type QueryMeta = Record<string, string[]>;
