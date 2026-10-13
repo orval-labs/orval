@@ -1604,7 +1604,11 @@ export interface NormalizedAngularOptions {
   httpResource?: AngularHttpResourceOptions;
   baseUrl?: AngularBaseUrlOptions;
   queryObjectSerialization: 'spec' | 'legacy';
-  observeOverloads: boolean;
+  /**
+   * Always set at the output level; omitted on tag/operation overrides that
+   * don't specify it so the output-level value is preserved when merged.
+   */
+  observeOverloads?: boolean;
 }
 
 export interface AngularHttpResourceOptions {

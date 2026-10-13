@@ -1066,6 +1066,25 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('HttpClientResponseOptions');
     });
 
+    it('keeps observe overloads when observeOverloads is unset', () => {
+      const { observeOverloads: _, ...angular } = angularOverride;
+      const verbOption = createVerbOption({
+        override: {
+          requestOptions: true,
+          formData: { disabled: true, arrayHandling: 'serialize' },
+          formUrlEncoded: true,
+          paramsSerializerOptions: undefined,
+          angular,
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('HttpClientEventOptions');
+      expect(impl).toContain('HttpClientResponseOptions');
+    });
+
     it('skips observe overloads when requestOptions is false', () => {
       const verbOption = createVerbOption({
         override: {

@@ -1492,7 +1492,11 @@ function normalizeOperationsAndTags(
                     ),
                     queryObjectSerialization:
                       angular.queryObjectSerialization ?? 'spec',
-                    observeOverloads: angular.observeOverloads ?? true,
+                    // Leave unset when omitted so the deep merge keeps the
+                    // output-level value (e.g. a global `false`).
+                    ...(angular.observeOverloads === undefined
+                      ? {}
+                      : { observeOverloads: angular.observeOverloads }),
                     ...(angular.httpResource
                       ? { httpResource: angular.httpResource }
                       : {}),

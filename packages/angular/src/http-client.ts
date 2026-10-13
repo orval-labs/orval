@@ -907,7 +907,7 @@ export const generateHttpClientImplementation = (
   const bodyOverload = `${functionName}(${propsDefinition} options?: HttpClientBodyOptions): Observable<${hasTDataGeneric ? 'TData' : parsedDataType}>;`;
   const observeOverloads =
     isRequestOptions && !hasMultipleContentTypes
-      ? override.angular.observeOverloads
+      ? override.angular.observeOverloads !== false
         ? `${bodyOverload}\n ${functionName}(${propsDefinition} options?: HttpClientEventOptions): Observable<HttpEvent<${hasTDataGeneric ? 'TData' : parsedDataType}>>;\n ${functionName}(${propsDefinition} options?: HttpClientResponseOptions): Observable<AngularHttpResponse<${hasTDataGeneric ? 'TData' : parsedDataType}>>;`
         : bodyOverload
       : '';
