@@ -72,7 +72,11 @@ import {
 import pkg from '../../package.json';
 import { logger } from '../logger';
 import { loadPackageJson } from './package-json';
-import { loadTsconfig } from './tsconfig';
+import {
+  createTsconfigPathsResolver,
+  loadTsconfig,
+  type TsconfigPathsResolver,
+} from './tsconfig';
 
 const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
 
@@ -105,6 +109,7 @@ export function defineTransformer(
 function createFormData(
   workspace: string,
   formData: OverrideOutput['formData'],
+  resolveTsconfigPath?: TsconfigPathsResolver,
 ): NormalizedOverrideOutput['formData'] {
   const defaultArrayHandling = FormDataArrayHandling.SERIALIZE;
   if (formData === undefined)
@@ -114,18 +119,22 @@ function createFormData(
   if (isString(formData))
     return {
       disabled: false,
-      mutator: normalizeMutator(workspace, formData),
+      mutator: normalizeMutator(workspace, formData, resolveTsconfigPath),
       arrayHandling: defaultArrayHandling,
     };
   if ('mutator' in formData || 'arrayHandling' in formData)
     return {
       disabled: false,
-      mutator: normalizeMutator(workspace, formData.mutator),
+      mutator: normalizeMutator(
+        workspace,
+        formData.mutator,
+        resolveTsconfigPath,
+      ),
       arrayHandling: formData.arrayHandling ?? defaultArrayHandling,
     };
   return {
     disabled: false,
-    mutator: normalizeMutator(workspace, formData),
+    mutator: normalizeMutator(workspace, formData, resolveTsconfigPath),
     arrayHandling: defaultArrayHandling,
   };
 }
@@ -619,6 +628,11 @@ export async function normalizeOptions(
     workspace,
   );
 
+  const resolveTsconfigPath = createTsconfigPathsResolver(
+    outputOptions.tsconfig ?? globalOptions.tsconfig,
+    workspace,
+  );
+
   const packageJson = await loadPackageJson(
     outputOptions.packageJson ?? globalOptions.packageJson,
     workspace,
@@ -765,7 +779,12 @@ export async function normalizeOptions(
     shouldExportKeys: true,
     shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
-    ...normalizeQueryOptions(outputOptions.override?.query, outputWorkspace),
+    ...normalizeQueryOptions(
+      outputOptions.override?.query,
+      outputWorkspace,
+      {},
+      resolveTsconfigPath,
+    ),
   };
 
   const normalizedOptions: NormalizedOptions = {
@@ -856,6 +875,7 @@ export async function normalizeOptions(
             query: globalQueryOptions,
           },
           'operations',
+          resolveTsconfigPath,
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags ?? {},
@@ -864,14 +884,17 @@ export async function normalizeOptions(
             query: globalQueryOptions,
           },
           'tags',
+          resolveTsconfigPath,
         ),
         mutator: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.mutator,
+          resolveTsconfigPath,
         ),
         formData: createFormData(
           outputWorkspace,
           outputOptions.override?.formData,
+          resolveTsconfigPath,
         ),
         formUrlEncoded:
           (isBoolean(outputOptions.override?.formUrlEncoded)
@@ -879,14 +902,17 @@ export async function normalizeOptions(
             : normalizeMutator(
                 outputWorkspace,
                 outputOptions.override?.formUrlEncoded,
+                resolveTsconfigPath,
               )) ?? true,
         paramsSerializer: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
+          resolveTsconfigPath,
         ),
         paramsFilter: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsFilter,
+          resolveTsconfigPath,
         ),
         header:
           outputOptions.override?.header === false
@@ -956,6 +982,7 @@ export async function normalizeOptions(
                   param: normalizeMutator(
                     outputWorkspace,
                     outputOptions.override.zod.preprocess.param,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
@@ -964,6 +991,7 @@ export async function normalizeOptions(
                   query: normalizeMutator(
                     outputWorkspace,
                     outputOptions.override.zod.preprocess.query,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
@@ -972,6 +1000,7 @@ export async function normalizeOptions(
                   header: normalizeMutator(
                     outputWorkspace,
                     outputOptions.override.zod.preprocess.header,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
@@ -980,6 +1009,7 @@ export async function normalizeOptions(
                   body: normalizeMutator(
                     outputWorkspace,
                     outputOptions.override.zod.preprocess.body,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
@@ -988,6 +1018,7 @@ export async function normalizeOptions(
                   response: normalizeMutator(
                     outputWorkspace,
                     outputOptions.override.zod.preprocess.response,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
@@ -997,6 +1028,7 @@ export async function normalizeOptions(
                 params: normalizeMutator(
                   outputWorkspace,
                   outputOptions.override.zod.params,
+                  resolveTsconfigPath,
                 ),
               }
             : {}),
@@ -1082,6 +1114,7 @@ export async function normalizeOptions(
                 jsonReviver: normalizeMutator(
                   outputWorkspace,
                   outputOptions.override.fetch.jsonReviver,
+                  resolveTsconfigPath,
                 ),
               }
             : {}),
@@ -1218,9 +1251,33 @@ export async function normalizeOptions(
   return normalizedOptions;
 }
 
+/**
+ * Resolves a mutator path written as an import specifier to the file it
+ * names: first as a package, then through the tsconfig `paths` aliases. A
+ * file at that path relative to the workspace takes precedence over an alias,
+ * so such configs keep their relative import.
+ */
+function resolveMutatorSpecifier(
+  workspace: string,
+  value: string,
+  resolveTsconfigPath?: TsconfigPathsResolver,
+): string | undefined {
+  if (!looksLikePackageSpecifier(value)) {
+    return undefined;
+  }
+
+  const packagePath = resolvePackageSpecifier(workspace, value);
+  if (packagePath || existsSync(nodePath.resolve(workspace, value))) {
+    return packagePath;
+  }
+
+  return resolveTsconfigPath?.(value);
+}
+
 function normalizeMutator(
   workspace: string,
   mutator?: Mutator,
+  resolveTsconfigPath?: TsconfigPathsResolver,
 ): NormalizedMutator | undefined {
   if (isObject(mutator)) {
     const m = mutator as Exclude<Mutator, string>;
@@ -1228,9 +1285,11 @@ function normalizeMutator(
       throw new Error(styleText('red', `Mutator requires a path.`));
     }
 
-    const resolvedPath = looksLikePackageSpecifier(m.path)
-      ? resolvePackageSpecifier(workspace, m.path)
-      : undefined;
+    const resolvedPath = resolveMutatorSpecifier(
+      workspace,
+      m.path,
+      resolveTsconfigPath,
+    );
     const isPackageSpecifier =
       !!resolvedPath || isPackageSpecifierCandidate(workspace, m.path);
 
@@ -1248,9 +1307,11 @@ function normalizeMutator(
   }
 
   if (isString(mutator)) {
-    const resolvedPath = looksLikePackageSpecifier(mutator)
-      ? resolvePackageSpecifier(workspace, mutator)
-      : undefined;
+    const resolvedPath = resolveMutatorSpecifier(
+      workspace,
+      mutator,
+      resolveTsconfigPath,
+    );
     const isPackageSpecifier =
       !!resolvedPath || isPackageSpecifierCandidate(workspace, mutator);
 
@@ -1420,6 +1481,7 @@ function normalizeOperationsAndTags(
     query: NormalizedQueryOptions;
   },
   source: 'operations' | 'tags',
+  resolveTsconfigPath?: TsconfigPathsResolver,
 ): Record<string, NormalizedOperationOptions> {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
@@ -1498,7 +1560,12 @@ function normalizeOperationsAndTags(
               : {}),
             ...(query
               ? {
-                  query: normalizeQueryOptions(query, workspace, global.query),
+                  query: normalizeQueryOptions(
+                    query,
+                    workspace,
+                    global.query,
+                    resolveTsconfigPath,
+                  ),
                 }
               : {}),
             // oxlint-disable-next-line typescript/no-unnecessary-condition
@@ -1532,6 +1599,7 @@ function normalizeOperationsAndTags(
                             param: normalizeMutator(
                               workspace,
                               zod.preprocess.param,
+                              resolveTsconfigPath,
                             ),
                           }
                         : {}),
@@ -1540,6 +1608,7 @@ function normalizeOperationsAndTags(
                             query: normalizeMutator(
                               workspace,
                               zod.preprocess.query,
+                              resolveTsconfigPath,
                             ),
                           }
                         : {}),
@@ -1548,6 +1617,7 @@ function normalizeOperationsAndTags(
                             header: normalizeMutator(
                               workspace,
                               zod.preprocess.header,
+                              resolveTsconfigPath,
                             ),
                           }
                         : {}),
@@ -1556,6 +1626,7 @@ function normalizeOperationsAndTags(
                             body: normalizeMutator(
                               workspace,
                               zod.preprocess.body,
+                              resolveTsconfigPath,
                             ),
                           }
                         : {}),
@@ -1564,13 +1635,18 @@ function normalizeOperationsAndTags(
                             response: normalizeMutator(
                               workspace,
                               zod.preprocess.response,
+                              resolveTsconfigPath,
                             ),
                           }
                         : {}),
                     },
                     ...(zod.params
                       ? {
-                          params: normalizeMutator(workspace, zod.params),
+                          params: normalizeMutator(
+                            workspace,
+                            zod.params,
+                            resolveTsconfigPath,
+                          ),
                         }
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
@@ -1583,16 +1659,32 @@ function normalizeOperationsAndTags(
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
             ...(mutator
-              ? { mutator: normalizeMutator(workspace, mutator) }
+              ? {
+                  mutator: normalizeMutator(
+                    workspace,
+                    mutator,
+                    resolveTsconfigPath,
+                  ),
+                }
               : {}),
             ...(formData === undefined
               ? {}
-              : { formData: createFormData(workspace, formData) }),
+              : {
+                  formData: createFormData(
+                    workspace,
+                    formData,
+                    resolveTsconfigPath,
+                  ),
+                }),
             ...(formUrlEncoded
               ? {
                   formUrlEncoded: isBoolean(formUrlEncoded)
                     ? formUrlEncoded
-                    : normalizeMutator(workspace, formUrlEncoded),
+                    : normalizeMutator(
+                        workspace,
+                        formUrlEncoded,
+                        resolveTsconfigPath,
+                      ),
                 }
               : {}),
             ...(paramsSerializer
@@ -1600,12 +1692,17 @@ function normalizeOperationsAndTags(
                   paramsSerializer: normalizeMutator(
                     workspace,
                     paramsSerializer,
+                    resolveTsconfigPath,
                   ),
                 }
               : {}),
             ...(paramsFilter
               ? {
-                  paramsFilter: normalizeMutator(workspace, paramsFilter),
+                  paramsFilter: normalizeMutator(
+                    workspace,
+                    paramsFilter,
+                    resolveTsconfigPath,
+                  ),
                 }
               : {}),
           },
@@ -1703,6 +1800,7 @@ function normalizeQueryOptions(
   queryOptions: QueryOptions = {},
   outputWorkspace: string,
   globalOptions: NormalizedQueryOptions = {},
+  resolveTsconfigPath?: TsconfigPathsResolver,
 ): NormalizedQueryOptions {
   if (queryOptions.options) {
     logger.warn(
@@ -1767,7 +1865,11 @@ function normalizeQueryOptions(
       : {}),
     ...(queryOptions.queryKey
       ? {
-          queryKey: normalizeMutator(outputWorkspace, queryOptions.queryKey),
+          queryKey: normalizeMutator(
+            outputWorkspace,
+            queryOptions.queryKey,
+            resolveTsconfigPath,
+          ),
         }
       : {}),
     ...(globalOptions.queryOptions
@@ -1780,6 +1882,7 @@ function normalizeQueryOptions(
           queryOptions: normalizeMutator(
             outputWorkspace,
             queryOptions.queryOptions,
+            resolveTsconfigPath,
           ),
         }
       : {}),
@@ -1793,6 +1896,7 @@ function normalizeQueryOptions(
           mutationOptions: normalizeMutator(
             outputWorkspace,
             queryOptions.mutationOptions,
+            resolveTsconfigPath,
           ),
         }
       : {}),

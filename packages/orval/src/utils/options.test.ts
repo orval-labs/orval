@@ -94,6 +94,218 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('tsconfig paths mutator specifiers (#4300)', () => {
+    const setup = async (
+      paths: Record<string, string[]>,
+      compilerOptions: Record<string, unknown> = { baseUrl: '.' },
+    ) => {
+      const workspace = await createTempWorkspace();
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      const mutatorPath = path.join(workspace, 'src', 'api', 'api-request.ts');
+
+      await mkdir(path.dirname(mutatorPath), { recursive: true });
+      await writeFile(
+        path.join(workspace, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: { ...compilerOptions, paths } }),
+      );
+      await writeFile(
+        mutatorPath,
+        'export const apiRequest = (config: unknown) => config;\n',
+      );
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      return { workspace, validSpecPath, mutatorPath };
+    };
+
+    it('resolves a bare wildcard alias and keeps it as the import', async () => {
+      const { workspace, validSpecPath, mutatorPath } = await setup({
+        '*': ['./src/*'],
+      });
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              override: {
+                mutator: { path: 'api/api-request', name: 'apiRequest' },
+                query: { queryKey: 'api/api-request' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator).toMatchObject({
+          path: 'api/api-request',
+          resolvedPath: mutatorPath,
+        });
+        expect(normalized.output.override.query.queryKey).toMatchObject({
+          path: 'api/api-request',
+          resolvedPath: mutatorPath,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('resolves a prefixed alias to the mutator file', async () => {
+      const { workspace, validSpecPath, mutatorPath } = await setup({
+        '@/*': ['./src/*'],
+      });
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              override: {
+                mutator: { path: '@/api/api-request', name: 'apiRequest' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator).toMatchObject({
+          path: '@/api/api-request',
+          resolvedPath: mutatorPath,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('prefers a file relative to the workspace over an alias', async () => {
+      const { workspace, validSpecPath, mutatorPath } = await setup({
+        '*': ['./src/*'],
+      });
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              override: {
+                mutator: { path: 'src/api/api-request.ts', name: 'apiRequest' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator?.path).toBe(mutatorPath);
+        expect(
+          normalized.output.override.mutator?.resolvedPath,
+        ).toBeUndefined();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('resolves a .js specifier to its TypeScript source', async () => {
+      const { workspace, validSpecPath, mutatorPath } = await setup({
+        '@/*': ['./src/*'],
+      });
+
+      try {
+        // A compiled sibling must not be picked over the source.
+        await writeFile(
+          mutatorPath.replace(/\.ts$/, '.js'),
+          'export const apiRequest = (config) => config;\n',
+        );
+
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              override: {
+                mutator: { path: '@/api/api-request.js', name: 'apiRequest' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator).toMatchObject({
+          path: '@/api/api-request.js',
+          resolvedPath: mutatorPath,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('honors a top-level baseUrl on an inline tsconfig', async () => {
+      const { workspace, validSpecPath, mutatorPath } = await setup({});
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              tsconfig: {
+                baseUrl: 'src',
+                compilerOptions: { paths: { '@/*': ['*'] } },
+              },
+              override: {
+                mutator: { path: '@/api/api-request', name: 'apiRequest' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator).toMatchObject({
+          path: '@/api/api-request',
+          resolvedPath: mutatorPath,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('ignores paths the matcher rejects instead of failing', async () => {
+      // Non-relative targets without a `baseUrl` are invalid.
+      const { workspace, validSpecPath } = await setup(
+        { '@/*': ['src/*'] },
+        {},
+      );
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './src/api/endpoints.ts',
+              override: {
+                mutator: { path: '@/api/api-request', name: 'apiRequest' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.mutator).toMatchObject({
+          path: '@/api/api-request',
+        });
+        expect(
+          normalized.output.override.mutator?.resolvedPath,
+        ).toBeUndefined();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
   it('resolves override.mcp.handler against the workspace', async () => {
     const workspace = await createTempWorkspace();
 

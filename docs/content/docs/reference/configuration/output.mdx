@@ -1370,6 +1370,8 @@ export type ErrorType<Error> = AxiosError<Error>;
 export type BodyType<BodyData> = BodyData;
 ```
 
+`path` can also be an import specifier: a package (`@acme/http/fetch`) or a tsconfig `paths` alias (`@/lib/custom-instance`, or `api/custom-instance` with `"*": ["./src/*"]`). The generated files import it verbatim instead of through a relative path, and Orval resolves it through the [`tsconfig`](#tsconfig) `paths` to read the mutator. Write it the way you would import it, without a `.ts` extension. A file that exists at that path relative to the workspace takes precedence over an alias.
+
 #### `inferred`
 
 **Type:** `Boolean`
