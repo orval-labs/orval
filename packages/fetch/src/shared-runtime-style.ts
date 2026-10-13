@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getImportExtension,
   getImport,
+  getQueryParamSerialization,
   GetterPropType,
   jsDoc,
   makeRouteSafe,
@@ -23,12 +24,6 @@ import {
 } from '@orval/core';
 
 import pkg from '../package.json' with { type: 'json' };
-import {
-  getArrayFormatParameters,
-  getDeepObjectParameters,
-  getExplodeParameters,
-  getParameterObjects,
-} from './query-params';
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 
 const isContentTypeNdJson = (contentType: string) =>
@@ -179,25 +174,18 @@ export const generateSharedRequestFunction = (
     )
     .join(',');
 
-  const parameterObjects = getParameterObjects(
-    { verb },
-    { context, pathRoute },
-  );
   const arrayFormat = override.fetch.arrayFormat;
+  const serialization = getQueryParamSerialization(
+    { pathRoute, verb },
+    context,
+    arrayFormat,
+  );
   const names = (parameters: { name: string }[]) =>
     parameters.map((parameter) => parameter.name);
   const meta = Object.entries({
-    explode: names(
-      getExplodeParameters(parameterObjects, arrayFormat, context),
-    ),
-    ...(arrayFormat
-      ? {
-          [arrayFormat]: names(
-            getArrayFormatParameters(parameterObjects, arrayFormat, context),
-          ),
-        }
-      : {}),
-    deepObject: names(getDeepObjectParameters(parameterObjects)),
+    explode: names(serialization.explode),
+    ...(arrayFormat ? { [arrayFormat]: names(serialization.arrayFormat) } : {}),
+    deepObject: names(serialization.deepObject),
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);
