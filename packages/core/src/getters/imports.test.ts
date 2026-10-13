@@ -161,6 +161,55 @@ describe('getAliasedImports getter', () => {
       expect(result).toStrictEqual(expected);
     });
   });
+
+  describe('with schemas in mode single', () => {
+    const selfReference: ResolverValue = {
+      ...baseResolvedValue,
+      isRef: true,
+      value: 'Address',
+      imports: [{ name: 'Address' }],
+    };
+    const contextForMode = (mode: 'single' | 'split') =>
+      createTestContextSpec({
+        target: 'spec',
+        output: {
+          schemas: {
+            path: '/schemas',
+            mode,
+            type: 'typescript',
+            splitByTags: false,
+          },
+        },
+      });
+
+    it('should not alias a self-referencing schema, since one file has no imports', () => {
+      const context = contextForMode('single');
+      const imports = getAliasedImports({
+        name: 'Address',
+        resolvedValue: selfReference,
+        context,
+      });
+
+      expect(imports).toStrictEqual([{ name: 'Address' }]);
+      expect(
+        getImportAliasForRefOrValue({
+          context,
+          imports,
+          resolvedValue: selfReference,
+        }),
+      ).toBe('Address');
+    });
+
+    it('should still alias it in mode split', () => {
+      expect(
+        getAliasedImports({
+          name: 'Address',
+          resolvedValue: selfReference,
+          context: contextForMode('split'),
+        }),
+      ).toStrictEqual([{ name: 'Address', alias: '__Address' }]);
+    });
+  });
 });
 
 describe('needCreateImportAlias', () => {
