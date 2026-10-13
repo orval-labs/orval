@@ -23,6 +23,7 @@ const angularOverride = {
   client: 'httpClient',
   runtimeValidation: { enabled: false, strategy: 'throw' },
   queryObjectSerialization: 'spec',
+  observeOverloads: true,
 } as const;
 
 const createOutput = (

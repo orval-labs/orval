@@ -31,6 +31,7 @@ interface AngularOverride {
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: NormalizedRuntimeValidation;
   queryObjectSerialization: 'spec' | 'legacy';
+  observeOverloads: boolean;
 }
 
 const angularOverride = {
@@ -38,6 +39,7 @@ const angularOverride = {
   client: 'httpClient',
   runtimeValidation: { enabled: false, strategy: 'throw' },
   queryObjectSerialization: 'spec',
+  observeOverloads: true,
 } satisfies AngularOverride;
 
 const createOutput = (
@@ -1041,6 +1043,27 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('Observable<TData>');
       expect(impl).toContain('Observable<HttpEvent<TData>>');
       expect(impl).toContain('Observable<AngularHttpResponse<TData>>');
+    });
+
+    it('emits only the body overload when observeOverloads is false', () => {
+      const verbOption = createVerbOption({
+        override: {
+          requestOptions: true,
+          formData: { disabled: true, arrayHandling: 'serialize' },
+          formUrlEncoded: true,
+          paramsSerializerOptions: undefined,
+          angular: { ...angularOverride, observeOverloads: false },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'options?: HttpClientBodyOptions): Observable<TData>;',
+      );
+      expect(impl).not.toContain('HttpClientEventOptions');
+      expect(impl).not.toContain('HttpClientResponseOptions');
     });
 
     it('skips observe overloads when requestOptions is false', () => {

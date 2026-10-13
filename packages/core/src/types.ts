@@ -1584,6 +1584,17 @@ export interface AngularOptions {
    * issue #3705.
    */
   queryObjectSerialization?: 'spec' | 'legacy';
+  /**
+   * Emit the `observe: 'body' | 'events' | 'response'` overloads on generated
+   * `HttpClient` service methods.
+   *
+   * Set to `false` to emit only the `observe: 'body'` signature
+   * (`Observable<TData>`), which keeps generated services easy to mock with
+   * tools such as Vitest, Jasmine, Spectator or ng-mocks. See issue #4289.
+   *
+   * @default true
+   */
+  observeOverloads?: boolean;
 }
 
 export interface NormalizedAngularOptions {
@@ -1593,6 +1604,7 @@ export interface NormalizedAngularOptions {
   httpResource?: AngularHttpResourceOptions;
   baseUrl?: AngularBaseUrlOptions;
   queryObjectSerialization: 'spec' | 'legacy';
+  observeOverloads: boolean;
 }
 
 export interface AngularHttpResourceOptions {

@@ -2680,6 +2680,45 @@ Like `retrievalClient`/`runtimeValidation`, this can be set globally, per-tag
 control of the raw value. See
 [issue #3705](https://github.com/orval-labs/orval/issues/3705).
 
+### observeOverloads
+
+**Type:** `Boolean`
+**Default:** `true`
+
+By default, generated `HttpClient` service methods expose one overload per
+Angular `observe` mode (`'body'`, `'events'`, `'response'`). Set this to
+`false` to emit only the `observe: 'body'` signature. That makes generated
+services easier to mock with Vitest, Jasmine, Spectator or ng-mocks, because
+TypeScript only uses the last overload when inferring mock types.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      override: {
+        angular: {
+          observeOverloads: false,
+        },
+      },
+    },
+  },
+});
+```
+
+generates:
+
+```ts
+showPetById<TData = Pet>(
+  petId: string,
+  options?: HttpClientBodyOptions,
+): Observable<TData>;
+```
+
+Like `queryObjectSerialization`, this can be set globally, per-tag, or
+per-operation. See
+[issue #4289](https://github.com/orval-labs/orval/issues/4289).
+
 ### httpResource
 
 **Type:** `Object`
