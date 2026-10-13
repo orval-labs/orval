@@ -3,31 +3,139 @@ import type {
   GeneratorOperation,
   GeneratorOptions,
   GeneratorVerbOptions,
+  OpenApiParameterObject,
+  OpenApiReferenceObject,
   OpenApiSchemaObject,
+  ResReqTypesValue,
 } from '@orval/core';
 import {
   GetterPropType,
   HTTP_STATUS_CODE_SHARED_TYPES,
   OutputClient,
+  PropertySortOrder,
   Verbs,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils';
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import {
   generateClient,
   generateFetchFooter,
   generateFetchHeader,
   generateRequestFunction,
 } from './index';
-import {
-  makeContext,
-  makeOptions,
-  makeSharedOptions,
-  makeVerbOptions,
-  STUB_QUERY_PARAMS,
-  successType,
-} from './test-utils';
+
+type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
+
+type TestParameter = {
+  name: string;
+  in: string;
+  style?: string;
+  explode?: boolean;
+  // Record keeps widened fixture objects assignable. OpenApiSchemaObject
+  // adds JSON Schema booleans, which Record<string, unknown> rejects.
+  schema?: OpenApiSchemaObject | Record<string, unknown>;
+};
+
+const successType = (
+  overrides: Partial<ResReqTypesValue> &
+    Pick<ResReqTypesValue, 'key' | 'value'>,
+): ResReqTypesValue => ({
+  contentType: 'application/json',
+  hasReadonlyProps: false,
+  imports: [],
+  isEnum: false,
+  isRef: false,
+  schemas: [],
+  type: 'object',
+  dependencies: [],
+  ...overrides,
+});
+
+function makeContext(
+  parameters: TestParameter[] = [],
+  useDates = false,
+  schemas?: ContextSpec['output']['schemas'],
+): ContextSpec {
+  const context = createTestContextSpec({
+    spec: {
+      paths: {
+        '/pets': {
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      },
+    },
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      ...(schemas === undefined ? {} : { schemas }),
+    },
+    override: { useDates },
+  });
+  const operation = context.spec.paths?.['/pets']?.get;
+  if (operation) {
+    operation.parameters = parameters as OpenApiParameterLike[];
+  }
+  return context;
+}
+
+function makeVerbOptions(
+  overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+): GeneratorVerbOptions {
+  const { override, ...rest } = overrides;
+  return createTestGeneratorVerbOptions({
+    verb: Verbs.GET,
+    route: '/pets',
+    pathRoute: '/pets',
+    operationId: 'listPets',
+    operationName: 'listPets',
+    typeName: 'listPets',
+    response: {
+      definition: { success: 'Pet[]', errors: '' },
+      contentTypes: ['application/json'],
+    },
+    ...rest,
+    override: {
+      requestOptions: false,
+      formUrlEncoded: false,
+      fetch: {
+        includeHttpResponseReturnType: false,
+        forceSuccessResponse: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
+      },
+      ...override,
+    },
+  });
+}
+
+function makeOptions(
+  context: ContextSpec,
+  overrides: Partial<GeneratorOptions> = {},
+): GeneratorOptions {
+  return {
+    ...createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+    }),
+    context,
+    ...overrides,
+  } satisfies GeneratorOptions;
+}
+
+const STUB_QUERY_PARAMS = {
+  schema: {
+    name: 'ListPetsParams',
+    model: 'type ListPetsParams = { limit?: string }',
+    imports: [],
+  },
+  deps: [],
+  isOptional: true,
+} satisfies NonNullable<GeneratorVerbOptions['queryParams']>;
 
 function generateImplementation(
   verbOptions: GeneratorVerbOptions,
@@ -1200,8 +1308,16 @@ describe('httpClientInjection: factory', () => {
 });
 
 describe('runtimeImplementationStyle: shared dispatch', () => {
+  const sharedOptions = (client: OutputClient = OutputClient.FETCH) => {
+    const options = makeOptions(makeContext());
+    options.context.output.target = '/proj/src/api/endpoints.ts';
+    options.context.output.client = client;
+    options.context.output.override.fetch.runtimeImplementationStyle = 'shared';
+    return options;
+  };
+
   it('emits no header types and no factory closure', () => {
-    const output = makeSharedOptions().context.output;
+    const output = sharedOptions().context.output;
     output.override.fetch.httpClientInjection = 'factory';
 
     expect(
@@ -1230,12 +1346,12 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
 
   it('switches to the shared emitter for the fetch client only', () => {
     expect(
-      generateImplementation(makeVerbOptions(), makeSharedOptions()),
+      generateImplementation(makeVerbOptions(), sharedOptions()),
     ).toContain('execute<listPetsResponse>');
     for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
       const implementation = generateImplementation(
         makeVerbOptions(),
-        makeSharedOptions([], { client }),
+        sharedOptions(client),
       );
       expect(implementation).toContain('export const listPets = async (');
       expect(implementation).not.toContain('execute<');

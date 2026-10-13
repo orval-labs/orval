@@ -1,4 +1,10 @@
-import { Verbs } from '@orval/core';
+import type {
+  ContextSpec,
+  OpenApiParameterObject,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '@orval/core';
+import { PropertySortOrder, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
@@ -10,7 +16,46 @@ import {
   hasDateTimeParameter,
   hasDateTimeProperty,
 } from './query-params';
-import { makeContext, type TestParameter } from './test-utils';
+
+type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
+
+type TestParameter = {
+  name: string;
+  in: string;
+  style?: string;
+  explode?: boolean;
+  // Record keeps widened fixture objects assignable. OpenApiSchemaObject
+  // adds JSON Schema booleans, which Record<string, unknown> rejects.
+  schema?: OpenApiSchemaObject | Record<string, unknown>;
+};
+
+function makeContext(
+  parameters: TestParameter[] = [],
+  useDates = false,
+  schemas?: ContextSpec['output']['schemas'],
+): ContextSpec {
+  const context = createTestContextSpec({
+    spec: {
+      paths: {
+        '/pets': {
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      },
+    },
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      ...(schemas === undefined ? {} : { schemas }),
+    },
+    override: { useDates },
+  });
+  const operation = context.spec.paths?.['/pets']?.get;
+  if (operation) {
+    operation.parameters = parameters as OpenApiParameterLike[];
+  }
+  return context;
+}
 
 describe('query-params', () => {
   const arrayParam = (name: string, extra: Partial<TestParameter> = {}) => ({
