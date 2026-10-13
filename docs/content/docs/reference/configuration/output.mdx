@@ -843,7 +843,7 @@ export default defineConfig({
 | `indexMockFiles` | `Boolean` | `false` | In `split`, `tags-split`, `tags-operations` and `tags-operations-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in the `tags-operations` modes it re-exports the per-operation mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
 | `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. In `single` and `tags` mode this only changes where the de-inlined mock files land; see `inline` to keep mock code in the implementation file instead. Ignored on function-form generators, which always fall back to the shared `path`. |
 | `inline` | `Boolean` | `false` | In `single` and `tags` mode, mock code is written to separate `.msw.ts` / `.faker.ts` files next to the implementation file(s) by default, matching `split` and `tags-split`. Set to `true` to append mock code to the implementation file instead, matching the layout Orval used before this option existed. No effect in `split` or `tags-split`, which always write separate mock files. |
-| `fixtures` | `Boolean` | `false` | Write `index.fixtures.ts` next to the faker mock index: typed fixture maps by route, answered with the faker response mocks. See [Fixtures](#fixtures). Requires a faker generator and `indexMockFiles: true`. |
+| `fixtures` | `Boolean` | `false` | Write `index.fixtures.ts` next to `index.faker.ts`: typed fixture maps by route, answered with the faker response mocks. See [Fixtures](#fixtures). Requires a faker generator and `indexMockFiles: true`. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
 
 ```ts title="orval.config.ts"
@@ -864,13 +864,29 @@ export default defineConfig({
 
 ### Fixtures
 
-`mock.fixtures: true` writes `index.fixtures.ts`, which describes API responses by route and answers requests with them, for tests and other tools that serve fake responses. It doesn't depend on a mocking library.
+`mock.fixtures: true` writes `index.fixtures.ts` next to `index.faker.ts`. It describes API responses by route and answers requests with them, for tests and other tools that serve fake responses. It doesn't depend on a mocking library. Requires a faker generator and `indexMockFiles: true`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      mock: {
+        indexMockFiles: true,
+        fixtures: true, // -> ./src/api/index.fixtures.ts
+        generators: [{ type: 'faker' }],
+      },
+    },
+  },
+});
+```
 
 ```ts
 import { defineFixtures, resolveFixture, respond } from './api/index.fixtures';
 
 const listing = defineFixtures({
-  // Deep-merged onto the seeded `getShowPetByIdResponseMock()`.
+  // Deep-merged onto the seeded getShowPetByIdResponseMock().
   'GET /pets/:petId': { name: 'Rex' },
   'GET /pets/:petId/owner': ({ params }) => ({ tag: params.petId }),
   'DELETE /pets/:petId': respond(204),
@@ -881,14 +897,28 @@ resolveFixture(adopted, { method: 'GET', url: '/pets/1' });
 // { route: 'GET /pets/:petId', status: 200, body: { ...mock, name: 'Rex', tag: 'adopted' } }
 ```
 
-- Keys are `<METHOD> <path>` routes from the spec, with `:param` placeholders named like the generated function arguments. Unknown routes, wrong fields and wrong params fail to compile.
-- A value is a body, a `respond(status, body?, headers?)`, or a function of `{ method, url, params, body }` that returns either. On a route with a response mock, a body is deep-merged onto the mock: objects merge, arrays and `null` replace, and `undefined` keeps the mock as is.
-- Mocks are seeded per route, so a route answers with the same values on every run. `{ seed }` picks a different, still fixed, set of values. Seeding moves faker's shared generator.
+- Keys are `<METHOD> <path>` routes from the spec, with `:param` placeholders named like the generated function arguments. A static base URL is part of the path (`GET /api/pets` with `baseUrl: '/api'`); the host is ignored. Unknown routes, wrong fields and wrong params fail to compile.
+- A value is a body, a `respond(status, body?, headers?)`, or a function of `{ method, url, params, body }` that returns either. Functions run synchronously.
+- On a route with a response mock, a body is deep-merged onto the mock: objects merge, arrays and `null` replace, and `undefined` keeps the mock as is.
+- Each route's mock is seeded, so it answers with the same values on every run. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values. Resolving a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
 - A `?name=value` suffix (`'GET /pets?limit=1'`) only matches requests with that query. Literal segments win over params, and query constraints over none.
-- `extend` returns a new set. A route in both sets deep-merges bodies; anything else replaces.
-- Routes outside the spec go in `{ untyped: { 'GET /legacy': … } }`, without type checks.
+- `extend(fixtures, options?)` returns a new set. A route in both sets deep-merges bodies; anything else replaces.
+- Routes outside the spec go in `defineFixtures(fixtures, { untyped: { 'GET /legacy': … } })`, without type checks.
 
-`resolveFixture` returns `undefined` when no fixture matches. Adapt it to your mocking library, for example a nock interceptor or a Playwright `route.fulfill`.
+`resolveFixture` returns `undefined` when no fixture matches. Serving a set takes a few lines in any mocking library, for example Playwright:
+
+```ts
+await page.route('**/pets/**', (route, request) => {
+  const result = resolveFixture(adopted, {
+    method: request.method(),
+    url: request.url(),
+    body: request.postDataJSON(),
+  });
+  return result
+    ? route.fulfill({ status: result.status, headers: result.headers, json: result.body })
+    : route.continue();
+});
+```
 
 ### MSW generator (`type: 'msw'`)
 
