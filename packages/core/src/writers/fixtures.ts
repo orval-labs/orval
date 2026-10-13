@@ -269,8 +269,28 @@ interface CompiledFixture {
   segments: (string | null)[];
   params: string[];
   query: [string, string][];
-  score: number;
 }
+
+/**
+ * At the first position where one route has a literal segment and the other a
+ * param, the literal wins. Then more query constraints beat fewer.
+ */
+const bySpecificity = (a: CompiledFixture, b: CompiledFixture) => {
+  for (let index = 0; index < Math.min(a.segments.length, b.segments.length); index++) {
+    const aLiteral = a.segments[index] !== null;
+    if (aLiteral !== (b.segments[index] !== null)) return aLiteral ? -1 : 1;
+  }
+  return b.query.length - a.query.length;
+};
+
+/** The decoded path segment, or the raw one when its percent-encoding is malformed. */
+const decodeSegment = (segment: string) => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+};
 
 const compiledSets = new WeakMap<FixtureSet, CompiledFixture[]>();
 
@@ -292,11 +312,9 @@ const compile = (set: FixtureSet): CompiledFixture[] => {
         segments,
         params: parts.filter((part) => part.startsWith(':')).map((part) => part.slice(1)),
         query,
-        // Literal segments beat params, then more query constraints beat fewer.
-        score: segments.filter((segment) => segment !== null).length * 100 + query.length,
       };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort(bySpecificity);
   compiledSets.set(set, compiled);
   return compiled;
 };
@@ -310,7 +328,7 @@ export const resolveFixture = (
   request: { method: string; url: string | URL; body?: unknown },
 ): FixtureResult | undefined => {
   const url = new URL(request.url, 'http://localhost');
-  const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  const parts = url.pathname.split('/').filter(Boolean).map(decodeSegment);
   const method = request.method.toUpperCase();
   for (const candidate of compile(set)) {
     if (

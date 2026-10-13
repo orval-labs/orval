@@ -103,6 +103,38 @@ describe('generated fixtures', () => {
     });
   });
 
+  it('ranks a literal ahead of a param at the first position they differ', () => {
+    // Both routes have two literal segments; the param route is defined first.
+    const set = defineFixtures(
+      {},
+      {
+        untyped: {
+          'GET /api/shelters/:id/details': { route: 'param first' },
+          'GET /api/shelters/new/:section': { route: 'literal first' },
+        },
+      },
+    );
+
+    expect(resolveFixture(set, get('/api/shelters/new/details'))?.body).toEqual(
+      {
+        route: 'literal first',
+      },
+    );
+    expect(resolveFixture(set, get('/api/shelters/1/details'))?.body).toEqual({
+      route: 'param first',
+    });
+  });
+
+  it('keeps a malformed percent-encoded segment as is', () => {
+    const set = defineFixtures({
+      'GET /api/pets/:petId': ({ params }) => ({ name: params.petId }),
+    });
+
+    expect(resolveFixture(set, get('/api/pets/%E0'))?.body).toMatchObject({
+      name: '%E0',
+    });
+  });
+
   it('deep-merges extended bodies and replaces everything else', () => {
     const base = defineFixtures({
       'GET /api/pets/:petId/owner': { tag: 'base', pet: null },
