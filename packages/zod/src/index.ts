@@ -3501,7 +3501,18 @@ const parseBodyAndResponse = ({
   }
 
   const encoding = mediaType.encoding;
-  const resolvedJsonSchema = dereference(schema, context);
+  // Reusable schemas emit nested $refs by name, so only the top level
+  // (`items` and the bounds below) is read here. Resolve one level instead of
+  // inlining the whole tree, which grows exponentially on specs with widely
+  // shared refs (e.g. Stripe runs out of memory).
+  const resolvedJsonSchema = useReusableSchemas
+    ? toObjectSchema(
+        typeof schema === 'boolean'
+          ? schema
+          : (resolveRef(schema as OpenApiReferenceObject, context)
+              .schema as OpenApiSchemaObject),
+      )
+    : dereference(schema, context);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
@@ -3519,22 +3530,10 @@ const parseBodyAndResponse = ({
     const min = safeNumericConstraint(rawMin, 'minimum/minLength/minItems');
     const max = safeNumericConstraint(rawMax, 'maximum/maxLength/maxItems');
 
-    // When useReusableSchemas is on, shallow-resolve one level so that $ref
-    // references inside the items schema are preserved for named-ref emission.
-    // E.g. Pets = array of {$ref: Pet} → we want to emit Pet (namedRef)
-    // rather than inlining Pet's full schema.
+    // With useReusableSchemas the items keep their $refs for named-ref
+    // emission, e.g. Pets = array of {$ref: Pet} emits Pet, not Pet inlined.
     const rawItems: OpenApiSchemaObject | OpenApiReferenceObject =
-      useReusableSchemas
-        ? (() => {
-            const shallowArraySchema = toObjectSchema(
-              typeof schema === 'boolean'
-                ? schema
-                : (resolveRef(schema as OpenApiReferenceObject, context)
-                    .schema as OpenApiSchemaObject),
-            );
-            return shallowArraySchema.items ?? resolvedJsonSchema.items;
-          })()
-        : resolvedJsonSchema.items;
+      resolvedJsonSchema.items;
 
     return {
       input: generateZodValidationSchemaDefinition(

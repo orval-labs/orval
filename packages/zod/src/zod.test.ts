@@ -6960,6 +6960,86 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 });
 
+describe('generateZod with generateReusableSchemas', () => {
+  it('does not inline the shared $ref graph of the body', async () => {
+    // Each level references the next one twice, so inlining the body resolves
+    // 2^DEPTH refs; reusable schemas only need the top level.
+    const DEPTH = 20;
+    let schemaReads = 0;
+    const nodes: Record<string, OpenApiSchemaObject> = Object.fromEntries(
+      Array.from({ length: DEPTH }, (_, i) => [
+        `Node${i}`,
+        i === DEPTH - 1
+          ? { type: 'string' }
+          : {
+              type: 'object',
+              properties: {
+                left: { $ref: `#/components/schemas/Node${i + 1}` },
+                right: { $ref: `#/components/schemas/Node${i + 1}` },
+              },
+            },
+      ]),
+    );
+    const schemas = new Proxy(nodes, {
+      get(target, key, receiver) {
+        if (typeof key === 'string' && key in target) schemaReads++;
+        return Reflect.get(target, key, receiver) as unknown;
+      },
+    });
+    const options = createTestGeneratorOptions({
+      pathRoute: '/nodes',
+      context: {
+        spec: {
+          paths: {
+            '/nodes': {
+              post: {
+                operationId: 'createNode',
+                requestBody: {
+                  content: {
+                    'application/json': {
+                      schema: { $ref: '#/components/schemas/Node0' },
+                    },
+                  },
+                },
+                responses: { '204': { description: 'No content' } },
+              },
+            },
+          },
+          components: { schemas },
+        },
+        output: {
+          override: { zod: { generateReusableSchemas: true } },
+        },
+      },
+    });
+
+    const result = await generateZod(
+      createTestGeneratorVerbOptions({
+        pathRoute: '/nodes',
+        verb: 'post',
+        operationName: 'createNode',
+        typeName: 'createNode',
+        override: {
+          zod: {
+            generate: {
+              param: false,
+              query: false,
+              header: false,
+              body: true,
+              response: false,
+            },
+          },
+        },
+      }),
+      options,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('CreateNodeBody = Node0');
+    expect(schemaReads).toBeLessThan(100);
+  });
+});
+
 describe('generateResponseSchemaForNonJsonContentTypes', () => {
   it('generates zod.string() for text/plain response', async () => {
     const schema = createTestGeneratorOptions({
