@@ -14,7 +14,11 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   getArrayResponseSchema,
-  getQueryParamSerialization,
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getOperationParameters,
+  isExplodeOnly,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -245,13 +249,24 @@ const generateRequestFunctionParts = (
   );
 
   const arrayFormat = override.fetch.arrayFormat;
-  const {
-    parameters: parameterObjects,
-    explode: explodeParameters,
-    arrayFormat: arrayFormatParameters,
-    deepObject: deepObjectParameters,
-    explodeOnly: isExplodeParametersOnly,
-  } = getQueryParamSerialization({ pathRoute, verb }, context, arrayFormat);
+  const parameterObjects = getOperationParameters({ pathRoute, verb }, context);
+  const explodeParameters = getExplodeParameters(
+    parameterObjects,
+    context,
+    arrayFormat,
+  );
+  const arrayFormatParameters = getArrayFormatParameters(
+    parameterObjects,
+    context,
+    arrayFormat,
+  );
+  const deepObjectParameters = getDeepObjectParameters(parameterObjects);
+  const isExplodeParametersOnly = isExplodeOnly(
+    parameterObjects,
+    explodeParameters,
+    arrayFormatParameters,
+    deepObjectParameters,
+  );
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,

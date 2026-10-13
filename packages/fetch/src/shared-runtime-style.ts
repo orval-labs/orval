@@ -12,7 +12,10 @@ import {
   getFileInfo,
   getImportExtension,
   getImport,
-  getQueryParamSerialization,
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getOperationParameters,
   GetterPropType,
   jsDoc,
   makeRouteSafe,
@@ -175,17 +178,19 @@ export const generateSharedRequestFunction = (
     .join(',');
 
   const arrayFormat = override.fetch.arrayFormat;
-  const serialization = getQueryParamSerialization(
-    { pathRoute, verb },
-    context,
-    arrayFormat,
-  );
-  const names = (parameters: { name: string }[]) =>
-    parameters.map((parameter) => parameter.name);
+  const parameters = getOperationParameters({ pathRoute, verb }, context);
+  const names = (group: { name: string }[]) =>
+    group.map((parameter) => parameter.name);
   const meta = Object.entries({
-    explode: names(serialization.explode),
-    ...(arrayFormat ? { [arrayFormat]: names(serialization.arrayFormat) } : {}),
-    deepObject: names(serialization.deepObject),
+    explode: names(getExplodeParameters(parameters, context, arrayFormat)),
+    ...(arrayFormat
+      ? {
+          [arrayFormat]: names(
+            getArrayFormatParameters(parameters, context, arrayFormat),
+          ),
+        }
+      : {}),
+    deepObject: names(getDeepObjectParameters(parameters)),
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);

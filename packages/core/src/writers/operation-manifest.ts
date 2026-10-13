@@ -3,8 +3,12 @@ import path from 'node:path';
 import { generateDependencyImports } from '../generators';
 import {
   camelPathParamName,
-  getQueryParamSerialization,
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getOperationParameters,
   getStaticBaseUrl,
+  isExplodeOnly,
   parseRoutePath,
   toColonRoutePath,
 } from '../getters';
@@ -130,11 +134,17 @@ export function getOperationManifestEntry(
     output.baseUrl,
   );
 
-  const serialization = getQueryParamSerialization(
-    verbOptions,
+  const parameters = getOperationParameters(verbOptions, context);
+  const arrayFormat = usesFetchUrlBuilder(output)
+    ? output.override.fetch.arrayFormat
+    : undefined;
+  const explode = getExplodeParameters(parameters, context, arrayFormat);
+  const arrayFormatParameters = getArrayFormatParameters(
+    parameters,
     context,
-    usesFetchUrlBuilder(output) ? output.override.fetch.arrayFormat : undefined,
+    arrayFormat,
   );
+  const deepObject = getDeepObjectParameters(parameters);
 
   // `getParams` returns the path params in path order, one per placeholder.
   const specNames = parseRoutePath(verbOptions.pathRoute).flatMap((token) =>
@@ -182,14 +192,19 @@ export function getOperationManifestEntry(
       name: specNames[index] ?? param.name,
       key: param.name,
     })),
-    queryParams: serialization.parameters
+    queryParams: parameters
       .filter((parameter) => parameter.in === 'query')
       .map((parameter) => parameter.name),
     serialization: {
-      explode: serialization.explode.map((parameter) => parameter.name),
-      arrayFormat: serialization.arrayFormat.map((parameter) => parameter.name),
-      deepObject: serialization.deepObject.map((parameter) => parameter.name),
-      explodeOnly: serialization.explodeOnly,
+      explode: explode.map((parameter) => parameter.name),
+      arrayFormat: arrayFormatParameters.map((parameter) => parameter.name),
+      deepObject: deepObject.map((parameter) => parameter.name),
+      explodeOnly: isExplodeOnly(
+        parameters,
+        explode,
+        arrayFormatParameters,
+        deepObject,
+      ),
     },
     body: hasBody
       ? {
