@@ -3105,7 +3105,9 @@ export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): OpenApiNonBooleanSchemaObject => {
-  if (typeof schema !== 'object') {
+  // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
+  // bodies carry `null` property values, which must pass through untouched.
+  if (!isObject(schema)) {
     return toObjectSchema(schema);
   }
 
