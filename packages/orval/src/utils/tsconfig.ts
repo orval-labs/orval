@@ -78,11 +78,29 @@ const isFile = (filePath: string) => {
   }
 };
 
+// The TypeScript sources an import of a JavaScript file can name, e.g. an
+// import of `./request.js` resolves to `./request.ts` under NodeNext.
+const SOURCE_EXTENSIONS_FOR_JS: Record<string, string[]> = {
+  '.js': ['.ts', '.tsx'],
+  '.jsx': ['.tsx'],
+  '.mjs': ['.mts'],
+  '.cjs': ['.cts'],
+};
+
 // Mirrors TypeScript's lookup for a mapped candidate: the path as written,
-// then with each source extension, then as a directory index.
+// its TypeScript source when it names a JavaScript file, then with each
+// source extension, then as a directory index.
 const resolveCandidate = (candidate: string): string | undefined => {
   if (isFile(candidate)) {
     return candidate;
+  }
+
+  const jsExtension = path.extname(candidate);
+  const stem = candidate.slice(0, -jsExtension.length);
+  for (const ext of SOURCE_EXTENSIONS_FOR_JS[jsExtension] ?? []) {
+    if (isFile(`${stem}${ext}`)) {
+      return `${stem}${ext}`;
+    }
   }
 
   for (const ext of RESOLVABLE_EXTENSIONS) {
@@ -122,11 +140,28 @@ export const createTsconfigPathsResolver = (
     return undefined;
   }
 
+  // `Tsconfig` also accepts `baseUrl` at the top level, but the matcher only
+  // reads `compilerOptions.baseUrl`.
   const config =
     isNullish(tsconfig) || isString(tsconfig)
       ? parseTsconfig(configPath)
-      : (tsconfig as TsConfigJsonResolved);
-  const matcher = createPathsMatcher({ path: configPath, config });
+      : ({
+          ...tsconfig,
+          compilerOptions: {
+            baseUrl: tsconfig.baseUrl,
+            ...tsconfig.compilerOptions,
+          },
+        } as TsConfigJsonResolved);
+
+  // The matcher throws on `paths` that TypeScript itself rejects (e.g.
+  // non-relative targets without a `baseUrl`). Aliases are optional here, so
+  // such a tsconfig must not fail configs that never use one.
+  let matcher: ReturnType<typeof createPathsMatcher>;
+  try {
+    matcher = createPathsMatcher({ path: configPath, config });
+  } catch {
+    return undefined;
+  }
   if (!matcher) {
     return undefined;
   }
