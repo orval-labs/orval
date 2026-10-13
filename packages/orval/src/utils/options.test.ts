@@ -215,6 +215,12 @@ describe('normalizeOptions', () => {
       });
 
       try {
+        // A compiled sibling must not be picked over the source.
+        await writeFile(
+          mutatorPath.replace(/\.ts$/, '.js'),
+          'export const apiRequest = (config) => config;\n',
+        );
+
         const normalized = await normalizeOptions(
           {
             input: { target: validSpecPath },

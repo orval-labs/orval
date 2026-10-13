@@ -87,20 +87,21 @@ const SOURCE_EXTENSIONS_FOR_JS: Record<string, string[]> = {
   '.cjs': ['.cts'],
 };
 
-// Mirrors TypeScript's lookup for a mapped candidate: the path as written,
-// its TypeScript source when it names a JavaScript file, then with each
-// source extension, then as a directory index.
+// Mirrors TypeScript's lookup for a mapped candidate: the TypeScript source
+// when it names a JavaScript file (preferred over the JavaScript file, so a
+// compiled sibling is not inspected instead), the path as written, then with
+// each source extension, then as a directory index.
 const resolveCandidate = (candidate: string): string | undefined => {
-  if (isFile(candidate)) {
-    return candidate;
-  }
-
   const jsExtension = path.extname(candidate);
   const stem = candidate.slice(0, -jsExtension.length);
   for (const ext of SOURCE_EXTENSIONS_FOR_JS[jsExtension] ?? []) {
     if (isFile(`${stem}${ext}`)) {
       return `${stem}${ext}`;
     }
+  }
+
+  if (isFile(candidate)) {
+    return candidate;
   }
 
   for (const ext of RESOLVABLE_EXTENSIONS) {
