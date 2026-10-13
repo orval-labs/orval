@@ -105,6 +105,7 @@ function createMockContext(): ContextSpec {
           client: 'httpClient',
           runtimeValidation: { enabled: false, strategy: 'throw' },
           queryObjectSerialization: 'spec',
+          observeOverloads: true,
         },
         swr: {},
         zod: {

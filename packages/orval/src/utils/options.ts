@@ -1067,6 +1067,8 @@ export async function normalizeOptions(
           ),
           queryObjectSerialization:
             outputOptions.override?.angular?.queryObjectSerialization ?? 'spec',
+          observeOverloads:
+            outputOptions.override?.angular?.observeOverloads ?? true,
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
@@ -1552,6 +1554,11 @@ function normalizeOperationsAndTags(
                     ),
                     queryObjectSerialization:
                       angular.queryObjectSerialization ?? 'spec',
+                    // Leave unset when omitted so the deep merge keeps the
+                    // output-level value (e.g. a global `false`).
+                    ...(angular.observeOverloads === undefined
+                      ? {}
+                      : { observeOverloads: angular.observeOverloads }),
                     ...(angular.httpResource
                       ? { httpResource: angular.httpResource }
                       : {}),

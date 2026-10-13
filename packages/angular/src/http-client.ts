@@ -902,9 +902,14 @@ export const generateHttpClientImplementation = (
     contentTypeOverloads = `${branchOverloads}\n  ${operationName}(${allParams}, options?: HttpClientOptions): ${refinedMultiImplementationReturnType};`;
   }
 
+  // `override.angular.observeOverloads: false` keeps only the body signature so
+  // generated services stay easy to mock (#4289).
+  const bodyOverload = `${functionName}(${propsDefinition} options?: HttpClientBodyOptions): Observable<${hasTDataGeneric ? 'TData' : parsedDataType}>;`;
   const observeOverloads =
     isRequestOptions && !hasMultipleContentTypes
-      ? `${functionName}(${propsDefinition} options?: HttpClientBodyOptions): Observable<${hasTDataGeneric ? 'TData' : parsedDataType}>;\n ${functionName}(${propsDefinition} options?: HttpClientEventOptions): Observable<HttpEvent<${hasTDataGeneric ? 'TData' : parsedDataType}>>;\n ${functionName}(${propsDefinition} options?: HttpClientResponseOptions): Observable<AngularHttpResponse<${hasTDataGeneric ? 'TData' : parsedDataType}>>;`
+      ? override.angular.observeOverloads !== false
+        ? `${bodyOverload}\n ${functionName}(${propsDefinition} options?: HttpClientEventOptions): Observable<HttpEvent<${hasTDataGeneric ? 'TData' : parsedDataType}>>;\n ${functionName}(${propsDefinition} options?: HttpClientResponseOptions): Observable<AngularHttpResponse<${hasTDataGeneric ? 'TData' : parsedDataType}>>;`
+        : bodyOverload
       : '';
 
   const overloads = contentTypeOverloads || observeOverloads;

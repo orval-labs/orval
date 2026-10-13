@@ -37,6 +37,7 @@ interface AngularOverride {
     equal?: string;
   };
   queryObjectSerialization: 'spec' | 'legacy';
+  observeOverloads: boolean;
 }
 
 const angularOverride = (
@@ -48,6 +49,7 @@ const angularOverride = (
   client,
   runtimeValidation: { enabled: runtimeValidation, strategy: 'throw' },
   queryObjectSerialization: 'spec',
+  observeOverloads: true,
   ...(httpResource ? { httpResource } : {}),
 });
 
@@ -3249,6 +3251,7 @@ describe('angular httpResource generator', () => {
                 client: 'httpResource',
                 runtimeValidation: { enabled: true, strategy: 'throw' },
                 queryObjectSerialization: 'spec',
+                observeOverloads: true,
                 httpResource: {
                   debugName: 'operation-level',
                 },

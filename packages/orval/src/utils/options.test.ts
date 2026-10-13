@@ -1403,6 +1403,58 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('does not re-default angular observeOverloads on per-operation overrides (issue #4289)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                observeOverloads: false,
+              },
+              operations: {
+                searchPets: {
+                  angular: {
+                    queryObjectSerialization: 'legacy',
+                  },
+                },
+                showPet: {
+                  angular: {
+                    observeOverloads: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.observeOverloads).toBe(false);
+      // Omitted per-operation value stays unset so the deep merge keeps the
+      // global `false`.
+      expect(
+        normalized.output.override.operations.searchPets?.angular,
+      ).not.toHaveProperty('observeOverloads');
+      expect(
+        normalized.output.override.operations.showPet?.angular
+          ?.observeOverloads,
+      ).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes schemas: false to undefined', async () => {
     const workspace = await createTempWorkspace();
 
