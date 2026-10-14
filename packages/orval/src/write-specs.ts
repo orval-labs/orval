@@ -31,6 +31,7 @@ import {
   upath,
   warnAmbiguousBarrelExports,
   withGeneratedFileTransform,
+  writeFixtures,
   writeGeneratedFile,
   writeOperationManifest,
   writeRoutedSchemas,
@@ -1076,6 +1077,7 @@ async function writeSpecsInternal(
     output,
     header,
   );
+  const fixturesPath = await writeFixtures(builder, output, header);
 
   if (output.workspace) {
     const workspacePath = output.workspace;
@@ -1242,6 +1244,7 @@ async function writeSpecsInternal(
         : []),
     ...(fakerSchemaPath ? [fakerSchemaPath] : []),
     ...(operationManifestPath ? [operationManifestPath] : []),
+    ...(fixturesPath ? [fixturesPath] : []),
     ...(output.operationSchemas
       ? [getFileInfo(output.operationSchemas).dirname]
       : []),

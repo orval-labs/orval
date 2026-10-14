@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { noopReporter, withReporter } from '@orval/core';
-import type { NormalizedSchemaOptions } from '@orval/core';
+import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -2583,6 +2583,52 @@ describe('normalizeOptions', () => {
         await rm(workspace, { recursive: true, force: true });
       }
     });
+  });
+
+  describe('mock.fixtures validation', () => {
+    const normalizeMock = (
+      mock: Omit<OutputMocksConfig, 'generators'> & {
+        generators: readonly { type: 'faker' | 'msw' }[];
+      },
+    ) =>
+      normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            mock: { ...mock, generators: [...mock.generators] },
+          },
+        },
+        process.cwd(),
+      );
+
+    it('accepts fixtures with a faker generator and indexMockFiles', async () => {
+      const normalized = await normalizeMock({
+        fixtures: true,
+        indexMockFiles: true,
+        generators: [{ type: 'faker' }],
+      });
+      expect(normalized.output.mock.fixtures).toBe(true);
+    });
+
+    it.each([
+      [{ indexMockFiles: true, generators: [{ type: 'msw' }] }],
+      [{ generators: [{ type: 'faker' }] }],
+      [{ indexMockFiles: true, inline: true, generators: [{ type: 'faker' }] }],
+    ] as const)(
+      'rejects fixtures without a faker mock index (%o)',
+      async (mock) => {
+        await expect(
+          normalizeMock({ fixtures: true, ...mock }),
+        ).rejects.toThrow('`mock.fixtures` requires a faker generator');
+      },
+    );
   });
 
   describe('faker schemasPath and importPath validation', () => {

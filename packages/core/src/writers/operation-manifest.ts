@@ -215,6 +215,53 @@ export function getOperationManifestTypes(
   };
 }
 
+/**
+ * The operations a client generated, sorted by name, each with its verb
+ * options. A client can skip an operation, which then has no generated
+ * function; a name used twice keeps its first operation.
+ *
+ * @param label Prefixes the duplicate-name warning.
+ */
+export function getManifestOperations(
+  builder: Pick<
+    WriteSpecBuilder,
+    'operations' | 'verbOptions' | 'operationVerbOptions'
+  >,
+  label: string,
+): { verbOptions: GeneratorVerbOptions; operation: GeneratorOperation }[] {
+  const operationsByName = new Map<string, GeneratorOperation>();
+  for (const operation of Object.values(builder.operations)) {
+    if (!operationsByName.has(operation.operationName)) {
+      operationsByName.set(operation.operationName, operation);
+    }
+  }
+
+  const seen = new Map<string, string>();
+  const result: {
+    verbOptions: GeneratorVerbOptions;
+    operation: GeneratorOperation;
+  }[] = [];
+  const verbOptionsList =
+    builder.operationVerbOptions ?? Object.values(builder.verbOptions);
+  const sorted = verbOptionsList.toSorted((a, b) =>
+    a.operationName.localeCompare(b.operationName),
+  );
+  for (const verbOptions of sorted) {
+    const operation = operationsByName.get(verbOptions.operationName);
+    if (!operation) continue;
+    const first = seen.get(verbOptions.operationName);
+    if (first !== undefined) {
+      logger.warn(
+        `${label}: two operations are named "${verbOptions.operationName}", keeping the first one (${first}).`,
+      );
+      continue;
+    }
+    seen.set(verbOptions.operationName, verbOptions.operationId);
+    result.push({ verbOptions, operation });
+  }
+  return result;
+}
+
 /** Renders the `operations` data as an `as const` object literal. */
 const renderEntries = (entries: Record<string, OperationManifestEntry>) =>
   `export const operations = ${JSON.stringify(entries, undefined, 2)} as const;\n`;
@@ -275,30 +322,12 @@ export function buildOperationManifest(
     output,
   };
 
-  const operationsByName = new Map<string, GeneratorOperation>();
-  for (const operation of Object.values(builder.operations)) {
-    if (!operationsByName.has(operation.operationName)) {
-      operationsByName.set(operation.operationName, operation);
-    }
-  }
-
   const entries: Record<string, OperationManifestEntry> = {};
   const types: Record<string, OperationManifestTypes> = {};
-  const verbOptionsList =
-    builder.operationVerbOptions ?? Object.values(builder.verbOptions);
-  const sorted = verbOptionsList.toSorted((a, b) =>
-    a.operationName.localeCompare(b.operationName),
-  );
-  for (const verbOptions of sorted) {
-    // A client can skip an operation, it then has no generated function.
-    const operation = operationsByName.get(verbOptions.operationName);
-    if (!operation) continue;
-    if (Object.hasOwn(entries, verbOptions.operationName)) {
-      logger.warn(
-        `Operation manifest: two operations are named "${verbOptions.operationName}", keeping the first one (${entries[verbOptions.operationName].operationId}).`,
-      );
-      continue;
-    }
+  for (const { verbOptions, operation } of getManifestOperations(
+    builder,
+    'Operation manifest',
+  )) {
     entries[verbOptions.operationName] = getOperationManifestEntry(
       verbOptions,
       operation,
@@ -340,19 +369,12 @@ export function buildOperationManifest(
   return `${header}${imports ? `${imports}\n\n` : ''}${implementation}`;
 }
 
-/**
- * Writes the `output.operationManifest` file.
- *
- * @returns The path written, or `undefined` when the option is off.
- */
-export async function writeOperationManifest(
-  builder: WriteSpecBuilder,
+/** The target's file name, directory and extension, as the mode writers resolve them. */
+export function getTargetFileInfo(
+  builder: Pick<WriteSpecBuilder, 'info'>,
   output: NormalizedOutputOptions,
-  header: string,
-): Promise<string | undefined> {
-  if (!output.operationManifest) return undefined;
-
-  const { filename, dirname, extension } = getFileInfo(output.target, {
+) {
+  return getFileInfo(output.target, {
     backupFilename: conventionName(
       // oxlint-disable-next-line typescript/no-unnecessary-condition
       builder.info.title ?? 'filename',
@@ -360,12 +382,22 @@ export async function writeOperationManifest(
     ),
     extension: output.fileExtension,
   });
-  const filePath =
-    output.operationManifest.path ??
-    path.join(dirname, `${filename}.operations${extension}`);
+}
 
-  // Where the schema types are, as in the mode writers: the schemas directory,
-  // the target file itself in `single` mode, else `<target>.schemas`.
+/**
+ * Where a file written at `filePath` imports the schema types from, as in the
+ * mode writers: the schemas directory, the target file itself in `single`
+ * mode, else `<target>.schemas`.
+ */
+export function getSchemasImportPathFrom(
+  filePath: string,
+  output: NormalizedOutputOptions,
+  {
+    filename,
+    dirname,
+    extension,
+  }: { filename: string; dirname: string; extension: string },
+): string {
   const schemasDir = output.schemas
     ? isString(output.schemas)
       ? output.schemas
@@ -381,16 +413,38 @@ export async function writeOperationManifest(
             '.schemas' +
             getImportExtension(output.schemaFileExtension, output.tsconfig),
         ));
-  const relativeSchemasPath =
+  return (
     getSchemasImportPath(output.schemas) ??
-    resolveMockSchemasPath(filePath, schemasTarget);
+    resolveMockSchemasPath(filePath, schemasTarget)
+  );
+}
+
+/**
+ * Writes the `output.operationManifest` file.
+ *
+ * @returns The path written, or `undefined` when the option is off.
+ */
+export async function writeOperationManifest(
+  builder: WriteSpecBuilder,
+  output: NormalizedOutputOptions,
+  header: string,
+): Promise<string | undefined> {
+  if (!output.operationManifest) return undefined;
+
+  const fileInfo = getTargetFileInfo(builder, output);
+  const filePath =
+    output.operationManifest.path ??
+    path.join(
+      fileInfo.dirname,
+      `${fileInfo.filename}.operations${fileInfo.extension}`,
+    );
 
   await writeGeneratedFile(
     filePath,
     buildOperationManifest(builder, output, {
       header,
       filePath,
-      relativeSchemasPath,
+      relativeSchemasPath: getSchemasImportPathFrom(filePath, output, fileInfo),
     }),
   );
   return filePath;

@@ -1405,4 +1405,42 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // `mock.fixtures`: typed fixture maps answered by the faker factories.
+  fixturesTagsOperationsSplit: {
+    output: {
+      target: '../generated/mock/fixtures/tags-operations-split/endpoints.ts',
+      schemas: '../generated/mock/fixtures/tags-operations-split/model',
+      mode: 'tags-operations-split',
+      client: 'fetch',
+      baseUrl: '/api',
+      mock: {
+        indexMockFiles: true,
+        fixtures: true,
+        generators: [{ type: 'faker' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  fixturesSingle: {
+    output: {
+      target: '../generated/mock/fixtures/single/endpoints.ts',
+      schemas: '../generated/mock/fixtures/single/model',
+      mock: {
+        path: '../generated/mock/fixtures/single/mocks',
+        indexMockFiles: true,
+        fixtures: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

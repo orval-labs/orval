@@ -181,6 +181,22 @@ function assertSchemasPathIsDirectory(path: string, option: string): void {
   );
 }
 
+/** `mock.fixtures` answers from the faker factories through the faker mock index. */
+function validateMockFixtures(output: NormalizedOutputOptions): void {
+  if (!output.mock.fixtures) return;
+  const hasFaker = output.mock.generators.some(
+    (g) => !isFunction(g) && g.type === OutputMockType.FAKER,
+  );
+  if (!hasFaker || !output.mock.indexMockFiles || output.mock.inline) {
+    throw new Error(
+      styleText(
+        'red',
+        '`mock.fixtures` requires a faker generator in `mock.generators` and `mock.indexMockFiles: true`, with `mock.inline` off.',
+      ),
+    );
+  }
+}
+
 /**
  * Normalizes `output.operationManifest`: off when unset or `false`, types on
  * by default, and `path` resolved against the workspace.
@@ -677,6 +693,7 @@ export async function normalizeOptions(
       indexMockFiles: mocksOption.indexMockFiles ?? false,
       path: sharedMockPath,
       inline: mocksOption.inline ?? false,
+      fixtures: mocksOption.fixtures ?? false,
       generators: await Promise.all(
         mocksOption.generators.map(async (m) =>
           isFunction(m)
@@ -1197,6 +1214,7 @@ export async function normalizeOptions(
   }
 
   validateFakerSchemasPath(normalizedOptions.output);
+  validateMockFixtures(normalizedOptions.output);
 
   // `paramsFilter` is only consumed by the Angular generator. That runs for
   // the `angular` client (regardless of `httpClient`, which stays at its

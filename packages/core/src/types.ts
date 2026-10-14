@@ -762,6 +762,12 @@ export interface OutputMocksConfig {
   // appended to the implementation file. Has no effect in
   // `split`/`tags-split`, which always deinline.
   inline?: boolean;
+  // Writes `index.fixtures.ts` next to the faker mock index: typed fixture
+  // maps by route (`defineFixtures`) and a resolver (`resolveFixture`) that
+  // answers requests with the seeded `get<Op>ResponseMock` factories, the
+  // fixtures deep-merged on top. Requires a faker generator and
+  // `indexMockFiles: true`.
+  fixtures?: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -777,6 +783,7 @@ export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
   path?: string;
   inline: boolean;
+  fixtures?: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
