@@ -19,6 +19,7 @@ import {
   generateClientImports,
   generateOrvalHelperTypes,
   generateTargetMutatorImports,
+  rebaseRelativeImportPaths,
 } from './implementation-parts';
 import {
   type TagsOperationsMockIndexEntry,
@@ -161,9 +162,12 @@ export async function writeTagsOperationsSplitMode({
               '.schemas' +
               getImportExtension(output.schemaFileExtension, output.tsconfig);
 
-            const implementationImports = filterImportsUsedInImplementation(
-              operation.imports,
-              operation.implementation,
+            const implementationImports = rebaseRelativeImportPaths(
+              filterImportsUsedInImplementation(
+                operation.imports,
+                operation.implementation,
+              ),
+              { dirname, importerPath: implementationPath, extension },
             );
 
             // Component schemas this operation's implementation actually

@@ -11,6 +11,7 @@ import {
   FormDataArrayHandling,
   type FakerMockOptions,
   type GlobalMockOptions,
+  getFileInfo,
   type GlobalOptions,
   type HonoOptions,
   type Hook,
@@ -746,6 +747,16 @@ export async function normalizeOptions(
   }
 
   const defaultFileExtension = '.ts';
+  const outputFileExtension =
+    outputOptions.fileExtension ?? defaultFileExtension;
+  const outputTarget = globalOptions.output
+    ? normalizePath(globalOptions.output, process.cwd())
+    : normalizePath(outputOptions.target, outputWorkspace);
+  // Same resolution as `clean`: an existing directory target means inside it,
+  // otherwise the target's parent directory.
+  const outputTargetDirname = getFileInfo(outputTarget, {
+    extension: outputFileExtension,
+  }).dirname;
 
   // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
   // alongside any existing TypeScript types without a name collision. We
@@ -832,9 +843,7 @@ export async function normalizeOptions(
       parserOptions: inputOptions.parserOptions,
     },
     output: {
-      target: globalOptions.output
-        ? normalizePath(globalOptions.output, process.cwd())
-        : normalizePath(outputOptions.target, outputWorkspace),
+      target: outputTarget,
       schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
       operationSchemas: outputOptions.operationSchemas
         ? normalizePath(outputOptions.operationSchemas, outputWorkspace)
@@ -1137,6 +1146,25 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+          runtimeImplementationStyle:
+            outputOptions.override?.fetch?.runtimeImplementationStyle ??
+            'inline',
+          runtimeOutputPath: normalizePath(
+            outputOptions.override?.fetch?.runtimeOutputPath ??
+              nodePath.join(
+                outputTargetDirname,
+                `runtime${outputFileExtension}`,
+              ),
+            outputWorkspace,
+          ),
+          clientConfigOutputPath: normalizePath(
+            outputOptions.override?.fetch?.clientConfigOutputPath ??
+              nodePath.join(
+                outputTargetDirname,
+                `client-config${outputFileExtension}`,
+              ),
+            outputWorkspace,
+          ),
         },
         useDates:
           (outputOptions.override?.useDates ?? false) ||
