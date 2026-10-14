@@ -1809,7 +1809,24 @@ export const generateZodValidationSchemaDefinition = (
           !hasAdditionalPropertiesSchema;
 
         if (hasProperties && hasDefinedProperties) {
-          const objectType = getObjectFunctionName(isZodV4, strict);
+          // `additionalProperties: true` / `{}` keeps undeclared keys, and a
+          // schema validates them via `.catchall()` (which only applies to
+          // undeclared keys). Without this, zod strips keys the spec allows. (#4305)
+          const additionalProperties = schema.additionalProperties;
+          const allowsAnyAdditional =
+            additionalProperties === true ||
+            (isObject(additionalProperties) &&
+              Object.keys(additionalProperties).length === 0);
+          const additionalPropertiesSchema =
+            !allowsAnyAdditional && isObject(additionalProperties)
+              ? (additionalProperties as OpenApiSchemaObject)
+              : undefined;
+          const objectType =
+            allowsAnyAdditional && isZodV4
+              ? 'looseObject'
+              : additionalPropertiesSchema
+                ? 'object'
+                : getObjectFunctionName(isZodV4, strict);
 
           // A property is required when this schema requires it OR when a
           // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
@@ -1841,7 +1858,28 @@ export const generateZodValidationSchemaDefinition = (
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
           ]);
 
-          if (strict && !isZodV4) {
+          if (allowsAnyAdditional) {
+            if (!isZodV4) {
+              functions.push(['passthrough', undefined]);
+            }
+          } else if (additionalPropertiesSchema) {
+            functions.push([
+              'catchall',
+              generateZodValidationSchemaDefinition(
+                additionalPropertiesSchema,
+                context,
+                camel(`${name}-additional-properties`),
+                strict,
+                isZodV4,
+                {
+                  required: true,
+                  constNameRegistry,
+                  useReusableSchemas,
+                  urlEncoded,
+                },
+              ),
+            ]);
+          } else if (strict && !isZodV4) {
             functions.push(['strict', undefined]);
           }
 
@@ -2114,6 +2152,13 @@ export interface ZodParamsInjection extends Pick<
   mutator: GeneratorMutator;
 }
 
+// Objects that accept undeclared keys (`.passthrough()` / `.catchall()`)
+// can't be flattened into a merged object without dropping that openness.
+const hasOpenObjectFunction = (definition: ZodValidationSchemaDefinition) =>
+  definition.functions.some(
+    ([fn]) => fn === 'passthrough' || fn === 'catchall',
+  );
+
 const PARAMS_MODIFIER_VALIDATORS = new Set([
   'optional',
   'nullable',
@@ -2327,7 +2372,10 @@ ${Object.entries(objectArgs)
         allOfArgs.every((partSchema) => {
           if (partSchema.functions.length === 0) return false;
           const firstFn = partSchema.functions[0][0];
-          return firstFn === 'object' || firstFn === 'strictObject';
+          return (
+            (firstFn === 'object' || firstFn === 'strictObject') &&
+            !hasOpenObjectFunction(partSchema)
+          );
         });
       if (!allAreObjects) return null;
 
@@ -2502,6 +2550,22 @@ ${Object.entries(objectArgs)
         continue;
       }
 
+      if (fn === 'catchall') {
+        const catchallArgs = args as ZodValidationSchemaDefinition;
+        const rendered = renderMiniDefinition(catchallArgs, fieldPath);
+        if (Array.isArray(catchallArgs.consts)) {
+          appendConstsChunk(catchallArgs.consts.join('\n'));
+        }
+        current = {
+          expr: zodMiniCall(
+            'catchall',
+            `${requireCurrent(fn).expr}, ${rendered.expr}`,
+          ),
+          kind: 'object',
+        };
+        continue;
+      }
+
       if (fn === 'renameKeys') {
         current = renameMiniKeys(requireCurrent(fn), args as PropertyRename[]);
         continue;
@@ -2672,7 +2736,10 @@ ${Object.entries(objectArgs)
         const firstFn = partSchema.functions[0][0];
         // Zod v3 renders a strict object as `object(...).strict()`, so the
         // object constructor is still the first function.
-        return firstFn === 'object' || firstFn === 'strictObject';
+        return (
+          (firstFn === 'object' || firstFn === 'strictObject') &&
+          !hasOpenObjectFunction(partSchema)
+        );
       });
     if (!allAreObjects) return null;
 
@@ -2866,6 +2933,17 @@ ${Object.entries(mergedProperties)
         appendConstsChunk(additionalPropertiesArgs.consts.join('\n'));
       }
       return `zod.record(zod.string(), ${valueWithZod})`;
+    }
+
+    if (fn === 'catchall') {
+      const catchallArgs = args as ZodValidationSchemaDefinition;
+      const value = catchallArgs.functions
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
+        .join('');
+      if (Array.isArray(catchallArgs.consts)) {
+        appendConstsChunk(catchallArgs.consts.join('\n'));
+      }
+      return `.catchall(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
 
     if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
