@@ -11054,6 +11054,160 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('strictObject({');
     expect(parsed.zod).not.toContain('looseObject({');
   });
+
+  describe('properties with additionalProperties (#4305)', () => {
+    const render = (
+      additionalProperties: Exclude<
+        OpenApiSchemaObject,
+        boolean
+      >['additionalProperties'],
+      {
+        strict = false,
+        isZodV4 = true,
+        variant = 'classic' as const,
+      }: {
+        strict?: boolean;
+        isZodV4?: boolean;
+        variant?: 'classic' | 'mini';
+      } = {},
+    ) => {
+      const definition = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          additionalProperties,
+          properties: { id: { type: 'string' } },
+        },
+        context,
+        'extras',
+        strict,
+        isZodV4,
+        { required: true },
+      );
+      return parseZodValidationSchemaDefinition(
+        definition,
+        context,
+        false,
+        strict,
+        isZodV4,
+        undefined,
+        undefined,
+        variant,
+      ).zod;
+    };
+
+    it.each([true, {}])(
+      'uses looseObject in zod v4 when additionalProperties is %j',
+      (additionalProperties) => {
+        expect(render(additionalProperties)).toBe(
+          'zod.looseObject({\n  "id": zod.string().optional()\n})',
+        );
+        expect(render(additionalProperties, { strict: true })).toBe(
+          'zod.looseObject({\n  "id": zod.string().optional()\n})',
+        );
+      },
+    );
+
+    it('uses passthrough in zod v3 when additionalProperties is true', () => {
+      expect(render(true, { isZodV4: false, strict: true })).toBe(
+        'zod.object({\n  "id": zod.string().optional()\n}).passthrough()',
+      );
+    });
+
+    it('uses catchall when additionalProperties is a schema', () => {
+      expect(render({ type: 'string' })).toBe(
+        'zod.object({\n  "id": zod.string().optional()\n}).catchall(zod.string())',
+      );
+      expect(render({ type: 'string' }, { isZodV4: false, strict: true })).toBe(
+        'zod.object({\n  "id": zod.string().optional()\n}).catchall(zod.string())',
+      );
+    });
+
+    it('uses looseObject / catchall in zod mini', () => {
+      expect(render(true, { variant: 'mini' })).toContain('zod.looseObject({');
+      expect(render({ type: 'string' }, { variant: 'mini' })).toBe(
+        '/*#__PURE__*/ zod.catchall(/*#__PURE__*/ zod.object({\n  "id": /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string())\n}), /*#__PURE__*/ zod.string())',
+      );
+    });
+
+    it('keeps a closed object when additionalProperties is false', () => {
+      expect(render(false)).toBe(
+        'zod.object({\n  "id": zod.string().optional()\n})',
+      );
+      expect(render(false, { strict: true })).toBe(
+        'zod.strictObject({\n  "id": zod.string().optional()\n})',
+      );
+    });
+
+    describe('strict allOf merging', () => {
+      const renderAllOf = (
+        additionalProperties: Exclude<
+          OpenApiSchemaObject,
+          boolean
+        >['additionalProperties'],
+        {
+          isZodV4 = true,
+          variant = 'classic' as const,
+        }: { isZodV4?: boolean; variant?: 'classic' | 'mini' } = {},
+      ) => {
+        const definition = generateZodValidationSchemaDefinition(
+          {
+            allOf: [
+              {
+                type: 'object',
+                additionalProperties,
+                properties: { id: { type: 'string' } },
+              },
+              { type: 'object', properties: { name: { type: 'string' } } },
+            ],
+          },
+          context,
+          'extras',
+          true,
+          isZodV4,
+          { required: true },
+        );
+        return parseZodValidationSchemaDefinition(
+          definition,
+          context,
+          false,
+          true,
+          isZodV4,
+          undefined,
+          undefined,
+          variant,
+        ).zod;
+      };
+
+      // An intersection of individually strict parts would reject the
+      // sibling's declared key, so the parts merge into one open object.
+      it('merges an open part into one looseObject', () => {
+        expect(renderAllOf(true)).toBe(
+          'zod.looseObject({\n  "id": zod.string().optional(),\n  "name": zod.string().optional()\n})',
+        );
+        expect(renderAllOf(true, { isZodV4: false })).toBe(
+          'zod.object({\n  "id": zod.string().optional(),\n  "name": zod.string().optional()\n}).passthrough()',
+        );
+        expect(renderAllOf(true, { variant: 'mini' })).toBe(
+          '/*#__PURE__*/ zod.looseObject({\n  "id": /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string()),\n  "name": /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string())\n})',
+        );
+      });
+
+      it('merges a catchall part into one object with that catchall', () => {
+        expect(renderAllOf({ type: 'string' })).toBe(
+          'zod.object({\n  "id": zod.string().optional(),\n  "name": zod.string().optional()\n}).catchall(zod.string())',
+        );
+        expect(renderAllOf({ type: 'string' }, { variant: 'mini' })).toBe(
+          '/*#__PURE__*/ zod.catchall(/*#__PURE__*/ zod.object({\n  "id": /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string()),\n  "name": /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string())\n}), /*#__PURE__*/ zod.string())',
+        );
+      });
+
+      it('keeps the merged object strict when no part is open', () => {
+        expect(renderAllOf(undefined)).toBe(
+          'zod.strictObject({\n  "id": zod.string().optional(),\n  "name": zod.string().optional()\n})',
+        );
+      });
+    });
+  });
 });
 
 describe('generateZodValidationSchemaDefinition (contentMediaType: application/octet-stream)', () => {
@@ -13531,6 +13685,36 @@ describe('discriminated unions (#1907, #2085)', () => {
     });
     expect(result).toContain("zod.discriminatedUnion('kind\\'x', [");
   });
+
+  // An inheritance branch with an open part must still merge into a single
+  // ZodObject option rather than an intersection. (#4305)
+  it.each([
+    [true, '.passthrough()'],
+    [{ type: 'string' }, '.catchall(zod.string())'],
+  ] as const)(
+    'merges an allOf branch with additionalProperties %j into an object option',
+    (additionalProperties, openSuffix) => {
+      const result = render({
+        oneOf: [
+          {
+            allOf: [
+              {
+                type: 'object',
+                additionalProperties,
+                properties: { id: { type: 'string' } },
+              },
+              objectBranch('cat', { meow: { type: 'boolean' } }),
+            ],
+          },
+          objectBranch('dog', { bark: { type: 'boolean' } }),
+        ],
+        discriminator: { propertyName: 'type' },
+      });
+      expect(result).toContain("zod.discriminatedUnion('type', [");
+      expect(result).toContain(openSuffix);
+      expect(result).not.toContain('.and(');
+    },
+  );
 });
 
 // `exactOptional` swaps `.optional()` for zod v4's `.exactOptional()` (classic)

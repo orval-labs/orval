@@ -1809,7 +1809,24 @@ export const generateZodValidationSchemaDefinition = (
           !hasAdditionalPropertiesSchema;
 
         if (hasProperties && hasDefinedProperties) {
-          const objectType = getObjectFunctionName(isZodV4, strict);
+          // `additionalProperties: true` / `{}` keeps undeclared keys, and a
+          // schema validates them via `.catchall()` (which only applies to
+          // undeclared keys). Without this, zod strips keys the spec allows. (#4305)
+          const additionalProperties = schema.additionalProperties;
+          const allowsAnyAdditional =
+            additionalProperties === true ||
+            (isObject(additionalProperties) &&
+              Object.keys(additionalProperties).length === 0);
+          const additionalPropertiesSchema =
+            !allowsAnyAdditional && isObject(additionalProperties)
+              ? (additionalProperties as OpenApiSchemaObject)
+              : undefined;
+          const objectType =
+            allowsAnyAdditional && isZodV4
+              ? 'looseObject'
+              : additionalPropertiesSchema
+                ? 'object'
+                : getObjectFunctionName(isZodV4, strict);
 
           // A property is required when this schema requires it OR when a
           // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
@@ -1841,7 +1858,28 @@ export const generateZodValidationSchemaDefinition = (
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
           ]);
 
-          if (strict && !isZodV4) {
+          if (allowsAnyAdditional) {
+            if (!isZodV4) {
+              functions.push(['passthrough', undefined]);
+            }
+          } else if (additionalPropertiesSchema) {
+            functions.push([
+              'catchall',
+              generateZodValidationSchemaDefinition(
+                additionalPropertiesSchema,
+                context,
+                camel(`${name}-additional-properties`),
+                strict,
+                isZodV4,
+                {
+                  required: true,
+                  constNameRegistry,
+                  useReusableSchemas,
+                  urlEncoded,
+                },
+              ),
+            ]);
+          } else if (strict && !isZodV4) {
             functions.push(['strict', undefined]);
           }
 
@@ -2114,6 +2152,66 @@ export interface ZodParamsInjection extends Pick<
   mutator: GeneratorMutator;
 }
 
+// Undeclared keys an object lets through: `'any'` for `additionalProperties:
+// true` / `{}`, or the `.catchall()` schema for a typed `additionalProperties`.
+type AdditionalKeys = 'any' | ZodValidationSchemaDefinition | undefined;
+
+interface MergedAllOfObject {
+  properties: Record<string, ZodValidationSchemaDefinition>;
+  additional: AdditionalKeys;
+}
+
+// Flatten an `allOf` of object definitions into one property set, or null
+// when a part isn't a plain object (the caller then falls back to an
+// intersection). Later parts override earlier ones (derived over base). The
+// merged object stays open when any part is open, so the parts' declared keys
+// and the extra keys `additionalProperties` allows all survive. (#4305)
+const mergeAllOfObjectParts = (
+  allOfArgs: ZodValidationSchemaDefinition[],
+): MergedAllOfObject | null => {
+  if (allOfArgs.length === 0) return null;
+
+  const properties: Record<string, ZodValidationSchemaDefinition> = {};
+  let allowsAny = false;
+  let catchall: ZodValidationSchemaDefinition | undefined;
+  for (const { functions } of allOfArgs) {
+    if (functions.length === 0) return null;
+    const [firstFn, objectArgs] = functions[0];
+    const partProperties = isObject(objectArgs)
+      ? (objectArgs as Record<string, ZodValidationSchemaDefinition>)
+      : {};
+    const hasPartProperties = Object.keys(partProperties).length > 0;
+    // A loose object without properties is a bare `type: object`, which is
+    // kept out of the merge as before.
+    if (
+      firstFn !== 'object' &&
+      firstFn !== 'strictObject' &&
+      !(firstFn === 'looseObject' && hasPartProperties)
+    ) {
+      return null;
+    }
+    Object.assign(properties, partProperties);
+
+    // Only `additionalProperties` on an object with properties renders open.
+    if (!hasPartProperties) continue;
+    if (
+      firstFn === 'looseObject' ||
+      functions.some(([fn]) => fn === 'passthrough')
+    ) {
+      allowsAny = true;
+    }
+    const catchallFunction = functions.find(([fn]) => fn === 'catchall');
+    if (catchallFunction) {
+      catchall = catchallFunction[1] as ZodValidationSchemaDefinition;
+    }
+  }
+
+  return {
+    properties,
+    additional: allowsAny ? 'any' : catchall,
+  };
+};
+
 const PARAMS_MODIFIER_VALIDATORS = new Set([
   'optional',
   'nullable',
@@ -2322,36 +2420,36 @@ ${Object.entries(objectArgs)
     const mergeAllOfObjectsMini = (
       allOfArgs: ZodValidationSchemaDefinition[],
     ): MiniRendered | null => {
-      const allAreObjects =
-        allOfArgs.length > 0 &&
-        allOfArgs.every((partSchema) => {
-          if (partSchema.functions.length === 0) return false;
-          const firstFn = partSchema.functions[0][0];
-          return firstFn === 'object' || firstFn === 'strictObject';
-        });
-      if (!allAreObjects) return null;
+      const merged = mergeAllOfObjectParts(allOfArgs);
+      if (!merged) return null;
 
-      const mergedProperties: Record<string, ZodValidationSchemaDefinition> =
-        {};
       for (const partSchema of allOfArgs) {
         if (partSchema.consts.length > 0) {
           appendConstsChunk(partSchema.consts.join('\n'));
         }
-        const objectFunctionIndex = partSchema.functions.findIndex(
-          ([fnName]) => fnName === 'object' || fnName === 'strictObject',
+      }
+      const { properties: mergedProperties, additional } = merged;
+      let rendered: MiniRendered;
+      if (additional === 'any') {
+        rendered = renderObject(mergedProperties, 'looseObject');
+      } else if (additional) {
+        const catchallValue = renderMiniDefinition(additional, fieldPath);
+        appendConstsChunk(additional.consts.join('\n'));
+        rendered = {
+          kind: 'object',
+          expr: zodMiniCall(
+            'catchall',
+            `${renderObject(mergedProperties, 'object').expr}, ${catchallValue.expr}`,
+          ),
+        };
+      } else {
+        rendered = renderObject(
+          mergedProperties,
+          getObjectFunctionName(true, strict),
         );
-        if (objectFunctionIndex !== -1) {
-          const objectArgs = partSchema.functions[objectFunctionIndex][1];
-          if (isObject(objectArgs)) {
-            Object.assign(
-              mergedProperties,
-              objectArgs as Record<string, ZodValidationSchemaDefinition>,
-            );
-          }
-        }
       }
       return renameMiniKeys(
-        renderObject(mergedProperties, getObjectFunctionName(true, strict)),
+        rendered,
         mergePropertyRenames(allOfArgs, Object.keys(mergedProperties)),
       );
     };
@@ -2499,6 +2597,22 @@ ${Object.entries(objectArgs)
       }
 
       if (fn === 'passthrough' || fn === 'strict') {
+        continue;
+      }
+
+      if (fn === 'catchall') {
+        const catchallArgs = args as ZodValidationSchemaDefinition;
+        const rendered = renderMiniDefinition(catchallArgs, fieldPath);
+        if (Array.isArray(catchallArgs.consts)) {
+          appendConstsChunk(catchallArgs.consts.join('\n'));
+        }
+        current = {
+          expr: zodMiniCall(
+            'catchall',
+            `${requireCurrent(fn).expr}, ${rendered.expr}`,
+          ),
+          kind: 'object',
+        };
         continue;
       }
 
@@ -2665,35 +2779,15 @@ ${Object.entries(objectArgs)
     allOfArgs: ZodValidationSchemaDefinition[],
     fieldPath: readonly string[],
   ): string | null {
-    const allAreObjects =
-      allOfArgs.length > 0 &&
-      allOfArgs.every((partSchema) => {
-        if (partSchema.functions.length === 0) return false;
-        const firstFn = partSchema.functions[0][0];
-        // Zod v3 renders a strict object as `object(...).strict()`, so the
-        // object constructor is still the first function.
-        return firstFn === 'object' || firstFn === 'strictObject';
-      });
-    if (!allAreObjects) return null;
+    // Zod v3 renders a strict object as `object(...).strict()`, so the object
+    // constructor is still the first function of each part.
+    const merged = mergeAllOfObjectParts(allOfArgs);
+    if (!merged) return null;
 
-    const mergedProperties: Record<string, ZodValidationSchemaDefinition> = {};
     let allConsts = '';
     for (const partSchema of allOfArgs) {
       if (partSchema.consts.length > 0) {
         allConsts += partSchema.consts.join('\n');
-      }
-      const objectFunctionIndex = partSchema.functions.findIndex(
-        ([fnName]) => fnName === 'object' || fnName === 'strictObject',
-      );
-      if (objectFunctionIndex !== -1) {
-        const objectArgs = partSchema.functions[objectFunctionIndex][1];
-        if (isObject(objectArgs)) {
-          // Later members override earlier ones (derived over base).
-          Object.assign(
-            mergedProperties,
-            objectArgs as Record<string, ZodValidationSchemaDefinition>,
-          );
-        }
       }
     }
 
@@ -2701,7 +2795,13 @@ ${Object.entries(objectArgs)
       appendConstsChunk(allConsts);
     }
 
-    const objectType = getObjectFunctionName(isZodV4, strict);
+    const { properties: mergedProperties, additional } = merged;
+    const objectType =
+      additional === 'any' && isZodV4
+        ? 'looseObject'
+        : additional
+          ? 'object'
+          : getObjectFunctionName(isZodV4, strict);
     const mergedObjectString = `zod.${objectType}({
 ${Object.entries(mergedProperties)
   .map(([key, schema]) => {
@@ -2714,11 +2814,16 @@ ${Object.entries(mergedProperties)
   .join(',\n')}
 })`;
 
-    // Apply strict only once for Zod v3 (v4 uses strictObject above).
-    const objectString =
-      strict && !isZodV4
-        ? `${mergedObjectString}.strict()`
-        : mergedObjectString;
+    // Open objects keep undeclared keys; otherwise apply strict only once for
+    // Zod v3 (v4 uses strictObject above).
+    let objectString = mergedObjectString;
+    if (additional === 'any') {
+      if (!isZodV4) objectString += '.passthrough()';
+    } else if (additional) {
+      objectString += parseProperty(['catchall', additional], fieldPath);
+    } else if (strict && !isZodV4) {
+      objectString += '.strict()';
+    }
     const renames = mergePropertyRenames(
       allOfArgs,
       Object.keys(mergedProperties),
@@ -2866,6 +2971,17 @@ ${Object.entries(mergedProperties)
         appendConstsChunk(additionalPropertiesArgs.consts.join('\n'));
       }
       return `zod.record(zod.string(), ${valueWithZod})`;
+    }
+
+    if (fn === 'catchall') {
+      const catchallArgs = args as ZodValidationSchemaDefinition;
+      const value = catchallArgs.functions
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
+        .join('');
+      if (Array.isArray(catchallArgs.consts)) {
+        appendConstsChunk(catchallArgs.consts.join('\n'));
+      }
+      return `.catchall(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
 
     if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
