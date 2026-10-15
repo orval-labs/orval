@@ -360,7 +360,10 @@ export type FixtureSetReply<F extends AnyFixture> = F extends Fixture<infer R>
   ? FixtureReply<R> & { route: R; key: string; fixture: Fixture<R> }
   : never;
 
-/** Fixtures for many endpoints, typed by the fixtures in it. */
+/**
+ * Fixtures for many endpoints, typed by the fixtures in it. Iterating yields its typed
+ * fixtures, most specific first.
+ */
 export interface FixtureSet<F extends AnyFixture = AnyFixture> extends Iterable<F> {
   /** Values by key, as given. */
   readonly fixtures: Readonly<Record<string, unknown>>;
@@ -566,6 +569,11 @@ const createFixture = (key: string, value: unknown, seed: number): AnyFixture =>
   } as AnyFixture;
 };
 
+/** \`defineFixture\`'s options: the query params a request must have, any of the route's. */
+type DefineFixtureOptions<R extends FixtureRoute> = {
+  query?: Partial<FixtureRoutes[R]['query']>;
+};
+
 /**
  * One endpoint's fixture, by route or operation. A route with a mock takes a deep partial
  * of its response, or nothing for the mock as is.
@@ -573,8 +581,8 @@ const createFixture = (key: string, value: unknown, seed: number): AnyFixture =>
 export const defineFixture = <K extends FixtureKey>(
   key: K,
   ...[value, options]: FixtureRoutes[RouteOf<K>]['mocked'] extends true
-    ? [value?: FixtureValue<RouteOf<K>>, options?: { query?: FixtureRoutes[RouteOf<K>]['query'] }]
-    : [value: FixtureValue<RouteOf<K>>, options?: { query?: FixtureRoutes[RouteOf<K>]['query'] }]
+    ? [value?: FixtureValue<RouteOf<K>>, options?: DefineFixtureOptions<RouteOf<K>>]
+    : [value: FixtureValue<RouteOf<K>>, options?: DefineFixtureOptions<RouteOf<K>>]
 ): Fixture<RouteOf<K>> => {
   const search = toSearch(options?.query);
   return createFixture(toKey(key) + (search ? \`?\${search}\` : ''), value, 0) as Fixture<RouteOf<K>>;
@@ -613,9 +621,10 @@ const createSet = (fixtures: Record<string, unknown>, seed: number): FixtureSet 
   const set: FixtureSet = {
     fixtures,
     seed,
+    // Most specific first, for libraries that take the first matching handler.
     *[Symbol.iterator]() {
-      for (const [key, value] of Object.entries(fixtures)) {
-        if (compileKey(key).route in routes) yield createFixture(key, value, seed);
+      for (const { key, route } of compile(set)) {
+        if (route in routes) yield createFixture(key, fixtures[key], seed);
       }
     },
     get: (key: string) => {

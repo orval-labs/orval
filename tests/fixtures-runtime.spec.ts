@@ -271,8 +271,12 @@ describe('fixture sets', () => {
     ).toContain('GET /api/pets/:petId');
   });
 
-  it('iterates its typed fixtures', () => {
-    expect([...set].map(({ key }) => key)).toEqual(Object.keys(set.fixtures));
+  it('iterates its typed fixtures, most specific first', () => {
+    expect([...set].map(({ key }) => key)).toEqual([
+      'GET /api/pets?sort=name',
+      'GET /api/pets/:petId/owner',
+      'GET /api/pets',
+    ]);
     expect([
       ...set.extend({}, { untyped: { 'GET /api/legacy': {} } }),
     ]).toHaveLength(3);

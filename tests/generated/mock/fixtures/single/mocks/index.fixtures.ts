@@ -375,7 +375,10 @@ export type FixtureSetReply<F extends AnyFixture> =
     ? FixtureReply<R> & { route: R; key: string; fixture: Fixture<R> }
     : never;
 
-/** Fixtures for many endpoints, typed by the fixtures in it. */
+/**
+ * Fixtures for many endpoints, typed by the fixtures in it. Iterating yields its typed
+ * fixtures, most specific first.
+ */
 export interface FixtureSet<
   F extends AnyFixture = AnyFixture,
 > extends Iterable<F> {
@@ -652,6 +655,11 @@ const createFixture = (
   } as AnyFixture;
 };
 
+/** `defineFixture`'s options: the query params a request must have, any of the route's. */
+type DefineFixtureOptions<R extends FixtureRoute> = {
+  query?: Partial<FixtureRoutes[R]['query']>;
+};
+
 /**
  * One endpoint's fixture, by route or operation. A route with a mock takes a deep partial
  * of its response, or nothing for the mock as is.
@@ -661,11 +669,11 @@ export const defineFixture = <K extends FixtureKey>(
   ...[value, options]: FixtureRoutes[RouteOf<K>]['mocked'] extends true
     ? [
         value?: FixtureValue<RouteOf<K>>,
-        options?: { query?: FixtureRoutes[RouteOf<K>]['query'] },
+        options?: DefineFixtureOptions<RouteOf<K>>,
       ]
     : [
         value: FixtureValue<RouteOf<K>>,
-        options?: { query?: FixtureRoutes[RouteOf<K>]['query'] },
+        options?: DefineFixtureOptions<RouteOf<K>>,
       ]
 ): Fixture<RouteOf<K>> => {
   const search = toSearch(options?.query);
@@ -719,10 +727,10 @@ const createSet = (
   const set: FixtureSet = {
     fixtures,
     seed,
+    // Most specific first, for libraries that take the first matching handler.
     *[Symbol.iterator]() {
-      for (const [key, value] of Object.entries(fixtures)) {
-        if (compileKey(key).route in routes)
-          yield createFixture(key, value, seed);
+      for (const { key, route } of compile(set)) {
+        if (route in routes) yield createFixture(key, fixtures[key], seed);
       }
     },
     get: (key: string) => {

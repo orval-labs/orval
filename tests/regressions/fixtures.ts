@@ -90,6 +90,8 @@ sorted.url({ sort: '-name', limit: '10' });
 sorted.url({ sort: 'age' });
 // @ts-expect-error not a sort
 defineFixture('listPets', [], { query: { sort: 'age' } });
+// A query constraint can name any of the route's params, without the required ones.
+defineFixture('listPets', [], { query: { limit: '10' } });
 
 // @ts-expect-error not an operation in the spec
 defineFixture('showKitten');
