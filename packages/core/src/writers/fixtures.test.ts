@@ -166,14 +166,44 @@ describe('buildFixtures', () => {
     expect(content).toContain(
       `import { getShowPetResponseMock } from './index.faker';`,
     );
-    expect(content).toMatch(/import type \{\s*Pet\s*\} from '\.\/model';/);
-    expect(content).toContain(
-      '"GET /pets/:petId": { mock: getShowPetResponseMock, status: 200, seed:',
+    expect(content).toMatch(
+      /import type \{\s*Error,\s*Pet\s*\} from '\.\/model';/,
     );
     expect(content).toContain(
-      '"DELETE /pets/:petId": { mock: null, status: 204',
+      '"GET /pets/:petId": { operation: "showPet", mock: getShowPetResponseMock, status: 200, seed:',
     );
-    expect(content).toContain('export const defineFixtures');
+    expect(content).toContain(
+      '"DELETE /pets/:petId": { operation: "removePet", mock: null, status: 204',
+    );
+    expect(content).toContain('export const defineFixture =');
+    expect(content).toContain('export const defineFixtures =');
     expect(content).toContain('export const resolveFixture');
+  });
+
+  it('types each route from its operation', () => {
+    const { output } = createTestContextSpec({ spec });
+    const content = buildFixtures(builder, output, {
+      header: '',
+      filePath: '/out/index.fixtures.ts',
+      fakerImportPath: './index.faker',
+      relativeSchemasPath: './model',
+    });
+
+    expect(content).toContain(`  "GET /pets/:petId": {
+    operation: "showPet";
+    method: "GET";
+    path: "/pets/:petId";
+    params: { "petId": string };
+    pathParams: { petId: string };
+    query: never;
+    body: never;
+    response: Pet;
+    error: Error;
+    mocked: true;
+  };`);
+    expect(content).toContain(`export type FixtureOperations = {
+  "removePet": "DELETE /pets/:petId";
+  "showPet": "GET /pets/:petId";
+};`);
   });
 });

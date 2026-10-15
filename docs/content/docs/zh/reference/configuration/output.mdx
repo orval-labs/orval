@@ -676,7 +676,7 @@ export default defineConfig({
 | `indexMockFiles` | `Boolean` | `false` | 在 `split`、`tags-split`、`tags-operations` 和 `tags-operations-split` 模式下，为每个 generator 条目额外输出一个根级 `index.<ext>.ts` 文件来 re-export mocks（例如 `index.msw.ts`、`index.faker.ts`）。在 `tags-split` 中会 re-export 每个 tag 的 mocks；在 `tags-operations` 模式中会 re-export 每个 operation 的 mocks；在 `split` 中会 re-export 单个 mock 文件。适合将 mocks（如 MSW）放在独立的 barrel 中，避免被生产代码或 model 的 barrel 导入。 |
 | `path` | `String` | `undefined` | 所有 mock 文件共享的输出目录。单个 generator 的 `path` 会覆盖该值。在 `single` 和 `tags` 模式下，这只会改变取消内联后的 mock 文件落点；如果想让 mock 代码保留在实现文件中，请看 `inline`。函数形式的 generator 会忽略自身的 `path`，始终回退到共享的 `path`。 |
 | `inline` | `Boolean` | `false` | 在 `single` 和 `tags` 模式下，默认会像 `split` 和 `tags-split` 一样，把 mock 代码写到实现文件旁边的独立 `.msw.ts` / `.faker.ts` 文件中。设为 `true` 后，会把 mock 代码追加到实现文件中，恢复到该选项出现之前 Orval 的布局方式。在 `split` 或 `tags-split` 中无效，因为这两种模式始终生成独立 mock 文件。 |
-| `fixtures` | `Boolean` | `false` | 在 `index.faker.ts` 旁边生成 `index.fixtures.ts`：按路由定义的类型化 fixture，使用 faker 的 response mock 作答。参见 [Fixtures](#fixtures)。需要配置 faker generator 并设置 `indexMockFiles: true`。 |
+| `fixtures` | `Boolean` | `false` | 在 `index.faker.ts` 旁边生成 `index.fixtures.ts`：每个端点的类型化 fixture，可按路由或 operation 定义，使用 faker 的 response mock 作答。参见 [Fixtures](#fixtures)。需要配置 faker generator 并设置 `indexMockFiles: true`。 |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | 每个条目对应一个 mock 输出文件。每个条目可以是对象（`MockOptions`），也可以是自定义 `ClientMockBuilder` 函数。 |
 
 ```ts title="orval.config.ts"
@@ -697,7 +697,7 @@ export default defineConfig({
 
 ### Fixtures
 
-`mock.fixtures: true` 会在 `index.faker.ts` 旁边生成 `index.fixtures.ts`。它按路由描述 API 响应，并用这些响应回答请求，适用于测试以及其他需要返回假数据的工具，不依赖任何 mock 库。需要配置 faker generator 并设置 `indexMockFiles: true`。
+`mock.fixtures: true` 会在 `index.faker.ts` 旁边生成 `index.fixtures.ts`。一个 fixture 是某个端点的假响应，并与该端点绑定。它知道自己的 method、path、URL、参数和响应类型，因此 nock、MSW、Playwright、fetch stub 或任何其他工具都可以用它返回数据。它不依赖任何 mock 库。需要配置 faker generator 并设置 `indexMockFiles: true`。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -716,40 +716,67 @@ export default defineConfig({
 ```
 
 ```ts
-import { defineFixtures, resolveFixture, respond } from './api/index.fixtures';
+import { defineFixture, defineFixtures, respond } from './api/index.fixtures';
 
-const listing = defineFixtures({
-  // 深度合并到带种子的 getShowPetByIdResponseMock() 结果上。
-  'GET /pets/:petId': { name: 'Rex' },
-  'GET /pets/:petId/owner': ({ params }) => ({ tag: params.petId }),
-  'DELETE /pets/:petId': respond(204),
-});
-const adopted = listing.extend({ 'GET /pets/:petId': { tag: 'adopted' } });
+// 按 operation 或按路由：两者都是 Fixture<'GET /pets/:petId'>。
+const rex = defineFixture('showPetById', { name: 'Rex' }); // 深度合并到带种子的 mock 上
+const same = defineFixture('GET /pets/:petId', { name: 'Rex' });
 
-resolveFixture(adopted, { method: 'GET', url: '/pets/1' });
-// { route: 'GET /pets/:petId', status: 200, body: { ...mock, name: 'Rex', tag: 'adopted' } }
+rex.route; // 'GET /pets/:petId'
+rex.operation; // 'showPetById'
+rex.method; // 'GET'
+rex.path; // '/pets/:petId'
+rex.url({ petId: '1' }); // '/pets/1'，参数类型来自 spec
+rex.pattern; // 匹配该路由路径的 RegExp
+rex.matches({ method: 'GET', url: '/pets/1' }); // true
+rex.reply({ params: { petId: '1' } }); // { ok: true, status: 200, body: Pet }
+
+const missing = defineFixture('showPetById', respond(404, { code: 404, message: 'Not found' }));
+missing.reply(); // { ok: false, status: 404, body: Error }
+
+const adopted = rex.with({ tag: 'adopted' });
+const sorted = defineFixture('listPets', [], { query: { sort: 'name' } });
+
+const pets = defineFixtures([rex, sorted, defineFixture('deletePetById', respond(204))]);
+// FixtureSet<Fixture<'GET /pets/:petId'> | Fixture<'GET /pets'> | Fixture<'DELETE /pets/:petId'>>
 ```
 
-- 键是 spec 中的 `<METHOD> <path>` 路由，`:param` 占位符与生成函数的参数同名。静态 base URL 属于路径的一部分（设置 `baseUrl: '/api'` 时为 `GET /api/pets`），匹配时忽略 host。未知路由、错误字段和错误参数都会导致编译失败。
-- 值可以是响应体、`respond(status, body?, headers?)`，或接收 `{ method, url, params, body }` 并返回二者之一的函数。函数同步执行。
-- 对于有 response mock 的路由，响应体会深度合并到 mock 上：对象合并，数组和 `null` 直接替换，`undefined` 保留原 mock。
-- 每个路由的 mock 都有固定种子，因此每次运行返回相同的值。`defineFixtures(fixtures, { seed })` 可以换一组同样固定的值。解析有 mock 的路由会重新设置 faker 共享实例的种子，之后未设置种子的 faker 调用会得到不同的序列。
-- 带 `?name=value` 后缀的键（`'GET /pets?limit=1'`）只匹配带有该 query 的请求。字面量路径段优先于参数，有 query 约束的优先于没有约束的。
-- `extend(fixtures, options?)` 返回一个新的集合。两个集合中都有的路由会深度合并响应体，其他情况直接替换。
-- spec 之外的路由放在 `defineFixtures(fixtures, { untyped: { 'GET /legacy': … } })` 中，不做类型检查。
+- fixture 的键是 spec 中的 `<METHOD> <path>` 路由，其中 `:param` 占位符与生成函数的参数同名，也可以是它的 operation。静态 base URL 属于路径的一部分（`baseUrl: '/api'` 时为 `GET /api/pets`），host 会被忽略。未知的路由和 operation、错误的字段、错误的路径参数或查询参数都会导致编译失败。
+- 值可以是响应体、`respond(status, body?, headers?)`，或者一个接收 `{ method, url, params, body }` 并返回前两者之一的函数。函数同步执行。`respond` 的 body 必须是该路由的响应类型或错误类型。
+- 对于有 response mock 的路由，响应体会深度合并到 mock 上：对象合并，数组和 `null` 直接替换，不提供值则原样返回 mock。
+- `reply` 根据请求的 `url`，或根据 `params` 和 `query` 作答。`ok`（2xx）时其 `body` 是路由的响应类型，否则是错误类型。
+- `with(overrides)` 返回一个新的 fixture。响应体深度合并，其他情况直接替换。
+- `{ query }` 只匹配带有这些查询参数的请求。
+- 每个路由的 mock 都有固定种子，因此每次运行返回相同的值。`defineFixtures(fixtures, { seed })` 可以换一组同样固定的值。从有 mock 的路由作答会重新设置 faker 共享实例的种子，之后未设置种子的 faker 调用会得到不同的序列。
 
-没有匹配的 fixture 时，`resolveFixture` 返回 `undefined`。在任何 mock 库中提供一个集合只需几行代码，例如 Playwright：
+集合包含多个 fixture，并以它们为类型。可以遍历集合，把每个 fixture 注册到 mock 库中；也可以让 `reply` 为任意请求选择最具体的匹配：字面量路径段优先于参数，有查询约束的优先于没有的。
 
 ```ts
-await page.route('**/pets/**', (route, request) => {
-  const result = resolveFixture(adopted, {
-    method: request.method(),
-    url: request.url(),
-    body: request.postDataJSON(),
+for (const fixture of pets) {
+  nock('https://petstore.test').intercept(fixture.pattern, fixture.method).reply((uri, body) => {
+    const { status, body: json } = fixture.reply({ url: uri, body });
+    return [status, json];
   });
-  return result
-    ? route.fulfill({ status: result.status, headers: result.headers, json: result.body })
-    : route.continue();
+}
+
+http.all('*', async ({ request }) => {
+  const answer = pets.reply({ method: request.method, url: request.url });
+  return answer ? HttpResponse.json(answer.body, { status: answer.status }) : passthrough();
+});
+
+pets.get('showPetById'); // Fixture<'GET /pets/:petId'>
+pets.extend([adopted]); // 新的集合；键相同的 fixture 深度合并
+```
+
+集合的 `reply` 会返回作答的 `route`、`key` 和 `fixture`，因此 `answer.route === 'GET /pets/:petId'` 可以收窄其响应体类型。没有匹配的 fixture 时返回 `undefined`。
+
+`defineFixtures` 也接受按路由或 operation 组织的对象。路由上的 `?name=value` 后缀（`'GET /pets?limit=1'`）只匹配带有该查询参数的请求，spec 之外的路由放在 `{ untyped: { 'GET /legacy': … } }` 中，不做类型检查。`resolveFixture(set, request)` 的作答方式与 `set.reply` 相同，并以匹配到的键作为 `route`。
+
+```ts
+const listing = defineFixtures({
+  showPetById: { name: 'Rex' },
+  'GET /pets/:petId/owner': ({ params }) => ({ tag: params.petId }),
+  'DELETE /pets/:petId': respond(204),
 });
 ```
 
@@ -854,6 +881,7 @@ export default defineConfig({
 
 - 条目以 `operationName`（即生成函数的名称）为键。
 - `path` 是 spec 中的路径。`url` 加上静态 base URL；当 base URL 只能在运行时确定时则省略。
+- `route` 是 method 加上带 `:param` 占位符的 URL 路径，占位符与生成函数的参数同名，例如 `GET /api/pets/:petId`，不含 base URL 的 host。它与 [fixtures](#fixtures) 使用的键相同。
 - `pathParams` 将每个占位符在 spec 中的名称与 client 接收的标识符对应起来。
 - `serialization` 列出 query 参数写入 URL 的方式，与 fetch client 的 `get<Op>Url` 一致。`override.fetch.arrayFormat` 仅对由 fetch client 生成 URL 的客户端生效：`fetch`、`mcp`，以及 `httpClient: 'fetch'` 下的 query、SWR 和 Pinia Colada 客户端。
 - `mock` 是 [mock generator](#mock) 为该 operation 生成的 `get<Op>ResponseMock` 工厂名称，没有则为 `null`。manifest 只记录名称，不会导入 mock 代码。

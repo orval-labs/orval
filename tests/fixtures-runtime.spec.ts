@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  defineFixture,
   defineFixtures,
   respond,
   resolveFixture,
@@ -61,7 +62,11 @@ describe('generated fixtures', () => {
   it('answers respond() exactly', () => {
     const set = defineFixtures({
       'DELETE /api/pets/:petId': respond(204),
-      'GET /api/health': respond(503, 'down', { 'retry-after': '1' }),
+      'GET /api/health': respond(
+        503,
+        { code: 503, message: 'down' },
+        { 'retry-after': '1' },
+      ),
     });
 
     expect(
@@ -74,7 +79,7 @@ describe('generated fixtures', () => {
     expect(resolveFixture(set, get('/api/health'))).toEqual({
       route: 'GET /api/health',
       status: 503,
-      body: 'down',
+      body: { code: 503, message: 'down' },
       headers: { 'retry-after': '1' },
     });
   });
@@ -168,5 +173,142 @@ describe('generated fixtures', () => {
     expect(
       resolveFixture(set, { method: 'POST', url: '/api/legacy/1' }),
     ).toBeUndefined();
+  });
+});
+
+describe('defineFixture', () => {
+  const owner = defineFixture('showPetWithOwner', { tag: 'good' });
+
+  it('couples a fixture to its endpoint, by route or operation', () => {
+    expect(owner).toMatchObject({
+      key: 'GET /api/pets/:petId/owner',
+      route: 'GET /api/pets/:petId/owner',
+      operation: 'showPetWithOwner',
+      method: 'GET',
+      path: '/api/pets/:petId/owner',
+      query: {},
+    });
+    expect(defineFixture('GET /api/pets/:petId/owner').operation).toBe(
+      'showPetWithOwner',
+    );
+  });
+
+  it('builds URLs and matches requests', () => {
+    const sorted = defineFixture('listPets', [], { query: { sort: 'name' } });
+
+    expect(owner.url({ petId: '7' })).toBe('/api/pets/7/owner');
+    expect(sorted.url({ limit: '5' })).toBe('/api/pets?sort=name&limit=5');
+    expect(owner.pattern.test('/api/pets/7/owner?x=1')).toBe(true);
+    expect(owner.pattern.test('/api/pets/7')).toBe(false);
+    expect(owner.matches(get('https://x.test/api/pets/7/owner'))).toBe(true);
+    expect(owner.matches({ method: 'POST', url: '/api/pets/7/owner' })).toBe(
+      false,
+    );
+    expect(sorted.matches(get('/api/pets?sort=name'))).toBe(true);
+    expect(sorted.matches(get('/api/pets'))).toBe(false);
+  });
+
+  it('replies with the seeded mock, the fixture deep-merged on top', () => {
+    const reply = owner.reply({ params: { petId: '7' } });
+
+    expect(reply).toMatchObject({
+      ok: true,
+      status: 200,
+      body: { tag: 'good' },
+    });
+    expect(reply.body).toHaveProperty('pet');
+    expect(owner.reply()).toEqual(reply);
+    expect(owner.reply({ url: '/api/pets/7/owner' })).toEqual(reply);
+    expect(() => owner.reply({ url: '/api/pets/7' })).toThrow("doesn't match");
+  });
+
+  it('passes params and body to handlers, and answers respond() exactly', () => {
+    expect(
+      defineFixture('createPets', ({ body }) => ({ name: body?.name })).reply({
+        body: { name: 'Rex', tag: 'dog' },
+      }).body,
+    ).toMatchObject({ name: 'Rex' });
+    expect(
+      defineFixture('showPetById', ({ params }) =>
+        respond(404, { code: 404, message: `No pet ${params.petId}` }),
+      ).reply({ params: { petId: '3' } }),
+    ).toEqual({
+      ok: false,
+      status: 404,
+      body: { code: 404, message: 'No pet 3' },
+    });
+    expect(defineFixture('deletePetById', respond(204)).reply()).toEqual({
+      ok: true,
+      status: 204,
+      body: undefined,
+    });
+  });
+
+  it('derives variants with deep merging', () => {
+    const base = defineFixture('showPetWithOwner', { tag: 'base', pet: null });
+
+    expect(base.with({ tag: 'variant' }).value).toEqual({
+      tag: 'variant',
+      pet: null,
+    });
+    expect(base.value).toEqual({ tag: 'base', pet: null });
+  });
+});
+
+describe('fixture sets', () => {
+  const owner = defineFixture('showPetWithOwner', { tag: 'good' });
+  const sorted = defineFixture('listPets', [], { query: { sort: 'name' } });
+  const set = defineFixtures([owner, sorted, defineFixture('listPets')]);
+
+  it('keys fixtures like the map form, so both compose', () => {
+    expect(Object.keys(set.fixtures)).toEqual([
+      'GET /api/pets/:petId/owner',
+      'GET /api/pets?sort=name',
+      'GET /api/pets',
+    ]);
+    expect(
+      Object.keys(set.extend({ showPetById: { name: 'Rex' } }).fixtures),
+    ).toContain('GET /api/pets/:petId');
+  });
+
+  it('iterates its typed fixtures', () => {
+    expect([...set].map(({ key }) => key)).toEqual(Object.keys(set.fixtures));
+    expect([
+      ...set.extend({}, { untyped: { 'GET /api/legacy': {} } }),
+    ]).toHaveLength(3);
+  });
+
+  it('answers from the most specific fixture, with the fixture that answered', () => {
+    const answer = set.reply(get('/api/pets?sort=name'));
+
+    expect(answer).toMatchObject({
+      ok: true,
+      route: 'GET /api/pets',
+      key: 'GET /api/pets?sort=name',
+      body: [],
+    });
+    expect(answer?.fixture.query).toEqual({ sort: 'name' });
+    expect(set.reply(get('/api/pets'))?.key).toBe('GET /api/pets');
+    expect(set.reply(get('/api/health'))).toBeUndefined();
+  });
+
+  it('gets fixtures by route or operation, with the set seed', () => {
+    // Seeds 0 and 1 both give this mock a `null` pet.
+    const seeded = set.extend([], { seed: 2 });
+
+    expect(seeded.get('showPetWithOwner').reply()).toEqual(
+      seeded.get('GET /api/pets/:petId/owner').reply(),
+    );
+    expect(seeded.get('showPetWithOwner').reply()).not.toEqual(owner.reply());
+    expect(() => set.get('showPetById' as never)).toThrow('no fixture');
+  });
+
+  it('deep-merges fixtures of the same key when extended', () => {
+    const extended = set.extend([owner.with({ pet: null })]);
+
+    expect(extended.get('showPetWithOwner').value).toEqual({
+      tag: 'good',
+      pet: null,
+    });
   });
 });

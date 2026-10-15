@@ -12,78 +12,151 @@ import {
   getShowPetWithOwnerResponseMock,
   getCreatePetsResponseMock,
 } from './index.faker';
-import type { CreatePetsBody, Pet, PetWithTag, Pets } from './model';
+import type {
+  CreatePetsBody,
+  CreatePetsParams,
+  Error,
+  ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
+} from './model';
 
 const routes: Record<
   string,
-  { mock: (() => unknown) | null; status: number; seed: number }
+  {
+    operation: string;
+    mock: (() => unknown) | null;
+    status: number;
+    seed: number;
+  }
 > = {
-  'DELETE /api/pets/:petId': { mock: null, status: 204, seed: 3684095935 },
+  'DELETE /api/pets/:petId': {
+    operation: 'deletePetById',
+    mock: null,
+    status: 204,
+    seed: 3684095935,
+  },
   'GET /api/health': {
+    operation: 'healthCheck',
     mock: getHealthCheckResponseMock,
     status: 200,
     seed: 3327811849,
   },
   'GET /api/pets': {
+    operation: 'listPets',
     mock: getListPetsResponseMock,
     status: 200,
     seed: 1435010741,
   },
   'GET /api/pets/:petId': {
+    operation: 'showPetById',
     mock: getShowPetByIdResponseMock,
     status: 200,
     seed: 1524987872,
   },
   'GET /api/pets/:petId/owner': {
+    operation: 'showPetWithOwner',
     mock: getShowPetWithOwnerResponseMock,
     status: 200,
     seed: 4167100380,
   },
   'POST /api/pets': {
+    operation: 'createPets',
     mock: getCreatePetsResponseMock,
     status: 200,
     seed: 943567749,
   },
 };
 
-/** The params, body and response of every route. `mocked` routes default to their mock. */
+/**
+ * Every route in the spec: its operation, method and path, the params a fixture function
+ * receives (as strings, from the URL), the spec's path and query params, and its body,
+ * response and error types. `mocked` routes default to their mock.
+ */
 export type FixtureRoutes = {
   'DELETE /api/pets/:petId': {
+    operation: 'deletePetById';
+    method: 'DELETE';
+    path: '/api/pets/:petId';
     params: { petId: string };
+    pathParams: { petId: string };
+    query: never;
     body: never;
     response: void;
+    error: Error;
     mocked: false;
   };
   'GET /api/health': {
+    operation: 'healthCheck';
+    method: 'GET';
+    path: '/api/health';
     params: Record<string, never>;
+    pathParams: never;
+    query: never;
     body: never;
     response: string;
+    error: Error;
     mocked: true;
   };
   'GET /api/pets': {
+    operation: 'listPets';
+    method: 'GET';
+    path: '/api/pets';
     params: Record<string, never>;
+    pathParams: never;
+    query: ListPetsParams;
     body: never;
     response: Pets;
+    error: Error;
     mocked: true;
   };
   'GET /api/pets/:petId': {
+    operation: 'showPetById';
+    method: 'GET';
+    path: '/api/pets/:petId';
     params: { petId: string };
+    pathParams: { petId: string };
+    query: never;
     body: never;
     response: Pet;
+    error: Error;
     mocked: true;
   };
   'GET /api/pets/:petId/owner': {
+    operation: 'showPetWithOwner';
+    method: 'GET';
+    path: '/api/pets/:petId/owner';
     params: { petId: string };
+    pathParams: { petId: string };
+    query: never;
     body: never;
     response: PetWithTag;
+    error: Error;
     mocked: true;
   };
   'POST /api/pets': {
+    operation: 'createPets';
+    method: 'POST';
+    path: '/api/pets';
     params: Record<string, never>;
+    pathParams: never;
+    query: CreatePetsParams;
     body: CreatePetsBody;
     response: Pet;
+    error: Error;
     mocked: true;
   };
+};
+
+/** The route of every operation. */
+export type FixtureOperations = {
+  deletePetById: 'DELETE /api/pets/:petId';
+  healthCheck: 'GET /api/health';
+  listPets: 'GET /api/pets';
+  showPetById: 'GET /api/pets/:petId';
+  showPetWithOwner: 'GET /api/pets/:petId/owner';
+  createPets: 'POST /api/pets';
 };
 
 type FixtureMethod =
@@ -97,6 +170,22 @@ type FixtureMethod =
 
 /** A route in the spec, e.g. `"GET /pets/:petId"`. */
 export type FixtureRoute = keyof FixtureRoutes;
+
+/** An operation in the spec, e.g. `"showPetById"`. */
+export type FixtureOperation = keyof FixtureOperations;
+
+/** A route or its operation. */
+export type FixtureKey = FixtureRoute | FixtureOperation;
+
+/** A fixture map key: a route, a route with a `?name=value` query constraint, or an operation. */
+export type FixtureMapKey = FixtureKey | `${FixtureRoute}?${string}`;
+
+/** The route a key names. */
+export type RouteOf<K extends FixtureMapKey> = K extends FixtureOperation
+  ? FixtureOperations[K]
+  : K extends `${infer R extends FixtureRoute}?${string}`
+    ? R
+    : Extract<K, FixtureRoute>;
 
 /** Every field optional, recursively. Arrays are replaced whole. */
 export type DeepPartial<T> = T extends readonly unknown[]
@@ -119,22 +208,25 @@ export interface FixtureRequest<
 const RESPONSE: unique symbol = Symbol('orval.fixtureResponse');
 
 /** An exact status, body and headers. Create it with {@link respond}. */
-export interface FixtureResponse {
+export interface FixtureResponse<B = unknown> {
   readonly [RESPONSE]: true;
   status: number;
-  body?: unknown;
+  body?: B;
   headers?: Record<string, string>;
 }
 
-/** Answers with this status, body and headers instead of the route's mock. */
-export const respond = (
+/**
+ * Answers with this status, body and headers instead of the route's mock. In a fixture, the
+ * body must be the route's response or error type.
+ */
+export const respond = <B = undefined>(
   status: number,
-  body?: unknown,
+  body?: B,
   headers?: Record<string, string>,
-): FixtureResponse => ({
+): FixtureResponse<B> => ({
   [RESPONSE]: true,
   status,
-  body,
+  ...(body === undefined ? {} : { body }),
   ...(headers ? { headers } : {}),
 });
 
@@ -143,6 +235,10 @@ type FixtureBody<R extends FixtureRoute> =
     ? DeepPartial<FixtureRoutes[R]['response']>
     : FixtureRoutes[R]['response'];
 
+type FixtureRouteResponse<R extends FixtureRoute> = FixtureResponse<
+  FixtureRoutes[R]['response'] | FixtureRoutes[R]['error'] | undefined
+>;
+
 /**
  * A route's fixture: its response body (deep-merged onto the route's mock when it
  * has one, `undefined` for the mock as is), a {@link respond} result, or a
@@ -150,17 +246,24 @@ type FixtureBody<R extends FixtureRoute> =
  */
 export type FixtureValue<R extends FixtureRoute> =
   | FixtureBody<R>
-  | FixtureResponse
+  | FixtureRouteResponse<R>
   | ((
       request: FixtureRequest<
         FixtureRoutes[R]['params'],
         FixtureRoutes[R]['body']
       >,
-    ) => FixtureBody<R> | FixtureResponse);
+    ) => FixtureBody<R> | FixtureRouteResponse<R>);
 
-/** Fixtures by route. A `?name=value` suffix only matches requests with that query. */
-export type Fixtures = { [R in FixtureRoute]?: FixtureValue<R> } & {
-  [R in FixtureRoute as `${R}?${string}`]?: FixtureValue<R>;
+/** Fixtures by route or operation. A `?name=value` suffix only matches requests with that query. */
+export type Fixtures = { [R in FixtureRoute]?: FixtureValue<R> | undefined } & {
+  [R in FixtureRoute as `${R}?${string}`]?: FixtureValue<R> | undefined;
+} & {
+  [O in FixtureOperation]?: FixtureValue<FixtureOperations[O]> | undefined;
+};
+
+/** Fixtures by route or operation, for the keys `K` (inferred from the object's keys). */
+export type FixtureMap<K extends FixtureMapKey> = {
+  [P in K]?: FixtureValue<RouteOf<P>> | undefined;
 };
 
 /** Fixtures for routes the spec doesn't describe. Nothing about them is checked. */
@@ -172,19 +275,126 @@ export interface FixtureOptions {
   seed?: number;
 }
 
-export interface FixtureSet {
-  readonly fixtures: Readonly<Record<string, unknown>>;
-  readonly seed: number;
-  /** A new set with `fixtures` on top. Bodies of the same route deep-merge, anything else replaces. */
-  extend(fixtures: Fixtures, options?: FixtureOptions): FixtureSet;
-}
-
 export interface FixtureResult {
   /** The fixture key that answered. */
   route: string;
   status: number;
   body: unknown;
   headers?: Record<string, string>;
+}
+
+/** A fixture's reply: the route's response when `ok` (2xx), its error otherwise. */
+export type FixtureReply<R extends FixtureRoute> =
+  | {
+      ok: true;
+      status: number;
+      body: FixtureRoutes[R]['response'];
+      headers?: Record<string, string>;
+    }
+  | {
+      ok: false;
+      status: number;
+      body: FixtureRoutes[R]['error'];
+      headers?: Record<string, string>;
+    };
+
+type FixtureQueryArgs<R extends FixtureRoute> = [
+  FixtureRoutes[R]['query'],
+] extends [never]
+  ? []
+  : [query?: FixtureRoutes[R]['query']];
+
+/** `url`'s arguments: the path params when the route has any, then its query params. */
+export type FixtureUrlArgs<R extends FixtureRoute> = [
+  FixtureRoutes[R]['pathParams'],
+] extends [never]
+  ? FixtureQueryArgs<R>
+  : [params: FixtureRoutes[R]['pathParams'], ...FixtureQueryArgs<R>];
+
+/**
+ * The request a fixture replies to: the real request's `url`, or the `params` and `query`
+ * to build one from. Without either, each path param is its own name.
+ */
+export type FixtureReplyRequest<R extends FixtureRoute> = {
+  body?: FixtureRoutes[R]['body'];
+} & (
+  | { url: string | URL }
+  | {
+      params?: FixtureRoutes[R]['pathParams'];
+      query?: FixtureRoutes[R]['query'];
+    }
+);
+
+/** One endpoint's fixture, for whatever intercepts the request: nock, MSW, a fetch stub. */
+export interface Fixture<R extends FixtureRoute = FixtureRoute> {
+  /** Its key in a set: the route, plus its query constraint. */
+  readonly key: string;
+  /** `"GET /pets/:petId"` */
+  readonly route: R;
+  /** `"showPetById"` */
+  readonly operation: FixtureRoutes[R]['operation'];
+  /** `"GET"` */
+  readonly method: FixtureRoutes[R]['method'];
+  /** `"/pets/:petId"`, in the path syntax of MSW, Express and the like. */
+  readonly path: FixtureRoutes[R]['path'];
+  /** The query params a request must have. */
+  readonly query: Readonly<Record<string, string>>;
+  /** Matches the route's paths, with or without a query string. */
+  readonly pattern: RegExp;
+  /** The fixture's value, as given. */
+  readonly value: FixtureValue<R> | undefined;
+  /** The URL of a request for this fixture, e.g. `url({ petId: 1 })` is `"/pets/1"`. */
+  url(...args: FixtureUrlArgs<R>): string;
+  /** Whether a request is for this fixture: its method, path and query. */
+  matches(request: { method: string; url: string | URL }): boolean;
+  /** The reply to a request: the route's seeded mock with the fixture on top. */
+  reply(request?: FixtureReplyRequest<R>): FixtureReply<R>;
+  /** A new fixture with `overrides` on top. Bodies deep-merge, anything else replaces. */
+  with(overrides: FixtureValue<R>): Fixture<R>;
+}
+
+/** Any route's fixture. */
+// oxlint-disable-next-line typescript/no-explicit-any
+export type AnyFixture = Fixture<any>;
+
+/** The fixtures for some keys: `Fixture<A> | Fixture<B>`. */
+export type FixtureOf<K extends FixtureMapKey> = K extends FixtureMapKey
+  ? Fixture<RouteOf<K>>
+  : never;
+
+/** The fixtures `defineFixtures` and `extend` add: the list's, else the map's. */
+type FixturesFrom<F extends AnyFixture, K extends FixtureMapKey> = [F] extends [
+  never,
+]
+  ? FixtureOf<K>
+  : F;
+
+/** A set's reply: the fixture that answered and its reply. Narrow it on `route`. */
+export type FixtureSetReply<F extends AnyFixture> =
+  F extends Fixture<infer R>
+    ? FixtureReply<R> & { route: R; key: string; fixture: Fixture<R> }
+    : never;
+
+/** Fixtures for many endpoints, typed by the fixtures in it. */
+export interface FixtureSet<
+  F extends AnyFixture = AnyFixture,
+> extends Iterable<F> {
+  /** Values by key, as given. */
+  readonly fixtures: Readonly<Record<string, unknown>>;
+  readonly seed: number;
+  /** The fixture for a route or operation in the set, without a query constraint. */
+  get<K extends F['route'] | F['operation']>(key: K): Fixture<RouteOf<K>>;
+  /** Answers a request from the most specific matching fixture, or `undefined` when none matches. */
+  reply(request: {
+    method: string;
+    url: string | URL;
+    body?: unknown;
+  }): FixtureSetReply<F> | undefined;
+  /** A new set with `fixtures` on top. Bodies of the same key deep-merge, anything else replaces. */
+  extend<G extends AnyFixture = never, const K extends FixtureMapKey = never>(
+    fixtures: readonly G[] | FixtureMap<K>,
+    options?: FixtureOptions,
+  ): FixtureSet<F | FixturesFrom<G, K>>;
 }
 
 const isResponse = (value: unknown): value is FixtureResponse =>
@@ -207,29 +417,32 @@ const merge = (base: unknown, override: unknown): unknown => {
   return merged;
 };
 
-const createSet = (
-  fixtures: Record<string, unknown>,
-  seed: number,
-): FixtureSet => ({
-  fixtures,
-  seed,
-  extend: (next, options = {}) => {
-    const merged = { ...fixtures };
-    for (const [key, value] of Object.entries({
-      ...next,
-      ...options.untyped,
-    })) {
-      merged[key] = merge(merged[key], value);
-    }
-    return createSet(merged, options.seed ?? seed);
-  },
-});
+const routeOfOperation: Record<string, string> = Object.fromEntries(
+  Object.entries(routes).map(([route, { operation }]) => [operation, route]),
+);
 
-/** Fixtures by route, checked against the spec. */
-export const defineFixtures = (
-  fixtures: Fixtures,
-  options?: FixtureOptions,
-): FixtureSet => createSet({}, 0).extend(fixtures, options);
+/** The key with an operation replaced by its route. */
+const toKey = (key: string) => {
+  const queryStart = key.indexOf('?');
+  const head = queryStart === -1 ? key : key.slice(0, queryStart);
+  return (
+    (routeOfOperation[head] ?? head) +
+    (queryStart === -1 ? '' : key.slice(queryStart))
+  );
+};
+
+/** Query params as a search string. Arrays repeat the name; `null` and `undefined` are left out. */
+const toSearch = (query: object = {}) =>
+  new URLSearchParams(
+    Object.entries(query).flatMap(([name, value]: [string, unknown]) =>
+      value === undefined || value === null
+        ? []
+        : (Array.isArray(value) ? value : [value]).map((item) => [
+            name,
+            String(item),
+          ]),
+    ),
+  ).toString();
 
 interface CompiledFixture {
   key: string;
@@ -240,6 +453,30 @@ interface CompiledFixture {
   params: string[];
   query: [string, string][];
 }
+
+const compileKey = (key: string): CompiledFixture => {
+  const queryStart = key.indexOf('?');
+  const route = queryStart === -1 ? key : key.slice(0, queryStart);
+  const space = route.indexOf(' ');
+  const parts = route
+    .slice(space + 1)
+    .split('/')
+    .filter(Boolean);
+  return {
+    key,
+    route,
+    method: route.slice(0, space).toUpperCase(),
+    segments: parts.map((part) => (part.startsWith(':') ? null : part)),
+    params: parts
+      .filter((part) => part.startsWith(':'))
+      .map((part) => part.slice(1)),
+    query: [
+      ...new URLSearchParams(
+        queryStart === -1 ? '' : key.slice(queryStart + 1),
+      ),
+    ],
+  };
+};
 
 /**
  * At the first position where one route has a literal segment and the other a
@@ -266,39 +503,186 @@ const decodeSegment = (segment: string) => {
   }
 };
 
+const toUrl = (url: string | URL) => new URL(url, 'http://localhost');
+
+/** The path params of a request for `candidate`, or `undefined` when it isn't one. */
+const match = (
+  candidate: CompiledFixture,
+  method: string,
+  url: URL,
+): Record<string, string> | undefined => {
+  const parts = url.pathname.split('/').filter(Boolean).map(decodeSegment);
+  if (
+    candidate.method !== method.toUpperCase() ||
+    candidate.segments.length !== parts.length ||
+    !candidate.segments.every(
+      (segment, index) => segment === null || segment === parts[index],
+    ) ||
+    !candidate.query.every(
+      ([name, value]) => url.searchParams.get(name) === value,
+    )
+  ) {
+    return undefined;
+  }
+  const values = parts.filter((_, index) => candidate.segments[index] === null);
+  return Object.fromEntries(
+    candidate.params.map((name, index) => [name, values[index] ?? '']),
+  );
+};
+
+/** A matched request's result: a `respond()` as is, else the body on the route's seeded mock. */
+const answer = (
+  candidate: CompiledFixture,
+  fixture: unknown,
+  request: FixtureRequest,
+  seed: number,
+): FixtureResult => {
+  const value =
+    typeof fixture === 'function'
+      ? (fixture as (request: FixtureRequest) => unknown)(request)
+      : fixture;
+  if (isResponse(value)) {
+    return {
+      route: candidate.key,
+      status: value.status,
+      body: value.body,
+      ...(value.headers ? { headers: value.headers } : {}),
+    };
+  }
+  const defaults = routes[candidate.route];
+  if (!defaults?.mock) {
+    return {
+      route: candidate.key,
+      status: defaults?.status ?? 200,
+      body: value,
+    };
+  }
+  faker.seed(defaults.seed + seed);
+  return {
+    route: candidate.key,
+    status: defaults.status,
+    body: merge(defaults.mock(), value),
+  };
+};
+
+const toReply = ({ status, body, headers }: FixtureResult) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  body,
+  ...(headers ? { headers } : {}),
+});
+
+const escapeRegExp = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const createFixture = (
+  key: string,
+  value: unknown,
+  seed: number,
+): AnyFixture => {
+  const candidate = compileKey(key);
+  const { route, method } = candidate;
+  const path = route.slice(route.indexOf(' ') + 1);
+  const segments = path.split('/');
+  const query = Object.fromEntries(candidate.query);
+  const build = (params: Record<string, unknown> = {}, extra: object = {}) => {
+    const pathname = segments
+      .map((segment) => {
+        if (!segment.startsWith(':')) return segment;
+        const param = params[segment.slice(1)];
+        if (param === undefined)
+          throw new Error(`${route} needs the ${segment.slice(1)} param`);
+        return encodeURIComponent(String(param));
+      })
+      .join('/');
+    const search = toSearch({ ...query, ...extra });
+    return search ? `${pathname}?${search}` : pathname;
+  };
+  const placeholders = Object.fromEntries(
+    candidate.params.map((name) => [name, name]),
+  );
+  return {
+    key,
+    route,
+    operation: routes[route]?.operation,
+    method,
+    path,
+    query,
+    pattern: new RegExp(
+      `^${segments
+        .map((segment) =>
+          segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment),
+        )
+        .join('/')}(?:\\?.*)?$`,
+    ),
+    value,
+    url: (...args: unknown[]) =>
+      candidate.params.length > 0
+        ? build(args[0] as Record<string, unknown>, args[1] as object)
+        : build({}, args[0] as object),
+    matches: (request: { method: string; url: string | URL }) =>
+      match(candidate, request.method, toUrl(request.url)) !== undefined,
+    reply: (
+      request: {
+        url?: string | URL;
+        params?: Record<string, unknown>;
+        query?: object;
+        body?: unknown;
+      } = {},
+    ) => {
+      const url = toUrl(
+        request.url ?? build(request.params ?? placeholders, request.query),
+      );
+      const params = match(candidate, method, url);
+      if (!params)
+        throw new Error(
+          `${key} doesn't match ${method} ${url.pathname}${url.search}`,
+        );
+      return toReply(
+        answer(
+          candidate,
+          value,
+          { method, url, params, body: request.body },
+          seed,
+        ),
+      );
+    },
+    with: (overrides: unknown) =>
+      createFixture(key, merge(value, overrides), seed),
+  } as AnyFixture;
+};
+
+/**
+ * One endpoint's fixture, by route or operation. A route with a mock takes a deep partial
+ * of its response, or nothing for the mock as is.
+ */
+export const defineFixture = <K extends FixtureKey>(
+  key: K,
+  ...[value, options]: FixtureRoutes[RouteOf<K>]['mocked'] extends true
+    ? [
+        value?: FixtureValue<RouteOf<K>>,
+        options?: { query?: FixtureRoutes[RouteOf<K>]['query'] },
+      ]
+    : [
+        value: FixtureValue<RouteOf<K>>,
+        options?: { query?: FixtureRoutes[RouteOf<K>]['query'] },
+      ]
+): Fixture<RouteOf<K>> => {
+  const search = toSearch(options?.query);
+  return createFixture(
+    toKey(key) + (search ? `?${search}` : ''),
+    value,
+    0,
+  ) as Fixture<RouteOf<K>>;
+};
+
 const compiledSets = new WeakMap<FixtureSet, CompiledFixture[]>();
 
 const compile = (set: FixtureSet): CompiledFixture[] => {
   const cached = compiledSets.get(set);
   if (cached) return cached;
   const compiled = Object.keys(set.fixtures)
-    .map((key) => {
-      const queryStart = key.indexOf('?');
-      const route = queryStart === -1 ? key : key.slice(0, queryStart);
-      const space = route.indexOf(' ');
-      const parts = route
-        .slice(space + 1)
-        .split('/')
-        .filter(Boolean);
-      const segments = parts.map((part) =>
-        part.startsWith(':') ? null : part,
-      );
-      const query = [
-        ...new URLSearchParams(
-          queryStart === -1 ? '' : key.slice(queryStart + 1),
-        ),
-      ];
-      return {
-        key,
-        route,
-        method: route.slice(0, space).toUpperCase(),
-        segments,
-        params: parts
-          .filter((part) => part.startsWith(':'))
-          .map((part) => part.slice(1)),
-        query,
-      };
-    })
+    .map(compileKey)
     .sort(bySpecificity);
   compiledSets.set(set, compiled);
   return compiled;
@@ -312,60 +696,81 @@ export const resolveFixture = (
   set: FixtureSet,
   request: { method: string; url: string | URL; body?: unknown },
 ): FixtureResult | undefined => {
-  const url = new URL(request.url, 'http://localhost');
-  const parts = url.pathname.split('/').filter(Boolean).map(decodeSegment);
+  const url = toUrl(request.url);
   const method = request.method.toUpperCase();
   for (const candidate of compile(set)) {
-    if (
-      candidate.method !== method ||
-      candidate.segments.length !== parts.length ||
-      !candidate.segments.every(
-        (segment, index) => segment === null || segment === parts[index],
-      ) ||
-      !candidate.query.every(
-        ([name, value]) => url.searchParams.get(name) === value,
-      )
-    ) {
-      continue;
+    const params = match(candidate, method, url);
+    if (params) {
+      return answer(
+        candidate,
+        set.fixtures[candidate.key],
+        { method, url, params, body: request.body },
+        set.seed,
+      );
     }
-    const values = parts.filter(
-      (_, index) => candidate.segments[index] === null,
-    );
-    const params = Object.fromEntries(
-      candidate.params.map((name, index) => [name, values[index] ?? '']),
-    );
-    const fixture = set.fixtures[candidate.key];
-    const value =
-      typeof fixture === 'function'
-        ? (fixture as (request: FixtureRequest) => unknown)({
-            method,
-            url,
-            params,
-            body: request.body,
-          })
-        : fixture;
-    if (isResponse(value)) {
-      return {
-        route: candidate.key,
-        status: value.status,
-        body: value.body,
-        ...(value.headers ? { headers: value.headers } : {}),
-      };
-    }
-    const defaults = routes[candidate.route];
-    if (!defaults?.mock) {
-      return {
-        route: candidate.key,
-        status: defaults?.status ?? 200,
-        body: value,
-      };
-    }
-    faker.seed(defaults.seed + set.seed);
-    return {
-      route: candidate.key,
-      status: defaults.status,
-      body: merge(defaults.mock(), value),
-    };
   }
   return undefined;
 };
+
+const createSet = (
+  fixtures: Record<string, unknown>,
+  seed: number,
+): FixtureSet => {
+  const set: FixtureSet = {
+    fixtures,
+    seed,
+    *[Symbol.iterator]() {
+      for (const [key, value] of Object.entries(fixtures)) {
+        if (compileKey(key).route in routes)
+          yield createFixture(key, value, seed);
+      }
+    },
+    get: (key: string) => {
+      const route = toKey(key);
+      if (!(route in fixtures))
+        throw new Error(`The set has no fixture for ${key}`);
+      return createFixture(route, fixtures[route], seed);
+    },
+    reply: (request) => {
+      const result = resolveFixture(set, request);
+      if (!result) return undefined;
+      const fixture = createFixture(result.route, fixtures[result.route], seed);
+      return {
+        ...toReply(result),
+        route: fixture.route,
+        key: result.route,
+        fixture,
+      } as FixtureSetReply<AnyFixture>;
+    },
+    extend: ((
+      next: readonly AnyFixture[] | Fixtures,
+      options: FixtureOptions = {},
+    ) => {
+      const entries: [string, unknown][] = Array.isArray(next)
+        ? next.map((fixture: AnyFixture) => [fixture.key, fixture.value])
+        : Object.entries(next).map(([key, value]) => [toKey(key), value]);
+      const merged = { ...fixtures };
+      for (const [key, value] of [
+        ...entries,
+        ...Object.entries(options.untyped ?? {}),
+      ]) {
+        merged[key] = merge(merged[key], value);
+      }
+      return createSet(merged, options.seed ?? seed);
+    }) as FixtureSet['extend'],
+  };
+  return set;
+};
+
+/**
+ * Fixtures for many endpoints, from a list of fixtures or a map by route or operation,
+ * checked against the spec.
+ */
+export const defineFixtures = <
+  F extends AnyFixture = never,
+  const K extends FixtureMapKey = never,
+>(
+  fixtures: readonly F[] | FixtureMap<K>,
+  options?: FixtureOptions,
+): FixtureSet<FixturesFrom<F, K>> =>
+  createSet({}, 0).extend(fixtures as never, options) as never;

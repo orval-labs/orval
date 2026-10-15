@@ -21,6 +21,7 @@ export const operations = {
     method: 'POST',
     path: '/pets',
     url: '/pets',
+    route: 'POST /pets',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [],
@@ -44,6 +45,7 @@ export const operations = {
     method: 'DELETE',
     path: '/pets/{petId}',
     url: '/pets/{petId}',
+    route: 'DELETE /pets/:petId',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [
@@ -69,6 +71,7 @@ export const operations = {
     method: 'GET',
     path: '/health',
     url: '/health',
+    route: 'GET /health',
     tag: 'health',
     tags: ['health'],
     pathParams: [],
@@ -89,6 +92,7 @@ export const operations = {
     method: 'GET',
     path: '/pets',
     url: '/pets',
+    route: 'GET /pets',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [],
@@ -109,6 +113,7 @@ export const operations = {
     method: 'GET',
     path: '/pets/{petId}',
     url: '/pets/{petId}',
+    route: 'GET /pets/:petId',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [
@@ -134,6 +139,7 @@ export const operations = {
     method: 'GET',
     path: '/pets/{petId}/owner',
     url: '/pets/{petId}/owner',
+    route: 'GET /pets/:petId/owner',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [
