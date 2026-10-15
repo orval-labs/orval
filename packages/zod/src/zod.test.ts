@@ -5816,6 +5816,64 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ]);
     });
 
+    describe.each([
+      { useReusableSchemas: false, variant: 'classic' },
+      { useReusableSchemas: true, variant: 'classic' },
+      { useReusableSchemas: false, variant: 'mini' },
+      { useReusableSchemas: true, variant: 'mini' },
+    ] as const)(
+      'allOf $ref narrowed by a sibling enum (reusable: $useReusableSchemas, $variant)',
+      ({ useReusableSchemas, variant }) => {
+        it('emits the enum alone instead of chaining .enum(...) onto the ref', () => {
+          const context = makeContextSpec({
+            spec: {
+              components: {
+                schemas: {
+                  NavigationKind: {
+                    type: 'string',
+                    enum: ['DirectLink', 'WithinCase'],
+                  },
+                },
+              },
+            },
+          });
+          const definition = generateZodValidationSchemaDefinition(
+            {
+              type: 'object',
+              required: ['navigationKind'],
+              properties: {
+                navigationKind: {
+                  allOf: [{ $ref: '#/components/schemas/NavigationKind' }],
+                  enum: ['DirectLink'],
+                },
+              },
+            },
+            context,
+            'notification',
+            false,
+            true,
+            { required: true, useReusableSchemas },
+          );
+          const { zod, usedRefs } = parseZodValidationSchemaDefinition(
+            definition,
+            context,
+            false,
+            false,
+            true,
+            undefined,
+            undefined,
+            variant,
+          );
+          expect(zod).toContain(
+            `"navigationKind": ${
+              variant === 'mini' ? '/*#__PURE__*/ ' : ''
+            }zod.enum(['DirectLink'])`,
+          );
+          expect(usedRefs.size).toBe(0);
+        });
+      },
+    );
+
     it('chains .default(...) for a default sibling on a $ref', () => {
       const context = makeContextSpec({
         spec: { components: { schemas: { Pet: { type: 'object' } } } },

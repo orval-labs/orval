@@ -1024,8 +1024,11 @@ export const generateZodValidationSchemaDefinition = (
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
   // This ensures these constraints work with any base type (string, number, object, etc.)
+  // A sibling `enum` (e.g. `allOf: [$ref]` narrowed by `enum: ['A']`, the
+  // OpenAPI 3.0 way to constrain a ref) lists every accepted value itself, so
+  // it is emitted alone.
   let skipSwitchStatement = false;
-  if (schema.allOf || schema.oneOf || schema.anyOf) {
+  if ((schema.allOf || schema.oneOf || schema.anyOf) && !hasNonArrayEnum) {
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
