@@ -1,0 +1,306 @@
+---
+title: Fixtures
+description: 为每个端点定义类型化的 mock 响应，可由任何 mock 库使用
+---
+
+一个 fixture 是某个端点的假响应，并与该端点绑定。Orval 会为你的 API 生成以 spec 为类型的 `defineFixture`：指定一个 operation，只写测试关心的字段，其余部分来自该端点的 [Faker](/zh/docs/guides/faker) mock。fixture 知道自己的 method、path 和 URL，因此 nock、[MSW](/zh/docs/guides/msw)、Playwright、fetch stub 或任何其他工具都可以用它返回数据。它不依赖任何 mock 库。
+
+## 配置
+
+fixture 需要 faker generator 并设置 `indexMockFiles: true`：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      mock: {
+        indexMockFiles: true,
+        fixtures: true, // 生成 ./src/api/index.fixtures.ts
+        generators: [{ type: 'faker' }],
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+以 spec 的这一部分为例：
+
+```yaml title="petstore.yaml"
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      parameters:
+        - { name: limit, in: query, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Pets' }
+  /pets/{petId}:
+    parameters:
+      - { name: petId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: showPetById
+      responses:
+        '200': { $ref: '#/components/responses/Pet' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deletePetById
+      responses:
+        '204': { description: Deleted }
+        default: { $ref: '#/components/responses/Error' }
+```
+
+`index.fixtures.ts` 描述了每个 operation，并导出 `defineFixture`、`defineFixtures` 和 `respond`：
+
+```ts title="src/api/index.fixtures.ts"
+export type FixtureRoutes = {
+  'GET /pets/:petId': {
+    operation: 'showPetById';
+    method: 'GET';
+    path: '/pets/:petId';
+    params: { petId: string }; // fixture 函数从 URL 中收到的参数
+    pathParams: { petId: string }; // spec 中的类型，用于 url()
+    query: never;
+    body: never;
+    response: Pet;
+    error: Error;
+    mocked: true; // 默认使用 getShowPetByIdResponseMock() 作答
+  };
+  // ...
+};
+
+export type FixtureOperations = {
+  listPets: 'GET /pets';
+  showPetById: 'GET /pets/:petId';
+  deletePetById: 'DELETE /pets/:petId';
+};
+```
+
+## 定义 fixture
+
+指定 operation 或其路由，并给出你关心的字段：
+
+```ts title="src/api/fixtures/pets.ts"
+import { defineFixture, respond } from '../index.fixtures';
+
+export const rex = defineFixture('showPetById', { name: 'Rex' });
+// Fixture<'GET /pets/:petId'>，与 defineFixture('GET /pets/:petId', { name: 'Rex' }) 相同
+
+rex.reply().body; // { id: 7272122785202176, name: 'Rex', tag: '…' }
+```
+
+该值会深度合并到端点带固定种子的 mock 上，因此 `id` 和 `tag` 是假数据，但每次运行都相同。值可以是：
+
+```ts
+import { getShowPetByIdResponseMock } from '../index.faker';
+
+// 不提供值：原样返回 mock，deletePetById 则返回空的 204。
+const anyPet = defineFixture('showPetById');
+const deleted = defineFixture('deletePetById');
+
+// 部分响应体。对象合并；数组、null 和原始值直接替换。
+const tagged = defineFixture('showPetById', { tag: 'adopted' });
+
+// 来自 orval faker 工厂的响应体。
+const pets = defineFixture('listPets', [
+  getShowPetByIdResponseMock({ name: 'Rex' }),
+  getShowPetByIdResponseMock({ name: 'Fido' }),
+]);
+
+// 状态码、响应体和 headers。响应体必须是该路由的响应类型或错误类型。
+const missing = defineFixture('showPetById', respond(404, { code: 404, message: 'Not found' }));
+const conflict = defineFixture('deletePetById', respond(409, { code: 409, message: 'Adopted' }));
+
+// 接收请求并返回前两者之一的函数，同步执行。
+const byId = defineFixture('showPetById', ({ params }) => ({ id: Number(params.petId) }));
+```
+
+`{ query }` 让 fixture 只匹配带有这些查询参数的请求，可以是该路由查询参数中的任意几个。`with(overrides)` 返回一个新的 fixture；响应体深度合并，其他情况直接替换：
+
+```ts
+const firstPage = defineFixture('listPets', [], { query: { limit: 10 } });
+const adopted = rex.with({ tag: 'adopted' });
+```
+
+所有内容都会根据 spec 检查。以下代码无法通过编译：
+
+```ts
+defineFixture('showPet'); // 未知的 operation
+defineFixture('GET /pets/:id'); // 未知的路由
+defineFixture('showPetById', { name: 1 }); // name 是字符串
+defineFixture('showPetById', respond(500, 'down')); // 响应体必须是 Pet 或 Error
+defineFixture('listPets', [], { query: { page: 1 } }); // listPets 没有 page 参数
+```
+
+## 使用 fixture
+
+fixture 包含 mock 库返回数据所需的一切：
+
+| 成员 | 示例 | |
+|---|---|---|
+| `route` | `'GET /pets/:petId'` | method 和 path。 |
+| `operation` | `'showPetById'` | |
+| `method` | `'GET'` | |
+| `path` | `'/pets/:petId'` | 使用 MSW、Express 等的路径语法。 |
+| `query` | `{ limit: '10' }` | 请求必须带有的查询参数。 |
+| `pattern` | `/^\/pets\/[^/]+(?:\?.*)?$/` | 匹配该路由的路径，带不带查询字符串均可。 |
+| `url(params?, query?)` | `rex.url({ petId: '1' })` → `'/pets/1'` | 以 spec 的路径参数和查询参数为类型。 |
+| `matches(request)` | `rex.matches({ method: 'GET', url: '/pets/1' })` → `true` | 检查 method、path 和 query。 |
+| `reply(request?)` | `rex.reply({ url: '/pets/1' })` | 响应，根据 URL 或 `params` 和 `query` 生成。 |
+| `with(overrides)` | `rex.with({ tag: 'adopted' })` | 一个新的 fixture。 |
+
+2xx 时 `reply` 返回 `{ ok: true, status, body: Pet }`，否则返回 `{ ok: false, status, body: Error }`，因此检查 `ok` 即可收窄 `body` 的类型。它也可以脱离网络使用，例如用于组件的 props 或查询缓存。
+
+使用 nock：
+
+```ts
+nock('https://petstore.test')
+  .intercept(rex.pattern, rex.method)
+  .reply((uri) => {
+    const { status, body } = rex.reply({ url: uri });
+    return [status, body];
+  });
+```
+
+使用 MSW：
+
+```ts
+server.use(http.get(`*${rex.path}`, ({ request }) => HttpResponse.json(rex.reply({ url: request.url }).body)));
+```
+
+## Fixture 集合
+
+`defineFixtures` 将多个端点的 fixture 组合起来，并以它们为类型：
+
+```ts
+import { defineFixtures } from '../index.fixtures';
+
+export const petstore = defineFixtures([rex, firstPage, deleted]);
+// FixtureSet<Fixture<'GET /pets/:petId'> | Fixture<'GET /pets'> | Fixture<'DELETE /pets/:petId'>>
+
+petstore.get('showPetById'); // Fixture<'GET /pets/:petId'>
+petstore.get('createPets'); // 无法编译：不在集合中
+
+const adoptedStore = petstore.extend([adopted]); // 新的集合；相同的键深度合并
+```
+
+集合是可迭代的，因此可以把每个 fixture 作为独立的 handler 注册到 mock 库中。遍历时会先产出最具体的 fixture：字面量路径段优先于参数，有查询约束的优先于没有的。MSW 和 nock 等库会使用第一个匹配的 handler，因此按这个顺序注册即可。
+
+使用 MSW，每个 fixture 一个 handler。`fixture.matches` 会检查 method 和 query，handler 不返回任何内容时，请求会交给下一个 handler：
+
+```ts title="test/setup.ts"
+import { http, HttpResponse, passthrough } from 'msw';
+import { setupServer } from 'msw/node';
+import { petstore } from '../src/api/fixtures';
+
+// JSON 响应，204 时为空响应。
+const toResponse = ({ status, body, headers }: { status: number; body?: unknown; headers?: Record<string, string> }) =>
+  new HttpResponse(body === undefined ? null : JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+
+export const server = setupServer(
+  ...[...petstore].map((fixture) =>
+    http.all(`*${fixture.path}`, ({ request }) =>
+      fixture.matches(request) ? toResponse(fixture.reply({ url: request.url })) : undefined,
+    ),
+  ),
+);
+```
+
+或者使用一个兜底 handler，配合同一个 `toResponse`：集合的 `reply` 会用最具体的 fixture 回答任意请求，没有匹配时返回 `undefined`。
+
+```ts title="test/setup.ts"
+export const server = setupServer(
+  http.all('*', async ({ request }) => {
+    const answer = petstore.reply({
+      method: request.method,
+      url: request.url,
+      body: request.body ? await request.clone().json() : undefined,
+    });
+    return answer ? toResponse(answer) : passthrough();
+  }),
+);
+```
+
+使用 nock，每个 fixture 一个 interceptor：
+
+```ts
+for (const fixture of petstore) {
+  nock('https://petstore.test')
+    .intercept(fixture.pattern, fixture.method)
+    .reply((uri, body) => {
+      const reply = fixture.reply({ url: uri, body });
+      return [reply.status, reply.body];
+    });
+}
+```
+
+使用 Playwright，通过集合的 `reply`：
+
+```ts
+await page.route('**/*', (route) => {
+  const answer = petstore.reply({ method: route.request().method(), url: route.request().url() });
+  return answer ? route.fulfill({ status: answer.status, json: answer.body }) : route.fallback();
+});
+```
+
+集合的 reply 还包含作答的 `route`、`key` 和 `fixture`，因此 `answer.route === 'GET /pets/:petId'` 可以把 `answer.body` 收窄为 `Pet | Error`。
+
+### 对象形式
+
+`defineFixtures` 也接受按 operation 或路由组织的对象。路由上的 `?name=value` 后缀只匹配带有该查询参数的请求，`untyped` 用于 spec 未描述的路由，不做类型检查：
+
+```ts
+const petstore = defineFixtures(
+  {
+    showPetById: { name: 'Rex' },
+    'GET /pets?limit=10': [],
+    deletePetById: respond(204),
+  },
+  { untyped: { 'GET /legacy/pets': [] } },
+);
+```
+
+`untyped` 路由可以通过 `reply` 作答，但遍历集合时只会产出类型化的 fixture。
+
+## 确定性的值
+
+每个路由的 mock 都以其路由为种子，因此无论测试在哪里运行，每次运行、每个测试都返回相同的值。`defineFixtures(fixtures, { seed })` 可以换一组同样固定的值：
+
+```ts
+const other = defineFixtures([rex], { seed: 1 });
+```
+
+从有 mock 的路由作答会重新设置 faker 共享实例的种子，之后未设置种子的 faker 调用会得到不同的序列。
+
+## 共享 fixture
+
+fixture 不依赖测试运行器或 mock 库，因此 API 包可以导出它们，供使用方定义自己的 fixture：
+
+```json title="package.json"
+{
+  "name": "@acme/petstore-api",
+  "exports": {
+    ".": "./dist/endpoints.js",
+    "./fixtures": "./dist/index.fixtures.js"
+  }
+}
+```
+
+```ts title="apps/web/test/fixtures.ts"
+import { defineFixture, defineFixtures } from '@acme/petstore-api/fixtures';
+
+export const rex = defineFixture('showPetById', { name: 'Rex' });
+export const petstore = defineFixtures([rex]);
+```
+
+参见配置参考中的 [`mock.fixtures`](/zh/docs/reference/configuration/output#fixtures)。

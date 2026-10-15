@@ -864,7 +864,7 @@ export default defineConfig({
 
 ### Fixtures
 
-`mock.fixtures: true` writes `index.fixtures.ts` next to `index.faker.ts`. A fixture is one endpoint's fake response, coupled to that endpoint. It knows its method, path, URL, params and response types, so nock, MSW, Playwright, a fetch stub or any other tool can serve it. It doesn't depend on a mocking library. Requires a faker generator and `indexMockFiles: true`.
+`mock.fixtures: true` writes `index.fixtures.ts` next to `index.faker.ts`. A fixture is one endpoint's fake response, coupled to that endpoint. It knows its method, path, URL, params and response types, so nock, MSW, Playwright, a fetch stub or any other tool can serve it. It doesn't depend on a mocking library. Requires a faker generator and `indexMockFiles: true`. The [Fixtures guide](/docs/guides/fixtures) walks through defining and serving them.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -913,29 +913,18 @@ const pets = defineFixtures([rex, sorted, defineFixture('deletePetById', respond
 - On a route with a response mock, a body is deep-merged onto the mock: objects merge, arrays and `null` replace, and no value answers with the mock as is.
 - `reply` answers a request given by its `url`, or by `params` and `query`. Its `body` is the route's response when `ok` (2xx), and its error otherwise.
 - `with(overrides)` returns a new fixture. Bodies deep-merge; anything else replaces.
-- `{ query }` only matches requests with those query params.
+- `{ query }` only matches requests with those query params, any of the route's.
 - Each route's mock is seeded, so it answers with the same values on every run. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values. Replying from a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
 
-A set holds many fixtures and is typed by them. Iterate it to register each fixture with a mocking library, or let `reply` pick the most specific match for any request: literal segments win over params, and query constraints over none.
+A set holds many fixtures and is typed by them. Iterating it yields each fixture, most specific first (literal segments before params, query constraints before none), to register one handler per fixture with a mocking library. Or its `reply` answers any request from the most specific match, returning the `route`, `key` and `fixture` that answered, or `undefined` when none matches. See [Fixture sets](/docs/guides/fixtures#fixture-sets) for MSW, nock and Playwright.
 
 ```ts
-for (const fixture of pets) {
-  nock('https://petstore.test').intercept(fixture.pattern, fixture.method).reply((uri, body) => {
-    const { status, body: json } = fixture.reply({ url: uri, body });
-    return [status, json];
-  });
-}
-
-http.all('*', async ({ request }) => {
-  const answer = pets.reply({ method: request.method, url: request.url });
-  return answer ? HttpResponse.json(answer.body, { status: answer.status }) : passthrough();
-});
-
 pets.get('showPetById'); // Fixture<'GET /pets/:petId'>
 pets.extend([adopted]); // a new set; fixtures with the same key deep-merge
-```
 
-A set's `reply` returns the `route`, `key` and `fixture` that answered, so `answer.route === 'GET /pets/:petId'` narrows its body. It returns `undefined` when no fixture matches.
+const answer = pets.reply({ method: 'GET', url: '/pets/1' });
+if (answer?.route === 'GET /pets/:petId') answer.body; // Pet | Error
+```
 
 `defineFixtures` also takes a map by route or operation. A `?name=value` suffix on a route (`'GET /pets?limit=1'`) only matches requests with that query, and routes outside the spec go in `{ untyped: { 'GET /legacy': … } }`, without type checks. `resolveFixture(set, request)` answers like `set.reply`, with the matched key as `route`.
 
