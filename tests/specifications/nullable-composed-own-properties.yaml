@@ -1,0 +1,111 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Nullable Composed Own Properties
+  description: >-
+    Nullable schemas that declare their own `properties` next to an `allOf` or
+    `oneOf`. The sibling properties used to be mocked as a nullable object of
+    their own, which pasted an `arrayElement([{...}, null])` expression into
+    the merged object literal and produced a mock that did not parse.
+paths:
+  /items:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableItem'
+  /extended-items:
+    get:
+      operationId: getExtendedItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableExtendedItem'
+  /variants:
+    get:
+      operationId: getVariant
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableVariant'
+  /holders:
+    get:
+      operationId: getHolder
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holder'
+components:
+  schemas:
+    Base:
+      type: object
+      properties:
+        createdAt:
+          type: string
+    NullableItem:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      allOf:
+        - required:
+            - id
+    NullableExtendedItem:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      allOf:
+        - $ref: '#/components/schemas/Base'
+    NullableVariant:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      oneOf:
+        - type: object
+          properties:
+            a:
+              type: string
+          required:
+            - a
+        - type: object
+          properties:
+            b:
+              type: string
+          required:
+            - b
+    Holder:
+      type: object
+      required:
+        - child
+      properties:
+        child:
+          type:
+            - object
+            - 'null'
+          properties:
+            id:
+              type: string
+          allOf:
+            - required:
+                - id
