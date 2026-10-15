@@ -304,7 +304,11 @@ export function getMockScalar({
           numberImports,
           context,
           existingReferencedProperties,
-          { type: 'number', exactOptional: safeMockOptions.exactOptional },
+          {
+            type: 'number',
+            exactOptional: safeMockOptions.exactOptional,
+            combined: !!combine,
+          },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -330,7 +334,11 @@ export function getMockScalar({
           booleanImports,
           context,
           existingReferencedProperties,
-          { type: 'boolean', exactOptional: safeMockOptions.exactOptional },
+          {
+            type: 'boolean',
+            exactOptional: safeMockOptions.exactOptional,
+            combined: !!combine,
+          },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -416,7 +424,6 @@ export function getMockScalar({
           parentName: item.parentName,
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
-        combine,
         mockOptions,
         operationId,
         tags,
@@ -562,7 +569,11 @@ export function getMockScalar({
           stringImports,
           context,
           existingReferencedProperties,
-          { type: 'string', exactOptional: safeMockOptions.exactOptional },
+          {
+            type: 'string',
+            exactOptional: safeMockOptions.exactOptional,
+            combined: !!combine,
+          },
         );
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
@@ -600,7 +611,7 @@ export function getMockScalar({
           enumImports,
           context,
           existingReferencedProperties,
-          { exactOptional: safeMockOptions.exactOptional },
+          { exactOptional: safeMockOptions.exactOptional, combined: !!combine },
         );
 
         return {
@@ -724,11 +735,15 @@ function getEnum(
   {
     type,
     exactOptional,
+    combined,
   }: {
     // Only gates the `Object.values(...)` reference shortcut below. It must not
     // decide how a member is quoted — see `formatEnumMember`.
     type?: 'string' | 'number' | 'boolean';
     exactOptional?: boolean;
+    // A oneOf/anyOf/allOf member shares the `[]` path of the array items it
+    // sits in, but it is a single element of the union, not the whole array.
+    combined?: boolean;
   } = {},
 ) {
   if (!item.enum) return '';
@@ -814,7 +829,7 @@ function getEnum(
     });
   }
 
-  return item.path?.endsWith('[]')
+  return item.path?.endsWith('[]') && !combined
     ? `faker.helpers.arrayElements(${enumValue})`
     : `faker.helpers.arrayElement(${enumValue})`;
 }

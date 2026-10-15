@@ -449,6 +449,60 @@ describe('getMockScalar (nested arrays handling)', () => {
 
     expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
   });
+
+  it('picks a single value per enum member of anyOf array items', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'permissions',
+        items: {
+          anyOf: [
+            { $ref: '#/components/schemas/Permission' },
+            { type: 'string', enum: ['horizon:view'] },
+          ],
+        },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Permission: { type: 'string', enum: ['read', 'write'] },
+            },
+          },
+        },
+      }),
+    });
+
+    expect(result.value).toContain(
+      "faker.helpers.arrayElement([faker.helpers.arrayElement(['read','write'] as const),faker.helpers.arrayElement(['horizon:view'] as const),])",
+    );
+  });
+
+  it('keeps picking a subset for an enum array inside a combined schema', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'permissions',
+        items: { type: 'string', enum: ['read', 'write'] },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: scalarContext(),
+      combine: { separator: 'anyOf' as const, includedProperties: [] },
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElements(['read','write'] as const)",
+    );
+  });
 });
 
 describe('getMockScalar (undefined filtering)', () => {
