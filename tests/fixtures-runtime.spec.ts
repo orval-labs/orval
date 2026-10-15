@@ -222,6 +222,25 @@ describe('defineFixture', () => {
     expect(tagged.reply({ query: { sort: 'name' } }).status).toBe(200);
   });
 
+  it('requires a repeated query value as many times as the key has it', () => {
+    const [twice] = defineFixtures({ 'GET /api/pets?tag=a&tag=a': [] });
+
+    expect(twice.matches(get('/api/pets?tag=a'))).toBe(false);
+    expect(twice.matches(get('/api/pets?tag=a&tag=a'))).toBe(true);
+  });
+
+  it('keeps query names like constructor and __proto__ as ordinary keys', () => {
+    const [fixture] = defineFixtures({
+      'GET /api/pets?constructor=x&__proto__=y': [],
+    });
+
+    expect(Object.entries(fixture.query)).toEqual([
+      ['constructor', 'x'],
+      ['__proto__', 'y'],
+    ]);
+    expect(Object.getPrototypeOf(fixture.query)).toBe(Object.prototype);
+  });
+
   it('replies with the seeded mock, the fixture deep-merged on top', () => {
     const reply = owner.reply({ params: { petId: '7' } });
 

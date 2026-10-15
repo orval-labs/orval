@@ -471,6 +471,14 @@ const decodeSegment = (segment: string) => {
 
 const toUrl = (url: string | URL) => new URL(url, 'http://localhost');
 
+/** Whether \`search\` has each of \`query\`'s pairs, as many times as \`query\` has it. */
+const hasQuery = (query: [string, string][], search: URLSearchParams) =>
+  query.every(
+    ([name, value]) =>
+      search.getAll(name).filter((item) => item === value).length >=
+      query.filter((pair) => pair[0] === name && pair[1] === value).length,
+  );
+
 /** The path params of a request for \`candidate\`, or \`undefined\` when it isn't one. */
 const match = (
   candidate: CompiledFixture,
@@ -482,7 +490,7 @@ const match = (
     candidate.method !== method.toUpperCase() ||
     candidate.segments.length !== parts.length ||
     !candidate.segments.every((segment, index) => segment === null || segment === parts[index]) ||
-    !candidate.query.every(([name, value]) => url.searchParams.getAll(name).includes(value))
+    !hasQuery(candidate.query, url.searchParams)
   ) {
     return undefined;
   }
@@ -532,11 +540,14 @@ const createFixture = (key: string, value: unknown, seed: number): AnyFixture =>
   const { route, method } = candidate;
   const path = route.slice(route.indexOf(' ') + 1);
   const segments = path.split('/');
-  const query: Record<string, string | string[]> = {};
+  // Grouped in a Map, so names like \`constructor\` and \`__proto__\` are ordinary keys.
+  const grouped = new Map<string, string[]>();
   for (const [name, value] of candidate.query) {
-    const values = query[name];
-    query[name] = values === undefined ? value : [...[values].flat(), value];
+    grouped.set(name, [...(grouped.get(name) ?? []), value]);
   }
+  const query = Object.fromEntries(
+    [...grouped].map(([name, values]) => [name, values.length > 1 ? values : (values[0] ?? '')]),
+  );
   const build = (params: Record<string, PathParam | undefined> = {}, extra: object = {}) => {
     const pathname = segments
       .map((segment) => {
