@@ -136,6 +136,29 @@ const answer = set.reply({ method: 'GET', url: '/api/pets/1' });
 if (answer?.route === 'GET /api/pets/:petId' && answer.ok) {
   assertType<Equals<typeof answer.body, Pet>>(true);
 }
+// map and forEach take the set's fixtures, narrowed on `route`.
+const handlers = set.map((fixture, index) => {
+  assertType<
+    Equals<
+      typeof fixture,
+      Fixture<'GET /api/pets/:petId/owner'> | Fixture<'GET /api/pets/:petId'>
+    >
+  >(true);
+  if (fixture.route === 'GET /api/pets/:petId') {
+    assertType<Equals<typeof fixture, Fixture<'GET /api/pets/:petId'>>>(true);
+  }
+  return { path: fixture.path, index };
+});
+assertType<
+  Equals<
+    typeof handlers,
+    { path: '/api/pets/:petId/owner' | '/api/pets/:petId'; index: number }[]
+  >
+>(true);
+set.forEach((fixture) => {
+  // @ts-expect-error not a route in the set
+  if (fixture.route === 'GET /api/pets') return;
+});
 // Any typed set is a `FixtureSet`.
 const anySet: FixtureSet = set;
 

@@ -370,6 +370,10 @@ export interface FixtureSet<F extends AnyFixture = AnyFixture> extends Iterable<
   readonly seed: number;
   /** The fixture for a route or operation in the set, without a query constraint. */
   get<K extends F['route'] | F['operation']>(key: K): Fixture<RouteOf<K>>;
+  /** Calls \`callback\` with each typed fixture, most specific first. Narrow a fixture on \`route\`. */
+  forEach(callback: (fixture: F, index: number) => void): void;
+  /** Each typed fixture's \`callback\` result, most specific first, e.g. one mock handler per fixture. */
+  map<T>(callback: (fixture: F, index: number) => T): T[];
   /** Answers a request from the most specific matching fixture, or \`undefined\` when none matches. */
   reply(request: { method: string; url: string | URL; body?: unknown }): FixtureSetReply<F> | undefined;
   /** A new set with \`fixtures\` on top. Bodies of the same key deep-merge, anything else replaces. */
@@ -627,6 +631,8 @@ const createSet = (fixtures: Record<string, unknown>, seed: number): FixtureSet 
         if (route in routes) yield createFixture(key, fixtures[key], seed);
       }
     },
+    forEach: (callback) => [...set].forEach(callback),
+    map: (callback) => [...set].map(callback),
     get: (key: string) => {
       const route = toKey(key);
       if (!(route in fixtures)) throw new Error(\`The set has no fixture for \${key}\`);

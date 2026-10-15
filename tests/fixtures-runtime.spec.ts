@@ -271,7 +271,7 @@ describe('fixture sets', () => {
     ).toContain('GET /api/pets/:petId');
   });
 
-  it('iterates its typed fixtures, most specific first', () => {
+  it('iterates, maps and visits its typed fixtures, most specific first', () => {
     expect([...set].map(({ key }) => key)).toEqual([
       'GET /api/pets?sort=name',
       'GET /api/pets/:petId/owner',
@@ -280,6 +280,18 @@ describe('fixture sets', () => {
     expect([
       ...set.extend({}, { untyped: { 'GET /api/legacy': {} } }),
     ]).toHaveLength(3);
+    expect(set.map(({ key }, index) => `${index} ${key}`)).toEqual([
+      '0 GET /api/pets?sort=name',
+      '1 GET /api/pets/:petId/owner',
+      '2 GET /api/pets',
+    ]);
+    const routes: string[] = [];
+    set.forEach(({ route }) => routes.push(route));
+    expect(routes).toEqual([
+      'GET /api/pets',
+      'GET /api/pets/:petId/owner',
+      'GET /api/pets',
+    ]);
   });
 
   it('answers from the most specific fixture, with the fixture that answered', () => {
