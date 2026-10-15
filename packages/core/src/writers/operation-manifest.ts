@@ -2,9 +2,11 @@ import path from 'node:path';
 
 import { generateDependencyImports } from '../generators';
 import {
+  camelPathParamName,
   getQueryParamSerialization,
   getStaticBaseUrl,
   parseRoutePath,
+  toColonRoutePath,
 } from '../getters';
 import {
   type ContextSpec,
@@ -47,6 +49,11 @@ export interface OperationManifestEntry {
   path: string;
   /** `path` with the static base URL. Unset when the base URL is runtime-only. */
   url?: string;
+  /**
+   * The method and URL path with `:param` placeholders, e.g. `GET /v1/pets/:petId`.
+   * Keyed by the generated param names, without the base URL's origin.
+   */
+  route: string;
   /** The tag directory the operation is written to in the tags modes. */
   tag: string;
   tags: string[];
@@ -141,19 +148,34 @@ export function getOperationManifestEntry(
   );
 
   const hasBody = verbOptions.body.definition.trim().length > 0;
+  const method = verbOptions.verb.toUpperCase();
+  const url =
+    base === undefined
+      ? undefined
+      : base
+        ? joinUrl(base, verbOptions.pathRoute)
+        : verbOptions.pathRoute;
+  const keys = new Map(
+    verbOptions.params.map((param, index) => [
+      specNames[index] ?? param.name,
+      param.name,
+    ]),
+  );
 
   return {
     operationId: verbOptions.operationId,
     operationName: verbOptions.operationName,
-    method: verbOptions.verb.toUpperCase(),
+    method,
     path: verbOptions.pathRoute,
-    ...(base === undefined
-      ? {}
-      : {
-          url: base
-            ? joinUrl(base, verbOptions.pathRoute)
-            : verbOptions.pathRoute,
-        }),
+    ...(url === undefined ? {} : { url }),
+    route: `${method} ${toColonRoutePath(
+      // Match on the path only, so an absolute base URL keeps just its path.
+      (url ?? verbOptions.pathRoute).replace(
+        /^[a-z][\d+.a-z-]*:\/\/[^/]+/i,
+        '',
+      ),
+      (name) => keys.get(name) ?? camelPathParamName(name),
+    )}`,
     tag: getOperationTagKey(verbOptions),
     tags: verbOptions.tags,
     pathParams: verbOptions.params.map((param, index) => ({

@@ -19,6 +19,7 @@ export const operations = {
     method: 'GET',
     path: '/pets-by-age/{age}',
     url: '/pets-by-age/{age}',
+    route: 'GET /pets-by-age/:age',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [
@@ -44,6 +45,7 @@ export const operations = {
     method: 'GET',
     path: '/pets-by-country/{country}',
     url: '/pets-by-country/{country}',
+    route: 'GET /pets-by-country/:country',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [

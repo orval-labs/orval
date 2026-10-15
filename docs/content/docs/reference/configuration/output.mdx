@@ -843,7 +843,7 @@ export default defineConfig({
 | `indexMockFiles` | `Boolean` | `false` | In `split`, `tags-split`, `tags-operations` and `tags-operations-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in the `tags-operations` modes it re-exports the per-operation mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
 | `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. In `single` and `tags` mode this only changes where the de-inlined mock files land; see `inline` to keep mock code in the implementation file instead. Ignored on function-form generators, which always fall back to the shared `path`. |
 | `inline` | `Boolean` | `false` | In `single` and `tags` mode, mock code is written to separate `.msw.ts` / `.faker.ts` files next to the implementation file(s) by default, matching `split` and `tags-split`. Set to `true` to append mock code to the implementation file instead, matching the layout Orval used before this option existed. No effect in `split` or `tags-split`, which always write separate mock files. |
-| `fixtures` | `Boolean` | `false` | Write `index.fixtures.ts` next to `index.faker.ts`: typed fixture maps by route, answered with the faker response mocks. See [Fixtures](#fixtures). Requires a faker generator and `indexMockFiles: true`. |
+| `fixtures` | `Boolean` | `false` | Write `index.fixtures.ts` next to `index.faker.ts`: typed fixtures for each endpoint, by route or operation, answered with the faker response mocks. See [Fixtures](#fixtures). Requires a faker generator and `indexMockFiles: true`. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
 
 ```ts title="orval.config.ts"
@@ -864,7 +864,7 @@ export default defineConfig({
 
 ### Fixtures
 
-`mock.fixtures: true` writes `index.fixtures.ts` next to `index.faker.ts`. It describes API responses by route and answers requests with them, for tests and other tools that serve fake responses. It doesn't depend on a mocking library. Requires a faker generator and `indexMockFiles: true`.
+`mock.fixtures: true` writes `index.fixtures.ts` next to `index.faker.ts`. A fixture is one endpoint's fake response, coupled to that endpoint. It knows its method, path, URL, params and response types, so nock, MSW, Playwright, a fetch stub or any other tool can serve it. It doesn't depend on a mocking library. Requires a faker generator and `indexMockFiles: true`. The [Fixtures guide](/docs/guides/fixtures) walks through defining and serving them.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -883,40 +883,58 @@ export default defineConfig({
 ```
 
 ```ts
-import { defineFixtures, resolveFixture, respond } from './api/index.fixtures';
+import { defineFixture, defineFixtures, respond } from './api/index.fixtures';
 
-const listing = defineFixtures({
-  // Deep-merged onto the seeded getShowPetByIdResponseMock().
-  'GET /pets/:petId': { name: 'Rex' },
-  'GET /pets/:petId/owner': ({ params }) => ({ tag: params.petId }),
-  'DELETE /pets/:petId': respond(204),
-});
-const adopted = listing.extend({ 'GET /pets/:petId': { tag: 'adopted' } });
+// By operation or by route: both are Fixture<'GET /pets/:petId'>.
+const rex = defineFixture('showPetById', { name: 'Rex' }); // deep-merged onto the seeded mock
+const same = defineFixture('GET /pets/:petId', { name: 'Rex' });
 
-resolveFixture(adopted, { method: 'GET', url: '/pets/1' });
-// { route: 'GET /pets/:petId', status: 200, body: { ...mock, name: 'Rex', tag: 'adopted' } }
+rex.route; // 'GET /pets/:petId'
+rex.operation; // 'showPetById'
+rex.method; // 'GET'
+rex.path; // '/pets/:petId'
+rex.url({ petId: '1' }); // '/pets/1', with the spec's param types
+rex.pattern; // a RegExp for the route's paths
+rex.matches({ method: 'GET', url: '/pets/1' }); // true
+rex.reply({ params: { petId: '1' } }); // { ok: true, status: 200, body: Pet }
+
+const missing = defineFixture('showPetById', respond(404, { code: 404, message: 'Not found' }));
+missing.reply(); // { ok: false, status: 404, body: Error }
+
+const adopted = rex.with({ tag: 'adopted' });
+const sorted = defineFixture('listPets', [], { query: { sort: 'name' } });
+
+const pets = defineFixtures([rex, sorted, defineFixture('deletePetById', respond(204))]);
+// FixtureSet<Fixture<'GET /pets/:petId'> | Fixture<'GET /pets'> | Fixture<'DELETE /pets/:petId'>>
 ```
 
-- Keys are `<METHOD> <path>` routes from the spec, with `:param` placeholders named like the generated function arguments. A static base URL is part of the path (`GET /api/pets` with `baseUrl: '/api'`); the host is ignored. Unknown routes, wrong fields and wrong params fail to compile.
-- A value is a body, a `respond(status, body?, headers?)`, or a function of `{ method, url, params, body }` that returns either. Functions run synchronously.
-- On a route with a response mock, a body is deep-merged onto the mock: objects merge, arrays and `null` replace, and `undefined` keeps the mock as is.
-- Each route's mock is seeded, so it answers with the same values on every run. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values. Resolving a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
-- A `?name=value` suffix (`'GET /pets?limit=1'`) only matches requests with that query. Literal segments win over params, and query constraints over none.
-- `extend(fixtures, options?)` returns a new set. A route in both sets deep-merges bodies; anything else replaces.
-- Routes outside the spec go in `defineFixtures(fixtures, { untyped: { 'GET /legacy': … } })`, without type checks.
+- A fixture is keyed by a `<METHOD> <path>` route from the spec, with `:param` placeholders named like the generated function arguments, or by its operation. A static base URL is part of the path (`GET /api/pets` with `baseUrl: '/api'`); the host is ignored. Unknown routes and operations, wrong fields, and wrong params or query params fail to compile.
+- A value is a body, a `respond(status, body?, headers?)`, or a function of `{ method, url, params, body }` that returns either. Functions run synchronously. `respond`'s body must be the route's response or error type.
+- On a route with a response mock, a body is deep-merged onto the mock: objects merge, arrays and `null` replace, and no value answers with the mock as is.
+- `reply` answers a request given by its `url`, or by `params` and `query`. Its `body` is the route's response when `ok` (2xx), and its error otherwise.
+- `with(overrides)` returns a new fixture. Bodies deep-merge; anything else replaces.
+- `{ query }` only matches requests with those query params, any of the route's.
+- Each route's mock is seeded, so it answers with the same values on every run. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values. Replying from a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
 
-`resolveFixture` returns `undefined` when no fixture matches. Serving a set takes a few lines in any mocking library, for example Playwright:
+A set holds many fixtures and is typed by them. Its `map` and `forEach` (and iterating it) visit each fixture, typed as the set's fixtures and most specific first (literal segments before params, query constraints before none), to register one handler per fixture with a mocking library. Or its `reply` answers any request from the most specific match, returning the `route`, `key` and `fixture` that answered, or `undefined` when none matches. See [Fixture sets](/docs/guides/fixtures#fixture-sets) for MSW, nock and Playwright.
 
 ```ts
-await page.route('**/pets/**', (route, request) => {
-  const result = resolveFixture(adopted, {
-    method: request.method(),
-    url: request.url(),
-    body: request.postDataJSON(),
-  });
-  return result
-    ? route.fulfill({ status: result.status, headers: result.headers, json: result.body })
-    : route.continue();
+const handlers = pets.map((fixture) => http.all(`*${fixture.path}`, () => { /* ... */ }));
+
+pets.get('showPetById'); // Fixture<'GET /pets/:petId'>
+pets.extend([adopted]); // a new set; fixtures with the same key deep-merge
+
+const answer = pets.reply({ method: 'GET', url: '/pets/1' });
+if (answer?.route === 'GET /pets/:petId') answer.body; // Pet | Error
+```
+
+`defineFixtures` also takes a map by route or operation. A `?name=value` suffix on a route (`'GET /pets?limit=1'`) only matches requests with that query, and routes outside the spec go in `{ untyped: { 'GET /legacy': … } }`, without type checks. `resolveFixture(set, request)` answers like `set.reply`, with the matched key as `route`.
+
+```ts
+const listing = defineFixtures({
+  showPetById: { name: 'Rex' },
+  'GET /pets/:petId/owner': ({ params }) => ({ tag: params.petId }),
+  'DELETE /pets/:petId': respond(204),
 });
 ```
 
@@ -1102,6 +1120,7 @@ export const operations = {
     method: 'GET',
     path: '/pets/{petId}',
     url: '/api/pets/{petId}',
+    route: 'GET /api/pets/:petId',
     tag: 'pets',
     tags: ['pets'],
     pathParams: [{ name: 'petId', key: 'petId' }],
@@ -1129,6 +1148,7 @@ export type OperationTypes = {
 
 - Entries are keyed by `operationName`, the name of the generated function.
 - `path` is the spec path. `url` adds the static base URL, and is left out when the base URL is only known at runtime.
+- `route` is the method and URL path with `:param` placeholders named like the generated function arguments, e.g. `GET /api/pets/:petId`, without the base URL's host. It's the same key [fixtures](#fixtures) use.
 - `pathParams` pairs each placeholder's spec name with the identifier the client takes.
 - `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat` (only for clients whose URLs are built by the fetch client: `fetch`, `mcp`, and the query, SWR and Pinia Colada clients over `httpClient: 'fetch'`), and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.

@@ -1,0 +1,312 @@
+---
+title: Fixtures
+description: Typed mock responses for each endpoint, served by any mocking library
+---
+
+A fixture is one endpoint's fake response, coupled to that endpoint. Orval generates `defineFixture` for your API, typed by the spec: you name an operation, write only the fields a test cares about, and the rest comes from the endpoint's [Faker](/docs/guides/faker) mock. The fixture knows its method, path and URL, so nock, [MSW](/docs/guides/msw), Playwright, a fetch stub or any other tool can serve it. It doesn't depend on a mocking library.
+
+## Configuration
+
+Fixtures need a faker generator and `indexMockFiles: true`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      mock: {
+        indexMockFiles: true,
+        fixtures: true, // -> ./src/api/index.fixtures.ts
+        generators: [{ type: 'faker' }],
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Take this part of the spec:
+
+```yaml title="petstore.yaml"
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      parameters:
+        - { name: limit, in: query, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Pets' }
+  /pets/{petId}:
+    parameters:
+      - { name: petId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: showPetById
+      responses:
+        '200': { $ref: '#/components/responses/Pet' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deletePetById
+      responses:
+        '204': { description: Deleted }
+        default: { $ref: '#/components/responses/Error' }
+```
+
+`index.fixtures.ts` describes every operation, and exports `defineFixture`, `defineFixtures` and `respond`:
+
+```ts title="src/api/index.fixtures.ts"
+export type FixtureRoutes = {
+  'GET /pets/:petId': {
+    operation: 'showPetById';
+    method: 'GET';
+    path: '/pets/:petId';
+    params: { petId: string }; // what a fixture function receives, from the URL
+    pathParams: { petId: string }; // the spec's types, for url()
+    query: never;
+    body: never;
+    response: Pet;
+    error: Error;
+    mocked: true; // answers with getShowPetByIdResponseMock() by default
+  };
+  // ...
+};
+
+export type FixtureOperations = {
+  listPets: 'GET /pets';
+  showPetById: 'GET /pets/:petId';
+  deletePetById: 'DELETE /pets/:petId';
+};
+```
+
+## Defining a fixture
+
+Name the operation, or its `<METHOD> <path>` route, and give the fields you care about:
+
+```ts title="src/api/fixtures/pets.ts"
+import { defineFixture, respond } from '../index.fixtures';
+
+export const rex = defineFixture('showPetById', { name: 'Rex' });
+export const sameRex = defineFixture('GET /pets/:petId', { name: 'Rex' });
+// Both are Fixture<'GET /pets/:petId'>
+
+rex.reply().body; // { id: 7272122785202176, name: 'Rex', tag: '…' }
+```
+
+The value is deep-merged onto the endpoint's seeded mock, so `id` and `tag` are fake but the same on every run. A value can be:
+
+```ts
+import { getShowPetByIdResponseMock } from '../index.faker';
+
+// Nothing: the mock as is, or an empty 204 for deletePetById.
+const anyPet = defineFixture('showPetById');
+const deleted = defineFixture('deletePetById');
+
+// A partial body. Objects merge; arrays, null and primitives replace.
+const tagged = defineFixture('showPetById', { tag: 'adopted' });
+
+// A body from orval's faker factories.
+const pets = defineFixture('listPets', [
+  getShowPetByIdResponseMock({ name: 'Rex' }),
+  getShowPetByIdResponseMock({ name: 'Fido' }),
+]);
+
+// A status, a body and headers. The body must be the route's response or error type.
+const missing = defineFixture('showPetById', respond(404, { code: 404, message: 'Not found' }));
+const conflict = defineFixture('deletePetById', respond(409, { code: 409, message: 'Adopted' }));
+
+// A function of the request, returning either. It runs synchronously.
+const byId = defineFixture('showPetById', ({ params }) => ({ id: Number(params.petId) }));
+```
+
+`{ query }` makes a fixture match only requests with those query params, any of the route's. `with(overrides)` returns a new fixture; bodies deep-merge, anything else replaces:
+
+```ts
+const firstPage = defineFixture('listPets', [], { query: { limit: 10 } });
+const adopted = rex.with({ tag: 'adopted' });
+```
+
+Everything is checked against the spec. These fail to compile:
+
+```ts
+defineFixture('showPet'); // unknown operation
+defineFixture('GET /pets/:id'); // unknown route
+defineFixture('showPetById', { name: 1 }); // name is a string
+defineFixture('showPetById', respond(500, 'down')); // the body must be a Pet or an Error
+defineFixture('listPets', [], { query: { page: 1 } }); // listPets has no page param
+```
+
+## Using a fixture
+
+A fixture has what a mocking library needs to serve it:
+
+| Member | Example | |
+|---|---|---|
+| `route` | `'GET /pets/:petId'` | The method and path. |
+| `operation` | `'showPetById'` | |
+| `method` | `'GET'` | |
+| `path` | `'/pets/:petId'` | In the path syntax of MSW, Express and the like. |
+| `query` | `{ limit: '10' }` | The query params a request must have. |
+| `pattern` | `/^\/pets\/[^/]+(?:\?.*)?$/` | Matches the route's paths, with or without a query string. |
+| `url(params?, query?)` | `rex.url({ petId: '1' })` → `'/pets/1'` | Typed by the spec's path and query params. |
+| `matches(request)` | `rex.matches({ method: 'GET', url: '/pets/1' })` → `true` | Its method, path and query. |
+| `reply(request?)` | `rex.reply({ url: '/pets/1' })` | The response, from a URL or from `params` and `query`. |
+| `with(overrides)` | `rex.with({ tag: 'adopted' })` | A new fixture. |
+
+`reply` returns `{ ok: true, status, body: Pet }` for a 2xx and `{ ok: false, status, body: Error }` otherwise, so checking `ok` narrows `body`. It works without a network too, for a component's props or a query cache.
+
+With nock:
+
+```ts
+nock('https://petstore.test')
+  .intercept(rex.pattern, rex.method)
+  .reply((uri) => {
+    const { status, body } = rex.reply({ url: uri });
+    return [status, body];
+  });
+```
+
+With MSW:
+
+```ts
+server.use(
+  http.get(`*${rex.path}`, ({ request }) => {
+    const { status, body } = rex.reply({ url: request.url });
+    return HttpResponse.json(body, { status });
+  }),
+);
+```
+
+## Fixture sets
+
+`defineFixtures` combines fixtures for many endpoints, and is typed by them:
+
+```ts
+import { defineFixtures } from '../index.fixtures';
+
+export const petstore = defineFixtures([rex, firstPage, deleted]);
+// FixtureSet<Fixture<'GET /pets/:petId'> | Fixture<'GET /pets'> | Fixture<'DELETE /pets/:petId'>>
+
+petstore.get('showPetById'); // Fixture<'GET /pets/:petId'>
+petstore.get('createPets'); // fails to compile: not in the set
+
+const adoptedStore = petstore.extend([adopted]); // a new set; the same key deep-merges
+```
+
+A set's `map` and `forEach` visit each fixture, typed as the set's fixtures, so each one can be registered with a mocking library as its own handler. A set is iterable too. They all go most specific first: literal segments before params, and query constraints before none. Libraries like MSW and nock take the first matching handler, so registering them in that order is enough. Inside the callback, `fixture.route === 'GET /pets/:petId'` narrows the fixture.
+
+With MSW, one handler per fixture. `fixture.matches` checks the method and query, and a handler that returns nothing hands the request to the next one:
+
+```ts title="test/setup.ts"
+import { http, HttpResponse, passthrough } from 'msw';
+import { setupServer } from 'msw/node';
+import { petstore } from '../src/api/fixtures';
+
+// A JSON response, or an empty one for a 204.
+const toResponse = ({ status, body, headers }: { status: number; body?: unknown; headers?: Record<string, string> }) =>
+  new HttpResponse(body === undefined ? null : JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+
+export const server = setupServer(
+  ...petstore.map((fixture) =>
+    http.all(`*${fixture.path}`, ({ request }) =>
+      fixture.matches(request) ? toResponse(fixture.reply({ url: request.url })) : undefined,
+    ),
+  ),
+);
+```
+
+Or one catch-all handler, with the same `toResponse`: the set's `reply` answers any request from its most specific fixture, and returns `undefined` when none matches.
+
+```ts title="test/setup.ts"
+export const server = setupServer(
+  http.all('*', async ({ request }) => {
+    const answer = petstore.reply({
+      method: request.method,
+      url: request.url,
+      body: request.body ? await request.clone().json() : undefined,
+    });
+    return answer ? toResponse(answer) : passthrough();
+  }),
+);
+```
+
+With nock, one interceptor per fixture:
+
+```ts
+petstore.forEach((fixture) => {
+  nock('https://petstore.test')
+    .intercept(fixture.pattern, fixture.method)
+    .reply((uri, body) => {
+      const reply = fixture.reply({ url: uri, body });
+      return [reply.status, reply.body];
+    });
+});
+```
+
+With Playwright, through the set's `reply`:
+
+```ts
+await page.route('**/*', (route) => {
+  const answer = petstore.reply({ method: route.request().method(), url: route.request().url() });
+  return answer ? route.fulfill({ status: answer.status, json: answer.body }) : route.fallback();
+});
+```
+
+The set's reply also has the `route`, `key` and `fixture` that answered, so `answer.route === 'GET /pets/:petId'` narrows `answer.body` to `Pet | Error`.
+
+### Map form
+
+`defineFixtures` also takes fixtures by operation or route. A `?name=value` suffix on a route only matches requests with that query, and `untyped` holds routes the spec doesn't describe, without type checks:
+
+```ts
+const petstore = defineFixtures(
+  {
+    showPetById: { name: 'Rex' },
+    'GET /pets?limit=10': [],
+    deletePetById: respond(204),
+  },
+  { untyped: { 'GET /legacy/pets': [] } },
+);
+```
+
+`untyped` routes answer through `reply`, but iterating a set yields only typed fixtures.
+
+## Deterministic values
+
+Each route's mock is seeded from its route, so it answers with the same values on every run and in every test, wherever the test runs. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values:
+
+```ts
+const other = defineFixtures([rex], { seed: 1 });
+```
+
+Replying from a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
+
+## Sharing fixtures
+
+Fixtures don't depend on a test runner or a mocking library, so an API package can export them for its consumers to define their own:
+
+```json title="package.json"
+{
+  "name": "@acme/petstore-api",
+  "exports": {
+    ".": "./dist/endpoints.js",
+    "./fixtures": "./dist/index.fixtures.js"
+  }
+}
+```
+
+```ts title="apps/web/test/fixtures.ts"
+import { defineFixture, defineFixtures } from '@acme/petstore-api/fixtures';
+
+export const rex = defineFixture('showPetById', { name: 'Rex' });
+export const petstore = defineFixtures([rex]);
+```
+
+See [`mock.fixtures`](/docs/reference/configuration/output#fixtures) in the configuration reference.

@@ -108,6 +108,8 @@ describe('getOperationManifestEntry', () => {
       method: 'GET',
       path: '/pets/{pet-id}',
       url: '/api/pets/{pet-id}',
+      // Keyed by the generated param name, so it matches the fixtures' routes.
+      route: 'GET /api/pets/:petId',
       tag: 'pet-store',
       tags: ['Pet Store'],
       pathParams: [{ name: 'pet-id', key: 'petId' }],

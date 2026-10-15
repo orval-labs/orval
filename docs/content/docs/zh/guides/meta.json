@@ -27,6 +27,7 @@
     "client-with-effect",
     "msw",
     "faker",
+    "fixtures",
     "---高级---",
     "enums",
     "stream-ndjson",
