@@ -337,8 +337,8 @@ export interface Fixture<R extends FixtureRoute = FixtureRoute> {
   readonly method: FixtureRoutes[R]['method'];
   /** `"/pets/:petId"`, in the path syntax of MSW, Express and the like. */
   readonly path: FixtureRoutes[R]['path'];
-  /** The query params a request must have. */
-  readonly query: Readonly<Record<string, string>>;
+  /** The query params a request must have. A name with several values has them all. */
+  readonly query: Readonly<Record<string, string | readonly string[]>>;
   /** Matches the route's paths, with or without a query string. */
   readonly pattern: RegExp;
   /** The fixture's value, as given. */
@@ -354,7 +354,6 @@ export interface Fixture<R extends FixtureRoute = FixtureRoute> {
 }
 
 /** Any route's fixture. */
-// oxlint-disable-next-line typescript/no-explicit-any
 export type AnyFixture = Fixture<any>;
 
 /** The fixtures for some keys: `Fixture<A> | Fixture<B>`. */
@@ -525,8 +524,8 @@ const match = (
     !candidate.segments.every(
       (segment, index) => segment === null || segment === parts[index],
     ) ||
-    !candidate.query.every(
-      ([name, value]) => url.searchParams.get(name) === value,
+    !candidate.query.every(([name, value]) =>
+      url.searchParams.getAll(name).includes(value),
     )
   ) {
     return undefined;
@@ -579,6 +578,9 @@ const toReply = ({ status, body, headers }: FixtureResult) => ({
   ...(headers ? { headers } : {}),
 });
 
+/** A path param's value, before it is encoded into the URL. */
+type PathParam = string | number | boolean;
+
 const escapeRegExp = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -591,8 +593,15 @@ const createFixture = (
   const { route, method } = candidate;
   const path = route.slice(route.indexOf(' ') + 1);
   const segments = path.split('/');
-  const query = Object.fromEntries(candidate.query);
-  const build = (params: Record<string, unknown> = {}, extra: object = {}) => {
+  const query: Record<string, string | string[]> = {};
+  for (const [name, value] of candidate.query) {
+    const values = query[name];
+    query[name] = values === undefined ? value : [...[values].flat(), value];
+  }
+  const build = (
+    params: Record<string, PathParam | undefined> = {},
+    extra: object = {},
+  ) => {
     const pathname = segments
       .map((segment) => {
         if (!segment.startsWith(':')) return segment;
@@ -602,7 +611,12 @@ const createFixture = (
         return encodeURIComponent(String(param));
       })
       .join('/');
-    const search = toSearch({ ...query, ...extra });
+    // The fixture's query, with `extra` replacing any name it also has.
+    const extraSearch = new URLSearchParams(toSearch(extra));
+    const search = new URLSearchParams([
+      ...candidate.query.filter(([name]) => !extraSearch.has(name)),
+      ...extraSearch,
+    ]).toString();
     return search ? `${pathname}?${search}` : pathname;
   };
   const placeholders = Object.fromEntries(
@@ -625,14 +639,14 @@ const createFixture = (
     value,
     url: (...args: unknown[]) =>
       candidate.params.length > 0
-        ? build(args[0] as Record<string, unknown>, args[1] as object)
+        ? build(args[0] as Record<string, PathParam>, args[1] as object)
         : build({}, args[0] as object),
     matches: (request: { method: string; url: string | URL }) =>
       match(candidate, request.method, toUrl(request.url)) !== undefined,
     reply: (
       request: {
         url?: string | URL;
-        params?: Record<string, unknown>;
+        params?: Record<string, PathParam>;
         query?: object;
         body?: unknown;
       } = {},

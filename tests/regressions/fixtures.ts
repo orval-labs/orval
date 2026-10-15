@@ -14,6 +14,8 @@ import type {
 } from '../generated/mock/fixtures/tags-operations-split/model';
 
 type Equals<A, B> =
+  // The exact-equality idiom needs its own `T` in each signature.
+  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
     ? true
     : false;

@@ -195,9 +195,11 @@ describe('defineFixture', () => {
 
   it('builds URLs and matches requests', () => {
     const sorted = defineFixture('listPets', [], { query: { sort: 'name' } });
+    const limited = defineFixture('listPets', [], { query: { limit: '5' } });
 
     expect(owner.url({ petId: '7' })).toBe('/api/pets/7/owner');
-    expect(sorted.url({ limit: '5' })).toBe('/api/pets?sort=name&limit=5');
+    expect(limited.url({ sort: 'name' })).toBe('/api/pets?limit=5&sort=name');
+    expect(sorted.url({ sort: '-name' })).toBe('/api/pets?sort=-name');
     expect(owner.pattern.test('/api/pets/7/owner?x=1')).toBe(true);
     expect(owner.pattern.test('/api/pets/7')).toBe(false);
     expect(owner.matches(get('https://x.test/api/pets/7/owner'))).toBe(true);
@@ -206,6 +208,18 @@ describe('defineFixture', () => {
     );
     expect(sorted.matches(get('/api/pets?sort=name'))).toBe(true);
     expect(sorted.matches(get('/api/pets'))).toBe(false);
+  });
+
+  it('matches every value of a repeated query param', () => {
+    const [tagged] = defineFixtures({ 'GET /api/pets?tag=a&tag=b': [] });
+
+    expect(tagged.query).toEqual({ tag: ['a', 'b'] });
+    expect(tagged.url({ sort: 'name' })).toBe(
+      '/api/pets?tag=a&tag=b&sort=name',
+    );
+    expect(tagged.matches(get('/api/pets?tag=b&tag=a'))).toBe(true);
+    expect(tagged.matches(get('/api/pets?tag=a'))).toBe(false);
+    expect(tagged.reply({ query: { sort: 'name' } }).status).toBe(200);
   });
 
   it('replies with the seeded mock, the fixture deep-merged on top', () => {
