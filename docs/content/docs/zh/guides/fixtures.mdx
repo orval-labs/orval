@@ -173,7 +173,12 @@ nock('https://petstore.test')
 使用 MSW：
 
 ```ts
-server.use(http.get(`*${rex.path}`, ({ request }) => HttpResponse.json(rex.reply({ url: request.url }).body)));
+server.use(
+  http.get(`*${rex.path}`, ({ request }) => {
+    const { status, body } = rex.reply({ url: request.url });
+    return HttpResponse.json(body, { status });
+  }),
+);
 ```
 
 ## Fixture 集合
