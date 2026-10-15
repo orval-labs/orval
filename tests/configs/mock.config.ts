@@ -1294,6 +1294,26 @@ export default defineConfig({
       target: '../specifications/nullable-binary-parts.yaml',
     },
   },
+  // A nullable schema with its own `properties` next to an `allOf`/`oneOf`
+  // must still produce a mock that parses, with one null branch around it.
+  'nullable-composed-own-properties': {
+    output: {
+      target: '../generated/mock/nullable-composed-own-properties/endpoints.ts',
+      schemas: '../generated/mock/nullable-composed-own-properties/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/nullable-composed-own-properties.yaml',
+    },
+  },
   // `exactOptional` leaves optional keys out instead of setting them to
   // `undefined`; these are typechecked with `exactOptionalPropertyTypes` (#3912).
   'exact-optional-petstore': {

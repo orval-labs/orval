@@ -8,7 +8,7 @@ import {
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
-import { resolveMockValue } from '../resolvers';
+import { getNullable, resolveMockValue } from '../resolvers';
 import { collectAllOfRequired } from './all-of-required';
 
 function getReferenceName(
@@ -157,6 +157,19 @@ export function combineSchemasMock({
   const itemSchemaForResolve = Object.fromEntries(
     itemEntriesForResolve,
   ) as MockSchemaObject;
+  // A nullable composed schema (`type: [object, 'null']`) is null as a whole,
+  // not just its sibling `properties`. Resolve those as a plain object so they
+  // come back as members to merge, and add the null branch once around the
+  // merged value below. Left nullable, they resolved to a complete
+  // `arrayElement([{...}, null])` expression, which was then pasted into the
+  // object literal as if it were a property list.
+  const isNullableItemType =
+    Array.isArray(item.type) && item.type.includes('null');
+  if (Array.isArray(item.type) && isNullableItemType) {
+    const nonNullTypes = item.type.filter((type) => type !== 'null');
+    itemSchemaForResolve.type =
+      nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes;
+  }
   if (separator === 'allOf' && allRequiredFields.length > 0) {
     const itemResolveRequired = itemSchemaForResolve.required;
     itemSchemaForResolve.required = [
@@ -319,6 +332,13 @@ export function combineSchemasMock({
   }
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
+  }
+  if (
+    itemResolvedValue &&
+    isNullableItemType &&
+    !finalValue.startsWith('...')
+  ) {
+    finalValue = getNullable(finalValue, true, mockOptions?.nonNullable);
   }
 
   return {

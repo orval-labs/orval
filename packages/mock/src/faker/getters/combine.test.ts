@@ -380,6 +380,69 @@ describe('combineSchemasMock', () => {
     expect(result.value.match(/\bnull\b/g)).toHaveLength(1);
   });
 
+  // A nullable composed schema with its own `properties` used to resolve those
+  // properties as a nullable object, so the whole `arrayElement([{...}, null])`
+  // was pasted into the merged object literal and the mock did not parse.
+  it('keeps a nullable allOf with own properties a valid expression', () => {
+    const item: MockSchemaObject = {
+      name: 'NullableItem',
+      type: ['object', 'null'],
+      properties: { id: { type: 'string' } },
+      allOf: [{ required: ['id'] }],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([{...{}, id: faker.string.alpha()}, null])',
+    );
+    expect(result.nullWrapped).toBe(true);
+  });
+
+  it('keeps a nullable oneOf with own properties a valid expression', () => {
+    const item: MockSchemaObject = {
+      name: 'NullableVariant',
+      type: ['object', 'null'],
+      properties: { id: { type: 'string' } },
+      oneOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          required: ['a'],
+        },
+        {
+          type: 'object',
+          properties: { b: { type: 'string' } },
+          required: ['b'],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'oneOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([{...faker.helpers.arrayElement([{a: faker.string.alpha()},{b: faker.string.alpha()},]), id: faker.helpers.arrayElement([faker.string.alpha(), undefined])}, null])',
+    );
+  });
+
   it('should skip already referenced properties in allOf', () => {
     const item: MockSchemaObject = {
       name: 'Extended',
