@@ -749,9 +749,11 @@ const pets = defineFixtures([rex, sorted, defineFixture('deletePetById', respond
 - `{ query }` 只匹配带有这些查询参数的请求，可以是该路由查询参数中的任意几个。
 - 每个路由的 mock 都有固定种子，因此每次运行返回相同的值。`defineFixtures(fixtures, { seed })` 可以换一组同样固定的值。从有 mock 的路由作答会重新设置 faker 共享实例的种子，之后未设置种子的 faker 调用会得到不同的序列。
 
-集合包含多个 fixture，并以它们为类型。遍历集合会按从最具体到最不具体的顺序（字面量路径段优先于参数，有查询约束的优先于没有的）产出每个 fixture，便于为每个 fixture 在 mock 库中注册一个 handler。也可以让集合的 `reply` 为任意请求选择最具体的匹配，它会返回作答的 `route`、`key` 和 `fixture`，没有匹配时返回 `undefined`。MSW、nock 和 Playwright 的用法参见 [Fixture 集合](/zh/docs/guides/fixtures)。
+集合包含多个 fixture，并以它们为类型。集合的 `map` 和 `forEach`（以及遍历集合）会按从最具体到最不具体的顺序（字面量路径段优先于参数，有查询约束的优先于没有的）访问每个 fixture，其类型就是集合中的 fixture，便于为每个 fixture 在 mock 库中注册一个 handler。也可以让集合的 `reply` 为任意请求选择最具体的匹配，它会返回作答的 `route`、`key` 和 `fixture`，没有匹配时返回 `undefined`。MSW、nock 和 Playwright 的用法参见 [Fixture 集合](/zh/docs/guides/fixtures)。
 
 ```ts
+const handlers = pets.map((fixture) => http.all(`*${fixture.path}`, () => { /* ... */ }));
+
 pets.get('showPetById'); // Fixture<'GET /pets/:petId'>
 pets.extend([adopted]); // 新的集合；键相同的 fixture 深度合并
 

@@ -85,13 +85,14 @@ export type FixtureOperations = {
 
 ## 定义 fixture
 
-指定 operation 或其路由，并给出你关心的字段：
+指定 operation 或其 `<METHOD> <path>` 路由，并给出你关心的字段：
 
 ```ts title="src/api/fixtures/pets.ts"
 import { defineFixture, respond } from '../index.fixtures';
 
 export const rex = defineFixture('showPetById', { name: 'Rex' });
-// Fixture<'GET /pets/:petId'>，与 defineFixture('GET /pets/:petId', { name: 'Rex' }) 相同
+export const sameRex = defineFixture('GET /pets/:petId', { name: 'Rex' });
+// 两者都是 Fixture<'GET /pets/:petId'>
 
 rex.reply().body; // { id: 7272122785202176, name: 'Rex', tag: '…' }
 ```
@@ -191,7 +192,7 @@ petstore.get('createPets'); // 无法编译：不在集合中
 const adoptedStore = petstore.extend([adopted]); // 新的集合；相同的键深度合并
 ```
 
-集合是可迭代的，因此可以把每个 fixture 作为独立的 handler 注册到 mock 库中。遍历时会先产出最具体的 fixture：字面量路径段优先于参数，有查询约束的优先于没有的。MSW 和 nock 等库会使用第一个匹配的 handler，因此按这个顺序注册即可。
+集合的 `map` 和 `forEach` 会访问每个 fixture，其类型就是集合中的 fixture，因此可以把每个 fixture 作为独立的 handler 注册到 mock 库中。集合本身也可迭代。它们都会先访问最具体的 fixture：字面量路径段优先于参数，有查询约束的优先于没有的。MSW 和 nock 等库会使用第一个匹配的 handler，因此按这个顺序注册即可。在回调中，`fixture.route === 'GET /pets/:petId'` 可以收窄 fixture 的类型。
 
 使用 MSW，每个 fixture 一个 handler。`fixture.matches` 会检查 method 和 query，handler 不返回任何内容时，请求会交给下一个 handler：
 
@@ -208,7 +209,7 @@ const toResponse = ({ status, body, headers }: { status: number; body?: unknown;
   });
 
 export const server = setupServer(
-  ...[...petstore].map((fixture) =>
+  ...petstore.map((fixture) =>
     http.all(`*${fixture.path}`, ({ request }) =>
       fixture.matches(request) ? toResponse(fixture.reply({ url: request.url })) : undefined,
     ),
@@ -234,14 +235,14 @@ export const server = setupServer(
 使用 nock，每个 fixture 一个 interceptor：
 
 ```ts
-for (const fixture of petstore) {
+petstore.forEach((fixture) => {
   nock('https://petstore.test')
     .intercept(fixture.pattern, fixture.method)
     .reply((uri, body) => {
       const reply = fixture.reply({ url: uri, body });
       return [reply.status, reply.body];
     });
-}
+});
 ```
 
 使用 Playwright，通过集合的 `reply`：

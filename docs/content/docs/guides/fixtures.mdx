@@ -85,13 +85,14 @@ export type FixtureOperations = {
 
 ## Defining a fixture
 
-Name the operation, or its route, and give the fields you care about:
+Name the operation, or its `<METHOD> <path>` route, and give the fields you care about:
 
 ```ts title="src/api/fixtures/pets.ts"
 import { defineFixture, respond } from '../index.fixtures';
 
 export const rex = defineFixture('showPetById', { name: 'Rex' });
-// Fixture<'GET /pets/:petId'>, the same as defineFixture('GET /pets/:petId', { name: 'Rex' })
+export const sameRex = defineFixture('GET /pets/:petId', { name: 'Rex' });
+// Both are Fixture<'GET /pets/:petId'>
 
 rex.reply().body; // { id: 7272122785202176, name: 'Rex', tag: '…' }
 ```
@@ -191,7 +192,7 @@ petstore.get('createPets'); // fails to compile: not in the set
 const adoptedStore = petstore.extend([adopted]); // a new set; the same key deep-merges
 ```
 
-A set is iterable, so each fixture can be registered with a mocking library as its own handler. It yields the most specific fixtures first: literal segments before params, and query constraints before none. Libraries like MSW and nock take the first matching handler, so registering them in that order is enough.
+A set's `map` and `forEach` visit each fixture, typed as the set's fixtures, so each one can be registered with a mocking library as its own handler. A set is iterable too. They all go most specific first: literal segments before params, and query constraints before none. Libraries like MSW and nock take the first matching handler, so registering them in that order is enough. Inside the callback, `fixture.route === 'GET /pets/:petId'` narrows the fixture.
 
 With MSW, one handler per fixture. `fixture.matches` checks the method and query, and a handler that returns nothing hands the request to the next one:
 
@@ -208,7 +209,7 @@ const toResponse = ({ status, body, headers }: { status: number; body?: unknown;
   });
 
 export const server = setupServer(
-  ...[...petstore].map((fixture) =>
+  ...petstore.map((fixture) =>
     http.all(`*${fixture.path}`, ({ request }) =>
       fixture.matches(request) ? toResponse(fixture.reply({ url: request.url })) : undefined,
     ),
@@ -234,14 +235,14 @@ export const server = setupServer(
 With nock, one interceptor per fixture:
 
 ```ts
-for (const fixture of petstore) {
+petstore.forEach((fixture) => {
   nock('https://petstore.test')
     .intercept(fixture.pattern, fixture.method)
     .reply((uri, body) => {
       const reply = fixture.reply({ url: uri, body });
       return [reply.status, reply.body];
     });
-}
+});
 ```
 
 With Playwright, through the set's `reply`:

@@ -916,9 +916,11 @@ const pets = defineFixtures([rex, sorted, defineFixture('deletePetById', respond
 - `{ query }` only matches requests with those query params, any of the route's.
 - Each route's mock is seeded, so it answers with the same values on every run. `defineFixtures(fixtures, { seed })` picks a different, still fixed, set of values. Replying from a mocked route reseeds faker's shared instance, so unseeded faker calls after it see a different sequence.
 
-A set holds many fixtures and is typed by them. Iterating it yields each fixture, most specific first (literal segments before params, query constraints before none), to register one handler per fixture with a mocking library. Or its `reply` answers any request from the most specific match, returning the `route`, `key` and `fixture` that answered, or `undefined` when none matches. See [Fixture sets](/docs/guides/fixtures#fixture-sets) for MSW, nock and Playwright.
+A set holds many fixtures and is typed by them. Its `map` and `forEach` (and iterating it) visit each fixture, typed as the set's fixtures and most specific first (literal segments before params, query constraints before none), to register one handler per fixture with a mocking library. Or its `reply` answers any request from the most specific match, returning the `route`, `key` and `fixture` that answered, or `undefined` when none matches. See [Fixture sets](/docs/guides/fixtures#fixture-sets) for MSW, nock and Playwright.
 
 ```ts
+const handlers = pets.map((fixture) => http.all(`*${fixture.path}`, () => { /* ... */ }));
+
 pets.get('showPetById'); // Fixture<'GET /pets/:petId'>
 pets.extend([adopted]); // a new set; fixtures with the same key deep-merge
 
