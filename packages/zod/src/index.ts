@@ -398,6 +398,101 @@ const resolveUnionMemberSchema = (
   return member;
 };
 
+// Keys an `allOf` member may carry besides `enum`/`const` and still be fully
+// described by a sibling `enum` that it accepts: `type` (checked per value),
+// `nullable` (only widens) and annotations. `default` is not one: the member
+// renders `.default(...)`, which changes what a missing value parses to.
+const ENUM_MEMBER_KEYS = new Set([
+  'enum',
+  'const',
+  'type',
+  'nullable',
+  'title',
+  'description',
+  'deprecated',
+  'example',
+  'examples',
+  'readOnly',
+  'writeOnly',
+  'externalDocs',
+  '$comment',
+]);
+
+const matchesJsonType = (value: unknown, type: unknown): boolean => {
+  switch (type) {
+    case 'string': {
+      return typeof value === 'string';
+    }
+    case 'number': {
+      return typeof value === 'number';
+    }
+    case 'integer': {
+      return Number.isInteger(value);
+    }
+    case 'boolean': {
+      return typeof value === 'boolean';
+    }
+    case 'null': {
+      return value === null;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
+// `allOf: [$ref]` narrowed by a sibling `enum: ['A']` is the OpenAPI 3.0 way to
+// constrain a ref. When every member is an enum (or const) that accepts all of
+// the sibling values and asserts nothing else, the composition adds nothing,
+// so the enum is emitted alone. That keeps it usable as a `discriminatedUnion`
+// discriminator, which an intersection with the ref is not.
+const enumNarrowsComposition = (
+  schema: OpenApiNonBooleanSchemaObject,
+  context: ContextSpec,
+): boolean => {
+  const siblingValues = schema.enum;
+  if (
+    !Array.isArray(siblingValues) ||
+    schema.oneOf ||
+    schema.anyOf ||
+    !schema.allOf
+  ) {
+    return false;
+  }
+  return schema.allOf.every((member) => {
+    const resolved = resolveUnionMemberSchema(member, context);
+    if (!resolved) return false;
+    // Any other assertion (`pattern`, `minLength`, ...) could reject an enum
+    // value, so such a member is kept and intersected instead.
+    if (
+      Object.keys(resolved).some(
+        (key) => !key.startsWith('x-') && !ENUM_MEMBER_KEYS.has(key),
+      )
+    ) {
+      return false;
+    }
+    const hasEnum = Array.isArray(resolved.enum);
+    const hasConst = 'const' in resolved;
+    if (!hasEnum && !hasConst) return false;
+    const enumKeys = hasEnum
+      ? new Set((resolved.enum as unknown[]).map((v) => JSON.stringify(v)))
+      : undefined;
+    const types =
+      resolved.type === undefined
+        ? undefined
+        : Array.isArray(resolved.type)
+          ? resolved.type
+          : [resolved.type];
+    return siblingValues.every(
+      (value) =>
+        (!enumKeys || enumKeys.has(JSON.stringify(value))) &&
+        (!hasConst ||
+          JSON.stringify(value) === JSON.stringify(resolved.const)) &&
+        (!types || types.some((t) => matchesJsonType(value, t))),
+    );
+  });
+};
+
 /**
  * The property schemas an object default is formatted against. An `allOf`
  * wrapper (e.g. `allOf: [$ref]` plus a sibling `default`) has none of its own,
@@ -515,16 +610,25 @@ const getForbiddenKeys = (
 // or an `enum`. Both zod v3 (>=3.20) and v4 build their branch lookup by
 // reading discrete literal values off each option, and throw at construction if
 // a discriminator resolves to a non-literal (e.g. a free `string`). Requiring a
-// literal here keeps such specs on the plain-union path instead.
+// literal here keeps such specs on the plain-union path instead. A property
+// with a composition renders as that composition (intersected with any sibling
+// `enum`), so it only counts when the enum replaces it outright.
 const hasLiteralDiscriminator = (
   schema: OpenApiSchemaObject | undefined,
   property: string,
+  context: ContextSpec,
 ): boolean => {
   if (!schema || typeof schema !== 'object' || !isObject(schema.properties)) {
     return false;
   }
   const propertySchema = schema.properties[property];
   if (!isObject(propertySchema)) return false;
+  if (
+    (propertySchema.allOf || propertySchema.oneOf || propertySchema.anyOf) &&
+    !enumNarrowsComposition(propertySchema, context)
+  ) {
+    return false;
+  }
   return (
     (propertySchema as { const?: unknown }).const !== undefined ||
     Array.isArray((propertySchema as { enum?: unknown }).enum)
@@ -601,11 +705,13 @@ const isDiscriminatableMember = (
       resolveUnionMemberSchema(part, context),
     );
     if (!parts.every((part) => isPlainObjectSchema(part))) return false;
-    return parts.some((part) => hasLiteralDiscriminator(part, property));
+    return parts.some((part) =>
+      hasLiteralDiscriminator(part, property, context),
+    );
   }
 
   if (!isPlainObjectSchema(resolved)) return false;
-  return hasLiteralDiscriminator(resolved, property);
+  return hasLiteralDiscriminator(resolved, property, context);
 };
 
 /** An object key renamed by `override.namingConvention.properties`. */
@@ -1022,50 +1128,8 @@ export const generateZodValidationSchemaDefinition = (
   // Zod output. Arrays are handled separately via their item schema.
   const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
-  // `allOf: [$ref]` narrowed by a sibling `enum: ['A']` is the OpenAPI 3.0 way
-  // to constrain a ref. When every member is an enum (or const) that accepts
-  // all of the sibling values, the composition adds nothing, so the enum is
-  // emitted alone. That keeps it usable as a `discriminatedUnion`
-  // discriminator, which an intersection with the ref is not.
   const enumNarrowsAllOf =
-    hasNonArrayEnum &&
-    !schema.oneOf &&
-    !schema.anyOf &&
-    !!schema.allOf?.every((member) => {
-      const resolved =
-        isObject(member) && '$ref' in member && isString(member.$ref)
-          ? tryResolveRefSchema(member.$ref, context)
-          : (member as OpenApiSchemaObject);
-      if (!isObject(resolved)) return false;
-      // Any other assertion (`pattern`, `minLength`, ...) could reject an enum
-      // value, so such a member is kept and intersected instead.
-      if (
-        Object.keys(resolved).some(
-          (key) => !key.startsWith('x-') && !ENUM_MEMBER_KEYS.has(key),
-        )
-      ) {
-        return false;
-      }
-      const hasEnum = Array.isArray(resolved.enum);
-      const hasConst = 'const' in resolved;
-      if (!hasEnum && !hasConst) return false;
-      const enumKeys = hasEnum
-        ? new Set((resolved.enum as unknown[]).map((v) => JSON.stringify(v)))
-        : undefined;
-      const types =
-        resolved.type === undefined
-          ? undefined
-          : Array.isArray(resolved.type)
-            ? resolved.type
-            : [resolved.type];
-      return (schema.enum as unknown[]).every(
-        (value) =>
-          (!enumKeys || enumKeys.has(JSON.stringify(value))) &&
-          (!hasConst ||
-            JSON.stringify(value) === JSON.stringify(resolved.const)) &&
-          (!types || types.some((t) => matchesJsonType(value, t))),
-      );
-    });
+    hasNonArrayEnum && enumNarrowsComposition(schema, context);
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
   // This ensures these constraints work with any base type (string, number, object, etc.)
@@ -2101,10 +2165,7 @@ export const generateZodValidationSchemaDefinition = (
   if (schema.enum && type !== 'array') {
     // A rendered composition is a full schema, so chaining `.enum(...)` onto it
     // would call a property, not a method. Intersect it with the enum instead.
-    const composition =
-      (schema.allOf || schema.oneOf || schema.anyOf) && !enumNarrowsAllOf
-        ? functions.splice(0)
-        : undefined;
+    const composition = skipSwitchStatement ? functions.splice(0) : undefined;
 
     const enumMembers = getEnumMembers(schema);
     const hasMetadata = hasEnumMetadata(enumMembers);
@@ -3240,49 +3301,6 @@ const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
  * instead of throwing when the ref cannot be found (e.g. external refs
  * not yet bundled). Logs a verbose warning on failure to aid debugging.
  */
-// Keys an `allOf` member may carry besides `enum`/`const` and still be fully
-// described by a sibling `enum` that it accepts: `type` (checked per value),
-// `nullable` (only widens) and annotations.
-const ENUM_MEMBER_KEYS = new Set([
-  'enum',
-  'const',
-  'type',
-  'nullable',
-  'title',
-  'description',
-  'deprecated',
-  'default',
-  'example',
-  'examples',
-  'readOnly',
-  'writeOnly',
-  'externalDocs',
-  '$comment',
-]);
-
-const matchesJsonType = (value: unknown, type: unknown): boolean => {
-  switch (type) {
-    case 'string': {
-      return typeof value === 'string';
-    }
-    case 'number': {
-      return typeof value === 'number';
-    }
-    case 'integer': {
-      return Number.isInteger(value);
-    }
-    case 'boolean': {
-      return typeof value === 'boolean';
-    }
-    case 'null': {
-      return value === null;
-    }
-    default: {
-      return false;
-    }
-  }
-};
-
 function tryResolveRefSchema(
   $ref: string,
   context: ContextSpec,

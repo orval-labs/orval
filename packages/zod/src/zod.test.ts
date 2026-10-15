@@ -5962,6 +5962,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             'another assertion',
             { type: 'string', enum: ['A', 'B'], pattern: '^A$' },
           ],
+          ['a default', { type: 'string', enum: ['A', 'B'], default: 'A' }],
         ])('keeps an allOf member with %s', (_, member) => {
           const zod = render({
             allOf: [member as OpenApiSchemaObject],
@@ -6006,6 +6007,69 @@ describe('generateZodValidationSchemaDefinition`', () => {
               `${pure}zod.enum(['A', 'B'])`,
             )}`,
           );
+        });
+      },
+    );
+
+    describe.each(['classic', 'mini'] as const)(
+      'discriminator narrowed from an allOf $ref (%s)',
+      (variant) => {
+        const render = (kindRef: string) => {
+          const context = makeContextSpec({
+            spec: {
+              components: {
+                schemas: {
+                  Kind: { type: 'string', enum: ['A', 'B'] },
+                  PatternKind: { type: 'string', pattern: '^[AB]$' },
+                },
+              },
+            },
+          });
+          context.output.override.zod = {
+            ...context.output.override.zod,
+            generateDiscriminatedUnion: true,
+          };
+          const branch = (value: string): OpenApiSchemaObject => ({
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                allOf: [{ $ref: `#/components/schemas/${kindRef}` }],
+                enum: [value],
+              },
+            },
+          });
+          const definition = generateZodValidationSchemaDefinition(
+            {
+              oneOf: [branch('A'), branch('B')],
+              discriminator: { propertyName: 'kind' },
+            },
+            context,
+            'event',
+            false,
+            true,
+            { required: true, useReusableSchemas: true },
+          );
+          return parseZodValidationSchemaDefinition(
+            definition,
+            context,
+            false,
+            false,
+            true,
+            undefined,
+            undefined,
+            variant,
+          ).zod;
+        };
+
+        it('emits a discriminatedUnion when the enum replaces the ref', () => {
+          expect(render('Kind')).toContain("zod.discriminatedUnion('kind', [");
+        });
+
+        it('falls back to a plain union when the ref is intersected', () => {
+          const zod = render('PatternKind');
+          expect(zod).not.toContain('discriminatedUnion');
+          expect(zod).toContain('zod.union([');
         });
       },
     );
