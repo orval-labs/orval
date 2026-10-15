@@ -1,4 +1,12 @@
 {
-  "extends": "../../tsconfig.base.json"
-  // config that covers all files so eslint can use type checked rules
+  "extends": "../../tsconfig.base.json",
+  // config that covers all files so eslint can use type checked rules.
+  // The tsconfig-paths fixture is excluded: its re-export resolves only via
+  // its own nested tsconfig (loaded by rolldown and the type-aware linter),
+  // not via this project, so compiling it here raises TS2307.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/generators/__tests__/mutator-test-files/tsconfig-paths-tests"
+  ]
 }
