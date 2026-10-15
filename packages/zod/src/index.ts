@@ -1037,17 +1037,33 @@ export const generateZodValidationSchemaDefinition = (
           ? tryResolveRefSchema(member.$ref, context)
           : (member as OpenApiSchemaObject);
       if (!isObject(resolved)) return false;
-      const accepted = Array.isArray(resolved.enum)
-        ? resolved.enum
-        : 'const' in resolved
-          ? [resolved.const]
-          : undefined;
-      if (!accepted) return false;
-      const acceptedKeys = new Set(
-        accepted.map((value) => JSON.stringify(value)),
-      );
-      return (schema.enum as unknown[]).every((value) =>
-        acceptedKeys.has(JSON.stringify(value)),
+      // Any other assertion (`pattern`, `minLength`, ...) could reject an enum
+      // value, so such a member is kept and intersected instead.
+      if (
+        Object.keys(resolved).some(
+          (key) => !key.startsWith('x-') && !ENUM_MEMBER_KEYS.has(key),
+        )
+      ) {
+        return false;
+      }
+      const hasEnum = Array.isArray(resolved.enum);
+      const hasConst = 'const' in resolved;
+      if (!hasEnum && !hasConst) return false;
+      const enumKeys = hasEnum
+        ? new Set((resolved.enum as unknown[]).map((v) => JSON.stringify(v)))
+        : undefined;
+      const types =
+        resolved.type === undefined
+          ? undefined
+          : Array.isArray(resolved.type)
+            ? resolved.type
+            : [resolved.type];
+      return (schema.enum as unknown[]).every(
+        (value) =>
+          (!enumKeys || enumKeys.has(JSON.stringify(value))) &&
+          (!hasConst ||
+            JSON.stringify(value) === JSON.stringify(resolved.const)) &&
+          (!types || types.some((t) => matchesJsonType(value, t))),
       );
     });
 
@@ -3224,6 +3240,49 @@ const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
  * instead of throwing when the ref cannot be found (e.g. external refs
  * not yet bundled). Logs a verbose warning on failure to aid debugging.
  */
+// Keys an `allOf` member may carry besides `enum`/`const` and still be fully
+// described by a sibling `enum` that it accepts: `type` (checked per value),
+// `nullable` (only widens) and annotations.
+const ENUM_MEMBER_KEYS = new Set([
+  'enum',
+  'const',
+  'type',
+  'nullable',
+  'title',
+  'description',
+  'deprecated',
+  'default',
+  'example',
+  'examples',
+  'readOnly',
+  'writeOnly',
+  'externalDocs',
+  '$comment',
+]);
+
+const matchesJsonType = (value: unknown, type: unknown): boolean => {
+  switch (type) {
+    case 'string': {
+      return typeof value === 'string';
+    }
+    case 'number': {
+      return typeof value === 'number';
+    }
+    case 'integer': {
+      return Number.isInteger(value);
+    }
+    case 'boolean': {
+      return typeof value === 'boolean';
+    }
+    case 'null': {
+      return value === null;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
 function tryResolveRefSchema(
   $ref: string,
   context: ContextSpec,

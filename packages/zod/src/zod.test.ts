@@ -5952,6 +5952,43 @@ describe('generateZodValidationSchemaDefinition`', () => {
           );
         });
 
+        it.each([
+          [
+            'a type the values do not match',
+            { type: 'number', enum: ['A', 'B'] },
+          ],
+          ['a const next to the enum', { enum: ['A', 'B'], const: 'A' }],
+          [
+            'another assertion',
+            { type: 'string', enum: ['A', 'B'], pattern: '^A$' },
+          ],
+        ])('keeps an allOf member with %s', (_, member) => {
+          const zod = render({
+            allOf: [member as OpenApiSchemaObject],
+            enum: ['A', 'B'],
+          });
+          expect(zod).toContain(
+            variant === 'mini'
+              ? `"kind": ${pure}zod.intersection(`
+              : `.and(zod.enum(['A', 'B']))`,
+          );
+        });
+
+        it('drops a ref that only adds annotations', () => {
+          const zod = render({
+            allOf: [
+              {
+                type: 'string',
+                description: 'Kind',
+                'x-enum-varnames': ['A', 'B'],
+                enum: ['A', 'B', 'C'],
+              } as OpenApiSchemaObject,
+            ],
+            enum: ['A', 'B'],
+          });
+          expect(zod).toContain(`"kind": ${pure}zod.enum(['A', 'B'])`);
+        });
+
         it('intersects a oneOf with the enum', () => {
           expect(
             render({
