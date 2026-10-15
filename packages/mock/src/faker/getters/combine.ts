@@ -333,9 +333,12 @@ export function combineSchemasMock({
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
   }
+  // `itemProperties` too: discriminator filtering can remove the only sibling
+  // property, and the parent is still nullable as a whole.
   if (
-    itemResolvedValue &&
+    (itemResolvedValue || itemProperties) &&
     isNullableItemType &&
+    finalValue !== 'undefined' &&
     !finalValue.startsWith('...')
   ) {
     finalValue = getNullable(finalValue, true, mockOptions?.nonNullable);

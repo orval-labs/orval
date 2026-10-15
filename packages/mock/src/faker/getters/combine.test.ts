@@ -443,6 +443,48 @@ describe('combineSchemasMock', () => {
     );
   });
 
+  it('keeps the null branch when discriminator filtering removes the only own property', () => {
+    const item: MockSchemaObject = {
+      name: 'NullablePet',
+      type: ['object', 'null'],
+      properties: { petType: { type: 'string' } },
+      discriminator: {
+        propertyName: 'petType',
+        mapping: {
+          cat: '#/components/schemas/Cat',
+          dog: '#/components/schemas/Dog',
+        },
+      },
+      oneOf: [
+        {
+          type: 'object',
+          properties: { petType: { type: 'string', enum: ['cat'] } },
+          required: ['petType'],
+        },
+        {
+          type: 'object',
+          properties: { petType: { type: 'string', enum: ['dog'] } },
+          required: ['petType'],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'oneOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement([faker.helpers.arrayElement([{petType: faker.helpers.arrayElement(['cat'] as const)},{petType: faker.helpers.arrayElement(['dog'] as const)},]), null])",
+    );
+  });
+
   it('should skip already referenced properties in allOf', () => {
     const item: MockSchemaObject = {
       name: 'Extended',
