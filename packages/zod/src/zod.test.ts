@@ -5975,6 +5975,44 @@ describe('generateZodValidationSchemaDefinition`', () => {
           );
         });
 
+        it.each([
+          [
+            'an enum that rejects one of the values',
+            { enum: ['DirectLink'] },
+            ['DirectLink', 'WithinCase'],
+          ],
+          ['another assertion', { pattern: '^D' }, ['DirectLink']],
+        ])('keeps a ref with a sibling %s', (_, siblings, values) => {
+          const zod = render({
+            allOf: [
+              {
+                $ref: '#/components/schemas/NavigationKind',
+                ...siblings,
+              } as OpenApiSchemaObject,
+            ],
+            enum: values,
+          });
+          expect(zod).toContain(
+            variant === 'mini'
+              ? `"kind": ${pure}zod.intersection(`
+              : `.and(zod.enum([${values.map((v) => `'${v}'`).join(', ')}]))`,
+          );
+        });
+
+        it('drops a ref whose siblings accept every enum value', () => {
+          const zod = render({
+            allOf: [
+              {
+                $ref: '#/components/schemas/NavigationKind',
+                enum: ['DirectLink'],
+                description: 'Kind',
+              } as OpenApiSchemaObject,
+            ],
+            enum: ['DirectLink'],
+          });
+          expect(zod).toContain(`"kind": ${pure}zod.enum(['DirectLink'])`);
+        });
+
         it('drops a ref that only adds annotations', () => {
           const zod = render({
             allOf: [

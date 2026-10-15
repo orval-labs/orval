@@ -462,35 +462,55 @@ const enumNarrowsComposition = (
   return schema.allOf.every((member) => {
     const resolved = resolveUnionMemberSchema(member, context);
     if (!resolved) return false;
-    // Any other assertion (`pattern`, `minLength`, ...) could reject an enum
-    // value, so such a member is kept and intersected instead.
+    // Keys beside a `$ref` are generated on top of its target, so they are
+    // checked as their own layer rather than letting the target hide them.
+    const layers = [resolved];
+    if (isObject(member) && typeof member.$ref === 'string') {
+      const siblings = Object.fromEntries(
+        Object.entries(member as Record<string, unknown>).filter(
+          ([key]) => key !== '$ref',
+        ),
+      ) as OpenApiNonBooleanSchemaObject;
+      layers.push(siblings);
+    }
     if (
-      Object.keys(resolved).some(
-        (key) => !key.startsWith('x-') && !ENUM_MEMBER_KEYS.has(key),
-      )
+      !layers.some((layer) => Array.isArray(layer.enum) || 'const' in layer)
     ) {
       return false;
     }
-    const hasEnum = Array.isArray(resolved.enum);
-    const hasConst = 'const' in resolved;
-    if (!hasEnum && !hasConst) return false;
-    const enumKeys = hasEnum
-      ? new Set((resolved.enum as unknown[]).map((v) => JSON.stringify(v)))
-      : undefined;
-    const types =
-      resolved.type === undefined
-        ? undefined
-        : Array.isArray(resolved.type)
-          ? resolved.type
-          : [resolved.type];
-    return siblingValues.every(
-      (value) =>
-        (!enumKeys || enumKeys.has(JSON.stringify(value))) &&
-        (!hasConst ||
-          JSON.stringify(value) === JSON.stringify(resolved.const)) &&
-        (!types || types.some((t) => matchesJsonType(value, t))),
-    );
+    return layers.every((layer) => acceptsEnumValues(layer, siblingValues));
   });
+};
+
+const acceptsEnumValues = (
+  layer: OpenApiNonBooleanSchemaObject,
+  values: unknown[],
+): boolean => {
+  // Any other assertion (`pattern`, `minLength`, ...) could reject an enum
+  // value, so such a member is kept and intersected instead.
+  if (
+    Object.keys(layer).some(
+      (key) => !key.startsWith('x-') && !ENUM_MEMBER_KEYS.has(key),
+    )
+  ) {
+    return false;
+  }
+  const enumKeys = Array.isArray(layer.enum)
+    ? new Set((layer.enum as unknown[]).map((v) => JSON.stringify(v)))
+    : undefined;
+  const hasConst = 'const' in layer;
+  const types =
+    layer.type === undefined
+      ? undefined
+      : Array.isArray(layer.type)
+        ? layer.type
+        : [layer.type];
+  return values.every(
+    (value) =>
+      (!enumKeys || enumKeys.has(JSON.stringify(value))) &&
+      (!hasConst || JSON.stringify(value) === JSON.stringify(layer.const)) &&
+      (!types || types.some((t) => matchesJsonType(value, t))),
+  );
 };
 
 /**
