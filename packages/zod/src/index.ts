@@ -1022,13 +1022,39 @@ export const generateZodValidationSchemaDefinition = (
   // Zod output. Arrays are handled separately via their item schema.
   const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
+  // `allOf: [$ref]` narrowed by a sibling `enum: ['A']` is the OpenAPI 3.0 way
+  // to constrain a ref. When every member is an enum (or const) that accepts
+  // all of the sibling values, the composition adds nothing, so the enum is
+  // emitted alone. That keeps it usable as a `discriminatedUnion`
+  // discriminator, which an intersection with the ref is not.
+  const enumNarrowsAllOf =
+    hasNonArrayEnum &&
+    !schema.oneOf &&
+    !schema.anyOf &&
+    !!schema.allOf?.every((member) => {
+      const resolved =
+        isObject(member) && '$ref' in member && isString(member.$ref)
+          ? tryResolveRefSchema(member.$ref, context)
+          : (member as OpenApiSchemaObject);
+      if (!isObject(resolved)) return false;
+      const accepted = Array.isArray(resolved.enum)
+        ? resolved.enum
+        : 'const' in resolved
+          ? [resolved.const]
+          : undefined;
+      if (!accepted) return false;
+      const acceptedKeys = new Set(
+        accepted.map((value) => JSON.stringify(value)),
+      );
+      return (schema.enum as unknown[]).every((value) =>
+        acceptedKeys.has(JSON.stringify(value)),
+      );
+    });
+
   // Check for allOf/oneOf/anyOf BEFORE processing by type
   // This ensures these constraints work with any base type (string, number, object, etc.)
-  // A sibling `enum` (e.g. `allOf: [$ref]` narrowed by `enum: ['A']`, the
-  // OpenAPI 3.0 way to constrain a ref) lists every accepted value itself, so
-  // it is emitted alone.
   let skipSwitchStatement = false;
-  if ((schema.allOf || schema.oneOf || schema.anyOf) && !hasNonArrayEnum) {
+  if ((schema.allOf || schema.oneOf || schema.anyOf) && !enumNarrowsAllOf) {
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
@@ -2057,6 +2083,13 @@ export const generateZodValidationSchemaDefinition = (
   // enum emission to avoid generating invalid trailing `.enum(...)` chains.
 
   if (schema.enum && type !== 'array') {
+    // A rendered composition is a full schema, so chaining `.enum(...)` onto it
+    // would call a property, not a method. Intersect it with the enum instead.
+    const composition =
+      (schema.allOf || schema.oneOf || schema.anyOf) && !enumNarrowsAllOf
+        ? functions.splice(0)
+        : undefined;
+
     const enumMembers = getEnumMembers(schema);
     const hasMetadata = hasEnumMetadata(enumMembers);
     const enumValueInfo = getEnumValueInfo(enumMembers);
@@ -2102,6 +2135,16 @@ export const generateZodValidationSchemaDefinition = (
           ],
           consts: [],
         })),
+      ]);
+    }
+
+    if (composition) {
+      functions.splice(0, functions.length, [
+        'allOf',
+        [
+          { functions: composition, consts: [] },
+          { functions: functions.slice(), consts: [] },
+        ],
       ]);
     }
   }

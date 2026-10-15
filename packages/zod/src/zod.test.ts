@@ -5874,6 +5874,105 @@ describe('generateZodValidationSchemaDefinition`', () => {
       },
     );
 
+    describe.each(['classic', 'mini'] as const)(
+      'sibling enum on a composition that constrains more than the enum (%s)',
+      (variant) => {
+        const render = (property: OpenApiSchemaObject) => {
+          const context = makeContextSpec({
+            spec: {
+              components: {
+                schemas: {
+                  NavigationKind: {
+                    type: 'string',
+                    enum: ['DirectLink', 'WithinCase'],
+                  },
+                },
+              },
+            },
+          });
+          const definition = generateZodValidationSchemaDefinition(
+            {
+              type: 'object',
+              required: ['kind'],
+              properties: { kind: property },
+            },
+            context,
+            'notification',
+            false,
+            true,
+            { required: true, useReusableSchemas: true },
+          );
+          return parseZodValidationSchemaDefinition(
+            definition,
+            context,
+            false,
+            false,
+            true,
+            undefined,
+            undefined,
+            variant,
+          ).zod;
+        };
+        const pure = variant === 'mini' ? '/*#__PURE__*/ ' : '';
+        const intersect = (left: string, right: string) =>
+          variant === 'mini'
+            ? `${pure}zod.intersection(${left}, ${right})`
+            : `${left}.and(${right})`;
+        const regex = (constName: string) =>
+          variant === 'mini'
+            ? `${pure}zod.string().check(${pure}zod.regex(${constName}))`
+            : `zod.string().regex(${constName})`;
+
+        it('intersects an allOf pattern with the enum', () => {
+          expect(
+            render({
+              type: 'string',
+              allOf: [{ type: 'string', pattern: '^A$' }],
+              enum: ['A', 'B'],
+            }),
+          ).toContain(
+            `"kind": ${intersect(
+              regex('notificationKindOneRegExp'),
+              `${pure}zod.enum(['A', 'B'])`,
+            )}`,
+          );
+        });
+
+        it('intersects a ref that does not accept every enum value', () => {
+          expect(
+            render({
+              allOf: [{ $ref: '#/components/schemas/NavigationKind' }],
+              enum: ['DirectLink', 'Other'],
+            }),
+          ).toContain(
+            `"kind": ${intersect(
+              '__REF_NavigationKind__',
+              `${pure}zod.enum(['DirectLink', 'Other'])`,
+            )}`,
+          );
+        });
+
+        it('intersects a oneOf with the enum', () => {
+          expect(
+            render({
+              oneOf: [
+                { type: 'string', pattern: '^A$' },
+                { type: 'string', pattern: '^B$' },
+              ],
+              enum: ['A', 'B'],
+            }),
+          ).toContain(
+            `"kind": ${intersect(
+              `${pure}zod.union([${regex('notificationKindOneRegExp')},${regex(
+                'notificationKindTwoRegExp',
+              )}])`,
+              `${pure}zod.enum(['A', 'B'])`,
+            )}`,
+          );
+        });
+      },
+    );
+
     it('chains .default(...) for a default sibling on a $ref', () => {
       const context = makeContextSpec({
         spec: { components: { schemas: { Pet: { type: 'object' } } } },
