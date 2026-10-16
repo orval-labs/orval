@@ -14,7 +14,7 @@ import {
 } from '../types';
 import {
   compareNatural,
-  getComponentBaseNames,
+  getComponentBaseNameSet,
   isInlineSchema,
   isString,
   jsDoc,
@@ -202,14 +202,6 @@ interface GetObjectOptions {
    * @see FormDataContext
    */
   formDataContext?: FormDataContext;
-}
-
-function getNormalizedComponentSchemaNames(context: ContextSpec): Set<string> {
-  context.normalizedComponentSchemaNames ??= new Set(
-    getComponentBaseNames(context.spec.components?.schemas).values(),
-  );
-
-  return context.normalizedComponentSchemaNames;
 }
 
 /**
@@ -442,8 +434,9 @@ export function getObject({
         );
       }
 
-      const isNameAlreadyTaken =
-        getNormalizedComponentSchemaNames(context).has(propName);
+      const isNameAlreadyTaken = getComponentBaseNameSet(
+        context.spec.components?.schemas,
+      ).has(propName);
 
       if (isNameAlreadyTaken) {
         propName = propName + 'Property';
