@@ -831,6 +831,37 @@ describe('writeSchemas indexFiles', () => {
   });
 });
 
+describe('writeSchemas', () => {
+  it('writes schemas whose file names differ only in case to a single file', async () => {
+    const tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-case-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [createMockSchema('UserDTO'), createMockSchema('UserDto')],
+        target: 'src/api',
+        namingConvention: NamingConvention.PASCAL_CASE,
+        fileExtension: '.ts',
+        header: '',
+        indexFiles: false,
+      });
+
+      expect(await fs.promises.readdir(schemaPath)).toEqual(['UserDTO.ts']);
+      const content = await fs.promises.readFile(
+        path.join(schemaPath, 'UserDTO.ts'),
+        'utf8',
+      );
+      expect(content).toContain('export type UserDTO = {};');
+      expect(content).toContain('export type UserDto = {};');
+    } finally {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('writeRoutedSchemas', () => {
   it('writes route files, route barrels, root barrel, and cross-route imports', async () => {
     const tempDir = await fs.promises.mkdtemp(
