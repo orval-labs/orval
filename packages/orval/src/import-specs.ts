@@ -346,31 +346,33 @@ function maskNode(node: unknown): unknown {
 
   if (!isObject(node)) return node;
 
-  let copy: Record<string, unknown> | undefined;
+  // Copies are built with `Object.fromEntries`, which defines own properties,
+  // so a key named `__proto__` stays an entry instead of setting the prototype.
+  let changed = false;
+  const entries: [string, unknown][] = [];
   for (const [key, value] of Object.entries(node)) {
     let masked = maskNode(value);
     if (key === 'properties' && isObject(masked) && isObject(masked.$ref)) {
       masked = renameRefProperty(masked);
     }
-    if (masked !== value) {
-      copy ??= { ...node };
-      copy[key] = masked;
-    }
+    if (masked !== value) changed = true;
+    entries.push([key, masked]);
   }
-  return copy ?? node;
+  return changed ? Object.fromEntries(entries) : node;
 }
 
 function renameRefProperty(
   properties: Record<string, unknown>,
 ): Record<string, unknown> {
   let placeholder = 'x-orval-ref-property';
-  while (placeholder in properties) placeholder += '_';
+  while (Object.hasOwn(properties, placeholder)) placeholder += '_';
 
-  const renamed: Record<string, unknown> = {};
-  for (const [name, schema] of Object.entries(properties)) {
-    renamed[name === '$ref' ? placeholder : name] = schema;
-  }
-  return renamed;
+  return Object.fromEntries(
+    Object.entries(properties).map(([name, schema]) => [
+      name === '$ref' ? placeholder : name,
+      schema,
+    ]),
+  );
 }
 
 // ─── Invalid nullable $ref normalization (#3714) ───────────────────────────

@@ -797,6 +797,27 @@ describe('maskPropertiesNamedRef', () => {
     });
   });
 
+  it('keeps a property named __proto__ as an own entry', () => {
+    // Parsed specs carry `__proto__` as an ordinary own key.
+    const spec = JSON.parse(
+      '{"properties":{"__proto__":{"properties":{"$ref":{"type":"string"}}},"$ref":{"type":"string"}}}',
+    ) as Record<string, Record<string, unknown>>;
+
+    const masked = maskPropertiesNamedRef(spec);
+    const properties = masked.properties;
+
+    expect(Object.getPrototypeOf(properties)).toBe(Object.prototype);
+    expect(Object.keys(properties)).toEqual([
+      '__proto__',
+      'x-orval-ref-property',
+    ]);
+    expect(
+      Object.getOwnPropertyDescriptor(properties, '__proto__')?.value,
+    ).toEqual({
+      properties: { 'x-orval-ref-property': { type: 'string' } },
+    });
+  });
+
   it('returns the input unchanged when there is no property named $ref', () => {
     // A property named `properties` whose schema is a real reference must not
     // be mistaken for a properties map with a `$ref` entry.
