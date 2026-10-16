@@ -15272,6 +15272,28 @@ describe('schemas that admit no value (#4323)', () => {
     expect(render({ not: {} })).toBe('zod.never()');
   });
 
+  it('keeps the description and metadata of a schema that admits no value', () => {
+    expect(render({ not: {}, description: 'Gone' })).toBe(
+      "zod.never().describe('Gone')",
+    );
+    expect(
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          false,
+          context,
+          'Nothing',
+          false,
+          true,
+          { required: true, emitMeta: true },
+        ),
+        context,
+        false,
+        false,
+        true,
+      ).zod,
+    ).toBe("zod.never().meta({ id: 'Nothing' })");
+  });
+
   it('keeps a false property optional unless it is required', () => {
     expect(
       render({
