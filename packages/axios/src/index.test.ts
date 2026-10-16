@@ -219,8 +219,9 @@ describe('Axios URL helpers', () => {
     expect(implementation).toContain(`axios.get(\n      \`${encodedRoute}\``);
   });
 
-  it('does not add path encoding when urlEncodeParameters is enabled', () => {
+  it('encodes path parameters when urlEncodeParameters is enabled', () => {
     const route = '/pets/${petId}';
+    const encodedRoute = '/pets/${encodeURIComponent(String(petId))}';
     const implementation = generateAxios(createVerbOptions({ route }), {
       ...generatorOptions,
       route,
@@ -233,8 +234,43 @@ describe('Axios URL helpers', () => {
       },
     }).implementation;
 
+    expect(implementation).toContain(`url: \`${encodedRoute}\``);
+    expect(implementation).toContain(`axios.get(\n      \`${encodedRoute}\``);
+  });
+
+  it('skips allowReserved path parameters when urlEncodeParameters is enabled', () => {
+    const route = '/pets/${petId}';
+    const verbOptions = createVerbOptions({ route });
+    const implementation = generateAxios(
+      {
+        ...verbOptions,
+        params: verbOptions.params.map((p) => ({ ...p, allowReserved: true })),
+      },
+      {
+        ...generatorOptions,
+        route,
+        context: {
+          ...generatorOptions.context,
+          output: {
+            ...generatorOptions.context.output,
+            urlEncodeParameters: true,
+          },
+        },
+      },
+    ).implementation;
+
+    expect(implementation).not.toContain('encodeURIComponent');
+  });
+
+  it('does not encode path parameters when urlEncodeParameters is disabled', () => {
+    const route = '/pets/${petId}';
+    const implementation = generateAxios(createVerbOptions({ route }), {
+      ...generatorOptions,
+      route,
+    }).implementation;
+
     expect(implementation).toContain(`url: \`${route}\``);
-    expect(implementation).toContain(`axios.get(\n      \`${route}\``);
+    expect(implementation).not.toContain('encodeURIComponent');
   });
 
   it('returns the helper from factory-generated APIs', async () => {
