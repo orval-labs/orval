@@ -753,7 +753,9 @@ export function generateZodSchemasInline(
     );
   }
 
-  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasWithOpenApiDef = builder.schemas.filter(
+    (s) => s.schema !== undefined,
+  );
 
   if (schemasWithOpenApiDef.length === 0) {
     return '';
@@ -769,7 +771,7 @@ export function generateZodSchemasInline(
   const schemas: ZodSchemaFileEntry[] = [];
 
   for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
-    if (!schemaObject) {
+    if (schemaObject === undefined) {
       continue;
     }
 
@@ -780,7 +782,12 @@ export function generateZodSchemasInline(
       output: output as ContextSpec['output'],
     };
 
-    const dereferencedSchema = dereference(schemaObject, context);
+    // `dereference` rewrites `false` to `{ not: {} }`, which renders as
+    // `zod.unknown()`, so booleans skip it: the generator maps them directly.
+    const dereferencedSchema =
+      typeof schemaObject === 'boolean'
+        ? schemaObject
+        : dereference(schemaObject, context);
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       dereferencedSchema,
@@ -936,7 +943,9 @@ export async function writeZodSchemas(
   }
 
   const isSplit = !!schemaTagMap;
-  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasWithOpenApiDef = builder.schemas.filter(
+    (s) => s.schema !== undefined,
+  );
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
   const isZodV4 = resolveIsZodV4(
     output.override.zod.version,
@@ -949,7 +958,7 @@ export async function writeZodSchemas(
   for (const generatorSchema of schemasWithOpenApiDef) {
     const { name, schema: schemaObject } = generatorSchema;
 
-    if (!schemaObject) {
+    if (schemaObject === undefined) {
       continue;
     }
 
@@ -974,8 +983,13 @@ export async function writeZodSchemas(
       output: output as ContextSpec['output'],
     };
 
-    // Dereference the schema to resolve $ref
-    const dereferencedSchema = dereference(schemaObject, context);
+    // Dereference the schema to resolve $ref. `dereference` rewrites `false`
+    // to `{ not: {} }`, which renders as `zod.unknown()`, so booleans skip it:
+    // the generator maps them directly.
+    const dereferencedSchema =
+      typeof schemaObject === 'boolean'
+        ? schemaObject
+        : dereference(schemaObject, context);
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       dereferencedSchema,
