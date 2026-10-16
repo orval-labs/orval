@@ -449,6 +449,131 @@ describe('getMockScalar (nested arrays handling)', () => {
 
     expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
   });
+
+  it('picks a single value per enum member of anyOf array items', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'permissions',
+        items: {
+          anyOf: [
+            { $ref: '#/components/schemas/Permission' },
+            { type: 'string', enum: ['horizon:view'] },
+          ],
+        },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Permission: { type: 'string', enum: ['read', 'write'] },
+            },
+          },
+        },
+      }),
+    });
+
+    expect(result.value).toBe(
+      "Array.from({ length: faker.number.int() }, (_, i) => i + 1).map(() => (faker.helpers.arrayElement([faker.helpers.arrayElement(['read','write'] as const),faker.helpers.arrayElement(['horizon:view'] as const),])))",
+    );
+  });
+
+  it('keeps picking a subset for an enum array inside a combined schema', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'permissions',
+        items: { type: 'string', enum: ['read', 'write'] },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: scalarContext(),
+      combine: { separator: 'anyOf' as const, includedProperties: [] },
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElements(['read','write'] as const)",
+    );
+  });
+
+  it('does not wrap non-object items of a combined array in braces', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'labels',
+        items: { type: 'string', const: 'x' },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: scalarContext(),
+      combine: { separator: 'anyOf' as const, includedProperties: [] },
+    });
+
+    expect(result.value).toBe(
+      'Array.from({ length: faker.number.int() }, (_, i) => i + 1).map(() => ("x"))',
+    );
+  });
+
+  it('keeps object items of an allOf member array as object literals', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'children',
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', const: 'a' } },
+        },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: scalarContext(),
+      combine: { separator: 'allOf' as const, includedProperties: ['id'] },
+    });
+
+    expect(result.value).toBe(
+      'Array.from({ length: faker.number.int() }, (_, i) => i + 1).map(() => ({id: "a"}))',
+    );
+  });
+
+  it('keeps object prefix items of an allOf member tuple as object literals', () => {
+    const result = getScalar({
+      item: {
+        type: 'array' as const,
+        name: 'pair',
+        prefixItems: [
+          {
+            type: 'object',
+            required: ['id'],
+            properties: { id: { type: 'string', const: 'a' } },
+          },
+        ],
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: scalarContext(),
+      combine: { separator: 'allOf' as const, includedProperties: [] },
+    });
+
+    expect(result.value).toBe('[{id: "a"}]');
+  });
 });
 
 describe('getMockScalar (undefined filtering)', () => {
@@ -1394,6 +1519,7 @@ describe('getMockScalar (inline enum cast under exactOptional)', () => {
       ...baseArg,
       item: { ...statusItem, name: 'tags', path: '#.tags.[]' },
       mockOptions: { exactOptional: true },
+      isArrayItems: true,
     });
 
     expect(result.value).toBe(

@@ -52,6 +52,9 @@ interface GetMockScalarOptions {
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
+  // Set only by the array case for its `items`: an enum there mocks the whole
+  // array, so it picks a subset instead of a single value.
+  isArrayItems?: boolean;
 }
 
 export function getMockScalar({
@@ -66,8 +69,13 @@ export function getMockScalar({
   existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride = false,
+  isArrayItems,
 }: GetMockScalarOptions): MockDefinition {
   const safeMockOptions: MockOptions = mockOptions ?? {};
+  const enumOptions = {
+    exactOptional: safeMockOptions.exactOptional,
+    isArrayItems,
+  };
   const nonNullableOption = safeMockOptions.nonNullable;
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
@@ -304,7 +312,7 @@ export function getMockScalar({
           numberImports,
           context,
           existingReferencedProperties,
-          { type: 'number', exactOptional: safeMockOptions.exactOptional },
+          { type: 'number', ...enumOptions },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -330,7 +338,7 @@ export function getMockScalar({
           booleanImports,
           context,
           existingReferencedProperties,
-          { type: 'boolean', exactOptional: safeMockOptions.exactOptional },
+          { type: 'boolean', ...enumOptions },
         );
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
@@ -362,7 +370,6 @@ export function getMockScalar({
                 parentName: item.parentName,
                 path: item.path ? `${item.path}.[${index}]` : `#.[${index}]`,
               },
-              combine,
               mockOptions,
               operationId,
               tags,
@@ -416,7 +423,7 @@ export function getMockScalar({
           parentName: item.parentName,
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
-        combine,
+        isArrayItems: true,
         mockOptions,
         operationId,
         tags,
@@ -450,15 +457,6 @@ export function getMockScalar({
       });
       if (extractedItemCall) {
         mapValue = extractedItemCall;
-      }
-
-      if (
-        combine &&
-        !value.startsWith('faker') &&
-        !value.startsWith('{') &&
-        !value.startsWith('Array.from')
-      ) {
-        mapValue = `{${value}}`;
       }
 
       // Use global defaults for the missing bound only when they do not
@@ -562,7 +560,7 @@ export function getMockScalar({
           stringImports,
           context,
           existingReferencedProperties,
-          { type: 'string', exactOptional: safeMockOptions.exactOptional },
+          { type: 'string', ...enumOptions },
         );
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
@@ -600,7 +598,7 @@ export function getMockScalar({
           enumImports,
           context,
           existingReferencedProperties,
-          { exactOptional: safeMockOptions.exactOptional },
+          enumOptions,
         );
 
         return {
@@ -724,11 +722,13 @@ function getEnum(
   {
     type,
     exactOptional,
+    isArrayItems,
   }: {
     // Only gates the `Object.values(...)` reference shortcut below. It must not
     // decide how a member is quoted — see `formatEnumMember`.
     type?: 'string' | 'number' | 'boolean';
     exactOptional?: boolean;
+    isArrayItems?: boolean;
   } = {},
 ) {
   if (!item.enum) return '';
@@ -814,7 +814,7 @@ function getEnum(
     });
   }
 
-  return item.path?.endsWith('[]')
+  return isArrayItems
     ? `faker.helpers.arrayElements(${enumValue})`
     : `faker.helpers.arrayElement(${enumValue})`;
 }
