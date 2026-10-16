@@ -16,6 +16,7 @@ import {
   isBinaryContentType,
   isInlineSchema,
   sanitize,
+  uniqueBy,
 } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
@@ -114,9 +115,16 @@ export function getBody({
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,
+    undefined,
+    (item) => `${item.value}::${item.contentType}`,
   );
 
-  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
+  // Dedupe by schema only after filtering: media types often share a schema,
+  // and deduping first can drop the one the filter would keep.
+  const filteredBodyTypes = uniqueBy(
+    filterByContentType(allBodyTypes, contentType),
+    (item) => item.value,
+  );
 
   return buildBody(filteredBodyTypes, requestBody, operationName, context);
 }

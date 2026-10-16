@@ -408,6 +408,72 @@ describe('getBody', () => {
     });
   });
 
+  describe('content type filter on media types sharing a schema', () => {
+    const createPetContext = () => {
+      const context = createContext();
+      context.spec.components = {
+        ...context.spec.components,
+        schemas: {
+          ...context.spec.components?.schemas,
+          Pet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      };
+      return context;
+    };
+
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/Pet' },
+        },
+        'application/vnd.vendor.v1+json': {
+          schema: { $ref: '#/components/schemas/Pet' },
+        },
+      },
+      required: true,
+    };
+
+    it('keeps the body for an included media type that is not listed first (#1717)', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+        contentType: { include: ['application/vnd.vendor.v1+json'] },
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.implementation).toBe('pet');
+      expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+    });
+
+    it('keeps the body when the first media type is excluded', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+        contentType: { exclude: ['application/json'] },
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+    });
+
+    it('still emits the shared schema once when no filter is set', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.implementation).toBe('pet');
+      expect(result.contentType).toBe('application/json');
+    });
+  });
+
   describe('x-codegen-request-body-name', () => {
     it('uses custom name from inline request body extension', () => {
       const result = getBody({
