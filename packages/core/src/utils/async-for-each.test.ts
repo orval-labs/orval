@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { asyncForEach } from './async-for-each';
 
 describe('asyncForEach', () => {
-  it('starts no new items after a failure and rejects once in-flight calls settle', async () => {
+  it('starts no new items after a failure and rejects with the earliest failure once in-flight calls settle', async () => {
     const started: number[] = [];
     const calls = new Map<number, PromiseWithResolvers<void>>();
     let settled = false;
@@ -22,12 +22,12 @@ describe('asyncForEach', () => {
       settled = true;
     });
 
-    calls.get(1)?.reject(new Error('write failed'));
+    calls.get(1)?.reject(new Error('item 1 failed'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(settled).toBe(false);
 
-    calls.get(0)?.resolve();
-    expect(await outcome).toBe('write failed');
+    calls.get(0)?.reject(new Error('item 0 failed'));
+    expect(await outcome).toBe('item 0 failed');
     expect(started).toEqual([0, 1]);
   });
 });

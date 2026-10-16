@@ -1,5 +1,4 @@
 export * from './assertion';
-export * from './async-for-each';
 export * from './async-reduce';
 export * from './barrel-re-exports';
 export * from './case';
