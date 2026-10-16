@@ -20,6 +20,7 @@ import {
   HTTP_STATUS_CODE_SHARED_TYPES,
   isSyntheticDefaultImportsAllow,
   GetterPropType,
+  makeRouteSafe,
   needsHttpStatusCodeTypes,
   type NormalizedOverrideOutput,
   pascal,
@@ -215,10 +216,20 @@ const generateAxiosImplementation = (
     formData,
     formUrlEncoded,
     paramsSerializer,
+    params,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
   isFactoryMode = false,
 ) => {
+  let route = _route;
+
+  if (context.output.urlEncodeParameters) {
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const includeHttpResponseReturnType =
     // oxlint-disable-next-line typescript/no-unnecessary-condition

@@ -472,4 +472,28 @@ export default defineConfig({
       target: '../specifications/gateway-tuple.yaml',
     },
   },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/axios/url-encode-parameters/endpoints.ts',
+      client: 'axios',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'issue-3910-allowReserved': {
+    output: {
+      target: '../generated/axios/issue-3910-allowReserved/endpoints.ts',
+      client: 'axios',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3910/issue-3910.yaml',
+    },
+  },
 });
