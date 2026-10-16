@@ -133,7 +133,9 @@ async function resolveSpec(
     // validation over it (#4271).
     fillMissingResponseDescriptions(transformedData);
 
-    const { valid, errors } = await validateSpec(transformedData);
+    const { valid, errors } = await validateSpec(
+      maskPropertiesNamedRef(transformedData),
+    );
     if (!valid) {
       throw new Error(
         `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
@@ -304,6 +306,71 @@ export function fillMissingResponseDescriptions(
 
 function escapePointerToken(token: string): string {
   return token.replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+// ─── Properties named `$ref` (#4318) ───────────────────────────────────────
+
+/**
+ * `$ref` is a legal property name — SCIM (RFC 7643) uses it on Group
+ * `members` and User `groups` — but `@scalar/openapi-parser`'s `validate()`
+ * treats any object with a `$ref` key as a Reference Object, including a
+ * `properties` map, and fails with `Can't resolve reference: [object Object]`
+ * (scalar/scalar#10641).
+ *
+ * Return a copy of `spec` for the validator in which every `properties` entry
+ * named `$ref` is renamed to an unused key. Only entries whose value is an
+ * object qualify: a real Reference Object's `$ref` is a string, so a schema
+ * that is itself a reference is left alone. The copy is structural and only
+ * along the changed paths; `spec` is returned as is when nothing matches, and
+ * is never mutated, so generation still sees the property under its own name.
+ *
+ * Remove once the upstream fix (scalar/scalar#10643) ships.
+ */
+export function maskPropertiesNamedRef<T>(spec: T): T {
+  return maskNode(spec) as T;
+}
+
+function maskNode(node: unknown): unknown {
+  if (Array.isArray(node)) {
+    const items: unknown[] = node;
+    let copy: unknown[] | undefined;
+    for (const [index, item] of items.entries()) {
+      const masked = maskNode(item);
+      if (masked !== item) {
+        copy ??= [...items];
+        copy[index] = masked;
+      }
+    }
+    return copy ?? node;
+  }
+
+  if (!isObject(node)) return node;
+
+  let copy: Record<string, unknown> | undefined;
+  for (const [key, value] of Object.entries(node)) {
+    let masked = maskNode(value);
+    if (key === 'properties' && isObject(masked) && isObject(masked.$ref)) {
+      masked = renameRefProperty(masked);
+    }
+    if (masked !== value) {
+      copy ??= { ...node };
+      copy[key] = masked;
+    }
+  }
+  return copy ?? node;
+}
+
+function renameRefProperty(
+  properties: Record<string, unknown>,
+): Record<string, unknown> {
+  let placeholder = 'x-orval-ref-property';
+  while (placeholder in properties) placeholder += '_';
+
+  const renamed: Record<string, unknown> = {};
+  for (const [name, schema] of Object.entries(properties)) {
+    renamed[name === '$ref' ? placeholder : name] = schema;
+  }
+  return renamed;
 }
 
 // ─── Invalid nullable $ref normalization (#3714) ───────────────────────────

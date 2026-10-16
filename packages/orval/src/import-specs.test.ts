@@ -16,6 +16,7 @@ import {
   dereferenceExternalRef,
   fillMissingResponseDescriptions,
   importSpecs,
+  maskPropertiesNamedRef,
   normalizeNullableRefs,
   normalizeToOpenApi31,
   preserveBinarySchemas,
@@ -344,6 +345,51 @@ describe('validation', () => {
     // oxlint-disable-next-line typescript/no-unsafe-member-access, typescript/no-unsafe-return
     const warnings = warn.mock.calls.map(([event]) => event.message).join('\n');
     expect(warnings).toContain('#/paths/~1/get/responses/200');
+  });
+
+  it('should validate and keep a property named $ref (#4318)', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.1.0',
+            info: { title: 'SCIM', version: '1.0.0' },
+            paths: {},
+            components: {
+              schemas: {
+                Group: {
+                  type: 'object',
+                  properties: {
+                    displayName: { type: 'string' },
+                    members: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/GroupMember' },
+                    },
+                  },
+                },
+                GroupMember: {
+                  type: 'object',
+                  required: ['$ref'],
+                  properties: {
+                    value: { type: 'string' },
+                    $ref: { type: 'string', format: 'uri' },
+                  },
+                },
+              },
+            },
+          } as unknown as OpenApiDocument,
+        },
+      },
+      workspace,
+      {},
+    );
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+    const groupMember = spec.schemas.find((s) => s.name === 'GroupMember');
+    expect(groupMember?.model).toContain('$ref: string;');
+    expect(groupMember?.model).not.toContain('x-orval-ref-property');
   });
 
   it('should skip validation when input.unsafeDisableValidation is true', async () => {
@@ -699,6 +745,69 @@ describe('validation', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+});
+
+describe('maskPropertiesNamedRef', () => {
+  it('renames a properties entry named $ref without touching the input (#4318)', () => {
+    const spec = {
+      components: {
+        schemas: {
+          GroupMember: {
+            type: 'object',
+            properties: {
+              value: { type: 'string' },
+              $ref: { type: 'string', format: 'uri' },
+            },
+          },
+          Other: { type: 'string' },
+        },
+      },
+    };
+    const original = structuredClone(spec);
+
+    const masked = maskPropertiesNamedRef(spec);
+
+    expect(spec).toEqual(original);
+    expect(masked.components.schemas.GroupMember.properties).toEqual({
+      value: { type: 'string' },
+      'x-orval-ref-property': { type: 'string', format: 'uri' },
+    });
+    // Untouched branches are shared, not copied.
+    expect(masked.components.schemas.Other).toBe(spec.components.schemas.Other);
+  });
+
+  it('masks nested properties and picks an unused placeholder', () => {
+    const spec = {
+      items: [
+        {
+          properties: {
+            'x-orval-ref-property': { type: 'integer' },
+            $ref: { $ref: '#/components/schemas/Uri' },
+          },
+        },
+      ],
+    };
+
+    const masked = maskPropertiesNamedRef(spec);
+
+    expect(masked.items[0].properties).toEqual({
+      'x-orval-ref-property': { type: 'integer' },
+      'x-orval-ref-property_': { $ref: '#/components/schemas/Uri' },
+    });
+  });
+
+  it('returns the input unchanged when there is no property named $ref', () => {
+    // A property named `properties` whose schema is a real reference must not
+    // be mistaken for a properties map with a `$ref` entry.
+    const spec = {
+      type: 'object',
+      properties: {
+        properties: { $ref: '#/components/schemas/Props' },
+      },
+    };
+
+    expect(maskPropertiesNamedRef(spec)).toBe(spec);
   });
 });
 
