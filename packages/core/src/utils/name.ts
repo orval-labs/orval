@@ -41,6 +41,7 @@ export function getOperationUrlHelperNames(
 }
 
 const componentBaseNamesCache = new WeakMap<object, Map<string, string>>();
+const componentBaseNameSetCache = new WeakMap<object, ReadonlySet<string>>();
 
 /**
  * The identifier a base name ends up as once the definition/ref generators
@@ -111,6 +112,27 @@ export function getComponentBaseNames(
   }
 
   componentBaseNamesCache.set(section, names);
+  return names;
+}
+
+/**
+ * The set of base names from {@link getComponentBaseNames}, for checking
+ * whether a generated name is already taken by a component. Memoized per
+ * section object.
+ */
+export function getComponentBaseNameSet(
+  section: object | undefined,
+): ReadonlySet<string> {
+  if (!section) {
+    return new Set();
+  }
+
+  let names = componentBaseNameSetCache.get(section);
+  if (!names) {
+    names = new Set(getComponentBaseNames(section).values());
+    componentBaseNameSetCache.set(section, names);
+  }
+
   return names;
 }
 
