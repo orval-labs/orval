@@ -248,6 +248,7 @@ interface ResolveMockValueOptions {
   existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   allowOverride?: boolean;
+  isArrayItems?: boolean;
 }
 
 export function resolveMockValue({
@@ -262,6 +263,7 @@ export function resolveMockValue({
   existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride,
+  isArrayItems,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
   if (!isInlineSchema(schema)) {
     const schemaReference = schema as MockSchema & {
@@ -503,6 +505,7 @@ export function resolveMockValue({
       existingReferencedAllOfRefs,
       splitMockImplementations,
       allowOverride,
+      isArrayItems,
     });
     if (
       scalar.value &&
@@ -592,6 +595,7 @@ export function resolveMockValue({
     existingReferencedAllOfRefs,
     splitMockImplementations,
     allowOverride,
+    isArrayItems,
   });
   mergeReturnedMockImports(imports, importsBefore, scalar.imports);
   return {
