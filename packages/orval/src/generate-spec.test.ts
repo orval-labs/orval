@@ -2283,6 +2283,102 @@ describe('generateSpec - zod schemas with a custom fileExtension', () => {
   });
 });
 
+describe('generateSpec - zod schemas for shared responses and request bodies (#4316)', () => {
+  it('writes a zod schema for every shared component the client imports', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Shared components', version: '1.0.0' },
+              paths: {
+                '/pets': {
+                  post: {
+                    operationId: 'createPet',
+                    requestBody: { $ref: '#/components/requestBodies/PetBody' },
+                    responses: {
+                      '200': { $ref: '#/components/responses/PetCreated' },
+                      '400': { $ref: '#/components/responses/BadRequest' },
+                    },
+                  },
+                },
+              },
+              components: {
+                schemas: {
+                  Error: {
+                    type: 'object',
+                    required: ['message'],
+                    properties: { message: { type: 'string' } },
+                  },
+                },
+                requestBodies: {
+                  PetBody: {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: { name: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  PetCreated: {
+                    description: 'Created',
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: { id: { type: 'integer' } },
+                        },
+                      },
+                    },
+                  },
+                  BadRequest: {
+                    description: 'Bad request',
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/Error' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            schemas: { path: './model', type: 'zod' },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const model = path.join(workspace, 'model');
+      const readSchema = (file: string) =>
+        fs.promises.readFile(path.join(model, `${file}.zod.ts`), 'utf8');
+
+      expect(await readSchema('petBodyBody')).toContain(
+        'export const PetBodyBody = zod.object({',
+      );
+      expect(await readSchema('petCreatedResponse')).toContain(
+        'export const PetCreatedResponse = zod.object({',
+      );
+      expect(await readSchema('badRequestResponse')).toContain(
+        'export const BadRequestResponse = zod.object({',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - normalizeOptions pathless schemas object', () => {
   // Regression: a `schemas` object with no `path` (e.g. `schemas: { type: 'zod' }`)
   // normalized to an undefined path, which `clean: true` then resolved to the

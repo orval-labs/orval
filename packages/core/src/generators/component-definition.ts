@@ -33,6 +33,13 @@ export function generateComponentDefinition(
 
     const imports = allResponseTypes.flatMap(({ imports }) => imports);
     const schemas = allResponseTypes.flatMap(({ schemas }) => schemas);
+    // Zod schema output skips schemas without an OpenAPI definition, so give
+    // the component one built from its content types.
+    const contentSchemas = allResponseTypes.flatMap(({ originalSchema }) =>
+      originalSchema ? [originalSchema] : [],
+    );
+    const schema =
+      contentSchemas.length > 1 ? { anyOf: contentSchemas } : contentSchemas[0];
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
@@ -47,13 +54,21 @@ export function generateComponentDefinition(
     const doc = jsDoc(response);
     const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
 
-    generatorSchemas.push(...schemas);
+    // An inline object content type already produced a schema named after the component.
+    generatorSchemas.push(
+      ...schemas.map((generated) =>
+        generated.name === modelName && !generated.schema
+          ? { ...generated, schema }
+          : generated,
+      ),
+    );
 
     if (modelName !== type) {
       generatorSchemas.push({
         name: modelName,
         model,
         imports,
+        schema,
         kind: 'schema',
       });
     }
