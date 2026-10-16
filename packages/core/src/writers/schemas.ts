@@ -8,7 +8,7 @@ import {
   NamingConvention,
   type Tsconfig,
 } from '../types';
-import { groupBy } from '../utils';
+import { asyncForEach, groupBy } from '../utils';
 import {
   compareNatural,
   conventionName,
@@ -20,6 +20,8 @@ import { writeGeneratedFile } from './file';
 import type { SchemaOutputPlan, SchemaRouteKey } from './schema-output-plan';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
+
+const SCHEMA_WRITE_CONCURRENCY = 4;
 
 /**
  * Patterns to detect operation-derived types (params, bodies, responses).
@@ -491,44 +493,30 @@ export async function writeSchemas({
     isCombined,
   };
 
-  for (const groupSchemas of schemaGroups.values()) {
-    if (groupSchemas.length === 1) {
-      await writeSchema({
-        path: schemaPath,
-        schema: groupSchemas[0],
-        target,
-        namingConvention,
-        fileExtension,
-        header,
-        tsconfig,
-      });
+  const groupedSchemas = [...schemaGroups.values()].map((groupSchemas) =>
+    groupSchemas.length === 1
+      ? groupSchemas[0]
+      : mergeSchemaGroup(groupSchemas),
+  );
 
-      const singleSchema = groupSchemas[0];
-      await emitFactoryForSchema(
-        singleSchema,
-        namingConvention,
-        header,
-        factoryDir,
-        fileExtension,
-        factoryHelpers,
-      );
-      continue;
-    }
-
-    const mergedSchema = mergeSchemaGroup(groupSchemas);
-
-    await writeSchema({
+  // Every group has its own file, so the writes are independent. Matches the
+  // default size of Node's file I/O thread pool; more writes in flight only
+  // hold more file contents in memory.
+  await asyncForEach(groupedSchemas, SCHEMA_WRITE_CONCURRENCY, (schema) =>
+    writeSchema({
       path: schemaPath,
-      schema: mergedSchema,
+      schema,
       target,
       namingConvention,
       fileExtension,
       header,
       tsconfig,
-    });
+    }),
+  );
 
+  for (const schema of groupedSchemas) {
     await emitFactoryForSchema(
-      mergedSchema,
+      schema,
       namingConvention,
       header,
       factoryDir,
