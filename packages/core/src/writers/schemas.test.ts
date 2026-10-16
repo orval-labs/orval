@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 const outputFile = async (file: string, content: string) => {
   await fs.promises.mkdir(path.dirname(file), { recursive: true });
@@ -832,31 +832,55 @@ describe('writeSchemas indexFiles', () => {
 });
 
 describe('writeSchemas', () => {
-  it('writes schemas whose file names differ only in case to a single file', async () => {
+  it('writes schema files concurrently, except files that may coincide on a case-insensitive file system', async () => {
     const tempDir = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'orval-schema-case-'),
+      path.join(os.tmpdir(), 'orval-schema-fold-'),
     );
     const schemaPath = path.join(tempDir, 'schemas');
+    const events: string[] = [];
+    const { writeGeneratedFile: originalWrite } = await import('./file');
+    vi.spyOn(await import('./file'), 'writeGeneratedFile').mockImplementation(
+      async (filePath, content) => {
+        events.push(`start ${path.basename(filePath)}`);
+        await originalWrite(filePath, content);
+        events.push(`end ${path.basename(filePath)}`);
+      },
+    );
 
     try {
       await writeSchemas({
         schemaPath,
-        schemas: [createMockSchema('UserDTO'), createMockSchema('UserDto')],
+        // `toLowerCase` keeps the first two apart, but case-insensitive file
+        // systems fold the long s (`ſ`) to `s`.
+        schemas: [
+          createMockSchema('Addreſs'),
+          createMockSchema('Address'),
+          {
+            ...createMockSchema('Person'),
+            factory: 'export const createPerson = () => ({});',
+            factoryMode: 'split',
+          },
+        ],
         target: 'src/api',
-        namingConvention: NamingConvention.PASCAL_CASE,
+        namingConvention: NamingConvention.CAMEL_CASE,
         fileExtension: '.ts',
         header: '',
         indexFiles: false,
       });
 
-      expect(await fs.promises.readdir(schemaPath)).toEqual(['UserDTO.ts']);
-      const content = await fs.promises.readFile(
-        path.join(schemaPath, 'UserDTO.ts'),
-        'utf8',
+      const position = (event: string) => events.indexOf(event);
+      expect(events.slice(0, 2)).toEqual([
+        'start addreſs.ts',
+        'start person.ts',
+      ]);
+      expect(position('start address.ts')).toBeGreaterThan(
+        position('end addreſs.ts'),
       );
-      expect(content).toContain('export type UserDTO = {};');
-      expect(content).toContain('export type UserDto = {};');
+      expect(position('start person.factory.ts')).toBeGreaterThan(
+        position('end person.ts'),
+      );
     } finally {
+      vi.restoreAllMocks();
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });

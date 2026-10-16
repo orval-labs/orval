@@ -1,28 +1,28 @@
 /**
  * Calls `callback` for every item with at most `concurrency` calls in flight.
- * After the first failure no further items start; the returned promise
- * rejects with that error once the calls already in flight have settled.
+ * After the first failure no further items start; once the calls already in
+ * flight have settled, the returned promise rejects with the error of the
+ * earliest item that failed, so the reported error does not depend on timing.
  */
 export async function asyncForEach<T>(
   items: readonly T[],
   concurrency: number,
   callback: (item: T) => Promise<void>,
 ): Promise<void> {
-  if (!Number.isInteger(concurrency) || concurrency < 1) {
-    throw new RangeError(
-      `concurrency must be a positive integer, got ${concurrency}`,
-    );
-  }
-
   let next = 0;
-  let failure: { error: unknown } | undefined;
+  let failedIndex = Infinity;
+  let failure: unknown;
 
   const worker = async () => {
-    while (!failure && next < items.length) {
+    while (failedIndex === Infinity && next < items.length) {
+      const index = next++;
       try {
-        await callback(items[next++]);
+        await callback(items[index]);
       } catch (error) {
-        failure ??= { error };
+        if (index < failedIndex) {
+          failedIndex = index;
+          failure = error;
+        }
       }
     }
   };
@@ -31,7 +31,7 @@ export async function asyncForEach<T>(
     Array.from({ length: Math.min(concurrency, items.length) }, worker),
   );
 
-  if (failure) {
-    throw failure.error;
+  if (failedIndex !== Infinity) {
+    throw failure;
   }
 }
