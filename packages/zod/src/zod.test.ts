@@ -15245,3 +15245,42 @@ describe('namingConvention.properties (#4226)', () => {
     expect(isObjectResponseSchema(verbOptions, context)).toBe(false);
   });
 });
+
+describe('schemas that admit no value (#4323)', () => {
+  const context = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (schema: OpenApiSchemaObject, required = true) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'createExample',
+        false,
+        false,
+        { required },
+      ),
+      context,
+      false,
+      false,
+      false,
+    ).zod;
+
+  it('renders false and its { not: {} } form as zod.never()', () => {
+    expect(render(false)).toBe('zod.never()');
+    expect(render({ not: {} })).toBe('zod.never()');
+  });
+
+  it('keeps a false property optional unless it is required', () => {
+    expect(
+      render({
+        type: 'object',
+        required: ['gone'],
+        properties: { legacy: false, gone: false },
+      }),
+    ).toBe(
+      'zod.object({\n  "legacy": zod.never().optional(),\n  "gone": zod.never()\n})',
+    );
+  });
+});

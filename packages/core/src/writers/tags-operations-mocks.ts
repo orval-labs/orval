@@ -6,7 +6,14 @@ import {
   OutputMockType,
   type WriteModeProps,
 } from '../types';
-import { getImportExtension, isFunction, kebab, pascal, upath } from '../utils';
+import {
+  getImportExtension,
+  hasSchemaDefinition,
+  isFunction,
+  kebab,
+  pascal,
+  upath,
+} from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { writeGeneratedFile } from './file';
 import {
@@ -157,7 +164,7 @@ export async function writeTagsOperationsMockFiles({
       usesSchemaFactories && output.schemas
         ? collectRecoveredSchemaFactoryImports(
             finalizedMockImplementation,
-            builder.schemas.filter((s) => s.schema).map((s) => s.name),
+            builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
           )
         : [];
 

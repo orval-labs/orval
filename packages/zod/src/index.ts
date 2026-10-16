@@ -849,6 +849,19 @@ const renderRenameTransform = (renames: PropertyRename[]): string => {
   return `({ ${pattern}, ...rest }) => ({ ...rest, ${entries.join(', ')} })`;
 };
 
+/**
+ * True for `false` and for any schema with an empty `not`, such as the
+ * `{ not: {} }` that `toObjectSchema` turns `false` into. Neither admits a value.
+ */
+const admitsNoValue = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+): boolean =>
+  schema === false ||
+  (isObject(schema) &&
+    'not' in schema &&
+    isObject(schema.not) &&
+    Object.keys(schema.not).length === 0);
+
 export const generateZodValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
@@ -902,17 +915,25 @@ export const generateZodValidationSchemaDefinition = (
     emitMeta?: boolean;
   },
 ): ZodValidationSchemaDefinition => {
-  // `false` is falsy, so it used to fall into the empty return below. Boolean
-  // schemas are real schemas: `true` ≡ `{}` (unknown) and `false` ≡ `{ not: {} }`
-  // (never), matching the models core emits for them.
+  // Boolean schemas are real schemas: `true` ≡ `{}` (unknown) and
+  // `false` ≡ `{ not: {} }` (never), matching the models core emits for them.
+  // `dereference` passes `false` through `toObjectSchema`, so both forms arrive.
+  if (admitsNoValue(schemaInput)) {
+    // Optional unless required, so a property set to `false` can be absent.
+    return {
+      functions: rules?.required
+        ? [['never', undefined]]
+        : [
+            ['never', undefined],
+            ['optional', undefined],
+          ],
+      consts: [],
+    };
+  }
+
   if (schemaInput == null || typeof schemaInput !== 'object') {
     return {
-      functions:
-        schemaInput === true
-          ? [['unknown', undefined]]
-          : schemaInput === false
-            ? [['never', undefined]]
-            : [],
+      functions: schemaInput === true ? [['unknown', undefined]] : [],
       consts: [],
     };
   }
@@ -3391,7 +3412,8 @@ export const dereference = (
       ? (() => {
           const referencedSchema = tryResolveRefSchema(schema.$ref, context);
 
-          if (!referencedSchema) {
+          // `false` is a real target, handled by `toObjectSchema` below.
+          if (referencedSchema === undefined) {
             return;
           }
           if (typeof referencedSchema !== 'object') {

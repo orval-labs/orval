@@ -34,3 +34,13 @@ export function toObjectSchema(
   }
   return schema ? {} : { not: {} };
 }
+
+/**
+ * True when a generated schema carries an OpenAPI definition.
+ * `false` counts: it is a real schema that admits no value.
+ */
+export function hasSchemaDefinition<T extends { schema?: OpenApiSchemaObject }>(
+  generated: T,
+): generated is T & { schema: OpenApiSchemaObject } {
+  return generated.schema !== undefined;
+}

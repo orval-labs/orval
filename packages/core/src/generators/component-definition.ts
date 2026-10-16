@@ -38,8 +38,12 @@ export function generateComponentDefinition(
     const contentSchemas = allResponseTypes.flatMap(({ originalSchema }) =>
       originalSchema === undefined ? [] : [originalSchema],
     );
+    // `false` adds nothing to a union, so it stays only when no other content type has a schema.
+    const unionMembers = contentSchemas.filter((member) => member !== false);
     const schema =
-      contentSchemas.length > 1 ? { anyOf: contentSchemas } : contentSchemas[0];
+      unionMembers.length > 1
+        ? { anyOf: unionMembers }
+        : (unionMembers[0] ?? contentSchemas[0]);
 
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
