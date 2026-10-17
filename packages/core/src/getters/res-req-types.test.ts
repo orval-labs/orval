@@ -665,6 +665,83 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
   });
 
+  describe('date fields with useDates', () => {
+    const dateSchema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt'],
+      properties: {
+        startsAt: { type: 'string', format: 'date-time' },
+        day: { type: 'string', format: 'date' },
+        endsAt: { type: ['string', 'null'], format: 'date-time' },
+        history: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+        },
+      },
+    };
+    const reqBody = (
+      contentType: string,
+    ): [string, OpenApiRequestBodyObject][] => [
+      [
+        'requestBody',
+        {
+          content: { [contentType]: { schema: dateSchema } },
+          required: true,
+        },
+      ],
+    ];
+    const useDatesContext = extendContext({ override: { useDates: true } });
+
+    it('serializes Date values as ISO strings in multipart bodies', () => {
+      const result = getResReqTypes(
+        reqBody('multipart/form-data'),
+        'Event',
+        useDatesContext,
+      )[0];
+
+      expect(result.formData).toContain(
+        'formData.append(`startsAt`, eventRequestBody.startsAt.toISOString())',
+      );
+      expect(result.formData).toContain(
+        'formData.append(`day`, eventRequestBody.day.toISOString().slice(0, 10))',
+      );
+      expect(result.formData).toContain(
+        'formData.append(`endsAt`, eventRequestBody.endsAt.toISOString())',
+      );
+      expect(result.formData).toContain(
+        'eventRequestBody.history.forEach(value => formData.append(`history`, value.toISOString()))',
+      );
+    });
+
+    it('serializes Date values as ISO strings in url-encoded bodies', () => {
+      const result = getResReqTypes(
+        reqBody('application/x-www-form-urlencoded'),
+        'Event',
+        useDatesContext,
+      )[0];
+
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`startsAt`, eventRequestBody.startsAt.toISOString())',
+      );
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`day`, eventRequestBody.day.toISOString().slice(0, 10))',
+      );
+    });
+
+    it('appends date strings as is without useDates', () => {
+      const result = getResReqTypes(
+        reqBody('multipart/form-data'),
+        'Event',
+        context,
+      )[0];
+
+      expect(result.formData).toContain(
+        'formData.append(`startsAt`, eventRequestBody.startsAt)',
+      );
+      expect(result.formData).not.toContain('toISOString');
+    });
+  });
+
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
     // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
     it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {

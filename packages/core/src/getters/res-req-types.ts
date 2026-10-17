@@ -872,6 +872,28 @@ function unwrapNullableSchema(
 }
 
 /**
+ * With `useDates`, `format: date` / `date-time` strings are typed `Date`, but
+ * `FormData` and `URLSearchParams` would stringify a `Date` with
+ * `Date.prototype.toString()`. Returns the call that renders it as ISO 8601
+ * instead (`YYYY-MM-DD` for `format: date`), or `''` for any other schema.
+ */
+function getDateSerializer(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): string {
+  if (!context.output.override.useDates || isBooleanJsonSchema(schema)) {
+    return '';
+  }
+  const type = getSchemaType(schema);
+  if (type !== 'string' && !(Array.isArray(type) && type.includes('string'))) {
+    return '';
+  }
+  if (schema.format === 'date-time') return '.toISOString()';
+  if (schema.format === 'date') return '.toISOString().slice(0, 10)';
+  return '';
+}
+
+/**
  * Collects a schema's own `properties`, merged with any `properties`
  * reachable through `allOf` composition (recursively, following `$ref`s).
  * A pure wrapper schema (`{ allOf: [{ $ref: ... }] }`) has no `properties`
@@ -1035,6 +1057,7 @@ function resolveSchemaPropertiesToFormData({
     // case is guarded below.
     const valueSchema = unwrapNullableSchema(property, context);
     const valueType = getSchemaType(valueSchema);
+    const dateSerializer = getDateSerializer(valueSchema, context);
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)
@@ -1126,7 +1149,13 @@ function resolveSchemaPropertiesToFormData({
           }
         } else {
           const itemType = getSchemaType(resolvedItem);
-          if (
+          // Nullable items are left as is: there is no null guard per item.
+          const itemDateSerializer = isSchemaNullable(resolvedItem)
+            ? ''
+            : getDateSerializer(itemSchema, context);
+          if (itemDateSerializer) {
+            valueStr = `value${itemDateSerializer}`;
+          } else if (
             itemType === 'number' ||
             (Array.isArray(itemType) && itemType.includes('number')) ||
             itemType === 'integer' ||
@@ -1148,6 +1177,8 @@ function resolveSchemaPropertiesToFormData({
       } else {
         formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
       }
+    } else if (dateSerializer) {
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey}${dateSerializer})\n`;
     } else if (
       (() => {
         const propType = getSchemaType(property);
