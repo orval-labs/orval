@@ -408,6 +408,242 @@ describe('combineSchemasMock', () => {
     expect(result.nullWrapped).toBe(true);
   });
 
+  // A nullable allOf member resolved to a complete `arrayElement([{...}, null])`
+  // expression and was pasted into the merged object literal without a
+  // spread, so the mock did not parse. The intersection with a non-null
+  // member is never null, so the member merges as its object shape.
+  it('merges a nullable allOf member as its object shape', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          type: 'object',
+          required: ['a'],
+          properties: { a: { type: 'string' } },
+        },
+        {
+          type: ['object', 'null'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.helpers.arrayElement([faker.number.float(), undefined])},}',
+    );
+    expect(result.nullWrapped).toBe(false);
+  });
+
+  // `allOf: [{ $ref: A, nullable: true }, { $ref: B }]` arrives with the first
+  // member as `anyOf: [$ref, { type: 'null' }]`. Spreading its null branch
+  // dropped the properties the `$ref` requires.
+  it('merges an allOf member with a null branch as its non-null variant', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          anyOf: [
+            {
+              type: 'object',
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.number.float()},}',
+    );
+  });
+
+  // The variant left after dropping the null branch can still admit null in
+  // its type array. Kept as is, it resolved to an `arrayElement([{...}, null])`
+  // pasted without a spread, the same parse error as a nullable member.
+  it('narrows a nullable variant left after dropping the null branch', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          anyOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.number.float()},}',
+    );
+  });
+
+  it('narrows a nullable union variant with no null branch', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          anyOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            {
+              type: 'object',
+              required: ['c'],
+              properties: { c: { type: 'boolean' } },
+            },
+          ],
+        },
+        {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...faker.helpers.arrayElement([{a: faker.string.alpha()},{c: faker.datatype.boolean()},]),...{b: faker.number.float()},}',
+    );
+  });
+
+  // Null matches both variants of the `oneOf`, so the `oneOf` rejects it and
+  // the intersection is never null, even though the other member admits it.
+  it('does not count a oneOf with two null-matching variants as nullable', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          oneOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        {
+          type: ['object', 'null'],
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.number.float()},}',
+    );
+    expect(result.nullWrapped).toBe(false);
+  });
+
+  it('keeps the null branch once when every allOf member is nullable', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          type: ['object', 'null'],
+          required: ['a'],
+          properties: { a: { type: 'string' } },
+        },
+        {
+          type: ['object', 'null'],
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([{...{a: faker.string.alpha()},...{b: faker.number.float()},}, null])',
+    );
+    expect(result.nullWrapped).toBe(true);
+  });
+
   it('keeps a nullable oneOf with own properties a valid expression', () => {
     const item: MockSchemaObject = {
       name: 'NullableVariant',
