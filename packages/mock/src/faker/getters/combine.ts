@@ -3,6 +3,7 @@ import {
   type GeneratorImport,
   getRefInfo,
   isInlineSchema,
+  isNullOnlyEnum,
   isSchemaNullable,
   type MockOptions,
 } from '@orval/core';
@@ -200,6 +201,11 @@ export function combineSchemasMock({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
   let hasNullMember = false;
+  // `allOf` members that admit null, e.g. `type: [object, 'null']` (also OAS
+  // 3.0 `nullable: true` after the upgrade to 3.1). The intersection is null
+  // only when every member admits null, so each one is resolved as its
+  // non-null shape and the null branch is added once around the merged value.
+  let nullableAllOfMembers = 0;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
@@ -233,25 +239,72 @@ export function combineSchemasMock({
       continue;
     }
 
+    // Left nullable, the member resolved to a complete
+    // `arrayElement([{...}, null])` expression, which was pasted into the
+    // merged object literal without a spread and did not parse.
+    // A union member with a `null` branch is merged the same way. A 3.0
+    // `{ $ref, nullable: true }` member arrives in that shape when no other
+    // member absorbs the null (see `normalizeNullableRefs`), and spreading its
+    // null branch dropped the properties the `$ref` requires.
+    const member = (() => {
+      if (separator !== 'allOf' || !isInlineSchema(val)) {
+        return val;
+      }
+
+      if (Array.isArray(val.type) && val.type.includes('null')) {
+        const nonNullTypes = val.type.filter((type) => type !== 'null');
+        if (nonNullTypes.length === 0) {
+          return val;
+        }
+
+        nullableAllOfMembers++;
+        return {
+          ...val,
+          type: nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes,
+        } as MockSchema;
+      }
+
+      const unionKey = val.oneOf ? 'oneOf' : val.anyOf ? 'anyOf' : undefined;
+      const variants = unionKey ? (val[unionKey] as MockSchema[]) : [];
+      const nonNullVariants = variants.filter(
+        (variant) =>
+          !isInlineSchema(variant) ||
+          (variant.type !== 'null' && !isNullOnlyEnum(variant)),
+      );
+      if (
+        !unionKey ||
+        nonNullVariants.length === 0 ||
+        nonNullVariants.length === variants.length
+      ) {
+        return val;
+      }
+
+      nullableAllOfMembers++;
+      const { [unionKey]: _union, ...rest } = val;
+      return nonNullVariants.length === 1 && Object.keys(rest).length === 0
+        ? nonNullVariants[0]
+        : ({ ...rest, [unionKey]: nonNullVariants } as MockSchema);
+    })();
+
     // the required fields in this schema need to be considered
     // in the sub schema under the allOf key
     const schema = (() => {
       if (separator !== 'allOf' || allRequiredFields.length === 0) {
         return {
-          ...val,
+          ...member,
           name: item.name,
           path: item.path ?? '#',
         };
       }
 
-      const valWithRequired = val as MockSchema & { required?: string[] };
+      const valWithRequired = member as MockSchema & { required?: string[] };
       const valRequired = valWithRequired.required;
       const combinedRequired = valRequired
         ? [...allRequiredFields, ...valRequired]
         : allRequiredFields;
 
       return {
-        ...val,
+        ...member,
         name: item.name,
         path: item.path ?? '#',
         required: [...new Set(combinedRequired)],
@@ -335,9 +388,16 @@ export function combineSchemasMock({
   }
   // `itemProperties` too: discriminator filtering can remove the only sibling
   // property, and the parent is still nullable as a whole.
+  const isParentNullWrapped =
+    (!!itemResolvedValue || !!itemProperties) && isNullableItemType;
+  // Every `allOf` member admits null and the parent does not rule it out.
+  const isNullableIntersection =
+    separator === 'allOf' &&
+    separatorItems.length > 0 &&
+    nullableAllOfMembers === separatorItems.length &&
+    (item.type === undefined || isNullableItemType);
   if (
-    (itemResolvedValue || itemProperties) &&
-    isNullableItemType &&
+    (isParentNullWrapped || isNullableIntersection) &&
     finalValue !== 'undefined' &&
     !finalValue.startsWith('...')
   ) {
@@ -353,6 +413,8 @@ export function combineSchemasMock({
     // the union, so the value randomizes to null on its own. Saying so stops
     // the object property loop adding a second `arrayElement([..., null])`
     // around it (#4141).
-    nullWrapped: isSchemaNullable(item) && !mockOptions?.nonNullable,
+    nullWrapped:
+      (isSchemaNullable(item) || isNullableIntersection) &&
+      !mockOptions?.nonNullable,
   };
 }
