@@ -9,6 +9,7 @@ import {
   type GeneratorSchema,
   type GeneratorVerbOptions,
   type GlobalMockOptions,
+  hasSchemaDefinition,
   pascal,
   type StrictMockSchemaKind,
 } from '@orval/core';
@@ -122,11 +123,11 @@ export function generateFakerForSchemas(
   // — but if `X` is itself one of the schemas being generated here, the
   // factory lives in this very file and must not be imported.
   const localFactoryNames = new Set(
-    schemas.filter((s) => !!s.schema).map((s) => `get${pascal(s.name)}Mock`),
+    schemas.filter(hasSchemaDefinition).map((s) => `get${pascal(s.name)}Mock`),
   );
   const localMockTypeNames = new Set(
     schemas
-      .filter((s) => !!s.schema)
+      .filter(hasSchemaDefinition)
       .map((s) => getStrictMockTypeName(pascal(s.name))),
   );
 

@@ -140,7 +140,8 @@ export function resolveRef<
     refInfo: { name, originalName },
   } = getSchema(schema, context);
 
-  if (!currentSchema) {
+  // `false` is a valid target: a schema that admits no value.
+  if (currentSchema === undefined) {
     throw new Error(`${REF_NOT_FOUND_PREFIX}: ${refPath}`);
   }
 
