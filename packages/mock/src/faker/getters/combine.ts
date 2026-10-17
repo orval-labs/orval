@@ -293,10 +293,10 @@ export function combineSchemasMock({
       const isNullBranch = (variant: MockSchema) =>
         isInlineSchema(variant) &&
         (variant.type === 'null' || isNullOnlyEnum(variant));
-      const admitsNull = variants.some(
+      const nullVariants = variants.filter(
         (variant) =>
           isNullBranch(variant) || withoutNullType(variant) !== variant,
-      );
+      ).length;
       const nonNullVariants = variants.flatMap((variant) => {
         if (isNullBranch(variant)) {
           return [];
@@ -304,11 +304,15 @@ export function combineSchemasMock({
         const nonNullVariant = withoutNullType(variant);
         return nonNullVariant === undefined ? [] : [nonNullVariant];
       });
-      if (!unionKey || nonNullVariants.length === 0 || !admitsNull) {
+      if (!unionKey || nonNullVariants.length === 0 || nullVariants === 0) {
         return val;
       }
 
-      nullableAllOfMembers++;
+      // A `oneOf` rejects null when more than one variant matches it, so the
+      // member then narrows without counting as nullable.
+      if (unionKey === 'anyOf' || nullVariants === 1) {
+        nullableAllOfMembers++;
+      }
       const { [unionKey]: _union, ...rest } = val;
       return nonNullVariants.length === 1 && Object.keys(rest).length === 0
         ? nonNullVariants[0]

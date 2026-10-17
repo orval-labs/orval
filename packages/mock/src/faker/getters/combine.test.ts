@@ -569,6 +569,47 @@ describe('combineSchemasMock', () => {
     );
   });
 
+  // Null matches both variants of the `oneOf`, so the `oneOf` rejects it and
+  // the intersection is never null, even though the other member admits it.
+  it('does not count a oneOf with two null-matching variants as nullable', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          oneOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        {
+          type: ['object', 'null'],
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.number.float()},}',
+    );
+    expect(result.nullWrapped).toBe(false);
+  });
+
   it('keeps the null branch once when every allOf member is nullable', () => {
     const item: MockSchemaObject = {
       name: 'Item',
