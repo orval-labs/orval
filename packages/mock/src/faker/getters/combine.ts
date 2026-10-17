@@ -290,19 +290,18 @@ export function combineSchemasMock({
       // could still resolve to `null` inside the merge.
       const unionKey = val.oneOf ? 'oneOf' : val.anyOf ? 'anyOf' : undefined;
       const variants = unionKey ? (val[unionKey] as MockSchema[]) : [];
-      let admitsNull = false;
+      const isNullBranch = (variant: MockSchema) =>
+        isInlineSchema(variant) &&
+        (variant.type === 'null' || isNullOnlyEnum(variant));
+      const admitsNull = variants.some(
+        (variant) =>
+          isNullBranch(variant) || withoutNullType(variant) !== variant,
+      );
       const nonNullVariants = variants.flatMap((variant) => {
-        if (!isInlineSchema(variant)) {
-          return [variant];
-        }
-        if (variant.type === 'null' || isNullOnlyEnum(variant)) {
-          admitsNull = true;
+        if (isNullBranch(variant)) {
           return [];
         }
         const nonNullVariant = withoutNullType(variant);
-        if (nonNullVariant !== variant) {
-          admitsNull = true;
-        }
         return nonNullVariant === undefined ? [] : [nonNullVariant];
       });
       if (!unionKey || nonNullVariants.length === 0 || !admitsNull) {
