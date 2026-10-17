@@ -15272,6 +15272,13 @@ describe('schemas that admit no value (#4323)', () => {
     expect(render({ not: {} })).toBe('zod.never()');
   });
 
+  it('does not let null through a schema that admits no value', () => {
+    expect(render({ not: {}, type: ['string', 'null'] })).toBe('zod.never()');
+    expect(render({ not: {}, type: ['null'] }, false)).toBe(
+      'zod.never().optional()',
+    );
+  });
+
   it('keeps the description and metadata of a schema that admits no value', () => {
     expect(render({ not: {}, description: 'Gone' })).toBe(
       "zod.never().describe('Gone')",

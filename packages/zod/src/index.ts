@@ -1133,7 +1133,11 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
+  // `never` rejects null too, so a `null` entry in `type` doesn't widen it.
+  const nullable =
+    type !== 'never' &&
+    Array.isArray(schema.type) &&
+    schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
