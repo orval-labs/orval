@@ -486,6 +486,89 @@ describe('combineSchemasMock', () => {
     );
   });
 
+  // The variant left after dropping the null branch can still admit null in
+  // its type array. Kept as is, it resolved to an `arrayElement([{...}, null])`
+  // pasted without a spread, the same parse error as a nullable member.
+  it('narrows a nullable variant left after dropping the null branch', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          anyOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            { type: 'null' },
+          ],
+        },
+        {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{a: faker.string.alpha()},...{b: faker.number.float()},}',
+    );
+  });
+
+  it('narrows a nullable union variant with no null branch', () => {
+    const item: MockSchemaObject = {
+      name: 'Item',
+      allOf: [
+        {
+          anyOf: [
+            {
+              type: ['object', 'null'],
+              required: ['a'],
+              properties: { a: { type: 'string' } },
+            },
+            {
+              type: 'object',
+              required: ['c'],
+              properties: { c: { type: 'boolean' } },
+            },
+          ],
+        },
+        {
+          type: 'object',
+          required: ['b'],
+          properties: { b: { type: 'number' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...faker.helpers.arrayElement([{a: faker.string.alpha()},{c: faker.datatype.boolean()},]),...{b: faker.number.float()},}',
+    );
+  });
+
   it('keeps the null branch once when every allOf member is nullable', () => {
     const item: MockSchemaObject = {
       name: 'Item',

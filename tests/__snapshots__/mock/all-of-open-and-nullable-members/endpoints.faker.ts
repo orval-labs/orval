@@ -56,26 +56,26 @@ export const getGetSomethingResponseMock = (
       ]),
     },
   },
-  nestedNullableUnion: {
-    ...{ a: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...faker.helpers.arrayElement([
-      {
-        b: faker.helpers.arrayElement([
-          faker.number.float({ fractionDigits: 2 }),
-          undefined,
-        ]),
-      },
-      faker.helpers.arrayElement([
+  nestedNullableUnion: faker.helpers.arrayElement([
+    {
+      ...{ a: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+      ...faker.helpers.arrayElement([
+        {
+          b: faker.helpers.arrayElement([
+            faker.number.float({ fractionDigits: 2 }),
+            undefined,
+          ]),
+        },
         {
           c: faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
             undefined,
           ]),
         },
-        null,
       ]),
-    ]),
-  },
+    },
+    null,
+  ]),
   nullableRefMember: {
     ...{ ...getBaseMock() },
     ...{

@@ -21,6 +21,30 @@ function getReferenceName(
   return getRefInfo(ref, context).name;
 }
 
+/**
+ * `schema` without `null` in its type array. Returns `schema` itself when
+ * the type array has no `null`, and `undefined` when `null` is its only type.
+ */
+function withoutNullType(schema: MockSchema): MockSchema | undefined {
+  if (
+    !isInlineSchema(schema) ||
+    !Array.isArray(schema.type) ||
+    !schema.type.includes('null')
+  ) {
+    return schema;
+  }
+
+  const nonNullTypes = schema.type.filter((type) => type !== 'null');
+  if (nonNullTypes.length === 0) {
+    return undefined;
+  }
+
+  return {
+    ...schema,
+    type: nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes,
+  } as MockSchema;
+}
+
 interface CombineSchemasMockOptions {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
@@ -251,31 +275,37 @@ export function combineSchemasMock({
         return val;
       }
 
-      if (Array.isArray(val.type) && val.type.includes('null')) {
-        const nonNullTypes = val.type.filter((type) => type !== 'null');
-        if (nonNullTypes.length === 0) {
+      const nonNullMember = withoutNullType(val);
+      if (nonNullMember !== val) {
+        if (nonNullMember === undefined) {
           return val;
         }
 
         nullableAllOfMembers++;
-        return {
-          ...val,
-          type: nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes,
-        } as MockSchema;
+        return nonNullMember;
       }
 
+      // A variant admits null as a `null` branch or as a `null` in its type
+      // array. Either way it is dropped or narrowed, or the narrowed member
+      // could still resolve to `null` inside the merge.
       const unionKey = val.oneOf ? 'oneOf' : val.anyOf ? 'anyOf' : undefined;
       const variants = unionKey ? (val[unionKey] as MockSchema[]) : [];
-      const nonNullVariants = variants.filter(
-        (variant) =>
-          !isInlineSchema(variant) ||
-          (variant.type !== 'null' && !isNullOnlyEnum(variant)),
-      );
-      if (
-        !unionKey ||
-        nonNullVariants.length === 0 ||
-        nonNullVariants.length === variants.length
-      ) {
+      let admitsNull = false;
+      const nonNullVariants = variants.flatMap((variant) => {
+        if (!isInlineSchema(variant)) {
+          return [variant];
+        }
+        if (variant.type === 'null' || isNullOnlyEnum(variant)) {
+          admitsNull = true;
+          return [];
+        }
+        const nonNullVariant = withoutNullType(variant);
+        if (nonNullVariant !== variant) {
+          admitsNull = true;
+        }
+        return nonNullVariant === undefined ? [] : [nonNullVariant];
+      });
+      if (!unionKey || nonNullVariants.length === 0 || !admitsNull) {
         return val;
       }
 
