@@ -925,6 +925,56 @@ describe('combineSchemasMock', () => {
     expect(result.value).toContain('meow:');
   });
 
+  it('emits the scalar value when allOf wraps a primitive $ref with a description object', () => {
+    const contextWithSchemas: ContextSpec = {
+      ...createMockContext(),
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+        components: {
+          schemas: {
+            OperationRef: {
+              type: 'string',
+              enum: ['form', 'function', 'question'],
+            },
+          },
+        },
+      },
+    };
+    contextWithSchemas.output.override.enumGenerationType = EnumGeneration.ENUM;
+
+    // The no-ref-siblings idiom: description attached to a `$ref` via allOf.
+    const item: MockSchemaObject = {
+      name: 'operationRef',
+      allOf: [
+        { $ref: '#/components/schemas/OperationRef' },
+        {
+          type: 'object',
+          description: 'Reference to the operation',
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: contextWithSchemas,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement(Object.values(OperationRef))',
+    );
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'OperationRef', values: true }),
+    );
+  });
+
   it('should return undefined when the only oneOf variant points to a visited schema', () => {
     const item: MockSchemaObject = {
       name: 'Pet',

@@ -230,6 +230,9 @@ export function combineSchemasMock({
   // only when every member admits null, so each one is resolved as its
   // non-null shape and the null branch is added once around the merged value.
   let nullableAllOfMembers = 0;
+  // A primitive-typed `allOf` member renders as the composition's scalar
+  // value, not an object-literal entry.
+  let scalarAllOfValue: string | undefined;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
@@ -390,6 +393,12 @@ export function combineSchemasMock({
           : `...{${resolvedValue.value}},`;
         continue;
       }
+
+      // Primitive member: appended as before, but also remembered (last one
+      // wins). When an object member forces the brace wrap below, a bare
+      // primitive inside it would be invalid shorthand — the remembered
+      // scalar then replaces the whole composition.
+      scalarAllOfValue = resolvedValue.value;
     }
 
     if (separator !== 'allOf' && resolvedValue.value === 'null') {
@@ -435,6 +444,9 @@ export function combineSchemasMock({
     !finalValue.startsWith('...')
   ) {
     finalValue = getNullable(finalValue, true, mockOptions?.nonNullable);
+  }
+  if (scalarAllOfValue !== undefined && !containsOnlyPrimitiveValues) {
+    finalValue = scalarAllOfValue;
   }
 
   return {
