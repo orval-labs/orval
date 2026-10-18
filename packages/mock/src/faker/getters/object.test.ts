@@ -1,3 +1,4 @@
+import { EnumGeneration } from '@orval/core';
 import type {
   ContextSpec,
   MockOptions,
@@ -598,5 +599,51 @@ describe('getMockObject (degenerate null values)', () => {
     });
 
     expect(result.value).toBe('{timeStep: null}');
+  });
+});
+
+// `allOf: [$ref, {type: 'object', description}]` (no-ref-siblings idiom)
+// wrapping an enum: the optional omission branch must wrap the scalar value,
+// not an invalid object-literal shorthand.
+describe('getMockObject (allOf-wrapped enum properties)', () => {
+  it('renders an optional allOf-wrapped enum property as a scalar in the omission branch', () => {
+    const context: ContextSpec = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            OperationRef: {
+              type: 'string',
+              enum: ['form', 'function', 'question'],
+            },
+          },
+        },
+      },
+      override: { enumGenerationType: EnumGeneration.ENUM },
+    });
+
+    const result = getObject({
+      item: {
+        name: 'TemplateModel',
+        type: 'object',
+        properties: {
+          operationRef: {
+            allOf: [
+              { $ref: '#/components/schemas/OperationRef' },
+              { description: 'Reference to the operation' },
+            ],
+          },
+        },
+      },
+      operationId: 'getTemplates',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{operationRef: faker.helpers.arrayElement([faker.helpers.arrayElement(Object.values(OperationRef)), undefined])}',
+    );
   });
 });

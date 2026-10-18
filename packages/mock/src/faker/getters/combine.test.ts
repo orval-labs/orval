@@ -925,6 +925,149 @@ describe('combineSchemasMock', () => {
     expect(result.value).toContain('meow:');
   });
 
+  it('emits the scalar value when allOf wraps a primitive $ref with a description object', () => {
+    const contextWithSchemas: ContextSpec = {
+      ...createMockContext(),
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+        components: {
+          schemas: {
+            OperationRef: {
+              type: 'string',
+              enum: ['form', 'function', 'question'],
+            },
+          },
+        },
+      },
+    };
+    contextWithSchemas.output.override.enumGenerationType = EnumGeneration.ENUM;
+
+    // The no-ref-siblings idiom: description attached to a `$ref` via allOf.
+    const item: MockSchemaObject = {
+      name: 'operationRef',
+      allOf: [
+        { $ref: '#/components/schemas/OperationRef' },
+        { description: 'Reference to the operation' },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: contextWithSchemas,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement(Object.values(OperationRef))',
+    );
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'OperationRef', values: true }),
+    );
+  });
+
+  it('treats a singleton object type array member as an object, not a scalar', () => {
+    const item: MockSchemaObject = {
+      name: 'item',
+      allOf: [
+        {
+          type: ['object'],
+          required: ['foo'],
+          properties: { foo: { type: 'string' } },
+        },
+        {
+          type: 'object',
+          required: ['bar'],
+          properties: { bar: { type: 'string' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      '{...{foo: faker.string.alpha()},...{bar: faker.string.alpha()},}',
+    );
+  });
+
+  it('keeps a mixed object/string type array member on the scalar path', () => {
+    const item: MockSchemaObject = {
+      name: 'item',
+      allOf: [
+        { type: ['object', 'string'] },
+        {
+          type: 'object',
+          required: ['bar'],
+          properties: { bar: { type: 'string' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    // The union member resolves to a standalone value — it must not be
+    // spread into the object literal.
+    expect(result.value).not.toContain('...faker.helpers.arrayElement');
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([faker.string.alpha(),])',
+    );
+  });
+
+  it('keeps the intersection null branch when selecting the scalar', () => {
+    const item: MockSchemaObject = {
+      name: 'item',
+      allOf: [
+        { type: ['string', 'null'] },
+        {
+          description: 'Nullable string',
+          anyOf: [{ type: 'string' }, { type: 'null' }],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([faker.string.alpha(), null])',
+    );
+    // The value already carries its own null branch; the flag stops callers
+    // from wrapping a second one.
+    expect(result.nullWrapped).toBe(true);
+  });
+
   it('should return undefined when the only oneOf variant points to a visited schema', () => {
     const item: MockSchemaObject = {
       name: 'Pet',

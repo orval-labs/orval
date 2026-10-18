@@ -7,4 +7,5 @@
 
 export * from './catId';
 export * from './dogId';
+export * from './operationRef';
 export * from './pets';

@@ -230,6 +230,9 @@ export function combineSchemasMock({
   // only when every member admits null, so each one is resolved as its
   // non-null shape and the null branch is added once around the merged value.
   let nullableAllOfMembers = 0;
+  // A primitive-typed `allOf` member renders as the composition's scalar
+  // value, not an object-literal entry.
+  let scalarAllOfValue: string | undefined;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
@@ -383,13 +386,31 @@ export function combineSchemasMock({
         continue;
       }
 
-      if (resolvedValue.type === 'object') {
+      // `type` is the schema's verbatim `type`, so an OAS 3.1 singleton
+      // `type: ['object']` (or `['object', 'null']` before upstream null
+      // narrowing) arrives as an array and must take this branch too, or it
+      // would be remembered as a scalar and replace the composition with a
+      // bare `key: value` fragment. A mixed union (`['object', 'string']`)
+      // resolves to a standalone value and stays on the scalar path.
+      const memberType = resolvedValue.type as string | string[] | undefined;
+      if (
+        memberType === 'object' ||
+        (Array.isArray(memberType) &&
+          memberType.includes('object') &&
+          memberType.every((type) => type === 'object' || type === 'null'))
+      ) {
         containsOnlyPrimitiveValues = false;
         value += resolvedValue.value.startsWith('faker')
           ? `...${resolvedValue.value},`
           : `...{${resolvedValue.value}},`;
         continue;
       }
+
+      // Primitive member: appended as before, but also remembered (last one
+      // wins). When an object member forces the brace wrap below, a bare
+      // primitive inside it would be invalid shorthand — the remembered
+      // scalar then replaces the whole composition.
+      scalarAllOfValue = resolvedValue.value;
     }
 
     if (separator !== 'allOf' && resolvedValue.value === 'null') {
@@ -418,6 +439,12 @@ export function combineSchemasMock({
   }
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
+  }
+  // Select the scalar before the nullable wrap below, so the intersection's
+  // null branch applies to it instead of being discarded — the value would
+  // otherwise never randomize to null while `nullWrapped` claims it does.
+  if (scalarAllOfValue !== undefined && !containsOnlyPrimitiveValues) {
+    finalValue = scalarAllOfValue;
   }
   // `itemProperties` too: discriminator filtering can remove the only sibling
   // property, and the parent is still nullable as a whole.
