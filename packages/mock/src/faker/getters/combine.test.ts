@@ -1005,6 +1005,38 @@ describe('combineSchemasMock', () => {
     );
   });
 
+  it('keeps a mixed object/string type array member on the scalar path', () => {
+    const item: MockSchemaObject = {
+      name: 'item',
+      allOf: [
+        { type: ['object', 'string'] },
+        {
+          type: 'object',
+          required: ['bar'],
+          properties: { bar: { type: 'string' } },
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    // The union member resolves to a standalone value — it must not be
+    // spread into the object literal.
+    expect(result.value).not.toContain('...faker.helpers.arrayElement');
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement([faker.string.alpha(),])',
+    );
+  });
+
   it('keeps the intersection null branch when selecting the scalar', () => {
     const item: MockSchemaObject = {
       name: 'item',

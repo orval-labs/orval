@@ -390,11 +390,14 @@ export function combineSchemasMock({
       // `type: ['object']` (or `['object', 'null']` before upstream null
       // narrowing) arrives as an array and must take this branch too, or it
       // would be remembered as a scalar and replace the composition with a
-      // bare `key: value` fragment.
+      // bare `key: value` fragment. A mixed union (`['object', 'string']`)
+      // resolves to a standalone value and stays on the scalar path.
       const memberType = resolvedValue.type as string | string[] | undefined;
       if (
         memberType === 'object' ||
-        (Array.isArray(memberType) && memberType.includes('object'))
+        (Array.isArray(memberType) &&
+          memberType.includes('object') &&
+          memberType.every((type) => type === 'object' || type === 'null'))
       ) {
         containsOnlyPrimitiveValues = false;
         value += resolvedValue.value.startsWith('faker')
