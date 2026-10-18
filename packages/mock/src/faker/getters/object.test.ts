@@ -629,7 +629,7 @@ describe('getMockObject (allOf-wrapped enum properties)', () => {
           operationRef: {
             allOf: [
               { $ref: '#/components/schemas/OperationRef' },
-              { type: 'object', description: 'Reference to the operation' },
+              { description: 'Reference to the operation' },
             ],
           },
         },

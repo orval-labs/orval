@@ -386,7 +386,16 @@ export function combineSchemasMock({
         continue;
       }
 
-      if (resolvedValue.type === 'object') {
+      // `type` is the schema's verbatim `type`, so an OAS 3.1 singleton
+      // `type: ['object']` (or `['object', 'null']` before upstream null
+      // narrowing) arrives as an array and must take this branch too, or it
+      // would be remembered as a scalar and replace the composition with a
+      // bare `key: value` fragment.
+      const memberType = resolvedValue.type as string | string[] | undefined;
+      if (
+        memberType === 'object' ||
+        (Array.isArray(memberType) && memberType.includes('object'))
+      ) {
         containsOnlyPrimitiveValues = false;
         value += resolvedValue.value.startsWith('faker')
           ? `...${resolvedValue.value},`
@@ -428,6 +437,12 @@ export function combineSchemasMock({
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
   }
+  // Select the scalar before the nullable wrap below, so the intersection's
+  // null branch applies to it instead of being discarded — the value would
+  // otherwise never randomize to null while `nullWrapped` claims it does.
+  if (scalarAllOfValue !== undefined && !containsOnlyPrimitiveValues) {
+    finalValue = scalarAllOfValue;
+  }
   // `itemProperties` too: discriminator filtering can remove the only sibling
   // property, and the parent is still nullable as a whole.
   const isParentNullWrapped =
@@ -444,9 +459,6 @@ export function combineSchemasMock({
     !finalValue.startsWith('...')
   ) {
     finalValue = getNullable(finalValue, true, mockOptions?.nonNullable);
-  }
-  if (scalarAllOfValue !== undefined && !containsOnlyPrimitiveValues) {
-    finalValue = scalarAllOfValue;
   }
 
   return {
