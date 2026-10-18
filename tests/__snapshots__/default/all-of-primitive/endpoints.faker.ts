@@ -6,6 +6,7 @@
  */
 import { faker } from '@faker-js/faker';
 
+import { OperationRef } from './model';
 import type { Pets } from './model';
 
 export const getGetPetsResponseMock = (): Pets[] =>
@@ -20,5 +21,10 @@ export const getGetPetsResponseMock = (): Pets[] =>
       ]),
       faker.string.alpha({ length: { min: 10, max: 20 } }),
       null,
+    ]),
+    operationRef: faker.helpers.arrayElement(Object.values(OperationRef)),
+    optionalRef: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(Object.values(OperationRef)),
+      undefined,
     ]),
   }));

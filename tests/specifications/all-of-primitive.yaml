@@ -18,15 +18,31 @@ paths:
 components:
   schemas:
     Pets:
+      required:
+        - operationRef
       properties:
         petId:
           allOf:
             - $ref: '#/components/schemas/DogId'
             - $ref: '#/components/schemas/CatId'
           nullable: true
+        operationRef:
+          allOf:
+            - $ref: '#/components/schemas/OperationRef'
+            - description: Reference to the operation
+        optionalRef:
+          allOf:
+            - $ref: '#/components/schemas/OperationRef'
+            - description: Optional variant of the same idiom
     DogId:
       nullable: true
       type: string
     CatId:
       description: test
       type: string
+    OperationRef:
+      type: string
+      enum:
+        - form
+        - function
+        - question

@@ -6,7 +6,10 @@
  */
 import type { CatId } from './catId';
 import type { DogId } from './dogId';
+import type { OperationRef } from './operationRef';
 
 export interface Pets {
   petId?: ((DogId | null) & CatId) | null;
+  operationRef: OperationRef & unknown;
+  optionalRef?: OperationRef & unknown;
 }
