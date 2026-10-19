@@ -10,14 +10,7 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import {
-  camel,
-  filterByContentType,
-  isBinaryContentType,
-  isInlineSchema,
-  sanitize,
-  uniqueBy,
-} from '../utils';
+import { camel, isBinaryContentType, isInlineSchema, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
@@ -111,19 +104,14 @@ export function getBody({
   context,
   contentType,
 }: GetBodyOptions): GetterBody {
-  const allBodyTypes = getResReqTypes(
+  const filteredBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,
     undefined,
-    (item) => `${item.value}::${item.contentType}`,
-  );
-
-  // Dedupe by schema only after filtering: media types often share a schema,
-  // and deduping first can drop the one the filter would keep.
-  const filteredBodyTypes = uniqueBy(
-    filterByContentType(allBodyTypes, contentType),
-    (item) => item.value,
+    undefined,
+    false,
+    contentType,
   );
 
   return buildBody(filteredBodyTypes, requestBody, operationName, context);
@@ -139,15 +127,15 @@ export function getBodiesByContentType({
   context,
   contentType,
 }: GetBodyOptions): (GetterBody & { contentTypeSuffix: string })[] {
-  const allBodyTypes = getResReqTypes(
+  const filteredBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,
     undefined,
     (item) => `${item.value}::${item.contentType}`,
+    false,
+    contentType,
   );
-
-  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
 
   // If there's only one content type, no need to split
   if (filteredBodyTypes.length <= 1) {
