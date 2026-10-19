@@ -408,6 +408,135 @@ describe('getBody', () => {
     });
   });
 
+  describe('content type filter on media types sharing a schema', () => {
+    const createPetContext = () => {
+      const context = createContext();
+      context.spec.components = {
+        ...context.spec.components,
+        schemas: {
+          ...context.spec.components?.schemas,
+          Pet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      };
+      return context;
+    };
+
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/Pet' },
+        },
+        'application/vnd.vendor.v1+json': {
+          schema: { $ref: '#/components/schemas/Pet' },
+        },
+      },
+      required: true,
+    };
+
+    it('keeps the body for an included media type that is not listed first (#1717)', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+        contentType: { include: ['application/vnd.vendor.v1+json'] },
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.implementation).toBe('pet');
+      expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+    });
+
+    it('keeps the body when the first media type is excluded', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+        contentType: { exclude: ['application/json'] },
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+    });
+
+    it('still emits the shared schema once when no filter is set', () => {
+      const result = getBody({
+        requestBody,
+        operationName: 'createPet',
+        context: createPetContext(),
+      });
+
+      expect(result.definition).toBe('Pet');
+      expect(result.implementation).toBe('pet');
+      expect(result.contentType).toBe('application/json');
+    });
+
+    describe('when the body is a $ref to components/requestBodies', () => {
+      const createPetBodyContext = () => {
+        const context = createPetContext();
+        context.spec.components = {
+          ...context.spec.components,
+          requestBodies: { PetBody: requestBody },
+        };
+        return context;
+      };
+
+      const refRequestBody = { $ref: '#/components/requestBodies/PetBody' };
+
+      it('keeps the body for an included media type that is not listed first', () => {
+        const result = getBody({
+          requestBody: refRequestBody,
+          operationName: 'createPet',
+          context: createPetBodyContext(),
+          contentType: { include: ['application/vnd.vendor.v1+json'] },
+        });
+
+        expect(result.definition).toBe('PetBodyBody');
+        expect(result.implementation).toBe('petBodyBody');
+        expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+      });
+
+      it('falls back to the next media type when the first is excluded', () => {
+        const result = getBody({
+          requestBody: refRequestBody,
+          operationName: 'createPet',
+          context: createPetBodyContext(),
+          contentType: { exclude: ['application/json'] },
+        });
+
+        expect(result.definition).toBe('PetBodyBody');
+        expect(result.contentType).toBe('application/vnd.vendor.v1+json');
+      });
+
+      it('drops the body when no media type passes the filter', () => {
+        const result = getBody({
+          requestBody: refRequestBody,
+          operationName: 'createPet',
+          context: createPetBodyContext(),
+          contentType: {
+            exclude: ['application/json', 'application/vnd.vendor.v1+json'],
+          },
+        });
+
+        expect(result.definition).toBe('');
+        expect(result.contentType).toBe('');
+      });
+
+      it('uses the first media type when no filter is set', () => {
+        const result = getBody({
+          requestBody: refRequestBody,
+          operationName: 'createPet',
+          context: createPetBodyContext(),
+        });
+
+        expect(result.definition).toBe('PetBodyBody');
+        expect(result.contentType).toBe('application/json');
+      });
+    });
+  });
+
   describe('x-codegen-request-body-name', () => {
     it('uses custom name from inline request body extension', () => {
       const result = getBody({
@@ -575,6 +704,19 @@ describe('getBodiesByContentType', () => {
     expect(result).toHaveLength(2);
     expect(result[0].contentTypeSuffix).toBe('Json');
     expect(result[1].contentTypeSuffix).toBe('FormData');
+  });
+
+  it('applies the content type filter before splitting', () => {
+    const result = getBodiesByContentType({
+      requestBody: multiContentTypeRequestBody,
+      operationName: 'updateProfile',
+      context: createContext(),
+      contentType: { exclude: ['application/json'] },
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].contentTypeSuffix).toBe('');
+    expect(result[0].contentType).toBe('multipart/form-data');
   });
 
   it('maps known content types to correct suffixes', () => {

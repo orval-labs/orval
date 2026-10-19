@@ -24,6 +24,8 @@ import { uniqueBy } from '../utils';
 import { camel, isInlineSchema, isSchemaNullable, sanitize } from '../utils';
 import { pascal, conventionName } from '../utils/case';
 import {
+  type ContentTypeFilter,
+  filterByContentType,
   getFormDataFieldFileType,
   isBinaryContentType,
 } from '../utils/content-type';
@@ -169,6 +171,7 @@ export function getResReqTypes(
     data: ResReqTypesValue[],
   ) => unknown = (item) => item.value,
   generatePrimitiveSchemas = false,
+  contentTypeFilter?: ContentTypeFilter,
 ): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
@@ -179,7 +182,20 @@ export function getResReqTypes(
           imports: [{ name, schemaName }],
         } = resolveResponseOrRequestRef(res, context);
 
-        const firstEntry = Object.entries(bodySchema.content ?? {}).at(0);
+        // Only one media type is built for a $ref, so take the first one the
+        // filter keeps rather than the first one listed.
+        const contentEntries = Object.entries(bodySchema.content ?? {});
+        const firstEntry = filterByContentType(
+          contentEntries.map(([contentType, mediaType]) => ({
+            contentType,
+            mediaType,
+          })),
+          contentTypeFilter,
+        ).at(0);
+
+        if (!firstEntry && contentEntries.length > 0) {
+          return [];
+        }
 
         if (!firstEntry) {
           return [
@@ -201,7 +217,7 @@ export function getResReqTypes(
           ] as ResReqTypesValue[];
         }
 
-        const [contentType, mediaType] = firstEntry;
+        const { contentType, mediaType } = firstEntry;
 
         const isFormData = formDataContentTypes.has(contentType);
         const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
@@ -486,7 +502,12 @@ export function getResReqTypes(
       ] as ResReqTypesValue[];
     });
 
-  return uniqueBy(typesArray.flat(), uniqueKey);
+  // Filter before deduping: media types often share a schema, and deduping
+  // first can drop the one the filter would keep (#1717).
+  return uniqueBy(
+    filterByContentType(typesArray.flat(), contentTypeFilter),
+    uniqueKey,
+  );
 }
 
 /**

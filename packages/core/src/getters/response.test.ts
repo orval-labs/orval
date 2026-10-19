@@ -526,4 +526,56 @@ describe('getResponse', () => {
       expect(result.definition.errors).toBe('Error');
     });
   });
+
+  describe('content type filter on a $ref to components/responses', () => {
+    const refContext: ContextSpec = {
+      ...context,
+      spec: {
+        ...context.spec,
+        components: {
+          ...context.spec.components,
+          responses: {
+            PetResponse: {
+              description: 'A pet',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+                'application/xml': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const responses: OpenApiResponsesObject = {
+      '200': { $ref: '#/components/responses/PetResponse' },
+    };
+
+    it('falls back to the next media type when the first is excluded', () => {
+      const result = getResponse({
+        responses,
+        operationName: 'getPet',
+        context: refContext,
+        contentType: { exclude: ['application/json'] },
+      });
+
+      expect(result.definition.success).toBe('PetResponse');
+      expect(result.contentTypes).toEqual(['application/xml']);
+    });
+
+    it('uses the first media type when no filter is set', () => {
+      const result = getResponse({
+        responses,
+        operationName: 'getPet',
+        context: refContext,
+      });
+
+      expect(result.definition.success).toBe('PetResponse');
+      expect(result.contentTypes).toEqual(['application/json']);
+    });
+  });
 });
