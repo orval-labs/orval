@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import type {
   ContextSpec,
   GeneratorOperation,
@@ -15,6 +17,7 @@ import {
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -378,6 +381,89 @@ describe('generateRequestFunction — deepObject query parameters', () => {
     expect(implementation).toContain('"scope"');
     expect(implementation).toContain('"filter"');
     expect(implementation).toContain('deepObjectEntries.push(');
+  });
+});
+
+describe('generateRequestFunction — form-style object query parameters', () => {
+  const QUERY_PARAMS_PROP = {
+    name: 'params',
+    definition: 'params?: ListPetsParams',
+    implementation: 'params?: ListPetsParams',
+    default: false,
+    required: false,
+    type: GetterPropType.QUERY_PARAM,
+  };
+
+  const pageParameter: TestParameter = {
+    name: 'page',
+    in: 'query',
+    schema: {
+      type: 'object',
+      properties: {
+        number: { type: 'integer' },
+        size: { type: 'integer' },
+      },
+    },
+  };
+
+  const buildUrl = (
+    parameters: TestParameter[],
+    objectQueryParams: NonNullable<
+      GeneratorVerbOptions['queryParams']
+    >['objectQueryParams'],
+    params: Record<string, unknown>,
+  ) => {
+    const verbOptions = makeVerbOptions({
+      queryParams: { ...STUB_QUERY_PARAMS, objectQueryParams },
+      props: [QUERY_PARAMS_PROP],
+    });
+    const implementation = generateImplementation(
+      verbOptions,
+      makeOptions(makeContext(parameters)),
+    );
+    const urlHelper = /export const getListPetsUrl = [\s\S]*?\n}\n/.exec(
+      implementation,
+    )?.[0];
+    expect(urlHelper).toBeDefined();
+    const { outputText } = ts.transpileModule(
+      (urlHelper ?? '').replace('export ', ''),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    );
+    const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
+      URLSearchParams,
+    }) as (params: Record<string, unknown>) => string;
+    return getListPetsUrl(params);
+  };
+
+  it('spreads an object param into its properties (form, explode: true)', () => {
+    expect(
+      buildUrl([pageParameter], [{ key: 'page', strategy: 'flatten' }], {
+        page: { number: 2, size: 20, cursor: undefined },
+      }),
+    ).toBe('/pets?number=2&size=20');
+  });
+
+  it('joins an object param into comma-separated pairs (form, explode: false)', () => {
+    expect(
+      buildUrl(
+        [{ ...pageParameter, explode: false }],
+        [{ key: 'page', strategy: 'comma' }],
+        { page: { number: 2, size: 20 } },
+      ),
+    ).toBe(`/pets?page=${encodeURIComponent('number,2,size,20')}`);
+  });
+
+  it('keeps scalar params alongside an object param', () => {
+    expect(
+      buildUrl(
+        [
+          pageParameter,
+          { name: 'sort', in: 'query', schema: { type: 'string' } },
+        ],
+        [{ key: 'page', strategy: 'flatten' }],
+        { page: { number: 1 }, sort: 'name' },
+      ),
+    ).toBe('/pets?number=1&sort=name');
   });
 });
 

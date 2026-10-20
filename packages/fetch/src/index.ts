@@ -353,6 +353,43 @@ const generateRequestFunctionParts = (
       `
       : '';
 
+  // Plain-object query params in `form` style, the OpenAPI default. Without
+  // this they fall through to `String(value)` and reach the wire as
+  // "[object Object]". deepObject params are handled above.
+  const objectQueryParams = queryParams?.objectQueryParams ?? [];
+  const flattenObjectParameterNames = objectQueryParams
+    .filter(({ strategy }) => strategy === 'flatten')
+    .map(({ key }) => key);
+  const commaObjectParameterNames = objectQueryParams
+    .filter(({ strategy }) => strategy === 'comma')
+    .map(({ key }) => key);
+
+  const formObjectImplementation = `${
+    flattenObjectParameterNames.length > 0
+      ? `const flattenObjectParameters = ${JSON.stringify(flattenObjectParameterNames)};
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && flattenObjectParameters.includes(key)) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        if (subValue !== undefined) {
+          normalizedParams.append(subKey, subValue === null ? 'null' : String(subValue));
+        }
+      });
+      return;
+    }
+      `
+      : ''
+  }${
+    commaObjectParameterNames.length > 0
+      ? `const commaObjectParameters = ${JSON.stringify(commaObjectParameterNames)};
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && commaObjectParameters.includes(key)) {
+      normalizedParams.append(key, Object.entries(value).filter(([, subValue]) => subValue !== undefined).map(([subKey, subValue]) => subKey + ',' + (subValue === null ? 'null' : String(subValue))).join(','));
+      return;
+    }
+      `
+      : ''
+  }`;
+
   const hasDateParams =
     context.output.override.useDates &&
     parameterObjects.some((parameter) => {
@@ -387,7 +424,7 @@ const generateRequestFunctionParts = (
           ? `  const normalizedParams = new URLSearchParams();
 ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
+    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}${formObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
           : ''
