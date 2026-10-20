@@ -1,6 +1,6 @@
 import { type ZodVariantOption } from '@orval/core';
+import type { BoundRefinement } from '@orval/core';
 
-import type { BoundRefinement } from '../../core/src/types';
 import { serializeCallable } from './callable-serializer';
 import { getZodTypeName } from './compatible-v4';
 

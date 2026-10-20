@@ -1213,6 +1213,7 @@ export const operationZodOverrideKeys = [
   'params',
   'useBrandedTypes',
   'generateCompanionTypes',
+  'schemaExtension',
 ] as const satisfies readonly (keyof OperationZodOptions)[];
 
 export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];

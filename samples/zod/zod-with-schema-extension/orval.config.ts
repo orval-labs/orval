@@ -23,7 +23,7 @@ export default defineConfig({
               {
                 if (openapi_object["x-max-precision"])
                   {
-                    return {callable :  (value) => {
+                    return {callable :  (value : unknown) => {
                       if (typeof value !== 'string' || !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)) {
                         return false;
                       }

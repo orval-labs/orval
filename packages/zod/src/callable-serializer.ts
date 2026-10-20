@@ -1,7 +1,6 @@
+import type { BoundRefinement } from '@orval/core';
 import globals from 'globals';
 import * as ts from 'typescript';
-
-import type { BoundRefinement } from '../../core/src/types';
 
 /**
  * Globals that exist in a generated JavaScript module. Because parsing is done
@@ -35,11 +34,19 @@ const isReferenceIdentifier = (node: ts.Identifier): boolean => {
 };
 
 /**
+ * Cache that stores free identifiers found by findFreeIdentifiers
+ */
+const freeIdentifierCache = new Map<string, string[]>();
+
+/**
  * Find true free identifiers using the TS binder's lexical resolution rather
  * than regular expressions. This handles shadowing, destructuring, nested
  * functions, `catch`, property shorthand, and computed property names.
  */
 const findFreeIdentifiers = (source: string): string[] => {
+  const cached = freeIdentifierCache.get(source);
+  if (cached) return cached;
+
   const fileName = '/__orval_serialized_callable__.ts';
   const text = `(${source});`;
   const options: ts.CompilerOptions = {
@@ -105,7 +112,9 @@ const findFreeIdentifiers = (source: string): string[] => {
     ts.forEachChild(node, visit);
   };
   visit(callableNode);
-  return [...free];
+  const result = [...free];
+  freeIdentifierCache.set(source, result);
+  return result;
 };
 
 /**
