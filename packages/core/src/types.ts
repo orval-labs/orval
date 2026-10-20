@@ -1132,6 +1132,13 @@ interface BaseZodOptions {
    * schema split out for a bounded/array body or response. Default `false`.
    */
   generateCompanionTypes?: boolean;
+
+  /** Accepts a list of objects specifying OpenAPI property type and format for which
+   * to append additional .refine() callbacks. These .refine() callbacks are generated
+   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
+   * validatorsGenerator may return either a single validator or a list, or null if evaluation indicates that
+   * no refinements should be added. */
+  schemaExtension?: SchemaExtension;
 }
 
 export interface ZodOptions extends BaseZodOptions {
@@ -1184,7 +1191,7 @@ export interface ZodOptions extends BaseZodOptions {
   exactOptional?: boolean;
 
   /** Accepts a list of objects specifying OpenAPI property type and format for which
-   *  to append additional .refine() callbacks. These .refine() callbacks are generated
+   * to append additional .refine() callbacks. These .refine() callbacks are generated
    * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
    * validatorsGenerator may return either a single validator or a list. */
   schemaExtension?: SchemaExtension;

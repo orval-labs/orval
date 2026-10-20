@@ -3,5 +3,8 @@ import { describeApiGenerationSnapshots } from '../../../test-utils/snapshot-tes
 
 await describeApiGenerationSnapshots({
   dirs: [path.resolve(import.meta.dirname, 'schemas')],  
+
+  snapshotsDir: path.resolve(import.meta.dirname, '__snapshots__'),
+
   rootDir: path.resolve(import.meta.dirname, '..', '..', '..'),
 });
