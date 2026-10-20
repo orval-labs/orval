@@ -3810,6 +3810,13 @@ Convert `date`/`datetime` to JavaScript `Date` objects.
 
 Convert `int64`/`uint64` to `BigInt`.
 
+### useBrandedTypes
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Emit named primitive schemas as branded types.
+
 ### useTypeOverInterfaces
 
 **Type:** `Boolean`
@@ -4727,6 +4734,33 @@ export default defineConfig({
   },
 });
 ```
+
+### useBrandedTypes
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Emit `components/schemas` entries that resolve to a primitive as branded types, so an alias such as `UserId` is no longer a plain `string`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+  },
+});
+```
+
+```ts
+getUser('abc'); // Error: string is not UserId
+getUser(user.id); // OK
+```
+
+- Only schemas that resolve to `string`, `number`, `boolean`, `bigint` or `Date` are branded. Object, enum and composed (`allOf` / `oneOf` / `anyOf`) schemas, and schemas with a `default`, are unchanged.
+- Independent of the Zod [`useBrandedTypes`](#usebrandedtypes) option, which uses `.brand()` and produces a different type.
 
 ### requestOptions
 

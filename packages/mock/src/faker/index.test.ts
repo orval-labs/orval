@@ -956,3 +956,49 @@ describe('generateFakerForSchemas inherited format keys', () => {
     ).not.toThrow();
   });
 });
+
+describe('generateFakerForSchemas (useBrandedTypes)', () => {
+  const schemas: GeneratorSchema[] = [
+    {
+      name: 'UserId',
+      model: 'UserId',
+      imports: [],
+      schema: { type: 'string', format: 'uuid' },
+    },
+    {
+      name: 'User',
+      model: 'User',
+      imports: [],
+      schema: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { $ref: '#/components/schemas/UserId' } },
+      },
+    },
+  ];
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: { UserId: schemas[0].schema, User: schemas[1].schema },
+      },
+    } as never,
+    override: { useBrandedTypes: true },
+  });
+  context.output.schemas = 'schemas';
+  context.output.mock.generators = [
+    { type: OutputMockType.FAKER, schemas: true } as never,
+  ];
+
+  it('casts the body of a primitive schema factory only', () => {
+    const result = generateFakerForSchemas(schemas, context, {
+      type: OutputMockType.FAKER,
+      schemas: true,
+    });
+
+    expect(result.implementation).toContain(
+      'export const getUserIdMock = (): UserId => (faker.string.uuid() as UserId)',
+    );
+    expect(result.implementation).toContain('id: getUserIdMock()');
+    expect(result.implementation).not.toContain('}) as User');
+  });
+});

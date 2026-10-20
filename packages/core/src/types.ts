@@ -203,6 +203,7 @@ export interface NormalizedOverrideOutput {
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  useBrandedTypes?: boolean;
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
@@ -980,6 +981,11 @@ export interface OverrideOutput {
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  /**
+   * Emit `components/schemas` entries that resolve to a primitive as branded
+   * aliases (`string & { readonly __orvalBrand: 'UserId' }`). @default false
+   */
+  useBrandedTypes?: boolean;
   useNamedParameters?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
