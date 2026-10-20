@@ -135,6 +135,11 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     return schema ? 'unknown' : 'never';
   }
 
+  // An empty `not` admits no value, whatever else the schema says.
+  if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
+    return 'never';
+  }
+
   const schemaTypeValue = schema.type;
 
   // Handle array of types (OpenAPI 3.1+)
@@ -908,17 +913,16 @@ export const generateZodValidationSchemaDefinition = (
     emitMeta?: boolean;
   },
 ): ZodValidationSchemaDefinition => {
-  // `false` is falsy, so it used to fall into the empty return below. Boolean
-  // schemas are real schemas: `true` ≡ `{}` (unknown) and `false` ≡ `{ not: {} }`
-  // (never), matching the models core emits for them.
+  // Boolean schemas are real schemas: `true` ≡ `{}` (unknown) and
+  // `false` ≡ `{ not: {} }` (never), matching the models core emits for them.
+  // `false` takes the object form, so it gets the same modifiers and metadata.
+  if (schemaInput === false) {
+    schemaInput = { not: {} };
+  }
+
   if (schemaInput == null || typeof schemaInput !== 'object') {
     return {
-      functions:
-        schemaInput === true
-          ? [['unknown', undefined]]
-          : schemaInput === false
-            ? [['never', undefined]]
-            : [],
+      functions: schemaInput === true ? [['unknown', undefined]] : [],
       consts: [],
     };
   }
@@ -1135,7 +1139,11 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
+  // `never` rejects null too, so a `null` entry in `type` doesn't widen it.
+  const nullable =
+    type !== 'never' &&
+    Array.isArray(schema.type) &&
+    schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
@@ -1930,12 +1938,9 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       case 'never': {
-        // `not`-forbidden keys render as `zod.never()`. Optional, so the key's
-        // absence passes while any supplied value fails validation. (#3780)
+        // Optional unless required, like any other type, so a property set to
+        // `false` can still be absent.
         functions.push(['never', undefined]);
-        if (required) {
-          functions.push(['optional', undefined]);
-        }
         break;
       }
 
@@ -3473,7 +3478,8 @@ export const dereference = (
       ? (() => {
           const referencedSchema = tryResolveRefSchema(schema.$ref, context);
 
-          if (!referencedSchema) {
+          // `false` is a real target, handled by `toObjectSchema` below.
+          if (referencedSchema === undefined) {
             return;
           }
           if (typeof referencedSchema !== 'object') {

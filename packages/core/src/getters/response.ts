@@ -10,11 +10,7 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import {
-  dedupeUnionType,
-  filterByContentType,
-  isBinaryContentType,
-} from '../utils';
+import { dedupeUnionType, isBinaryContentType } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
@@ -32,7 +28,7 @@ export function getResponse({
   contentType,
   generatePrimitiveSchemas = false,
 }: GetResponseOptions): GetterResponse {
-  const types = getResReqTypes(
+  const filteredTypes = getResReqTypes(
     Object.entries(responses) as [
       string,
       OpenApiReferenceObject | OpenApiResponseObject | OpenApiRequestBodyObject,
@@ -42,9 +38,8 @@ export function getResponse({
     'void',
     (type) => `${type.key}-${type.value}-${type.contentType}`,
     generatePrimitiveSchemas,
+    contentType,
   );
-
-  const filteredTypes = filterByContentType(types, contentType);
 
   const imports = filteredTypes.flatMap(({ imports }) => imports);
   const schemas = filteredTypes.flatMap(({ schemas }) => schemas);

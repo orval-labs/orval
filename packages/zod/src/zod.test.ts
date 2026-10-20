@@ -15245,3 +15245,71 @@ describe('namingConvention.properties (#4226)', () => {
     expect(isObjectResponseSchema(verbOptions, context)).toBe(false);
   });
 });
+
+describe('schemas that admit no value (#4323)', () => {
+  const context = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (schema: OpenApiSchemaObject, required = true) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'createExample',
+        false,
+        false,
+        { required },
+      ),
+      context,
+      false,
+      false,
+      false,
+    ).zod;
+
+  it('renders false and its { not: {} } form as zod.never()', () => {
+    expect(render(false)).toBe('zod.never()');
+    expect(render({ not: {} })).toBe('zod.never()');
+  });
+
+  it('does not let null through a schema that admits no value', () => {
+    expect(render({ not: {}, type: ['string', 'null'] })).toBe('zod.never()');
+    expect(render({ not: {}, type: ['null'] }, false)).toBe(
+      'zod.never().optional()',
+    );
+  });
+
+  it('keeps the description and metadata of a schema that admits no value', () => {
+    expect(render({ not: {}, description: 'Gone' })).toBe(
+      "zod.never().describe('Gone')",
+    );
+    expect(
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          false,
+          context,
+          'Nothing',
+          false,
+          true,
+          { required: true, emitMeta: true },
+        ),
+        context,
+        false,
+        false,
+        true,
+      ).zod,
+    ).toBe("zod.never().meta({ id: 'Nothing' })");
+  });
+
+  it('keeps a false property optional unless it is required', () => {
+    expect(
+      render({
+        type: 'object',
+        required: ['gone'],
+        properties: { legacy: false, gone: false },
+      }),
+    ).toBe(
+      'zod.object({\n  "legacy": zod.never().optional(),\n  "gone": zod.never()\n})',
+    );
+  });
+});

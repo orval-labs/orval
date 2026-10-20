@@ -1314,6 +1314,26 @@ export default defineConfig({
       target: '../specifications/nullable-composed-own-properties.yaml',
     },
   },
+  // A nullable `allOf` member merges as its object shape, and the null branch
+  // is added only when every member admits null.
+  'all-of-open-and-nullable-members': {
+    output: {
+      target: '../generated/mock/all-of-open-and-nullable-members/endpoints.ts',
+      schemas: '../generated/mock/all-of-open-and-nullable-members/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/all-of-open-and-nullable-members.yaml',
+    },
+  },
   // `exactOptional` leaves optional keys out instead of setting them to
   // `undefined`; these are typechecked with `exactOptionalPropertyTypes` (#3912).
   'exact-optional-petstore': {

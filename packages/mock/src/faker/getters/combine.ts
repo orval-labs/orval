@@ -3,6 +3,7 @@ import {
   type GeneratorImport,
   getRefInfo,
   isInlineSchema,
+  isNullOnlyEnum,
   isSchemaNullable,
   type MockOptions,
 } from '@orval/core';
@@ -18,6 +19,30 @@ function getReferenceName(
   if (!ref) return '';
 
   return getRefInfo(ref, context).name;
+}
+
+/**
+ * `schema` without `null` in its type array. Returns `schema` itself when
+ * the type array has no `null`, and `undefined` when `null` is its only type.
+ */
+function withoutNullType(schema: MockSchema): MockSchema | undefined {
+  if (
+    !isInlineSchema(schema) ||
+    !Array.isArray(schema.type) ||
+    !schema.type.includes('null')
+  ) {
+    return schema;
+  }
+
+  const nonNullTypes = schema.type.filter((type) => type !== 'null');
+  if (nonNullTypes.length === 0) {
+    return undefined;
+  }
+
+  return {
+    ...schema,
+    type: nonNullTypes.length === 1 ? nonNullTypes[0] : nonNullTypes,
+  } as MockSchema;
 }
 
 interface CombineSchemasMockOptions {
@@ -200,6 +225,14 @@ export function combineSchemasMock({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
   let hasNullMember = false;
+  // `allOf` members that admit null, e.g. `type: [object, 'null']` (also OAS
+  // 3.0 `nullable: true` after the upgrade to 3.1). The intersection is null
+  // only when every member admits null, so each one is resolved as its
+  // non-null shape and the null branch is added once around the merged value.
+  let nullableAllOfMembers = 0;
+  // A primitive-typed `allOf` member renders as the composition's scalar
+  // value, not an object-literal entry.
+  let scalarAllOfValue: string | undefined;
 
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
@@ -233,25 +266,81 @@ export function combineSchemasMock({
       continue;
     }
 
+    // Left nullable, the member resolved to a complete
+    // `arrayElement([{...}, null])` expression, which was pasted into the
+    // merged object literal without a spread and did not parse.
+    // A union member with a `null` branch is merged the same way. A 3.0
+    // `{ $ref, nullable: true }` member arrives in that shape when no other
+    // member absorbs the null (see `normalizeNullableRefs`), and spreading its
+    // null branch dropped the properties the `$ref` requires.
+    const member = (() => {
+      if (separator !== 'allOf' || !isInlineSchema(val)) {
+        return val;
+      }
+
+      const nonNullMember = withoutNullType(val);
+      if (nonNullMember !== val) {
+        if (nonNullMember === undefined) {
+          return val;
+        }
+
+        nullableAllOfMembers++;
+        return nonNullMember;
+      }
+
+      // A variant admits null as a `null` branch or as a `null` in its type
+      // array. Either way it is dropped or narrowed, or the narrowed member
+      // could still resolve to `null` inside the merge.
+      const unionKey = val.oneOf ? 'oneOf' : val.anyOf ? 'anyOf' : undefined;
+      const variants = unionKey ? (val[unionKey] as MockSchema[]) : [];
+      const isNullBranch = (variant: MockSchema) =>
+        isInlineSchema(variant) &&
+        (variant.type === 'null' || isNullOnlyEnum(variant));
+      const nullVariants = variants.filter(
+        (variant) =>
+          isNullBranch(variant) || withoutNullType(variant) !== variant,
+      ).length;
+      const nonNullVariants = variants.flatMap((variant) => {
+        if (isNullBranch(variant)) {
+          return [];
+        }
+        const nonNullVariant = withoutNullType(variant);
+        return nonNullVariant === undefined ? [] : [nonNullVariant];
+      });
+      if (!unionKey || nonNullVariants.length === 0 || nullVariants === 0) {
+        return val;
+      }
+
+      // A `oneOf` rejects null when more than one variant matches it, so the
+      // member then narrows without counting as nullable.
+      if (unionKey === 'anyOf' || nullVariants === 1) {
+        nullableAllOfMembers++;
+      }
+      const { [unionKey]: _union, ...rest } = val;
+      return nonNullVariants.length === 1 && Object.keys(rest).length === 0
+        ? nonNullVariants[0]
+        : ({ ...rest, [unionKey]: nonNullVariants } as MockSchema);
+    })();
+
     // the required fields in this schema need to be considered
     // in the sub schema under the allOf key
     const schema = (() => {
       if (separator !== 'allOf' || allRequiredFields.length === 0) {
         return {
-          ...val,
+          ...member,
           name: item.name,
           path: item.path ?? '#',
         };
       }
 
-      const valWithRequired = val as MockSchema & { required?: string[] };
+      const valWithRequired = member as MockSchema & { required?: string[] };
       const valRequired = valWithRequired.required;
       const combinedRequired = valRequired
         ? [...allRequiredFields, ...valRequired]
         : allRequiredFields;
 
       return {
-        ...val,
+        ...member,
         name: item.name,
         path: item.path ?? '#',
         required: [...new Set(combinedRequired)],
@@ -297,13 +386,31 @@ export function combineSchemasMock({
         continue;
       }
 
-      if (resolvedValue.type === 'object') {
+      // `type` is the schema's verbatim `type`, so an OAS 3.1 singleton
+      // `type: ['object']` (or `['object', 'null']` before upstream null
+      // narrowing) arrives as an array and must take this branch too, or it
+      // would be remembered as a scalar and replace the composition with a
+      // bare `key: value` fragment. A mixed union (`['object', 'string']`)
+      // resolves to a standalone value and stays on the scalar path.
+      const memberType = resolvedValue.type as string | string[] | undefined;
+      if (
+        memberType === 'object' ||
+        (Array.isArray(memberType) &&
+          memberType.includes('object') &&
+          memberType.every((type) => type === 'object' || type === 'null'))
+      ) {
         containsOnlyPrimitiveValues = false;
         value += resolvedValue.value.startsWith('faker')
           ? `...${resolvedValue.value},`
           : `...{${resolvedValue.value}},`;
         continue;
       }
+
+      // Primitive member: appended as before, but also remembered (last one
+      // wins). When an object member forces the brace wrap below, a bare
+      // primitive inside it would be invalid shorthand — the remembered
+      // scalar then replaces the whole composition.
+      scalarAllOfValue = resolvedValue.value;
     }
 
     if (separator !== 'allOf' && resolvedValue.value === 'null') {
@@ -333,11 +440,24 @@ export function combineSchemasMock({
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
   }
+  // Select the scalar before the nullable wrap below, so the intersection's
+  // null branch applies to it instead of being discarded — the value would
+  // otherwise never randomize to null while `nullWrapped` claims it does.
+  if (scalarAllOfValue !== undefined && !containsOnlyPrimitiveValues) {
+    finalValue = scalarAllOfValue;
+  }
   // `itemProperties` too: discriminator filtering can remove the only sibling
   // property, and the parent is still nullable as a whole.
+  const isParentNullWrapped =
+    (!!itemResolvedValue || !!itemProperties) && isNullableItemType;
+  // Every `allOf` member admits null and the parent does not rule it out.
+  const isNullableIntersection =
+    separator === 'allOf' &&
+    separatorItems.length > 0 &&
+    nullableAllOfMembers === separatorItems.length &&
+    (item.type === undefined || isNullableItemType);
   if (
-    (itemResolvedValue || itemProperties) &&
-    isNullableItemType &&
+    (isParentNullWrapped || isNullableIntersection) &&
     finalValue !== 'undefined' &&
     !finalValue.startsWith('...')
   ) {
@@ -353,6 +473,8 @@ export function combineSchemasMock({
     // the union, so the value randomizes to null on its own. Saying so stops
     // the object property loop adding a second `arrayElement([..., null])`
     // around it (#4141).
-    nullWrapped: isSchemaNullable(item) && !mockOptions?.nonNullable,
+    nullWrapped:
+      (isSchemaNullable(item) || isNullableIntersection) &&
+      !mockOptions?.nonNullable,
   };
 }

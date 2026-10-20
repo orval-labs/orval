@@ -28,6 +28,7 @@ import {
   splitSchemasByType,
   SupportedFormatter,
   stripFileExtension,
+  hasSchemaDefinition,
   upath,
   warnAmbiguousBarrelExports,
   withGeneratedFileTransform,
@@ -335,7 +336,7 @@ async function writeFakerSchemaMocks(
     return undefined;
   }
 
-  const schemasWithDef = builder.schemas.filter((s) => !!s.schema);
+  const schemasWithDef = builder.schemas.filter(hasSchemaDefinition);
   if (schemasWithDef.length === 0) {
     return undefined;
   }

@@ -10,6 +10,7 @@ import {
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
+  hasSchemaDefinition,
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
@@ -177,7 +178,7 @@ export async function writeSingleMode({
           usesSchemaFactories && output.schemas
             ? collectRecoveredSchemaFactoryImports(
                 finalizedMockImplementation,
-                builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
               )
             : [];
         const filteredMockImports = filterLocalStrictMockTypeImports(
@@ -300,7 +301,7 @@ export async function writeSingleMode({
           usesSchemaFactories && output.schemas
             ? collectRecoveredSchemaFactoryImports(
                 finalizedMockImplementation,
-                builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
               )
             : [];
 

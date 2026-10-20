@@ -10,6 +10,7 @@ import {
   type GeneratorMutator,
   getImportExtension,
   getRefInfo,
+  hasSchemaDefinition,
   isComponentRef,
   kebab,
   type NamingConvention,
@@ -490,7 +491,9 @@ export function buildSiblingImports({
 }
 
 const isPrimitiveSchemaName = (name: string) =>
-  ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
+  ['string', 'number', 'boolean', 'void', 'unknown', 'never', 'Blob'].includes(
+    name,
+  );
 
 const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
   const uniqueSchemas = new Map<string, T>();
@@ -756,7 +759,7 @@ export function generateZodSchemasInline(
     );
   }
 
-  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasWithOpenApiDef = builder.schemas.filter(hasSchemaDefinition);
 
   if (schemasWithOpenApiDef.length === 0) {
     return '';
@@ -772,10 +775,6 @@ export function generateZodSchemasInline(
   const schemas: ZodSchemaFileEntry[] = [];
 
   for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
-    if (!schemaObject) {
-      continue;
-    }
-
     const context: ContextSpec = {
       spec: builder.spec,
       target: builder.target,
@@ -941,7 +940,7 @@ export async function writeZodSchemas(
   }
 
   const isSplit = !!schemaTagMap;
-  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasWithOpenApiDef = builder.schemas.filter(hasSchemaDefinition);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
   const isZodV4 = resolveIsZodV4(
     output.override.zod.version,
@@ -953,10 +952,6 @@ export async function writeZodSchemas(
 
   for (const generatorSchema of schemasWithOpenApiDef) {
     const { name, schema: schemaObject } = generatorSchema;
-
-    if (!schemaObject) {
-      continue;
-    }
 
     const fileName = conventionName(name, output.namingConvention);
     const tagDir = getSchemaDir(schemaTagMap, name);
@@ -1288,7 +1283,7 @@ function generateZodSchemasFromVerbs(
     const bodySchema = bodyMedia?.schema;
 
     const bodySchemas =
-      shouldGenerate.body && bodySchema
+      shouldGenerate.body && bodySchema !== undefined
         ? [
             {
               name: `${pascal(verbOption.typeName)}Body`,
@@ -1296,7 +1291,6 @@ function generateZodSchemasFromVerbs(
                 ? bodySchema
                 : dereference(bodySchema, zodContext),
               bodyContentType,
-              // oxlint-disable-next-line typescript/no-unnecessary-condition
               encoding: bodyMedia?.encoding,
             },
           ]
@@ -1482,7 +1476,7 @@ function generateZodSchemasFromVerbs(
             (
               entry,
             ): entry is typeof entry & { cleanSchema: OpenApiSchemaObject } =>
-              !!entry.cleanSchema &&
+              entry.cleanSchema !== undefined &&
               !entry.isRef &&
               isValidSchemaIdentifier(entry.cleanName) &&
               !isPrimitiveSchemaName(entry.cleanName),

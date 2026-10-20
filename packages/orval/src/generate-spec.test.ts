@@ -2379,6 +2379,110 @@ describe('generateSpec - zod schemas for shared responses and request bodies (#4
   });
 });
 
+describe('generateSpec - zod schemas for false content schemas (#4323)', () => {
+  const json = (schema: unknown) => ({
+    content: { 'application/json': { schema } },
+  });
+  const spec = {
+    openapi: '3.1.0',
+    info: { title: 'False content schemas', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        post: {
+          operationId: 'createPet',
+          requestBody: { $ref: '#/components/requestBodies/NoBody' },
+          responses: {
+            '204': { description: 'Created' },
+            '410': { $ref: '#/components/responses/Gone' },
+            '415': { $ref: '#/components/responses/Mixed' },
+          },
+        },
+      },
+      '/nothing': {
+        put: {
+          operationId: 'putNothing',
+          requestBody: json(false),
+          responses: {
+            '200': {
+              description: 'OK',
+              ...json({ $ref: '#/components/schemas/Nothing' }),
+            },
+            '422': { description: 'Never sent', ...json(false) },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: { Nothing: false },
+      requestBodies: { NoBody: json(false) },
+      responses: {
+        Gone: { description: 'Gone', ...json(false) },
+        Mixed: {
+          description: 'Mixed',
+          content: {
+            'application/json': { schema: false },
+            'text/plain': { schema: { type: 'string' } },
+          },
+        },
+      },
+    },
+  } as unknown as OpenApiDocument;
+
+  it.each([
+    { mode: 'split' as const, schemasPath: './model' },
+    { mode: 'single' as const, schemasPath: './model.zod.ts' },
+  ])(
+    'writes zod.never() schemas in $mode mode',
+    async ({ mode, schemasPath }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              schemas: { path: schemasPath, type: 'zod', mode },
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        const output = path.join(workspace, schemasPath);
+        const files = fs.statSync(output).isDirectory()
+          ? (await readdir(output)).map((file) => path.join(output, file))
+          : [output];
+        const schemas = (
+          await Promise.all(
+            files.map((file) => fs.promises.readFile(file, 'utf8')),
+          )
+        ).join('\n');
+
+        for (const name of [
+          'GoneResponse',
+          'NoBodyBody',
+          'Nothing',
+          'PutNothingBody',
+        ]) {
+          expect(schemas).toMatch(
+            new RegExp(`^export const ${name} = zod\\.never\\(\\);?$`, 'm'),
+          );
+        }
+        // `false` adds nothing next to another content type
+        expect(schemas).toMatch(
+          /^export const MixedResponse = zod\.string\(\);?$/m,
+        );
+        // the inline `false` response is the built-in `never`, not a named schema
+        expect(schemas).not.toMatch(/^export const never\b/m);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe('generateSpec - normalizeOptions pathless schemas object', () => {
   // Regression: a `schemas` object with no `path` (e.g. `schemas: { type: 'zod' }`)
   // normalized to an undefined path, which `clean: true` then resolved to the
