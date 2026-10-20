@@ -298,7 +298,9 @@
       "version": "8.43.0",
       "dependencies": {
         "@orval/core": "workspace:*",
+        "globals": "^17.0.0",
         "jsesc": "^3.0.0",
+        "typescript": "catalog:",
       },
       "devDependencies": {
         "@types/jsesc": "^3.0.3",
@@ -1000,6 +1002,20 @@
         "vite": "catalog:",
         "vite-plus": "catalog:",
         "vue-tsc": "catalog:vue",
+      },
+    },
+    "samples/zod/zod-with-schema-extension": {
+      "name": "zod-with-schema-extensions",
+      "version": "8.44.0",
+      "dependencies": {
+        "zod": "catalog:zod4",
+      },
+      "devDependencies": {
+        "orval": "workspace:*",
+        "prettier": "catalog:",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "tests": {
@@ -4217,6 +4233,8 @@
     "zod-to-json-schema": ["zod-to-json-schema@3.25.1", "", { "peerDependencies": { "zod": "^3.25 || ^4" } }, "sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA=="],
 
     "zod-validation-error": ["zod-validation-error@4.0.2", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ=="],
+
+    "zod-with-schema-extensions": ["zod-with-schema-extensions@workspace:samples/zod/zod-with-schema-extension"],
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 

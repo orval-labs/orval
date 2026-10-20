@@ -22,6 +22,7 @@ import {
   pascal,
   resolveRef,
   resolveValue,
+  type SchemaExtension,
   type SchemaOutputPlan,
   type Tsconfig,
   upath,
@@ -95,6 +96,7 @@ interface WriteZodOutputOptions {
         body: boolean | ZodCoerceType[];
       };
       generateReusableSchemas?: boolean;
+      schemaExtension?: SchemaExtension;
       generateMeta?: boolean;
       exactOptional?: boolean;
     };
@@ -133,6 +135,7 @@ interface WriteZodSchemasFromVerbsEntry {
   override?: {
     zod: {
       generate: WriteZodOutputOptions['override']['zod']['generate'];
+      schemaExtension?: SchemaExtension;
     };
   };
 }
@@ -791,6 +794,7 @@ export function generateZodSchemasInline(
       {
         required: true,
         emitMeta: output.override.zod.generateMeta,
+        schemaExtension: output.override.zod.schemaExtension,
       },
     );
 
@@ -871,6 +875,7 @@ function generateZodSchemasInlineReusable(
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     exactOptional: output.override.zod.exactOptional,
+    schemaExtension: output.override.zod.schemaExtension,
     paramsMutator,
   });
 
@@ -986,6 +991,7 @@ export async function writeZodSchemas(
       {
         required: true,
         emitMeta: output.override.zod.generateMeta,
+        schemaExtension: output.override.zod.schemaExtension,
       },
     );
 
@@ -1104,6 +1110,7 @@ async function writeZodSchemasReusable(
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     exactOptional: output.override.zod.exactOptional,
+    schemaExtension: output.override.zod.schemaExtension,
     paramsMutator,
   });
 
@@ -1248,6 +1255,9 @@ function generateZodSchemasFromVerbs(
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
+    const schemaExtension =
+      verbOption.override?.zod.schemaExtension ??
+      output.override.zod.schemaExtension;
     const shouldGenerate = {
       ...output.override.zod.generate,
       ...verbOption.override?.zod.generate,
@@ -1493,6 +1503,7 @@ function generateZodSchemasFromVerbs(
       ...responseSchemas,
     ]).map((s) => ({
       ...s,
+      schemaExtension,
       verbTagDir: isSplit
         ? kebab(verbOption.tags?.[0] ?? DefaultTag)
         : ROOT_DIR,
@@ -1552,6 +1563,7 @@ function generateZodSchemasFromVerbs(
                 | undefined)
             : undefined,
           useReusableSchemas,
+          entry.schemaExtension,
         )
       : generateZodValidationSchemaDefinition(
           schema,
@@ -1562,6 +1574,7 @@ function generateZodSchemasFromVerbs(
           {
             required: true,
             useReusableSchemas,
+            schemaExtension: entry.schemaExtension,
           },
         );
 

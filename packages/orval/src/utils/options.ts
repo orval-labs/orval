@@ -1049,6 +1049,9 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+
+          schemaExtension: outputOptions.override?.zod?.schemaExtension,
+
           variant: outputOptions.override?.zod?.variant ?? 'classic',
           version: outputOptions.override?.zod?.version ?? 'auto',
           generateEachHttpStatus:

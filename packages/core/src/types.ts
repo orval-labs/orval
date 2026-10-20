@@ -1182,6 +1182,12 @@ export interface ZodOptions extends BaseZodOptions {
    * `false` (opt-in), so existing output is unchanged.
    */
   exactOptional?: boolean;
+
+  /** Accepts a list of objects specifying OpenAPI property type and format for which
+   *  to append additional .refine() callbacks. These .refine() callbacks are generated
+   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
+   * validatorsGenerator may return either a single validator or a list. */
+  schemaExtension?: SchemaExtension;
 }
 
 /**
@@ -1263,6 +1269,31 @@ export type ZodCoerceType =
   // query value (delivered as a scalar by the server framework) still parses.
   | 'array';
 
+type SchemaExtensionFormat = string;
+
+/** Function signature expected by the applicable Zod version's "check" validation method */
+export type RefinementFunction = (...args: never[]) => boolean;
+
+/**
+ * A Callable to be inserted into a refinement, along with bindings to all variables referenced
+ * in its scope. Anything referencing beyond the callable itself must be declared as a binding.
+ * If no bindings are needed, null is an acceptable value.
+ */
+export type BoundRefinement = {
+  callable: RefinementFunction;
+  bindings: Readonly<Record<string, unknown>> | null;
+};
+
+/** Additional validation checks to append to validation chains for properties of type SchemaType
+ * (excluding null and unknown types) and any format SchemaExtensionFormat.  */
+export type SchemaExtension = {
+  type: PrimitiveSchemaType;
+  format: SchemaExtensionFormat;
+  validatorsGenerator: (
+    openapi_object: SchemaObject,
+  ) => null | undefined | BoundRefinement | BoundRefinement[];
+}[];
+
 export interface NormalizedZodOptions {
   variant: ZodVariantOption;
   version: ZodVersionOption;
@@ -1294,6 +1325,7 @@ export interface NormalizedZodOptions {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  schemaExtension?: SchemaExtension;
   params?: NormalizedMutator;
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;

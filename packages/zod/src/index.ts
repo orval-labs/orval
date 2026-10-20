@@ -50,6 +50,7 @@ import {
   getEnumValueInfo,
   getEnumImplementation,
   EnumGeneration,
+  type SchemaExtension,
 } from '@orval/core';
 import { unique } from '@orval/core';
 import jsesc from 'jsesc';
@@ -69,6 +70,8 @@ import {
   assertZodMethodName,
   PURE_COMMENT,
   renderZodExport,
+  renderZodRefine,
+  appendZodRefinements,
   zodMiniCall,
 } from './export-emitter';
 import { logger } from './logger';
@@ -866,6 +869,9 @@ export const generateZodValidationSchemaDefinition = (
      * name is unaffected. (#3171)
      */
     additionalRequired?: string[];
+
+    schemaExtension?: SchemaExtension;
+
     dateTimeOptions?: DateTimeOptions;
     timeOptions?: TimeOptions;
     /**
@@ -1216,10 +1222,6 @@ export const generateZodValidationSchemaDefinition = (
 
       return property;
     })();
-    const unionSeparator = discriminatorProperty
-      ? encodeDiscriminatorSeparator(separator, discriminatorProperty)
-      : separator;
-
     // In JSON Schema / OpenAPI 3.1 a `required` array in any `allOf` member
     // (and on the composing schema itself) applies to properties contributed by
     // any member. Collect them all so each member's own properties can be marked
@@ -1383,10 +1385,35 @@ export const generateZodValidationSchemaDefinition = (
             | undefined,
           constNameRegistry,
           useReusableSchemas,
+          schemaExtension: rules?.schemaExtension,
           urlEncoded,
         },
       ),
     );
+
+    // In Zod 3 `.refine()` produces a ZodEffects wrapper instead of a
+    // ZodObject, so it cannot be used as a discriminated-union branch.
+    // Fall back to a regular union if a branch has root-level refinements.
+    const hasRootRefinements = (
+      definition: ZodValidationSchemaDefinition,
+    ): boolean =>
+      definition.functions.some(
+        ([fn, args]) =>
+          fn === 'refine' ||
+          (fn === 'allOf' &&
+            (args as ZodValidationSchemaDefinition[]).some(hasRootRefinements)),
+      );
+    const hasPotentialReusableRefinements =
+      useReusableSchemas &&
+      (rules?.schemaExtension?.length ?? 0) > 0 &&
+      schemas.some((member) => isObject(member) && '$ref' in member);
+    const unionSeparator =
+      discriminatorProperty &&
+      (isZodV4 ||
+        (!baseSchemas.some(hasRootRefinements) &&
+          !hasPotentialReusableRefinements))
+        ? encodeDiscriminatorSeparator(separator, discriminatorProperty)
+        : separator;
 
     // Handle allOf/oneOf/anyOf with additional properties - merge additional properties into the schema
     if ((schema.allOf || schema.oneOf || schema.anyOf) && schema.properties) {
@@ -1411,6 +1438,7 @@ export const generateZodValidationSchemaDefinition = (
             additionalRequired: allOfRequired,
             constNameRegistry,
             useReusableSchemas,
+            schemaExtension: rules?.schemaExtension,
             urlEncoded,
           },
         );
@@ -1673,6 +1701,7 @@ export const generateZodValidationSchemaDefinition = (
             required: true,
             constNameRegistry,
             useReusableSchemas,
+            schemaExtension: rules?.schemaExtension,
             urlEncoded,
           },
         ),
@@ -1729,6 +1758,7 @@ export const generateZodValidationSchemaDefinition = (
                     required: true,
                     constNameRegistry,
                     useReusableSchemas,
+                    schemaExtension: rules?.schemaExtension,
                     urlEncoded,
                   },
                 ),
@@ -1752,6 +1782,7 @@ export const generateZodValidationSchemaDefinition = (
                     required: true,
                     constNameRegistry,
                     useReusableSchemas,
+                    schemaExtension: rules?.schemaExtension,
                     urlEncoded,
                   },
                 ),
@@ -1774,6 +1805,7 @@ export const generateZodValidationSchemaDefinition = (
               required: true,
               constNameRegistry,
               useReusableSchemas,
+              schemaExtension: rules?.schemaExtension,
               urlEncoded,
             },
           ),
@@ -1980,6 +2012,7 @@ export const generateZodValidationSchemaDefinition = (
                       required: requiredKeys.has(key),
                       constNameRegistry,
                       useReusableSchemas,
+                      schemaExtension: rules?.schemaExtension,
                       urlEncoded,
                     },
                   ),
@@ -2004,6 +2037,7 @@ export const generateZodValidationSchemaDefinition = (
                   required: true,
                   constNameRegistry,
                   useReusableSchemas,
+                  schemaExtension: rules?.schemaExtension,
                   urlEncoded,
                 },
               ),
@@ -2052,6 +2086,7 @@ export const generateZodValidationSchemaDefinition = (
                 required: true,
                 constNameRegistry,
                 useReusableSchemas,
+                schemaExtension: rules?.schemaExtension,
                 urlEncoded,
               },
             ),
@@ -2246,6 +2281,24 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
+  // Each extension matches an OpenAPI type/format pair. An empty `format`
+  // matches properties without an explicit OpenAPI format. Preserve the array
+  // order and allow multiple extensions targeting the same pair.
+  for (const extension of rules?.schemaExtension ?? []) {
+    if (extension.type !== type || extension.format !== (schema.format ?? '')) {
+      continue;
+    }
+
+    const refinements = extension.validatorsGenerator(schema);
+    const refinementsArray = (
+      Array.isArray(refinements) ? refinements : [refinements]
+    ).filter((refinement) => refinement !== null && refinement !== undefined);
+
+    if (refinementsArray.length > 0) {
+      functions.push(['refine', refinementsArray]);
+    }
+  }
+
   if (!required && nullable) {
     functions.push(['nullish', undefined]);
   } else if (nullable) {
@@ -2362,6 +2415,7 @@ const PARAMS_MODIFIER_VALIDATORS = new Set([
   'default',
   'prefault',
   'describe',
+  'refine',
   // Nullary / degenerate validators — either no params arg accepted in zod v3
   // (e.g. .unknown(), .any(), .never(), .null(), .undefined(), .void()) or no
   // meaningful error to attach (unknown/any accept everything).
@@ -2591,10 +2645,17 @@ ${Object.entries(objectArgs)
           getObjectFunctionName(true, strict),
         );
       }
-      return renameMiniKeys(
+      rendered = renameMiniKeys(
         rendered,
         mergePropertyRenames(allOfArgs, Object.keys(mergedProperties)),
       );
+      for (const part of allOfArgs) {
+        rendered = {
+          ...rendered,
+          expr: appendZodRefinements(rendered.expr, part.functions, variant),
+        };
+      }
+      return rendered;
     };
 
     // Render a single discriminated-union branch as a `ZodObject` (see
@@ -2607,7 +2668,7 @@ ${Object.entries(objectArgs)
           member.functions[0][1] as ZodValidationSchemaDefinition[],
         );
         if (merged !== null) {
-          return merged.expr;
+          return appendZodRefinements(merged.expr, member.functions, variant);
         }
       }
       appendConstsChunk(member.consts.join('\n'));
@@ -2761,6 +2822,15 @@ ${Object.entries(objectArgs)
 
       if (fn === 'renameKeys') {
         current = renameMiniKeys(requireCurrent(fn), args as PropertyRename[]);
+        continue;
+      }
+
+      if (fn === 'refine') {
+        const value = requireCurrent(fn);
+        current = {
+          ...value,
+          expr: value.expr + renderZodRefine(args, variant),
+        };
         continue;
       }
 
@@ -2971,9 +3041,17 @@ ${Object.entries(mergedProperties)
       allOfArgs,
       Object.keys(mergedProperties),
     );
-    return renames.length > 0
-      ? `${objectString}.transform(${renderRenameTransform(renames)})`
-      : objectString;
+    if (renames.length > 0) {
+      objectString += `.transform(${renderRenameTransform(renames)})`;
+    }
+    for (const part of allOfArgs) {
+      objectString = appendZodRefinements(
+        objectString,
+        part.functions,
+        variant,
+      );
+    }
+    return objectString;
   }
 
   // Render a single discriminated-union branch as a `ZodObject`. `allOf`
@@ -2991,7 +3069,7 @@ ${Object.entries(mergedProperties)
         fieldPath,
       );
       if (merged !== null) {
-        return merged;
+        return appendZodRefinements(merged, member.functions, variant);
       }
     }
     appendConstsChunk(member.consts.join('\n'));
@@ -3026,6 +3104,10 @@ ${Object.entries(mergedProperties)
     if (fn === 'meta') {
       const metaArgs = buildMetaArgs(args as ZodMetaArgs);
       return metaArgs ? `.meta(${metaArgs})` : '';
+    }
+
+    if (fn === 'refine') {
+      return renderZodRefine(args, variant);
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
@@ -3576,6 +3658,7 @@ export const generateFormDataZodSchema = (
   isZodV4: boolean,
   encoding?: Record<string, { contentType?: string }>,
   useReusableSchemas?: boolean,
+  schemaExtension?: SchemaExtension,
 ): ZodValidationSchemaDefinition => {
   if (typeof schema !== 'object') {
     return generateZodValidationSchemaDefinition(
@@ -3584,7 +3667,7 @@ export const generateFormDataZodSchema = (
       name,
       strict,
       isZodV4,
-      { required: true, useReusableSchemas },
+      { required: true, useReusableSchemas, schemaExtension },
     );
   }
 
@@ -3647,6 +3730,7 @@ export const generateFormDataZodSchema = (
           ? propertyOverrides
           : undefined,
       useReusableSchemas,
+      schemaExtension,
     },
   );
 };
@@ -3688,6 +3772,7 @@ const parseBodyAndResponse = ({
   isZodV4,
   parseType,
   useReusableSchemas,
+  schemaExtension,
 }: {
   data:
     | OpenApiResponseObject
@@ -3701,6 +3786,7 @@ const parseBodyAndResponse = ({
   isZodV4: boolean;
   parseType: 'body' | 'response';
   useReusableSchemas?: boolean;
+  schemaExtension?: SchemaExtension;
 }): {
   input: ZodValidationSchemaDefinition;
   isArray: boolean;
@@ -3822,6 +3908,7 @@ const parseBodyAndResponse = ({
         {
           required: true,
           useReusableSchemas,
+          schemaExtension,
           urlEncoded: isFormUrlEncoded,
         },
       ),
@@ -3857,6 +3944,7 @@ const parseBodyAndResponse = ({
           isZodV4,
           encoding,
           useReusableSchemas,
+          schemaExtension,
         )
       : generateZodValidationSchemaDefinition(
           effectiveSchema,
@@ -3864,7 +3952,12 @@ const parseBodyAndResponse = ({
           name,
           strict,
           isZodV4,
-          { required: true, useReusableSchemas, urlEncoded: isFormUrlEncoded },
+          {
+            required: true,
+            useReusableSchemas,
+            schemaExtension,
+            urlEncoded: isFormUrlEncoded,
+          },
         ),
     isArray: false,
   };
@@ -4011,6 +4104,7 @@ export const parseParameters = ({
   strict,
   generate,
   useReusableSchemas,
+  schemaExtension,
 }: {
   data: (OpenApiParameterObject | OpenApiReferenceObject)[] | undefined;
   context: ContextSpec;
@@ -4031,6 +4125,7 @@ export const parseParameters = ({
     response: boolean;
   };
   useReusableSchemas?: boolean;
+  schemaExtension?: SchemaExtension;
 }): {
   headers: ZodValidationSchemaDefinition;
   queryParams: ZodValidationSchemaDefinition;
@@ -4124,6 +4219,7 @@ export const parseParameters = ({
       {
         required: parameter.required,
         useReusableSchemas,
+        schemaExtension,
         constNameRegistry,
       },
     );
@@ -4222,6 +4318,8 @@ const generateZodRoute = async (
   assertZodTarget({ variant: zodVariant, isZodV4 });
   const useReusableSchemas =
     context.output.override.zod.generateReusableSchemas;
+  const schemaExtension =
+    override.zod.schemaExtension ?? context.output.override.zod.schemaExtension;
   const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
@@ -4242,6 +4340,7 @@ const generateZodRoute = async (
     strict: override.zod.strict,
     generate: override.zod.generate,
     useReusableSchemas,
+    schemaExtension,
   });
 
   const requestBody = operation?.requestBody;
@@ -4254,6 +4353,7 @@ const generateZodRoute = async (
     isZodV4,
     parseType: 'body',
     useReusableSchemas,
+    schemaExtension,
   });
 
   const responses = (
@@ -4271,6 +4371,7 @@ const generateZodRoute = async (
       isZodV4,
       parseType: 'response',
       useReusableSchemas,
+      schemaExtension,
     }),
   );
 

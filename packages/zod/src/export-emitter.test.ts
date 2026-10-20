@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { renderZodExport } from './export-emitter';
+import {
+  appendZodRefinements,
+  renderZodExport,
+  renderZodRefine,
+} from './export-emitter';
 
 describe('renderZodExport', () => {
   it('renders a plain export const with no brand and no companion types', () => {
@@ -236,5 +240,102 @@ describe('renderZodExport', () => {
           'export type CategoryOutput = zod.output<typeof Category>;',
       );
     });
+  });
+});
+
+const isNonEmptyString = (value: unknown) =>
+  typeof value === 'string' && value.length > 0;
+const isShortString = (value: unknown) =>
+  typeof value === 'string' && value.length <= 10;
+
+const nonEmptyDescriptor = { callable: isNonEmptyString, bindings: null };
+const shortStringDescriptor = { callable: isShortString, bindings: null };
+
+describe('schemaExtension refinement emission', () => {
+  it('renders each predicate as a separate classic Zod .refine()', () => {
+    expect(renderZodRefine([nonEmptyDescriptor, shortStringDescriptor])).toBe(
+      `.refine((${isNonEmptyString.toString()}))` +
+        `.refine((${isShortString.toString()}))`,
+    );
+  });
+
+  it('renders refinements for Zod Mini using .check(zod.refine(...))', () => {
+    expect(renderZodRefine([nonEmptyDescriptor], 'mini')).toBe(
+      `.check(/*#__PURE__*/ zod.refine((${isNonEmptyString.toString()})))`,
+    );
+  });
+
+  it('accepts an individual descriptor and an empty list', () => {
+    expect(renderZodRefine(nonEmptyDescriptor, 'classic')).toBe(
+      `.refine((${isNonEmptyString.toString()}))`,
+    );
+    expect(renderZodRefine([])).toBe('');
+  });
+
+  it('rejects raw functions and invalid descriptors', () => {
+    const invalidInputs: unknown[] = [
+      isNonEmptyString,
+      [isNonEmptyString],
+      'not a descriptor',
+      { callable: isNonEmptyString },
+      { callable: 42, bindings: null },
+      { callable: isNonEmptyString, bindings: [] },
+      { callable: isNonEmptyString, bindings: 1 },
+    ];
+
+    for (const input of invalidInputs) {
+      expect(() => renderZodRefine(input)).toThrow(
+        'schemaExtension must return refinement descriptors',
+      );
+    }
+  });
+
+  it('rejects native callables even inside otherwise valid descriptors', () => {
+    expect(() =>
+      renderZodRefine({ callable: Math.max, bindings: null }),
+    ).toThrow('Cannot serialize a native callable as a refinement');
+  });
+
+  it('allows each descriptor to capture values from its generator scope', () => {
+    const maximum = 9;
+    const callable = (value: number) => value <= maximum;
+    const emitted = renderZodRefine({ callable, bindings: { maximum } });
+
+    expect(emitted).toBe(
+      `.refine((() => {\n  const maximum = 9;\n  return (${callable.toString()});\n})())`,
+    );
+  });
+
+  it('appends refinement descriptors in order and ignores non-refinement entries', () => {
+    const expression = appendZodRefinements('zod.string()', [
+      ['refine', [nonEmptyDescriptor]],
+      ['describe', "'name'"],
+      ['refine', [shortStringDescriptor]],
+      ['optional', undefined],
+    ]);
+
+    expect(expression).toBe(
+      `zod.string().refine((${isNonEmptyString.toString()}))` +
+        `.refine((${isShortString.toString()}))`,
+    );
+  });
+
+  it('rejects raw function entries forwarded through appendZodRefinements', () => {
+    expect(() =>
+      appendZodRefinements('zod.string()', [['refine', [isNonEmptyString]]]),
+    ).toThrow('schemaExtension must return refinement descriptors');
+  });
+
+  it('appends Zod Mini refinements without rewriting the existing expression', () => {
+    expect(
+      appendZodRefinements(
+        '/*#__PURE__*/ zod.object({})',
+        [['refine', [nonEmptyDescriptor]]],
+        'mini',
+      ),
+    ).toBe(
+      '/*#__PURE__*/ zod.object({})' +
+        `.check(/*#__PURE__*/ zod.refine((${isNonEmptyString.toString()})))`,
+    );
   });
 });
