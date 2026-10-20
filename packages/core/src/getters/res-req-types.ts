@@ -874,23 +874,63 @@ function unwrapNullableSchema(
 /**
  * With `useDates`, `format: date` / `date-time` strings are typed `Date`, but
  * `FormData` and `URLSearchParams` would stringify a `Date` with
- * `Date.prototype.toString()`. Returns the call that renders it as ISO 8601
- * instead (`YYYY-MM-DD` for `format: date`), or `''` for any other schema.
+ * `Date.prototype.toString()`. Returns a function that renders the given
+ * expression as ISO 8601 instead (`YYYY-MM-DD` for `format: date`), or
+ * `undefined` for any other schema.
+ *
+ * When the value may be something other than a `Date` (a multi-type schema
+ * such as `['string', 'number']`, or an array item that may be `null`), the
+ * conversion is guarded with `instanceof Date` so other values pass through.
  */
 function getDateSerializer(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
-): string {
+  { nullable = false }: { nullable?: boolean } = {},
+): ((expr: string) => string) | undefined {
   if (!context.output.override.useDates || isBooleanJsonSchema(schema)) {
-    return '';
+    return undefined;
   }
   const type = getSchemaType(schema);
   if (type !== 'string' && !(Array.isArray(type) && type.includes('string'))) {
-    return '';
+    return undefined;
   }
-  if (schema.format === 'date-time') return '.toISOString()';
-  if (schema.format === 'date') return '.toISOString().slice(0, 10)';
-  return '';
+  let toIso: (expr: string) => string;
+  if (schema.format === 'date-time') {
+    toIso = (expr) => `${expr}.toISOString()`;
+  } else if (schema.format === 'date') {
+    toIso = (expr) => `${expr}.toISOString().slice(0, 10)`;
+  } else {
+    return undefined;
+  }
+
+  const hasOtherTypes =
+    Array.isArray(type) && type.some((t) => t !== 'string' && t !== 'null');
+  if (!hasOtherTypes && !nullable) {
+    return toIso;
+  }
+  return (expr) =>
+    `${expr} instanceof Date ? ${toIso(expr)} : ${
+      hasOtherTypes && !nullable ? `${expr}.toString()` : expr
+    }`;
+}
+
+/**
+ * Whether an array item may be `null`, including an `anyOf`/`oneOf` wrapper
+ * whose null branch is a `$ref` (which `isSchemaNullable` does not resolve).
+ */
+function isItemNullable(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): boolean {
+  if (isSchemaNullable(schema)) {
+    return true;
+  }
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  return [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])].some((branch) =>
+    isNullSchema(resolveSchemaRef(branch, context).schema),
+  );
 }
 
 /**
@@ -1149,12 +1189,13 @@ function resolveSchemaPropertiesToFormData({
           }
         } else {
           const itemType = getSchemaType(resolvedItem);
-          // Nullable items are left as is: there is no null guard per item.
-          const itemDateSerializer = isSchemaNullable(resolvedItem)
-            ? ''
-            : getDateSerializer(itemSchema, context);
+          // There is no null guard per item, so a nullable item gets a
+          // conversion that lets `null` through.
+          const itemDateSerializer = getDateSerializer(itemSchema, context, {
+            nullable: isItemNullable(resolvedItem, context),
+          });
           if (itemDateSerializer) {
-            valueStr = `value${itemDateSerializer}`;
+            valueStr = itemDateSerializer('value');
           } else if (
             itemType === 'number' ||
             (Array.isArray(itemType) && itemType.includes('number')) ||
@@ -1178,7 +1219,7 @@ function resolveSchemaPropertiesToFormData({
         formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
       }
     } else if (dateSerializer) {
-      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey}${dateSerializer})\n`;
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${dateSerializer(nonOptionalValueKey)})\n`;
     } else if (
       (() => {
         const propType = getSchemaType(property);

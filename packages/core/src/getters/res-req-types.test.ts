@@ -740,6 +740,84 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       );
       expect(result.formData).not.toContain('toISOString');
     });
+
+    it('converts only Date values for a multi-type date field', () => {
+      const result = getResReqTypes(
+        [
+          [
+            'requestBody',
+            {
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    required: ['when'],
+                    properties: {
+                      when: { type: ['string', 'number'], format: 'date-time' },
+                    },
+                  },
+                },
+              },
+              required: true,
+            },
+          ],
+        ],
+        'Event',
+        useDatesContext,
+      )[0];
+
+      expect(result.formData).toContain(
+        'formData.append(`when`, eventRequestBody.when instanceof Date ? eventRequestBody.when.toISOString() : eventRequestBody.when.toString())',
+      );
+    });
+
+    it('lets null array items through when the null branch is a $ref', () => {
+      const ctx = extendContext({
+        override: { useDates: true },
+        spec: {
+          components: {
+            schemas: {
+              Timestamp: { type: 'string', format: 'date-time' },
+              Nothing: { type: 'null' },
+            },
+          },
+        },
+      });
+      const result = getResReqTypes(
+        [
+          [
+            'requestBody',
+            {
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      history: {
+                        type: 'array',
+                        items: {
+                          anyOf: [
+                            { $ref: '#/components/schemas/Timestamp' },
+                            { $ref: '#/components/schemas/Nothing' },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              required: true,
+            },
+          ],
+        ],
+        'Event',
+        ctx,
+      )[0];
+
+      expect(result.formData).toContain(
+        'formData.append(`history`, value instanceof Date ? value.toISOString() : value)',
+      );
+    });
   });
 
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
