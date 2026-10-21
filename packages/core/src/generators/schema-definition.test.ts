@@ -842,4 +842,84 @@ describe('generateSchemasDefinition', () => {
       ).toContain('avatar?: Blob | File');
     });
   });
+
+  describe('useBrandedTypes', () => {
+    const generate = (
+      schemas: OpenApiSchemasObject,
+      override: CreateTestContextSpecOptions['override'] = {
+        useBrandedTypes: true,
+      },
+    ) =>
+      Object.fromEntries(
+        generateSchemasDefinition(
+          schemas,
+          withContext({ override, spec: { components: { schemas } } }),
+          '',
+        ).map((schema) => [schema.name, schema.model]),
+      );
+
+    it('brands named schemas that resolve to a primitive', () => {
+      const models = generate({
+        UserId: { type: 'string', format: 'uuid' },
+        Quantity: { type: 'integer' },
+        Active: { type: 'boolean' },
+      });
+
+      expect(models.UserId).toBe(
+        "export type UserId = string & { readonly __orvalBrand: 'UserId' };\n",
+      );
+      expect(models.Quantity).toBe(
+        "export type Quantity = number & { readonly __orvalBrand: 'Quantity' };\n",
+      );
+      expect(models.Active).toBe(
+        "export type Active = boolean & { readonly __orvalBrand: 'Active' };\n",
+      );
+    });
+
+    it('keeps null outside the brand for nullable primitives', () => {
+      const models = generate({ Nickname: { type: ['string', 'null'] } });
+
+      expect(models.Nickname).toContain(
+        "export type Nickname = (string & { readonly __orvalBrand: 'Nickname' }) | null;",
+      );
+    });
+
+    it('brands Date and bigint substitutions', () => {
+      const models = generate(
+        {
+          CreatedAt: { type: 'string', format: 'date-time' },
+          Counter: { type: 'integer', format: 'int64' },
+        },
+        { useBrandedTypes: true, useDates: true, useBigInt: true },
+      );
+
+      expect(models.CreatedAt).toContain(
+        "Date & { readonly __orvalBrand: 'CreatedAt' }",
+      );
+      expect(models.Counter).toContain(
+        "bigint & { readonly __orvalBrand: 'Counter' }",
+      );
+    });
+
+    it('leaves enums, binaries, aliases and objects untouched', () => {
+      const models = generate({
+        Status: { type: 'string', enum: ['active', 'inactive'] },
+        Upload: { type: 'string', format: 'binary' },
+        Alias: { $ref: '#/components/schemas/UserId' },
+        UserId: { type: 'string' },
+        User: { type: 'object', properties: { id: { type: 'string' } } },
+      });
+
+      expect(models.Status).not.toContain('__orvalBrand');
+      expect(models.Upload).toBe('export type Upload = Blob;\n');
+      expect(models.Alias).toBe('export type Alias = UserId;\n');
+      expect(models.User).not.toContain('__orvalBrand');
+    });
+
+    it('is off by default', () => {
+      const models = generate({ UserId: { type: 'string' } }, {});
+
+      expect(models.UserId).toBe('export type UserId = string;\n');
+    });
+  });
 });

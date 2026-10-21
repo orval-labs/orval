@@ -5,6 +5,7 @@ import {
   isInlineSchema,
   getRequiredKeys,
   getStringLiteralType,
+  isBrandablePrimitiveSchema,
   isFunction,
   isSchemaNullable,
   type MockOptions,
@@ -575,6 +576,19 @@ export function resolveMockValue({
     }
 
     mergeReturnedMockImports(imports, importsBefore, scalar.imports);
+
+    if (
+      context.output.override.useBrandedTypes &&
+      isComponentsSchemaRef(refPaths) &&
+      isBrandablePrimitiveSchema(schemaRef)
+    ) {
+      scalar.value = `${scalar.value} as ${name}`;
+      const typeImport: GeneratorImport = { name, values: false };
+      scalar.imports.push(typeImport);
+      if (scalar.imports !== imports) {
+        imports.push(typeImport);
+      }
+    }
 
     return {
       ...scalar,

@@ -281,3 +281,77 @@ describe('getMockWithoutFunc (override.mock.exactOptional)', () => {
     expect(result.exactOptional).toBe(true);
   });
 });
+
+describe('getResponsesMockDefinition (useBrandedTypes)', () => {
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          UserId: { type: 'string', format: 'uuid' },
+          Status: { type: 'string', enum: ['active'] },
+        },
+      },
+    } as never,
+    override: { useBrandedTypes: true },
+  });
+  const define = (
+    response: Partial<ResReqTypesValue>,
+    mockOptions?: Parameters<
+      typeof getResponsesMockDefinition
+    >[0]['mockOptions'],
+  ) =>
+    getResponsesMockDefinition({
+      operationId: 'createUser',
+      tags: [],
+      returnType: response.value ?? '',
+      responses: [createTestResReqTypesValue(response)],
+      mockOptionsWithoutFunc: {},
+      mockOptions,
+      context,
+      splitMockImplementations: [],
+    }).definitions[0];
+
+  it('casts a response that is a direct primitive $ref', () => {
+    expect(
+      define({
+        value: 'UserId',
+        originalSchema: { $ref: '#/components/schemas/UserId' },
+        imports: [{ name: 'UserId' }],
+        isRef: true,
+        type: 'string',
+      }),
+    ).toBe('faker.string.uuid() as UserId');
+  });
+
+  it('casts the example literal as well', () => {
+    expect(
+      define(
+        {
+          value: 'UserId',
+          originalSchema: { $ref: '#/components/schemas/UserId' },
+          example: 'u_1',
+          imports: [{ name: 'UserId' }],
+          isRef: true,
+          type: 'string',
+        },
+        { type: 'msw', useExamples: true },
+      ),
+    ).toBe('"u_1" as UserId');
+  });
+
+  it('leaves enum refs and inline primitives alone', () => {
+    expect(
+      define({
+        value: 'Status',
+        originalSchema: { $ref: '#/components/schemas/Status' },
+        imports: [{ name: 'Status' }],
+        isRef: true,
+        isEnum: true,
+        type: 'string',
+      }),
+    ).not.toContain(' as Status');
+    expect(
+      define({ value: 'string', originalSchema: { type: 'string' } }),
+    ).not.toContain(' as ');
+  });
+});

@@ -3554,6 +3554,7 @@ describe('normalizeOptions', () => {
       );
 
       expect(options.output.override.useDatesTransform).toBe(false);
+      expect(options.output.override.useBrandedTypes).toBe(false);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

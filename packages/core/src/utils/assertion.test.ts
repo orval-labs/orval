@@ -4,6 +4,7 @@ import { SchemaType, Verbs } from '../types';
 import {
   assertSafeNumericConstraint,
   isBoolean,
+  isBrandablePrimitiveSchema,
   isDirectory,
   isDynamicReference,
   isFunction,
@@ -270,5 +271,25 @@ describe('safeNumericConstraint', () => {
     expect(() =>
       safeNumericConstraint('1); globalThis.pwned=1; void(0', 'minItems'),
     ).toThrow(/"minItems" constraint is not a finite number/);
+  });
+});
+
+describe('isBrandablePrimitiveSchema', () => {
+  it.each([
+    [{ type: 'string', format: 'uuid' }, true],
+    [{ type: ['string', 'null'] }, true],
+    [{ type: 'integer' }, true],
+    [{ type: 'number' }, true],
+    [{ type: 'boolean' }, true],
+    [{ type: 'string', enum: ['a', 'b'] }, false],
+    [{ type: 'string', const: 'a' }, false],
+    [{ type: 'string', default: 'anon' }, false],
+    [{ type: 'object' }, false],
+    [{ type: ['string', 'number'] }, false],
+    [{ anyOf: [{ type: 'string' }, { type: 'null' }] }, false],
+    [{ $ref: '#/components/schemas/Other' }, false],
+    [true, false],
+  ])('%j -> %s', (schema, expected) => {
+    expect(isBrandablePrimitiveSchema(schema)).toBe(expected);
   });
 });

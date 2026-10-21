@@ -1142,6 +1142,7 @@ export async function normalizeOptions(
           (outputOptions.override?.useDates ?? false) ||
           (outputOptions.override?.useDatesTransform ?? false),
         useDatesTransform: outputOptions.override?.useDatesTransform ?? false,
+        useBrandedTypes: outputOptions.override?.useBrandedTypes ?? false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:

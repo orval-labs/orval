@@ -3,6 +3,7 @@ import {
   generalJSTypesWithArray,
   type GeneratorImport,
   type GlobalMockOptions,
+  isBrandablePrimitiveSchema,
   isFunction,
   type MockOptions,
   type NormalizedOverrideOutput,
@@ -248,6 +249,19 @@ export function getResponsesMockDefinition({
         ? originalSchema
         : undefined;
 
+    const brandCast =
+      context.output.override.useBrandedTypes &&
+      isRef &&
+      schemaObject &&
+      isBrandablePrimitiveSchema(
+        resolveRef<OpenApiSchemaObject>(
+          schemaObject as OpenApiReferenceObject,
+          context,
+        ).schema,
+      )
+        ? ` as ${definition}`
+        : '';
+
     if (context.output.override.mock?.useExamples || mockOptions?.useExamples) {
       const exampleValue = unwrapExampleValue(
         example ??
@@ -257,11 +271,11 @@ export function getResponsesMockDefinition({
       );
 
       if (exampleValue !== undefined) {
-        const formatted = formatSchemaExampleValue(
+        const formatted = `${formatSchemaExampleValue(
           exampleValue,
           originalSchema,
           context,
-        );
+        )}${brandCast}`;
         result.definitions.push(
           transformer ? transformer(formatted, returnType) : formatted,
         );
@@ -322,8 +336,9 @@ export function getResponsesMockDefinition({
     if (scalar.imports !== responseImports) {
       appendImportsDelta(result.imports, scalar.imports, 0);
     }
+    const value = `${scalar.value}${brandCast}`;
     result.definitions.push(
-      transformer ? transformer(scalar.value, returnType) : scalar.value,
+      transformer ? transformer(value, returnType) : value,
     );
   }
 
