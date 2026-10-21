@@ -742,6 +742,7 @@ export function generateZodSchemasInline(
   includeZodImport = true,
   paramsMutator?: GeneratorMutator,
   includeParamsImport = false,
+  sharedConstNameRegistry?: Record<string, number>,
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
@@ -753,6 +754,7 @@ export function generateZodSchemasInline(
       includeZodImport,
       paramsMutator,
       includeParamsImport,
+      sharedConstNameRegistry,
     );
   }
 
@@ -772,7 +774,7 @@ export function generateZodSchemasInline(
   const schemas: ZodSchemaFileEntry[] = [];
   // Shared across schemas: an inlined `$ref` can derive the same const name as
   // another schema's own property (e.g. `NetIface.cfg.mtu` vs `NetIfaceCfg.mtu`).
-  const constNameRegistry: Record<string, number> = {};
+  const constNameRegistry = sharedConstNameRegistry ?? {};
 
   for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
     const context: ContextSpec = {
@@ -834,6 +836,7 @@ function generateZodSchemasInlineReusable(
   includeZodImport = true,
   paramsMutator?: GeneratorMutator,
   includeParamsImport = false,
+  constNameRegistry?: Record<string, number>,
 ): string {
   const isZodV4 = resolveIsZodV4(
     output.override.zod.version,
@@ -875,6 +878,7 @@ function generateZodSchemasInlineReusable(
     generateMeta: output.override.zod.generateMeta,
     exactOptional: output.override.zod.exactOptional,
     paramsMutator,
+    constNameRegistry,
   });
 
   const rewritten = rewriteReusableSchemas(entries);
@@ -1229,6 +1233,7 @@ function generateZodSchemasFromVerbs(
   context: WriteZodSchemasFromVerbsContext,
   schemaTagMap?: SchemaTagMap,
   schemaOutputPlan?: SchemaOutputPlan,
+  constNameRegistry?: Record<string, number>,
 ) {
   const isSplit = !!schemaTagMap;
   const zodContext = context as unknown as ContextSpec;
@@ -1554,6 +1559,7 @@ function generateZodSchemasFromVerbs(
                 | undefined)
             : undefined,
           useReusableSchemas,
+          constNameRegistry,
         )
       : generateZodValidationSchemaDefinition(
           schema,
@@ -1564,6 +1570,7 @@ function generateZodSchemasFromVerbs(
           {
             required: true,
             useReusableSchemas,
+            constNameRegistry,
           },
         );
 
@@ -1714,12 +1721,18 @@ export async function writeZodSchemasSingle(
   context: WriteZodSchemasFromVerbsContext,
   paramsMutator?: GeneratorMutator,
 ): Promise<void> {
+  // Operation and component schemas land in one module, so their constraint
+  // consts must be deduplicated against each other.
+  const constNameRegistry: Record<string, number> = {};
   const { schemasToWrite } = generateZodSchemasFromVerbs(
     verbOptions,
     schemasPath,
     fileExtension,
     output,
     context,
+    undefined,
+    undefined,
+    constNameRegistry,
   );
   const operationNames = new Set(
     schemasToWrite.map((entry) => entry.schemaName),
@@ -1735,6 +1748,7 @@ export async function writeZodSchemasSingle(
     false,
     paramsMutator,
     true,
+    constNameRegistry,
   );
   const operations = generateZodSchemaFileContent(
     '',

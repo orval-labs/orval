@@ -9,6 +9,7 @@ import {
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
+  writeZodSchemasSingle,
 } from './write-zod-specs';
 
 interface MinimalVerbsContext {
@@ -584,6 +585,84 @@ describe('component schema constraint const names (#4343)', () => {
 
     expect(constNames.length).toBeGreaterThan(0);
     expect(new Set(constNames).size).toBe(constNames.length);
+  });
+
+  it('keeps const names unique across operation and component schemas in single-file mode', async () => {
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas.ts');
+    // Operation response `GetPet200.mtu` and component `Get.pet200Mtu` both
+    // derive the const prefix `getPet200Mtu`.
+    const spec = {
+      openapi: '3.1.0',
+      info: { title: 'test', version: '1.0.0' },
+      components: {
+        schemas: {
+          Get: {
+            type: 'object',
+            properties: { pet200Mtu: { type: 'integer', minimum: 68 } },
+          },
+        },
+      },
+    };
+    const verbOptions = {
+      getPet: {
+        operationName: 'getPet',
+        typeName: 'getPet',
+        originalOperation: { parameters: [] },
+        response: {
+          types: {
+            success: [
+              {
+                value: 'GetPet200',
+                originalSchema: {
+                  type: 'object',
+                  properties: { mtu: { type: 'integer', minimum: 68 } },
+                },
+              },
+            ],
+            errors: [],
+          },
+        },
+      },
+    } as never;
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: spec as never,
+      target: '',
+      workspace: root,
+    } satisfies MinimalVerbsContext;
+
+    try {
+      await writeZodSchemasSingle(
+        {
+          spec: spec as never,
+          target: '',
+          schemas: [
+            { name: 'Get', schema: { $ref: '#/components/schemas/Get' } },
+          ],
+        },
+        verbOptions,
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+        context,
+      );
+
+      const constNames = getExportedConstNames(
+        await fs.promises.readFile(schemasPath, 'utf8'),
+      );
+
+      expect(constNames).toHaveLength(2);
+      expect(new Set(constNames).size).toBe(constNames.length);
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
   });
 });
 
