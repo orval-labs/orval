@@ -481,6 +481,112 @@ describe('write-zod-specs regressions', () => {
   });
 });
 
+describe('component schema constraint const names (#4343)', () => {
+  // `NetIface.cfg.mtu` (inlined from the `NetIfaceCfg` ref) and
+  // `NetIfaceCfg.mtu` both derive the const prefix `NetIfaceCfgMtu`.
+  const createBuilder = () =>
+    ({
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+        components: {
+          schemas: {
+            NetIface: {
+              type: 'object',
+              properties: {
+                cfg: {
+                  $ref: '#/components/schemas/NetIfaceCfg',
+                  description: 'The configuration settings',
+                },
+              },
+              required: ['cfg'],
+            },
+            NetIfaceCfg: {
+              type: 'object',
+              properties: {
+                mtu: { type: 'integer', minimum: 68, maximum: 65_535 },
+              },
+              required: ['mtu'],
+            },
+            Net: {
+              type: 'object',
+              properties: {
+                ifaceCfgMtu: { type: 'integer', minimum: 2 },
+              },
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'NetIface', schema: { $ref: '#/components/schemas/NetIface' } },
+        {
+          name: 'NetIfaceCfg',
+          schema: { $ref: '#/components/schemas/NetIfaceCfg' },
+        },
+        { name: 'Net', schema: { $ref: '#/components/schemas/Net' } },
+      ],
+    }) satisfies Parameters<typeof writeZodSchemas>[0];
+
+  const getExportedConstNames = (content: string) =>
+    [...content.matchAll(/^export const (\w+) = (?!zod)/gm)].map(
+      ([, constName]) => constName,
+    );
+
+  it('keeps const names unique across files sharing a barrel', async () => {
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    try {
+      await writeZodSchemas(
+        createBuilder(),
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+      );
+
+      const files = await fs.promises.readdir(schemasPath);
+      const contents = await Promise.all(
+        files
+          .filter((file) => file !== 'index.ts')
+          .map((file) =>
+            fs.promises.readFile(path.join(schemasPath, file), 'utf8'),
+          ),
+      );
+      const constNames = contents.flatMap(getExportedConstNames);
+
+      expect(constNames.length).toBeGreaterThan(0);
+      expect(new Set(constNames).size).toBe(constNames.length);
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps const names unique within a single inline file', () => {
+    const result = generateZodSchemasInline(
+      createBuilder(),
+      createOutputOptions(),
+    );
+    const constNames = getExportedConstNames(result);
+
+    expect(constNames.length).toBeGreaterThan(0);
+    expect(new Set(constNames).size).toBe(constNames.length);
+  });
+
+  it('keeps const names unique with generateReusableSchemas', () => {
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(createBuilder(), output);
+    const constNames = getExportedConstNames(result);
+
+    expect(constNames.length).toBeGreaterThan(0);
+    expect(new Set(constNames).size).toBe(constNames.length);
+  });
+});
+
 describe('writeZodSchemas with generateReusableSchemas', () => {
   it('emits cross-file imports instead of inlining $refs', async () => {
     const root = await fs.promises.mkdtemp(

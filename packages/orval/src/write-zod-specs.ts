@@ -770,6 +770,9 @@ export function generateZodSchemasInline(
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const schemas: ZodSchemaFileEntry[] = [];
+  // Shared across schemas: an inlined `$ref` can derive the same const name as
+  // another schema's own property (e.g. `NetIface.cfg.mtu` vs `NetIfaceCfg.mtu`).
+  const constNameRegistry: Record<string, number> = {};
 
   for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
     const context: ContextSpec = {
@@ -790,6 +793,7 @@ export function generateZodSchemasInline(
       {
         required: true,
         emitMeta: output.override.zod.generateMeta,
+        constNameRegistry,
       },
     );
 
@@ -944,6 +948,9 @@ export async function writeZodSchemas(
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
+  // Shared across schemas so consts stay unique within the barrel that
+  // re-exports every file (e.g. `NetIface.cfg.mtu` vs `NetIfaceCfg.mtu`).
+  const constNameRegistry: Record<string, number> = {};
 
   for (const generatorSchema of schemasWithOpenApiDef) {
     const { name, schema: schemaObject } = generatorSchema;
@@ -981,6 +988,7 @@ export async function writeZodSchemas(
       {
         required: true,
         emitMeta: output.override.zod.generateMeta,
+        constNameRegistry,
       },
     );
 

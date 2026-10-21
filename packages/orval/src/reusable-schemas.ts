@@ -121,6 +121,9 @@ export const generateReusableSchemaSet = (
   const queue = [...refs];
   const seen = new Set<string>(refs);
   const entries: ReusableSchemaEntry[] = [];
+  // Shared across schemas so derived const names (e.g. `Net.ifaceCfgMtu` vs
+  // `NetIfaceCfg.mtu`) stay unique in the shared file or barrel.
+  const constNameRegistry: Record<string, number> = {};
 
   for (const ref of queue) {
     const schemaName = ref.slice('#/components/schemas/'.length);
@@ -147,6 +150,7 @@ export const generateReusableSchemaSet = (
         required: true,
         useReusableSchemas: true,
         emitMeta: options.generateMeta,
+        constNameRegistry,
       },
     );
 
