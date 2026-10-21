@@ -412,6 +412,7 @@ describe('generateRequestFunction — form-style object query parameters', () =>
       GeneratorVerbOptions['queryParams']
     >['objectQueryParams'],
     params: Record<string, unknown>,
+    useDates = false,
   ) => {
     const verbOptions = makeVerbOptions({
       queryParams: { ...STUB_QUERY_PARAMS, objectQueryParams },
@@ -419,7 +420,7 @@ describe('generateRequestFunction — form-style object query parameters', () =>
     });
     const implementation = generateImplementation(
       verbOptions,
-      makeOptions(makeContext(parameters)),
+      makeOptions(makeContext(parameters, useDates)),
     );
     const urlHelper = /export const getListPetsUrl = [\s\S]*?\n}\n/.exec(
       implementation,
@@ -429,8 +430,10 @@ describe('generateRequestFunction — form-style object query parameters', () =>
       (urlHelper ?? '').replace('export ', ''),
       { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
     );
+    // Share the host `Date` so `instanceof Date` holds inside the sandbox.
     const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
       URLSearchParams,
+      Date,
     }) as (params: Record<string, unknown>) => string;
     return getListPetsUrl(params);
   };
@@ -451,6 +454,45 @@ describe('generateRequestFunction — form-style object query parameters', () =>
         { page: { number: 2, size: 20 } },
       ),
     ).toBe(`/pets?page=${encodeURIComponent('number,2,size,20')}`);
+  });
+
+  const rangeParameter: TestParameter = {
+    name: 'range',
+    in: 'query',
+    schema: {
+      type: 'object',
+      properties: {
+        since: { type: 'string', format: 'date-time' },
+        limit: { type: 'integer' },
+      },
+    },
+  };
+  const since = new Date(Date.UTC(2026, 0, 2, 3, 4, 5));
+
+  it('serializes Date properties with toISOString() when useDates is set (form, explode: true)', () => {
+    expect(
+      buildUrl(
+        [rangeParameter],
+        [{ key: 'range', strategy: 'flatten' }],
+        { range: { since, limit: null } },
+        true,
+      ),
+    ).toBe(
+      `/pets?since=${encodeURIComponent('2026-01-02T03:04:05.000Z')}&limit=null`,
+    );
+  });
+
+  it('serializes Date properties with toISOString() when useDates is set (form, explode: false)', () => {
+    expect(
+      buildUrl(
+        [{ ...rangeParameter, explode: false }],
+        [{ key: 'range', strategy: 'comma' }],
+        { range: { since, limit: null } },
+        true,
+      ),
+    ).toBe(
+      `/pets?range=${encodeURIComponent('since,2026-01-02T03:04:05.000Z,limit,null')}`,
+    );
   });
 
   it('keeps scalar params alongside an object param', () => {

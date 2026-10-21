@@ -40,6 +40,7 @@ import {
   needsHttpStatusCodeTypes,
   type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
+  type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
@@ -323,20 +324,22 @@ const generateRequestFunctionParts = (
     (parameter) => parameter.name,
   );
 
+  const hasDateTimeProperty = (parameter: OpenApiParameterWithSchemaObject) => {
+    const { schema } = resolveSchemaRef(parameter.schema, context);
+
+    if (!schema.properties) {
+      return false;
+    }
+
+    return Object.values(schema.properties).some((prop) => {
+      const { schema: propSchema } = resolveSchemaRef(prop, context);
+      return propSchema.format === 'date-time';
+    });
+  };
+
   const hasDeepObjectDateParams =
     context.output.override.useDates &&
-    deepObjectParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-
-      if (!schema.properties) {
-        return false;
-      }
-
-      return Object.values(schema.properties).some((prop) => {
-        const { schema: propSchema } = resolveSchemaRef(prop, context);
-        return propSchema.format === 'date-time';
-      });
-    });
+    deepObjectParameters.some((parameter) => hasDateTimeProperty(parameter));
 
   const deepObjectImplementation =
     deepObjectParameters.length > 0
@@ -363,6 +366,18 @@ const generateRequestFunctionParts = (
   const commaObjectParameterNames = objectQueryParams
     .filter(({ strategy }) => strategy === 'comma')
     .map(({ key }) => key);
+  const objectQueryParamNames = new Set(
+    objectQueryParams.map(({ key }) => key),
+  );
+  const hasFormObjectDateParams =
+    context.output.override.useDates &&
+    parameterObjects.some(
+      (parameter) =>
+        isSchemaParameter(parameter) &&
+        objectQueryParamNames.has(parameter.name) &&
+        hasDateTimeProperty(parameter),
+    );
+  const formObjectSubValue = `${hasFormObjectDateParams ? 'subValue instanceof Date ? subValue.toISOString() : ' : ''}String(subValue)`;
 
   const formObjectImplementation = `${
     flattenObjectParameterNames.length > 0
@@ -371,7 +386,7 @@ const generateRequestFunctionParts = (
     if (typeof value === 'object' && value !== null && !Array.isArray(value) && flattenObjectParameters.includes(key)) {
       Object.entries(value).forEach(([subKey, subValue]) => {
         if (subValue !== undefined) {
-          normalizedParams.append(subKey, subValue === null ? 'null' : String(subValue));
+          normalizedParams.append(subKey, subValue === null ? 'null' : ${formObjectSubValue});
         }
       });
       return;
@@ -383,7 +398,7 @@ const generateRequestFunctionParts = (
       ? `const commaObjectParameters = ${JSON.stringify(commaObjectParameterNames)};
 
     if (typeof value === 'object' && value !== null && !Array.isArray(value) && commaObjectParameters.includes(key)) {
-      normalizedParams.append(key, Object.entries(value).filter(([, subValue]) => subValue !== undefined).map(([subKey, subValue]) => subKey + ',' + (subValue === null ? 'null' : String(subValue))).join(','));
+      normalizedParams.append(key, Object.entries(value).filter(([, subValue]) => subValue !== undefined).map(([subKey, subValue]) => subKey + ',' + (subValue === null ? 'null' : ${formObjectSubValue})).join(','));
       return;
     }
       `
