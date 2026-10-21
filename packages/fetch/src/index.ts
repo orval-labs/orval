@@ -36,6 +36,7 @@ import {
   needsHttpStatusCodeTypes,
   type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
+  type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
@@ -284,6 +285,44 @@ const generateRequestFunctionParts = (
     (parameter) => parameter.name,
   );
 
+  // `pipeDelimited` / `spaceDelimited` arrays join their items with `|` or a
+  // space. `explode` defaults to false for these styles; the exploded form is
+  // left to the generic handling. Checked before `arrayFormat`, which would
+  // otherwise claim them when `explode` is omitted.
+  const delimitedParameters = parameterObjects.filter(
+    (parameter): parameter is OpenApiParameterWithSchemaObject =>
+      isSchemaParameter(parameter) &&
+      parameter.in === 'query' &&
+      (parameter.style === 'pipeDelimited' ||
+        parameter.style === 'spaceDelimited') &&
+      parameter.explode !== true,
+  );
+  const delimitedParametersEntries = delimitedParameters.map((parameter) => [
+    parameter.name,
+    parameter.style === 'pipeDelimited' ? '|' : ' ',
+  ]);
+
+  const hasDelimitedDateParams =
+    context.output.override.useDates &&
+    delimitedParameters.some((parameter) => {
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return (
+        schema.items !== undefined &&
+        resolveSchemaRef(schema.items, context).schema.format === 'date-time'
+      );
+    });
+
+  const delimitedArrayImplementation =
+    delimitedParameters.length > 0
+      ? `const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});
+
+    if (Array.isArray(value) && delimitedParameters.has(key)) {
+      normalizedParams.append(key, value.map((v) => v === null ? 'null' : ${hasDelimitedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(delimitedParameters.get(key)));
+      return;
+    }
+      `
+      : '';
+
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some((parameter) => {
@@ -396,7 +435,7 @@ const generateRequestFunctionParts = (
           ? `  const normalizedParams = new URLSearchParams();
 ${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
+    ${delimitedArrayImplementation}${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
           : ''
