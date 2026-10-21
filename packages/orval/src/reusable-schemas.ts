@@ -89,6 +89,11 @@ export interface GenerateReusableSchemaSetOptions {
    * the injected params for shared definitions.
    */
   paramsMutator?: GeneratorMutator;
+  /**
+   * Const-name registry to share with other generators writing into the same
+   * module (e.g. operation schemas in single-file mode). Defaults to a fresh one.
+   */
+  constNameRegistry?: Record<string, number>;
 }
 
 /**
@@ -121,6 +126,9 @@ export const generateReusableSchemaSet = (
   const queue = [...refs];
   const seen = new Set<string>(refs);
   const entries: ReusableSchemaEntry[] = [];
+  // Shared across schemas so derived const names (e.g. `Net.ifaceCfgMtu` vs
+  // `NetIfaceCfg.mtu`) stay unique in the shared file or barrel.
+  const constNameRegistry = options.constNameRegistry ?? {};
 
   for (const ref of queue) {
     const schemaName = ref.slice('#/components/schemas/'.length);
@@ -147,6 +155,7 @@ export const generateReusableSchemaSet = (
         required: true,
         useReusableSchemas: true,
         emitMeta: options.generateMeta,
+        constNameRegistry,
       },
     );
 
