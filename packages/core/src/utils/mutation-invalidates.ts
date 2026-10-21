@@ -31,6 +31,10 @@ const infiniteQueryKeyFnNameFor = (operationName: string) =>
  *   name, which makes `GetNotes` and `getNotes` the same reference. The
  *   infinite variant's key function (`getNotesInfinite`) resolves as well.
  *
+ * A target with a `file` is imported from another module (typically another
+ * output), so it cannot be checked against this output's operations and is
+ * skipped. See #4341.
+ *
  * Only existence is checked. A target that exists but was generated as a
  * mutation rather than a query emits a call to a `getXxxQueryKey` that was
  * never declared, which fails the consumer's build loudly; telling that apart
@@ -89,6 +93,8 @@ export const getUnknownMutationInvalidatesWarnings = ({
     }
 
     for (const target of rule.invalidates) {
+      if (!isString(target) && target.file) continue;
+
       const name = isString(target) ? target : target.query;
       if (!queryKeyFns.has(queryKeyFnNameFor(name))) {
         report('invalidates', name);

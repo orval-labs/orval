@@ -1497,6 +1497,8 @@ rule is ignored — did you mean 'postNotes'?
 
 被 input 过滤器或 [`useDeprecatedOperations: false`](#usedeprecatedoperations) 排除的操作同样不会被生成，因此引用它们也会出于相同原因触发警告。
 
+带有 `file` 的 `invalidates` 目标是从其他模块导入的（例如由另一个 output 生成的查询），因此不会根据当前 output 的操作进行检查，也不会触发警告。
+
 ### signal
 
 **类型：** `Boolean`
