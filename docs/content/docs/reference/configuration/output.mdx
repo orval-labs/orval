@@ -3483,6 +3483,56 @@ const api = getSwaggerPetstore(myFetch);
 const pets = await api.listPets({ limit: '10' });
 ```
 
+### runtimeImplementationStyle
+
+**Type:** `'inline' | 'shared'`
+**Default:** `'inline'`
+
+`'shared'` generates the request execution logic (fetch call, body encoding,
+response decoding, query serialization and the status-code types) once into a
+shared runtime module, and turns every operation into a thin wrapper around
+it. Call signatures and the `{ data, status, headers }` response shape stay the
+same as with `'inline'`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+  },
+});
+```
+
+<Callout type="info">
+The shared runtime is an output-level setting. `runtimeImplementationStyle`,
+`runtimeOutputPath` and `clientConfigOutputPath` are read from
+`output.override.fetch` only; setting them under `override.operations` or
+`override.tags` has no effect.
+</Callout>
+
+### runtimeOutputPath
+
+**Type:** `String`
+**Default:** `runtime.ts` next to `output.target`
+
+Where the shared runtime is generated. Point several outputs at the same file
+to share one runtime between them.
+
+### clientConfigOutputPath
+
+**Type:** `String`
+**Default:** `client-config.ts` next to `output.target`
+
+Where the per-output client config is generated. It wires the global
+`override.mutator` to the shared runtime and is only emitted when a mutator is
+configured.
+
 ---
 
 ## Runtime validation support matrix

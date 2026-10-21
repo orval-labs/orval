@@ -1689,7 +1689,12 @@ export interface NormalizedFetchOptions {
    * - `comma` — join values with a comma: `foo=1,2`
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
+  runtimeImplementationStyle: FetchRuntimeImplementationStyle;
+  runtimeOutputPath: string;
+  clientConfigOutputPath: string;
 }
+
+export type FetchRuntimeImplementationStyle = 'inline' | 'shared';
 
 export interface FetchOptions {
   includeHttpResponseReturnType?: boolean;
@@ -1732,6 +1737,17 @@ export interface FetchOptions {
    * - `comma` — join values with a comma: `foo=1,2`
    */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
+  /**
+   * `'shared'` generates the execution logic once into a shared runtime and
+   * turns every operation into a thin wrapper. Read from `output.override.fetch` only.
+   *
+   * @default 'inline'
+   */
+  runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
+  /** @default `runtime.ts` next to the target */
+  runtimeOutputPath?: string;
+  /** Emitted only with a global `mutator`. @default `client-config.ts` next to the target */
+  clientConfigOutputPath?: string;
 }
 
 export type InputTransformerFn = (
