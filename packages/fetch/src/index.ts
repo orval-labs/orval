@@ -14,7 +14,11 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   getArrayResponseSchema,
-  getQueryParamSerialization,
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getOperationParameters,
+  isExplodeOnly,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -50,6 +54,14 @@ import {
   stringify,
   toObjectString,
 } from '@orval/core';
+
+import { GET_HEADERS_HELPER } from './runtime';
+import {
+  generateFetchExtraFiles,
+  generateSharedClient,
+  generateSharedRequestFunction,
+  isSharedRuntimeStyle,
+} from './shared-runtime-style';
 
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -177,6 +189,9 @@ export const generateRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
+  if (isSharedRuntimeStyle(options.context.output)) {
+    return generateSharedRequestFunction(verbOptions, options);
+  }
   const { responseTypes, implementation } = generateRequestFunctionParts(
     verbOptions,
     options,
@@ -223,41 +238,6 @@ const generateRequestFunctionParts = (
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isFactoryMode = isFetchFactoryMode(context.output);
 
-  // `RequestInit['headers']` is declared per runtime, and the old narrowing
-  // chain only fitted the DOM's declaration, leaving `return h` unsound in two
-  // separate ways:
-  //
-  //  - Outside the DOM the non-record member need not be an array —
-  //    `@cloudflare/workers-types` uses `Iterable<Iterable<string>>`, which
-  //    `Array.isArray` cannot exclude (#4034). Narrowing on iterability covers
-  //    every declaration, since the record is the only non-iterable member.
-  //    That also fixes the runtime half: spreading an iterable as an object
-  //    silently dropped every header. Each entry is materialized because
-  //    `Object.fromEntries` reads `[0]`/`[1]` rather than iterating, so a
-  //    non-indexable entry (`new Set([new Set(['X-Trace', '1'])])`) would
-  //    otherwise yield a single `undefined` key and lose the real header.
-  //  - The record member's values are not always `string`. Hono's header
-  //    record admits `undefined` (#4029), which the declared return type does
-  //    not. Building the result entry by entry keeps that guarantee by
-  //    construction, and skipping the `undefined` values is what the caller
-  //    wants anyway: passed through, they reach the wire as the literal text
-  //    "undefined".
-  const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-`;
-
   const getUrlFnName = camel(`get-${operationName}-url`);
   const getUrlFnProps = toObjectString(
     props.filter(
@@ -270,13 +250,24 @@ const generateRequestFunctionParts = (
   );
 
   const arrayFormat = override.fetch.arrayFormat;
-  const {
-    parameters: parameterObjects,
-    explode: explodeParameters,
-    arrayFormat: arrayFormatParameters,
-    deepObject: deepObjectParameters,
-    explodeOnly: isExplodeParametersOnly,
-  } = getQueryParamSerialization({ pathRoute, verb }, context, arrayFormat);
+  const parameterObjects = getOperationParameters({ pathRoute, verb }, context);
+  const explodeParameters = getExplodeParameters(
+    parameterObjects,
+    context,
+    arrayFormat,
+  );
+  const arrayFormatParameters = getArrayFormatParameters(
+    parameterObjects,
+    context,
+    arrayFormat,
+  );
+  const deepObjectParameters = getDeepObjectParameters(parameterObjects);
+  const isExplodeParametersOnly = isExplodeOnly(
+    parameterObjects,
+    explodeParameters,
+    arrayFormatParameters,
+    deepObjectParameters,
+  );
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
@@ -1109,6 +1100,9 @@ export const getFetchResponseValidationImports = (
 
 /** Builds the full fetch client output (imports + implementation) for one verb. */
 export const generateClient: ClientBuilder = (verbOptions, options) => {
+  if (isSharedRuntimeStyle(options.context.output)) {
+    return generateSharedClient(verbOptions, options);
+  }
   const responseValidationImports = getFetchResponseValidationImports(
     verbOptions,
     options,
@@ -1162,6 +1156,7 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
   output,
 }) => {
+  if (isSharedRuntimeStyle(output)) return '';
   const isFactoryMode = isFetchFactoryMode(output);
   const implementation = isFactoryMode
     ? `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`
@@ -1189,7 +1184,7 @@ export const generateFetchFooter: ClientFooterBuilder = ({
   operations,
   output,
 }) => {
-  if (!isFetchFactoryMode(output)) return '';
+  if (!isFetchFactoryMode(output) || isSharedRuntimeStyle(output)) return '';
 
   // Hook mutators declare `use{Op}Hook` instead of the operation itself.
   const returnedNames = operations
@@ -1212,6 +1207,7 @@ const fetchClientBuilder: ClientGeneratorsBuilder = {
   title: generateFetchTitle,
   footer: generateFetchFooter,
   dependencies: getFetchDependencies,
+  extraFiles: generateFetchExtraFiles,
 };
 
 /** Returns the fetch client builder factory used by orval's plugin system. */

@@ -476,3 +476,62 @@ describe('nullable $ref targets spelled other ways', () => {
     );
   });
 });
+
+describe('resolveMockValue (useBrandedTypes)', () => {
+  const resolveRef = (
+    schemas: Record<string, unknown>,
+    name: string,
+    useBrandedTypes = true,
+  ) => {
+    const imports: never[] = [];
+    const result = resolveMockValue({
+      schema: { $ref: `#/components/schemas/${name}` } as MockSchema,
+      operationId: 'getThing',
+      tags: [],
+      context: createTestContextSpec({
+        spec: { components: { schemas: schemas as never } },
+        override: { useBrandedTypes },
+      }),
+      imports,
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+    return { ...result, sharedImports: imports };
+  };
+
+  it('casts an inlined primitive $ref and imports its type', () => {
+    const result = resolveRef({ UserId: { type: 'string' } }, 'UserId');
+
+    expect(result.value).toMatch(/^faker\.string\.alpha\(.*\) as UserId$/);
+    expect(result.imports).toContainEqual({ name: 'UserId', values: false });
+    expect(result.sharedImports).toContainEqual({
+      name: 'UserId',
+      values: false,
+    });
+  });
+
+  it('casts the whole nullable wrapper', () => {
+    const result = resolveRef(
+      { Nickname: { type: ['string', 'null'] } },
+      'Nickname',
+    );
+
+    expect(result.value).toMatch(
+      /^faker\.helpers\.arrayElement\(\[.*, null\]\) as Nickname$/,
+    );
+  });
+
+  it.each([
+    ['enum', { type: 'string', enum: ['a', 'b'] }, true],
+    [
+      'object',
+      { type: 'object', properties: { id: { type: 'string' } } },
+      true,
+    ],
+    ['option off', { type: 'string' }, false],
+  ])('does not cast a %s $ref', (_, schema, useBrandedTypes) => {
+    const result = resolveRef({ Thing: schema }, 'Thing', useBrandedTypes);
+
+    expect(result.value).not.toContain(' as Thing');
+  });
+});

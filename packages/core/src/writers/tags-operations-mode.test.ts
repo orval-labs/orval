@@ -513,4 +513,43 @@ describe('writeTagsOperationsMode', () => {
       writeTagsOperationsMode({ ...props, needSchema: false }),
     ).rejects.toThrow(/not supported with the 'axios' client/);
   });
+  it('rebases a relative importPath from the target directory onto the operation file', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+
+    const paths = await writeTagsOperationsMode({
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        imports: async ({ imports }) =>
+          imports
+            .map(
+              (dep) =>
+                `import { ${dep.exports.map((e) => e.name).join(', ')} } from '${dep.dependency}';`,
+            )
+            .join('\n'),
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+            implementation: 'export const listPets = () => execute();\n',
+            imports: [
+              { name: 'execute', values: true, importPath: './runtime' },
+            ],
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_OPERATIONS,
+        client: OutputClient.FETCH,
+      }),
+      needSchema: false,
+    });
+
+    const listPetsPath = path.join(tmpDir, 'pets', 'list-pets.ts');
+    expect(paths).toContain(listPetsPath);
+    expect(fs.readFileSync(listPetsPath, 'utf8')).toContain(
+      "import { execute } from '../runtime';",
+    );
+  });
 });

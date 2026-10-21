@@ -8,7 +8,7 @@ import { getMutatorInfo } from './mutator-info';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
-const getImport = (
+export const getImport = (
   output: string,
   mutator: NormalizedMutator,
   tsconfig?: Tsconfig,

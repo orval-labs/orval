@@ -1387,6 +1387,50 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/fetch/shared-runtime/endpoints.ts',
+      schemas: '../generated/fetch/shared-runtime/model',
+      client: 'fetch',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  sharedRuntimeMutator: {
+    output: {
+      target: '../generated/fetch/shared-runtime-mutator/api/endpoints.ts',
+      schemas: '../generated/fetch/shared-runtime-mutator/api/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+          runtimeOutputPath:
+            '../generated/fetch/shared-runtime-mutator/runtime.ts',
+          clientConfigOutputPath:
+            '../generated/fetch/shared-runtime-mutator/client-config.ts',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // A hook mutator declares `use{Op}Hook`, which the factory must return.
   'fetch-factory-hook-mutator': {
     output: {

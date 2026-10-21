@@ -10,6 +10,7 @@ import {
   type GeneratorVerbOptions,
   type GlobalMockOptions,
   hasSchemaDefinition,
+  isBrandablePrimitiveSchema,
   pascal,
   type StrictMockSchemaKind,
 } from '@orval/core';
@@ -188,7 +189,10 @@ export function generateFakerForSchemas(
       factoryName,
       param,
       returnType,
-      result.value,
+      context.output.override.useBrandedTypes &&
+        isBrandablePrimitiveSchema(schema)
+        ? `${result.value} as ${typeName}`
+        : result.value,
       returnCast,
     );
 

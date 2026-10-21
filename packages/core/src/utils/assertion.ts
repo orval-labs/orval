@@ -126,6 +126,36 @@ export function isSchema(x: unknown): x is OpenApiSchemaObject {
 }
 
 /**
+ * A `components/schemas` entry that `override.useBrandedTypes` emits as a
+ * branded alias: a single primitive `type` (optionally nullable) with nothing
+ * that would change the emitted type (`enum`, `const`, composition). A
+ * `default` is excluded because parameter generation emits it as a plain
+ * literal initializer that would not satisfy the brand.
+ *
+ * @param schema - Raw schema to test.
+ */
+export function isBrandablePrimitiveSchema(schema: unknown): boolean {
+  if (!isObject(schema)) {
+    return false;
+  }
+
+  const types = (
+    Array.isArray(schema.type) ? schema.type : [schema.type]
+  ).filter((type) => type !== 'null');
+
+  return (
+    types.length === 1 &&
+    ['string', 'number', 'integer', 'boolean'].includes(types[0] as string) &&
+    !schema.enum &&
+    schema.const === undefined &&
+    schema.default === undefined &&
+    !schema.allOf &&
+    !schema.oneOf &&
+    !schema.anyOf
+  );
+}
+
+/**
  * Whether a schema is dispatched as a string by {@link getScalar}.
  *
  * True for a bare `type: 'string'` and for the OAS 3.1 nullable union

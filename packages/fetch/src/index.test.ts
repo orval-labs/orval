@@ -133,7 +133,7 @@ function makeOptions(
 const STUB_QUERY_PARAMS = {
   schema: {
     name: 'ListPetsParams',
-    model: 'export type ListPetsParams = { limit?: string }',
+    model: 'type ListPetsParams = { limit?: string }',
     imports: [],
   },
   deps: [],
@@ -1465,5 +1465,57 @@ describe('generateRequestFunction — pipeDelimited and spaceDelimited query arr
       ['tags', 'a|b'],
       ['ids', '1,2'],
     ]);
+  });
+});
+
+describe('runtimeImplementationStyle: shared dispatch', () => {
+  const sharedOptions = (client: OutputClient = OutputClient.FETCH) => {
+    const options = makeOptions(makeContext());
+    options.context.output.target = '/proj/src/api/endpoints.ts';
+    options.context.output.client = client;
+    options.context.output.override.fetch.runtimeImplementationStyle = 'shared';
+    return options;
+  };
+
+  it('emits no header types and no factory closure', () => {
+    const output = sharedOptions().context.output;
+    output.override.fetch.httpClientInjection = 'factory';
+
+    expect(
+      generateFetchHeader({
+        title: 'getPetstore',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: false,
+        hasAwaitedType: true,
+        output,
+        verbOptions: {},
+        clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
+      }),
+    ).toBe('');
+    expect(
+      generateFetchFooter({
+        operationNames: ['listPets'],
+        output,
+        hasMutator: false,
+        hasAwaitedType: true,
+        title: 'getPetstore',
+      }),
+    ).toBe('');
+  });
+
+  it('switches to the shared emitter for the fetch client only', () => {
+    expect(
+      generateImplementation(makeVerbOptions(), sharedOptions()),
+    ).toContain('execute<listPetsResponse>');
+    for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
+      const implementation = generateImplementation(
+        makeVerbOptions(),
+        sharedOptions(client),
+      );
+      expect(implementation).toContain('export const listPets = async (');
+      expect(implementation).not.toContain('execute<');
+    }
   });
 });
