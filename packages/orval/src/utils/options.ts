@@ -1710,8 +1710,8 @@ function normalizeOperationsAndTags(
                     generateCompanionTypes: zod.generateCompanionTypes ?? false,
                     schemaExtension:
                       zod.schemaExtension === undefined
-                        ? {}
-                        : { schemaExtension: zod.schemaExtension },
+                        ? undefined
+                        : zod.schemaExtension,
                   },
                 }
               : {}),

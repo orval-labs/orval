@@ -304,6 +304,7 @@
       },
       "devDependencies": {
         "@types/jsesc": "^3.0.3",
+        "@types/node": "catalog:",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vite-plus": "catalog:",

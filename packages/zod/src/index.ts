@@ -3678,7 +3678,12 @@ export const generateFormDataZodSchema = (
       name,
       strict,
       isZodV4,
-      { required: true, useReusableSchemas, constNameRegistry, schemaExtension },
+      {
+        required: true,
+        useReusableSchemas,
+        constNameRegistry,
+        schemaExtension,
+      },
     );
   }
 
