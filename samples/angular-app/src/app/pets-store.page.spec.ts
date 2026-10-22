@@ -135,6 +135,8 @@ describe('PetsStorePage', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Created Buddy successfully');
-    expect(compiled.textContent).toContain('Buddy');
+    const petCards = compiled.querySelectorAll('.pets-grid app-pet-card');
+    expect(petCards.length).toBe(2);
+    expect(petCards[0].textContent).toContain('Buddy');
   });
 });

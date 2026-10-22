@@ -7,7 +7,6 @@
   [highlights]="highlights"
 >
   <app-demo-panel
-    class="panel--wide"
     title="Resolved PETSTORE_BASE_URL"
     description="The generated default is the absolute, cross-origin http://petstore.swagger.io/v1 embedded from the OpenAPI spec. This app calls providePetstoreBaseUrl('/gateway/petstore') once in app.config.ts to override it with a same-origin path, so requests land on the demo's mock handlers."
   >
@@ -28,7 +27,6 @@ providers: [
 
   <div class="demo-grid demo-grid--even">
     <app-demo-panel
-      class="panel--wide"
       title="PetsService.listPets()"
       description="Generated HttpClient service reading the injected PETSTORE_BASE_URL."
     >
@@ -51,7 +49,6 @@ providers: [
     </app-demo-panel>
 
     <app-demo-panel
-      class="panel--wide"
       title="listPetsResource()"
       description="Generated httpResource function reading the very same PETSTORE_BASE_URL — one provider, two surfaces."
     >
