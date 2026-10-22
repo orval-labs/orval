@@ -1071,7 +1071,10 @@ The parameter keeps the schema's input type, and the parsed output is what gets
 sent. Defaults and transforms in the schema therefore apply to the payload.
 
 Form data, url-encoded, binary and text bodies are skipped, and so are
-operations with a custom `mutator`. See
+operations with a custom `mutator`. With
+[`namingConvention.properties`](/docs/reference/configuration/output#namingconvention-property-keys)
+set, no body is parsed and Orval logs a warning: the renamed schemas output
+converted keys, and the server expects the spec's keys. See
 [`runtimeValidation.requestBodies`](/docs/reference/configuration/output#requestbodies)
 for the details.
 

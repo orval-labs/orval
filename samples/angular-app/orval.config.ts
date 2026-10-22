@@ -227,6 +227,9 @@ export default defineConfig({
           retrievalClient: 'both',
           runtimeValidation: { strategy: 'throw', requestBodies: true },
         },
+        // A coercing body schema proves the parsed output, not the caller's
+        // value, is what goes over the wire.
+        zod: { coerce: { body: ['number'] } },
       },
     },
     input: {

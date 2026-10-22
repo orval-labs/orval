@@ -3222,6 +3222,17 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     expect(impl).not.toContain('.parse(');
   });
 
+  it('skips bodies when namingConvention.properties renames keys', () => {
+    // A renamed schema's parsed output carries the converted keys, which the
+    // server does not know: `{ pet_name }` would go out as `{ petName }`.
+    const output = zodOutput();
+    output.override.namingConvention = { properties: 'camelCase' };
+    const impl = generate(createPetsVerb(), output);
+
+    expect(impl).not.toContain('defer(');
+    expect(impl).not.toContain('.parse(');
+  });
+
   it('skips non-Zod schema output', () => {
     const output = createOutput({
       override: {

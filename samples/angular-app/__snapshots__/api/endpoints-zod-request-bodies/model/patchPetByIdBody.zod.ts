@@ -21,7 +21,11 @@ export const patchPetByIdBodyRatingMultipleOf = 0.5;
 export const patchPetByIdBodyPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const PatchPetByIdBody = zod.object({
-  id: zod.int().min(1).describe('Unique identifier for the pet'),
+  id: zod.coerce
+    .number()
+    .int()
+    .min(1)
+    .describe('Unique identifier for the pet'),
   name: zod
     .string()
     .min(1)
@@ -38,13 +42,14 @@ export const PatchPetByIdBody = zod.object({
     .enum(['available', 'pending', 'sold'])
     .default(patchPetByIdBodyStatusDefault)
     .describe('Current adoption status'),
-  age: zod
+  age: zod.coerce
+    .number()
     .int()
     .min(patchPetByIdBodyAgeMin)
     .max(patchPetByIdBodyAgeMax)
     .optional()
     .describe('Age of the pet in years'),
-  rating: zod
+  rating: zod.coerce
     .number()
     .min(patchPetByIdBodyRatingMin)
     .max(patchPetByIdBodyRatingMax)

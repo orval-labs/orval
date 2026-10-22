@@ -21,7 +21,11 @@ export const petRatingMultipleOf = 0.5;
 export const petPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pet = zod.object({
-  id: zod.int().min(1).describe('Unique identifier for the pet'),
+  id: zod.coerce
+    .number()
+    .int()
+    .min(1)
+    .describe('Unique identifier for the pet'),
   name: zod.string().min(1).max(petNameMax).describe('Name of the pet'),
   tag: zod
     .string()
@@ -34,13 +38,14 @@ export const Pet = zod.object({
     .enum(['available', 'pending', 'sold'])
     .default(petStatusDefault)
     .describe('Current adoption status'),
-  age: zod
+  age: zod.coerce
+    .number()
     .int()
     .min(petAgeMin)
     .max(petAgeMax)
     .optional()
     .describe('Age of the pet in years'),
-  rating: zod
+  rating: zod.coerce
     .number()
     .min(petRatingMin)
     .max(petRatingMax)

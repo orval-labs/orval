@@ -10,7 +10,8 @@ export const errorCodeMin = 100;
 export const errorCodeMax = 600;
 
 export const Error = zod.object({
-  code: zod
+  code: zod.coerce
+    .number()
     .int()
     .min(errorCodeMin)
     .max(errorCodeMax)

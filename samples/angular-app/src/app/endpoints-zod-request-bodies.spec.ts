@@ -62,6 +62,31 @@ describe('endpoints-zod-request-bodies PetsService (runtimeValidation.requestBod
     await result;
   });
 
+  it('sends the coerced value, not the one the caller passed', async () => {
+    // `override.zod.coerce.body` makes `age` coerce, so the string the
+    // caller passes reaches the server as the number the schema outputs.
+    const result = firstValueFrom(
+      service.updatePetById(
+        '1',
+        { ...validPet, age: '3' },
+        'application/json',
+        1,
+      ),
+    );
+
+    const req = httpMock.expectOne(
+      (r) => r.method === 'PUT' && r.url === '/v1/pets/1/update',
+    );
+    expect(req.request.body).toEqual({
+      ...validPet,
+      age: 3,
+      status: 'available',
+    });
+    req.flush({ ...validPet, age: 3, status: 'available' });
+
+    await result;
+  });
+
   it('errors the observable and sends nothing when the body is invalid', async () => {
     const error = await new Promise<unknown>((resolve, reject) => {
       service.createPets({ name: '', tag: 'dog' }, 1).subscribe({

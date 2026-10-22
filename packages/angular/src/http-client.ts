@@ -112,8 +112,10 @@ const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
  * The schema a request body is parsed with under
  * `runtimeValidation.requestBodies` (#4145), or `undefined` when the body is
  * sent as-is: the option is off, the output has no Zod schemas, a custom
- * mutator owns the request, or the body is not JSON (form data, url-encoded,
- * binary and text bodies are skipped).
+ * mutator owns the request, the body is not JSON (form data, url-encoded,
+ * binary and text bodies are skipped), or `namingConvention.properties` is
+ * set. A renamed Zod schema transforms wire keys into converted ones, so its
+ * parsed output would put the wrong keys on the wire.
  *
  * `importName` is the schema binding that has to become a value import.
  */
@@ -130,6 +132,8 @@ export const getRequestBodySchema = (
     !runtimeValidation.enabled ||
     !runtimeValidation.requestBodies ||
     mutator ||
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
+    output.override.namingConvention?.properties ||
     !isZodSchemaOutput(output) ||
     !body.implementation ||
     !body.contentType.includes('json')
