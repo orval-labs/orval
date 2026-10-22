@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Owner, Pet } from '../../schemas';
 
@@ -40,14 +40,12 @@ export type OwnerMock = {
 export const getGetPetsMockHandler = (
   overrideResponse?:
     | Pet[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet[]> | Pet[]),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pet[]> | Pet[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -64,14 +62,12 @@ export const getGetPetsMockHandler = (
 export const getGetOwnerMockHandler = (
   overrideResponse?:
     | Owner
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Owner> | Owner),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Owner> | Owner),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/owner',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

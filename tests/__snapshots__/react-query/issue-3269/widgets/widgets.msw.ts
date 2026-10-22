@@ -7,7 +7,11 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type { Widget } from '../model';
 
@@ -33,13 +37,13 @@ export const getGetWidgetMockHandler = (
     | Widget
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Widget | null> | Widget | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/widgets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -57,13 +61,15 @@ export const getCreateWidgetMockHandler = (
   overrideResponse?:
     | Widget
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Widget | null>>[0],
       ) => Promise<Widget> | Widget),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, Widget | null>(
     '*/widgets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, Widget | null>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

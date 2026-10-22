@@ -41,15 +41,15 @@ Functions that bind mock data to [MSW](https://mswjs.io/) `http.*` handlers usin
 
 ```ts
 import { HttpResponse, delay, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get('*/pets/:petId', async (info) => {
+  return http.get<{ petId: string }>('*/pets/:petId', async (info) => {
     await delay(1000);
     return HttpResponse.json(
       overrideResponse !== undefined
@@ -62,6 +62,8 @@ export const getShowPetByIdMockHandler = (
   }, options);
 };
 ```
+
+The resolver `info` (and the `overrideResponse` callback) is typed with the operation's path params and request body, so `info.params.petId` is a `string` and `await info.request.json()` returns the request body type (for example `CreatePetsBody`). Operations without path params use MSW's `PathParams`.
 
 Orval uses the content type from your OpenAPI spec to pick the right `HttpResponse` helper. If multiple content types are defined, you can set a preferred default; otherwise the spec order is used:
 

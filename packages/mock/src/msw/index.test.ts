@@ -666,9 +666,86 @@ describe('generateMSW', () => {
         mock: { type: OutputMockType.MSW, delay: 100 },
       });
 
-      // The handler callback's info param should be explicitly typed
+      // The handler callback's info param is typed with the route's path params
       expect(result.implementation.handler).toContain(
-        'async (info: Parameters<Parameters<typeof http.get>[1]>[0])',
+        "http.get<{ id: string }>('*/users/:id', async (info: Parameters<HttpResponseResolver<{ id: string }>>[0])",
+      );
+      // ...and the overrideResponse callback receives the same type
+      expect(result.implementation.handler).toContain(
+        '((info: Parameters<HttpResponseResolver<{ id: string }>>[0]) => Promise<User> | User)',
+      );
+    });
+
+    it('should type info with the request body and camelized path params', () => {
+      const bodyImport = { name: 'CreatePetBody' };
+      const postVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        operationId: 'createPet',
+        operationName: 'createPet',
+        verb: 'post',
+        body: {
+          definition: 'CreatePetBody',
+          imports: [bodyImport],
+        },
+      });
+
+      const result = generateMSW(postVerbOptions, {
+        ...baseOptions,
+        pathRoute: '/stores/{store_id}/pets/{pet-id}',
+      });
+
+      expect(result.implementation.handler).toContain(
+        "http.post<{ storeId: string; petId: string }, CreatePetBody>('*/stores/:storeId/pets/:petId'",
+      );
+      expect(result.implementation.handler).toContain(
+        'info: Parameters<HttpResponseResolver<{ storeId: string; petId: string }, CreatePetBody>>[0]',
+      );
+      expect(result.imports).toContain(bodyImport);
+    });
+
+    it('should fall back to PathParams when there is a body but no path params', () => {
+      const postVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        verb: 'post',
+        body: { definition: 'CreatePetBody' },
+      });
+
+      const result = generateMSW(postVerbOptions, {
+        ...baseOptions,
+        pathRoute: '/pets',
+      });
+
+      expect(result.implementation.handler).toContain(
+        "http.post<PathParams, CreatePetBody>('*/pets'",
+      );
+    });
+
+    it('should unwrap NonReadonly from the request body type', () => {
+      const putVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        verb: 'put',
+        body: { definition: 'NonReadonly<Pet>' },
+      });
+
+      const result = generateMSW(putVerbOptions, {
+        ...baseOptions,
+        pathRoute: '/pets',
+      });
+
+      expect(result.implementation.handler).toContain(
+        "http.put<PathParams, Pet>('*/pets'",
+      );
+      expect(result.implementation.handler).not.toContain('NonReadonly');
+    });
+
+    it('should leave MSW defaults when there are no path params or body', () => {
+      const result = generateMSW(mockVerbOptions, {
+        ...baseOptions,
+        pathRoute: '/users',
+      });
+
+      expect(result.implementation.handler).toContain(
+        "http.get('*/users', async (info: Parameters<HttpResponseResolver>[0])",
       );
     });
 

@@ -495,6 +495,23 @@ export async function writeSplitTagsMode({
       })
       .join('');
 
+    // Tag files that declare shared exports get one named line per name.
+    const tagSharedExportFiles = tagEntries.flatMap(([tag, target]) =>
+      target.sharedExports
+        ? [
+            {
+              path: path.join(dirname, tag, tag + serviceSuffix + extension),
+              sharedExports: target.sharedExports,
+            },
+          ]
+        : [],
+    );
+    const tagNamedReExports = buildBarrelReExports(tagSharedExportFiles, {
+      dirname,
+      extension,
+      importExtension,
+    }).filter((line) => !line.startsWith('export * from'));
+
     // `writeSpecs` writes the client extra files, not this writer. But this
     // barrel is the only complete entry point. Without these lines you can
     // reach Angular's `*.resource.ts` API only through a per-tag path, which a
@@ -508,11 +525,20 @@ export async function writeSplitTagsMode({
       { dirname, extension, importExtension },
       // These already have a line pointing at the shared-types module, and a
       // name gets one line.
-      { types: publicSharedTypeNames },
+      {
+        types: [
+          ...publicSharedTypeNames,
+          ...tagSharedExportFiles.flatMap((file) => file.sharedExports.types),
+        ],
+        values: tagSharedExportFiles.flatMap(
+          (file) => file.sharedExports.values,
+        ),
+      },
     );
 
     const indexContent =
       namedReExports +
+      tagNamedReExports.map((line) => `${line}\n`).join('') +
       tagReExports +
       extraFileReExports.map((line) => `${line}\n`).join('');
     indexFilePath = path.join(dirname, `index${extension}`);

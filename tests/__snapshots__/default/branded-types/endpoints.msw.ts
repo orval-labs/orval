@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { User, UserId } from './model';
 
@@ -21,14 +21,12 @@ export const getGetUserResponseMock = (
 export const getCreateUserMockHandler = (
   overrideResponse?:
     | UserId
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<UserId> | UserId),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<UserId> | UserId),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
     '*/users',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -46,13 +44,13 @@ export const getGetUserMockHandler = (
   overrideResponse?:
     | User
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ userId: string }>>[0],
       ) => Promise<User> | User),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ userId: string }>(
     '*/users/:userId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ userId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

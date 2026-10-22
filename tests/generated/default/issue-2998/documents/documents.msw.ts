@@ -6,9 +6,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
-import type { DocumentCollectionDTO } from '../model';
+import type { AddDocumentBody, DocumentCollectionDTO } from '../model';
 
 import {
   getAddDocumentResponseMock,
@@ -24,13 +24,19 @@ export const getGetDocumentsMockHandler = (
   overrideResponse?:
     | DocumentCollectionDTO
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<{ module: string; referenceId: string }>
+        >[0],
       ) => Promise<DocumentCollectionDTO> | DocumentCollectionDTO),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ module: string; referenceId: string }>(
     '*/api/:module/:referenceId/documents',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<{ module: string; referenceId: string }>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -48,13 +54,28 @@ export const getAddDocumentMockHandler = (
   overrideResponse?:
     | DocumentCollectionDTO
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<
+            { module: string; referenceId: string; category: string },
+            AddDocumentBody
+          >
+        >[0],
       ) => Promise<DocumentCollectionDTO> | DocumentCollectionDTO),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<
+    { module: string; referenceId: string; category: string },
+    AddDocumentBody
+  >(
     '*/api/:module/:referenceId/documents/:category',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<
+          { module: string; referenceId: string; category: string },
+          AddDocumentBody
+        >
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

@@ -658,11 +658,8 @@ export class ZodValidationDemo implements OnInit {
 
   /**
    * Format error for display, handling both ZodError and generic errors.
-   * Uses Zod 3.x best practice: instanceof z.ZodError for type-safe narrowing.
-   * Reference: https://github.com/colinhacks/zod/blob/v3.24.2/ERROR_HANDLING.md
    */
   private formatZodError(err: unknown): string {
-    // Proper Zod 3.x type narrowing using instanceof
     if (err instanceof z.ZodError) {
       const previewLimit = 3;
       const preview = err.issues

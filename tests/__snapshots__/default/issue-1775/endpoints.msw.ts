@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { PutApiOrderLimit200Item } from './model';
 
@@ -30,13 +30,13 @@ export const getPutApiOrderLimitMockHandler = (
   overrideResponse?:
     | PutApiOrderLimit200Item[]
     | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PutApiOrderLimit200Item[]> | PutApiOrderLimit200Item[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.put(
     '*/api/order/limit',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

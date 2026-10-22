@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getGetUsersUserIdOrdersResponseMock = (): string[] =>
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, () =>
@@ -18,13 +18,13 @@ export const getGetUsersUserIdOrdersMockHandler = (
   overrideResponse?:
     | string[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ userId: string }>>[0],
       ) => Promise<string[]> | string[]),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ userId: string }>(
     '*/users/:userId/orders',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ userId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

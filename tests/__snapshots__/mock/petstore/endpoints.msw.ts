@@ -7,10 +7,15 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, delay, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type {
   Cat,
+  CreatePetsBody,
   Dachshund,
   Dog,
   Labradoodle,
@@ -281,14 +286,12 @@ export const getShowPetWithOwnerResponseMock = (
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     'https://petstore.swagger.io/v1/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       await delay(500);
 
       return HttpResponse.json(
@@ -308,13 +311,15 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreatePetsBody>(
     'https://petstore.swagger.io/v1/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
+    ) => {
       await delay(500);
 
       return HttpResponse.json(
@@ -334,13 +339,13 @@ export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     'https://petstore.swagger.io/v1/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       await delay(500);
 
       return HttpResponse.json(
@@ -360,13 +365,13 @@ export const getDeletePetByIdMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.delete(
+  return http.delete<{ petId: string }>(
     'https://petstore.swagger.io/v1/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       await delay(500);
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
@@ -381,14 +386,12 @@ export const getDeletePetByIdMockHandler = (
 export const getHealthCheckMockHandler = (
   overrideResponse?:
     | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<string> | string),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     'https://petstore.swagger.io/v1/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       await delay(500);
 
       const resolvedBody =
@@ -411,13 +414,13 @@ export const getShowPetWithOwnerMockHandler = (
   overrideResponse?:
     | PetWithTag
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<PetWithTag> | PetWithTag),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     'https://petstore.swagger.io/v1/pets/:petId/owner',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       await delay(500);
 
       return HttpResponse.json(

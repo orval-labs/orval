@@ -8,9 +8,13 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { TypelessUpload } from './model';
+import type { CreateTypelessUploadBody, TypelessUpload } from './model';
 
 export const getCreateTypelessUploadResponseMock = (
   overrideResponse: Partial<Extract<TypelessUpload, object>> = {},
@@ -24,13 +28,19 @@ export const getCreateTypelessUploadMockHandler = (
   overrideResponse?:
     | TypelessUpload
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<PathParams, CreateTypelessUploadBody>
+        >[0],
       ) => Promise<TypelessUpload> | TypelessUpload),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreateTypelessUploadBody>(
     '*/uploads',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<PathParams, CreateTypelessUploadBody>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

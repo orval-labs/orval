@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Resource } from './model';
 
@@ -53,13 +53,13 @@ export const getListResourcesMockHandler = (
   overrideResponse?:
     | Resource[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Resource[]> | Resource[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/resources',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -78,13 +78,15 @@ export const getGetResourceMockHandler = (
     | Resource
     | void
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ resourceId: string }>>[0],
       ) => Promise<Resource | void> | Resource | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ resourceId: string }>(
     '*/resources/:resourceId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<{ resourceId: string }>>[0],
+    ) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -104,13 +106,15 @@ export const getDeleteResourceMockHandler = (
     | Resource
     | void
     | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ resourceId: string }>>[0],
       ) => Promise<Resource | void> | Resource | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.delete(
+  return http.delete<{ resourceId: string }>(
     '*/resources/:resourceId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<{ resourceId: string }>>[0],
+    ) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

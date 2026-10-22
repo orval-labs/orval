@@ -7,9 +7,13 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Avatar, Profile } from './model';
+import type { Avatar, AvatarUpload, Profile, UpdateProfileBody } from './model';
 
 export const getUpdateProfileWithJsonResponseMock = (
   overrideResponse: Partial<Extract<Profile, object>> = {},
@@ -71,13 +75,19 @@ export const getUpdateProfileWithJsonMockHandler = (
   overrideResponse?:
     | Profile
     | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<{ id: string }, UpdateProfileBody>
+        >[0],
       ) => Promise<Profile> | Profile),
   options?: RequestHandlerOptions,
 ) => {
-  return http.put(
+  return http.put<{ id: string }, UpdateProfileBody>(
     '*/profiles/:id',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<{ id: string }, UpdateProfileBody>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -95,13 +105,19 @@ export const getUpdateProfileWithFormDataMockHandler = (
   overrideResponse?:
     | Profile
     | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<{ id: string }, UpdateProfileBody>
+        >[0],
       ) => Promise<Profile> | Profile),
   options?: RequestHandlerOptions,
 ) => {
-  return http.put(
+  return http.put<{ id: string }, UpdateProfileBody>(
     '*/profiles/:id',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<{ id: string }, UpdateProfileBody>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -119,13 +135,15 @@ export const getUploadAvatarWithFormDataMockHandler = (
   overrideResponse?:
     | Avatar
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, AvatarUpload>>[0],
       ) => Promise<Avatar> | Avatar),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, AvatarUpload>(
     '*/avatars',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, AvatarUpload>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -143,13 +161,13 @@ export const getUploadAvatarWithBlobMockHandler = (
   overrideResponse?:
     | Avatar
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Blob>>[0],
       ) => Promise<Avatar> | Avatar),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, Blob>(
     '*/avatars',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, Blob>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -167,13 +185,13 @@ export const getListProfilesMockHandler = (
   overrideResponse?:
     | Profile[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Profile[]> | Profile[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/profiles',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

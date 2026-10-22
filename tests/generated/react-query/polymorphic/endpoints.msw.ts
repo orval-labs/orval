@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { DescendantOne, DescendantTwo } from './model';
 
@@ -60,7 +60,7 @@ export const getGetPolymorphicResponseMockHandler = (
     | DescendantOne
     | DescendantTwo
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) =>
         | Promise<DescendantOne | DescendantTwo>
         | DescendantOne
@@ -69,7 +69,7 @@ export const getGetPolymorphicResponseMockHandler = (
 ) => {
   return http.get(
     '*/demo',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
