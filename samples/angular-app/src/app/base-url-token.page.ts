@@ -5,7 +5,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { shareReplay } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { shareReplay, switchMap } from 'rxjs';
 
 import type { Pets } from '../api/base-url-token/model';
 import { PETSTORE_BASE_URL } from '../api/base-url-token/petstore.base-url';
@@ -47,7 +48,11 @@ export class BaseUrlTokenPage {
   protected readonly version = signal(1);
 
   protected readonly petsState$ = toLoadState<Pets>(
-    this.petService.listPets('application/json', undefined, 1),
+    toObservable(this.version).pipe(
+      switchMap((version) =>
+        this.petService.listPets('application/json', undefined, version),
+      ),
+    ),
     [] as Pets,
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
