@@ -47,6 +47,13 @@ export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
   Object.prototype.hasOwnProperty.call(PRIMITIVE_TYPE_LOOKUP, t);
 
 /**
+ * Whether a content type is JSON, including `+json` suffixes such as
+ * `application/problem+json` (`json` is a substring of both).
+ */
+export const isJsonContentType = (contentType: string): boolean =>
+  contentType.includes('json');
+
+/**
  * Indicates whether the configured schema output target is Zod-based.
  */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
@@ -257,7 +264,7 @@ export function getDefaultSuccessType(
     ...new Set(successTypes.map((t) => t.contentType).filter(Boolean)),
   ];
   const jsonContentType = uniqueContentTypes.find((contentType) =>
-    contentType.includes('json'),
+    isJsonContentType(contentType),
   );
   const defaultContentType =
     jsonContentType ??

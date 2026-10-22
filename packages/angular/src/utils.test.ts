@@ -13,6 +13,7 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -502,4 +503,25 @@ describe('getRelevantVerbOptionsForTag', () => {
     expect(result).toHaveLength(1);
     expect(result[0].operationId).toBe('untagged');
   });
+});
+
+// ---------------------------------------------------------------------------
+// isJsonContentType
+// ---------------------------------------------------------------------------
+
+describe('isJsonContentType', () => {
+  it.each([
+    'application/json',
+    'application/problem+json',
+    'application/merge-patch+json',
+  ])('treats "%s" as JSON', (contentType) => {
+    expect(isJsonContentType(contentType)).toBe(true);
+  });
+
+  it.each(['text/plain', 'application/xml', 'application/octet-stream'])(
+    'does not treat "%s" as JSON',
+    (contentType) => {
+      expect(isJsonContentType(contentType)).toBe(false);
+    },
+  );
 });

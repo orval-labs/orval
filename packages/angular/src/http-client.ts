@@ -48,6 +48,7 @@ import {
   createReturnTypesRegistry,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  isJsonContentType,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -132,7 +133,7 @@ export const getRequestBodySchema = (
     mutator ||
     !isZodSchemaOutput(output) ||
     !body.implementation ||
-    !body.contentType.includes('json')
+    !isJsonContentType(body.contentType)
   ) {
     return undefined;
   }
@@ -217,7 +218,7 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (contentType.includes('json') || contentType.includes('+json')) {
+  if (isJsonContentType(contentType)) {
     return value;
   }
   if (contentType.startsWith('text/') || contentType.includes('xml')) {
@@ -510,7 +511,7 @@ export const generateHttpClientImplementation = (
       override.angular.runtimeValidation.enabled &&
       isZodOutput &&
       !!contentType &&
-      (contentType.includes('json') || contentType.includes('+json'))
+      isJsonContentType(contentType)
     ) {
       const resolved = resolveValidatableSchema(response.imports, value);
       if (resolved) return resolved.outputTypeRef;
@@ -748,9 +749,7 @@ export const generateHttpClientImplementation = (
 
   const defaultContentType = hasMultipleContentTypes
     ? (successTypes.find(
-        ({ contentType }) =>
-          !!contentType &&
-          (contentType.includes('json') || contentType.includes('+json')),
+        ({ contentType }) => !!contentType && isJsonContentType(contentType),
       )?.contentType ?? getDefaultContentType(uniqueContentTypes))
     : (uniqueContentTypes[0] ?? 'application/json');
 
@@ -758,9 +757,7 @@ export const generateHttpClientImplementation = (
     ...new Set(
       successTypes
         .filter(
-          ({ contentType }) =>
-            !!contentType &&
-            (contentType.includes('json') || contentType.includes('+json')),
+          ({ contentType }) => !!contentType && isJsonContentType(contentType),
         )
         .map(({ value }) => value),
     ),
@@ -806,8 +803,7 @@ export const generateHttpClientImplementation = (
   const blobSuccessTypes = successTypes.filter(
     ({ contentType }) =>
       !!contentType &&
-      !contentType.includes('json') &&
-      !contentType.includes('+json') &&
+      !isJsonContentType(contentType) &&
       !contentType.startsWith('text/') &&
       !contentType.includes('xml'),
   );
@@ -1177,8 +1173,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
           successTypes
             .filter(
               ({ contentType }) =>
-                !!contentType &&
-                (contentType.includes('json') || contentType.includes('+json')),
+                !!contentType && isJsonContentType(contentType),
             )
             .map(({ value }) => value),
         ),

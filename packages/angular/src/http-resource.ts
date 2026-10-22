@@ -75,6 +75,7 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -1012,7 +1013,7 @@ const buildHttpResourceFunction = (
   const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
-    type.contentType.includes('json'),
+    isJsonContentType(type.contentType),
   )?.contentType;
   const preferredContentType = jsonContentType ?? defaultSuccess.contentType;
   const resourceFactory = getHttpResourceFactory(
@@ -1170,9 +1171,8 @@ const buildHttpResourceFunction = (
       )}`;
     };
 
-    const jsonType = successTypes.find(
-      (type) =>
-        type.contentType.includes('json') || type.contentType.includes('+json'),
+    const jsonType = successTypes.find((type) =>
+      isJsonContentType(type.contentType),
     );
     const textType = successTypes.find((type) =>
       isResponseText(type.contentType, type.value),
@@ -1421,7 +1421,7 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (contentType.includes('json') || contentType.includes('+json')) {
+  if (isJsonContentType(contentType)) {
     return value;
   }
   if (contentType.startsWith('text/') || contentType.includes('xml')) {
@@ -1443,7 +1443,7 @@ const getHttpResourceGeneratedResponseType = (
     isZodSchemaOutput(output) &&
     output.override.angular.runtimeValidation.enabled &&
     !!contentType &&
-    (contentType.includes('json') || contentType.includes('+json')) &&
+    isJsonContentType(contentType) &&
     !isPrimitiveType(value)
   ) {
     if (responseImports.some((imp) => imp.name === value)) {
