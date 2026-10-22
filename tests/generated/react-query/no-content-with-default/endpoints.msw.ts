@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, delay, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { ErrorResponse } from './model';
 
@@ -13,13 +13,13 @@ export const getCreateItemsMockHandler = (
   overrideResponse?:
     | ErrorResponse
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<ErrorResponse> | ErrorResponse),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/error',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       await delay(0);
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);

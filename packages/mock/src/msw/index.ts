@@ -1,4 +1,5 @@
 import {
+  camelPathParamName,
   type ClientMockGeneratorBuilder,
   escapeRegExp,
   generateDependencyImports,
@@ -12,6 +13,7 @@ import {
   isMswMock,
   isObject,
   jsStringLiteralEscape,
+  parseRoutePath,
   pascal,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
@@ -85,6 +87,8 @@ function getMSWDependencies(
     { name: 'http', values: true },
     { name: 'HttpResponse', values: true },
     { name: 'RequestHandlerOptions', values: false },
+    { name: 'HttpResponseResolver', values: false },
+    { name: 'PathParams', values: false },
   ];
 
   if (hasDelay) {
@@ -111,13 +115,40 @@ export const generateMSWImports: GenerateMockImports = ({
   );
 };
 
+/**
+ * Builds the type arguments passed to `http.<verb>` and `HttpResponseResolver`
+ * so the resolver `info` (and the `overrideResponse` callback) sees the
+ * operation's path params and request body instead of MSW's untyped defaults
+ * (#4349). Param keys go through `camelPathParamName`, the same mapping
+ * `getRouteMSW` applies, so they match the `:param` names MSW parses.
+ */
+function getMSWTypeArguments(pathRoute: string, bodyType: string): string {
+  const paramNames = [
+    ...new Set(
+      parseRoutePath(pathRoute)
+        .filter((token) => token.kind === 'param')
+        .map((token) => camelPathParamName(token.name)),
+    ),
+  ];
+  const paramsType =
+    paramNames.length > 0
+      ? `{ ${paramNames.map((name) => `${name}: string`).join('; ')} }`
+      : undefined;
+
+  if (bodyType) {
+    return `<${paramsType ?? 'PathParams'}, ${bodyType}>`;
+  }
+
+  return paramsType ? `<${paramsType}>` : '';
+}
+
 function generateDefinition(
   name: string,
   route: string,
   getResponseMockFunctionNameBase: string,
   handlerNameBase: string,
-  { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { override, context, mock }: GeneratorOptions,
+  { operationId, response, verb, tags, body }: GeneratorVerbOptions,
+  { override, context, mock, pathRoute }: GeneratorOptions,
   returnType: string,
   status: string,
   responseImports: GeneratorImport[],
@@ -455,11 +486,12 @@ function generateDefinition(
       })`;
   }
 
-  const infoType = `Parameters<Parameters<typeof http.${verb}>[1]>[0]`;
+  const typeArguments = getMSWTypeArguments(pathRoute, body.definition);
+  const infoType = `Parameters<HttpResponseResolver${typeArguments}>[0]`;
 
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: ${infoType}) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
-  return http.${verb}('${route}', async (${infoParam}: ${infoType}) => {${
+  return http.${verb}${typeArguments}('${route}', async (${infoParam}: ${infoType}) => {${
     delay === false
       ? ''
       : `await delay(${isFunction(delay) ? `(${String(delay)})()` : String(delay)});`
@@ -472,7 +504,7 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
 
   const includeResponseImports = [
     ...imports,
-    ...response.imports.filter((r) => {
+    ...[...response.imports, ...body.imports].filter((r) => {
       // Only keep imports referenced in the mock. Aliased imports
       // (`Foo as __Foo`) reference the alias rather than the bare name, so
       // match against either. Mirrors `addDependency` in core/generators/imports.ts (#3269).

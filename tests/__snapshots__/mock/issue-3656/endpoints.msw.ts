@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { ReasonEnum } from './model';
 import type { CreatedDetails, Event, UpdatedDetails } from './model';
@@ -48,13 +48,13 @@ export const getListEventsMockHandler = (
   overrideResponse?:
     | Event[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Event[]> | Event[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/events',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

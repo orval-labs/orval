@@ -8,7 +8,11 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type { NullableObject, NullableRefContainer } from './model';
 
@@ -59,13 +63,13 @@ export const getFetchNullableMockHandler = (
     | string
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<string | null> | string | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -83,13 +87,13 @@ export const getFetchNullableObjectMockHandler = (
   overrideResponse?:
     | NullableObject
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableObject> | NullableObject),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-object',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -107,13 +111,15 @@ export const getNullableWithMultipartFormRequestMockHandler = (
   overrideResponse?:
     | NullableObject
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, NullableObject>>[0],
       ) => Promise<NullableObject> | NullableObject),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, NullableObject>(
     '*/nullable-with-multipart-form-data',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, NullableObject>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -131,13 +137,13 @@ export const getFetchNullableRefMockHandler = (
   overrideResponse?:
     | NullableRefContainer
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableRefContainer> | NullableRefContainer),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-ref',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

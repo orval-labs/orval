@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { TenantListResponse } from '../model';
 
@@ -17,13 +17,13 @@ export const getGetBMockHandler = (
   overrideResponse?:
     | TenantListResponse
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<TenantListResponse> | TenantListResponse),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/b',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

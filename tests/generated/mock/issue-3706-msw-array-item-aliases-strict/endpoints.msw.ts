@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type {
   CatalogItems,
@@ -207,13 +207,13 @@ export const getGetCatalogItemsMockHandler = (
   overrideResponse?:
     | CatalogItems
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<CatalogItems> | CatalogItems),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/catalog-items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -231,7 +231,7 @@ export const getGetCatalogItemsInlineMockHandler = (
   overrideResponse?:
     | GetCatalogItemsInline200Item[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) =>
         | Promise<GetCatalogItemsInline200Item[]>
         | GetCatalogItemsInline200Item[]),
@@ -239,7 +239,7 @@ export const getGetCatalogItemsInlineMockHandler = (
 ) => {
   return http.get(
     '*/catalog-items-inline',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -256,14 +256,12 @@ export const getGetCatalogItemsInlineMockHandler = (
 export const getGetCatalogItemsShortMockHandler = (
   overrideResponse?:
     | Items
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Items> | Items),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Items> | Items),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -281,13 +279,13 @@ export const getGetNullableListMockHandler = (
   overrideResponse?:
     | GetNullableList200
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<GetNullableList200> | GetNullableList200),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-list',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -306,7 +304,7 @@ export const getGetNullableCatalogItemsMockHandler = (
     | GetNullableCatalogItems200Item[]
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) =>
         | Promise<GetNullableCatalogItems200Item[] | null>
         | GetNullableCatalogItems200Item[]
@@ -315,7 +313,7 @@ export const getGetNullableCatalogItemsMockHandler = (
 ) => {
   return http.get(
     '*/nullable-catalog-items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { DirectoryPrefix, Timezone, VisitableType } from './model';
 import type { Ping200 } from './model';
@@ -49,13 +49,13 @@ export const getPingMockHandler = (
   overrideResponse?:
     | Ping200
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Ping200> | Ping200),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/ping',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

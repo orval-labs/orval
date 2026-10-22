@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { User } from '../model';
 
@@ -36,14 +36,12 @@ export const getGetUserResponseMock = (
 export const getGetUserMockHandler = (
   overrideResponse?:
     | User
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<User> | User),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<User> | User),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/user',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
