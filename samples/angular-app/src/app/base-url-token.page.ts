@@ -47,14 +47,15 @@ export class BaseUrlTokenPage {
 
   protected readonly version = signal(1);
 
-  protected readonly petsState$ = toLoadState<Pets>(
-    toObservable(this.version).pipe(
-      switchMap((version) =>
+  protected readonly petsState$ = toObservable(this.version).pipe(
+    switchMap((version) =>
+      toLoadState<Pets>(
         this.petService.listPets('application/json', undefined, version),
+        [] as Pets,
       ),
     ),
-    [] as Pets,
-  ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
 
   protected readonly listResource = listPetsResource(
     'application/json',
