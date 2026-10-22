@@ -1532,7 +1532,7 @@ export function ${TO_RESOURCE_STATE_FUNCTION_NAME}<T>(ref: HttpResourceRef<T>): 
  *
  * @returns The generated header, resource helpers, optional mutation service class, and resource result aliases.
  */
-export const generateHttpResourceHeader: ClientHeaderBuilder = ({
+export const generateHttpResourceHeader = ({
   title,
   isRequestOptions,
   isMutator,
@@ -1541,7 +1541,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   output,
   verbOptions,
   tag,
-}) => {
+}: Parameters<ClientHeaderBuilder>[0]): string => {
   resetHttpClientReturnTypes();
   resourceReturnTypesRegistry.reset();
 
@@ -1643,6 +1643,17 @@ ${mutationImplementation}
 
   return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}${classImplementation}${resourceTypes ? `\n${resourceTypes}\n` : ''}`;
 };
+
+/**
+ * The header with the shared exports that the `tags-split` barrel needs. Every
+ * tag file declares them, so the barrel names each one from a single tag.
+ */
+export const generateHttpResourceHeaderResult: ClientHeaderBuilder = (
+  params,
+) => ({
+  implementation: generateHttpResourceHeader(params),
+  sharedExports: HTTP_RESOURCE_SHARED_EXPORTS,
+});
 
 /**
  * Generates the footer for Angular `httpResource` output.

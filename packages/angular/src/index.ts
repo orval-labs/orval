@@ -12,7 +12,7 @@ import {
   generateHttpResourceClient,
   generateHttpResourceExtraFiles,
   generateHttpResourceFooter,
-  generateHttpResourceHeader,
+  generateHttpResourceHeaderResult,
   getAngularHttpResourceDependencies,
 } from './http-resource';
 
@@ -34,7 +34,7 @@ const httpClientBuilder: ClientGeneratorsBuilder = {
 
 const httpResourceBuilder: ClientGeneratorsBuilder = {
   client: generateHttpResourceClient,
-  header: generateHttpResourceHeader,
+  header: generateHttpResourceHeaderResult,
   dependencies: getAngularHttpResourceDependencies,
   footer: generateHttpResourceFooter,
   title: generateAngularTitle,
