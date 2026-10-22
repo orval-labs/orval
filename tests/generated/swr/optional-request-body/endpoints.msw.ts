@@ -5,19 +5,31 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
+
+import type { Cookie, OptionalPetBodyBody, RequiredPetBodyBody } from './model';
 
 export const getCreatePetsMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<PathParams, RequiredPetBodyBody>
+        >[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, RequiredPetBodyBody>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<PathParams, RequiredPetBodyBody>
+      >[0],
+    ) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -32,13 +44,19 @@ export const getUpdatePetsMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<PathParams, OptionalPetBodyBody>
+        >[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.put(
+  return http.put<PathParams, OptionalPetBodyBody>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<PathParams, OptionalPetBodyBody>
+      >[0],
+    ) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -53,13 +71,13 @@ export const getCreateCookiesMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Cookie>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, Cookie>(
     '*/cookies',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, Cookie>>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -74,13 +92,13 @@ export const getUpdateCookiesMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Cookie>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.put(
+  return http.put<PathParams, Cookie>(
     '*/cookies',
-    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, Cookie>>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }

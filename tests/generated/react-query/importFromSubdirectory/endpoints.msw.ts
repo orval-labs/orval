@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import {
   getGetPetsResponseMock,
@@ -22,14 +22,12 @@ export {
 export const getPostPetsMockHandler = (
   overrideResponse?:
     | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -47,13 +45,13 @@ export const getGetPetsMockHandler = (
   overrideResponse?:
     | AnotherSchema
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<AnotherSchema> | AnotherSchema),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

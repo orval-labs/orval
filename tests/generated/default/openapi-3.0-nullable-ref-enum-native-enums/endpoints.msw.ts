@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Tag } from './model';
 
@@ -52,14 +52,12 @@ export const getGetTagsResponseMock = (
 export const getGetTagsMockHandler = (
   overrideResponse?:
     | Tag
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Tag> | Tag),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Tag> | Tag),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/tags',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

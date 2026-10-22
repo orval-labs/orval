@@ -7,9 +7,14 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type {
+  AllOfPet,
   GetNotHasPropertiesWithAllOfPets200,
   ItemWithNullableRequired,
   Pet,
@@ -75,13 +80,13 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, AllOfPet>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, AllOfPet>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, AllOfPet>>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -96,7 +101,7 @@ export const getGetNotHasPropertiesWithAllOfPetsMockHandler = (
   overrideResponse?:
     | GetNotHasPropertiesWithAllOfPets200
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) =>
         | Promise<GetNotHasPropertiesWithAllOfPets200>
         | GetNotHasPropertiesWithAllOfPets200),
@@ -104,7 +109,7 @@ export const getGetNotHasPropertiesWithAllOfPetsMockHandler = (
 ) => {
   return http.get(
     '*/not-has-properties-with-all-of-pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -122,13 +127,13 @@ export const getGetNestedRefInAllOfPetsMockHandler = (
   overrideResponse?:
     | (Pet & PetDetail)
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Pet & PetDetail> | (Pet & PetDetail)),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/rested-ref-in-all-of-pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -146,13 +151,13 @@ export const getGetItemsWithNullableRequiredMockHandler = (
   overrideResponse?:
     | ItemWithNullableRequired[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<ItemWithNullableRequired[]> | ItemWithNullableRequired[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items-with-nullable-required',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

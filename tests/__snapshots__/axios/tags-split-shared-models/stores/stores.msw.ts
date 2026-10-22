@@ -5,9 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Store, StoreList } from '../model';
+import type { CreateStoreBody, Store, StoreList } from '../model';
 
 import {
   getCreateStoreResponseMock,
@@ -25,13 +29,13 @@ export const getListStoresMockHandler = (
   overrideResponse?:
     | StoreList
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<StoreList> | StoreList),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/stores',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -49,13 +53,15 @@ export const getCreateStoreMockHandler = (
   overrideResponse?:
     | Store
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreateStoreBody>>[0],
       ) => Promise<Store> | Store),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreateStoreBody>(
     '*/stores',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreateStoreBody>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -73,13 +79,13 @@ export const getGetStoreByIdMockHandler = (
   overrideResponse?:
     | Store
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ storeId: string }>>[0],
       ) => Promise<Store> | Store),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ storeId: string }>(
     '*/stores/:storeId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ storeId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

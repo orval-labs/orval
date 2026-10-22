@@ -8,9 +8,13 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { LatestUpload, Upload } from './model';
+import type { CreateUploadBody, LatestUpload, Upload } from './model';
 
 import { getOwnerMock, getUploadMock } from './model/index.faker';
 
@@ -37,13 +41,15 @@ export const getCreateUploadMockHandler = (
   overrideResponse?:
     | Upload
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreateUploadBody>>[0],
       ) => Promise<Upload> | Upload),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreateUploadBody>(
     '*/uploads',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreateUploadBody>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -61,13 +67,13 @@ export const getGetLatestUploadMockHandler = (
   overrideResponse?:
     | LatestUpload
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<LatestUpload> | LatestUpload),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/uploads/latest',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

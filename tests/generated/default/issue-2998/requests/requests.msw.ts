@@ -6,7 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type { PageDTORequestDTO, RequestDTO } from '../model';
 
@@ -26,13 +30,15 @@ export const getFindByReferenceIdMockHandler = (
   overrideResponse?:
     | RequestDTO
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ referenceId: string }>>[0],
       ) => Promise<RequestDTO> | RequestDTO),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ referenceId: string }>(
     '*/api/requests/:referenceId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<{ referenceId: string }>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -50,13 +56,13 @@ export const getFindRequestsMockHandler = (
   overrideResponse?:
     | PageDTORequestDTO
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PageDTORequestDTO> | PageDTORequestDTO),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/requests',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -74,13 +80,15 @@ export const getCreateRequestMockHandler = (
   overrideResponse?:
     | RequestDTO
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, RequestDTO>>[0],
       ) => Promise<RequestDTO> | RequestDTO),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, RequestDTO>(
     '*/api/requests',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, RequestDTO>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

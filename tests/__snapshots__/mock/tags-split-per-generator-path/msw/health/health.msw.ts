@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { getHealthCheckResponseMock } from '../../faker/health/health.faker';
 
@@ -14,14 +14,12 @@ export { getHealthCheckResponseMock } from '../../faker/health/health.faker';
 export const getHealthCheckMockHandler = (
   overrideResponse?:
     | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<string> | string),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

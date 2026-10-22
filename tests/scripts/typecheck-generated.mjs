@@ -130,6 +130,7 @@ const exactOptionalFolders = [
   'http-resource-multi-content',
   'http-resource-request-extension-multi-content',
   'http-resource-tags',
+  'http-resource-tags-split-barrel',
   'http-resource-zod',
   'http-resource-zod-disabled',
   'issue-3624',

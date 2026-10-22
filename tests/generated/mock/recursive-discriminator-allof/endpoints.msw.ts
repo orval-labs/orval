@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Derived1, Derived2 } from './model';
 
@@ -157,13 +157,13 @@ export const getGetDerived1MockHandler = (
   overrideResponse?:
     | Derived1
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Derived1> | Derived1),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/derived1',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -181,13 +181,13 @@ export const getGetDerived2MockHandler = (
   overrideResponse?:
     | Derived2
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Derived2> | Derived2),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/derived2',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

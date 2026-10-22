@@ -15313,3 +15313,60 @@ describe('schemas that admit no value (#4323)', () => {
     );
   });
 });
+
+describe('object schemas narrowed by an enum (#4351)', () => {
+  const context = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (schema: OpenApiSchemaObject, isZodV4 = true) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'point',
+        false,
+        isZodV4,
+        { required: true },
+      ),
+      context,
+      false,
+      false,
+      isZodV4,
+    ).zod;
+
+  it('renders a null-only object enum as a null literal', () => {
+    const schema = {
+      type: 'object',
+      nullable: true,
+      enum: [null],
+    } as OpenApiSchemaObject;
+
+    expect(render(schema)).toBe('zod.literal(null)');
+    expect(render(schema, false)).toBe('zod.literal(null)');
+    expect(render({ type: ['object', 'null'], enum: [null] })).toBe(
+      'zod.literal(null).nullable()',
+    );
+  });
+
+  it('keeps the null-only branch of a oneOf free of an object schema', () => {
+    const zodSchema = render({
+      type: 'object',
+      properties: {
+        coordinates: {
+          oneOf: [
+            {
+              type: 'object',
+              required: ['latitude'],
+              properties: { latitude: { type: 'number' } },
+            },
+            { type: 'object', nullable: true, enum: [null] },
+          ],
+        },
+      },
+    } as OpenApiSchemaObject);
+
+    expect(zodSchema).not.toContain('looseObject');
+    expect(zodSchema).toContain('zod.literal(null)');
+  });
+});
