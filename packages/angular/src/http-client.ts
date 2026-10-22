@@ -18,14 +18,12 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsHelperBody,
   getAngularObjectParamStrategies,
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
   type GetterProp,
   GetterPropType,
-  isBoolean,
   jsStringLiteralEscape,
   makeRouteSafe,
   pascal,
@@ -40,14 +38,11 @@ import {
 } from './base-url';
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
-  HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
-  HTTP_CLIENT_OPTIONS_TEMPLATE,
-  THIRD_PARAMETER_TEMPLATE,
-} from './types';
-import {
+  buildServiceClassOpen,
   createReturnTypesRegistry,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
   isJsonContentType,
   isPrimitiveType,
   isZodSchemaOutput,
@@ -352,42 +347,23 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   // when at least one relevant operation actually has a gated strategy to
   // apply — keeping the base helper byte-identical everywhere else.
   const hasObjectParams = relevantVerbs.some(
-    (v) =>
-      Object.keys(
-        getAngularObjectParamStrategies({
-          queryParams: v.queryParams,
-          paramsSerializer: v.paramsSerializer,
-          paramsFilter: v.paramsFilter,
-          queryObjectSerialization: v.override.angular.queryObjectSerialization,
-        }),
-      ).length > 0,
+    hasGatedObjectQueryParamStrategies,
   );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
-  return `
-${
-  isRequestOptions && !isGlobalMutator
-    ? `${HTTP_CLIENT_OPTIONS_TEMPLATE}
-
-${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
-
-${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
-    : ''
-}
-
-${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
-
-${acceptHelpers}
-
-@Injectable(${provideIn ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }` : ''})
-export class ${title} {
-  private readonly http = inject(HttpClient);
-${
-  output.override.angular.baseUrl
-    ? `  private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});
-`
-    : ''
-}`;
+  return buildServiceClassOpen({
+    title,
+    isRequestOptions,
+    isMutator,
+    isGlobalMutator,
+    provideIn,
+    hasQueryParams: hasBuiltInFilteredQueryParams,
+    baseUrlFieldInitializer: output.override.angular.baseUrl
+      ? `private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});`
+      : undefined,
+    hasObjectParams,
+    acceptHelpers: `${acceptHelpers}\n\n`,
+  });
 };
 
 /**

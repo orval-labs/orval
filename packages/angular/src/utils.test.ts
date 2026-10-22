@@ -13,6 +13,7 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
   isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
@@ -524,4 +525,48 @@ describe('isJsonContentType', () => {
       expect(isJsonContentType(contentType)).toBe(false);
     },
   );
+});
+
+// ---------------------------------------------------------------------------
+// hasGatedObjectQueryParamStrategies
+// ---------------------------------------------------------------------------
+
+describe('hasGatedObjectQueryParamStrategies', () => {
+  const verbWith = (
+    angular: { queryObjectSerialization: 'spec' | 'legacy' },
+    queryParams: unknown = {
+      objectQueryParams: [{ key: 'filter', strategy: 'flatten' }],
+    },
+  ) =>
+    ({
+      queryParams,
+      override: { angular },
+    }) as never;
+
+  it('gates object query params serialized with the spec strategy', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith({ queryObjectSerialization: 'spec' }),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not gate legacy serialization', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith({ queryObjectSerialization: 'legacy' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not gate operations without object query params', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith(
+          { queryObjectSerialization: 'spec' },
+          { objectQueryParams: [] },
+        ),
+      ),
+    ).toBe(false);
+  });
 });

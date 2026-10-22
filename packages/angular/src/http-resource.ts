@@ -75,6 +75,7 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
   isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
@@ -489,24 +490,6 @@ interface ResourceRequest {
   readonly isUrlOnly: boolean;
   readonly bodyGuard?: string;
 }
-
-/**
- * Whether a single operation has at least one gated object-serialization
- * strategy (issue #3705) to apply. Used to decide whether the shared
- * `filterParams` helper needs its object-serialization overload.
- */
-const hasGatedObjectQueryParamStrategies = (
-  verbOption: GeneratorVerbOptions,
-): boolean =>
-  Object.keys(
-    getAngularObjectParamStrategies({
-      queryParams: verbOption.queryParams,
-      paramsSerializer: verbOption.paramsSerializer,
-      paramsFilter: verbOption.paramsFilter,
-      queryObjectSerialization:
-        verbOption.override.angular.queryObjectSerialization,
-    }),
-  ).length > 0;
 
 const buildResourceRequest = (
   {

@@ -1,6 +1,7 @@
 import {
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
+  getAngularObjectParamStrategies,
   getDefaultContentType,
   isBoolean,
   isObject,
@@ -74,6 +75,24 @@ export const generateAngularTitle = (title: string) => {
 };
 
 /**
+ * Whether a single operation has at least one gated object-serialization
+ * strategy (issue #3705) to apply. Used to decide whether the shared
+ * `filterParams` helper needs its object-serialization overload.
+ */
+export const hasGatedObjectQueryParamStrategies = (
+  verbOption: GeneratorVerbOptions,
+): boolean =>
+  Object.keys(
+    getAngularObjectParamStrategies({
+      queryParams: verbOption.queryParams,
+      paramsSerializer: verbOption.paramsSerializer,
+      paramsFilter: verbOption.paramsFilter,
+      queryObjectSerialization:
+        verbOption.override.angular.queryObjectSerialization,
+    }),
+  ).length > 0;
+
+/**
  * Builds the opening of an @Injectable Angular service class.
  * Shared between httpClient-only mode and the mutation section of httpResource mode.
  */
@@ -86,6 +105,7 @@ export const buildServiceClassOpen = ({
   hasQueryParams,
   baseUrlFieldInitializer,
   hasObjectParams = false,
+  acceptHelpers,
 }: {
   title: string;
   isRequestOptions: boolean;
@@ -104,6 +124,8 @@ export const buildServiceClassOpen = ({
    * (issue #3705). Only meaningful when `hasQueryParams` is `true`.
    */
   hasObjectParams?: boolean;
+  /** Emitted verbatim before the class; callers add their own trailing blank line. */
+  acceptHelpers?: string;
 }): string => {
   const provideInValue = provideIn
     ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
@@ -122,7 +144,7 @@ ${hasQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}
 
 ${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
 
-@Injectable(${provideInValue})
+${acceptHelpers ?? ''}@Injectable(${provideInValue})
 export class ${title} {
   private readonly http = inject(HttpClient);
 ${baseUrlFieldInitializer ? `  ${baseUrlFieldInitializer}\n` : ''}`;
