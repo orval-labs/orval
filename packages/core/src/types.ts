@@ -1335,12 +1335,12 @@ export const defineSchemaExtension = <
   TValue = SchemaExtensionValue<T>,
 >(
   entry: SchemaExtensionEntry<T, TValue>,
-): SchemaExtensionEntry<T> => entry as unknown as SchemaExtensionEntry<T>;
+): SchemaExtensionEntry<T, TValue> => entry;
 
 /** Additional validation checks to append to validation chains for properties of type SchemaType
  * (excluding null and unknown types) and any format SchemaExtensionFormat.  */
 export type SchemaExtension = {
-  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T>;
+  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never>;
 }[PrimitiveSchemaType][];
 
 export interface NormalizedZodOptions {
