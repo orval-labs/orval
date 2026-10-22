@@ -7,7 +7,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -20,6 +20,7 @@ import {
   narrowsResponseEvents,
   resetHttpClientReturnTypes,
 } from './http-client';
+import { logger } from './logger';
 import { createQueryParams } from './test-helpers';
 
 // ---------------------------------------------------------------------------
@@ -3222,15 +3223,28 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     expect(impl).not.toContain('.parse(');
   });
 
-  it('skips bodies when namingConvention.properties renames keys', () => {
+  it('skips and warns about a body whose keys namingConvention.properties renames', () => {
     // A renamed schema's parsed output carries the converted keys, which the
     // server does not know: `{ pet_name }` would go out as `{ petName }`.
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const impl = generate(
+      createPetsVerb({ body: jsonBody({ renamesKeys: true }) }),
+    );
+
+    expect(impl).not.toContain('defer(');
+    expect(impl).not.toContain('.parse(');
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      expect.stringMatching(/^createPets: the request body is sent unparsed/),
+    );
+    warn.mockRestore();
+  });
+
+  it('still parses a body whose keys the convention leaves alone', () => {
     const output = zodOutput();
     output.override.namingConvention = { properties: 'camelCase' };
     const impl = generate(createPetsVerb(), output);
 
-    expect(impl).not.toContain('defer(');
-    expect(impl).not.toContain('.parse(');
+    expect(impl).toContain('CreatePetsBody.parse(createPetsBody)');
   });
 
   it('skips non-Zod schema output', () => {

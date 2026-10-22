@@ -9,6 +9,7 @@ export * from './object';
 export * from './operation';
 export * from './parameters';
 export * from './params';
+export * from './property-renames';
 export * from './props';
 export * from './query-param-serialization';
 export * from './query-params';

@@ -1297,19 +1297,6 @@ export async function normalizeOptions(
     );
   }
 
-  const { override } = normalizedOptions.output;
-  const parsesRequestBodies =
-    override.angular.runtimeValidation.requestBodies ||
-    [
-      ...Object.values(override.operations),
-      ...Object.values(override.tags),
-    ].some((level) => level?.angular?.runtimeValidation.requestBodies);
-  if (override.namingConvention.properties && parsesRequestBodies) {
-    logger.warn(
-      `\`override.angular.runtimeValidation.requestBodies\` is ignored when \`override.namingConvention.properties\` is set. The renamed Zod schemas output converted keys, so sending the parsed body would put the wrong keys on the wire. Request bodies are sent unparsed.`,
-    );
-  }
-
   return normalizedOptions;
 }
 

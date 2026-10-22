@@ -50,6 +50,26 @@ describe('getBody', () => {
     required: true,
   };
 
+  it('flags a body whose keys namingConvention.properties renames', () => {
+    const renamedBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { pet_name: {} } },
+        },
+      },
+    };
+    const context = createContext();
+    context.output.override.namingConvention = { properties: 'camelCase' };
+
+    expect(
+      getBody({ requestBody: renamedBody, operationName: 'createPet', context })
+        .renamesKeys,
+    ).toBe(true);
+    expect(
+      getBody({ requestBody, operationName: 'createPet', context }).renamesKeys,
+    ).toBeUndefined();
+  });
+
   it('removes readonly request-body modifiers by default', () => {
     const result = getBody({
       requestBody,

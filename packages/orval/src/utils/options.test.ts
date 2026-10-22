@@ -843,46 +843,6 @@ describe('normalizeOptions', () => {
     }
   });
 
-  it('warns that angular runtimeValidation.requestBodies is ignored under namingConvention.properties', async () => {
-    const workspace = await createTempWorkspace();
-    logWarningSpy.mockClear();
-
-    try {
-      await normalizeOptions(
-        {
-          input: {
-            target: {
-              openapi: '3.1.0',
-              info: { title: 'Test', version: '1.0.0' },
-              paths: {},
-            },
-          },
-          output: {
-            target: './generated.ts',
-            client: 'angular',
-            override: {
-              namingConvention: { properties: 'camelCase' },
-              operations: {
-                createPets: {
-                  angular: { runtimeValidation: { requestBodies: true } },
-                },
-              },
-            },
-          },
-        },
-        workspace,
-      );
-
-      expect(logWarningSpy).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /requestBodies.*ignored.*namingConvention\.properties/,
-        ),
-      );
-    } finally {
-      await rm(workspace, { recursive: true, force: true });
-    }
-  });
-
   it('normalizes fetch runtimeValidation { strategy: "both" } to the canonical object', async () => {
     const workspace = await createTempWorkspace();
 

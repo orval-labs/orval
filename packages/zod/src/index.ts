@@ -20,6 +20,7 @@ import {
   getKey,
   getNumberWord,
   getPropertyNameCollisionKeys,
+  getPropertyNamingConvention,
   getRefInfo,
   getRequiredKeys,
   isBindingIdentifier,
@@ -748,10 +749,6 @@ interface PropertyRename {
   required: boolean;
 }
 
-const getPropertyConvention = (context: ContextSpec) =>
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
-  context.output.override.namingConvention?.properties;
-
 /**
  * The keys of one object that `namingConvention.properties` renames. The Zod
  * schema still validates the original (wire) keys, then a transform hands out
@@ -764,7 +761,7 @@ const getPropertyRenames = (
   requiredKeys: Set<string>,
   context: ContextSpec,
 ): PropertyRename[] => {
-  const convention = getPropertyConvention(context);
+  const convention = getPropertyNamingConvention(context.output);
   if (!convention) return [];
   const convert = (key: string) => conventionName(key, convention);
   const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
@@ -810,7 +807,7 @@ const memberRenamesKeys = (
   member: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean => {
-  const convention = getPropertyConvention(context);
+  const convention = getPropertyNamingConvention(context.output);
   if (!convention) return false;
   const resolved = resolveUnionMemberSchema(member, context);
   if (!resolved) return false;

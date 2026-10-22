@@ -39,6 +39,7 @@ import {
   getBaseUrlTokenName,
 } from './base-url';
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
+import { logger } from './logger';
 import {
   HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
   HTTP_CLIENT_OPTIONS_TEMPLATE,
@@ -113,9 +114,9 @@ const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
  * `runtimeValidation.requestBodies` (#4145), or `undefined` when the body is
  * sent as-is: the option is off, the output has no Zod schemas, a custom
  * mutator owns the request, the body is not JSON (form data, url-encoded,
- * binary and text bodies are skipped), or `namingConvention.properties` is
- * set. A renamed Zod schema transforms wire keys into converted ones, so its
- * parsed output would put the wrong keys on the wire.
+ * binary and text bodies are skipped), or `namingConvention.properties`
+ * renames a key in the body. The Zod schema of such a body renames keys when
+ * it parses, so its output would put the wrong keys on the wire.
  *
  * `importName` is the schema binding that has to become a value import.
  */
@@ -132,8 +133,7 @@ export const getRequestBodySchema = (
     !runtimeValidation.enabled ||
     !runtimeValidation.requestBodies ||
     mutator ||
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
-    output.override.namingConvention?.properties ||
+    body.renamesKeys ||
     !isZodSchemaOutput(output) ||
     !body.implementation ||
     !body.contentType.includes('json')
@@ -654,6 +654,19 @@ export const generateHttpClientImplementation = (
     { body, mutator, override },
     context.output,
   );
+  // This builder runs once per emitted method, so the warning does too.
+  if (
+    !validatedBody &&
+    body.renamesKeys &&
+    getRequestBodySchema(
+      { body: { ...body, renamesKeys: false }, mutator, override },
+      context.output,
+    )
+  ) {
+    logger.warn(
+      `${operationName}: the request body is sent unparsed. \`namingConvention.properties\` renames its keys, so the parsed body would not have the keys the server expects.`,
+    );
+  }
   const takenNames = new Set([
     ...props.map((prop) => prop.name),
     'options',

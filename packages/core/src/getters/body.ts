@@ -11,6 +11,7 @@ import type {
   ResReqTypesValue,
 } from '../types';
 import { camel, isBinaryContentType, isInlineSchema, sanitize } from '../utils';
+import { schemaRenamesKeys } from './property-renames';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
@@ -84,6 +85,9 @@ function buildBody(
     imports,
     schemas,
     isOptional,
+    ...(filteredBodyTypes.some((t) =>
+      schemaRenamesKeys(t.originalSchema, context),
+    ) && { renamesKeys: true }),
     ...(filteredBodyTypes.length === 1
       ? {
           formData: filteredBodyTypes[0].formData,
