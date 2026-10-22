@@ -182,3 +182,5 @@ export class AbWidgetService {
     });
   }
 }
+
+export type ListAbWidgetsClientResult = NonNullable<Widget[]>;

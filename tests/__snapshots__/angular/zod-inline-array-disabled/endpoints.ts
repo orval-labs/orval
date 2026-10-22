@@ -233,3 +233,9 @@ export class AngularZodInlineArrayResponsesService {
     });
   }
 }
+
+export type ListItemsClientResult = NonNullable<Item[]>;
+export type ListNamedItemsClientResult = NonNullable<Items>;
+export type ListStringsClientResult = NonNullable<string[]>;
+export type GetItemClientResult = NonNullable<Item>;
+export type ListMultiContentClientResult = NonNullable<Item[] | string>;
