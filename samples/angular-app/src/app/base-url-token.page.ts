@@ -47,7 +47,7 @@ export class BaseUrlTokenPage {
   protected readonly version = signal(1);
 
   protected readonly petsState$ = toLoadState<Pets>(
-    this.petService.listPets('application/json', undefined, 1),
+    this.petService.listPets('application/json', undefined, this.version()),
     [] as Pets,
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
