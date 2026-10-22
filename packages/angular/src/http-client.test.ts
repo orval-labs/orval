@@ -7,7 +7,14 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -2939,6 +2946,10 @@ describe('angular HttpClient generator', () => {
 });
 
 describe('runtimeValidation.requestBodies (#4145)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const requestBodyValidation = {
     enabled: true,
     strategy: 'throw',
@@ -3236,7 +3247,6 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       expect.stringMatching(/^createPets: the request body is sent unparsed/),
     );
-    warn.mockRestore();
   });
 
   it('still parses a body whose keys the convention leaves alone', () => {

@@ -19,9 +19,9 @@ import {
   getFormDataFieldFileType,
   getKey,
   getNumberWord,
-  getPropertyNameCollisionKeys,
   getPropertyNamingConvention,
   getRefInfo,
+  getRenamedPropertyKeys,
   getRequiredKeys,
   isBindingIdentifier,
   isBoolean,
@@ -753,8 +753,7 @@ interface PropertyRename {
  * The keys of one object that `namingConvention.properties` renames. The Zod
  * schema still validates the original (wire) keys, then a transform hands out
  * the converted ones, so `zod.input` stays wire-shaped and `zod.output` matches
- * the TypeScript models. Keys that would collide after conversion keep their
- * original name, exactly as the TypeScript models do (#2381).
+ * the TypeScript models.
  */
 const getPropertyRenames = (
   keys: string[],
@@ -763,16 +762,10 @@ const getPropertyRenames = (
 ): PropertyRename[] => {
   const convention = getPropertyNamingConvention(context.output);
   if (!convention) return [];
-  const convert = (key: string) => conventionName(key, convention);
-  const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
-  return keys
-    .filter((key) => !collisionKeys.has(key))
-    .map((key) => ({
-      from: key,
-      to: convert(key),
-      required: requiredKeys.has(key),
-    }))
-    .filter(({ from, to }) => from !== to);
+  return getRenamedPropertyKeys(keys, convention).map((rename) => ({
+    ...rename,
+    required: requiredKeys.has(rename.from),
+  }));
 };
 
 /**

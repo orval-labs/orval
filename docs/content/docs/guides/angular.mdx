@@ -1073,8 +1073,8 @@ sent. Defaults and transforms in the schema therefore apply to the payload.
 Form data, url-encoded, binary and text bodies are skipped, and so are
 operations with a custom `mutator`. So is a body with a key that
 [`namingConvention.properties`](/docs/reference/configuration/output#namingconvention-property-keys)
-renames, and Orval logs a warning for that operation. Its Zod schema outputs
-the converted keys, and the server expects the spec's keys. See
+renames. Orval logs a warning for that operation and sends the body exactly as
+passed, without validation, defaults or transforms. See
 [`runtimeValidation.requestBodies`](/docs/reference/configuration/output#requestbodies)
 for the details.
 

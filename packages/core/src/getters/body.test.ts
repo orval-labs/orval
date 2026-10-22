@@ -70,6 +70,44 @@ describe('getBody', () => {
     ).toBeUndefined();
   });
 
+  it('follows a components/requestBodies ref to the schema it renames', () => {
+    // A ref that does not resolve also counts as renaming, so only the
+    // camelCase `Owner` body shows that the refs resolve.
+    const context = createContext();
+    context.spec.components = {
+      requestBodies: {
+        NewPet: {
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/NewPet' },
+            },
+          },
+        },
+        Owner: {
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Owner' },
+            },
+          },
+        },
+      },
+      schemas: {
+        NewPet: { type: 'object', properties: { pet_name: {} } },
+        Owner: { type: 'object', properties: { ownerName: {} } },
+      },
+    };
+    context.output.override.namingConvention = { properties: 'camelCase' };
+    const renamesKeys = (name: string) =>
+      getBody({
+        requestBody: { $ref: `#/components/requestBodies/${name}` },
+        operationName: 'createPet',
+        context,
+      }).renamesKeys;
+
+    expect(renamesKeys('NewPet')).toBe(true);
+    expect(renamesKeys('Owner')).toBeUndefined();
+  });
+
   it('removes readonly request-body modifiers by default', () => {
     const result = getBody({
       requestBody,

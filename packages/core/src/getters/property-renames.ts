@@ -18,6 +18,24 @@ export const getPropertyNamingConvention = (
   output.override.namingConvention?.properties;
 
 /**
+ * The keys of one object that `convention` renames, with their converted
+ * names. Keys that would collide after conversion keep their original name,
+ * as they do in the TypeScript models (#2381). The Zod rename transform and
+ * `schemaRenamesKeys` both call this, so they agree on which keys change.
+ */
+export const getRenamedPropertyKeys = (
+  keys: string[],
+  convention: NamingConvention,
+): { from: string; to: string }[] => {
+  const convert = (key: string) => conventionName(key, convention);
+  const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
+  return keys
+    .filter((key) => !collisionKeys.has(key))
+    .map((key) => ({ from: key, to: convert(key) }))
+    .filter(({ from, to }) => from !== to);
+};
+
+/**
  * Whether `namingConvention.properties` renames any object key in a schema,
  * nested refs included. The Zod schema for it then renames those keys when
  * it parses, so the parsed value no longer has the wire keys. A ref that
@@ -52,14 +70,8 @@ const walkRenames = (
     return walkRenames(resolved, convention, context, seen);
   }
 
-  // Keys that would collide after conversion keep their name, as they do in
-  // the Zod schema's rename transform.
-  const convert = (key: string) => conventionName(key, convention);
   const keys = Object.keys(schema.properties ?? {});
-  const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
-  if (keys.some((key) => !collisionKeys.has(key) && convert(key) !== key)) {
-    return true;
-  }
+  if (getRenamedPropertyKeys(keys, convention).length > 0) return true;
 
   const children = [
     ...Object.values(schema.properties ?? {}),
