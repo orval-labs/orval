@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { styleText } from 'node:util';
 
 import {
   type ContextSpec,
@@ -12,6 +13,7 @@ import {
   generateModelsInline,
   generateMutator,
   getFileInfo,
+  getGeneratedFileCheck,
   getImportExtension,
   getFakerEntry,
   getMockFileExtensionByTypeName,
@@ -25,6 +27,7 @@ import {
   OutputMockType,
   OutputMode,
   pascal,
+  readGeneratedFile,
   splitSchemasByType,
   SupportedFormatter,
   stripFileExtension,
@@ -282,14 +285,7 @@ async function addOperationSchemasReExport(
   );
   const exportLine = `export * from '${esmImportPath}';\n`;
 
-  let existingContent: string | undefined;
-  try {
-    existingContent = await fs.promises.readFile(schemaIndexPath, 'utf8');
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw error;
-    }
-  }
+  const existingContent = await readGeneratedFile(schemaIndexPath);
 
   if (existingContent !== undefined) {
     // Append the re-export only if it isn't already declared. The presence
@@ -519,9 +515,7 @@ async function reexportFakerSchemaFactories(
   // A spec without operations gets no faker barrel from the mode writers, so
   // start from an empty one.
   const barrelPath = path.join(faker.path, `index.faker${fileExtension}`);
-  const barrel = fs.existsSync(barrelPath)
-    ? await fs.promises.readFile(barrelPath, 'utf8')
-    : '';
+  const barrel = (await readGeneratedFile(barrelPath)) ?? '';
   const taken = new Set<string>();
   for (const specifier of readReExportSpecifiers(barrel)) {
     const modulePath = path.resolve(
@@ -530,15 +524,16 @@ async function reexportFakerSchemaFactories(
         ? specifier.slice(0, -importExtension.length)
         : specifier,
     );
-    const content = await fs.promises
-      .readFile(`${modulePath}${fileExtension}`, 'utf8')
-      .catch(() => '');
+    const content =
+      (await readGeneratedFile(`${modulePath}${fileExtension}`).catch(
+        () => '',
+      )) ?? '';
     for (const match of content.matchAll(EXPORTED_NAME_RE)) {
       taken.add(match[1]);
     }
   }
 
-  const factories = await fs.promises.readFile(factoriesPath, 'utf8');
+  const factories = (await readGeneratedFile(factoriesPath)) ?? '';
   const names = [...factories.matchAll(EXPORTED_NAME_RE)]
     .map((match) => match[1])
     .filter((name) => !taken.has(name));
@@ -1324,7 +1319,11 @@ async function writeSpecsInternal(
     }
   }
 
-  logger.info(createSuccessMessage(info.title));
+  logger.info(
+    getGeneratedFileCheck()
+      ? `🔍 ${styleText('green', info.title)} - Compared with the existing generated files`
+      : createSuccessMessage(info.title),
+  );
 }
 
 export async function writeSpecs(

@@ -1,5 +1,9 @@
+import path from 'node:path';
+
 import {
+  collectOutdatedGeneratedFiles,
   consoleReporter,
+  createGeneratedFileCheck,
   getWarningCount,
   type GlobalOptions,
   isString,
@@ -7,6 +11,7 @@ import {
   resetWarnings,
   setLogLevel,
   setProjectName,
+  withGeneratedFileCheck,
   withReporter,
 } from '@orval/core';
 
@@ -31,6 +36,35 @@ export async function generate(
 }
 
 async function generateWithReporter(
+  optionsExport: string | OptionsExport | undefined,
+  workspace: string,
+  options?: GlobalOptions,
+) {
+  const check = options?.outdated ? createGeneratedFileCheck() : undefined;
+  const run = () => generateProjects(optionsExport, workspace, options);
+  await (check ? withGeneratedFileCheck(check, run) : run());
+
+  if (check) {
+    const outdated = await collectOutdatedGeneratedFiles(check);
+    if (outdated.length > 0) {
+      for (const file of outdated) {
+        logger.error(`${file.status}: ${path.relative(workspace, file.path)}`);
+      }
+      throw new Error(
+        `Process failed with ${outdated.length} outdated generated file(s) due to outdated option`,
+      );
+    }
+    logger.info('All generated files are up to date');
+  }
+
+  if (options?.failOnWarnings && getWarningCount() > 0) {
+    throw new Error(
+      `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+    );
+  }
+}
+
+async function generateProjects(
   optionsExport: string | OptionsExport | undefined,
   workspace: string,
   options?: GlobalOptions,
@@ -94,12 +128,6 @@ async function generateWithReporter(
     if (hasErrors)
       logger.error('One or more project failed, see above for details');
 
-    if (options?.failOnWarnings && getWarningCount() > 0) {
-      throw new Error(
-        `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
-      );
-    }
-
     return;
   }
 
@@ -137,12 +165,6 @@ async function generateWithReporter(
         }
       },
       normalizedOptions.input.target as string,
-    );
-  }
-
-  if (options?.failOnWarnings && getWarningCount() > 0) {
-    throw new Error(
-      `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
     );
   }
 }

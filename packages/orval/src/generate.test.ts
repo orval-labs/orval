@@ -5,6 +5,7 @@ import {
   setLogLevel,
   setProjectName,
   withReporter,
+  writeGeneratedFile,
 } from '@orval/core';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -169,6 +170,32 @@ describe('generate - failOnWarnings', () => {
 
     await expect(
       generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace'),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('generate - outdated', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('throws when a generated file is missing from disk', async () => {
+    vi.mocked(generateSpec).mockImplementationOnce(() =>
+      writeGeneratedFile('/workspace/out.ts', 'export {};\n'),
+    );
+
+    await expect(
+      generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        outdated: true,
+      }),
+    ).rejects.toThrow(/outdated generated file/);
+  });
+
+  it('does not throw when nothing is reported', async () => {
+    await expect(
+      generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        outdated: true,
+      }),
     ).resolves.toBeUndefined();
   });
 });

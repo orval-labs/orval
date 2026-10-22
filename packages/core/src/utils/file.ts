@@ -66,21 +66,30 @@ export function getFileInfo(
   };
 }
 
+/**
+ * Set `followSymbolicLinks` to `false` in a directory that Orval shares with
+ * the user. A symlinked subdirectory would otherwise let the glob reach
+ * files outside `dir` and delete them.
+ */
+export interface ListFilesOptions {
+  followSymbolicLinks?: boolean;
+}
+
+/** The absolute paths of the files under `dir` that `patterns` select. */
+export function listFilesMatching(
+  patterns: string[],
+  dir: string,
+  { followSymbolicLinks = true }: ListFilesOptions = {},
+): Promise<string[]> {
+  return glob(patterns, { cwd: dir, absolute: true, followSymbolicLinks });
+}
+
 export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
-  /**
-   * Set `followSymbolicLinks` to `false` in a directory that Orval shares with
-   * the user. A symlinked subdirectory would otherwise let the glob reach
-   * files outside `dir` and delete them.
-   */
-  { followSymbolicLinks = true }: { followSymbolicLinks?: boolean } = {},
+  { followSymbolicLinks = true }: ListFilesOptions = {},
 ) {
-  const files = await glob(patterns, {
-    cwd: dir,
-    absolute: true,
-    followSymbolicLinks,
-  });
+  const files = await listFilesMatching(patterns, dir, { followSymbolicLinks });
 
   // Remove files
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
