@@ -699,6 +699,21 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'branded-types': {
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+    output: {
+      target: '../generated/default/branded-types/endpoints.ts',
+      schemas: '../generated/default/branded-types/model',
+      mock: true,
+      override: {
+        useBrandedTypes: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'openapi-3.0-nullable-ref-enum': {
     input: {
       target: '../specifications/openapi-3.0-nullable-ref-enum.yaml',

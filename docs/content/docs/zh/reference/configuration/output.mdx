@@ -1497,6 +1497,8 @@ rule is ignored — did you mean 'postNotes'?
 
 被 input 过滤器或 [`useDeprecatedOperations: false`](#usedeprecatedoperations) 排除的操作同样不会被生成，因此引用它们也会出于相同原因触发警告。
 
+带有 `file` 的 `invalidates` 目标是从其他模块导入的（例如由另一个 output 生成的查询），因此不会根据当前 output 的操作进行检查，也不会触发警告。
+
 ### signal
 
 **类型：** `Boolean`
@@ -3137,6 +3139,13 @@ export default defineConfig({
 
 将 `int64` / `uint64` 转换为 `BigInt`。
 
+### useBrandedTypes
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将命名的原始类型 schema 生成为 branded type。
+
 ### useTypeOverInterfaces
 
 **类型：** `Boolean`
@@ -3892,6 +3901,33 @@ export default defineConfig({
   },
 });
 ```
+
+### useBrandedTypes
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+将 `components/schemas` 中解析为原始类型的条目生成为 branded type，使 `UserId` 这类别名不再是普通的 `string`。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+  },
+});
+```
+
+```ts
+getUser('abc'); // 错误：string 不是 UserId
+getUser(user.id); // OK
+```
+
+- 只有解析为 `string`、`number`、`boolean`、`bigint` 或 `Date` 的 schema 会被标记。object、enum、组合（`allOf` / `oneOf` / `anyOf`）schema 以及带 `default` 的 schema 保持不变。
+- 与 Zod 的 [`useBrandedTypes`](#usebrandedtypes) 选项相互独立，后者使用 `.brand()`，生成的类型并不相同。
 
 ### requestOptions
 

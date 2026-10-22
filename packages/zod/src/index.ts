@@ -3665,6 +3665,7 @@ export const generateFormDataZodSchema = (
   encoding?: Record<string, { contentType?: string }>,
   useReusableSchemas?: boolean,
   schemaExtension?: SchemaExtension,
+  constNameRegistry?: Record<string, number>,
 ): ZodValidationSchemaDefinition => {
   if (typeof schema !== 'object') {
     return generateZodValidationSchemaDefinition(
@@ -3673,7 +3674,7 @@ export const generateFormDataZodSchema = (
       name,
       strict,
       isZodV4,
-      { required: true, useReusableSchemas, schemaExtension },
+      { required: true, useReusableSchemas, constNameRegistry, schemaExtension },
     );
   }
 
@@ -3737,6 +3738,7 @@ export const generateFormDataZodSchema = (
           : undefined,
       useReusableSchemas,
       schemaExtension,
+      constNameRegistry,
     },
   );
 };

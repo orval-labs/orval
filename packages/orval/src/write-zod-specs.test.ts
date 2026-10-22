@@ -9,6 +9,7 @@ import {
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
+  writeZodSchemasSingle,
 } from './write-zod-specs';
 
 interface MinimalVerbsContext {
@@ -694,6 +695,83 @@ describe('write-zod-specs schemaExtension forwarding', () => {
         expect(content).toContain('extension-marker');
         expect(content).toContain('.refine(');
       }
+describe('component schema constraint const names (#4343)', () => {
+  // `NetIface.cfg.mtu` (inlined from the `NetIfaceCfg` ref) and
+  // `NetIfaceCfg.mtu` both derive the const prefix `NetIfaceCfgMtu`.
+  const createBuilder = () =>
+    ({
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+        components: {
+          schemas: {
+            NetIface: {
+              type: 'object',
+              properties: {
+                cfg: {
+                  $ref: '#/components/schemas/NetIfaceCfg',
+                  description: 'The configuration settings',
+                },
+              },
+              required: ['cfg'],
+            },
+            NetIfaceCfg: {
+              type: 'object',
+              properties: {
+                mtu: { type: 'integer', minimum: 68, maximum: 65_535 },
+              },
+              required: ['mtu'],
+            },
+            Net: {
+              type: 'object',
+              properties: {
+                ifaceCfgMtu: { type: 'integer', minimum: 2 },
+              },
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'NetIface', schema: { $ref: '#/components/schemas/NetIface' } },
+        {
+          name: 'NetIfaceCfg',
+          schema: { $ref: '#/components/schemas/NetIfaceCfg' },
+        },
+        { name: 'Net', schema: { $ref: '#/components/schemas/Net' } },
+      ],
+    }) satisfies Parameters<typeof writeZodSchemas>[0];
+
+  const getExportedConstNames = (content: string) =>
+    [...content.matchAll(/^export const (\w+) = (?!zod)/gm)].map(
+      ([, constName]) => constName,
+    );
+
+  it('keeps const names unique across files sharing a barrel', async () => {
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    try {
+      await writeZodSchemas(
+        createBuilder(),
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+      );
+
+      const files = await fs.promises.readdir(schemasPath);
+      const contents = await Promise.all(
+        files
+          .filter((file) => file !== 'index.ts')
+          .map((file) =>
+            fs.promises.readFile(path.join(schemasPath, file), 'utf8'),
+          ),
+      );
+      const constNames = contents.flatMap(getExportedConstNames);
+
+      expect(constNames.length).toBeGreaterThan(0);
+      expect(new Set(constNames).size).toBe(constNames.length);
     } finally {
       await fs.promises.rm(root, { recursive: true, force: true });
     }
@@ -766,6 +844,102 @@ describe('write-zod-specs schemaExtension forwarding', () => {
       expect(content).toContain('local-extension');
       expect(content).not.toContain('const marker =');
       expect(content).not.toContain('extension-marker');
+  it('keeps const names unique within a single inline file', () => {
+    const result = generateZodSchemasInline(
+      createBuilder(),
+      createOutputOptions(),
+    );
+    const constNames = getExportedConstNames(result);
+
+    expect(constNames.length).toBeGreaterThan(0);
+    expect(new Set(constNames).size).toBe(constNames.length);
+  });
+
+  it('keeps const names unique with generateReusableSchemas', () => {
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(createBuilder(), output);
+    const constNames = getExportedConstNames(result);
+
+    expect(constNames.length).toBeGreaterThan(0);
+    expect(new Set(constNames).size).toBe(constNames.length);
+  });
+
+  it('keeps const names unique across operation and component schemas in single-file mode', async () => {
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas.ts');
+    // Operation response `GetPet200.mtu` and component `Get.pet200Mtu` both
+    // derive the const prefix `getPet200Mtu`.
+    const spec = {
+      openapi: '3.1.0',
+      info: { title: 'test', version: '1.0.0' },
+      components: {
+        schemas: {
+          Get: {
+            type: 'object',
+            properties: { pet200Mtu: { type: 'integer', minimum: 68 } },
+          },
+        },
+      },
+    };
+    const verbOptions = {
+      getPet: {
+        operationName: 'getPet',
+        typeName: 'getPet',
+        originalOperation: { parameters: [] },
+        response: {
+          types: {
+            success: [
+              {
+                value: 'GetPet200',
+                originalSchema: {
+                  type: 'object',
+                  properties: { mtu: { type: 'integer', minimum: 68 } },
+                },
+              },
+            ],
+            errors: [],
+          },
+        },
+      },
+    } as never;
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: spec as never,
+      target: '',
+      workspace: root,
+    } satisfies MinimalVerbsContext;
+
+    try {
+      await writeZodSchemasSingle(
+        {
+          spec: spec as never,
+          target: '',
+          schemas: [
+            { name: 'Get', schema: { $ref: '#/components/schemas/Get' } },
+          ],
+        },
+        verbOptions,
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+        context,
+      );
+
+      const constNames = getExportedConstNames(
+        await fs.promises.readFile(schemasPath, 'utf8'),
+      );
+
+      expect(constNames).toHaveLength(2);
+      expect(new Set(constNames).size).toBe(constNames.length);
     } finally {
       await fs.promises.rm(root, { recursive: true, force: true });
     }

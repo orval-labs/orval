@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils/context';
 import type { OpenApiDocument } from '../types';
-import { getQueryParamSerialization } from './query-param-serialization';
+import {
+  getArrayFormatParameters,
+  getDeepObjectParameters,
+  getExplodeParameters,
+  getOperationParameters,
+  isExplodeOnly,
+} from './query-param-serialization';
 
 const spec = {
   openapi: '3.1.0',
@@ -66,14 +72,14 @@ const context = createTestContextSpec({ spec });
 const names = (parameters: { name: string }[]) =>
   parameters.map((parameter) => parameter.name);
 
-describe('getQueryParamSerialization', () => {
-  it('classifies query params the way get<Op>Url serializes them', () => {
-    const result = getQueryParamSerialization(
-      { pathRoute: '/pets', verb: 'get' },
-      context,
-    );
+describe('query param serialization', () => {
+  const parameters = getOperationParameters(
+    { pathRoute: '/pets', verb: 'get' },
+    context,
+  );
 
-    expect(names(result.parameters)).toEqual([
+  it('collects the parameters, the operation overriding the path item', () => {
+    expect(names(parameters)).toEqual([
       'limit',
       'shared',
       'ids',
@@ -81,41 +87,43 @@ describe('getQueryParamSerialization', () => {
       'filter',
       'X-Trace',
     ]);
+    expect(
+      getOperationParameters({ pathRoute: '/missing', verb: 'get' }, context),
+    ).toEqual([]);
+  });
+
+  it('classifies query params the way get<Op>Url serializes them', () => {
     // `form` + the OpenAPI default `explode: true`, including the
     // operation-level `shared` that overrides the path-item one.
-    expect(names(result.explode)).toEqual(['shared', 'ids']);
-    expect(names(result.arrayFormat)).toEqual([]);
-    expect(names(result.deepObject)).toEqual(['filter']);
-    expect(result.explodeOnly).toBe(false);
+    const explode = getExplodeParameters(parameters, context);
+    const arrayFormat = getArrayFormatParameters(parameters, context);
+    const deepObject = getDeepObjectParameters(parameters);
+
+    expect(names(explode)).toEqual(['shared', 'ids']);
+    expect(names(arrayFormat)).toEqual([]);
+    expect(names(deepObject)).toEqual(['filter']);
+    expect(isExplodeOnly(parameters, explode, arrayFormat, deepObject)).toBe(
+      false,
+    );
   });
 
   it('leaves arrays without an explicit explode to arrayFormat', () => {
-    const result = getQueryParamSerialization(
-      { pathRoute: '/pets', verb: 'get' },
-      context,
-      'comma',
+    expect(names(getExplodeParameters(parameters, context, 'comma'))).toEqual(
+      [],
     );
-
-    expect(names(result.explode)).toEqual([]);
-    expect(names(result.arrayFormat)).toEqual(['shared', 'ids']);
+    expect(
+      names(getArrayFormatParameters(parameters, context, 'comma')),
+    ).toEqual(['shared', 'ids']);
   });
 
   it('reports when every query param is an exploded array', () => {
-    expect(
-      getQueryParamSerialization(
-        { pathRoute: '/arrays-only', verb: 'get' },
-        context,
-      ).explodeOnly,
-    ).toBe(true);
-  });
-
-  it('returns nothing for an unknown path', () => {
-    const result = getQueryParamSerialization(
-      { pathRoute: '/missing', verb: 'get' },
+    const arraysOnly = getOperationParameters(
+      { pathRoute: '/arrays-only', verb: 'get' },
       context,
     );
 
-    expect(result.parameters).toEqual([]);
-    expect(result.explodeOnly).toBe(true);
+    expect(
+      isExplodeOnly(arraysOnly, getExplodeParameters(arraysOnly, context)),
+    ).toBe(true);
   });
 });

@@ -23,6 +23,7 @@ import {
   generateClientImports,
   generateOrvalHelperTypes,
   generateTargetMutatorImports,
+  rebaseRelativeImportPaths,
 } from './implementation-parts';
 import {
   type TagsOperationsMockIndexEntry,
@@ -175,9 +176,12 @@ export async function writeTagsOperationsMode({
               `${operationFilename}${extension}`,
             );
 
-            const implementationImports = filterImportsUsedInImplementation(
-              operation.imports,
-              operation.implementation,
+            const implementationImports = rebaseRelativeImportPaths(
+              filterImportsUsedInImplementation(
+                operation.imports,
+                operation.implementation,
+              ),
+              { dirname, importerPath: implementationPath, extension },
             );
 
             const importsForBuilder = generateImportsForBuilder(

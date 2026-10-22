@@ -27,6 +27,7 @@ import {
   conventionName,
   getComponentBaseName,
   isBoolean,
+  isBrandablePrimitiveSchema,
   isInlineSchema,
   isSchemaNullable,
   isString,
@@ -452,7 +453,22 @@ function generateSchemaDefinitions(
       genericParams.length > 0
         ? `<${genericParams.map((p) => p.paramName).join(', ')}>`
         : '';
-    output += `export type ${sanitizedSchemaName}${genericSuffix} = ${resolvedValue.value};\n`;
+    const baseValue = resolvedValue.value.replace(/ \| null$/, '');
+    const branded =
+      context.output.override.useBrandedTypes &&
+      genericParams.length === 0 &&
+      isBrandablePrimitiveSchema(schema) &&
+      ['string', 'number', 'boolean', 'bigint', 'Date'].includes(baseValue) &&
+      // The date-transform deserializer assigns `new Date(...)` into the
+      // model, which a branded `Date` alias would reject.
+      !(baseValue === 'Date' && context.output.override.useDatesTransform);
+    const brand = `${baseValue} & { readonly __orvalBrand: '${sanitizedSchemaName}' }`;
+    const value = branded
+      ? baseValue === resolvedValue.value
+        ? brand
+        : `(${brand}) | null`
+      : resolvedValue.value;
+    output += `export type ${sanitizedSchemaName}${genericSuffix} = ${value};\n`;
   }
 
   return [
