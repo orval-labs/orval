@@ -135,8 +135,14 @@ function getMSWTypeArguments(pathRoute: string, bodyType: string): string {
       ? `{ ${paramNames.map((name) => `${name}: string`).join('; ')} }`
       : undefined;
 
-  if (bodyType) {
-    return `<${paramsType ?? 'PathParams'}, ${bodyType}>`;
+  // A body with readOnly props is emitted as `NonReadonly<T>`, but that helper
+  // is only declared in the client file, not in a split `.msw.ts`. The model
+  // type describes the incoming JSON just as well, so unwrap it.
+  const requestBodyType =
+    /^NonReadonly<(.+)>$/s.exec(bodyType)?.[1] ?? bodyType;
+
+  if (requestBodyType) {
+    return `<${paramsType ?? 'PathParams'}, ${requestBodyType}>`;
   }
 
   return paramsType ? `<${paramsType}>` : '';

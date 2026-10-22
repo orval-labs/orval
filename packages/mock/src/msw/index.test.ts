@@ -720,6 +720,24 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should unwrap NonReadonly from the request body type', () => {
+      const putVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        verb: 'put',
+        body: { definition: 'NonReadonly<Pet>' },
+      });
+
+      const result = generateMSW(putVerbOptions, {
+        ...baseOptions,
+        pathRoute: '/pets',
+      });
+
+      expect(result.implementation.handler).toContain(
+        "http.put<PathParams, Pet>('*/pets'",
+      );
+      expect(result.implementation.handler).not.toContain('NonReadonly');
+    });
+
     it('should leave MSW defaults when there are no path params or body', () => {
       const result = generateMSW(mockVerbOptions, {
         ...baseOptions,

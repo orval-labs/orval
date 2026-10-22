@@ -83,15 +83,13 @@ export const getUpdatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<HttpResponseResolver<PathParams, NonReadonly<Pet>>>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Pet>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.put<PathParams, NonReadonly<Pet>>(
+  return http.put<PathParams, Pet>(
     '*/pets',
-    async (
-      info: Parameters<HttpResponseResolver<PathParams, NonReadonly<Pet>>>[0],
-    ) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, Pet>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
