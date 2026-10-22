@@ -62,15 +62,14 @@ import {
   withValueBodyImport,
   narrowsResponseEvents,
   getAcceptHelperName,
-  getHttpClientReturnTypes,
   getUniqueContentTypes,
   type HttpClientGeneratorContext,
-  resetHttpClientReturnTypes,
+  buildClientResultAlias,
+  getClientResultAliases,
 } from './http-client';
 import {
   buildServiceClassOpen,
   type ClientOverride,
-  createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
@@ -179,10 +178,6 @@ const getHttpResourceOverride = (
     ...operationOverride,
   };
 };
-
-// NOTE: Module-level singletons — reset() is called by the header builder
-// (generateHttpResourceHeader) at the start of each generation pass.
-const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
 export const routeRegistry = createRouteRegistry();
@@ -963,7 +958,7 @@ const buildHttpResourceFunction = (
   verbOption: GeneratorVerbOptions,
   route: string,
   output: NormalizedOutputOptions,
-): string => {
+): { implementation: string; resourceAlias: string } => {
   const { operationName, typeName, response, props, params, mutator } =
     verbOption;
 
@@ -1003,12 +998,9 @@ const buildHttpResourceFunction = (
             ),
           ),
         ].join(' | ') || parsedDataType;
-  resourceReturnTypesRegistry.set(
-    operationName,
-    `export type ${pascal(
-      typeName,
-    )}ResourceResult = NonNullable<${overallReturnType}>`,
-  );
+  const resourceAlias = `export type ${pascal(
+    typeName,
+  )}ResourceResult = NonNullable<${overallReturnType}>`;
   const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
@@ -1215,7 +1207,8 @@ const buildHttpResourceFunction = (
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
       : `const normalizedRequest: HttpResourceRequest = request;`;
 
-    return `/**
+    return {
+      implementation: `/**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${branchOverloads}
@@ -1261,7 +1254,9 @@ export function ${resourceName}(
       : ''
   }${fallbackReturn}
 }
-`;
+`,
+      resourceAlias,
+    };
   }
 
   const resourceOptions = buildHttpResourceOptionsLiteral(
@@ -1307,14 +1302,17 @@ export function ${resourceName}(
     : 'request';
 
   if (isUrlOnly && !isResourceCompatibleMutator) {
-    return `/**
+    return {
+      implementation: `/**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
   ${baseUrlDeclaration}return ${resourceFactory}<${parsedDataType}>(() => applyOrvalRequestExtension(${request}, options)${resourceCallOptions});
 }
-`;
+`,
+      resourceAlias,
+    };
   }
 
   // Statements emitted at the top of the request factory, before the request
@@ -1324,7 +1322,8 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
     .filter(Boolean)
     .join('\n    ');
 
-  return `/**
+  return {
+    implementation: `/**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${functionSignatures};
@@ -1335,7 +1334,9 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
     return applyOrvalRequestExtension(${returnExpression}, options);
   }${resourceCallOptions});
 }
-`;
+`,
+    resourceAlias,
+  };
 };
 
 const buildHttpResourceOptionsUtilities = (omitParse: boolean): string => `
@@ -1521,9 +1522,6 @@ export const generateHttpResourceHeader = ({
   verbOptions,
   tag,
 }: Parameters<ClientHeaderBuilder>[0]): string => {
-  resetHttpClientReturnTypes();
-  resourceReturnTypesRegistry.reset();
-
   // When the output is emitted per-tag (modes: `tags`, `tags-split`) each file
   // must only reference operations that belong to the current tag — otherwise
   // the shared header duplicates helpers across every tag file and pulls in
@@ -1544,18 +1542,15 @@ export const generateHttpResourceHeader = ({
   const hasBuiltInFilteredQueryParams = retrievals.some(
     (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
-  const resources = retrievals
-    .map((verbOption) => {
-      const fullRoute = routeRegistry.get(
-        verbOption.operationName,
-        verbOption.route,
-      );
-      return buildHttpResourceFunction(verbOption, fullRoute, output);
-    })
-    .join('\n');
-  const resourceTypes = resourceReturnTypesRegistry.getFooter(
-    retrievals.map((verbOption) => verbOption.operationName),
-  );
+  const builtResources = retrievals.map((verbOption) => {
+    const fullRoute = routeRegistry.get(
+      verbOption.operationName,
+      verbOption.route,
+    );
+    return buildHttpResourceFunction(verbOption, fullRoute, output);
+  });
+  const resources = builtResources.map((r) => r.implementation).join('\n');
+  const resourceTypes = builtResources.map((r) => r.resourceAlias).join('\n');
 
   const mutations = relevantVerbOptions.filter((verbOption) =>
     isMutationVerb(
@@ -1637,16 +1632,16 @@ export const generateHttpResourceHeaderResult: ClientHeaderBuilder = (
 /**
  * Generates the footer for Angular `httpResource` output.
  *
- * The footer appends any registered `ClientResult` aliases coming from shared
- * `HttpClient` mutation methods and the resource-state helper utilities emitted
- * for generated Angular resources.
+ * The footer appends the `*ClientResult` aliases carried on mutation
+ * operations (`GeneratorOperation.types.result`) and the resource-state
+ * helper utilities emitted for generated Angular resources.
  *
  * @returns The footer text for the generated Angular resource file.
  */
 export const generateHttpResourceFooter: ClientFooterBuilder = ({
-  operationNames,
+  operations,
 }) => {
-  const clientTypes = getHttpClientReturnTypes(operationNames);
+  const clientTypes = getClientResultAliases(operations);
   const utilities = buildResourceStateUtilities();
 
   return `${clientTypes ? `${clientTypes}\n` : ''}${utilities}`;
@@ -1676,6 +1671,12 @@ export const generateHttpResourceClient: ClientBuilder = (
     verbOptions.operationName,
     getClientOverride(verbOptions),
   );
+  // Mutations render in the header phase, but their ClientResult alias
+  // travels on the operation from here — footers emit it from `operations`
+  // regardless of builder order.
+  const returnType = isMutation
+    ? () => buildClientResultAlias(verbOptions, options.context.output)
+    : undefined;
   // Only the HttpClient method parses its request body; a retrieval rendered
   // as `httpResource` sends it unchanged.
   const validatedBody = isMutation
@@ -1718,7 +1719,7 @@ export const generateHttpResourceClient: ClientBuilder = (
       : []),
   ];
 
-  return { implementation: '\n', imports };
+  return { implementation: '\n', imports, returnType };
 };
 
 const buildHttpResourceFile = (
@@ -1726,8 +1727,6 @@ const buildHttpResourceFile = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  resourceReturnTypesRegistry.reset();
-
   const retrievals = Object.values(verbOptions).filter((verbOption) =>
     isRetrievalVerb(
       verbOption.verb,
@@ -1747,20 +1746,16 @@ const buildHttpResourceFile = (
     ? `\n${getAngularFilteredParamsHelperBody({ hasObjectParams })}\n`
     : '';
 
-  const resources = retrievals
-    .map((verbOption) => {
-      const fullRoute = getFullRoute(
-        verbOption.route,
-        context.spec.servers,
-        output.baseUrl,
-      );
-      return buildHttpResourceFunction(verbOption, fullRoute, output);
-    })
-    .join('\n');
-
-  const resourceTypes = resourceReturnTypesRegistry.getFooter(
-    Object.values(verbOptions).map((verbOption) => verbOption.operationName),
-  );
+  const builtResources = retrievals.map((verbOption) => {
+    const fullRoute = getFullRoute(
+      verbOption.route,
+      context.spec.servers,
+      output.baseUrl,
+    );
+    return buildHttpResourceFunction(verbOption, fullRoute, output);
+  });
+  const resources = builtResources.map((r) => r.implementation).join('\n');
+  const resourceTypes = builtResources.map((r) => r.resourceAlias).join('\n');
   const utilities = buildResourceStateUtilities();
 
   // The `Accept` helpers are not declared here: the service sibling already

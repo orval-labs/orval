@@ -7,7 +7,6 @@ import { GetterPropType } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
-  createReturnTypesRegistry,
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
@@ -175,53 +174,6 @@ describe('createRouteRegistry', () => {
     registry.set('getPetById', '/v1/pets/${petId}');
     registry.set('getPetById', '/v2/pets/${petId}');
     expect(registry.get('getPetById', '/fallback')).toBe('/v2/pets/${petId}');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// createReturnTypesRegistry
-// ---------------------------------------------------------------------------
-
-describe('createReturnTypesRegistry', () => {
-  it('stores and retrieves type definitions', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-
-    const footer = registry.getFooter(['getPetById']);
-    expect(footer).toBe('export type GetPetByIdResult = Pet');
-  });
-
-  it('filters by provided operationNames', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-    registry.set('listPets', 'export type ListPetsResult = Pet[]');
-
-    const footer = registry.getFooter(['getPetById']);
-    expect(footer).toBe('export type GetPetByIdResult = Pet');
-    expect(footer).not.toContain('ListPets');
-  });
-
-  it('returns empty string for no matching operations', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-
-    expect(registry.getFooter(['unknownOp'])).toBe('');
-  });
-
-  it('joins multiple types with newlines', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'type A');
-    registry.set('listPets', 'type B');
-
-    const footer = registry.getFooter(['getPetById', 'listPets']);
-    expect(footer).toBe('type A\ntype B');
-  });
-
-  it('clears all entries on reset', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'type A');
-    registry.reset();
-    expect(registry.getFooter(['getPetById'])).toBe('');
   });
 });
 

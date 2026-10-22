@@ -11,10 +11,6 @@ import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
 import {
-  getHttpClientReturnTypes,
-  resetHttpClientReturnTypes,
-} from './http-client';
-import {
   generateHttpResourceClient,
   generateHttpResourceExtraFiles,
   generateHttpResourceFooter,
@@ -196,7 +192,6 @@ const createHeaderParams = (
 describe('angular httpResource generator', () => {
   beforeEach(() => {
     routeRegistry.reset();
-    resetHttpClientReturnTypes();
   });
 
   // ─── Dependency builders ──────────────────────────────────────────
@@ -290,7 +285,7 @@ describe('angular httpResource generator', () => {
       );
     });
 
-    it('leaves the HttpClient return-type registry untouched: the header registers mutations, in footer order', async () => {
+    it('returns the mutation ClientResult alias as returnType', async () => {
       const postVerb = createVerbOption({
         operationId: 'createPet',
         operationName: 'createPet',
@@ -301,20 +296,21 @@ describe('angular httpResource generator', () => {
         params: [],
         props: [],
       });
-      resetHttpClientReturnTypes();
 
-      await generateHttpResourceClient(
+      const { returnType } = await generateHttpResourceClient(
         postVerb,
         createGeneratorOptions({ route: '/pets' }),
         'angular',
         createOutput(),
       );
 
-      expect(getHttpClientReturnTypes(['createPet'])).toBe('');
+      expect(returnType?.()).toContain(
+        'export type CreatePetClientResult = NonNullable<Pet>',
+      );
     });
 
     it('does not import HttpResponse for retrieval verbs: resources never reference it', async () => {
-      const { imports } = await generateHttpResourceClient(
+      const { imports, returnType } = await generateHttpResourceClient(
         createVerbOption(),
         createGeneratorOptions(),
         'angular',
@@ -322,6 +318,9 @@ describe('angular httpResource generator', () => {
       );
 
       expect(imports.some((i) => i.name === 'HttpResponse')).toBe(false);
+      // Retrievals get a `*ResourceResult` alias from the resource builder,
+      // not a `*ClientResult` alias.
+      expect(returnType).toBeUndefined();
     });
 
     it('returns verb imports', async () => {
