@@ -179,7 +179,7 @@ const getHttpResourceOverride = (
 };
 
 // NOTE: Module-level singletons — reset() is called by the header builder
-// (generateAngularHttpResourceHeader) at the start of each generation pass.
+// (generateHttpResourceHeader) at the start of each generation pass.
 const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
@@ -393,18 +393,9 @@ interface SignalProp {
 
 const withSignal = (
   prop: GeneratorVerbOptions['props'][number],
-  options: { readonly hasDefault?: boolean } = {},
+  { hasDefault }: { readonly hasDefault: boolean },
 ): SignalProp => {
   const type = getTypeWithoutDefault(prop.definition);
-  // `prop.default` is `unknown`: for QUERY_PARAM/BODY/HEADER props (the only
-  // ones that reach this fallback — PARAM always supplies `options.hasDefault`
-  // explicitly) core always sets it to the sentinel `false`, never a real
-  // default value, so checking `!== undefined` is always (wrongly) true.
-  // Guard against the boolean sentinel so only a genuine default value counts.
-  const derivedDefault =
-    getDefaultValueFromImplementation(prop.implementation) !== undefined ||
-    (typeof prop.default !== 'boolean' && prop.default !== undefined);
-  const hasDefault = options.hasDefault ?? derivedDefault;
   const nameMatch = /^([^:]+):/.exec(prop.definition);
   const namePart = nameMatch ? nameMatch[1] : prop.name;
   const hasOptionalMark = namePart.includes('?');
@@ -443,14 +434,9 @@ const buildSignalProps = (
       case GetterPropType.QUERY_PARAM:
       case GetterPropType.BODY:
       case GetterPropType.HEADER: {
-        // QUERY_PARAM / BODY / HEADER props never encode a real default
-        // value — `getProps()` hardcodes their `unknown`-typed `default`
-        // field to the boolean sentinel `false` (never a real default), so
-        // falling through to `withSignal`'s `prop.default !== undefined`
-        // derivation would treat every one of them as "has a default"
-        // (`false !== undefined` is always true) and silently render
-        // required props as optional Signals. Pass `false` explicitly so
-        // only PARAM derives a real default from `paramDefaults`.
+        // Only PARAM can carry a real default. `getProps()` sets the
+        // `default` of QUERY_PARAM / BODY / HEADER props to the boolean
+        // sentinel `false`, so those props always pass `hasDefault: false`.
         const hasDefault =
           prop.type === GetterPropType.PARAM
             ? (paramDefaults.get(prop.name) ?? false)
@@ -664,7 +650,7 @@ interface ResolvedParseSchema {
 
 const resolveParseSchema = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -672,12 +658,6 @@ const resolveParseSchema = (
   responseTypeOverride?: string,
 ): ResolvedParseSchema | undefined => {
   if (factory !== 'httpResource') return undefined;
-
-  // Explicit isZodSchema flag on imports (forward-compatible)
-  const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  if (zodSchema) {
-    return { importName: zodSchema.name, schemaRef: zodSchema.name };
-  }
 
   // Check if runtime validation is disabled
   if (!output.override.angular.runtimeValidation.enabled) return undefined;
@@ -706,7 +686,7 @@ const resolveParseSchema = (
 /** The import name to promote to a value import for a validated response. */
 const getParseSchemaName = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -806,7 +786,7 @@ const getHttpResourceVerbImports = (
 
 const getParseExpression = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -905,7 +885,7 @@ const buildHttpResourceOptionsArgument = (
 
 const buildHttpResourceOptionsExpression = (
   configuredEntries: readonly string[],
-): string | undefined => {
+): string => {
   if (configuredEntries.length === 0) {
     return 'options';
   }
@@ -1183,7 +1163,7 @@ const buildHttpResourceFunction = (
         branchOptions.entries,
       );
 
-      return `${branchOptionsExpression ?? 'options'} as unknown as ${buildBranchOptionsType(
+      return `${branchOptionsExpression} as unknown as ${buildBranchOptionsType(
         getBranchReturnType(type),
         getHttpResourceRawType(factory),
         omitParse,

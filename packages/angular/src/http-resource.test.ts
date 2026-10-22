@@ -2913,29 +2913,6 @@ describe('angular httpResource generator', () => {
   // ─── Zod parse option ─────────────────────────────────────────────
 
   describe('zod parse option', () => {
-    it('includes parse option when explicit isZodSchema flag is set', () => {
-      const verbOption = createVerbOption({
-        response: baseResponse({
-          imports: [{ name: 'PetSchema', isZodSchema: true } as never],
-        }),
-      });
-      routeRegistry.set('getPetById', '/api/pets/${petId}');
-
-      const header = generateHttpResourceHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output: createOutput(),
-        verbOptions: { getPetById: verbOption },
-        clientImplementation: '',
-      } as never);
-
-      expect(header).toContain('parse: PetSchema.parse');
-    });
-
     it('auto-detects zod parse when schemas.type is zod', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
@@ -3125,37 +3102,6 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).not.toContain('parse:');
-    });
-
-    it('still adds parse with explicit isZodSchema even when runtimeValidation is false', () => {
-      const verbOption = createVerbOption({
-        response: baseResponse({
-          imports: [{ name: 'PetSchema', isZodSchema: true } as never],
-        }),
-      });
-      routeRegistry.set('getPetById', '/api/pets/${petId}');
-
-      const output = createOutput({
-        override: {
-          ...createOutput().override,
-          angular: angularOverride('httpResource', false),
-        },
-      });
-
-      const header = generateHttpResourceHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output,
-        verbOptions: { getPetById: verbOption },
-        clientImplementation: '',
-      } as never);
-
-      // Explicit isZodSchema flag bypasses the runtimeValidation toggle
-      expect(header).toContain('parse: PetSchema.parse');
     });
 
     it('combines parse and configured httpResource options', () => {
