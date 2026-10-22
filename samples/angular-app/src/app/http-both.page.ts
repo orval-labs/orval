@@ -1,6 +1,5 @@
 import { AsyncPipe } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -26,7 +25,6 @@ import { PetCardComponent } from './ui/pet-card.component';
     DemoPanelComponent,
     PetCardComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './http-both.page.html',
   styleUrl: './demo-page.styles.css',
 })

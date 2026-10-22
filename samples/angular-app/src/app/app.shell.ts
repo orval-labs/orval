@@ -1,13 +1,9 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    role: 'application',
-  },
   template: `
     <header class="app-header">
       <div class="brand">
@@ -23,67 +19,60 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <nav class="nav-bar" role="navigation" aria-label="Main navigation">
         <a
           routerLink="/"
-          #petsRla="routerLinkActive"
           routerLinkActive="active"
+          ariaCurrentWhenActive="page"
           [routerLinkActiveOptions]="{ exact: true }"
-          [attr.aria-current]="petsRla.isActive ? 'page' : null"
           class="nav-link"
         >
-          <span class="nav-icon">◎</span> HttpClient
+          <span class="nav-icon" aria-hidden="true">◎</span> HttpClient
         </a>
         <a
           routerLink="/http-client-custom-params"
-          #customParamsRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="customParamsRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">⟲</span> HttpClient + Params
+          <span class="nav-icon" aria-hidden="true">⟲</span> HttpClient + Params
         </a>
         <a
           routerLink="/http-resource"
-          #httpResourceRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="httpResourceRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">◌</span> httpResource
+          <span class="nav-icon" aria-hidden="true">◌</span> httpResource
         </a>
         <a
           routerLink="/http-resource-zod"
-          #httpResourceZodRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="httpResourceZodRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">⬢</span> httpResource + Zod
+          <span class="nav-icon" aria-hidden="true">⬢</span> httpResource + Zod
         </a>
         <a
           routerLink="/zod-demo"
-          #zodRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="zodRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">⬡</span> Zod Validation
+          <span class="nav-icon" aria-hidden="true">⬡</span> Zod Validation
         </a>
         <a
           routerLink="/http-both"
-          #httpBothRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="httpBothRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">⇄</span> Both Clients
+          <span class="nav-icon" aria-hidden="true">⇄</span> Both Clients
         </a>
         <a
           routerLink="/base-url-token"
-          #baseUrlTokenRla="routerLinkActive"
           routerLinkActive="active"
-          [attr.aria-current]="baseUrlTokenRla.isActive ? 'page' : null"
+          ariaCurrentWhenActive="page"
           class="nav-link"
         >
-          <span class="nav-icon">⚓</span> Base URL Token
+          <span class="nav-icon" aria-hidden="true">⚓</span> Base URL Token
         </a>
       </nav>
     </header>
