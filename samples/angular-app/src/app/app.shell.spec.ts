@@ -1,5 +1,3 @@
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -11,12 +9,7 @@ describe('AppShell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShell],
-      providers: [
-        provideZonelessChangeDetection(),
-        provideRouter(routes),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideZonelessChangeDetection(), provideRouter(routes)],
     }).compileComponents();
   });
 
@@ -48,8 +41,10 @@ describe('AppShell', () => {
 
   it('marks only the active nav link as the current page', async () => {
     const fixture = TestBed.createComponent(AppShell);
-    await TestBed.inject(Router).navigateByUrl('/http-resource');
-    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    router.resetConfig([{ path: 'http-resource', children: [] }]);
+    await router.navigateByUrl('/http-resource');
+    await fixture.whenStable();
 
     const current = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>(
