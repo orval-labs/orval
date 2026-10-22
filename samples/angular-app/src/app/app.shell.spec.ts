@@ -1,6 +1,8 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 import { AppShell } from './app.shell';
 import { routes } from './app.routes';
@@ -9,7 +11,12 @@ describe('AppShell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShell],
-      providers: [provideZonelessChangeDetection(), provideRouter(routes)],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter(routes),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
   });
 
@@ -37,5 +44,19 @@ describe('AppShell', () => {
       ['/http-both', '⇄ Both Clients'],
       ['/base-url-token', '⚓ Base URL Token'],
     ]);
+  });
+
+  it('marks only the active nav link as the current page', async () => {
+    const fixture = TestBed.createComponent(AppShell);
+    await TestBed.inject(Router).navigateByUrl('/http-resource');
+    fixture.detectChanges();
+
+    const current = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>(
+        '.nav-bar a[aria-current="page"]',
+      ),
+    ).map((link) => link.getAttribute('href'));
+
+    expect(current).toEqual(['/http-resource']);
   });
 });
