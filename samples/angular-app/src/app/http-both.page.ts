@@ -6,8 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { shareReplay, switchMap } from 'rxjs';
+import { shareReplay } from 'rxjs';
 
 import type { Pets } from '../api/http-both/model';
 import { listPetsResource } from '../api/http-both/pets/pets.resource';
@@ -42,15 +41,10 @@ export class HttpBothPage {
 
   protected readonly version = signal(1);
 
-  protected readonly petsState$ = toObservable(this.version).pipe(
-    switchMap((version) =>
-      toLoadState<Pets>(
-        this.petService.listPets('application/json', undefined, version),
-        [] as Pets,
-      ),
-    ),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+  protected readonly petsState$ = toLoadState<Pets>(
+    this.petService.listPets('application/json', undefined, this.version()),
+    [] as Pets,
+  ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
   protected readonly listResource = listPetsResource(
     'application/json',
