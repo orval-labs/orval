@@ -30,7 +30,7 @@ import {
 } from './test-helpers';
 
 const createOutput = (overrides: Partial<NormalizedOutputOptions> = {}) =>
-  createOutput(overrides, angularOverride('httpResource'));
+  createAngularOutput(overrides, angularOverride('httpResource'));
 
 const createContextSpec = (
   output: NormalizedOutputOptions,
@@ -2263,6 +2263,49 @@ describe('angular httpResource generator', () => {
       expect(header).toContain(
         'options?: OrvalHttpResourceOptions<Pet, unknown>): HttpResourceRef<Pet | undefined>;',
       );
+    });
+
+    it('marks a comma-bearing optional param as undefined without splitting its type', () => {
+      const verbOption = createVerbOption({
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'filter',
+            definition: 'filter?: Record<string, string>',
+            implementation: 'filter?: Record<string, string>',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // The `| undefined` belongs after the whole `Signal<...>`; a comma inside
+      // the type must not end the rewrite early.
+      expect(header).toContain(
+        'filter: Signal<Record<string, string>> | undefined',
+      );
+      expect(header).not.toContain('Record<string | undefined');
     });
   });
 

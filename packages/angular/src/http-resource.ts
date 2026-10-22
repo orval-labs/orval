@@ -850,10 +850,25 @@ const appendArgument = (args: string, argument: string): string => {
     : argument;
 };
 
+/**
+ * Renders optional props as positionally required `T | undefined` arguments,
+ * for an overload whose trailing options argument is required (TS1016). Each
+ * prop is rewritten on its own, so a comma inside its type is left alone.
+ */
 const normalizeOptionalParametersForRequiredTrailingArg = (
-  args: string,
+  props: GeneratorVerbOptions['props'],
 ): string =>
-  args.replaceAll(/(\w+)\?:\s*([^,\n]+)(,?)/g, '$1: $2 | undefined$3');
+  toObjectString(
+    props.map(({ name, implementation }) => {
+      const optionalMarker = `${name}?:`;
+      return {
+        implementation: implementation.startsWith(optionalMarker)
+          ? `${name}:${implementation.slice(optionalMarker.length)} | undefined`
+          : implementation,
+      };
+    }),
+    'implementation',
+  );
 
 const buildHttpResourceOptionsArgument = (
   valueType: string,
@@ -882,12 +897,13 @@ const buildHttpResourceOptionsExpression = (
 
 const buildHttpResourceFunctionSignatures = (
   resourceName: string,
-  args: string,
+  props: GeneratorVerbOptions['props'],
   valueType: string,
   rawType: string,
   hasConfiguredDefaultValue: boolean,
   omitParse = false,
 ): string => {
+  const args = toObjectString(props, 'implementation');
   if (hasConfiguredDefaultValue) {
     return `export function ${resourceName}(${appendArgument(
       args,
@@ -903,7 +919,7 @@ const buildHttpResourceFunctionSignatures = (
   }
 
   const overloadArgs = appendArgument(
-    normalizeOptionalParametersForRequiredTrailingArg(args),
+    normalizeOptionalParametersForRequiredTrailingArg(props),
     buildHttpResourceOptionsArgument(
       valueType,
       rawType,
@@ -1259,7 +1275,7 @@ export function ${resourceName}(
     : `${parsedDataType} | undefined`;
   const functionSignatures = buildHttpResourceFunctionSignatures(
     resourceName,
-    args,
+    signalProps,
     parsedDataType,
     rawType,
     resourceOptions.hasDefaultValue,
