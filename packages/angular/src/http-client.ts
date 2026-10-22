@@ -18,14 +18,12 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsHelperBody,
   getAngularObjectParamStrategies,
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
   type GetterProp,
   GetterPropType,
-  isBoolean,
   jsStringLiteralEscape,
   makeRouteSafe,
   pascal,
@@ -40,14 +38,12 @@ import {
 } from './base-url';
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
-  HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
-  HTTP_CLIENT_OPTIONS_TEMPLATE,
-  THIRD_PARAMETER_TEMPLATE,
-} from './types';
-import {
+  buildServiceClassOpen,
   createReturnTypesRegistry,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
+  isJsonContentType,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -132,7 +128,7 @@ export const getRequestBodySchema = (
     mutator ||
     !isZodSchemaOutput(output) ||
     !body.implementation ||
-    !body.contentType.includes('json')
+    !isJsonContentType(body.contentType)
   ) {
     return undefined;
   }
@@ -217,7 +213,7 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (contentType.includes('json') || contentType.includes('+json')) {
+  if (isJsonContentType(contentType)) {
     return value;
   }
   if (contentType.startsWith('text/') || contentType.includes('xml')) {
@@ -351,42 +347,23 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   // when at least one relevant operation actually has a gated strategy to
   // apply — keeping the base helper byte-identical everywhere else.
   const hasObjectParams = relevantVerbs.some(
-    (v) =>
-      Object.keys(
-        getAngularObjectParamStrategies({
-          queryParams: v.queryParams,
-          paramsSerializer: v.paramsSerializer,
-          paramsFilter: v.paramsFilter,
-          queryObjectSerialization: v.override.angular.queryObjectSerialization,
-        }),
-      ).length > 0,
+    hasGatedObjectQueryParamStrategies,
   );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
-  return `
-${
-  isRequestOptions && !isGlobalMutator
-    ? `${HTTP_CLIENT_OPTIONS_TEMPLATE}
-
-${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
-
-${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
-    : ''
-}
-
-${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
-
-${acceptHelpers}
-
-@Injectable(${provideIn ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }` : ''})
-export class ${title} {
-  private readonly http = inject(HttpClient);
-${
-  output.override.angular.baseUrl
-    ? `  private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});
-`
-    : ''
-}`;
+  return buildServiceClassOpen({
+    title,
+    isRequestOptions,
+    isMutator,
+    isGlobalMutator,
+    provideIn,
+    hasQueryParams: hasBuiltInFilteredQueryParams,
+    baseUrlFieldInitializer: output.override.angular.baseUrl
+      ? `private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});`
+      : undefined,
+    hasObjectParams,
+    acceptHelpers: `${acceptHelpers}\n\n`,
+  });
 };
 
 /**
@@ -510,7 +487,7 @@ export const generateHttpClientImplementation = (
       override.angular.runtimeValidation.enabled &&
       isZodOutput &&
       !!contentType &&
-      (contentType.includes('json') || contentType.includes('+json'))
+      isJsonContentType(contentType)
     ) {
       const resolved = resolveValidatableSchema(response.imports, value);
       if (resolved) return resolved.outputTypeRef;
@@ -748,9 +725,7 @@ export const generateHttpClientImplementation = (
 
   const defaultContentType = hasMultipleContentTypes
     ? (successTypes.find(
-        ({ contentType }) =>
-          !!contentType &&
-          (contentType.includes('json') || contentType.includes('+json')),
+        ({ contentType }) => !!contentType && isJsonContentType(contentType),
       )?.contentType ?? getDefaultContentType(uniqueContentTypes))
     : (uniqueContentTypes[0] ?? 'application/json');
 
@@ -758,9 +733,7 @@ export const generateHttpClientImplementation = (
     ...new Set(
       successTypes
         .filter(
-          ({ contentType }) =>
-            !!contentType &&
-            (contentType.includes('json') || contentType.includes('+json')),
+          ({ contentType }) => !!contentType && isJsonContentType(contentType),
         )
         .map(({ value }) => value),
     ),
@@ -806,8 +779,7 @@ export const generateHttpClientImplementation = (
   const blobSuccessTypes = successTypes.filter(
     ({ contentType }) =>
       !!contentType &&
-      !contentType.includes('json') &&
-      !contentType.includes('+json') &&
+      !isJsonContentType(contentType) &&
       !contentType.startsWith('text/') &&
       !contentType.includes('xml'),
   );
@@ -1177,8 +1149,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
           successTypes
             .filter(
               ({ contentType }) =>
-                !!contentType &&
-                (contentType.includes('json') || contentType.includes('+json')),
+                !!contentType && isJsonContentType(contentType),
             )
             .map(({ value }) => value),
         ),

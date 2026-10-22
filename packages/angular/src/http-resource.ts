@@ -75,6 +75,8 @@ import {
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
+  isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -179,7 +181,7 @@ const getHttpResourceOverride = (
 };
 
 // NOTE: Module-level singletons — reset() is called by the header builder
-// (generateAngularHttpResourceHeader) at the start of each generation pass.
+// (generateHttpResourceHeader) at the start of each generation pass.
 const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
@@ -393,18 +395,9 @@ interface SignalProp {
 
 const withSignal = (
   prop: GeneratorVerbOptions['props'][number],
-  options: { readonly hasDefault?: boolean } = {},
+  { hasDefault }: { readonly hasDefault: boolean },
 ): SignalProp => {
   const type = getTypeWithoutDefault(prop.definition);
-  // `prop.default` is `unknown`: for QUERY_PARAM/BODY/HEADER props (the only
-  // ones that reach this fallback — PARAM always supplies `options.hasDefault`
-  // explicitly) core always sets it to the sentinel `false`, never a real
-  // default value, so checking `!== undefined` is always (wrongly) true.
-  // Guard against the boolean sentinel so only a genuine default value counts.
-  const derivedDefault =
-    getDefaultValueFromImplementation(prop.implementation) !== undefined ||
-    (typeof prop.default !== 'boolean' && prop.default !== undefined);
-  const hasDefault = options.hasDefault ?? derivedDefault;
   const nameMatch = /^([^:]+):/.exec(prop.definition);
   const namePart = nameMatch ? nameMatch[1] : prop.name;
   const hasOptionalMark = namePart.includes('?');
@@ -443,14 +436,9 @@ const buildSignalProps = (
       case GetterPropType.QUERY_PARAM:
       case GetterPropType.BODY:
       case GetterPropType.HEADER: {
-        // QUERY_PARAM / BODY / HEADER props never encode a real default
-        // value — `getProps()` hardcodes their `unknown`-typed `default`
-        // field to the boolean sentinel `false` (never a real default), so
-        // falling through to `withSignal`'s `prop.default !== undefined`
-        // derivation would treat every one of them as "has a default"
-        // (`false !== undefined` is always true) and silently render
-        // required props as optional Signals. Pass `false` explicitly so
-        // only PARAM derives a real default from `paramDefaults`.
+        // Only PARAM can carry a real default. `getProps()` sets the
+        // `default` of QUERY_PARAM / BODY / HEADER props to the boolean
+        // sentinel `false`, so those props always pass `hasDefault: false`.
         const hasDefault =
           prop.type === GetterPropType.PARAM
             ? (paramDefaults.get(prop.name) ?? false)
@@ -502,24 +490,6 @@ interface ResourceRequest {
   readonly isUrlOnly: boolean;
   readonly bodyGuard?: string;
 }
-
-/**
- * Whether a single operation has at least one gated object-serialization
- * strategy (issue #3705) to apply. Used to decide whether the shared
- * `filterParams` helper needs its object-serialization overload.
- */
-const hasGatedObjectQueryParamStrategies = (
-  verbOption: GeneratorVerbOptions,
-): boolean =>
-  Object.keys(
-    getAngularObjectParamStrategies({
-      queryParams: verbOption.queryParams,
-      paramsSerializer: verbOption.paramsSerializer,
-      paramsFilter: verbOption.paramsFilter,
-      queryObjectSerialization:
-        verbOption.override.angular.queryObjectSerialization,
-    }),
-  ).length > 0;
 
 const buildResourceRequest = (
   {
@@ -664,7 +634,7 @@ interface ResolvedParseSchema {
 
 const resolveParseSchema = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -672,12 +642,6 @@ const resolveParseSchema = (
   responseTypeOverride?: string,
 ): ResolvedParseSchema | undefined => {
   if (factory !== 'httpResource') return undefined;
-
-  // Explicit isZodSchema flag on imports (forward-compatible)
-  const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  if (zodSchema) {
-    return { importName: zodSchema.name, schemaRef: zodSchema.name };
-  }
 
   // Check if runtime validation is disabled
   if (!output.override.angular.runtimeValidation.enabled) return undefined;
@@ -706,7 +670,7 @@ const resolveParseSchema = (
 /** The import name to promote to a value import for a validated response. */
 const getParseSchemaName = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -806,7 +770,7 @@ const getHttpResourceVerbImports = (
 
 const getParseExpression = (
   response: {
-    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly imports: readonly { name: string }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
@@ -886,10 +850,25 @@ const appendArgument = (args: string, argument: string): string => {
     : argument;
 };
 
+/**
+ * Renders optional props as positionally required `T | undefined` arguments,
+ * for an overload whose trailing options argument is required (TS1016). Each
+ * prop is rewritten on its own, so a comma inside its type is left alone.
+ */
 const normalizeOptionalParametersForRequiredTrailingArg = (
-  args: string,
+  props: GeneratorVerbOptions['props'],
 ): string =>
-  args.replaceAll(/(\w+)\?:\s*([^,\n]+)(,?)/g, '$1: $2 | undefined$3');
+  toObjectString(
+    props.map(({ name, implementation }) => {
+      const optionalMarker = `${name}?:`;
+      return {
+        implementation: implementation.startsWith(optionalMarker)
+          ? `${name}:${implementation.slice(optionalMarker.length)} | undefined`
+          : implementation,
+      };
+    }),
+    'implementation',
+  );
 
 const buildHttpResourceOptionsArgument = (
   valueType: string,
@@ -905,7 +884,7 @@ const buildHttpResourceOptionsArgument = (
 
 const buildHttpResourceOptionsExpression = (
   configuredEntries: readonly string[],
-): string | undefined => {
+): string => {
   if (configuredEntries.length === 0) {
     return 'options';
   }
@@ -918,12 +897,13 @@ const buildHttpResourceOptionsExpression = (
 
 const buildHttpResourceFunctionSignatures = (
   resourceName: string,
-  args: string,
+  props: GeneratorVerbOptions['props'],
   valueType: string,
   rawType: string,
   hasConfiguredDefaultValue: boolean,
   omitParse = false,
 ): string => {
+  const args = toObjectString(props, 'implementation');
   if (hasConfiguredDefaultValue) {
     return `export function ${resourceName}(${appendArgument(
       args,
@@ -939,7 +919,7 @@ const buildHttpResourceFunctionSignatures = (
   }
 
   const overloadArgs = appendArgument(
-    normalizeOptionalParametersForRequiredTrailingArg(args),
+    normalizeOptionalParametersForRequiredTrailingArg(props),
     buildHttpResourceOptionsArgument(
       valueType,
       rawType,
@@ -1032,7 +1012,7 @@ const buildHttpResourceFunction = (
   const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
-    type.contentType.includes('json'),
+    isJsonContentType(type.contentType),
   )?.contentType;
   const preferredContentType = jsonContentType ?? defaultSuccess.contentType;
   const resourceFactory = getHttpResourceFactory(
@@ -1183,16 +1163,15 @@ const buildHttpResourceFunction = (
         branchOptions.entries,
       );
 
-      return `${branchOptionsExpression ?? 'options'} as unknown as ${buildBranchOptionsType(
+      return `${branchOptionsExpression} as unknown as ${buildBranchOptionsType(
         getBranchReturnType(type),
         getHttpResourceRawType(factory),
         omitParse,
       )}`;
     };
 
-    const jsonType = successTypes.find(
-      (type) =>
-        type.contentType.includes('json') || type.contentType.includes('+json'),
+    const jsonType = successTypes.find((type) =>
+      isJsonContentType(type.contentType),
     );
     const textType = successTypes.find((type) =>
       isResponseText(type.contentType, type.value),
@@ -1296,7 +1275,7 @@ export function ${resourceName}(
     : `${parsedDataType} | undefined`;
   const functionSignatures = buildHttpResourceFunctionSignatures(
     resourceName,
-    args,
+    signalProps,
     parsedDataType,
     rawType,
     resourceOptions.hasDefaultValue,
@@ -1441,7 +1420,7 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (contentType.includes('json') || contentType.includes('+json')) {
+  if (isJsonContentType(contentType)) {
     return value;
   }
   if (contentType.startsWith('text/') || contentType.includes('xml')) {
@@ -1463,7 +1442,7 @@ const getHttpResourceGeneratedResponseType = (
     isZodSchemaOutput(output) &&
     output.override.angular.runtimeValidation.enabled &&
     !!contentType &&
-    (contentType.includes('json') || contentType.includes('+json')) &&
+    isJsonContentType(contentType) &&
     !isPrimitiveType(value)
   ) {
     if (responseImports.some((imp) => imp.name === value)) {
