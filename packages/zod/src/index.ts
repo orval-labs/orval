@@ -1926,6 +1926,14 @@ export const generateZodValidationSchemaDefinition = (
           }
         }
 
+        // The enum emitted below replaces the schema outright, so rendering an
+        // object shape first would chain `.literal(...)` onto it — e.g.
+        // `{ type: 'object', nullable: true, enum: [null] }` became
+        // `zod.looseObject({}).literal(null)` (#4351).
+        if (schema.enum) {
+          break;
+        }
+
         const hasProperties = !!schema.properties;
         const properties = schema.properties ?? {};
         const hasDefinedProperties = Object.keys(properties).length > 0;
@@ -2062,10 +2070,6 @@ export const generateZodValidationSchemaDefinition = (
             ),
           ]);
 
-          break;
-        }
-
-        if (schema.enum) {
           break;
         }
 
