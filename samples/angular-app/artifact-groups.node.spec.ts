@@ -30,10 +30,16 @@ describe('artifact groups', () => {
   });
 
   // Runs last: once Angular is loaded, the checks above would prove nothing.
-  // The import itself fails in plain Node (Angular wants its JIT compiler),
-  // which is the failure the group split avoids.
+  // The import fails in plain Node (Angular wants its JIT compiler), which is
+  // the failure the group split avoids. Only that failure is expected here.
   it('records Angular when the client barrel is loaded', async () => {
-    await import('./src/api/artifact-groups/angular/index').catch(() => {});
+    await import('./src/api/artifact-groups/angular/index').catch((error) => {
+      // Vitest wraps the Angular error; the JIT text is on its cause.
+      const text = error.cause?.message ?? error.message;
+      if (!text.includes('JIT compiler')) {
+        throw error;
+      }
+    });
 
     expect(loaded.size).toBeGreaterThan(0);
   });
