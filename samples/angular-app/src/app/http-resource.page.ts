@@ -1,6 +1,5 @@
 import { JsonPipe } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   signal,
@@ -25,7 +24,6 @@ import { PetCardComponent } from './ui/pet-card.component';
     DemoPanelComponent,
     PetCardComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './http-resource.page.html',
   styleUrl: './demo-page.styles.css',
 })

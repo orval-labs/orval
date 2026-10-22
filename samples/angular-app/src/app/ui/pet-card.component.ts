@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { CardComponent } from './card.component';
 
@@ -14,7 +14,6 @@ type PetCardData = Readonly<{
 @Component({
   selector: 'app-pet-card',
   imports: [CardComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'listitem',
   },

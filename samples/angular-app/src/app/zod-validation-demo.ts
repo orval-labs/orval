@@ -2,7 +2,6 @@ import { HttpEventType } from '@angular/common/http';
 import type {
   OnInit} from '@angular/core';
 import {
-  ChangeDetectionStrategy,
   Component,
   inject,
   signal,
@@ -29,7 +28,6 @@ import { PetCardComponent } from './ui/pet-card.component';
 @Component({
   selector: 'app-zod-validation-demo',
   imports: [JsonPipe, BadgeComponent, DemoPageFrameComponent, PetCardComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-demo-page-frame
       eyebrow="Runtime validation playground"
