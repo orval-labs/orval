@@ -2,6 +2,7 @@ import {
   DefaultTag,
   type GeneratorMockOutputFull,
   type GeneratorOperation,
+  type GeneratorTarget,
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
   OutputClient,
@@ -241,7 +242,10 @@ export async function generateTargetForTags(
     allTargetTags = generateTargetTags(allTargetTags, operation);
 
     if (index === operations.length - 1) {
-      const transformed: Record<string, GeneratorTargetFull> = {};
+      const transformed: Record<
+        string,
+        GeneratorTargetFull & Pick<GeneratorTarget, 'sharedExports'>
+      > = {};
       for (const [tag, target] of Object.entries(allTargetTags)) {
         const isMutator = !!target.mutators?.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
@@ -349,6 +353,7 @@ export async function generateTargetForTags(
           // its own copy) so a root barrel can avoid re-export ambiguity
           // between tags that redeclare the same type.
           sharedTypes,
+          sharedExports: header.sharedExports,
         };
       }
       allTargetTags = transformed;

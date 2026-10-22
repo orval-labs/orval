@@ -338,6 +338,29 @@ export default defineConfig({
       target: '../specifications/angular-http-resource-both.yaml',
     },
   },
+  // Two tags that each declare the httpResource helpers. The barrel must
+  // re-export them once, or it fails tsc with TS2308.
+  httpResourceTagsSplitBarrel: {
+    output: {
+      target:
+        '../generated/angular/http-resource-tags-split-barrel/endpoints.ts',
+      schemas: '../generated/angular/http-resource-tags-split-barrel/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: false,
+      clean: true,
+      indexFiles: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-both.yaml',
+    },
+  },
   issue3624: {
     output: {
       target: '../generated/angular/issue-3624/petstore.client.ts',
