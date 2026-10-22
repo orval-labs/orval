@@ -42,7 +42,7 @@ import { PetCardComponent } from './ui/pet-card.component';
         <div class="panel">
           <div class="panel-header">
             <span class="panel-num">01</span>
-            <span class="panel-title">searchPets()</span>
+            <h2 class="panel-title">searchPets()</h2>
             <app-badge
               shape="tag"
               size="xs"
@@ -69,7 +69,7 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-body">
             @if (searchError()) {
               <div class="result-error" role="alert">
-                <span class="result-icon">⚠</span>
+                <span class="result-icon" aria-hidden="true">⚠</span>
                 <span>{{ searchError() }}</span>
               </div>
             } @else if (searchPets().length) {
@@ -97,7 +97,7 @@ import { PetCardComponent } from './ui/pet-card.component';
         <div class="panel">
           <div class="panel-header">
             <span class="panel-num">02</span>
-            <span class="panel-title">showPetById()</span>
+            <h2 class="panel-title">showPetById()</h2>
             <app-badge
               shape="tag"
               size="xs"
@@ -120,7 +120,7 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-body">
             @if (showPetError()) {
               <div class="result-error" role="alert">
-                <span class="result-icon">⚠</span>
+                <span class="result-icon" aria-hidden="true">⚠</span>
                 <span>{{ showPetError() }}</span>
               </div>
             } @else if (singlePet()) {
@@ -140,7 +140,7 @@ import { PetCardComponent } from './ui/pet-card.component';
         <div class="panel">
           <div class="panel-header">
             <span class="panel-num">03</span>
-            <span class="panel-title">createPets()</span>
+            <h2 class="panel-title">createPets()</h2>
             <app-badge shape="tag" size="xs" tone="neutral">void</app-badge>
           </div>
           <div class="panel-meta">
@@ -153,7 +153,7 @@ import { PetCardComponent } from './ui/pet-card.component';
               (click)="createPet()"
               [disabled]="createLoading()"
             >
-              <span class="btn-icon">{{ createLoading() ? '⟳' : '↗' }}</span>
+              <span class="btn-icon" aria-hidden="true">{{ createLoading() ? '⟳' : '↗' }}</span>
               {{ createLoading() ? 'Creating…' : 'Create Pet' }}
             </button>
             @if (createResult()) {
@@ -175,7 +175,7 @@ import { PetCardComponent } from './ui/pet-card.component';
         <div class="panel panel--wide">
           <div class="panel-header">
             <span class="panel-num">04</span>
-            <span class="panel-title">Observe Modes</span>
+            <h2 class="panel-title">Observe Modes</h2>
             <app-badge shape="tag" size="xs" tone="neutral"
               >3 requests</app-badge
             >
@@ -262,6 +262,7 @@ import { PetCardComponent } from './ui/pet-card.component';
     }
 
     .panel-title {
+      margin: 0;
       font-family: var(--font-mono);
       font-size: 0.9rem;
       font-weight: 600;

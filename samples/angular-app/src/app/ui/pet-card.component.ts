@@ -24,6 +24,8 @@ type PetCardData = Readonly<{
         @if (pet().status) {
           <span
             class="status-dot"
+            role="img"
+            [attr.aria-label]="pet().status"
             [class]="'status-dot status-' + pet().status"
           ></span>
         }
