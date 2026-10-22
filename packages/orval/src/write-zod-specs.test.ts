@@ -695,6 +695,84 @@ describe('write-zod-specs schemaExtension forwarding', () => {
         expect(content).toContain('extension-marker');
         expect(content).toContain('.refine(');
       }
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses an operation-specific schemaExtension instead of the global override', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-verb-override-extension-'),
+    );
+    try {
+      const output = createOptionsWithSchemaExtension();
+      const context = {
+        output: {
+          override: {
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+        },
+        target: '',
+        workspace: root,
+      } satisfies MinimalVerbsContext;
+      const verbs = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [],
+            requestBody: {
+              content: {
+                'application/json': { schema: { type: 'string' as const } },
+              },
+            },
+          },
+          override: {
+            zod: {
+              generate: output.override.zod.generate,
+              schemaExtension: [
+                {
+                  type: 'string' as const,
+                  format: '',
+                  validatorsGenerator: () => ({
+                    callable: (value: unknown) =>
+                      typeof value === 'string' &&
+                      value.endsWith('local-extension'),
+                    bindings: null,
+                  }),
+                },
+              ],
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemasFromVerbs(
+        verbs,
+        schemasPath,
+        '.ts',
+        '',
+        output,
+        context,
+      );
+      const content = await fs.promises.readFile(
+        path.join(schemasPath, 'SubmitBody.ts'),
+        'utf8',
+      );
+      expect(content).toContain('local-extension');
+      expect(content).not.toContain('const marker =');
+      expect(content).not.toContain('extension-marker');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('component schema constraint const names (#4343)', () => {
   // `NetIface.cfg.mtu` (inlined from the `NetIfaceCfg` ref) and
   // `NetIfaceCfg.mtu` both derive the const prefix `NetIfaceCfgMtu`.
@@ -777,73 +855,6 @@ describe('component schema constraint const names (#4343)', () => {
     }
   });
 
-  it('uses an operation-specific schemaExtension instead of the global override', async () => {
-    const root = await fs.promises.mkdtemp(
-      path.join(tmpdir(), 'orval-zod-verb-override-extension-'),
-    );
-    try {
-      const output = createOptionsWithSchemaExtension();
-      const context = {
-        output: {
-          override: {
-            zod: { dateTimeOptions: {}, timeOptions: {} },
-          },
-        },
-        spec: {
-          openapi: '3.1.0',
-          info: { title: 'test', version: '1.0.0' },
-        },
-        target: '',
-        workspace: root,
-      } satisfies MinimalVerbsContext;
-      const verbs = {
-        submit: {
-          operationName: 'submit',
-          typeName: 'submit',
-          originalOperation: {
-            parameters: [],
-            requestBody: {
-              content: {
-                'application/json': { schema: { type: 'string' as const } },
-              },
-            },
-          },
-          override: {
-            zod: {
-              generate: output.override.zod.generate,
-              schemaExtension: [
-                {
-                  type: 'string' as const,
-                  format: '',
-                  validatorsGenerator: () => ({
-                    callable: (value: unknown) =>
-                      typeof value === 'string' &&
-                      value.endsWith('local-extension'),
-                    bindings: null,
-                  }),
-                },
-              ],
-            },
-          },
-          response: { types: { success: [], errors: [] } },
-        },
-      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
-      const schemasPath = path.join(root, 'schemas');
-      await writeZodSchemasFromVerbs(
-        verbs,
-        schemasPath,
-        '.ts',
-        '',
-        output,
-        context,
-      );
-      const content = await fs.promises.readFile(
-        path.join(schemasPath, 'SubmitBody.ts'),
-        'utf8',
-      );
-      expect(content).toContain('local-extension');
-      expect(content).not.toContain('const marker =');
-      expect(content).not.toContain('extension-marker');
   it('keeps const names unique within a single inline file', () => {
     const result = generateZodSchemasInline(
       createBuilder(),

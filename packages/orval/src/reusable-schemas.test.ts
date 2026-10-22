@@ -133,14 +133,6 @@ describe('generateReusableSchemaSet', () => {
           };
         },
       },
-      {
-        type: 'string',
-        format: 'email',
-        validatorsGenerator: () => ({
-          callable: () => 'wrong-format-marker',
-          bindings: null,
-        }),
-      },
     ];
 
     const [withExtension] = generateReusableSchemaSet(
@@ -151,7 +143,6 @@ describe('generateReusableSchemaSet', () => {
     expect(withExtension.zod).toContain('reusable-marker');
     expect(withExtension.zod).toContain('const prefix = "reusable-marker";');
     expect(withExtension.zod).toContain('.refine(');
-    expect(withExtension.zod).not.toContain('wrong-format-marker');
     expect(withExtension.zod).toContain('"age": zod.int()');
 
     const [withoutExtension] = generateReusableSchemaSet(

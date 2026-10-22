@@ -329,7 +329,9 @@ export async function generateVerbOptions({
     mergeDeep(output.override, overrideTag),
     overrideOperation ?? {},
   ) as NormalizedOverrideOutput;
-
+  if (overrideOperation?.zod?.schemaExtension !== undefined) {
+    override.zod.schemaExtension = overrideOperation.zod.schemaExtension;
+  }
   const overrideOperationName =
     overrideOperation?.operationName ?? output.override.operationName;
   let operationName: string;

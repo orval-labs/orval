@@ -1708,7 +1708,10 @@ function normalizeOperationsAndTags(
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateCompanionTypes: zod.generateCompanionTypes ?? false,
-                    schemaExtension: zod.schemaExtension,
+                    schemaExtension:
+                      zod.schemaExtension === undefined
+                        ? {}
+                        : { schemaExtension: zod.schemaExtension },
                   },
                 }
               : {}),

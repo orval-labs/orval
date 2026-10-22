@@ -1319,7 +1319,7 @@ export type SchemaExtensionEntry<
   type: T;
   format: SchemaExtensionFormat;
   validatorsGenerator: (
-    openapi_object: SchemaObject,
+    openapi_object: Exclude<SchemaObject, boolean>,
   ) => null | undefined | BoundRefinement<TValue> | BoundRefinement<TValue>[];
 };
 
