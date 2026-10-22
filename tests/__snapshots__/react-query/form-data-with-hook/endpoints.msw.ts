@@ -7,7 +7,11 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
 import type { Pet, PetBase, PetExtended } from './model';
 
@@ -71,13 +75,13 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, Pet>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, Pet>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<PathParams, Pet>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

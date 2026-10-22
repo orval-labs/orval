@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { PostSomething200 } from './model';
 
@@ -53,13 +53,13 @@ export const getPostSomethingMockHandler = (
   overrideResponse?:
     | PostSomething200
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PostSomething200> | PostSomething200),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
     '*/something',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

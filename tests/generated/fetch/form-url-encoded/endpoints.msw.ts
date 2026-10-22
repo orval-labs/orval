@@ -7,9 +7,18 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Pet } from './model';
+import type {
+  CreatePetsBody,
+  Pet,
+  UploadPetContentBody,
+  UploadPetContentRefBody,
+} from './model';
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Extract<Pet, object>> = {},
@@ -99,13 +108,15 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreatePetsBody>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -123,13 +134,19 @@ export const getUploadPetContentMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<PathParams, UploadPetContentBody>
+        >[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, UploadPetContentBody>(
     '*/pets/upload',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<PathParams, UploadPetContentBody>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -147,13 +164,19 @@ export const getUploadPetContentRefMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<
+          HttpResponseResolver<PathParams, UploadPetContentRefBody>
+        >[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, UploadPetContentRefBody>(
     '*/pets/upload-ref',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<
+        HttpResponseResolver<PathParams, UploadPetContentRefBody>
+      >[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

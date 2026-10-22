@@ -5,9 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Pet, PetWithTag, Pets } from '../model';
+import type { CreatePetsBody, Pet, PetWithTag, Pets } from '../model';
 
 import {
   getCreatePetsResponseMock,
@@ -28,14 +32,12 @@ export {
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -53,13 +55,15 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreatePetsBody>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -77,13 +81,13 @@ export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -101,13 +105,13 @@ export const getDeletePetByIdMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.delete(
+  return http.delete<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -121,14 +125,12 @@ export const getDeletePetByIdMockHandler = (
 export const getHealthCheckMockHandler = (
   overrideResponse?:
     | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<string> | string),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -149,13 +151,13 @@ export const getShowPetWithOwnerMockHandler = (
   overrideResponse?:
     | PetWithTag
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<PetWithTag> | PetWithTag),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     '*/pets/:petId/owner',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

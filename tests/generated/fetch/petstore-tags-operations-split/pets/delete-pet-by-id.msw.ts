@@ -5,19 +5,19 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getDeletePetByIdMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.delete(
+  return http.delete<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }

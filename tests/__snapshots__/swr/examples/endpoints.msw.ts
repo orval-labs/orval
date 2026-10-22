@@ -5,7 +5,7 @@
  * OpenAPI spec version: 0.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getGetUsersResponseMock = (): string[] => [
   'userD',
@@ -35,13 +35,13 @@ export const getGetUsersMockHandler = (
   overrideResponse?:
     | string[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ version: string }>>[0],
       ) => Promise<string[]> | string[]),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ version: string }>(
     '*/v:version/users',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ version: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -59,13 +59,13 @@ export const getGetUsersMockHandler200 = (
   overrideResponse?:
     | string[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ version: string }>>[0],
       ) => Promise<string[]> | string[]),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ version: string }>(
     '*/v:version/users',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ version: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -83,13 +83,13 @@ export const getGetUsers2MockHandler = (
   overrideResponse?:
     | string[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ version: string }>>[0],
       ) => Promise<string[]> | string[]),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ version: string }>(
     '*/v:version/users2',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ version: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -107,13 +107,13 @@ export const getGetUsers2MockHandler200 = (
   overrideResponse?:
     | string[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ version: string }>>[0],
       ) => Promise<string[]> | string[]),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ version: string }>(
     '*/v:version/users2',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ version: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

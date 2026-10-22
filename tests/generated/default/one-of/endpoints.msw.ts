@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Cat, Pet } from './model';
 
@@ -36,14 +36,12 @@ export const getGetOneOfWithNullableObjectResponseMock = (): Pet =>
 export const getGetOneOfWithNullableObjectMockHandler = (
   overrideResponse?:
     | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/one-of-with-nullable-object',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
