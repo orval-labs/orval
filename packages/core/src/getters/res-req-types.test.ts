@@ -1,3 +1,6 @@
+import { runInNewContext } from 'node:vm';
+
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec, type TestOverride } from '../test-utils';
@@ -666,7 +669,52 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
   });
 
   describe('date fields with useDates', () => {
-    const dateSchema: OpenApiSchemaObject = {
+    const useDatesContext = extendContext({ override: { useDates: true } });
+    const since = new Date(Date.UTC(2026, 0, 2, 3, 4, 5));
+
+    const requestBody = (
+      schema: OpenApiSchemaObject,
+      contentType = 'multipart/form-data',
+      encoding?: Record<string, { style: 'deepObject' }>,
+    ): [string, OpenApiRequestBodyObject][] => [
+      [
+        'requestBody',
+        {
+          content: {
+            [contentType]: { schema, ...(encoding ? { encoding } : {}) },
+          },
+          required: true,
+        },
+      ],
+    ];
+
+    /** Runs the generated form code on `body` and returns the appended entries. */
+    const formEntries = (code: string | undefined, body: unknown) => {
+      const source = code ?? '';
+      const bodyName = /\b(\w+RequestBody)\b/.exec(source)?.[1] ?? 'body';
+      const variable = source.includes('new URLSearchParams')
+        ? 'formUrlEncoded'
+        : 'formData';
+      const { outputText } = ts.transpileModule(
+        `(${bodyName}) => {\n${source}\nreturn ${variable};\n}`,
+        { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+      );
+      // Share the host `Date` so `instanceof Date` holds inside the sandbox.
+      const build = runInNewContext(outputText, {
+        FormData,
+        URLSearchParams,
+        Blob,
+        File,
+        Buffer,
+        Date,
+      }) as (value: unknown) => FormData | URLSearchParams;
+      return [...build(body).entries()].map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value : value.name,
+      ]);
+    };
+
+    const eventSchema: OpenApiSchemaObject = {
       type: 'object',
       required: ['startsAt'],
       properties: {
@@ -679,144 +727,276 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
         },
       },
     };
-    const reqBody = (
-      contentType: string,
-    ): [string, OpenApiRequestBodyObject][] => [
-      [
-        'requestBody',
-        {
-          content: { [contentType]: { schema: dateSchema } },
-          required: true,
-        },
-      ],
+    const event = {
+      startsAt: since,
+      day: since,
+      endsAt: null,
+      history: [since],
+    };
+    const eventEntries = [
+      ['startsAt', '2026-01-02T03:04:05.000Z'],
+      ['day', '2026-01-02'],
+      ['history', '2026-01-02T03:04:05.000Z'],
     ];
-    const useDatesContext = extendContext({ override: { useDates: true } });
 
     it('serializes Date values as ISO strings in multipart bodies', () => {
-      const result = getResReqTypes(
-        reqBody('multipart/form-data'),
+      const [result] = getResReqTypes(
+        requestBody(eventSchema),
         'Event',
         useDatesContext,
-      )[0];
+      );
 
-      expect(result.formData).toContain(
-        'formData.append(`startsAt`, eventRequestBody.startsAt.toISOString())',
-      );
-      expect(result.formData).toContain(
-        'formData.append(`day`, eventRequestBody.day.toISOString().slice(0, 10))',
-      );
-      expect(result.formData).toContain(
-        'formData.append(`endsAt`, eventRequestBody.endsAt.toISOString())',
-      );
-      expect(result.formData).toContain(
-        'eventRequestBody.history.forEach(value => formData.append(`history`, value.toISOString()))',
-      );
+      expect(formEntries(result.formData, event)).toEqual(eventEntries);
     });
 
     it('serializes Date values as ISO strings in url-encoded bodies', () => {
-      const result = getResReqTypes(
-        reqBody('application/x-www-form-urlencoded'),
+      const [result] = getResReqTypes(
+        requestBody(eventSchema, 'application/x-www-form-urlencoded'),
         'Event',
         useDatesContext,
-      )[0];
+      );
 
-      expect(result.formUrlEncoded).toContain(
-        'formUrlEncoded.append(`startsAt`, eventRequestBody.startsAt.toISOString())',
-      );
-      expect(result.formUrlEncoded).toContain(
-        'formUrlEncoded.append(`day`, eventRequestBody.day.toISOString().slice(0, 10))',
-      );
+      expect(formEntries(result.formUrlEncoded, event)).toEqual(eventEntries);
     });
 
-    it('appends date strings as is without useDates', () => {
-      const result = getResReqTypes(
-        reqBody('multipart/form-data'),
+    it('leaves the output unchanged without useDates', () => {
+      const [result] = getResReqTypes(
+        requestBody(eventSchema),
         'Event',
         context,
-      )[0];
+      );
 
       expect(result.formData).toContain(
         'formData.append(`startsAt`, eventRequestBody.startsAt)',
       );
-      expect(result.formData).not.toContain('toISOString');
+      expect(result.formData).not.toContain('toFormValue');
     });
 
-    it('converts only Date values for a multi-type date field', () => {
-      const result = getResReqTypes(
-        [
-          [
-            'requestBody',
-            {
-              content: {
-                'multipart/form-data': {
-                  schema: {
-                    type: 'object',
-                    required: ['when'],
-                    properties: {
-                      when: { type: ['string', 'number'], format: 'date-time' },
-                    },
-                  },
-                },
-              },
-              required: true,
-            },
-          ],
-        ],
+    it('does not declare the helper when no value needs it', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        }),
         'Event',
         useDatesContext,
-      )[0];
-
-      expect(result.formData).toContain(
-        'formData.append(`when`, eventRequestBody.when instanceof Date ? eventRequestBody.when.toISOString() : eventRequestBody.when.toString())',
       );
+
+      expect(result.formData).not.toContain('toFormValue');
     });
 
-    it('lets null array items through when the null branch is a $ref', () => {
-      const ctx = extendContext({
-        override: { useDates: true },
-        spec: {
-          components: {
-            schemas: {
-              Timestamp: { type: 'string', format: 'date-time' },
-              Nothing: { type: 'null' },
-            },
+    it('stringifies the other types of a multi-type date field', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          required: ['when'],
+          properties: {
+            when: { type: ['string', 'number'], format: 'date-time' },
           },
-        },
-      });
-      const result = getResReqTypes(
-        [
-          [
-            'requestBody',
-            {
-              content: {
-                'multipart/form-data': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      history: {
-                        type: 'array',
-                        items: {
-                          anyOf: [
-                            { $ref: '#/components/schemas/Timestamp' },
-                            { $ref: '#/components/schemas/Nothing' },
-                          ],
-                        },
-                      },
-                    },
-                  },
+        }),
+        'Event',
+        useDatesContext,
+      );
+
+      expect(formEntries(result.formData, { when: since })).toEqual([
+        ['when', '2026-01-02T03:04:05.000Z'],
+      ]);
+      expect(formEntries(result.formData, { when: 5 })).toEqual([
+        ['when', '5'],
+      ]);
+    });
+
+    it('serializes a date | integer anyOf property, keeping its nested key', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          required: ['meta'],
+          properties: {
+            meta: {
+              type: 'object',
+              required: ['when'],
+              properties: {
+                when: {
+                  anyOf: [
+                    { type: 'string', format: 'date-time' },
+                    { type: 'integer' },
+                  ],
                 },
               },
-              required: true,
+            },
+          },
+        }),
+        'Event',
+        extendContext({
+          override: {
+            useDates: true,
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        }),
+      );
+
+      expect(formEntries(result.formData, { meta: { when: since } })).toEqual([
+        ['meta.when', '2026-01-02T03:04:05.000Z'],
+      ]);
+      expect(formEntries(result.formData, { meta: { when: 7 } })).toEqual([
+        ['meta.when', '7'],
+      ]);
+    });
+
+    it('serializes allOf-wrapped date refs per their format', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          required: ['at', 'on'],
+          properties: {
+            at: {
+              allOf: [{ $ref: '#/components/schemas/Timestamp' }],
+              description: 'When',
+            },
+            on: { allOf: [{ $ref: '#/components/schemas/Day' }] },
+          },
+        }),
+        'Event',
+        extendContext({
+          override: { useDates: true },
+          spec: {
+            components: {
+              schemas: {
+                Timestamp: { type: 'string', format: 'date-time' },
+                Day: { type: 'string', format: 'date' },
+              },
+            },
+          },
+        }),
+      );
+
+      expect(formEntries(result.formData, { at: since, on: since })).toEqual([
+        ['at', '2026-01-02T03:04:05.000Z'],
+        ['on', '2026-01-02'],
+      ]);
+    });
+
+    it('skips null array items, including a $ref null branch', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          required: ['history', 'mixed'],
+          properties: {
+            history: {
+              type: 'array',
+              items: {
+                anyOf: [
+                  { $ref: '#/components/schemas/Timestamp' },
+                  { $ref: '#/components/schemas/Nothing' },
+                ],
+              },
+            },
+            mixed: {
+              type: 'array',
+              items: {
+                type: ['string', 'number', 'null'],
+                format: 'date-time',
+              },
+            },
+          },
+        }),
+        'Event',
+        extendContext({
+          override: { useDates: true },
+          spec: {
+            components: {
+              schemas: {
+                Timestamp: { type: 'string', format: 'date-time' },
+                Nothing: { type: 'null' },
+              },
+            },
+          },
+        }),
+      );
+
+      expect(
+        formEntries(result.formData, {
+          history: [since, null],
+          mixed: [null, 3, since],
+        }),
+      ).toEqual([
+        ['history', '2026-01-02T03:04:05.000Z'],
+        ['mixed', '3'],
+        ['mixed', '2026-01-02T03:04:05.000Z'],
+      ]);
+    });
+
+    it('serializes Date properties of a deepObject field per their format', () => {
+      const [result] = getResReqTypes(
+        requestBody(
+          {
+            type: 'object',
+            required: ['range'],
+            properties: {
+              range: {
+                type: 'object',
+                properties: {
+                  since: { type: 'string', format: 'date-time' },
+                  day: { type: 'string', format: 'date' },
+                  limit: { type: 'integer' },
+                },
+              },
+            },
+          },
+          'application/x-www-form-urlencoded',
+          { range: { style: 'deepObject' } },
+        ),
+        'Event',
+        useDatesContext,
+      );
+
+      expect(
+        formEntries(result.formUrlEncoded, {
+          range: { since, day: since, limit: 2 },
+        }),
+      ).toEqual([
+        ['range[since]', '2026-01-02T03:04:05.000Z'],
+        ['range[day]', '2026-01-02'],
+        ['range[limit]', '2'],
+      ]);
+    });
+
+    it('serializes Date fields of a root oneOf body without JSON quotes', () => {
+      const [result] = getResReqTypes(
+        requestBody({
+          oneOf: [
+            {
+              type: 'object',
+              properties: { at: { type: 'string', format: 'date-time' } },
+            },
+            {
+              type: 'object',
+              properties: { on: { type: 'string', format: 'date' } },
             },
           ],
-        ],
+        }),
         'Event',
-        ctx,
-      )[0];
-
-      expect(result.formData).toContain(
-        'formData.append(`history`, value instanceof Date ? value.toISOString() : value)',
+        useDatesContext,
       );
+
+      expect(formEntries(result.formData, { at: since })).toEqual([
+        ['at', '2026-01-02T03:04:05.000Z'],
+      ]);
+      expect(formEntries(result.formData, { on: since })).toEqual([
+        ['on', '2026-01-02'],
+      ]);
+    });
+
+    it('sends an invalid Date as a string instead of throwing', () => {
+      const [result] = getResReqTypes(
+        requestBody(eventSchema),
+        'Event',
+        useDatesContext,
+      );
+
+      expect(
+        formEntries(result.formData, { startsAt: new Date('not a date') }),
+      ).toEqual([['startsAt', 'Invalid Date']]);
     });
   });
 

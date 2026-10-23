@@ -658,7 +658,38 @@ function getSchemaFormDataAndUrlEncoded({
         form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
         form += skipLine;
         form += `  if (value !== undefined && value !== null) {\n`;
-        if (isUrlEncoded) {
+        if (usesFormValueHelper(context)) {
+          // The variants are only known at runtime, so `format: date` comes
+          // from the property name.
+          const variants = combinedSchemas.map(
+            (subSchema) => resolveSchemaRef(subSchema, context).schema,
+          );
+          const value = (expr: string) =>
+            formEntryValue(expr, 'key', variants, context);
+          form += `    if (Array.isArray(value)) {\n`;
+          form += `      value.forEach(v => {\n`;
+          if (!isUrlEncoded) {
+            form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
+            form += `          ${variableName}.append(key, v);\n`;
+            form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
+            form += `          ${variableName}.append(key, new Blob([Uint8Array.from(v)]));\n`;
+            form += `        } else {\n`;
+          }
+          form += `        ${variableName}.append(key, ${value('v')});\n`;
+          if (!isUrlEncoded) {
+            form += `        }\n`;
+          }
+          form += `      });\n`;
+          if (!isUrlEncoded) {
+            form += `    } else if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
+            form += `      ${variableName}.append(key, value);\n`;
+            form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
+            form += `      ${variableName}.append(key, new Blob([Uint8Array.from(value)]));\n`;
+          }
+          form += `    } else {\n`;
+          form += `      ${variableName}.append(key, ${value('value')});\n`;
+          form += `    }\n`;
+        } else if (isUrlEncoded) {
           // url-encoded: URLSearchParams holds strings only, so File/Blob/
           // Buffer handling does not apply — coerce every value to string (#1624)
           form += `    if (Array.isArray(value)) {\n`;
@@ -729,7 +760,7 @@ function getSchemaFormDataAndUrlEncoded({
       form += formDataValues;
     }
 
-    return form;
+    return withFormValueHelper(form);
   }
 
   if (getSchemaType(schema) === 'array') {
@@ -745,6 +776,11 @@ function getSchemaFormDataAndUrlEncoded({
       ) {
         valueStr = 'JSON.stringify(value)';
       } else if (
+        usesFormValueHelper(context) &&
+        getDateFormat(itemSchema, context)
+      ) {
+        valueStr = formValue('value', itemSchema, context);
+      } else if (
         itemType === 'number' ||
         itemType === 'integer' ||
         itemType === 'boolean'
@@ -753,7 +789,15 @@ function getSchemaFormDataAndUrlEncoded({
       }
     }
 
-    return `${form}${propName}.forEach(value => ${variableName}.append('data', ${valueStr}))\n`;
+    return withFormValueHelper(
+      `${form}${propName}.forEach(value => ${variableName}.append('data', ${valueStr}))\n`,
+    );
+  }
+
+  if (usesFormValueHelper(context) && getDateFormat(schema, context)) {
+    return withFormValueHelper(
+      `${form}${variableName}.append('data', ${formValue(propName, schema, context)})\n`,
+    );
   }
 
   const scalarType = getSchemaType(schema);
@@ -872,47 +916,104 @@ function unwrapNullableSchema(
 }
 
 /**
- * With `useDates`, `format: date` / `date-time` strings are typed `Date`, but
- * `FormData` and `URLSearchParams` would stringify a `Date` with
- * `Date.prototype.toString()`. Returns a function that renders the given
- * expression as ISO 8601 instead (`YYYY-MM-DD` for `format: date`), or
- * `undefined` for any other schema.
+ * The helper every form value goes through under `useDates`, which types
+ * `format: date` / `date-time` fields as `Date`. `FormData` and
+ * `URLSearchParams` would otherwise write a `Date` with
+ * `Date.prototype.toString()`, or as a JSON-quoted string where the value is
+ * JSON-encoded.
  *
- * When the value may be something other than a `Date` (a multi-type schema
- * such as `['string', 'number']`, or an array item that may be `null`), the
- * conversion is guarded with `instanceof Date` so other values pass through.
+ * A valid `Date` becomes ISO 8601, or `YYYY-MM-DD` for `format: date`. Both
+ * use the UTC calendar day, the same rule as the request date serializer in
+ * `date-transform.ts`. An invalid `Date` falls back to `String()` rather than
+ * throwing from `toISOString()`. Objects are JSON-encoded and anything else
+ * goes through `String()`.
  */
-function getDateSerializer(
-  schema: OpenApiSchemaObject,
-  context: ContextSpec,
-  { nullable = false }: { nullable?: boolean } = {},
-): ((expr: string) => string) | undefined {
-  if (!context.output.override.useDates || isBooleanJsonSchema(schema)) {
-    return undefined;
-  }
-  const type = getSchemaType(schema);
-  if (type !== 'string' && !(Array.isArray(type) && type.includes('string'))) {
-    return undefined;
-  }
-  let toIso: (expr: string) => string;
-  if (schema.format === 'date-time') {
-    toIso = (expr) => `${expr}.toISOString()`;
-  } else if (schema.format === 'date') {
-    toIso = (expr) => `${expr}.toISOString().slice(0, 10)`;
-  } else {
-    return undefined;
-  }
+const FORM_VALUE_HELPER = 'toFormValue';
 
-  const hasOtherTypes =
-    Array.isArray(type) && type.some((t) => t !== 'string' && t !== 'null');
-  if (!hasOtherTypes && !nullable) {
-    return toIso;
+const FORM_VALUE_HELPER_DECLARATION = `const ${FORM_VALUE_HELPER} = (value: unknown, format?: 'date'): string =>
+  value instanceof Date
+    ? Number.isNaN(value.getTime())
+      ? String(value)
+      : format === 'date'
+        ? value.toISOString().slice(0, 10)
+        : value.toISOString()
+    : typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value);
+`;
+
+/** Prepends the {@link FORM_VALUE_HELPER} declaration when the form code calls it. */
+const withFormValueHelper = (form: string) =>
+  form.includes(`${FORM_VALUE_HELPER}(`)
+    ? `${FORM_VALUE_HELPER_DECLARATION}${form}`
+    : form;
+
+/** Whether form values go through {@link FORM_VALUE_HELPER}. */
+const usesFormValueHelper = (context: ContextSpec) =>
+  !!context.output.override.useDates;
+
+/**
+ * The schema's `date` / `date-time` format, directly or through an `allOf` /
+ * `anyOf` / `oneOf` member (e.g. `allOf: [{ $ref: Timestamp }]`).
+ */
+function getDateFormat(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+  depth = 0,
+): 'date' | 'date-time' | undefined {
+  // Bounded so a self-referencing schema can't recurse forever.
+  if (depth > 4) return undefined;
+  const { schema: resolved } = resolveSchemaRef(schema, context);
+  if (isBooleanJsonSchema(resolved)) return undefined;
+  if (resolved.format === 'date') return 'date';
+  if (resolved.format === 'date-time') return 'date-time';
+  for (const member of [
+    ...(resolved.allOf ?? []),
+    ...(resolved.anyOf ?? []),
+    ...(resolved.oneOf ?? []),
+  ]) {
+    const format = getDateFormat(member, context, depth + 1);
+    if (format) return format;
   }
-  return (expr) =>
-    `${expr} instanceof Date ? ${toIso(expr)} : ${
-      hasOtherTypes && !nullable ? `${expr}.toString()` : expr
-    }`;
+  return undefined;
 }
+
+const isDateOnlySchema = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+) => getDateFormat(schema, context) === 'date';
+
+/** A {@link FORM_VALUE_HELPER} call for a value whose schema is known. */
+const formValue = (
+  expr: string,
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+) =>
+  `${FORM_VALUE_HELPER}(${expr}${isDateOnlySchema(schema, context) ? ", 'date'" : ''})`;
+
+/**
+ * A {@link FORM_VALUE_HELPER} call for a property read at runtime through
+ * `Object.entries`, passing `'date'` for the `format: date` property names.
+ */
+const formEntryValue = (
+  expr: string,
+  keyExpr: string,
+  schemas: OpenApiSchemaObject[],
+  context: ContextSpec,
+) => {
+  const dateOnlyKeys = [
+    ...new Set(
+      schemas.flatMap((schema) =>
+        Object.entries(collectPropertiesThroughAllOf(schema, context))
+          .filter(([, property]) => isDateOnlySchema(property, context))
+          .map(([key]) => key),
+      ),
+    ),
+  ];
+  return dateOnlyKeys.length > 0
+    ? `${FORM_VALUE_HELPER}(${expr}, ${JSON.stringify(dateOnlyKeys)}.includes(${keyExpr}) ? 'date' : undefined)`
+    : `${FORM_VALUE_HELPER}(${expr})`;
+};
 
 /**
  * Whether an array item may be `null`, including an `anyOf`/`oneOf` wrapper
@@ -1097,7 +1198,11 @@ function resolveSchemaPropertiesToFormData({
     // case is guarded below.
     const valueSchema = unwrapNullableSchema(property, context);
     const valueType = getSchemaType(valueSchema);
-    const dateSerializer = getDateSerializer(valueSchema, context);
+    // Under `useDates` a date field (also behind `allOf`, or next to other
+    // types in `anyOf` / `oneOf`) is typed `Date`, so it goes through the
+    // form value helper.
+    const isDateValue =
+      usesFormValueHelper(context) && !!getDateFormat(property, context);
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)
@@ -1123,7 +1228,7 @@ function resolveSchemaPropertiesToFormData({
         // style: deepObject — emit each property as `key[subkey]=value`
         const inner = `${nonOptionalValueKey} && Object.entries(${nonOptionalValueKey}).forEach(([k, v]) => {
           if (v !== undefined && v !== null) {
-            ${variableName}.append(\`${keyPrefix}${escapedKey}[\${k}]\`, typeof v === 'object' ? JSON.stringify(v) : String(v));
+            ${variableName}.append(\`${keyPrefix}${escapedKey}[\${k}]\`, ${usesFormValueHelper(context) ? formEntryValue('v', 'k', [valueSchema], context) : "typeof v === 'object' ? JSON.stringify(v) : String(v)"});
           }
         });\n`;
         formDataValue = inner;
@@ -1150,6 +1255,9 @@ function resolveSchemaPropertiesToFormData({
     ) {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;
+      // Items that go through the form value helper skip `null` instead of
+      // appending it.
+      let skipNullItems = false;
       const propertyItems = getSchemaItems(valueSchema);
       if (propertyItems) {
         const { schema: resolvedItem } = resolveSchemaRef(
@@ -1189,13 +1297,12 @@ function resolveSchemaPropertiesToFormData({
           }
         } else {
           const itemType = getSchemaType(resolvedItem);
-          // There is no null guard per item, so a nullable item gets a
-          // conversion that lets `null` through.
-          const itemDateSerializer = getDateSerializer(itemSchema, context, {
-            nullable: isItemNullable(resolvedItem, context),
-          });
-          if (itemDateSerializer) {
-            valueStr = itemDateSerializer('value');
+          if (
+            usesFormValueHelper(context) &&
+            getDateFormat(resolvedItem, context)
+          ) {
+            valueStr = formValue('value', itemSchema, context);
+            skipNullItems = isItemNullable(resolvedItem, context);
           } else if (
             itemType === 'number' ||
             (Array.isArray(itemType) && itemType.includes('number')) ||
@@ -1208,18 +1315,22 @@ function resolveSchemaPropertiesToFormData({
           }
         }
       }
+      const appendItem = (append: string) =>
+        skipNullItems
+          ? `{ if (value !== null && value !== undefined) { ${append}; } }`
+          : append;
       if (
         context.output.override.formData.arrayHandling ===
         FormDataArrayHandling.EXPLODE
       ) {
         if (!hasNonPrimitiveChild) {
-          formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
+          formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${appendItem(`${variableName}.append(\`${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr})`)});\n`;
         }
       } else {
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
+        formDataValue = `${valueKey}.forEach(value => ${appendItem(`${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr})`)});\n`;
       }
-    } else if (dateSerializer) {
-      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${dateSerializer(nonOptionalValueKey)})\n`;
+    } else if (isDateValue) {
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${formValue(nonOptionalValueKey, property, context)})\n`;
     } else if (
       (() => {
         const propType = getSchemaType(property);
@@ -1244,12 +1355,15 @@ function resolveSchemaPropertiesToFormData({
       const subSchemas = combine.map((c) =>
         resolveObject({ schema: c, combined: true, context: context }),
       );
+      // A date value already goes through the form value helper, which
+      // stringifies the other types too.
       if (
+        !isDateValue &&
         subSchemas.some((subSchema) => {
           return ['number', 'integer', 'boolean'].includes(subSchema.type);
         })
       ) {
-        formDataValue = `${variableName}.append(\`${escapedKey}\`, ${nonOptionalValueKey}.toString())\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey}.toString())\n`;
       }
 
       if (
