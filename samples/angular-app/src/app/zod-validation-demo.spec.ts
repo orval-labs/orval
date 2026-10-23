@@ -116,6 +116,25 @@ describe('ZodValidationDemo', () => {
     expect(petCards[1].textContent).toContain('Felix');
   });
 
+  it('should show a ZodError when a search response fails validation', async () => {
+    const fixture = TestBed.createComponent(ZodValidationDemo);
+    fixture.detectChanges();
+
+    // Missing `requiredNullableString`, so the generated Zod schema rejects it
+    httpMock
+      .match((req) => req.url.includes('/search'))
+      .forEach((req) => req.flush([{ id: 1, name: 'Rex' }]));
+    flushPendingGetRequests();
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const alertText = fixture.nativeElement.querySelector('.result-error')
+      ?.textContent;
+    expect(alertText).toContain('ZodError (1 issues)');
+    expect(alertText).toContain('0.requiredNullableString');
+  });
+
   it('should show single pet from validated showPetById response', async () => {
     const fixture = TestBed.createComponent(ZodValidationDemo);
     fixture.detectChanges();

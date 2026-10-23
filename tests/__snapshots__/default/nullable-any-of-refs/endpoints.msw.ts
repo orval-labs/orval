@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type {
   Animals,
@@ -148,14 +148,12 @@ export const getGetMixedTypesResponseMock = (): MixedTypes[] =>
 export const getGetPetsMockHandler = (
   overrideResponse?:
     | Pets[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets[]> | Pets[]),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pets[]> | Pets[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -173,13 +171,13 @@ export const getGetAnimalsMockHandler = (
   overrideResponse?:
     | Animals[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Animals[]> | Animals[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/animals',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -197,13 +195,13 @@ export const getGetNestedAnimalsMockHandler = (
   overrideResponse?:
     | NestedAnimals[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NestedAnimals[]> | NestedAnimals[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nested-animals',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -221,13 +219,13 @@ export const getGetMixedNullableMockHandler = (
   overrideResponse?:
     | MixedNullable[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<MixedNullable[]> | MixedNullable[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-nullable',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -245,13 +243,13 @@ export const getGetMixedTypesMockHandler = (
   overrideResponse?:
     | MixedTypes[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<MixedTypes[]> | MixedTypes[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-types',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

@@ -5,7 +5,7 @@
  * OpenAPI spec version: 0.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Sample } from './model';
 
@@ -16,14 +16,12 @@ export const getWith200and400ResponseMock = (): Sample => ({});
 export const getDefaultOnlyMockHandler = (
   overrideResponse?:
     | Sample
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Sample> | Sample),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Sample> | Sample),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/default-only',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -37,14 +35,12 @@ export const getDefaultOnlyMockHandler = (
 export const getWith200MockHandler = (
   overrideResponse?:
     | Sample
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Sample> | Sample),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Sample> | Sample),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/w-200',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -61,14 +57,12 @@ export const getWith200MockHandler = (
 export const getWith400MockHandler = (
   overrideResponse?:
     | Sample
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Sample> | Sample),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Sample> | Sample),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/w-400',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
@@ -82,14 +76,12 @@ export const getWith400MockHandler = (
 export const getWith200and400MockHandler = (
   overrideResponse?:
     | Sample
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Sample> | Sample),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Sample> | Sample),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/w-200-400',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

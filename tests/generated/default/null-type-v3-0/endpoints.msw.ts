@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type {
   NullableAnyObject,
@@ -48,13 +48,13 @@ export const getFetchNullableMockHandler = (
     | string
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<string | null> | string | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -73,13 +73,13 @@ export const getFetchNullableObjectMockHandler = (
     | NullableObject
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableObject | null> | NullableObject | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-object',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -98,13 +98,13 @@ export const getFetchNullableAnyObjectMockHandler = (
     | NullableAnyObject
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableAnyObject | null> | NullableAnyObject | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-any-object-key',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -123,13 +123,13 @@ export const getFetchNullableEnumsMockHandler = (
     | NullableStringEnum
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableStringEnum | null> | NullableStringEnum | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nullable-string-enum',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

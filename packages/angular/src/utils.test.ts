@@ -7,12 +7,13 @@ import { GetterPropType } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
-  createReturnTypesRegistry,
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
+  hasGatedObjectQueryParamStrategies,
+  isJsonContentType,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -173,53 +174,6 @@ describe('createRouteRegistry', () => {
     registry.set('getPetById', '/v1/pets/${petId}');
     registry.set('getPetById', '/v2/pets/${petId}');
     expect(registry.get('getPetById', '/fallback')).toBe('/v2/pets/${petId}');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// createReturnTypesRegistry
-// ---------------------------------------------------------------------------
-
-describe('createReturnTypesRegistry', () => {
-  it('stores and retrieves type definitions', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-
-    const footer = registry.getFooter(['getPetById']);
-    expect(footer).toBe('export type GetPetByIdResult = Pet');
-  });
-
-  it('filters by provided operationNames', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-    registry.set('listPets', 'export type ListPetsResult = Pet[]');
-
-    const footer = registry.getFooter(['getPetById']);
-    expect(footer).toBe('export type GetPetByIdResult = Pet');
-    expect(footer).not.toContain('ListPets');
-  });
-
-  it('returns empty string for no matching operations', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'export type GetPetByIdResult = Pet');
-
-    expect(registry.getFooter(['unknownOp'])).toBe('');
-  });
-
-  it('joins multiple types with newlines', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'type A');
-    registry.set('listPets', 'type B');
-
-    const footer = registry.getFooter(['getPetById', 'listPets']);
-    expect(footer).toBe('type A\ntype B');
-  });
-
-  it('clears all entries on reset', () => {
-    const registry = createReturnTypesRegistry();
-    registry.set('getPetById', 'type A');
-    registry.reset();
-    expect(registry.getFooter(['getPetById'])).toBe('');
   });
 });
 
@@ -501,5 +455,70 @@ describe('getRelevantVerbOptionsForTag', () => {
     const result = getRelevantVerbOptionsForTag(verbOptions, '');
     expect(result).toHaveLength(1);
     expect(result[0].operationId).toBe('untagged');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isJsonContentType
+// ---------------------------------------------------------------------------
+
+describe('isJsonContentType', () => {
+  it.each([
+    'application/json',
+    'application/problem+json',
+    'application/merge-patch+json',
+  ])('treats "%s" as JSON', (contentType) => {
+    expect(isJsonContentType(contentType)).toBe(true);
+  });
+
+  it.each(['text/plain', 'application/xml', 'application/octet-stream'])(
+    'does not treat "%s" as JSON',
+    (contentType) => {
+      expect(isJsonContentType(contentType)).toBe(false);
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
+// hasGatedObjectQueryParamStrategies
+// ---------------------------------------------------------------------------
+
+describe('hasGatedObjectQueryParamStrategies', () => {
+  const verbWith = (
+    angular: { queryObjectSerialization: 'spec' | 'legacy' },
+    queryParams: unknown = {
+      objectQueryParams: [{ key: 'filter', strategy: 'flatten' }],
+    },
+  ) =>
+    ({
+      queryParams,
+      override: { angular },
+    }) as never;
+
+  it('gates object query params serialized with the spec strategy', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith({ queryObjectSerialization: 'spec' }),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not gate legacy serialization', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith({ queryObjectSerialization: 'legacy' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not gate operations without object query params', () => {
+    expect(
+      hasGatedObjectQueryParamStrategies(
+        verbWith(
+          { queryObjectSerialization: 'spec' },
+          { objectQueryParams: [] },
+        ),
+      ),
+    ).toBe(false);
   });
 });

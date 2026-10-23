@@ -11,6 +11,7 @@ import {
   noopReporter,
   type OpenApiDocument,
   OutputMockType,
+  type OutputMode,
   type OutputOptions,
   setLogLevel,
   setProjectName,
@@ -2853,6 +2854,265 @@ describe('generateSpec - operationName tuple [methodName, typeName]', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  // Gateway-style aggregated spec: N services expose the same-shaped route
+  // with no operationId, an `operationName` tuple fallback gives them all the
+  // same method name, and a schema the gateway deduplicated is owned by a tag
+  // that filters.tags excludes.
+  it('derives angular ClientResult aliases from the owning operation when method names collide across tags', async () => {
+    const STATUS_SPEC: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Gateway', version: '1.0.0' },
+      paths: {
+        '/api/catalog/status': {
+          get: {
+            tags: ['Catalog'],
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/StatusResponse',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/api/inventory/status': {
+          get: {
+            tags: ['Inventory'],
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    // Identical shape, deduplicated by the gateway onto a
+                    // component owned by the excluded Search tag.
+                    schema: {
+                      $ref: '#/components/schemas/SearchStatusResponse',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/api/search/status': {
+          get: {
+            tags: ['Search'],
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/SearchStatusResponse',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          StatusResponse: {
+            type: 'object',
+            properties: {
+              value: { type: 'string' },
+              detail: { type: 'string' },
+            },
+            required: ['value'],
+          },
+          SearchStatusResponse: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+          },
+        },
+      },
+    };
+
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: STATUS_SPEC,
+            filters: { tags: ['Catalog', 'Inventory'] },
+          },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model', splitByTags: true },
+            client: 'angular',
+            tagsSplitDeduplication: true,
+            override: {
+              operationName: (_operation, route, verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return [
+                  `${verb}${segments.slice(2).map(cap).join('')}`,
+                  `${verb}${segments.slice(1).map(cap).join('')}`,
+                ];
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const catalogFile = path.join(workspace, 'catalog', 'catalog.service.ts');
+      const inventoryFile = path.join(
+        workspace,
+        'inventory',
+        'inventory.service.ts',
+      );
+      expect(fs.existsSync(catalogFile)).toBe(true);
+      expect(fs.existsSync(inventoryFile)).toBe(true);
+
+      const catalogContent = await fs.promises.readFile(catalogFile, 'utf-8');
+      const inventoryContent = await fs.promises.readFile(
+        inventoryFile,
+        'utf-8',
+      );
+
+      // The alias name AND the referenced schema come from the file's own
+      // operation (its route + its response $ref), never from another tag's
+      // colliding operation.
+      expect(catalogContent).toContain(
+        'export type GetCatalogStatusClientResult = NonNullable<StatusResponse>',
+      );
+      expect(catalogContent).not.toContain('GetInventoryStatusClientResult');
+      expect(catalogContent).not.toContain('SearchStatusResponse');
+
+      expect(inventoryContent).toContain(
+        'export type GetInventoryStatusClientResult = NonNullable<SearchStatusResponse>',
+      );
+
+      // Invariant: every bare identifier an emitted alias references must be
+      // importable in the file the alias lands in.
+      for (const content of [catalogContent, inventoryContent]) {
+        const importedNames = new Set(
+          [...content.matchAll(/import type \{([^}]+)\}/g)]
+            .flatMap((match) => match[1].split(','))
+            .map((name) => name.trim().split(' as ')[0]),
+        );
+        const referenced = [
+          ...content.matchAll(
+            /export type \w+ClientResult = NonNullable<([A-Z][A-Za-z0-9]*)>/g,
+          ),
+        ].map((match) => match[1]);
+        expect(referenced.length).toBeGreaterThan(0);
+        for (const name of referenced) {
+          expect(importedNames.has(name), `${name} is not imported`).toBe(true);
+        }
+      }
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it.each<OutputMode>(['tags', 'tags-split'])(
+    'emits httpResource mutation ClientResult aliases in every tag file (%s)',
+    async (mode) => {
+      // The per-tag writers build each tag's footer before its header, and
+      // httpResource mutations are only rendered inside the header — so the
+      // mutation aliases must travel on the operations (`types.result`) rather
+      // than through header-time side effects, or these modes lose them.
+      // (The tags-operations modes share the ordering but reject the angular
+      // client outright, so they cannot regress here.)
+      const MUTATIONS_SPEC: OpenApiDocument = {
+        openapi: '3.1.0',
+        info: { title: 'Gateway', version: '1.0.0' },
+        paths: {
+          '/api/orders/order': {
+            post: {
+              tags: ['Orders'],
+              operationId: 'postOrder',
+              responses: {
+                '201': {
+                  description: 'created',
+                  content: {
+                    'application/json': {
+                      schema: { $ref: '#/components/schemas/OrderCreated' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/billing/invoice': {
+            post: {
+              tags: ['Billing'],
+              operationId: 'postInvoice',
+              responses: {
+                '201': {
+                  description: 'created',
+                  content: {
+                    'application/json': {
+                      schema: { $ref: '#/components/schemas/InvoiceCreated' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            OrderCreated: { type: 'object' },
+            InvoiceCreated: { type: 'object' },
+          },
+        },
+      };
+
+      const workspace = await createTempWorkspace();
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: MUTATIONS_SPEC },
+            output: {
+              target: './endpoints.ts',
+              mode,
+              client: 'angular',
+              override: {
+                angular: { client: 'httpResource' },
+              },
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        for (const [tag, name, component] of [
+          ['orders', 'PostOrder', 'OrderCreated'],
+          ['billing', 'PostInvoice', 'InvoiceCreated'],
+        ] as const) {
+          // tags-split nests one service file per tag; tags writes them flat.
+          const serviceFile =
+            mode === 'tags-split'
+              ? path.join(workspace, tag, `${tag}.service.ts`)
+              : path.join(workspace, `${tag}.ts`);
+          expect(fs.existsSync(serviceFile), serviceFile).toBe(true);
+          const content = await fs.promises.readFile(serviceFile, 'utf-8');
+          expect(content).toContain(
+            `export type ${name}ClientResult = NonNullable<${component}>`,
+          );
+        }
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('decouples swr hook names from error type names', async () => {
     const workspace = await createTempWorkspace();

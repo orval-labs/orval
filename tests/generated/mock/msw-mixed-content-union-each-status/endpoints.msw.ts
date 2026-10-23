@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Error, Pet } from './model';
 
@@ -76,13 +76,13 @@ export const getGetMixedContentEachStatusMockHandler = (
     | string
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<string | Pet> | string | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-content-each-status',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -100,14 +100,12 @@ export const getGetMixedContentEachStatusMockHandler = (
 export const getGetMixedContentEachStatusMockHandler200 = (
   overrideResponse?:
     | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<string> | string),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-content-each-status',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -127,14 +125,12 @@ export const getGetMixedContentEachStatusMockHandler200 = (
 export const getGetMixedContentEachStatusMockHandler201 = (
   overrideResponse?:
     | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-content-each-status',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -157,14 +153,12 @@ export const getGetMixedContentEachStatusMockHandler201 = (
 export const getGetMixedContentEachStatusMockHandler202 = (
   overrideResponse?:
     | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-content-each-status',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -181,14 +175,12 @@ export const getGetMixedContentEachStatusMockHandler202 = (
 export const getGetMixedContentEachStatusMockHandlerDefault = (
   overrideResponse?:
     | Error
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Error> | Error),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Error> | Error),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-content-each-status',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

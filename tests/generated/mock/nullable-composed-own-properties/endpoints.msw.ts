@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type {
   Holder,
@@ -67,13 +67,13 @@ export const getGetItemMockHandler = (
     | NullableItem
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableItem | null> | NullableItem | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -92,13 +92,13 @@ export const getGetExtendedItemMockHandler = (
     | NullableExtendedItem
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableExtendedItem | null> | NullableExtendedItem | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/extended-items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -117,13 +117,13 @@ export const getGetVariantMockHandler = (
     | NullableVariant
     | null
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NullableVariant | null> | NullableVariant | null),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/variants',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -140,14 +140,12 @@ export const getGetVariantMockHandler = (
 export const getGetHolderMockHandler = (
   overrideResponse?:
     | Holder
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Holder> | Holder),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Holder> | Holder),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/holders',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

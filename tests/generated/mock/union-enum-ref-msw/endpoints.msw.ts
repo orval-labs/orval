@@ -13,7 +13,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { DisplayValueDto } from './model';
 
@@ -36,13 +36,13 @@ export const getGetDisplayMockHandler = (
   overrideResponse?:
     | DisplayValueDto
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<DisplayValueDto> | DisplayValueDto),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/display',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

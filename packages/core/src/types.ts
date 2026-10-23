@@ -2116,6 +2116,7 @@ export interface GeneratorTarget {
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 }
 
 export interface GeneratorTargetFull {
@@ -2330,6 +2331,7 @@ export interface SharedTypeDeclaration {
 export type HeaderResult = {
   implementation: string;
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 };
 
 export type ClientHeaderBuilder = (params: {
@@ -2640,6 +2642,7 @@ export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 }
 
 export type GeneratorClientTitle = (data: {

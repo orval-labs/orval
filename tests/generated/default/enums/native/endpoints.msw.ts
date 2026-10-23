@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type {
   Bulldog,
@@ -112,13 +112,13 @@ export const getGetApiCatMockHandler = (
   overrideResponse?:
     | DogGroup[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<DogGroup[]> | DogGroup[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/cat',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -136,13 +136,13 @@ export const getGetApiRequiredCatMockHandler = (
   overrideResponse?:
     | RequiredCat
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<RequiredCat> | RequiredCat),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/required-cat',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -159,14 +159,12 @@ export const getGetApiRequiredCatMockHandler = (
 export const getGetApiDogMockHandler = (
   overrideResponse?:
     | Dog
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Dog> | Dog),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Dog> | Dog),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/dog',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -184,13 +182,13 @@ export const getGetApiRequiredDogMockHandler = (
   overrideResponse?:
     | RequiredDog
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<RequiredDog> | RequiredDog),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/required-dog',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -207,14 +205,12 @@ export const getGetApiRequiredDogMockHandler = (
 export const getGetApiDuckMockHandler = (
   overrideResponse?:
     | Duck
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Duck> | Duck),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Duck> | Duck),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/duck',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -231,14 +227,12 @@ export const getGetApiDuckMockHandler = (
 export const getGetApiCatDogMockHandler = (
   overrideResponse?:
     | CatDog
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<CatDog> | CatDog),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<CatDog> | CatDog),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/cat-dog',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -256,13 +250,13 @@ export const getGetApiPetTrainingMockHandler = (
   overrideResponse?:
     | PetTrainingLevel
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PetTrainingLevel> | PetTrainingLevel),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/pet-training',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -280,13 +274,13 @@ export const getGetApiPetNeedsTrainingMockHandler = (
   overrideResponse?:
     | PetNeedsTraining
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PetNeedsTraining> | PetNeedsTraining),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/pet-needs-training',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

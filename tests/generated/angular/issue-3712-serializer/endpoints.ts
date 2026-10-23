@@ -186,3 +186,5 @@ export class Issue3712AngularRequiredNullableQueryParamsService {
     });
   }
 }
+
+export type ListThingsClientResult = NonNullable<string[]>;

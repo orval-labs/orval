@@ -3,11 +3,10 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
-  NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -16,176 +15,18 @@ import {
   generateAngularHeader,
   generateHttpClientImplementation,
   getAngularDependencies,
-  getHttpClientReturnTypes,
   narrowsResponseEvents,
-  resetHttpClientReturnTypes,
 } from './http-client';
-import { createQueryParams } from './test-helpers';
+import {
+  type AngularOverride,
+  angularOverride,
+  createAngularOutput,
+  createQueryParams,
+} from './test-helpers';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
-
-interface AngularOverride {
-  provideIn: 'root' | 'any' | boolean;
-  client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: NormalizedRuntimeValidation;
-  queryObjectSerialization: 'spec' | 'legacy';
-  observeOverloads: boolean;
-}
-
-const angularOverride = {
-  provideIn: 'root',
-  client: 'httpClient',
-  runtimeValidation: { enabled: false, strategy: 'throw' },
-  queryObjectSerialization: 'spec',
-  observeOverloads: true,
-} satisfies AngularOverride;
-
-const createOutput = (
-  overrides: Partial<NormalizedOutputOptions> = {},
-): NormalizedOutputOptions => {
-  const output = {
-    target: '/tmp/pet.ts',
-    schemas: '/tmp/schemas',
-    operationSchemas: undefined,
-    namingConvention: 'camelCase',
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: 'single',
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    override: {
-      operations: {},
-      tags: {},
-      query: {},
-      jsDoc: {},
-      header: false,
-      hono: {
-        handlerGenerationStrategy: 'smart',
-        compositeRoute: '',
-        validator: true,
-        validatorOutputPath: '',
-      },
-      formData: { disabled: true, arrayHandling: 'serialize' },
-      formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
-      requestOptions: true,
-      namingConvention: {},
-      components: {
-        schemas: {
-          prefix: '',
-          itemPrefix: '',
-          suffix: 'Schema',
-          itemSuffix: 'Item',
-        },
-        responses: { prefix: '', suffix: 'Response' },
-        parameters: { prefix: '', suffix: 'Parameters' },
-        requestBodies: { prefix: '', suffix: 'Body' },
-      },
-      angular: angularOverride,
-      swr: {},
-      zod: {
-        version: 'auto',
-        variant: 'classic',
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        coerce: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        generateReusableSchemas: false,
-        generateMeta: false,
-        generateDiscriminatedUnion: false,
-        exactOptional: false,
-        generateCompanionTypes: false,
-        useBrandedTypes: false,
-        dateTimeOptions: {},
-        timeOptions: {},
-      },
-      effect: {
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-        version: 'auto',
-      },
-      axios: {
-        includeHttpResponseReturnType: false,
-      },
-      fetch: {
-        includeHttpResponseReturnType: true,
-        forceSuccessResponse: false,
-        serializeResponseHeaders: false,
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        useRuntimeFetcher: false,
-        runtimeImplementationStyle: 'inline',
-        runtimeOutputPath: '/test/runtime.ts',
-        clientConfigOutputPath: '/test/client-config.ts',
-      },
-      enumGenerationType: 'const',
-      splitByContentType: false,
-      aliasCombinedTypes: false,
-      includeZodSchemaInArguments: false,
-      suppressReadonlyModifier: false,
-      mcp: {},
-    },
-    client: 'angular',
-    httpClient: 'angular',
-    clean: false,
-    docs: false,
-    formatter: undefined,
-    tsconfig: {},
-    packageJson: {},
-    headers: false,
-    indexFiles: true,
-    baseUrl: undefined,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    optionsParamRequired: false,
-    unionAddMissingProperties: false,
-    propertySortOrder: 'Specification',
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    factoryMethods: {
-      functionNamePrefix: 'create',
-      mode: 'single',
-      outputDirectory: '',
-      includeOptionalProperty: false,
-    },
-    ...overrides,
-  } satisfies NormalizedOutputOptions;
-
-  return output;
-};
 
 const createSuccessType = (
   value: string,
@@ -218,6 +59,9 @@ const baseResponse = (
     schemas: [],
     ...overrides,
   }) as GeneratorVerbOptions['response'];
+
+const createOutput = (overrides: Partial<NormalizedOutputOptions> = {}) =>
+  createAngularOutput(overrides, angularOverride('httpClient', false));
 
 const createVerbOption = (
   overrides: Partial<GeneratorVerbOptions> = {},
@@ -277,7 +121,7 @@ const createVerbOption = (
       formData: { disabled: true, arrayHandling: 'serialize' },
       formUrlEncoded: true,
       paramsSerializerOptions: undefined,
-      angular: angularOverride,
+      angular: angularOverride('httpClient', false),
     } as GeneratorVerbOptions['override'],
     deprecated: false,
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
@@ -336,10 +180,6 @@ const createGeneratorOptions = (
 // ---------------------------------------------------------------------------
 
 describe('angular HttpClient generator', () => {
-  beforeEach(() => {
-    resetHttpClientReturnTypes();
-  });
-
   // ── Dependencies ──────────────────────────────────────────────────────
 
   describe('getAngularDependencies', () => {
@@ -676,14 +516,20 @@ describe('angular HttpClient generator', () => {
       expect(footer).toContain('};');
     });
 
-    it('includes return type aliases registered during implementation', () => {
-      // Generate an implementation to populate the registry
+    it('emits the aliases carried on the given operations', async () => {
       const verbOption = createVerbOption();
       const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
+      const { returnType } = await generateAngular(
+        verbOption,
+        options,
+        'angular',
+        createOutput(),
+      );
 
       const footer = generateAngularFooter({
-        operationNames: ['getPetById'],
+        operations: [
+          { operationName: 'getPetById', types: { result: returnType } },
+        ],
         title: 'PetService',
         hasMutator: false,
         hasAwaitedType: false,
@@ -694,19 +540,110 @@ describe('angular HttpClient generator', () => {
       );
     });
 
-    it('omits return types for unknown operation names', () => {
-      const verbOption = createVerbOption();
-      const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
-
+    it('omits aliases for operations without a returnType', () => {
       const footer = generateAngularFooter({
-        operationNames: ['someOtherOperation'],
+        operations: [{ operationName: 'someOtherOperation' }],
         title: 'PetService',
         hasMutator: false,
         hasAwaitedType: false,
       } as never);
 
       expect(footer).not.toContain('ClientResult');
+    });
+
+    it('emits one alias per operation, including variants sharing an operationId', async () => {
+      // splitByContentType variants share one operationId; each operation
+      // carries its own alias, so both are emitted.
+      const options = createGeneratorOptions();
+      const withJson = (
+        await generateAngular(
+          createVerbOption({
+            operationId: 'updatePet',
+            operationName: 'updatePetWithJson',
+            typeName: 'updatePetWithJson',
+          }),
+          options,
+          'angular',
+          createOutput(),
+        )
+      ).returnType;
+      const withFormData = (
+        await generateAngular(
+          createVerbOption({
+            operationId: 'updatePet',
+            operationName: 'updatePetWithFormData',
+            typeName: 'updatePetWithFormData',
+          }),
+          options,
+          'angular',
+          createOutput(),
+        )
+      ).returnType;
+
+      const footer = generateAngularFooter({
+        operations: [
+          { operationName: 'updatePetWithJson', types: { result: withJson } },
+          {
+            operationName: 'updatePetWithFormData',
+            types: { result: withFormData },
+          },
+        ],
+        title: 'PetService',
+        hasMutator: false,
+        hasAwaitedType: false,
+      } as never);
+
+      expect(footer).toContain('UpdatePetWithJsonClientResult');
+      expect(footer).toContain('UpdatePetWithFormDataClientResult');
+    });
+
+    it('gives each operation its own alias when method names collide', async () => {
+      // A custom `operationName` override can return the same method name
+      // for different routes (global reservation renames them at a higher
+      // layer); the alias travels with each operation, so a collision can
+      // never swap or drop one.
+      const options = createGeneratorOptions();
+      const project = await generateAngular(
+        createVerbOption({
+          operationName: 'getStatus',
+          typeName: 'getProjectStatus',
+          response: baseResponse({
+            definition: { success: 'ProjectStatus', errors: 'Error' },
+          }),
+        }),
+        options,
+        'angular',
+        createOutput(),
+      );
+      const search = await generateAngular(
+        createVerbOption({
+          operationName: 'getStatus',
+          typeName: 'getSearchStatus',
+          response: baseResponse({
+            definition: { success: 'SearchStatus', errors: 'Error' },
+          }),
+        }),
+        options,
+        'angular',
+        createOutput(),
+      );
+
+      const footer = generateAngularFooter({
+        operations: [
+          { operationName: 'getStatus', types: { result: project.returnType } },
+          { operationName: 'getStatus', types: { result: search.returnType } },
+        ],
+        title: 'PetService',
+        hasMutator: false,
+        hasAwaitedType: false,
+      } as never);
+
+      expect(footer).toContain(
+        'export type GetProjectStatusClientResult = NonNullable<ProjectStatus>',
+      );
+      expect(footer).toContain(
+        'export type GetSearchStatusClientResult = NonNullable<SearchStatus>',
+      );
     });
   });
 
@@ -933,7 +870,10 @@ describe('angular HttpClient generator', () => {
         queryParams: objectQueryParams,
         override: {
           ...createVerbOption().override,
-          angular: { ...angularOverride, queryObjectSerialization: 'legacy' },
+          angular: {
+            ...angularOverride('httpClient', false),
+            queryObjectSerialization: 'legacy',
+          },
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -1022,7 +962,7 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
-          angular: angularOverride,
+          angular: angularOverride('httpClient', false),
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -1055,7 +995,10 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
-          angular: { ...angularOverride, observeOverloads: false },
+          angular: {
+            ...angularOverride('httpClient', false),
+            observeOverloads: false,
+          },
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -1070,7 +1013,10 @@ describe('angular HttpClient generator', () => {
     });
 
     it('keeps observe overloads when observeOverloads is unset', () => {
-      const { observeOverloads: _, ...angular } = angularOverride;
+      const { observeOverloads: _, ...angular } = angularOverride(
+        'httpClient',
+        false,
+      );
       const verbOption = createVerbOption({
         override: {
           requestOptions: true,
@@ -1095,7 +1041,7 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
-          angular: angularOverride,
+          angular: angularOverride('httpClient', false),
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -1843,7 +1789,7 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
-          angular: angularOverride,
+          angular: angularOverride('httpClient', false),
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions({ route: '/api/pets' });
@@ -1866,7 +1812,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -1878,7 +1824,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createVerbOption().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -1906,7 +1852,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('Pet.parse(event.body) as TData');
     });
 
-    it('uses Zod output types directly and drops the TData generic on validated methods', () => {
+    it('uses Zod output types directly and drops the TData generic on validated methods', async () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -1915,7 +1861,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -1927,7 +1873,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createVerbOption().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -1941,7 +1887,9 @@ describe('angular HttpClient generator', () => {
       } satisfies GeneratorOptions;
 
       const impl = generateHttpClientImplementation(verbOption, options);
-      const footer = getHttpClientReturnTypes(['getPetById']);
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
 
       // The validated method no longer exposes a `<TData>` generic because the
       // runtime value is fixed to `PetOutput` (the zod output type).
@@ -1953,12 +1901,12 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('this.http.get<PetOutput>');
       expect(impl).toContain('.pipe(map(data => Pet.parse(data)))');
       expect(impl).not.toContain('Pet.parse(data) as TData');
-      expect(footer).toContain(
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<PetOutput>',
       );
     });
 
-    it('uses Zod output types inside multi-content client result aliases', () => {
+    it('uses Zod output types inside multi-content client result aliases', async () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -1967,7 +1915,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -1988,7 +1936,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createVerbOption().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -2002,9 +1950,11 @@ describe('angular HttpClient generator', () => {
       } satisfies GeneratorOptions;
 
       const impl = generateHttpClientImplementation(verbOption, options);
-      const footer = getHttpClientReturnTypes(['getPetById']);
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
 
-      expect(footer).toContain(
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<string | PetOutput>',
       );
       // Multi-content signatures use per-branch accept overloads and never
@@ -2021,7 +1971,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -2062,7 +2012,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createVerbOption().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -2097,7 +2047,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -2112,7 +2062,7 @@ describe('angular HttpClient generator', () => {
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -2152,7 +2102,7 @@ describe('angular HttpClient generator', () => {
           override: {
             ...createOutput().override,
             angular: {
-              ...angularOverride,
+              ...angularOverride('httpClient', false),
               runtimeValidation: { enabled: true, strategy: 'throw' },
             },
           },
@@ -2174,7 +2124,7 @@ describe('angular HttpClient generator', () => {
           override: {
             ...createVerbOption().override,
             angular: {
-              ...angularOverride,
+              ...angularOverride('httpClient', false),
               runtimeValidation: { enabled: true, strategy: 'throw' },
             },
           } as GeneratorVerbOptions['override'],
@@ -2264,7 +2214,7 @@ describe('angular HttpClient generator', () => {
           override: {
             ...createVerbOption().override,
             angular: {
-              ...angularOverride,
+              ...angularOverride('httpClient', false),
               runtimeValidation: { enabled: true, strategy: 'throw' },
             },
           } as GeneratorVerbOptions['override'],
@@ -2493,21 +2443,21 @@ describe('angular HttpClient generator', () => {
       );
     });
 
-    // ── Return type registry ──────────────────────────────────────────
+    // ── Return type aliases ───────────────────────────────────────────
 
-    it('registers ClientResult type for each operation', () => {
+    it('returns the ClientResult alias as returnType', async () => {
       const verbOption = createVerbOption();
       const options = createGeneratorOptions();
 
-      generateHttpClientImplementation(verbOption, options);
-
-      const types = getHttpClientReturnTypes(['getPetById']);
-      expect(types).toContain(
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<Pet>',
       );
     });
 
-    it('uses pascal-cased operation name for the result type', () => {
+    it('uses pascal-cased operation name for the result type', async () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
         operationName: 'listPets',
@@ -2522,10 +2472,10 @@ describe('angular HttpClient generator', () => {
       });
       const options = createGeneratorOptions({ route: '/api/pets' });
 
-      generateHttpClientImplementation(verbOption, options);
-
-      const types = getHttpClientReturnTypes(['listPets']);
-      expect(types).toContain(
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
+      expect(alias).toContain(
         'export type ListPetsClientResult = NonNullable<Pet[]>',
       );
     });
@@ -2616,7 +2566,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createOutput().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -2626,7 +2576,7 @@ describe('angular HttpClient generator', () => {
         override: {
           ...createVerbOption().override,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -2671,7 +2621,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           requestOptions,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
@@ -2683,7 +2633,7 @@ describe('angular HttpClient generator', () => {
           ...createVerbOption().override,
           requestOptions,
           angular: {
-            ...angularOverride,
+            ...angularOverride('httpClient', false),
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
@@ -2702,7 +2652,11 @@ describe('angular HttpClient generator', () => {
       verb: GeneratorVerbOptions;
       output: NormalizedOutputOptions;
     }[] = [
-      { name: 'plain', verb: createVerbOption(), output: createOutput() },
+      {
+        name: 'plain',
+        verb: createVerbOption(),
+        output: createOutput(),
+      },
       {
         name: 'multi-content',
         verb: createVerbOption({
@@ -2743,27 +2697,6 @@ describe('angular HttpClient generator', () => {
 
     it('is true for a validated single-content operation with request options', () => {
       expect(narrowsResponseEvents(validatedVerb(), zodOutput())).toBe(true);
-    });
-  });
-
-  // ── resetHttpClientReturnTypes ──────────────────────────────────────
-
-  describe('resetHttpClientReturnTypes', () => {
-    it('clears all registered return types', () => {
-      const verbOption = createVerbOption();
-      const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
-
-      // Verify registered
-      expect(getHttpClientReturnTypes(['getPetById'])).toContain(
-        'GetPetByIdClientResult',
-      );
-
-      // Reset
-      resetHttpClientReturnTypes();
-
-      // Verify cleared
-      expect(getHttpClientReturnTypes(['getPetById'])).toBe('');
     });
   });
 
@@ -2826,7 +2759,10 @@ describe('angular HttpClient generator', () => {
       createOutput({
         override: {
           ...createOutput().override,
-          angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+          angular: {
+            ...angularOverride('httpClient', false),
+            baseUrl: { apiId: 'example-api' },
+          },
         },
       });
 
@@ -2870,7 +2806,10 @@ describe('angular HttpClient generator', () => {
         urlEncodeParameters: true,
         override: {
           ...createOutput().override,
-          angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+          angular: {
+            ...angularOverride('httpClient', false),
+            baseUrl: { apiId: 'example-api' },
+          },
         },
       });
       const options = createGeneratorOptions({
@@ -2954,7 +2893,7 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
       } as NormalizedOutputOptions['schemas'],
       override: {
         ...createOutput().override,
-        angular: { ...angularOverride, runtimeValidation },
+        angular: { ...angularOverride('httpClient', false), runtimeValidation },
       },
     });
 
@@ -3004,7 +2943,7 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
       ],
       override: {
         ...createVerbOption().override,
-        angular: { ...angularOverride, runtimeValidation },
+        angular: { ...angularOverride('httpClient', false), runtimeValidation },
       } as GeneratorVerbOptions['override'],
       ...overrides,
     });
@@ -3021,10 +2960,6 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     verbOption: GeneratorVerbOptions,
     output: NormalizedOutputOptions = zodOutput(),
   ) => generateHttpClientImplementation(verbOption, generatorOptions(output));
-
-  beforeEach(() => {
-    resetHttpClientReturnTypes();
-  });
 
   it('parses the body inside defer and sends the parsed value in every observe branch', () => {
     const impl = generate(createPetsVerb());
@@ -3227,7 +3162,7 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
       override: {
         ...createOutput().override,
         angular: {
-          ...angularOverride,
+          ...angularOverride('httpClient', false),
           runtimeValidation: requestBodyValidation,
         },
       },

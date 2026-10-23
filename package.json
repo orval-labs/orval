@@ -46,14 +46,14 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "^22.22.3 || ^24.15.0 || >=26.0.0",
+      "version": "^22.23.4 || ^24.22.1 || >=26.0.0",
       "onFail": "error"
     }
   },
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.4",
   "catalog": {
     "@scalar/openapi-types": "0.9.8",
-    "@types/node": "22.18.12",
+    "@types/node": "22.20.5",
     "eslint": "10.1.0",
     "globals": "17.4.0",
     "jsdom": "29.1.1",

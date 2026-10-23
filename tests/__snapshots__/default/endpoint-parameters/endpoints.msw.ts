@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { CountryCode } from './model';
 import type { Pets } from './model';
@@ -60,13 +60,13 @@ export const getListPetsByCountryMockHandler = (
   overrideResponse?:
     | Pets
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ country: string }>>[0],
       ) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ country: string }>(
     '*/pets-by-country/:country',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ country: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -84,13 +84,13 @@ export const getListPetsByAgeMockHandler = (
   overrideResponse?:
     | Pets
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ age: string }>>[0],
       ) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ age: string }>(
     '*/pets-by-age/:age',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ age: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

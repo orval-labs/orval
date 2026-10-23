@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { CardComponent } from './card.component';
 
@@ -14,7 +14,6 @@ type PetCardData = Readonly<{
 @Component({
   selector: 'app-pet-card',
   imports: [CardComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'listitem',
   },
@@ -25,6 +24,8 @@ type PetCardData = Readonly<{
         @if (pet().status) {
           <span
             class="status-dot"
+            role="img"
+            [attr.aria-label]="pet().status"
             [class]="'status-dot status-' + pet().status"
           ></span>
         }

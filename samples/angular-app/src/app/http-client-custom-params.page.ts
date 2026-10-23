@@ -1,5 +1,5 @@
 import { AsyncPipe, JsonPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { shareReplay } from 'rxjs';
 
 import type { Pets } from '../api/http-client-custom-params/model';
@@ -20,7 +20,6 @@ import { PetCardComponent } from './ui/pet-card.component';
     DemoPanelComponent,
     PetCardComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './http-client-custom-params.page.html',
   styles: `
     .demo-grid {

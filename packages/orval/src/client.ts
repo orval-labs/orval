@@ -384,6 +384,7 @@ export const generateClientHeader: GeneratorClientHeader = async ({
     implementation: normalizedHeader.implementation,
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
     sharedTypes: normalizedHeader.sharedTypes,
+    sharedExports: normalizedHeader.sharedExports,
   };
 };
 

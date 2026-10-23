@@ -101,3 +101,5 @@ export class HealthService {
     }) as Observable<string>;
   }
 }
+
+export type HealthCheckClientResult = NonNullable<string>;
