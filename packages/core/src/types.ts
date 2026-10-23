@@ -1138,6 +1138,13 @@ interface BaseZodOptions {
    * schema split out for a bounded/array body or response. Default `false`.
    */
   generateCompanionTypes?: boolean;
+
+  /** Accepts a list of objects specifying OpenAPI property type and format for which
+   * to append additional .refine() callbacks. These .refine() callbacks are generated
+   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
+   * validatorsGenerator may return either a single validator or a list, or null if evaluation indicates that
+   * no refinements should be added. */
+  schemaExtension?: SchemaExtension;
 }
 
 export interface ZodOptions extends BaseZodOptions {
@@ -1188,6 +1195,12 @@ export interface ZodOptions extends BaseZodOptions {
    * `false` (opt-in), so existing output is unchanged.
    */
   exactOptional?: boolean;
+
+  /** Accepts a list of objects specifying OpenAPI property type and format for which
+   * to append additional .refine() callbacks. These .refine() callbacks are generated
+   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
+   * validatorsGenerator may return either a single validator or a list. */
+  schemaExtension?: SchemaExtension;
 }
 
 /**
@@ -1213,6 +1226,7 @@ export const operationZodOverrideKeys = [
   'params',
   'useBrandedTypes',
   'generateCompanionTypes',
+  'schemaExtension',
 ] as const satisfies readonly (keyof OperationZodOptions)[];
 
 export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];
@@ -1269,6 +1283,66 @@ export type ZodCoerceType =
   // query value (delivered as a scalar by the server framework) still parses.
   | 'array';
 
+type SchemaExtensionFormat = string;
+
+/** Function signature expected by the applicable Zod version's "check" validation method */
+export type RefinementFunction<TValue = never> = (value: TValue) => boolean;
+
+/**
+ * A Callable to be inserted into a refinement, along with bindings to all variables referenced
+ * in its scope. Anything referencing beyond the callable itself must be declared as a binding.
+ * If no bindings are needed, null is an acceptable value.
+ */
+export type BoundRefinement<TValue = never> = {
+  callable: RefinementFunction<TValue>;
+  bindings: Readonly<Record<string, unknown>> | null;
+};
+
+/** An internal evaluator that automatically assigns a type to the BoundRefinement given a known OpenAPI type. */
+type SchemaExtensionValue<T extends PrimitiveSchemaType> = T extends 'string'
+  ? string
+  : T extends 'number' | 'integer'
+    ? number
+    : T extends 'boolean'
+      ? boolean
+      : T extends 'array'
+        ? unknown[]
+        : T extends 'object'
+          ? Record<string, unknown>
+          : unknown;
+
+/** An individual entry within the schemaExtension parameter list. Can accept manually defined types or automatically infer types */
+export type SchemaExtensionEntry<
+  T extends PrimitiveSchemaType,
+  TValue = SchemaExtensionValue<T>,
+> = {
+  type: T;
+  format: SchemaExtensionFormat;
+  validatorsGenerator: (
+    openapi_object: Exclude<SchemaObject, boolean>,
+  ) => null | undefined | BoundRefinement<TValue> | BoundRefinement<TValue>[];
+};
+
+/**
+ * A helper method that defines a SchemaExtensionEntry according to the provided types. Used for cases where the inferred type may not match
+ * the type that is actually expected by the time the refinement occurs. As an example, a refinement that accepts a Date due to orval's
+ * string-to-date support will need to use this to specify that the type is string, and the expected value is Date.
+ * @param entry The callable to specify the type for
+ * @returns An explicitly typed callable with the appropriate type and value parameter.
+ */
+export const defineSchemaExtension = <
+  T extends PrimitiveSchemaType,
+  TValue = SchemaExtensionValue<T>,
+>(
+  entry: SchemaExtensionEntry<T, TValue>,
+): SchemaExtensionEntry<T, TValue> => entry;
+
+/** Additional validation checks to append to validation chains for properties of type SchemaType
+ * (excluding null and unknown types) and any format SchemaExtensionFormat.  */
+export type SchemaExtension = {
+  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never>;
+}[PrimitiveSchemaType][];
+
 export interface NormalizedZodOptions {
   variant: ZodVariantOption;
   version: ZodVersionOption;
@@ -1300,6 +1374,7 @@ export interface NormalizedZodOptions {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  schemaExtension?: SchemaExtension;
   params?: NormalizedMutator;
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;

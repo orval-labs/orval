@@ -24,10 +24,13 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "jsesc": "^3.0.0"
+    "globals": "^17.0.0",
+    "jsesc": "^3.0.0",
+    "typescript": "catalog:"
   },
   "devDependencies": {
     "@types/jsesc": "^3.0.3",
+    "@types/node": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"

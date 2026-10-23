@@ -3,6 +3,7 @@ import {
   type ZodCoerceType,
   type GeneratorMutator,
   type OpenApiSchemaObject,
+  type SchemaExtension,
   type ZodVariantOption,
   getRefInfo,
   buildDynamicScope,
@@ -81,6 +82,8 @@ export interface GenerateReusableSchemaSetOptions {
   generateMeta?: boolean;
   /** Emit `.exactOptional()` for optional properties (zod v4). See `ZodOptions.exactOptional`. */
   exactOptional?: boolean;
+  /** Custom validators matched by OpenAPI schema type and format. */
+  schemaExtension?: SchemaExtension;
   /**
    * When set, the user's `override.zod.params` mutator is invoked for every
    * leaf validator inside each emitted component schema with a `'schema'`
@@ -155,6 +158,7 @@ export const generateReusableSchemaSet = (
         required: true,
         useReusableSchemas: true,
         emitMeta: options.generateMeta,
+        schemaExtension: options.schemaExtension,
         constNameRegistry,
       },
     );

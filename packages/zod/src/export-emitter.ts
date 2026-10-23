@@ -1,5 +1,7 @@
 import { type ZodVariantOption } from '@orval/core';
+import type { BoundRefinement } from '@orval/core';
 
+import { serializeCallable } from './callable-serializer';
 import { getZodTypeName } from './compatible-v4';
 
 /** Marks a call as side-effect-free for bundlers' tree-shaking passes. */
@@ -154,4 +156,81 @@ export const renderZodExport = (block: ZodExportBlock): string => {
   }
 
   return `${constLine}\n\n${companionLines(block.name)}`;
+};
+
+const isBoundRefinement = (value: unknown): value is BoundRefinement => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  if (!('callable' in value) || typeof value.callable !== 'function') {
+    return false;
+  }
+
+  if (!('bindings' in value)) {
+    return false;
+  }
+
+  return (
+    value.bindings === null ||
+    (typeof value.bindings === 'object' && !Array.isArray(value.bindings))
+  );
+};
+
+function assertBoundRefinements(
+  value: unknown,
+): asserts value is BoundRefinement | BoundRefinement[] {
+  const valid = Array.isArray(value)
+    ? value.every(isBoundRefinement)
+    : isBoundRefinement(value);
+
+  if (!valid) {
+    throw new TypeError(
+      'schemaExtension must return refinement descriptors ' +
+        'with a callable function and bindings object or null',
+    );
+  }
+}
+
+/**
+ * Serialize extension predicates into Zod refinements. Classic Zod uses
+ * `.refine(predicate)`; Zod Mini uses `.check(zod.refine(predicate))`.
+ * Supply `{ callable, bindings }` when a predicate closes over local values.
+ */
+export const renderZodRefine = (
+  validators: unknown,
+  variant: ZodVariantOption = 'classic',
+): string => {
+  assertBoundRefinements(validators);
+
+  const refinements = Array.isArray(validators) ? validators : [validators];
+
+  let result = '';
+
+  for (const refinement of refinements) {
+    const predicate = serializeCallable(refinement);
+
+    result +=
+      variant === 'mini'
+        ? `.check(${zodMiniCall('refine', predicate)})`
+        : `.refine(${predicate})`;
+  }
+
+  return result;
+};
+
+export const appendZodRefinements = (
+  expression: string,
+  functions: ReadonlyArray<readonly [string, unknown]>,
+  variant: ZodVariantOption = 'classic',
+): string => {
+  let result = expression;
+
+  for (const [name, args] of functions) {
+    if (name === 'refine') {
+      result += renderZodRefine(args, variant);
+    }
+  }
+
+  return result;
 };

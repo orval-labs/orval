@@ -1058,6 +1058,9 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+
+          schemaExtension: outputOptions.override?.zod?.schemaExtension,
+
           variant: outputOptions.override?.zod?.variant ?? 'classic',
           version: outputOptions.override?.zod?.version ?? 'auto',
           generateEachHttpStatus:
@@ -1705,6 +1708,10 @@ function normalizeOperationsAndTags(
                       : {}),
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateCompanionTypes: zod.generateCompanionTypes ?? false,
+                    schemaExtension:
+                      zod.schemaExtension === undefined
+                        ? undefined
+                        : zod.schemaExtension,
                   },
                 }
               : {}),

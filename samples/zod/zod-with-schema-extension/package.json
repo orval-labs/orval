@@ -1,0 +1,26 @@
+{
+  "name": "zod-with-schema-extensions",
+  "version": "8.44.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "serve": "vp preview",
+    "generate-api": "vp exec orval",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
+    "test:snapshots:update": "vp run test:snapshots --update",
+    "test": "vp test --run"
+  },
+  "dependencies": {
+    "zod": "catalog:zod4"
+  },
+  "devDependencies": {
+    "orval": "workspace:*",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}
+

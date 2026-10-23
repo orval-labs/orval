@@ -56,6 +56,29 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
     },
   }) as Parameters<typeof writeZodSchemas>[4];
 
+/** Exercise the normalized Zod override that the writer must forward. */
+const createOptionsWithSchemaExtension = (): Parameters<
+  typeof writeZodSchemas
+>[4] => {
+  const options = createOutputOptions();
+  options.override.zod.schemaExtension = [
+    {
+      type: 'string',
+      format: '',
+      validatorsGenerator: (schema) => {
+        const marker =
+          schema.type === 'string' ? 'extension-marker' : 'wrong-type-marker';
+        return {
+          callable: (value: unknown) =>
+            typeof value === 'string' && value.startsWith(marker),
+          bindings: { marker },
+        };
+      },
+    },
+  ];
+  return options;
+};
+
 describe('write-zod-specs regressions', () => {
   it('does not rewrite unchanged direct zod output', async () => {
     const root = await fs.promises.mkdtemp(
@@ -479,6 +502,274 @@ describe('write-zod-specs regressions', () => {
     }
 
     await fs.promises.rm(root, { recursive: true, force: true });
+  });
+});
+
+describe('write-zod-specs schemaExtension forwarding', () => {
+  it('applies configured extensions to both split and inline component schemas', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-extension-'),
+    );
+    try {
+      const builder = {
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+        },
+        target: '',
+        schemas: [
+          {
+            name: 'UserSchema',
+            schema: {
+              type: 'object' as const,
+              properties: {
+                name: { type: 'string' as const },
+                age: { type: 'number' as const },
+              },
+              required: ['name', 'age'],
+            },
+          },
+        ],
+      } satisfies Parameters<typeof writeZodSchemas>[0];
+      const output = createOptionsWithSchemaExtension();
+      const inline = generateZodSchemasInline(builder, output);
+      expect(inline).toContain('extension-marker');
+      expect(inline).toContain('const marker = "extension-marker";');
+      expect(inline).toContain('.refine(');
+      expect(inline).toContain('"age": zod.number()');
+
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemas(builder, schemasPath, '.ts', '', output);
+      const content = await fs.promises.readFile(
+        path.join(schemasPath, 'UserSchema.ts'),
+        'utf8',
+      );
+      expect(content).toContain('extension-marker');
+      expect(content).toContain('const marker = "extension-marker";');
+      expect(content).toContain('.refine(');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('applies configured extensions to reusable components in split and inline modes', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-extension-'),
+    );
+    try {
+      const builder = {
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+          components: {
+            schemas: {
+              User: {
+                type: 'object' as const,
+                properties: { name: { type: 'string' as const } },
+                required: ['name'],
+              },
+            },
+          },
+        },
+        target: '',
+        schemas: [
+          { name: 'User', schema: { $ref: '#/components/schemas/User' } },
+        ],
+      } satisfies Parameters<typeof writeZodSchemas>[0];
+      const output = createOptionsWithSchemaExtension();
+      output.override.zod.generateReusableSchemas = true;
+
+      const inline = generateZodSchemasInline(builder, output);
+      expect(inline).toContain('extension-marker');
+      expect(inline).toContain('const marker = "extension-marker";');
+      expect(inline).toContain('.refine(');
+
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemas(builder, schemasPath, '.ts', '', output);
+      const content = await fs.promises.readFile(
+        path.join(schemasPath, 'User.ts'),
+        'utf8',
+      );
+      expect(content).toContain('extension-marker');
+      expect(content).toContain('const marker = "extension-marker";');
+      expect(content).toContain('.refine(');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('forwards extensions to operation parameters, JSON bodies, responses and multipart bodies', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-verb-extension-'),
+    );
+    try {
+      const context = {
+        output: {
+          override: {
+            useDates: false,
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+        },
+        target: '',
+        workspace: root,
+      } satisfies MinimalVerbsContext;
+      const verbOptions = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [
+              {
+                name: 'filter',
+                in: 'query' as const,
+                required: true,
+                schema: { type: 'string' as const },
+              },
+            ],
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object' as const,
+                    properties: { label: { type: 'string' as const } },
+                  },
+                },
+              },
+            },
+          },
+          response: {
+            types: {
+              success: [
+                {
+                  value: 'SubmitResponse',
+                  originalSchema: { type: 'string' as const },
+                },
+              ],
+              errors: [],
+            },
+          },
+        },
+        upload: {
+          operationName: 'upload',
+          typeName: 'upload',
+          originalOperation: {
+            parameters: [],
+            requestBody: {
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object' as const,
+                    properties: { description: { type: 'string' as const } },
+                  },
+                },
+              },
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemasFromVerbs(
+        verbOptions,
+        schemasPath,
+        '.ts',
+        '',
+        createOptionsWithSchemaExtension(),
+        context,
+      );
+
+      for (const name of [
+        'SubmitParams',
+        'SubmitBody',
+        'SubmitResponse',
+        'UploadBody',
+      ]) {
+        const content = await fs.promises.readFile(
+          path.join(schemasPath, `${name}.ts`),
+          'utf8',
+        );
+        expect(content).toContain('extension-marker');
+        expect(content).toContain('.refine(');
+      }
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses an operation-specific schemaExtension instead of the global override', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-verb-override-extension-'),
+    );
+    try {
+      const output = createOptionsWithSchemaExtension();
+      const context = {
+        output: {
+          override: {
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+        },
+        target: '',
+        workspace: root,
+      } satisfies MinimalVerbsContext;
+      const verbs = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [],
+            requestBody: {
+              content: {
+                'application/json': { schema: { type: 'string' as const } },
+              },
+            },
+          },
+          override: {
+            zod: {
+              generate: output.override.zod.generate,
+              schemaExtension: [
+                {
+                  type: 'string' as const,
+                  format: '',
+                  validatorsGenerator: () => ({
+                    callable: (value: unknown) =>
+                      typeof value === 'string' &&
+                      value.endsWith('local-extension'),
+                    bindings: null,
+                  }),
+                },
+              ],
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemasFromVerbs(
+        verbs,
+        schemasPath,
+        '.ts',
+        '',
+        output,
+        context,
+      );
+      const content = await fs.promises.readFile(
+        path.join(schemasPath, 'SubmitBody.ts'),
+        'utf8',
+      );
+      expect(content).toContain('local-extension');
+      expect(content).not.toContain('const marker =');
+      expect(content).not.toContain('extension-marker');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
   });
 });
 

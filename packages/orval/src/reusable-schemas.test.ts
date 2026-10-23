@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   generateReusableSchemaSet,
+  type GenerateReusableSchemaSetOptions,
   resolveSchemaName,
   resolveSchemaNames,
   rewriteReusableSchemas,
@@ -97,6 +98,61 @@ describe('generateReusableSchemaSet', () => {
 
     expect(ownerEntry?.zod).not.toContain('__REF_');
     expect(ownerEntry?.usedRefs).toEqual(new Set());
+  });
+
+  it('forwards schemaExtension to component-schema validators for matching type and format', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                nickname: { type: 'string' },
+                age: { type: 'integer' },
+              },
+              required: ['nickname', 'age'],
+            },
+          },
+        },
+      },
+    });
+    const schemaExtension: NonNullable<
+      GenerateReusableSchemaSetOptions['schemaExtension']
+    > = [
+      {
+        type: 'string',
+        format: '',
+        validatorsGenerator: (schema) => {
+          const prefix =
+            schema.type === 'string' ? 'reusable-marker' : 'wrong-type-marker';
+          return {
+            callable: (value: unknown) =>
+              typeof value === 'string' && value.startsWith(prefix),
+            bindings: { prefix },
+          };
+        },
+      },
+    ];
+
+    const [withExtension] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true, schemaExtension },
+    );
+    expect(withExtension.zod).toContain('reusable-marker');
+    expect(withExtension.zod).toContain('const prefix = "reusable-marker";');
+    expect(withExtension.zod).toContain('.refine(');
+    expect(withExtension.zod).toContain('"age": zod.int()');
+
+    const [withoutExtension] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true },
+    );
+    expect(withoutExtension.zod).not.toContain('reusable-marker');
+    expect(withoutExtension.zod).not.toContain('const prefix =');
+    expect(withoutExtension.zod).not.toContain('.refine(');
   });
 
   it('injects paramsMutator with location: "schema" at every leaf validator when configured', () => {
