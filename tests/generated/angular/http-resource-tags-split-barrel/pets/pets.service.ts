@@ -238,6 +238,8 @@ export class PetsService {
 export type SearchPetsResourceResult = NonNullable<Pets>;
 export type ListPetsResourceResult = NonNullable<Pets>;
 
+export type CreatePetsClientResult = NonNullable<Pet>;
+
 /**
  * Utility type for httpResource results with status tracking.
  * Inspired by @angular-architects/ngrx-toolkit withResource pattern.

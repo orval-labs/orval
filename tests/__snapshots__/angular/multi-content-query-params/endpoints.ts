@@ -279,3 +279,6 @@ export class AngularMultiContentQueryParamsTestService {
     });
   }
 }
+
+export type ConfirmReservationClientResult = NonNullable<Item | string>;
+export type ListItemsClientResult = NonNullable<Items | string>;

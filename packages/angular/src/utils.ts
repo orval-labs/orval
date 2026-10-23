@@ -197,29 +197,6 @@ export const getRelevantVerbOptionsForTag = (
   );
 };
 
-export const createReturnTypesRegistry = () => {
-  const returnTypesToWrite = new Map<string, string>();
-
-  return {
-    reset() {
-      returnTypesToWrite.clear();
-    },
-    set(operationName: string, typeDefinition: string) {
-      returnTypesToWrite.set(operationName, typeDefinition);
-    },
-    getFooter(operationNames: string[]) {
-      const collected: string[] = [];
-      for (const operationName of operationNames) {
-        const value = returnTypesToWrite.get(operationName);
-        if (value) {
-          collected.push(value);
-        }
-      }
-      return collected.join('\n');
-    },
-  };
-};
-
 /**
  * Determines whether an operation should be generated as an `httpResource()`
  * (retrieval) or as an `HttpClient` method in a service class (mutation).

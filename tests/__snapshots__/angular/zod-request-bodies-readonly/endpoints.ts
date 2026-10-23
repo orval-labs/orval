@@ -147,3 +147,5 @@ export class ReadonlyRequestBodyService {
     });
   }
 }
+
+export type CreatePetClientResult = NonNullable<PetOutput>;

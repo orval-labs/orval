@@ -6,7 +6,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
@@ -15,9 +15,7 @@ import {
   generateAngularHeader,
   generateHttpClientImplementation,
   getAngularDependencies,
-  getHttpClientReturnTypes,
   narrowsResponseEvents,
-  resetHttpClientReturnTypes,
 } from './http-client';
 import {
   type AngularOverride,
@@ -182,10 +180,6 @@ const createGeneratorOptions = (
 // ---------------------------------------------------------------------------
 
 describe('angular HttpClient generator', () => {
-  beforeEach(() => {
-    resetHttpClientReturnTypes();
-  });
-
   // ── Dependencies ──────────────────────────────────────────────────────
 
   describe('getAngularDependencies', () => {
@@ -522,14 +516,20 @@ describe('angular HttpClient generator', () => {
       expect(footer).toContain('};');
     });
 
-    it('includes return type aliases registered during implementation', () => {
-      // Generate an implementation to populate the registry
+    it('emits the aliases carried on the given operations', async () => {
       const verbOption = createVerbOption();
       const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
+      const { returnType } = await generateAngular(
+        verbOption,
+        options,
+        'angular',
+        createOutput(),
+      );
 
       const footer = generateAngularFooter({
-        operationNames: ['getPetById'],
+        operations: [
+          { operationName: 'getPetById', types: { result: returnType } },
+        ],
         title: 'PetService',
         hasMutator: false,
         hasAwaitedType: false,
@@ -540,19 +540,110 @@ describe('angular HttpClient generator', () => {
       );
     });
 
-    it('omits return types for unknown operation names', () => {
-      const verbOption = createVerbOption();
-      const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
-
+    it('omits aliases for operations without a returnType', () => {
       const footer = generateAngularFooter({
-        operationNames: ['someOtherOperation'],
+        operations: [{ operationName: 'someOtherOperation' }],
         title: 'PetService',
         hasMutator: false,
         hasAwaitedType: false,
       } as never);
 
       expect(footer).not.toContain('ClientResult');
+    });
+
+    it('emits one alias per operation, including variants sharing an operationId', async () => {
+      // splitByContentType variants share one operationId; each operation
+      // carries its own alias, so both are emitted.
+      const options = createGeneratorOptions();
+      const withJson = (
+        await generateAngular(
+          createVerbOption({
+            operationId: 'updatePet',
+            operationName: 'updatePetWithJson',
+            typeName: 'updatePetWithJson',
+          }),
+          options,
+          'angular',
+          createOutput(),
+        )
+      ).returnType;
+      const withFormData = (
+        await generateAngular(
+          createVerbOption({
+            operationId: 'updatePet',
+            operationName: 'updatePetWithFormData',
+            typeName: 'updatePetWithFormData',
+          }),
+          options,
+          'angular',
+          createOutput(),
+        )
+      ).returnType;
+
+      const footer = generateAngularFooter({
+        operations: [
+          { operationName: 'updatePetWithJson', types: { result: withJson } },
+          {
+            operationName: 'updatePetWithFormData',
+            types: { result: withFormData },
+          },
+        ],
+        title: 'PetService',
+        hasMutator: false,
+        hasAwaitedType: false,
+      } as never);
+
+      expect(footer).toContain('UpdatePetWithJsonClientResult');
+      expect(footer).toContain('UpdatePetWithFormDataClientResult');
+    });
+
+    it('gives each operation its own alias when method names collide', async () => {
+      // A custom `operationName` override can return the same method name
+      // for different routes (global reservation renames them at a higher
+      // layer); the alias travels with each operation, so a collision can
+      // never swap or drop one.
+      const options = createGeneratorOptions();
+      const project = await generateAngular(
+        createVerbOption({
+          operationName: 'getStatus',
+          typeName: 'getProjectStatus',
+          response: baseResponse({
+            definition: { success: 'ProjectStatus', errors: 'Error' },
+          }),
+        }),
+        options,
+        'angular',
+        createOutput(),
+      );
+      const search = await generateAngular(
+        createVerbOption({
+          operationName: 'getStatus',
+          typeName: 'getSearchStatus',
+          response: baseResponse({
+            definition: { success: 'SearchStatus', errors: 'Error' },
+          }),
+        }),
+        options,
+        'angular',
+        createOutput(),
+      );
+
+      const footer = generateAngularFooter({
+        operations: [
+          { operationName: 'getStatus', types: { result: project.returnType } },
+          { operationName: 'getStatus', types: { result: search.returnType } },
+        ],
+        title: 'PetService',
+        hasMutator: false,
+        hasAwaitedType: false,
+      } as never);
+
+      expect(footer).toContain(
+        'export type GetProjectStatusClientResult = NonNullable<ProjectStatus>',
+      );
+      expect(footer).toContain(
+        'export type GetSearchStatusClientResult = NonNullable<SearchStatus>',
+      );
     });
   });
 
@@ -1761,7 +1852,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('Pet.parse(event.body) as TData');
     });
 
-    it('uses Zod output types directly and drops the TData generic on validated methods', () => {
+    it('uses Zod output types directly and drops the TData generic on validated methods', async () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -1796,7 +1887,9 @@ describe('angular HttpClient generator', () => {
       } satisfies GeneratorOptions;
 
       const impl = generateHttpClientImplementation(verbOption, options);
-      const footer = getHttpClientReturnTypes(['getPetById']);
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
 
       // The validated method no longer exposes a `<TData>` generic because the
       // runtime value is fixed to `PetOutput` (the zod output type).
@@ -1808,12 +1901,12 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('this.http.get<PetOutput>');
       expect(impl).toContain('.pipe(map(data => Pet.parse(data)))');
       expect(impl).not.toContain('Pet.parse(data) as TData');
-      expect(footer).toContain(
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<PetOutput>',
       );
     });
 
-    it('uses Zod output types inside multi-content client result aliases', () => {
+    it('uses Zod output types inside multi-content client result aliases', async () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -1857,9 +1950,11 @@ describe('angular HttpClient generator', () => {
       } satisfies GeneratorOptions;
 
       const impl = generateHttpClientImplementation(verbOption, options);
-      const footer = getHttpClientReturnTypes(['getPetById']);
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
 
-      expect(footer).toContain(
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<string | PetOutput>',
       );
       // Multi-content signatures use per-branch accept overloads and never
@@ -2348,21 +2443,21 @@ describe('angular HttpClient generator', () => {
       );
     });
 
-    // ── Return type registry ──────────────────────────────────────────
+    // ── Return type aliases ───────────────────────────────────────────
 
-    it('registers ClientResult type for each operation', () => {
+    it('returns the ClientResult alias as returnType', async () => {
       const verbOption = createVerbOption();
       const options = createGeneratorOptions();
 
-      generateHttpClientImplementation(verbOption, options);
-
-      const types = getHttpClientReturnTypes(['getPetById']);
-      expect(types).toContain(
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
+      expect(alias).toContain(
         'export type GetPetByIdClientResult = NonNullable<Pet>',
       );
     });
 
-    it('uses pascal-cased operation name for the result type', () => {
+    it('uses pascal-cased operation name for the result type', async () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
         operationName: 'listPets',
@@ -2377,10 +2472,10 @@ describe('angular HttpClient generator', () => {
       });
       const options = createGeneratorOptions({ route: '/api/pets' });
 
-      generateHttpClientImplementation(verbOption, options);
-
-      const types = getHttpClientReturnTypes(['listPets']);
-      expect(types).toContain(
+      const alias = (
+        await generateAngular(verbOption, options, 'angular', createOutput())
+      ).returnType?.();
+      expect(alias).toContain(
         'export type ListPetsClientResult = NonNullable<Pet[]>',
       );
     });
@@ -2602,27 +2697,6 @@ describe('angular HttpClient generator', () => {
 
     it('is true for a validated single-content operation with request options', () => {
       expect(narrowsResponseEvents(validatedVerb(), zodOutput())).toBe(true);
-    });
-  });
-
-  // ── resetHttpClientReturnTypes ──────────────────────────────────────
-
-  describe('resetHttpClientReturnTypes', () => {
-    it('clears all registered return types', () => {
-      const verbOption = createVerbOption();
-      const options = createGeneratorOptions();
-      generateHttpClientImplementation(verbOption, options);
-
-      // Verify registered
-      expect(getHttpClientReturnTypes(['getPetById'])).toContain(
-        'GetPetByIdClientResult',
-      );
-
-      // Reset
-      resetHttpClientReturnTypes();
-
-      // Verify cleared
-      expect(getHttpClientReturnTypes(['getPetById'])).toBe('');
     });
   });
 
@@ -2886,10 +2960,6 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     verbOption: GeneratorVerbOptions,
     output: NormalizedOutputOptions = zodOutput(),
   ) => generateHttpClientImplementation(verbOption, generatorOptions(output));
-
-  beforeEach(() => {
-    resetHttpClientReturnTypes();
-  });
 
   it('parses the body inside defer and sends the parsed value in every observe branch', () => {
     const impl = generate(createPetsVerb());

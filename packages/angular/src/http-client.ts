@@ -6,6 +6,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   type GeneratorImport,
+  type GeneratorOperation,
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
@@ -39,7 +40,6 @@ import {
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import {
   buildServiceClassOpen,
-  createReturnTypesRegistry,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   hasGatedObjectQueryParamStrategies,
@@ -63,11 +63,6 @@ export interface HttpClientGeneratorContext {
   route: string;
   context: Pick<ContextSpec, 'output'>;
 }
-
-// NOTE: Module-level singleton — reset() is called at the start of each
-// header builder invocation (generateAngularHeader). Must stay in sync with
-// the generation lifecycle.
-const returnTypesRegistry = createReturnTypesRegistry();
 
 const hasSchemaImport = (
   imports: readonly { name: string }[],
@@ -103,6 +98,97 @@ const resolveValidatableSchema = (
 };
 
 const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
+
+/**
+ * One success response's generated return type: the Zod output type when
+ * runtime validation applies to that content type, else the content-type
+ * adjusted type.
+ */
+const getGeneratedResponseType = (
+  { response, override }: Pick<GeneratorVerbOptions, 'response' | 'override'>,
+  output: ContextSpec['output'],
+  value: string,
+  contentType: string | undefined,
+): string => {
+  if (
+    override.angular.runtimeValidation.enabled &&
+    isZodSchemaOutput(output) &&
+    !!contentType &&
+    isJsonContentType(contentType)
+  ) {
+    const resolved = resolveValidatableSchema(response.imports, value);
+    if (resolved) return resolved.outputTypeRef;
+  }
+
+  return getContentTypeReturnType(contentType, value);
+};
+
+/**
+ * The type referenced by an operation's `*ClientResult` alias: the raw
+ * response type (mutators), the Zod-parsed type (single success response) or
+ * the deduplicated union across success content types.
+ */
+const getClientResultType = (
+  {
+    response,
+    mutator,
+    override,
+  }: Pick<GeneratorVerbOptions, 'response' | 'mutator' | 'override'>,
+  output: ContextSpec['output'],
+): string => {
+  const dataType = response.definition.success || 'unknown';
+  if (mutator) return dataType;
+
+  // An inline `type: array` response is `Item[]`, which the exact-name checks
+  // below never match; it validates through its element schema (#3718).
+  const arraySchema = getArrayResponseSchema(
+    response.imports,
+    dataType,
+    getSchemaValueRef,
+  );
+  const shouldValidateResponse =
+    override.angular.runtimeValidation.enabled &&
+    isZodSchemaOutput(output) &&
+    !isPrimitiveType(dataType) &&
+    (hasSchemaImport(response.imports, dataType) || !!arraySchema);
+  const parsedDataType = shouldValidateResponse
+    ? (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
+    : dataType;
+  const successTypes = response.types.success;
+  if (successTypes.length <= 1) return parsedDataType;
+
+  return (
+    [
+      ...new Set(
+        successTypes.map(({ value, contentType }) =>
+          getGeneratedResponseType(
+            { response, override },
+            output,
+            value,
+            contentType,
+          ),
+        ),
+      ),
+    ].join(' | ') || parsedDataType
+  );
+};
+
+/**
+ * The full `*ClientResult` alias declaration for one operation. Returned as
+ * `GeneratorClient.returnType` so it travels on the operation
+ * (`GeneratorOperation.types.result`) and footers emit it from `operations`
+ * — order-independent, no module state (same shape as the axios client).
+ */
+export const buildClientResultAlias = (
+  verbOption: Pick<
+    GeneratorVerbOptions,
+    'typeName' | 'response' | 'mutator' | 'override'
+  >,
+  output: ContextSpec['output'],
+): string =>
+  `export type ${pascal(
+    verbOption.typeName,
+  )}ClientResult = NonNullable<${getClientResultType(verbOption, output)}>`;
 
 /**
  * The schema a request body is parsed with under
@@ -334,8 +420,6 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   tag,
   output,
 }) => {
-  returnTypesRegistry.reset();
-
   const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
   // Only emit the shared `filterParams` helper when at least one operation in
   // this file will actually call it. If every operation with queryParams has
@@ -370,17 +454,16 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
  * Generates the closing section for Angular `HttpClient` output.
  *
  * @remarks
- * Besides closing the generated service class, this appends any collected
- * `ClientResult` aliases registered while individual operations were emitted.
+ * Besides closing the generated service class, this appends the
+ * `*ClientResult` aliases carried on the footer's operations
+ * (`GeneratorOperation.types.result`).
  *
  * @returns The footer text for the generated Angular client file.
  */
-export const generateAngularFooter: ClientFooterBuilder = ({
-  operationNames,
-}) => {
+export const generateAngularFooter: ClientFooterBuilder = ({ operations }) => {
   let footer = '};\n\n';
 
-  const returnTypes = returnTypesRegistry.getFooter(operationNames);
+  const returnTypes = getClientResultAliases(operations);
   if (returnTypes) {
     footer += `${returnTypes}\n`;
   }
@@ -479,33 +562,6 @@ export const generateHttpClientImplementation = (
   const parsedDataType = shouldValidateResponse
     ? (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
     : dataType;
-  const getGeneratedResponseType = (
-    value: string,
-    contentType: string | undefined,
-  ): string => {
-    if (
-      override.angular.runtimeValidation.enabled &&
-      isZodOutput &&
-      !!contentType &&
-      isJsonContentType(contentType)
-    ) {
-      const resolved = resolveValidatableSchema(response.imports, value);
-      if (resolved) return resolved.outputTypeRef;
-    }
-
-    return getContentTypeReturnType(contentType, value);
-  };
-  const resultAliasType = mutator
-    ? dataType
-    : response.types.success.length <= 1
-      ? parsedDataType
-      : [
-          ...new Set(
-            response.types.success.map(({ value, contentType }) =>
-              getGeneratedResponseType(value, contentType),
-            ),
-          ),
-        ].join(' | ') || parsedDataType;
   const schemaValueRef = shouldValidateResponse
     ? (arraySchema?.schemaRef ?? getSchemaValueRef(dataType))
     : dataType;
@@ -544,13 +600,6 @@ export const generateHttpClientImplementation = (
         },
       )} }) : event))`
     : '';
-
-  returnTypesRegistry.set(
-    operationName,
-    `export type ${pascal(
-      typeName,
-    )}ClientResult = NonNullable<${resultAliasType}>`,
-  );
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -849,7 +898,12 @@ export const generateHttpClientImplementation = (
     const branchOverloads = successTypes
       .filter(({ contentType }) => !!contentType)
       .map(({ contentType, value }) => {
-        const returnType = getGeneratedResponseType(value, contentType);
+        const returnType = getGeneratedResponseType(
+          { response, override },
+          context.output,
+          value,
+          contentType,
+        );
         const overloadParams = [
           requiredNonBodyPart,
           bodyOverloadPart,
@@ -1230,31 +1284,25 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       : []),
   ];
 
-  return { implementation, imports };
+  return {
+    implementation,
+    imports,
+    returnType: () =>
+      buildClientResultAlias(normalizedVerbOptions, options.context.output),
+  };
 };
 
 /**
- * Returns the footer aliases collected for the provided operation names.
- *
- * The Angular generators use these aliases to expose stable `ClientResult`
- * helper types such as `ListPetsClientResult`.
- *
- * @returns Concatenated `ClientResult` aliases for the requested operation names.
+ * The `*ClientResult` alias declarations carried on the given operations
+ * (`GeneratorOperation.types.result`), newline-joined for footer emission.
  */
-export const getHttpClientReturnTypes = (operationNames: string[]) =>
-  returnTypesRegistry.getFooter(operationNames);
-
-/**
- * Clears the module-level return type registry used during Angular client
- * generation.
- *
- * This must be called at the start of each generation pass to avoid leaking
- * aliases across files or tags.
- *
- * @returns Nothing.
- */
-export const resetHttpClientReturnTypes = () => {
-  returnTypesRegistry.reset();
-};
+export const getClientResultAliases = (
+  operations: readonly GeneratorOperation[] | undefined,
+): string =>
+  (operations ?? [])
+    .flatMap((operation) =>
+      operation.types?.result ? [operation.types.result()] : [],
+    )
+    .join('\n');
 
 export { generateAngularTitle } from './utils';
