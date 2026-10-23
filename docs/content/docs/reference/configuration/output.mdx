@@ -1518,7 +1518,7 @@ export default defineConfig({
 `properties` renames the keys of schema objects, e.g. `widget_id` becomes `widgetId` with `camelCase`. Keys that would collide after conversion (such as `first_name` next to `firstName`) keep their original name.
 
 - **TypeScript models** use the converted names. `required` is still matched against the original spec key, and form-data serialization writes the original key on the wire.
-- **Zod schemas** (the `zod` client and `schemas: { type: 'zod' }`) still validate the original spec keys, then a `.transform()` moves each value to its converted name. `zod.input` (the exported `X` type) is the wire shape and `zod.output` (`XOutput`) has the converted names. With `fetch` `runtimeValidation`, responses therefore come back with converted keys while request bodies are sent with the spec's keys.
+- **Zod schemas** (the `zod` client and `schemas: { type: 'zod' }`) still validate the original spec keys, then a `.transform()` moves each value to its converted name. `zod.input` (the exported `X` type) is the wire shape and `zod.output` (`XOutput`) has the converted names. With `fetch` `runtimeValidation`, responses therefore come back with converted keys while request bodies are sent with the spec's keys. For the same reason, the Angular client's [`runtimeValidation.requestBodies`](#requestbodies) sends a body unparsed when the convention renames one of its keys.
 
 <Callout type="info">
   A renamed Zod object is no longer a `ZodObject`: `.shape`, `.extend()` and
@@ -2725,6 +2725,14 @@ operations with a custom `mutator`. An omitted optional body is sent as-is.
 This applies to generated `HttpClient` methods, including the mutation methods
 kept under `retrievalClient: 'httpResource' | 'both'`. `httpResource`
 retrievals don't parse their request bodies.
+
+A body is also sent unparsed when
+[`namingConvention.properties`](#namingconvention-property-keys) renames one of
+its keys, at any depth, and Orval logs a warning for that operation. The body's
+Zod schema outputs the converted keys, and the server expects the spec's keys.
+Orval sends such a body exactly as the caller passed it, without validation,
+defaults or transforms. The parameter type already uses the spec's keys.
+Bodies whose keys already match the convention are parsed as usual.
 
 ### queryObjectSerialization
 

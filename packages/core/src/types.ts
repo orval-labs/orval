@@ -2433,6 +2433,11 @@ export interface GetterBody {
   contentType: string;
   isOptional: boolean;
   isBlob: boolean;
+  /**
+   * `namingConvention.properties` renames a key somewhere in the body schema,
+   * so its Zod schema's parsed output no longer has the wire keys.
+   */
+  renamesKeys?: boolean;
 }
 
 export interface GetterParameters {

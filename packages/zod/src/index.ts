@@ -19,8 +19,9 @@ import {
   getFormDataFieldFileType,
   getKey,
   getNumberWord,
-  getPropertyNameCollisionKeys,
+  getPropertyNamingConvention,
   getRefInfo,
+  getRenamedPropertyKeys,
   getRequiredKeys,
   isBindingIdentifier,
   isBoolean,
@@ -748,34 +749,23 @@ interface PropertyRename {
   required: boolean;
 }
 
-const getPropertyConvention = (context: ContextSpec) =>
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
-  context.output.override.namingConvention?.properties;
-
 /**
  * The keys of one object that `namingConvention.properties` renames. The Zod
  * schema still validates the original (wire) keys, then a transform hands out
  * the converted ones, so `zod.input` stays wire-shaped and `zod.output` matches
- * the TypeScript models. Keys that would collide after conversion keep their
- * original name, exactly as the TypeScript models do (#2381).
+ * the TypeScript models.
  */
 const getPropertyRenames = (
   keys: string[],
   requiredKeys: Set<string>,
   context: ContextSpec,
 ): PropertyRename[] => {
-  const convention = getPropertyConvention(context);
+  const convention = getPropertyNamingConvention(context.output);
   if (!convention) return [];
-  const convert = (key: string) => conventionName(key, convention);
-  const collisionKeys = getPropertyNameCollisionKeys(keys, convert);
-  return keys
-    .filter((key) => !collisionKeys.has(key))
-    .map((key) => ({
-      from: key,
-      to: convert(key),
-      required: requiredKeys.has(key),
-    }))
-    .filter(({ from, to }) => from !== to);
+  return getRenamedPropertyKeys(keys, convention).map((rename) => ({
+    ...rename,
+    required: requiredKeys.has(rename.from),
+  }));
 };
 
 /**
@@ -810,7 +800,7 @@ const memberRenamesKeys = (
   member: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean => {
-  const convention = getPropertyConvention(context);
+  const convention = getPropertyNamingConvention(context.output);
   if (!convention) return false;
   const resolved = resolveUnionMemberSchema(member, context);
   if (!resolved) return false;
