@@ -4639,6 +4639,8 @@ export function handleDates(body: any) {
 
 > If using `fetch` client with `useDates: true`, query parameters of type Date are stringified using `toISOString()`.
 
+In `multipart/form-data` and `application/x-www-form-urlencoded` request bodies, `Date` values are sent as ISO 8601 strings: `toISOString()` for `format: date-time`, and `YYYY-MM-DD` for `format: date`. Both use the UTC calendar day, like the [`useDatesTransform`](#usedatestransform) request serializer, so a `format: date` value built from local midnight (`new Date(2024, 0, 15)`) in a timezone ahead of UTC is sent as the previous day. Build those values with `new Date(Date.UTC(2024, 0, 15))`. An invalid `Date` is sent as `Invalid Date`. Nested objects that a form field sends as JSON use `Date.toJSON()`, so a `format: date` field inside them is sent as the full instant.
+
 ### useDatesTransform
 
 **Type:** `Boolean`
