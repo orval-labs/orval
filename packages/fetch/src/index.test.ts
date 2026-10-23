@@ -13,12 +13,13 @@ import type {
 import {
   GetterPropType,
   HTTP_STATUS_CODE_SHARED_TYPES,
+  logger,
   OutputClient,
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
 import ts from 'typescript';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
   createTestContextSpec,
@@ -381,6 +382,211 @@ describe('generateRequestFunction — deepObject query parameters', () => {
     expect(implementation).toContain('"scope"');
     expect(implementation).toContain('"filter"');
     expect(implementation).toContain('deepObjectEntries.push(');
+  });
+});
+
+describe('generateRequestFunction — form-style object query parameters', () => {
+  const QUERY_PARAMS_PROP = {
+    name: 'params',
+    definition: 'params?: ListPetsParams',
+    implementation: 'params?: ListPetsParams',
+    default: false,
+    required: false,
+    type: GetterPropType.QUERY_PARAM,
+  };
+
+  const pageParameter: TestParameter = {
+    name: 'page',
+    in: 'query',
+    schema: {
+      type: 'object',
+      properties: {
+        number: { type: 'integer' },
+        size: { type: 'integer' },
+      },
+    },
+  };
+
+  const buildUrl = (
+    parameters: TestParameter[],
+    objectQueryParams: NonNullable<
+      GeneratorVerbOptions['queryParams']
+    >['objectQueryParams'],
+    params: Record<string, unknown>,
+    useDates = false,
+  ) => {
+    const verbOptions = makeVerbOptions({
+      queryParams: { ...STUB_QUERY_PARAMS, objectQueryParams },
+      props: [QUERY_PARAMS_PROP],
+    });
+    const implementation = generateImplementation(
+      verbOptions,
+      makeOptions(makeContext(parameters, useDates)),
+    );
+    const urlHelper = /export const getListPetsUrl = [\s\S]*?\n}\n/.exec(
+      implementation,
+    )?.[0];
+    expect(urlHelper).toBeDefined();
+    const { outputText } = ts.transpileModule(
+      (urlHelper ?? '').replace('export ', ''),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    );
+    // Share the host `Date` so `instanceof Date` holds inside the sandbox.
+    const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
+      URLSearchParams,
+      Date,
+    }) as (params: Record<string, unknown>) => string;
+    return getListPetsUrl(params);
+  };
+
+  it('spreads an object param into its properties (form, explode: true)', () => {
+    expect(
+      buildUrl([pageParameter], [{ key: 'page', strategy: 'flatten' }], {
+        page: { number: 2, size: 20, cursor: undefined },
+      }),
+    ).toBe('/pets?number=2&size=20');
+  });
+
+  it('joins an object param into comma-separated pairs (form, explode: false)', () => {
+    expect(
+      buildUrl(
+        [{ ...pageParameter, explode: false }],
+        [{ key: 'page', strategy: 'comma' }],
+        { page: { number: 2, size: 20 } },
+      ),
+    ).toBe(`/pets?page=${encodeURIComponent('number,2,size,20')}`);
+  });
+
+  const rangeParameter: TestParameter = {
+    name: 'range',
+    in: 'query',
+    schema: {
+      type: 'object',
+      properties: {
+        since: { type: 'string', format: 'date-time' },
+        limit: { type: 'integer' },
+      },
+    },
+  };
+  const since = new Date(Date.UTC(2026, 0, 2, 3, 4, 5));
+
+  it('serializes Date properties with toISOString() when useDates is set (form, explode: true)', () => {
+    expect(
+      buildUrl(
+        [rangeParameter],
+        [{ key: 'range', strategy: 'flatten' }],
+        { range: { since, limit: null } },
+        true,
+      ),
+    ).toBe(
+      `/pets?since=${encodeURIComponent('2026-01-02T03:04:05.000Z')}&limit=null`,
+    );
+  });
+
+  it('serializes Date properties with toISOString() when useDates is set (form, explode: false)', () => {
+    expect(
+      buildUrl(
+        [{ ...rangeParameter, explode: false }],
+        [{ key: 'range', strategy: 'comma' }],
+        { range: { since, limit: null } },
+        true,
+      ),
+    ).toBe(
+      `/pets?range=${encodeURIComponent('since,2026-01-02T03:04:05.000Z,limit,null')}`,
+    );
+  });
+
+  it('keeps scalar params alongside an object param', () => {
+    expect(
+      buildUrl(
+        [
+          pageParameter,
+          { name: 'sort', in: 'query', schema: { type: 'string' } },
+        ],
+        [{ key: 'page', strategy: 'flatten' }],
+        { page: { number: 1 }, sort: 'name' },
+      ),
+    ).toBe('/pets?number=1&sort=name');
+  });
+
+  it('serializes Date properties of a composed object schema', () => {
+    expect(
+      buildUrl(
+        [
+          {
+            name: 'range',
+            in: 'query',
+            schema: { allOf: [rangeParameter.schema ?? {}] },
+          },
+        ],
+        [{ key: 'range', strategy: 'flatten' }],
+        { range: { since } },
+        true,
+      ),
+    ).toBe(`/pets?since=${encodeURIComponent('2026-01-02T03:04:05.000Z')}`);
+  });
+
+  it('omits a comma-style object param with no defined properties', () => {
+    expect(
+      buildUrl(
+        [
+          { ...pageParameter, explode: false },
+          { name: 'sort', in: 'query', schema: { type: 'string' } },
+        ],
+        [{ key: 'page', strategy: 'comma' }],
+        { page: { number: undefined }, sort: 'name' },
+      ),
+    ).toBe('/pets?sort=name');
+  });
+
+  it('repeats array properties when flattened and appends them when comma-joined', () => {
+    const filterParameter: TestParameter = {
+      name: 'filter',
+      in: 'query',
+      schema: {
+        type: 'object',
+        properties: {
+          tags: { type: 'array', items: { type: 'string' } },
+          range: { type: 'object' },
+        },
+      },
+    };
+    const filter = { tags: ['a', 'b'], range: { from: 1 } };
+
+    expect(
+      buildUrl([filterParameter], [{ key: 'filter', strategy: 'flatten' }], {
+        filter,
+      }),
+    ).toBe(`/pets?tags=a&tags=b&range=${encodeURIComponent('{"from":1}')}`);
+    expect(
+      buildUrl(
+        [{ ...filterParameter, explode: false }],
+        [{ key: 'filter', strategy: 'comma' }],
+        { filter },
+      ),
+    ).toBe(`/pets?filter=${encodeURIComponent('tags,a,b,range,{"from":1}')}`);
+  });
+
+  it('warns when a flattened property collides with another query param', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    try {
+      buildUrl(
+        [
+          pageParameter,
+          { name: 'size', in: 'query', schema: { type: 'integer' } },
+        ],
+        [{ key: 'page', strategy: 'flatten' }],
+        {},
+      );
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'query key `size` is written by `page.size` and `size`',
+        ),
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

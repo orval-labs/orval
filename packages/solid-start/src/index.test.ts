@@ -254,6 +254,35 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).not.toContain('const explodeParameters');
   });
 
+  it('serializes form-style object params instead of String(value)', async () => {
+    const parameters = [
+      {
+        name: 'page',
+        in: 'query',
+        schema: {
+          type: 'object',
+          properties: { number: { type: 'integer' } },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({
+      queryParams: {
+        ...STUB_QUERY_PARAMS,
+        objectQueryParams: [{ key: 'page', strategy: 'flatten' }],
+      },
+    });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain(
+      'const formObjectParameters = new Map<string, string>([["page","flatten"]]);',
+    );
+    expect(implementation).toContain(
+      "if (formObjectParameters.get(key) === 'flatten') {",
+    );
+  });
+
   it('treats a query array param as exploded when style and explode are both omitted (OpenAPI default)', async () => {
     // Per OpenAPI spec: omitted style defaults to 'form', and 'form' defaults explode to true.
     const parameters = [

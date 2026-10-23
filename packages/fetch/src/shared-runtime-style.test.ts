@@ -392,6 +392,59 @@ describe('generateSharedRequestFunction', () => {
     ).toBe('limit=1&tags=a%7Cb&names=x%20y%20z');
   });
 
+  it('passes form-style object params to the runtime', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        queryParams: {
+          ...STUB_QUERY_PARAMS,
+          objectQueryParams: [
+            { key: 'page', strategy: 'flatten' },
+            { key: 'range', strategy: 'comma' },
+          ],
+        },
+        props: params,
+      }),
+      makeSharedOptions([
+        { name: 'page', in: 'query', schema: { type: 'object' } },
+        {
+          name: 'range',
+          in: 'query',
+          explode: false,
+          schema: { type: 'object' },
+        },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      'const stringifiedParams = serializeQuery(params, { flattenObject: ["page"], commaObject: ["range"] });',
+    );
+  });
+
+  it('serializes form-style object params like the inline builder at runtime', () => {
+    const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+      },
+    });
+    const exports: { serializeQuery?: SerializeQuery } = {};
+    runInNewContext(outputText, { exports, URLSearchParams, Date });
+    const meta = { flattenObject: ['page'], commaObject: ['range', 'empty'] };
+
+    expect(
+      exports.serializeQuery?.(
+        {
+          page: { number: 2, tags: ['a', 'b'], cursor: undefined },
+          range: { since: new Date(Date.UTC(2026, 0, 2)), limit: null },
+          empty: { cursor: undefined },
+        },
+        meta,
+      ),
+    ).toBe(
+      `number=2&tags=a&tags=b&range=${encodeURIComponent('since,2026-01-02T00:00:00.000Z,limit,null')}`,
+    );
+  });
+
   it('omits the meta when no query param needs special serialization', () => {
     const implementation = generateSharedRequestFunction(
       makeVerbOptions({ queryParams: STUB_QUERY_PARAMS, props: params }),

@@ -17,6 +17,9 @@ import {
   getArrayFormatParameters,
   getDeepObjectParameters,
   getDelimitedParameters,
+  getFormObjectParameters,
+  getFormObjectParametersDeclaration,
+  getFormObjectQueryImplementation,
   getExplodeParameters,
   getOperationParameters,
   getQueryDelimiter,
@@ -371,6 +374,18 @@ const generateRequestFunctionParts = (
       `
       : '';
 
+  // A custom `paramsSerializer` owns the whole query string.
+  const formObjectParameters = paramsSerializer
+    ? []
+    : getFormObjectParameters(
+        queryParams,
+        parameterObjects,
+        context,
+        operationName,
+      );
+  const formObjectImplementation =
+    formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
+
   const normalParamsImplementation = `if (value !== undefined) {
       normalizedParams.append(key, ${stringifyItem('value', hasDateTimeParams(parameterObjects))})
     }`;
@@ -397,9 +412,9 @@ const generateRequestFunctionParts = (
     : `${getUrlExportKeyword} ${getUrlFnName} = (${getUrlFnProps}) => {\n${
         queryParams
           ? `  const normalizedParams = new URLSearchParams();
-${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n  const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
+${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n  const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '  ')}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${delimitedArrayImplementation}${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
+    ${delimitedArrayImplementation}${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}${formObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
           : ''
