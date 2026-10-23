@@ -40,6 +40,7 @@ import {
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import { logger } from './logger';
 import {
+  buildAcceptJsonCondition,
   buildServiceClassOpen,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
@@ -1011,7 +1012,7 @@ export const generateHttpClientImplementation = (
       ? options.headers.set('Accept', accept)
       : { ...(options?.headers ?? {}), Accept: accept };
 
-    if (accept.includes('json') || accept.includes('+json')) {
+    if (${buildAcceptJsonCondition(uniqueContentTypes)}) {
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     }${
       textSuccessTypes.length > 0

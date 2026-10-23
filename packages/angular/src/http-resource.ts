@@ -68,6 +68,7 @@ import {
   getClientResultAliases,
 } from './http-client';
 import {
+  buildAcceptJsonCondition,
   buildServiceClassOpen,
   type ClientOverride,
   createRouteRegistry,
@@ -1228,7 +1229,7 @@ export function ${resourceName}(
     };
   };
 
-  if (accept.includes('json') || accept.includes('+json')) {
+  if (${buildAcceptJsonCondition(uniqueContentTypes)}) {
     return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(buildRequest, ${getBranchOptions(jsonType)});
   }
 

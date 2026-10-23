@@ -49,10 +49,25 @@ export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
 
 /**
  * Whether a content type is JSON, including `+json` suffixes such as
- * `application/problem+json` (`json` is a substring of both).
+ * `application/problem+json` (`json` is a substring of both). Media type
+ * names are case-insensitive (RFC 9110 §8.3.1), so `application/JSON` counts.
  */
 export const isJsonContentType = (contentType: string): boolean =>
-  contentType.includes('json');
+  contentType.toLowerCase().includes('json');
+
+/**
+ * The emitted `accept` check that routes to the JSON branch. Lowercases at
+ * runtime only when the operation declares a type or subtype with uppercase
+ * letters, so output for lowercase specs stays unchanged. Parameters such as
+ * `charset=UTF-8` don't count, because the check never needs them.
+ */
+export const buildAcceptJsonCondition = (contentTypes: string[]): string =>
+  contentTypes.some((contentType) => {
+    const baseType = contentType.split(';')[0];
+    return baseType !== baseType.toLowerCase();
+  })
+    ? `accept.toLowerCase().includes('json')`
+    : `accept.includes('json') || accept.includes('+json')`;
 
 /**
  * Indicates whether the configured schema output target is Zod-based.

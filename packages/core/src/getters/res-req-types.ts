@@ -364,9 +364,7 @@ export function getResReqTypes(
               generatePrimitiveSchema:
                 generatePrimitiveSchemas &&
                 key.startsWith('2') &&
-                contentType.includes('json') &&
-                !contentType.includes('ndjson') &&
-                !contentType.includes('nd-json'),
+                isNonStreamingJson(contentType),
             });
 
             if (!resolvedValue) {
@@ -511,6 +509,15 @@ export function getResReqTypes(
   );
 }
 
+const isNonStreamingJson = (contentType: string): boolean => {
+  const lowerContentType = contentType.toLowerCase();
+  return (
+    lowerContentType.includes('json') &&
+    !lowerContentType.includes('ndjson') &&
+    !lowerContentType.includes('nd-json')
+  );
+};
+
 /**
  * Determine the responseType option based on success content types only.
  * This avoids error-response content types influencing the responseType.
@@ -526,9 +533,8 @@ export function getSuccessResponseType(
     return 'blob' as const;
   }
 
-  const hasJsonResponse = successContentTypes.some(
-    (contentType) =>
-      contentType.includes('json') || contentType.includes('+json'),
+  const hasJsonResponse = successContentTypes.some((contentType) =>
+    contentType.toLowerCase().includes('json'),
   );
   const hasTextResponse = successContentTypes.some(
     (contentType) =>
@@ -554,15 +560,21 @@ export function getDefaultContentType(contentTypes: string[]): string {
     return 'application/json';
   }
 
+  // Match case-insensitively but return the declared spelling, because callers
+  // use it as the default value of the generated `Accept` union.
   // Prefer application/json
-  if (contentTypes.includes('application/json')) {
-    return 'application/json';
+  const applicationJson = contentTypes.find(
+    (ct) => ct.toLowerCase() === 'application/json',
+  );
+  if (applicationJson) {
+    return applicationJson;
   }
 
   // Prefer any JSON-like type
-  const jsonType = contentTypes.find(
-    (ct) => ct.includes('+json') || ct.includes('-json'),
-  );
+  const jsonType = contentTypes.find((ct) => {
+    const lowerCt = ct.toLowerCase();
+    return lowerCt.includes('+json') || lowerCt.includes('-json');
+  });
   if (jsonType) {
     return jsonType;
   }

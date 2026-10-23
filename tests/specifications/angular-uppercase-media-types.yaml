@@ -1,0 +1,43 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Angular Uppercase Media Types Test
+  description: Multi-content response whose JSON media types use uppercase letters
+paths:
+  /items/{id}:
+    get:
+      summary: Get an item as text or in two JSON media types with uppercase letters
+      operationId: getItem
+      tags:
+        - items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item as text or in two JSON flavours
+          content:
+            application/JSON:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/VND.API+JSON:
+              schema:
+                $ref: '#/components/schemas/Item'
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string

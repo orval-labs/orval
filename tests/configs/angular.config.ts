@@ -412,6 +412,36 @@ export default defineConfig({
       target: '../specifications/angular-multi-content-query-params.yaml',
     },
   },
+  uppercaseMediaTypes: {
+    output: {
+      target: '../generated/angular/uppercase-media-types/endpoints.ts',
+      schemas: '../generated/angular/uppercase-media-types/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/angular-uppercase-media-types.yaml',
+    },
+  },
+  httpResourceUppercaseMediaTypes: {
+    output: {
+      target:
+        '../generated/angular/http-resource-uppercase-media-types/endpoints.ts',
+      schemas: '../generated/angular/http-resource-uppercase-media-types/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-uppercase-media-types.yaml',
+    },
+  },
   issue3103: {
     output: {
       target: '../generated/angular/issue-3103/endpoints.ts',

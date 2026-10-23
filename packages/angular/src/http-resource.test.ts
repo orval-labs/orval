@@ -1861,6 +1861,46 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('Accept: accept');
       expect(header).toContain('httpResource<Pet>(buildRequest');
       expect(header).toContain('httpResource.text<string>(buildRequest');
+      // Lowercase specs keep the original check, so their output is unchanged.
+      expect(header).toContain(
+        "if (accept.includes('json') || accept.includes('+json'))",
+      );
+    });
+
+    // Media type names are case-insensitive (RFC 9110 §8.3.1). A spec that
+    // declares `application/JSON` has to get a JSON resource, not a Blob
+    // one (#4365).
+    it('routes uppercase JSON media types to httpResource', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/JSON'),
+              createSuccessType('Pet', 'application/VND.API+JSON'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/JSON', 'application/VND.API+JSON'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain("if (accept.toLowerCase().includes('json'))");
+      expect(header).toContain('HttpResourceRef<Pet | undefined>');
+      expect(header).not.toContain('httpResource<Blob>');
     });
   });
 

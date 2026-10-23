@@ -7,6 +7,7 @@ import { GetterPropType } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  buildAcceptJsonCondition,
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
@@ -467,6 +468,9 @@ describe('isJsonContentType', () => {
     'application/json',
     'application/problem+json',
     'application/merge-patch+json',
+    // Media type names are case-insensitive (RFC 9110 §8.3.1).
+    'application/JSON',
+    'application/VND.API+JSON',
   ])('treats "%s" as JSON', (contentType) => {
     expect(isJsonContentType(contentType)).toBe(true);
   });
@@ -477,6 +481,33 @@ describe('isJsonContentType', () => {
       expect(isJsonContentType(contentType)).toBe(false);
     },
   );
+});
+
+// ---------------------------------------------------------------------------
+// buildAcceptJsonCondition
+// ---------------------------------------------------------------------------
+
+describe('buildAcceptJsonCondition', () => {
+  // Specs with lowercase media types must keep byte-identical output (#4365).
+  // An uppercase parameter value such as `charset=UTF-8` is common in
+  // generated specs and must not switch them to the lowercasing check.
+  it.each([
+    [['application/json', 'text/plain']],
+    [['application/json; charset=UTF-8', 'text/plain']],
+  ])('keeps the original check for %j', (contentTypes) => {
+    expect(buildAcceptJsonCondition(contentTypes)).toBe(
+      "accept.includes('json') || accept.includes('+json')",
+    );
+  });
+
+  it.each([
+    [['application/JSON', 'text/plain']],
+    [['application/VND.API+JSON; charset=utf-8', 'text/plain']],
+  ])('lowercases at runtime for %j', (contentTypes) => {
+    expect(buildAcceptJsonCondition(contentTypes)).toBe(
+      "accept.toLowerCase().includes('json')",
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
