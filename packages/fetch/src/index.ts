@@ -16,8 +16,10 @@ import {
   getArrayResponseSchema,
   getArrayFormatParameters,
   getDeepObjectParameters,
+  getDelimitedParameters,
   getExplodeParameters,
   getOperationParameters,
+  getQueryDelimiter,
   isExplodeOnly,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
@@ -35,11 +37,12 @@ import {
   type GeneratorMutator,
   GetterPropType,
   isObject,
-  isSchemaParameter,
+  isDateTimeParam,
   makeRouteSafe,
   needsHttpStatusCodeTypes,
   type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
+  type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
@@ -275,19 +278,34 @@ const generateRequestFunctionParts = (
     (parameter) => parameter.name,
   );
 
-  const hasExplodedDateParams =
-    context.output.override.useDates &&
-    explodeParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
+  const hasDateTimeParams = (group: OpenApiParameterObject[]) =>
+    !!context.output.override.useDates &&
+    group.some((parameter) => isDateTimeParam(parameter, context));
 
-  const hasArrayFormatDateParams =
-    context.output.override.useDates &&
-    arrayFormatParameters.some((parameter) => {
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
+  // The generated expression that stringifies one query value or array item.
+  const stringifyItem = (name: string, hasDates: boolean) =>
+    `${name} === null ? 'null' : ${hasDates ? `${name} instanceof Date ? ${name}.toISOString() : ` : ''}String(${name})`;
+
+  // `pipeDelimited` / `spaceDelimited` arrays join their percent-encoded items
+  // with `%7C` / `%20`. They bypass `URLSearchParams`, which would write the
+  // space as `+`.
+  const delimitedParameters = getDelimitedParameters(parameterObjects, context);
+  const delimitedParametersEntries = delimitedParameters.map((parameter) => [
+    parameter.name,
+    getQueryDelimiter(parameter.style),
+  ]);
+
+  const delimitedArrayImplementation =
+    delimitedParameters.length > 0
+      ? `if (Array.isArray(value) && delimitedParameters.has(key)) {
+      delimitedEntries.push(encodeURIComponent(key) + '=' + value.map((v) => encodeURIComponent(${stringifyItem('v', hasDateTimeParams(delimitedParameters))})).join(delimitedParameters.get(key)));
+      return;
+    }
+      `
+      : '';
+
+  const hasExplodedDateParams = hasDateTimeParams(explodeParameters);
+  const hasArrayFormatDateParams = hasDateTimeParams(arrayFormatParameters);
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
@@ -295,7 +313,7 @@ const generateRequestFunctionParts = (
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
-        normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v));
+        normalizedParams.append(key, ${stringifyItem('v', hasExplodedDateParams)});
       });
       return;
     }
@@ -309,10 +327,10 @@ const generateRequestFunctionParts = (
     if (Array.isArray(value) && arrayFormatParameters.includes(key)) {
       ${
         arrayFormat === 'repeat'
-          ? `value.forEach((v) => { normalizedParams.append(key, v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
+          ? `value.forEach((v) => { normalizedParams.append(key, ${stringifyItem('v', hasArrayFormatDateParams)}); });`
           : arrayFormat === 'brackets'
-            ? `value.forEach((v) => { normalizedParams.append(key + '[]', v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
-            : `normalizedParams.append(key, value.map((v) => v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(','));`
+            ? `value.forEach((v) => { normalizedParams.append(key + '[]', ${stringifyItem('v', hasArrayFormatDateParams)}); });`
+            : `normalizedParams.append(key, value.map((v) => ${stringifyItem('v', hasArrayFormatDateParams)}).join(','));`
       }
       return;
     }
@@ -353,20 +371,14 @@ const generateRequestFunctionParts = (
       `
       : '';
 
-  const hasDateParams =
-    context.output.override.useDates &&
-    parameterObjects.some((parameter) => {
-      if (!isSchemaParameter(parameter)) {
-        return false;
-      }
-
-      const { schema } = resolveSchemaRef(parameter.schema, context);
-      return schema.format === 'date-time';
-    });
-
   const normalParamsImplementation = `if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
+      normalizedParams.append(key, ${stringifyItem('value', hasDateTimeParams(parameterObjects))})
     }`;
+
+  const encodedEntries = [
+    ...(delimitedParameters.length > 0 ? ['delimitedEntries'] : []),
+    ...(deepObjectParameters.length > 0 ? ['deepObjectEntries'] : []),
+  ];
 
   const getUrlExportKeyword = isFactoryMode ? 'const' : 'export const';
   const getUrlFnImplementation = paramsSerializer
@@ -385,15 +397,15 @@ const generateRequestFunctionParts = (
     : `${getUrlExportKeyword} ${getUrlFnName} = (${getUrlFnProps}) => {\n${
         queryParams
           ? `  const normalizedParams = new URLSearchParams();
-${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
+${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n  const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
+    ${delimitedArrayImplementation}${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
           : ''
       }
 
-  ${queryParams ? (deepObjectParameters.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
+  ${queryParams ? (encodedEntries.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), ${encodedEntries.map((entries) => `${entries}.join('&')`).join(', ')}].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
 
   ${
     queryParams

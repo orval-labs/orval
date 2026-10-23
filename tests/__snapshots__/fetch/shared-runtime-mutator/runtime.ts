@@ -125,6 +125,8 @@ export interface QueryMeta {
   repeat?: string[];
   brackets?: string[];
   comma?: string[];
+  pipeDelimited?: string[];
+  spaceDelimited?: string[];
   deepObject?: string[];
 }
 
@@ -146,10 +148,28 @@ export const serializeQuery = (
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  const deepObjectEntries: string[] = [];
+  // Pre-encoded entries that bypass URLSearchParams.
+  const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
+      // Joined with a percent-encoded separator; URLSearchParams would write
+      // the space as '+'.
+      const delimiter = meta.pipeDelimited?.includes(key)
+        ? '%7C'
+        : meta.spaceDelimited?.includes(key)
+          ? '%20'
+          : undefined;
+      if (delimiter) {
+        encodedEntries.push(
+          encodeURIComponent(key) +
+            '=' +
+            value
+              .map((v) => encodeURIComponent(stringifyValue(v)))
+              .join(delimiter),
+        );
+        return;
+      }
       if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
         value.forEach((v) => {
           normalizedParams.append(key, stringifyValue(v));
@@ -173,7 +193,7 @@ export const serializeQuery = (
     ) {
       Object.entries(value).forEach(([subKey, subValue]) => {
         if (subValue !== undefined) {
-          deepObjectEntries.push(
+          encodedEntries.push(
             encodeURIComponent(key) +
               '[' +
               encodeURIComponent(subKey) +
@@ -192,7 +212,7 @@ export const serializeQuery = (
     }
   });
 
-  return [normalizedParams.toString(), deepObjectEntries.join('&')]
+  return [normalizedParams.toString(), encodedEntries.join('&')]
     .filter(Boolean)
     .join('&');
 };

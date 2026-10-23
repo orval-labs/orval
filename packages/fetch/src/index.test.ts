@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import type {
   ContextSpec,
   GeneratorOperation,
@@ -15,6 +17,7 @@ import {
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -1304,6 +1307,264 @@ describe('httpClientInjection: factory', () => {
       'return { listPets, getListPetsUrl, useCreatePetsHook, getCreatePetsUrl };\n};\n' +
         '\nexport type listPetsResponse = unknown;\n',
     );
+  });
+});
+
+describe('generateRequestFunction — pipeDelimited and spaceDelimited query arrays', () => {
+  const QUERY_PARAMS_PROP = {
+    name: 'params',
+    definition: 'params?: ListPetsParams',
+    implementation: 'params?: ListPetsParams',
+    default: false,
+    required: false,
+    type: GetterPropType.QUERY_PARAM,
+  };
+
+  const arrayParameter = (
+    name: string,
+    style: string,
+    explode?: boolean,
+  ): TestParameter => ({
+    name,
+    in: 'query',
+    style,
+    ...(explode === undefined ? {} : { explode }),
+    schema: { type: 'array', items: { type: 'string' } },
+  });
+
+  const buildUrl = (
+    parameters: TestParameter[],
+    params: Record<string, unknown>,
+    arrayFormat?: 'repeat' | 'brackets' | 'comma',
+    useDates = false,
+  ) => {
+    const verbOptions = makeVerbOptions({
+      queryParams: STUB_QUERY_PARAMS,
+      props: [QUERY_PARAMS_PROP],
+      ...(arrayFormat
+        ? {
+            override: {
+              requestOptions: false,
+              formUrlEncoded: false,
+              fetch: {
+                includeHttpResponseReturnType: false,
+                forceSuccessResponse: false,
+                runtimeValidation: { enabled: false, strategy: 'throw' },
+                arrayFormat,
+              },
+            },
+          }
+        : {}),
+    });
+    const implementation = generateImplementation(
+      verbOptions,
+      makeOptions(makeContext(parameters, useDates)),
+    );
+    const urlHelper = /export const getListPetsUrl = [\s\S]*?\n}\n/.exec(
+      implementation,
+    )?.[0];
+    expect(urlHelper).toBeDefined();
+    const { outputText } = ts.transpileModule(
+      (urlHelper ?? '').replace('export ', ''),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    );
+    const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
+      URLSearchParams,
+      Map,
+      Date,
+    }) as (params: Record<string, unknown>) => string;
+    return getListPetsUrl(params);
+  };
+
+  const decodedQuery = (url: string) => [
+    ...new URL(url, 'http://localhost').searchParams.entries(),
+  ];
+
+  it('joins a pipeDelimited array with "|"', () => {
+    expect(
+      decodedQuery(
+        buildUrl([arrayParameter('tags', 'pipeDelimited', false)], {
+          tags: ['a', 'b', 'c'],
+        }),
+      ),
+    ).toEqual([['tags', 'a|b|c']]);
+  });
+
+  it('joins a spaceDelimited array with a space', () => {
+    expect(
+      decodedQuery(
+        buildUrl([arrayParameter('tags', 'spaceDelimited', false)], {
+          tags: ['a', 'b', 'c'],
+        }),
+      ),
+    ).toEqual([['tags', 'a b c']]);
+  });
+
+  it('treats a missing explode as false for delimited styles', () => {
+    expect(
+      decodedQuery(
+        buildUrl([arrayParameter('tags', 'pipeDelimited')], {
+          tags: ['a', 'b'],
+        }),
+      ),
+    ).toEqual([['tags', 'a|b']]);
+  });
+
+  it('keeps the delimiter when an arrayFormat override is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [arrayParameter('tags', 'pipeDelimited')],
+          { tags: ['a', 'b'] },
+          'comma',
+        ),
+      ),
+    ).toEqual([['tags', 'a|b']]);
+  });
+
+  it('serializes Date items with toISOString() when useDates is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'at',
+              in: 'query',
+              style: 'pipeDelimited',
+              schema: {
+                type: 'array',
+                items: { type: 'string', format: 'date-time' },
+              },
+            },
+          ],
+          {
+            at: [
+              new Date(Date.UTC(2026, 0, 1)),
+              new Date(Date.UTC(2026, 0, 2)),
+            ],
+          },
+          undefined,
+          true,
+        ),
+      ),
+    ).toEqual([['at', '2026-01-01T00:00:00.000Z|2026-01-02T00:00:00.000Z']]);
+  });
+
+  it('leaves form-style arrays alongside a delimited one unchanged', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            arrayParameter('tags', 'pipeDelimited', false),
+            arrayParameter('ids', 'form', false),
+          ],
+          { tags: ['a', 'b'], ids: ['1', '2'] },
+        ),
+      ),
+    ).toEqual([
+      // Delimited entries are written after the URLSearchParams ones.
+      ['ids', '1,2'],
+      ['tags', 'a|b'],
+    ]);
+  });
+
+  it('writes the delimiters percent-encoded, with %20 rather than +', () => {
+    expect(
+      buildUrl(
+        [
+          arrayParameter('tags', 'pipeDelimited'),
+          arrayParameter('names', 'spaceDelimited'),
+        ],
+        { tags: ['a', 'b'], names: ['x y', 'z'] },
+      ),
+    ).toBe('/pets?tags=a%7Cb&names=x%20y%20z');
+  });
+
+  it('repeats the key for a delimited array with explode: true', () => {
+    expect(
+      decodedQuery(
+        buildUrl([arrayParameter('tags', 'pipeDelimited', true)], {
+          tags: ['a', 'b'],
+        }),
+      ),
+    ).toEqual([
+      ['tags', 'a'],
+      ['tags', 'b'],
+    ]);
+  });
+
+  it('still sends a scalar value for a delimited param when arrayFormat is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'tags',
+              in: 'query',
+              style: 'pipeDelimited',
+              schema: {
+                oneOf: [
+                  { type: 'string' },
+                  { type: 'array', items: { type: 'string' } },
+                ],
+              },
+            },
+          ],
+          { tags: 'a' },
+          'repeat',
+        ),
+      ),
+    ).toEqual([['tags', 'a']]);
+  });
+
+  it('serializes Date items of a composed array schema when useDates is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'at',
+              in: 'query',
+              style: 'pipeDelimited',
+              schema: {
+                oneOf: [
+                  {
+                    type: 'array',
+                    items: { type: 'string', format: 'date-time' },
+                  },
+                  { type: 'string' },
+                ],
+              },
+            },
+          ],
+          { at: [new Date(Date.UTC(2026, 0, 1))] },
+          undefined,
+          true,
+        ),
+      ),
+    ).toEqual([['at', '2026-01-01T00:00:00.000Z']]);
+  });
+
+  it('serializes Date items of an exploded form array when useDates is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'at',
+              in: 'query',
+              schema: {
+                type: 'array',
+                items: { type: 'string', format: 'date-time' },
+              },
+            },
+          ],
+          { at: [new Date(Date.UTC(2026, 0, 1))] },
+          undefined,
+          true,
+        ),
+      ),
+    ).toEqual([['at', '2026-01-01T00:00:00.000Z']]);
   });
 });
 
