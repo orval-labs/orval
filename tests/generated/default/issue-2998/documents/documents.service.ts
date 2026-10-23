@@ -172,3 +172,6 @@ export class DocumentsService {
     );
   }
 }
+
+export type GetDocumentsClientResult = NonNullable<DocumentCollectionDTO>;
+export type AddDocumentClientResult = NonNullable<DocumentCollectionDTO>;

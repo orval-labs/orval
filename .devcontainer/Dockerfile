@@ -1,4 +1,4 @@
-FROM node:22.22.3-bookworm
+FROM node:22.23.4-bookworm
 
 RUN apt-get update && apt-get install -y \
   git \
@@ -10,19 +10,19 @@ RUN apt-get update && apt-get install -y \
 # Vite+ unified toolchain CLI (`vp`), pinned to the repo's catalog version.
 # The project-local vp (node_modules/.bin) must win over the global one:
 # the global copy resolves `typescript` from its own tree and fails dts builds.
-RUN npm install -g vite-plus@0.2.9
+RUN npm install -g vite-plus@1.0.0
 
 USER node
 ENV BUN_INSTALL=/home/node/.bun
 ENV PATH="/app/node_modules/.bin:${BUN_INSTALL}/bin:${PATH}"
 
-# Bun is required: package.json declares packageManager bun@1.4.2 and
+# Bun is required: package.json declares packageManager bun@1.4.4 and
 # postinstall runs `bun scripts/link-workspace-bins.mjs`.
-# SHA-256 from https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/SHASUMS256.txt
+# SHA-256 from https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/SHASUMS256.txt
 ARG TARGETARCH
-ARG BUN_VERSION=1.4.2
-ARG BUN_SHA256_AMD64=36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913
-ARG BUN_SHA256_ARM64=54328bbc2d9c8e0c9f892c544d66c57a83b84139e34909e5ee81758f1ac8fda7
+ARG BUN_VERSION=1.4.4
+ARG BUN_SHA256_AMD64=bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c
+ARG BUN_SHA256_ARM64=baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e
 RUN set -eux; \
   case "${TARGETARCH}" in \
     amd64) BUN_ARCH=x64;     BUN_SHA256="${BUN_SHA256_AMD64}" ;; \

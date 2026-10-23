@@ -4,17 +4,12 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
-  NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
-import {
-  getHttpClientReturnTypes,
-  resetHttpClientReturnTypes,
-} from './http-client';
 import {
   generateHttpResourceClient,
   generateHttpResourceExtraFiles,
@@ -24,181 +19,14 @@ import {
   getAngularHttpResourceOnlyDependencies,
   routeRegistry,
 } from './http-resource';
-import { createQueryParams } from './test-helpers';
+import {
+  angularOverride,
+  createAngularOutput,
+  createQueryParams,
+} from './test-helpers';
 
-interface AngularOverride {
-  provideIn: 'root' | 'any' | boolean;
-  client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: NormalizedRuntimeValidation;
-  httpResource?: {
-    defaultValue?: unknown;
-    debugName?: string;
-    injector?: string;
-    equal?: string;
-  };
-  queryObjectSerialization: 'spec' | 'legacy';
-  observeOverloads: boolean;
-}
-
-const angularOverride = (
-  client: AngularOverride['client'],
-  runtimeValidation = true,
-  httpResource?: AngularOverride['httpResource'],
-): AngularOverride => ({
-  provideIn: 'root',
-  client,
-  runtimeValidation: { enabled: runtimeValidation, strategy: 'throw' },
-  queryObjectSerialization: 'spec',
-  observeOverloads: true,
-  ...(httpResource ? { httpResource } : {}),
-});
-
-const createOutput = (
-  overrides: Partial<NormalizedOutputOptions> = {},
-): NormalizedOutputOptions => {
-  const output = {
-    target: '/tmp/pet.ts',
-    schemas: '/tmp/schemas',
-    operationSchemas: undefined,
-    namingConvention: 'camelCase',
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: 'single',
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    override: {
-      operations: {},
-      tags: {},
-      query: {},
-      jsDoc: {},
-      header: false,
-      hono: {
-        handlerGenerationStrategy: 'smart',
-        compositeRoute: '',
-        validator: true,
-        validatorOutputPath: '',
-      },
-      formData: { disabled: true, arrayHandling: 'serialize' },
-      formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
-      requestOptions: true,
-      namingConvention: {},
-      components: {
-        schemas: {
-          prefix: '',
-          itemPrefix: '',
-          suffix: 'Schema',
-          itemSuffix: 'Item',
-        },
-        responses: { prefix: '', suffix: 'Response' },
-        parameters: { prefix: '', suffix: 'Parameters' },
-        requestBodies: { prefix: '', suffix: 'Body' },
-      },
-      angular: {
-        ...angularOverride('httpResource'),
-      },
-      swr: {},
-      zod: {
-        version: 'auto',
-        variant: 'classic',
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        coerce: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        generateReusableSchemas: false,
-        generateMeta: false,
-        generateDiscriminatedUnion: false,
-        exactOptional: false,
-        generateCompanionTypes: false,
-        dateTimeOptions: {},
-        timeOptions: {},
-      },
-      effect: {
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-        version: 'auto',
-      },
-      axios: {
-        includeHttpResponseReturnType: false,
-      },
-      fetch: {
-        includeHttpResponseReturnType: true,
-        forceSuccessResponse: false,
-        serializeResponseHeaders: false,
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        useRuntimeFetcher: false,
-        runtimeImplementationStyle: 'inline',
-        runtimeOutputPath: '/test/runtime.ts',
-        clientConfigOutputPath: '/test/client-config.ts',
-      },
-      enumGenerationType: 'const',
-      splitByContentType: false,
-      aliasCombinedTypes: false,
-      includeZodSchemaInArguments: false,
-      suppressReadonlyModifier: false,
-      mcp: {},
-    },
-    client: 'angular',
-    httpClient: 'angular',
-    clean: false,
-    docs: false,
-    formatter: undefined,
-    tsconfig: {},
-    packageJson: {},
-    headers: false,
-    indexFiles: true,
-    baseUrl: undefined,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    optionsParamRequired: false,
-    unionAddMissingProperties: false,
-    propertySortOrder: 'Specification',
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    factoryMethods: {
-      functionNamePrefix: 'create',
-      mode: 'single',
-      outputDirectory: '',
-      includeOptionalProperty: false,
-    },
-    ...overrides,
-  } satisfies NormalizedOutputOptions;
-
-  return output;
-};
+const createOutput = (overrides: Partial<NormalizedOutputOptions> = {}) =>
+  createAngularOutput(overrides, angularOverride('httpResource'));
 
 const createContextSpec = (
   output: NormalizedOutputOptions,
@@ -364,7 +192,6 @@ const createHeaderParams = (
 describe('angular httpResource generator', () => {
   beforeEach(() => {
     routeRegistry.reset();
-    resetHttpClientReturnTypes();
   });
 
   // ─── Dependency builders ──────────────────────────────────────────
@@ -458,7 +285,7 @@ describe('angular httpResource generator', () => {
       );
     });
 
-    it('leaves the HttpClient return-type registry untouched: the header registers mutations, in footer order', async () => {
+    it('returns the mutation ClientResult alias as returnType', async () => {
       const postVerb = createVerbOption({
         operationId: 'createPet',
         operationName: 'createPet',
@@ -469,20 +296,21 @@ describe('angular httpResource generator', () => {
         params: [],
         props: [],
       });
-      resetHttpClientReturnTypes();
 
-      await generateHttpResourceClient(
+      const { returnType } = await generateHttpResourceClient(
         postVerb,
         createGeneratorOptions({ route: '/pets' }),
         'angular',
         createOutput(),
       );
 
-      expect(getHttpClientReturnTypes(['createPet'])).toBe('');
+      expect(returnType?.()).toContain(
+        'export type CreatePetClientResult = NonNullable<Pet>',
+      );
     });
 
     it('does not import HttpResponse for retrieval verbs: resources never reference it', async () => {
-      const { imports } = await generateHttpResourceClient(
+      const { imports, returnType } = await generateHttpResourceClient(
         createVerbOption(),
         createGeneratorOptions(),
         'angular',
@@ -490,6 +318,9 @@ describe('angular httpResource generator', () => {
       );
 
       expect(imports.some((i) => i.name === 'HttpResponse')).toBe(false);
+      // Retrievals get a `*ResourceResult` alias from the resource builder,
+      // not a `*ClientResult` alias.
+      expect(returnType).toBeUndefined();
     });
 
     it('returns verb imports', async () => {
@@ -2432,6 +2263,49 @@ describe('angular httpResource generator', () => {
         'options?: OrvalHttpResourceOptions<Pet, unknown>): HttpResourceRef<Pet | undefined>;',
       );
     });
+
+    it('marks a comma-bearing optional param as undefined without splitting its type', () => {
+      const verbOption = createVerbOption({
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'filter',
+            definition: 'filter?: Record<string, string>',
+            implementation: 'filter?: Record<string, string>',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // The `| undefined` belongs after the whole `Signal<...>`; a comma inside
+      // the type must not end the rewrite early.
+      expect(header).toContain(
+        'filter: Signal<Record<string, string>> | undefined',
+      );
+      expect(header).not.toContain('Record<string | undefined');
+    });
   });
 
   // ─── URL-only form for simple GETs ────────────────────────────────
@@ -2913,29 +2787,6 @@ describe('angular httpResource generator', () => {
   // ─── Zod parse option ─────────────────────────────────────────────
 
   describe('zod parse option', () => {
-    it('includes parse option when explicit isZodSchema flag is set', () => {
-      const verbOption = createVerbOption({
-        response: baseResponse({
-          imports: [{ name: 'PetSchema', isZodSchema: true } as never],
-        }),
-      });
-      routeRegistry.set('getPetById', '/api/pets/${petId}');
-
-      const header = generateHttpResourceHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output: createOutput(),
-        verbOptions: { getPetById: verbOption },
-        clientImplementation: '',
-      } as never);
-
-      expect(header).toContain('parse: PetSchema.parse');
-    });
-
     it('auto-detects zod parse when schemas.type is zod', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
@@ -3125,37 +2976,6 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).not.toContain('parse:');
-    });
-
-    it('still adds parse with explicit isZodSchema even when runtimeValidation is false', () => {
-      const verbOption = createVerbOption({
-        response: baseResponse({
-          imports: [{ name: 'PetSchema', isZodSchema: true } as never],
-        }),
-      });
-      routeRegistry.set('getPetById', '/api/pets/${petId}');
-
-      const output = createOutput({
-        override: {
-          ...createOutput().override,
-          angular: angularOverride('httpResource', false),
-        },
-      });
-
-      const header = generateHttpResourceHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output,
-        verbOptions: { getPetById: verbOption },
-        clientImplementation: '',
-      } as never);
-
-      // Explicit isZodSchema flag bypasses the runtimeValidation toggle
-      expect(header).toContain('parse: PetSchema.parse');
     });
 
     it('combines parse and configured httpResource options', () => {

@@ -1,6 +1,5 @@
 import {
   booleanAttribute,
-  ChangeDetectionStrategy,
   Component,
   input,
 } from '@angular/core';
@@ -11,7 +10,6 @@ type BadgeShape = 'pill' | 'tag';
 
 @Component({
   selector: 'app-badge',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'badge',
     '[class.badge--pill]': "shape() === 'pill'",

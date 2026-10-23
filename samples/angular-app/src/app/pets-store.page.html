@@ -64,20 +64,22 @@
             </label>
 
             <button class="btn" type="submit" [disabled]="!canSubmitCreate()">
-              <span class="btn-icon">{{ createLoading() ? '⟳' : '+' }}</span>
+              <span class="btn-icon" aria-hidden="true">{{ createLoading() ? '⟳' : '+' }}</span>
               {{ createLoading() ? 'Creating…' : 'Create pet' }}
             </button>
           </form>
 
-          @if (createResult(); as result) {
-          <p
-            class="inline-result"
-            [class.success]="result.success"
-            [class.failure]="!result.success"
-          >
-            {{ result.message }}
-          </p>
-          }
+          <div aria-live="polite">
+            @if (createResult(); as result) {
+            <p
+              class="inline-result"
+              [class.success]="result.success"
+              [class.failure]="!result.success"
+            >
+              {{ result.message }}
+            </p>
+            }
+          </div>
         </app-demo-panel>
 
         <app-demo-panel

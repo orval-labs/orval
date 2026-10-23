@@ -1,6 +1,5 @@
 import {
   booleanAttribute,
-  ChangeDetectionStrategy,
   Component,
   input,
 } from '@angular/core';
@@ -10,7 +9,6 @@ import { CardComponent } from './card.component';
 @Component({
   selector: 'app-demo-panel',
   imports: [CardComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card>
       <div class="panel-header" [class.panel-header--compact]="compact()">

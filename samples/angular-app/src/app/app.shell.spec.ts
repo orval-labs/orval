@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 import { AppShell } from './app.shell';
 import { routes } from './app.routes';
@@ -37,5 +37,21 @@ describe('AppShell', () => {
       ['/http-both', '⇄ Both Clients'],
       ['/base-url-token', '⚓ Base URL Token'],
     ]);
+  });
+
+  it('marks only the active nav link as the current page', async () => {
+    const fixture = TestBed.createComponent(AppShell);
+    const router = TestBed.inject(Router);
+    router.resetConfig([{ path: 'http-resource', children: [] }]);
+    await router.navigateByUrl('/http-resource');
+    await fixture.whenStable();
+
+    const current = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>(
+        '.nav-bar a[aria-current="page"]',
+      ),
+    ).map((link) => link.getAttribute('href'));
+
+    expect(current).toEqual(['/http-resource']);
   });
 });
