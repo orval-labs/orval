@@ -959,12 +959,13 @@ const usesFormValueHelper = (context: ContextSpec) =>
 function getDateFormat(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-  depth = 0,
+  // Stops a self-referencing schema without limiting how deep an acyclic
+  // composition chain can go.
+  seen = new Set<OpenApiSchemaObject>(),
 ): 'date' | 'date-time' | undefined {
-  // Bounded so a self-referencing schema can't recurse forever.
-  if (depth > 4) return undefined;
   const { schema: resolved } = resolveSchemaRef(schema, context);
-  if (isBooleanJsonSchema(resolved)) return undefined;
+  if (isBooleanJsonSchema(resolved) || seen.has(resolved)) return undefined;
+  seen.add(resolved);
   if (resolved.format === 'date') return 'date';
   if (resolved.format === 'date-time') return 'date-time';
   for (const member of [
@@ -972,7 +973,7 @@ function getDateFormat(
     ...(resolved.anyOf ?? []),
     ...(resolved.oneOf ?? []),
   ]) {
-    const format = getDateFormat(member, context, depth + 1);
+    const format = getDateFormat(member, context, seen);
     if (format) return format;
   }
   return undefined;

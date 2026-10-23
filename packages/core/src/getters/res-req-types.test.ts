@@ -987,6 +987,44 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       ]);
     });
 
+    it('finds the date format through any depth of composition, and stops on a cycle', () => {
+      let deepDate: OpenApiSchemaObject = { type: 'string', format: 'date' };
+      for (let wrappers = 0; wrappers < 6; wrappers++) {
+        deepDate = { allOf: [deepDate] };
+      }
+      const [result] = getResReqTypes(
+        requestBody({
+          type: 'object',
+          required: ['deepDate', 'loop'],
+          properties: {
+            deepDate,
+            loop: { $ref: '#/components/schemas/Loop' },
+          },
+        }),
+        'Event',
+        extendContext({
+          override: { useDates: true },
+          spec: {
+            components: {
+              schemas: {
+                Loop: {
+                  type: 'string',
+                  anyOf: [{ $ref: '#/components/schemas/Loop' }],
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      expect(
+        formEntries(result.formData, { deepDate: since, loop: 'x' }),
+      ).toEqual([
+        ['deepDate', '2026-01-02'],
+        ['loop', 'x'],
+      ]);
+    });
+
     it('sends an invalid Date as a string instead of throwing', () => {
       const [result] = getResReqTypes(
         requestBody(eventSchema),
