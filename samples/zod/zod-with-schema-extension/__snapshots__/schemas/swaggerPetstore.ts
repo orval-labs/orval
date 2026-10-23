@@ -33,11 +33,7 @@ export const ListPetsResponseItem = /*#__PURE__*/ zod.object({
     /*#__PURE__*/ zod.string().check(
       /*#__PURE__*/ zod.refine(
         (() => {
-          const openapi_object = {
-            type: 'string',
-            format: 'decimal',
-            'x-max-precision': 3,
-          };
+          const maxPrecision = 3;
           return (value) => {
             if (
               typeof value !== 'string' ||
@@ -48,9 +44,7 @@ export const ListPetsResponseItem = /*#__PURE__*/ zod.object({
 
             const precision = value.split('.')[1]?.length ?? 0;
 
-            return (
-              precision === 0 || precision <= openapi_object['x-max-precision']
-            );
+            return precision === 0 || precision <= maxPrecision;
           };
         })(),
       ),
@@ -71,11 +65,7 @@ export const CreatePetsBody = /*#__PURE__*/ zod.object({
   tag: /*#__PURE__*/ zod.string().check(
     /*#__PURE__*/ zod.refine(
       (() => {
-        const openapi_object = {
-          type: 'string',
-          format: 'decimal',
-          'x-max-precision': 3,
-        };
+        const maxPrecision = 3;
         return (value) => {
           if (
             typeof value !== 'string' ||
@@ -86,9 +76,7 @@ export const CreatePetsBody = /*#__PURE__*/ zod.object({
 
           const precision = value.split('.')[1]?.length ?? 0;
 
-          return (
-            precision === 0 || precision <= openapi_object['x-max-precision']
-          );
+          return precision === 0 || precision <= maxPrecision;
         };
       })(),
     ),
@@ -102,11 +90,7 @@ export const CreatePetsResponse = /*#__PURE__*/ zod.object({
     /*#__PURE__*/ zod.string().check(
       /*#__PURE__*/ zod.refine(
         (() => {
-          const openapi_object = {
-            type: 'string',
-            format: 'decimal',
-            'x-max-precision': 3,
-          };
+          const maxPrecision = 3;
           return (value) => {
             if (
               typeof value !== 'string' ||
@@ -117,9 +101,7 @@ export const CreatePetsResponse = /*#__PURE__*/ zod.object({
 
             const precision = value.split('.')[1]?.length ?? 0;
 
-            return (
-              precision === 0 || precision <= openapi_object['x-max-precision']
-            );
+            return precision === 0 || precision <= maxPrecision;
           };
         })(),
       ),
@@ -147,11 +129,7 @@ export const ShowPetByIdResponse = /*#__PURE__*/ zod.object({
     /*#__PURE__*/ zod.string().check(
       /*#__PURE__*/ zod.refine(
         (() => {
-          const openapi_object = {
-            type: 'string',
-            format: 'decimal',
-            'x-max-precision': 3,
-          };
+          const maxPrecision = 3;
           return (value) => {
             if (
               typeof value !== 'string' ||
@@ -162,9 +140,7 @@ export const ShowPetByIdResponse = /*#__PURE__*/ zod.object({
 
             const precision = value.split('.')[1]?.length ?? 0;
 
-            return (
-              precision === 0 || precision <= openapi_object['x-max-precision']
-            );
+            return precision === 0 || precision <= maxPrecision;
           };
         })(),
       ),
