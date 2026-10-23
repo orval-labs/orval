@@ -12,6 +12,9 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getDelimitedParameters,
+  getFormObjectParameters,
+  getFormObjectParametersDeclaration,
+  getFormObjectQueryImplementation,
   getIsBodyVerb,
   getQueryDelimiter,
   GetterPropType,
@@ -445,11 +448,20 @@ const generateImplementation = (
       }`;
 
   // Build query params string
+  const formObjectParameters = getFormObjectParameters(
+    queryParams,
+    parameterObjects,
+    context,
+    operationName,
+  );
+  const formObjectImplementation =
+    formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
+
   const queryParamsCode = queryParams
     ? `const normalizedParams = new URLSearchParams();
-${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}
+${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '    ')}
     Object.entries(params || {}).forEach(([key, value]) => {
-      ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}
+      ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}${formObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values
         // are a type error at the call site (orval generates array-only types),

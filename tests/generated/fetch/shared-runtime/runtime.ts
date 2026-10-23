@@ -128,6 +128,8 @@ export interface QueryMeta {
   pipeDelimited?: string[];
   spaceDelimited?: string[];
   deepObject?: string[];
+  flattenObject?: string[];
+  commaObject?: string[];
 }
 
 const stringifyValue = (value: unknown) =>
@@ -186,6 +188,31 @@ export const serializeQuery = (
         normalizedParams.append(key, value.map(stringifyValue).join(','));
         return;
       }
+    } else if (
+      typeof value === 'object' &&
+      value !== null &&
+      !(value instanceof Date) &&
+      (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
+    ) {
+      // Plain-object form-style params: flatten writes each property as its own
+      // key, comma writes one key with prop,value pairs.
+      const commaParts: string[] = [];
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        const items = (Array.isArray(subValue) ? subValue : [subValue])
+          .filter((v) => v !== undefined)
+          .map(stringifyValue);
+        if (meta.flattenObject?.includes(key)) {
+          items.forEach((item) => {
+            normalizedParams.append(subKey, item);
+          });
+        } else if (items.length > 0) {
+          commaParts.push(subKey, ...items);
+        }
+      });
+      if (commaParts.length > 0) {
+        normalizedParams.append(key, commaParts.join(','));
+      }
+      return;
     } else if (
       typeof value === 'object' &&
       value !== null &&
