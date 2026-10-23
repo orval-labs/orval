@@ -1462,9 +1462,109 @@ describe('generateRequestFunction — pipeDelimited and spaceDelimited query arr
         ),
       ),
     ).toEqual([
-      ['tags', 'a|b'],
+      // Delimited entries are written after the URLSearchParams ones.
       ['ids', '1,2'],
+      ['tags', 'a|b'],
     ]);
+  });
+
+  it('writes the delimiters percent-encoded, with %20 rather than +', () => {
+    expect(
+      buildUrl(
+        [
+          arrayParameter('tags', 'pipeDelimited'),
+          arrayParameter('names', 'spaceDelimited'),
+        ],
+        { tags: ['a', 'b'], names: ['x y', 'z'] },
+      ),
+    ).toBe('/pets?tags=a%7Cb&names=x%20y%20z');
+  });
+
+  it('repeats the key for a delimited array with explode: true', () => {
+    expect(
+      decodedQuery(
+        buildUrl([arrayParameter('tags', 'pipeDelimited', true)], {
+          tags: ['a', 'b'],
+        }),
+      ),
+    ).toEqual([
+      ['tags', 'a'],
+      ['tags', 'b'],
+    ]);
+  });
+
+  it('still sends a scalar value for a delimited param when arrayFormat is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'tags',
+              in: 'query',
+              style: 'pipeDelimited',
+              schema: {
+                oneOf: [
+                  { type: 'string' },
+                  { type: 'array', items: { type: 'string' } },
+                ],
+              },
+            },
+          ],
+          { tags: 'a' },
+          'repeat',
+        ),
+      ),
+    ).toEqual([['tags', 'a']]);
+  });
+
+  it('serializes Date items of a composed array schema when useDates is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'at',
+              in: 'query',
+              style: 'pipeDelimited',
+              schema: {
+                oneOf: [
+                  {
+                    type: 'array',
+                    items: { type: 'string', format: 'date-time' },
+                  },
+                  { type: 'string' },
+                ],
+              },
+            },
+          ],
+          { at: [new Date(Date.UTC(2026, 0, 1))] },
+          undefined,
+          true,
+        ),
+      ),
+    ).toEqual([['at', '2026-01-01T00:00:00.000Z']]);
+  });
+
+  it('serializes Date items of an exploded form array when useDates is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl(
+          [
+            {
+              name: 'at',
+              in: 'query',
+              schema: {
+                type: 'array',
+                items: { type: 'string', format: 'date-time' },
+              },
+            },
+          ],
+          { at: [new Date(Date.UTC(2026, 0, 1))] },
+          undefined,
+          true,
+        ),
+      ),
+    ).toEqual([['at', '2026-01-01T00:00:00.000Z']]);
   });
 });
 

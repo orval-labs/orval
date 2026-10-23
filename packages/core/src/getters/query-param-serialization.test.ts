@@ -5,8 +5,10 @@ import type { OpenApiDocument } from '../types';
 import {
   getArrayFormatParameters,
   getDeepObjectParameters,
+  getDelimitedParameters,
   getExplodeParameters,
   getOperationParameters,
+  isDateTimeParam,
   isExplodeOnly,
 } from './query-param-serialization';
 
@@ -49,6 +51,41 @@ const spec = {
             schema: { type: 'array', items: { type: 'string' } },
           },
           { name: 'X-Trace', in: 'header', schema: { type: 'string' } },
+        ],
+        responses: {},
+      },
+    },
+    '/delimited': {
+      get: {
+        parameters: [
+          {
+            name: 'pipes',
+            in: 'query',
+            style: 'pipeDelimited',
+            schema: { type: 'array', items: { type: 'string' } },
+          },
+          {
+            name: 'spaces',
+            in: 'query',
+            style: 'spaceDelimited',
+            explode: false,
+            schema: {
+              oneOf: [
+                { type: 'string' },
+                {
+                  type: 'array',
+                  items: { type: 'string', format: 'date-time' },
+                },
+              ],
+            },
+          },
+          {
+            name: 'exploded',
+            in: 'query',
+            style: 'pipeDelimited',
+            explode: true,
+            schema: { type: 'array', items: { type: 'string' } },
+          },
         ],
         responses: {},
       },
@@ -114,6 +151,35 @@ describe('query param serialization', () => {
     expect(
       names(getArrayFormatParameters(parameters, context, 'comma')),
     ).toEqual(['shared', 'ids']);
+  });
+
+  it('keeps delimited styles out of arrayFormat and repeats them on explode: true', () => {
+    const delimited = getOperationParameters(
+      { pathRoute: '/delimited', verb: 'get' },
+      context,
+    );
+
+    expect(names(getDelimitedParameters(delimited, context))).toEqual([
+      'pipes',
+      'spaces',
+    ]);
+    expect(
+      names(getArrayFormatParameters(delimited, context, 'comma')),
+    ).toEqual([]);
+    expect(names(getExplodeParameters(delimited, context, 'comma'))).toEqual([
+      'exploded',
+    ]);
+  });
+
+  it('detects date-time params directly, as items and through composition', () => {
+    const delimited = getOperationParameters(
+      { pathRoute: '/delimited', verb: 'get' },
+      context,
+    );
+
+    expect(
+      delimited.map((parameter) => isDateTimeParam(parameter, context)),
+    ).toEqual([false, true, false]);
   });
 
   it('reports when every query param is an exploded array', () => {

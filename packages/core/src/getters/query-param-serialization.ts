@@ -11,6 +11,18 @@ import { toObjectSchema } from '../utils';
 
 export type QueryArrayFormat = 'repeat' | 'brackets' | 'comma';
 
+/** `pipeDelimited` / `spaceDelimited` query styles, which join array items. */
+export type QueryDelimitedStyle = 'pipeDelimited' | 'spaceDelimited';
+
+export const isDelimitedStyle = (
+  style: string | undefined,
+): style is QueryDelimitedStyle =>
+  style === 'pipeDelimited' || style === 'spaceDelimited';
+
+/** The percent-encoded separator a delimited style joins its items with. */
+export const getQueryDelimiter = (style: QueryDelimitedStyle) =>
+  style === 'pipeDelimited' ? '%7C' : '%20';
+
 /** Whether the parameter declares a `schema` (rather than `content`). */
 export const isSchemaParameter = (
   parameter: OpenApiParameterObject,
@@ -87,7 +99,41 @@ const isArrayLikeParam = (
 };
 
 /**
- * Array query params serialized as repeated keys (`form` + `explode`).
+ * Whether the parameter's schema is `format: date-time`, directly, as array
+ * items, or through a `oneOf` / `anyOf` / `allOf` member.
+ */
+export const isDateTimeParam = (
+  parameterObject: OpenApiParameterObject,
+  context: ContextSpec,
+) => {
+  if (!isSchemaParameter(parameterObject)) return false;
+  const isDateTime = (
+    schema: OpenApiSchemaObject | OpenApiReferenceObject,
+    depth: number,
+  ): boolean => {
+    // Bounded so a self-referencing schema can't recurse forever.
+    if (depth > 4) return false;
+    const { schema: schemaObject } = resolveSchemaRef(schema, context);
+    return (
+      schemaObject.format === 'date-time' ||
+      (schemaObject.items !== undefined &&
+        isDateTime(
+          schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
+          depth + 1,
+        )) ||
+      [
+        ...(schemaObject.oneOf ?? []),
+        ...(schemaObject.anyOf ?? []),
+        ...(schemaObject.allOf ?? []),
+      ].some((member) => isDateTime(member, depth + 1))
+    );
+  };
+  return isDateTime(parameterObject.schema, 0);
+};
+
+/**
+ * Array query params serialized as repeated keys: `form` + `explode`, and
+ * `pipeDelimited` / `spaceDelimited` with an explicit `explode: true`.
  *
  * @param arrayFormat The fetch client's `override.fetch.arrayFormat`. When set,
  * array params without an explicit `explode` are left to it instead of the
@@ -103,12 +149,39 @@ export const getExplodeParameters = (
       isSchemaParameter(parameterObject) &&
       parameterObject.in === 'query' &&
       isArrayLikeParam(parameterObject, context) &&
-      (parameterObject.style ?? 'form') === 'form' &&
-      (parameterObject.explode ?? true) &&
-      !(arrayFormat && parameterObject.explode === undefined),
+      ((parameterObject.style ?? 'form') === 'form'
+        ? (parameterObject.explode ?? true) &&
+          !(arrayFormat && parameterObject.explode === undefined)
+        : isDelimitedStyle(parameterObject.style) &&
+          parameterObject.explode === true),
   );
 
-/** Array query params without an explicit `explode`, serialized per `arrayFormat`. */
+/**
+ * Array query params with `style: pipeDelimited` / `spaceDelimited` and no
+ * `explode: true` (`explode` defaults to false for these styles), joined into
+ * one value. They take precedence over `arrayFormat`.
+ */
+export const getDelimitedParameters = (
+  parameters: OpenApiParameterObject[],
+  context: ContextSpec,
+) =>
+  parameters.filter(
+    (
+      parameterObject,
+    ): parameterObject is OpenApiParameterWithSchemaObject & {
+      style: QueryDelimitedStyle;
+    } =>
+      isSchemaParameter(parameterObject) &&
+      parameterObject.in === 'query' &&
+      isDelimitedStyle(parameterObject.style) &&
+      parameterObject.explode !== true &&
+      isArrayLikeParam(parameterObject, context),
+  );
+
+/**
+ * Array query params without an explicit `explode`, serialized per
+ * `arrayFormat`. Delimited styles keep their own separator.
+ */
 export const getArrayFormatParameters = (
   parameters: OpenApiParameterObject[],
   context: ContextSpec,
@@ -122,7 +195,8 @@ export const getArrayFormatParameters = (
           isSchemaParameter(parameterObject) &&
           parameterObject.in === 'query' &&
           isArrayLikeParam(parameterObject, context) &&
-          parameterObject.explode === undefined,
+          parameterObject.explode === undefined &&
+          !isDelimitedStyle(parameterObject.style),
       )
     : [];
 
