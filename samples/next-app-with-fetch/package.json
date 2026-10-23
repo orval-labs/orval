@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "8.43.0",
+  "version": "8.44.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "next": "15.5.24",
+    "next": "15.5.28",
     "react": "catalog:react",
     "react-dom": "^18.3.1"
   },

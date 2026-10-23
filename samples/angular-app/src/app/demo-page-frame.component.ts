@@ -1,11 +1,10 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { BadgeComponent } from './ui/badge.component';
 
 @Component({
   selector: 'app-demo-page-frame',
   imports: [BadgeComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="demo-page">
       <header class="hero">

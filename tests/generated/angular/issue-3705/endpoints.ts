@@ -358,3 +358,7 @@ export class Issue3705AngularQueryObjectSerializationStyleExplodeService {
     });
   }
 }
+
+export type SearchCatalogClientResult = NonNullable<CatalogItem[]>;
+export type SearchCatalogCommaClientResult = NonNullable<CatalogItem[]>;
+export type SearchCatalogDeepObjectClientResult = NonNullable<CatalogItem[]>;

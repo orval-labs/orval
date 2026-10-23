@@ -2116,6 +2116,7 @@ export interface GeneratorTarget {
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 }
 
 export interface GeneratorTargetFull {
@@ -2330,6 +2331,7 @@ export interface SharedTypeDeclaration {
 export type HeaderResult = {
   implementation: string;
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 };
 
 export type ClientHeaderBuilder = (params: {
@@ -2431,6 +2433,11 @@ export interface GetterBody {
   contentType: string;
   isOptional: boolean;
   isBlob: boolean;
+  /**
+   * `namingConvention.properties` renames a key somewhere in the body schema,
+   * so its Zod schema's parsed output no longer has the wire keys.
+   */
+  renamesKeys?: boolean;
 }
 
 export interface GetterParameters {
@@ -2640,6 +2647,7 @@ export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
   sharedTypes?: SharedTypeDeclaration[];
+  sharedExports?: SharedExports;
 }
 
 export type GeneratorClientTitle = (data: {

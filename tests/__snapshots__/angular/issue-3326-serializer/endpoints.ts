@@ -187,3 +187,5 @@ export class Issue3326AngularObjectQueryParameterSupportService {
     });
   }
 }
+
+export type SearchClientResult = NonNullable<SearchResult>;

@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { BlankEnum, HelloEnum, NotNullEnum } from './model';
 import type {
@@ -119,13 +119,13 @@ export const getGetItemsMockHandler = (
   overrideResponse?:
     | Item1[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Item1[]> | Item1[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -143,13 +143,13 @@ export const getGetItemsWithMultiplePropsMockHandler = (
   overrideResponse?:
     | Item3[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Item3[]> | Item3[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items-with-multiple-props',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -167,13 +167,13 @@ export const getGetNestedItemsMockHandler = (
   overrideResponse?:
     | NestedItem[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NestedItem[]> | NestedItem[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/nested-items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -191,13 +191,13 @@ export const getGetMixedEnumItemsMockHandler = (
   overrideResponse?:
     | MixedEnumItem[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<MixedEnumItem[]> | MixedEnumItem[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-enum-items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -215,13 +215,13 @@ export const getGetMixedTypeEnumsMockHandler = (
   overrideResponse?:
     | MixedTypeEnums[]
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<MixedTypeEnums[]> | MixedTypeEnums[]),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/mixed-type-enums',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

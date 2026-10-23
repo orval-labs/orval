@@ -221,6 +221,68 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).toContain('normalizedParams.append(key');
   });
 
+  it('joins pipeDelimited and spaceDelimited arrays with percent-encoded separators', async () => {
+    const parameters = [
+      {
+        name: 'tags',
+        in: 'query',
+        style: 'pipeDelimited',
+        schema: { type: 'array', items: { type: 'string' } },
+      },
+      {
+        name: 'names',
+        in: 'query',
+        style: 'spaceDelimited',
+        explode: false,
+        schema: { type: 'array', items: { type: 'string' } },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain(
+      'const delimitedParameters = new Map<string, string>([["tags","%7C"],["names","%20"]]);',
+    );
+    expect(implementation).toContain(
+      "delimitedEntries.push(encodeURIComponent(key) + '=' + value.map((v) => encodeURIComponent(v === null ? 'null' : String(v))).join(delimitedParameters.get(key)));",
+    );
+    expect(implementation).toContain(
+      "[normalizedParams.toString(), delimitedEntries.join('&')].filter(Boolean).join('&')",
+    );
+    expect(implementation).not.toContain('const explodeParameters');
+  });
+
+  it('serializes form-style object params instead of String(value)', async () => {
+    const parameters = [
+      {
+        name: 'page',
+        in: 'query',
+        schema: {
+          type: 'object',
+          properties: { number: { type: 'integer' } },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({
+      queryParams: {
+        ...STUB_QUERY_PARAMS,
+        objectQueryParams: [{ key: 'page', strategy: 'flatten' }],
+      },
+    });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain(
+      'const formObjectParameters = new Map<string, string>([["page","flatten"]]);',
+    );
+    expect(implementation).toContain(
+      "if (formObjectParameters.get(key) === 'flatten') {",
+    );
+  });
+
   it('treats a query array param as exploded when style and explode are both omitted (OpenAPI default)', async () => {
     // Per OpenAPI spec: omitted style defaults to 'form', and 'form' defaults explode to true.
     const parameters = [

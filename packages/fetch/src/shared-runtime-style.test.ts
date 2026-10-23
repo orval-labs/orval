@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import type {
   ContextSpec,
   GeneratorOptions,
@@ -13,6 +15,7 @@ import {
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -27,6 +30,11 @@ import {
   generateSharedClient,
   generateSharedRequestFunction,
 } from './shared-runtime-style';
+
+type SerializeQuery = (
+  params: Record<string, unknown>,
+  meta: Record<string, string[]>,
+) => string;
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
@@ -326,6 +334,115 @@ describe('generateSharedRequestFunction', () => {
       'return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`',
     );
     expect(implementation).not.toContain('URLSearchParams');
+  });
+
+  it('passes delimited params to the runtime instead of arrayFormat', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        queryParams: STUB_QUERY_PARAMS,
+        props: params,
+        override: {
+          requestOptions: false,
+          formUrlEncoded: false,
+          fetch: {
+            includeHttpResponseReturnType: false,
+            forceSuccessResponse: false,
+            runtimeValidation: { enabled: false, strategy: 'throw' },
+            arrayFormat: 'repeat',
+          },
+        },
+      }),
+      makeSharedOptions([
+        {
+          name: 'tags',
+          in: 'query',
+          style: 'pipeDelimited',
+          schema: { type: 'array', items: { type: 'string' } },
+        },
+        {
+          name: 'names',
+          in: 'query',
+          style: 'spaceDelimited',
+          explode: false,
+          schema: { type: 'array', items: { type: 'string' } },
+        },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      'const stringifiedParams = serializeQuery(params, { pipeDelimited: ["tags"], spaceDelimited: ["names"] });',
+    );
+  });
+
+  it('joins delimited arrays with percent-encoded separators at runtime', () => {
+    const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+      },
+    });
+    const exports: { serializeQuery?: SerializeQuery } = {};
+    runInNewContext(outputText, { exports, URLSearchParams, Date });
+
+    expect(
+      exports.serializeQuery?.(
+        { tags: ['a', 'b'], names: ['x y', 'z'], limit: 1 },
+        { pipeDelimited: ['tags'], spaceDelimited: ['names'] },
+      ),
+    ).toBe('limit=1&tags=a%7Cb&names=x%20y%20z');
+  });
+
+  it('passes form-style object params to the runtime', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        queryParams: {
+          ...STUB_QUERY_PARAMS,
+          objectQueryParams: [
+            { key: 'page', strategy: 'flatten' },
+            { key: 'range', strategy: 'comma' },
+          ],
+        },
+        props: params,
+      }),
+      makeSharedOptions([
+        { name: 'page', in: 'query', schema: { type: 'object' } },
+        {
+          name: 'range',
+          in: 'query',
+          explode: false,
+          schema: { type: 'object' },
+        },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      'const stringifiedParams = serializeQuery(params, { flattenObject: ["page"], commaObject: ["range"] });',
+    );
+  });
+
+  it('serializes form-style object params like the inline builder at runtime', () => {
+    const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+      },
+    });
+    const exports: { serializeQuery?: SerializeQuery } = {};
+    runInNewContext(outputText, { exports, URLSearchParams, Date });
+    const meta = { flattenObject: ['page'], commaObject: ['range', 'empty'] };
+
+    expect(
+      exports.serializeQuery?.(
+        {
+          page: { number: 2, tags: ['a', 'b'], cursor: undefined },
+          range: { since: new Date(Date.UTC(2026, 0, 2)), limit: null },
+          empty: { cursor: undefined },
+        },
+        meta,
+      ),
+    ).toBe(
+      `number=2&tags=a&tags=b&range=${encodeURIComponent('since,2026-01-02T00:00:00.000Z,limit,null')}`,
+    );
   });
 
   it('omits the meta when no query param needs special serialization', () => {

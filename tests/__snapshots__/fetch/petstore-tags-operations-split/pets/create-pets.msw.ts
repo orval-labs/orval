@@ -5,9 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Pet } from '../model';
+import type { CreatePetsBody, Pet } from '../model';
 
 import { getCreatePetsResponseMock } from './create-pets.faker';
 
@@ -17,13 +21,15 @@ export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, CreatePetsBody>(
     '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, CreatePetsBody>>[0],
+    ) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

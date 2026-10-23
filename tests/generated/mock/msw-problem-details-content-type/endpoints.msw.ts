@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Pet, Problem } from './model';
 
@@ -41,13 +41,13 @@ export const getGetPetMockHandler = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -65,13 +65,13 @@ export const getGetPetMockHandler200 = (
   overrideResponse?:
     | Pet
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -89,13 +89,13 @@ export const getGetPetMockHandler404 = (
   overrideResponse?:
     | Problem
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ petId: string }>>[0],
       ) => Promise<Problem> | Problem),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ petId: string }>(
     '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

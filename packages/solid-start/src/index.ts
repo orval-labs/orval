@@ -11,8 +11,14 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getDelimitedParameters,
+  getFormObjectParameters,
+  getFormObjectParametersDeclaration,
+  getFormObjectQueryImplementation,
   getIsBodyVerb,
+  getQueryDelimiter,
   GetterPropType,
+  isDateTimeParam,
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
@@ -329,6 +335,20 @@ const generateImplementation = (
       return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });
 
+  // `pipeDelimited` / `spaceDelimited` arrays join their percent-encoded
+  // items with `%7C` / `%20`, bypassing URLSearchParams (which writes a
+  // space as `+`). `explode: true` ones are in `explodeParameters`.
+  const delimitedParameters = getDelimitedParameters(parameterObjects, context);
+  const delimitedParametersEntries = delimitedParameters.map((parameter) => [
+    parameter.name,
+    getQueryDelimiter(parameter.style),
+  ]);
+  const hasDelimitedDateParams =
+    !!context.output.override.useDates &&
+    delimitedParameters.some((parameter) =>
+      isDateTimeParam(parameter, context),
+    );
+
   const deepObjectParameters = parameterObjects.filter(
     (parameterObject): parameterObject is OpenApiParameterWithSchemaObject =>
       isSchemaParameter(parameterObject) &&
@@ -394,6 +414,20 @@ const generateImplementation = (
         `
       : '';
 
+  const delimitedArrayImplementation =
+    delimitedParameters.length > 0
+      ? `if (Array.isArray(value) && delimitedParameters.has(key)) {
+        delimitedEntries.push(encodeURIComponent(key) + '=' + value.map((v) => encodeURIComponent(v === null ? 'null' : ${hasDelimitedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v))).join(delimitedParameters.get(key)));
+        return;
+      }
+        `
+      : '';
+
+  const encodedEntries = [
+    ...(delimitedParameters.length > 0 ? ['delimitedEntries'] : []),
+    ...(deepObjectParameters.length > 0 ? ['deepObjectEntries'] : []),
+  ];
+
   const deepObjectImplementation =
     deepObjectParameters.length > 0
       ? `const deepObjectParameters = ${JSON.stringify(deepObjectParameterNames)};
@@ -414,11 +448,20 @@ const generateImplementation = (
       }`;
 
   // Build query params string
+  const formObjectParameters = getFormObjectParameters(
+    queryParams,
+    parameterObjects,
+    context,
+    operationName,
+  );
+  const formObjectImplementation =
+    formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
+
   const queryParamsCode = queryParams
     ? `const normalizedParams = new URLSearchParams();
-${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}
+${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '    ')}
     Object.entries(params || {}).forEach(([key, value]) => {
-      ${explodeArrayImplementation}${deepObjectImplementation}
+      ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}${formObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values
         // are a type error at the call site (orval generates array-only types),
@@ -427,7 +470,7 @@ ${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];
       }
     });
 
-    const queryString = ${deepObjectParameters.length > 0 ? `[normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&')` : `normalizedParams.toString()`};
+    const queryString = ${encodedEntries.length > 0 ? `[normalizedParams.toString(), ${encodedEntries.map((entries) => `${entries}.join('&')`).join(', ')}].filter(Boolean).join('&')` : `normalizedParams.toString()`};
     const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
     : `const url = \`${route}\`;`;
 

@@ -4,7 +4,6 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import {
-  ChangeDetectionStrategy,
   Component,
   provideZonelessChangeDetection,
   signal,
@@ -138,8 +137,6 @@ describe('HttpResourcePage', () => {
 // text (see tests/api-generation.spec.ts for the generation-shape check).
 @Component({
   selector: 'app-request-extension-host',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '',
 })
 class RequestExtensionHostComponent {

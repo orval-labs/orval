@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -26,7 +25,6 @@ import { PetCardComponent } from './ui/pet-card.component';
     DemoPanelComponent,
     PetCardComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pets-store.page.html',
   styleUrls: ['./pets-store.page.css'],
 })

@@ -119,7 +119,11 @@ export interface QueryMeta {
   repeat?: string[];
   brackets?: string[];
   comma?: string[];
+  pipeDelimited?: string[];
+  spaceDelimited?: string[];
   deepObject?: string[];
+  flattenObject?: string[];
+  commaObject?: string[];
 }
 
 const stringifyValue = (value: unknown) =>
@@ -140,10 +144,28 @@ export const serializeQuery = (
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  const deepObjectEntries: string[] = [];
+  // Pre-encoded entries that bypass URLSearchParams.
+  const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
+      // Joined with a percent-encoded separator; URLSearchParams would write
+      // the space as '+'.
+      const delimiter = meta.pipeDelimited?.includes(key)
+        ? '%7C'
+        : meta.spaceDelimited?.includes(key)
+          ? '%20'
+          : undefined;
+      if (delimiter) {
+        encodedEntries.push(
+          encodeURIComponent(key) +
+            '=' +
+            value
+              .map((v) => encodeURIComponent(stringifyValue(v)))
+              .join(delimiter),
+        );
+        return;
+      }
       if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
         value.forEach((v) => {
           normalizedParams.append(key, stringifyValue(v));
@@ -163,11 +185,36 @@ export const serializeQuery = (
     } else if (
       typeof value === 'object' &&
       value !== null &&
+      !(value instanceof Date) &&
+      (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
+    ) {
+      // Plain-object form-style params: flatten writes each property as its own
+      // key, comma writes one key with prop,value pairs.
+      const commaParts: string[] = [];
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        const items = (Array.isArray(subValue) ? subValue : [subValue])
+          .filter((v) => v !== undefined)
+          .map(stringifyValue);
+        if (meta.flattenObject?.includes(key)) {
+          items.forEach((item) => {
+            normalizedParams.append(subKey, item);
+          });
+        } else if (items.length > 0) {
+          commaParts.push(subKey, ...items);
+        }
+      });
+      if (commaParts.length > 0) {
+        normalizedParams.append(key, commaParts.join(','));
+      }
+      return;
+    } else if (
+      typeof value === 'object' &&
+      value !== null &&
       meta.deepObject?.includes(key)
     ) {
       Object.entries(value).forEach(([subKey, subValue]) => {
         if (subValue !== undefined) {
-          deepObjectEntries.push(
+          encodedEntries.push(
             encodeURIComponent(key) +
               '[' +
               encodeURIComponent(subKey) +
@@ -186,7 +233,7 @@ export const serializeQuery = (
     }
   });
 
-  return [normalizedParams.toString(), deepObjectEntries.join('&')]
+  return [normalizedParams.toString(), encodedEntries.join('&')]
     .filter(Boolean)
     .join('&');
 };

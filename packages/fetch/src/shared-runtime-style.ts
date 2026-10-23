@@ -14,6 +14,8 @@ import {
   getImport,
   getArrayFormatParameters,
   getDeepObjectParameters,
+  getDelimitedParameters,
+  getFormObjectParameters,
   getExplodeParameters,
   getOperationParameters,
   GetterPropType,
@@ -181,6 +183,11 @@ export const generateSharedRequestFunction = (
   const parameters = getOperationParameters({ pathRoute, verb }, context);
   const names = (group: { name: string }[]) =>
     group.map((parameter) => parameter.name);
+  const delimited = getDelimitedParameters(parameters, context);
+  // A custom `paramsSerializer` owns the whole query string.
+  const formObject = paramsSerializer
+    ? []
+    : getFormObjectParameters(queryParams, parameters, context, operationName);
   const meta = Object.entries({
     explode: names(getExplodeParameters(parameters, context, arrayFormat)),
     ...(arrayFormat
@@ -190,7 +197,17 @@ export const generateSharedRequestFunction = (
           ),
         }
       : {}),
+    pipeDelimited: names(delimited.filter((p) => p.style === 'pipeDelimited')),
+    spaceDelimited: names(
+      delimited.filter((p) => p.style === 'spaceDelimited'),
+    ),
     deepObject: names(getDeepObjectParameters(parameters)),
+    flattenObject: formObject
+      .filter(({ strategy }) => strategy === 'flatten')
+      .map(({ key }) => key),
+    commaObject: formObject
+      .filter(({ strategy }) => strategy === 'comma')
+      .map(({ key }) => key),
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);

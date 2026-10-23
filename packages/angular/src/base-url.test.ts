@@ -13,163 +13,14 @@ import {
   getProvideBaseUrlName,
   getProvideBaseUrlResolverName,
 } from './base-url';
+import { angularOverride, createAngularOutput } from './test-helpers';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-const angularOverride = {
-  provideIn: 'root',
-  client: 'httpClient',
-  runtimeValidation: { enabled: false, strategy: 'throw' },
-  queryObjectSerialization: 'spec',
-  observeOverloads: true,
-} as const;
-
-const createOutput = (
-  overrides: Partial<NormalizedOutputOptions> = {},
-): NormalizedOutputOptions => {
-  const output = {
-    target: '/tmp/pet.ts',
-    schemas: '/tmp/schemas',
-    operationSchemas: undefined,
-    namingConvention: 'camelCase',
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: 'single',
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    override: {
-      operations: {},
-      tags: {},
-      query: {},
-      jsDoc: {},
-      header: false,
-      hono: {
-        handlerGenerationStrategy: 'smart',
-        compositeRoute: '',
-        validator: true,
-        validatorOutputPath: '',
-      },
-      formData: { disabled: true, arrayHandling: 'serialize' },
-      formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
-      requestOptions: true,
-      namingConvention: {},
-      components: {
-        schemas: {
-          prefix: '',
-          itemPrefix: '',
-          suffix: 'Schema',
-          itemSuffix: 'Item',
-        },
-        responses: { prefix: '', suffix: 'Response' },
-        parameters: { prefix: '', suffix: 'Parameters' },
-        requestBodies: { prefix: '', suffix: 'Body' },
-      },
-      angular: angularOverride,
-      swr: {},
-      zod: {
-        version: 'auto',
-        variant: 'classic',
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        coerce: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        generateReusableSchemas: false,
-        generateMeta: false,
-        generateDiscriminatedUnion: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-        generateCompanionTypes: false,
-        dateTimeOptions: {},
-        timeOptions: {},
-      },
-      effect: {
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: true,
-          query: true,
-          header: true,
-          body: true,
-          response: true,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-        version: 'auto',
-      },
-      axios: {
-        includeHttpResponseReturnType: false,
-      },
-      fetch: {
-        includeHttpResponseReturnType: true,
-        forceSuccessResponse: false,
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        useRuntimeFetcher: false,
-        serializeResponseHeaders: false,
-        runtimeImplementationStyle: 'inline',
-        runtimeOutputPath: '/test/runtime.ts',
-        clientConfigOutputPath: '/test/client-config.ts',
-      },
-      enumGenerationType: 'const',
-      splitByContentType: false,
-      aliasCombinedTypes: false,
-      includeZodSchemaInArguments: false,
-      suppressReadonlyModifier: false,
-      mcp: {},
-    },
-    client: 'angular',
-    httpClient: 'angular',
-    clean: false,
-    docs: false,
-    formatter: undefined,
-    tsconfig: {},
-    packageJson: {},
-    headers: false,
-    indexFiles: true,
-    baseUrl: undefined,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    optionsParamRequired: false,
-    unionAddMissingProperties: false,
-    propertySortOrder: 'Specification',
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    factoryMethods: {
-      functionNamePrefix: 'create',
-      mode: 'single',
-      outputDirectory: '',
-      includeOptionalProperty: false,
-    },
-    ...overrides,
-  } satisfies NormalizedOutputOptions;
-
-  return output;
-};
+const createOutput = (overrides: Partial<NormalizedOutputOptions> = {}) =>
+  createAngularOutput(overrides, angularOverride('httpClient', false));
 
 const createContextSpec = (
   output: NormalizedOutputOptions,
@@ -312,7 +163,10 @@ describe('normalizeBaseUrl trailing-slash matrix', () => {
 describe('getAngularBaseUrlFilePath', () => {
   it('is mode-independent: always <dirname>/<filename>.base-url.ts', () => {
     for (const mode of ['single', 'split', 'tags', 'tags-split'] as const) {
-      const output = createOutput({ target: '/tmp/api/pet.ts', mode });
+      const output = createOutput({
+        target: '/tmp/api/pet.ts',
+        mode,
+      });
       expect(getAngularBaseUrlFilePath(output)).toBe(
         '/tmp/api/pet.base-url.ts',
       );
@@ -329,7 +183,10 @@ describe('getAngularBaseUrlImportSpecifier', () => {
   // shift for that mode or the writer would double-apply it.
   it('is mode-independent: always "./<filename>.base-url"', () => {
     for (const mode of ['single', 'split', 'tags', 'tags-split'] as const) {
-      const output = createOutput({ target: '/tmp/api/pet.ts', mode });
+      const output = createOutput({
+        target: '/tmp/api/pet.ts',
+        mode,
+      });
       expect(getAngularBaseUrlImportSpecifier(output)).toBe('./pet.base-url');
     }
   });
@@ -355,7 +212,10 @@ describe('generateAngularBaseUrlExtraFiles', () => {
     const output = createOutput({
       override: {
         ...createOutput().override,
-        angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+        angular: {
+          ...angularOverride('httpClient', false),
+          baseUrl: { apiId: 'example-api' },
+        },
       },
     });
     const context = createContextSpec(output, [
@@ -377,7 +237,7 @@ describe('generateAngularBaseUrlExtraFiles', () => {
       override: {
         ...createOutput().override,
         angular: {
-          ...angularOverride,
+          ...angularOverride('httpClient', false),
           baseUrl: {
             apiId: 'example-api',
             index: 1,
@@ -405,7 +265,10 @@ describe('generateAngularBaseUrlExtraFiles', () => {
     const output = createOutput({
       override: {
         ...createOutput().override,
-        angular: { ...angularOverride, baseUrl: { apiId: 'example-api' } },
+        angular: {
+          ...angularOverride('httpClient', false),
+          baseUrl: { apiId: 'example-api' },
+        },
       },
     });
 

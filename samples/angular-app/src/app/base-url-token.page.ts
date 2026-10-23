@@ -1,6 +1,5 @@
 import { AsyncPipe } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   inject,
   signal,
@@ -30,7 +29,6 @@ import { PetCardComponent } from './ui/pet-card.component';
   // is registered once at application root in `app.config.ts`, which is where
   // it belongs. The generated services are `providedIn: 'root'`, so a
   // component-level override would never reach them.
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './base-url-token.page.html',
   styleUrl: './demo-page.styles.css',
 })
@@ -47,7 +45,7 @@ export class BaseUrlTokenPage {
   protected readonly version = signal(1);
 
   protected readonly petsState$ = toLoadState<Pets>(
-    this.petService.listPets('application/json', undefined, 1),
+    this.petService.listPets('application/json', undefined, this.version()),
     [] as Pets,
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 

@@ -32,6 +32,7 @@ import {
 import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 import type { FormDataContext } from './object';
+import { getPropertyNamingConvention } from './property-renames';
 
 const getSchemaType = (s: OpenApiSchemaObject) =>
   isBooleanJsonSchema(s)
@@ -974,9 +975,7 @@ function resolveSchemaPropertiesToFormData({
   // fields are appended as plain strings rather than wrapped in a Blob (#1624).
   const isUrlEncoded = variableName === 'formUrlEncoded';
   const schemaProps = collectPropertiesThroughAllOf(schema, context);
-  const propertyConvention =
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
-    context.output.override.namingConvention?.properties;
+  const propertyConvention = getPropertyNamingConvention(context.output);
   // Same collision set the type renderer computes: keys that would collide
   // after conversion keep their original schema key in the TS type, so the
   // serializer must read those from the original key too (#2381).
@@ -1012,9 +1011,7 @@ function resolveSchemaPropertiesToFormData({
     // still appending the ORIGINAL schema key on the wire (#2381). Colliding
     // keys (e.g. first_name + firstName) keep the original key in the type,
     // so read the original key too.
-    const propertyConvention =
-      // oxlint-disable-next-line typescript/no-unnecessary-condition
-      context.output.override.namingConvention?.properties;
+    const propertyConvention = getPropertyNamingConvention(context.output);
     const accessorKey =
       propertyConvention && !collisionKeys.has(key)
         ? conventionName(key, propertyConvention)

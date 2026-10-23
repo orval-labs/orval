@@ -613,3 +613,10 @@ export class SwaggerPetstoreService {
       );
   }
 }
+
+export type ListPetsClientResult = NonNullable<PetsOutput>;
+export type CreatePetsClientResult = NonNullable<PetOutput>;
+export type ShowPetByIdClientResult = NonNullable<PetOutput>;
+export type DeletePetByIdClientResult = NonNullable<void>;
+export type HealthCheckClientResult = NonNullable<string>;
+export type ShowPetWithOwnerClientResult = NonNullable<PetWithTagOutput>;

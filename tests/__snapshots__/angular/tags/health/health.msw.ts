@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getHealthCheckResponseMock = (): string => faker.word.sample();
 
@@ -15,13 +15,13 @@ export const getHealthCheckMockHandler = (
   overrideResponse?:
     | string
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver<{ version: string }>>[0],
       ) => Promise<string> | string),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get(
+  return http.get<{ version: string }>(
     '*/v:version/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver<{ version: string }>>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

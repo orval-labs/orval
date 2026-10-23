@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Animal, Cat, Dog } from './model';
 
@@ -54,14 +54,12 @@ export const getGetAnimalResponseMock = (): Animal => ({
 export const getGetAnimalMockHandler = (
   overrideResponse?:
     | Animal
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Animal> | Animal),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Animal> | Animal),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/animal',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

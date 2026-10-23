@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { ConstrainedItem } from './model';
 
@@ -60,13 +60,13 @@ export const getGetItemsMockHandler = (
   overrideResponse?:
     | ConstrainedItem
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<ConstrainedItem> | ConstrainedItem),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/items',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

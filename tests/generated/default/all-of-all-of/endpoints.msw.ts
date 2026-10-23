@@ -7,7 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import { NoteType } from './model';
 import type { PrivateNote, SharedNote } from './model';
@@ -49,13 +49,13 @@ export const getCreateSharedNoteMockHandler = (
   overrideResponse?:
     | SharedNote
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<SharedNote> | SharedNote),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
     '*/shared-notes',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -73,13 +73,13 @@ export const getCreatePrivateNoteMockHandler = (
   overrideResponse?:
     | PrivateNote
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<PrivateNote> | PrivateNote),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
     '*/private-notes',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

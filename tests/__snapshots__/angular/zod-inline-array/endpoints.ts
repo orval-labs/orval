@@ -294,3 +294,9 @@ export class AngularZodInlineArrayResponsesService {
       .pipe(map((data) => zod.array(Item).parse(data)));
   }
 }
+
+export type ListItemsClientResult = NonNullable<ItemOutput[]>;
+export type ListNamedItemsClientResult = NonNullable<ItemsOutput>;
+export type ListStringsClientResult = NonNullable<string[]>;
+export type GetItemClientResult = NonNullable<ItemOutput>;
+export type ListMultiContentClientResult = NonNullable<ItemOutput[] | string>;

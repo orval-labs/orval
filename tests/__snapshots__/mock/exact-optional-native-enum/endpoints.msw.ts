@@ -8,7 +8,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Template, User } from './model';
 
@@ -66,14 +66,12 @@ export const getGetTemplateResponseMock = (
 export const getGetUserMockHandler = (
   overrideResponse?:
     | User
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<User> | User),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<User> | User),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/user',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -91,13 +89,13 @@ export const getGetTemplateMockHandler = (
   overrideResponse?:
     | Template
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<Template> | Template),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/api/template',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'

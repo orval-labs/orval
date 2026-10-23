@@ -7,9 +7,13 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type {
+  HttpResponseResolver,
+  PathParams,
+  RequestHandlerOptions,
+} from 'msw';
 
-import type { Node, NodeWithRequiredChild } from './model';
+import type { AddListBody, Node, NodeWithRequiredChild } from './model';
 
 export const getGetExampleResponseMock = (
   overrideResponse: Partial<Extract<Node, object>> = {},
@@ -51,14 +55,12 @@ export const getGetNodeWithRequiredChildResponseMock = (
 export const getGetExampleMockHandler = (
   overrideResponse?:
     | Node
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Node> | Node),
+    | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Node> | Node),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/example',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -76,13 +78,13 @@ export const getGetNodeWithRequiredChildMockHandler = (
   overrideResponse?:
     | NodeWithRequiredChild
     | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
+        info: Parameters<HttpResponseResolver>[0],
       ) => Promise<NodeWithRequiredChild> | NodeWithRequiredChild),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/node-with-required-child',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+    async (info: Parameters<HttpResponseResolver>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -100,13 +102,15 @@ export const getAddListMockHandler = (
   overrideResponse?:
     | void
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
+        info: Parameters<HttpResponseResolver<PathParams, AddListBody>>[0],
       ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
-  return http.post(
+  return http.post<PathParams, AddListBody>(
     '*/list',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+    async (
+      info: Parameters<HttpResponseResolver<PathParams, AddListBody>>[0],
+    ) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }

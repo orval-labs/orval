@@ -41,15 +41,15 @@ MSW 生成器会为每个操作生成两类函数，以及一个聚合器。mock
 
 ```ts
 import { HttpResponse, delay, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pet> | Pet),
+    | ((info: Parameters<HttpResponseResolver<{ petId: string }>>[0]) => Promise<Pet> | Pet),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get('*/pets/:petId', async (info) => {
+  return http.get<{ petId: string }>('*/pets/:petId', async (info) => {
     await delay(1000);
     return HttpResponse.json(
       overrideResponse !== undefined
@@ -62,6 +62,8 @@ export const getShowPetByIdMockHandler = (
   }, options);
 };
 ```
+
+resolver 的 `info`（以及 `overrideResponse` 回调）会使用该操作的路径参数和请求体类型，因此 `info.params.petId` 的类型为 `string`，`await info.request.json()` 返回请求体类型（例如 `CreatePetsBody`）。没有路径参数的操作使用 MSW 的 `PathParams`。
 
 Orval 会根据你的 OpenAPI 规范中的 content type（内容类型）选择合适的 `HttpResponse` helper。如果定义了多个 content type（内容类型），你可以设置一个首选默认值；否则会按规范中的顺序使用：
 
