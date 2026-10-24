@@ -166,6 +166,22 @@ export const GetItemArchiveAccept = {
   application_zip: 'application/zip',
 } as const;
 
+export type GetItemDocumentAccept =
+  (typeof GetItemDocumentAccept)[keyof typeof GetItemDocumentAccept];
+
+export const GetItemDocumentAccept = {
+  application_json: 'application/json',
+  application_yaml: 'application/yaml',
+} as const;
+
+export type GetItemReportAccept =
+  (typeof GetItemReportAccept)[keyof typeof GetItemReportAccept];
+
+export const GetItemReportAccept = {
+  application_json: 'application/json',
+  application_x_pdf: 'application/x-pdf',
+} as const;
+
 /**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
@@ -566,6 +582,115 @@ export function getItemArchiveResource(
   );
 }
 
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function getItemDocumentResource(
+  id: Signal<string>,
+  accept: 'application/json',
+  options?: OrvalHttpResourceOptions<ItemOutput, unknown, true>,
+): HttpResourceRef<ItemOutput | undefined>;
+export function getItemDocumentResource(
+  id: Signal<string>,
+  accept: 'application/yaml',
+  options?: OrvalHttpResourceOptions<Blob, Blob, true>,
+): HttpResourceRef<Blob | undefined>;
+export function getItemDocumentResource(
+  id: Signal<string>,
+  accept: GetItemDocumentAccept = 'application/json',
+  options?:
+    | OrvalHttpResourceOptions<ItemOutput, unknown, true>
+    | OrvalHttpResourceOptions<Blob, Blob, true>,
+): HttpResourceRef<ItemOutput | Blob | undefined> {
+  const buildRequest = (): HttpResourceRequest => {
+    const request = `/items/${id()}/document`;
+    const normalizedRequest: HttpResourceRequest = { url: request };
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
+    return {
+      ...extendedRequest,
+      headers:
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
+    };
+  };
+
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<ItemOutput>(buildRequest, {
+      ...(options ?? {}),
+      parse: Item.parse,
+    } as unknown as OrvalHttpResourceOptions<ItemOutput, unknown, true>);
+  }
+
+  return httpResource.blob<Blob>(
+    buildRequest,
+    options as unknown as OrvalHttpResourceOptions<Blob, Blob, true>,
+  );
+}
+
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function getItemReportResource(
+  id: Signal<string>,
+  accept: 'application/json',
+  options?: OrvalHttpResourceOptions<ItemOutput, unknown, true>,
+): HttpResourceRef<ItemOutput | undefined>;
+export function getItemReportResource(
+  id: Signal<string>,
+  accept: 'application/x-pdf',
+  options?: OrvalHttpResourceOptions<ArrayBuffer, ArrayBuffer, true>,
+): HttpResourceRef<ArrayBuffer | undefined>;
+export function getItemReportResource(
+  id: Signal<string>,
+  accept: GetItemReportAccept = 'application/json',
+  options?:
+    | OrvalHttpResourceOptions<ItemOutput, unknown, true>
+    | OrvalHttpResourceOptions<ArrayBuffer, ArrayBuffer, true>,
+): HttpResourceRef<ItemOutput | ArrayBuffer | undefined> {
+  const buildRequest = (): HttpResourceRequest => {
+    const request = `/items/${id()}/report`;
+    const normalizedRequest: HttpResourceRequest = { url: request };
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
+    return {
+      ...extendedRequest,
+      headers:
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
+    };
+  };
+
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<ItemOutput>(buildRequest, {
+      ...(options ?? {}),
+      parse: Item.parse,
+    } as unknown as OrvalHttpResourceOptions<ItemOutput, unknown, true>);
+  }
+
+  if (accept.includes('octet-stream') || accept.includes('pdf')) {
+    return httpResource.arrayBuffer<ArrayBuffer>(
+      buildRequest,
+      options as unknown as OrvalHttpResourceOptions<
+        ArrayBuffer,
+        ArrayBuffer,
+        true
+      >,
+    );
+  }
+
+  return httpResource<ItemOutput>(buildRequest, {
+    ...(options ?? {}),
+    parse: Item.parse,
+  } as unknown as OrvalHttpResourceOptions<ItemOutput, unknown, true>);
+}
+
 export type GetItemResourceResult = NonNullable<ItemOutput>;
 export type GetItemImageResourceResult = NonNullable<
   ImageMetadataOutput | Blob
@@ -579,6 +704,8 @@ export type GetItemLabelResourceResult = NonNullable<
   GetItemLabel200OneOutput | string
 >;
 export type GetItemArchiveResourceResult = NonNullable<ItemOutput | Blob>;
+export type GetItemDocumentResourceResult = NonNullable<ItemOutput | Blob>;
+export type GetItemReportResourceResult = NonNullable<ItemOutput | ArrayBuffer>;
 
 /**
  * Utility type for httpResource results with status tracking.

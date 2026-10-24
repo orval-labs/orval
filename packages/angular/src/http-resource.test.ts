@@ -2058,6 +2058,85 @@ describe('angular httpResource generator', () => {
         '  return httpResource.blob<Blob>(buildRequest, options as unknown as OrvalHttpResourceOptions<Blob, Blob>);\n}',
       );
     });
+
+    // A media type no branch matches is typed `Blob` even when its schema is
+    // an object and nothing in the operation is binary, so the fallback must
+    // read it as a Blob instead of JSON-parsing it (#4370).
+    // The dispatch matches `pdf` and `octet-stream` anywhere in the media
+    // type, so `application/x-pdf` lands in the arrayBuffer branch and must
+    // be typed as an ArrayBuffer (#4370).
+    it('types a media type in the arrayBuffer branch as ArrayBuffer', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'application/x-pdf'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/x-pdf'],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "accept: 'application/x-pdf',\n    options?: OrvalHttpResourceOptions<ArrayBuffer, ArrayBuffer>): HttpResourceRef<ArrayBuffer | undefined>",
+      );
+      expect(header).toContain(
+        'httpResource.arrayBuffer<ArrayBuffer>(buildRequest, options as unknown as OrvalHttpResourceOptions<ArrayBuffer, ArrayBuffer>)',
+      );
+    });
+
+    it('serves an unmatched non-binary media type as a Blob', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Pet', 'application/yaml'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/yaml'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "accept: 'application/yaml',\n    options?: OrvalHttpResourceOptions<Blob, Blob>): HttpResourceRef<Blob | undefined>",
+      );
+      expect(header).toContain(
+        '  return httpResource.blob<Blob>(buildRequest, options as unknown as OrvalHttpResourceOptions<Blob, Blob>);\n}',
+      );
+    });
   });
 
   // ─── Multi-content resource reactivity (issue #3713) ───────────────

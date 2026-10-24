@@ -378,17 +378,27 @@ const getDispatchFactory = (
  * A multi-content resource routes each `accept` value by media type, so a
  * success type takes the factory of the branch its media type lands in. The
  * operation-wide `isBlob` and the schema type would disagree with that
- * routing. Single-content resources, and media types no branch matches (only
- * the fallback reaches those), keep the plain rules.
+ * routing. A media type no branch matches is typed `Blob` (see
+ * `getContentTypeReturnType`), so the fallback reads it as one.
+ * Single-content resources, and success types without a media type, keep the
+ * plain rules.
  */
 const getSuccessTypeFactory = (
   response: GeneratorVerbOptions['response'],
   successType: ResReqTypesValue,
-): HttpResourceFactoryName =>
-  (getUniqueContentTypes(response.types.success).length > 1
-    ? getDispatchFactory(successType.contentType)
-    : undefined) ??
-  getHttpResourceFactory(response, successType.contentType, successType.value);
+): HttpResourceFactoryName => {
+  if (
+    !successType.contentType ||
+    getUniqueContentTypes(response.types.success).length <= 1
+  ) {
+    return getHttpResourceFactory(
+      response,
+      successType.contentType,
+      successType.value,
+    );
+  }
+  return getDispatchFactory(successType.contentType) ?? 'httpResource.blob';
+};
 
 const getHttpResourceRawType = (factory: HttpResourceFactoryName): string => {
   switch (factory) {
@@ -1445,16 +1455,22 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (isJsonContentType(contentType)) {
-    return value;
+  // Follows the multi-content dispatch, so each branch's value type matches
+  // the factory that serves it.
+  switch (getDispatchFactory(contentType)) {
+    case 'httpResource': {
+      return value;
+    }
+    case 'httpResource.text': {
+      return 'string';
+    }
+    case 'httpResource.arrayBuffer': {
+      return 'ArrayBuffer';
+    }
+    default: {
+      return 'Blob';
+    }
   }
-  if (contentType.startsWith('text/') || contentType.includes('xml')) {
-    return 'string';
-  }
-  if (isResponseArrayBuffer(contentType)) {
-    return 'ArrayBuffer';
-  }
-  return 'Blob';
 };
 
 const getHttpResourceGeneratedResponseType = (

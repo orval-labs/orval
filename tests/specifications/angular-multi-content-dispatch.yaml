@@ -134,6 +134,43 @@ paths:
               schema:
                 type: string
                 format: binary
+  /items/{id}/document:
+    get:
+      summary: Get an item as JSON or as YAML
+      operationId: getItemDocument
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Item as JSON, or as YAML that no dispatch branch matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /items/{id}/report:
+    get:
+      summary: Get an item as JSON or as a PDF report
+      operationId: getItemReport
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Item as JSON, or a PDF under a non-standard media type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/x-pdf:
+              schema:
+                type: string
+                format: binary
 components:
   parameters:
     Id:
