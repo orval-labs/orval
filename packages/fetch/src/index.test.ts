@@ -1772,6 +1772,28 @@ describe('generateRequestFunction — pipeDelimited and spaceDelimited query arr
       ),
     ).toEqual([['at', '2026-01-01T00:00:00.000Z']]);
   });
+
+  const stringOrArrayParameter = (name: string): TestParameter => ({
+    name,
+    in: 'query',
+    schema: {
+      oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+    },
+  });
+
+  it('still sends a scalar value for an exploded form param that may be an array', () => {
+    expect(
+      decodedQuery(buildUrl([stringOrArrayParameter('tags')], { tags: 'a' })),
+    ).toEqual([['tags', 'a']]);
+  });
+
+  it('still sends a scalar value for a form param that may be an array when arrayFormat is set', () => {
+    expect(
+      decodedQuery(
+        buildUrl([stringOrArrayParameter('tags')], { tags: 'a' }, 'repeat'),
+      ),
+    ).toEqual([['tags', 'a']]);
+  });
 });
 
 describe('runtimeImplementationStyle: shared dispatch', () => {
