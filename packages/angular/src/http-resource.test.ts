@@ -1903,6 +1903,62 @@ describe('angular httpResource generator', () => {
       expect(header).not.toContain('httpResource<Blob>');
     });
 
+    // The text, blob and arrayBuffer branches match case-insensitively too.
+    // Their types and their emitted checks have to agree, or a branch is
+    // typed for one factory and served by another (#4369, #4370).
+    it('routes uppercase text and binary media types to their factories', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Pet', 'APPLICATION/XML'),
+              createSuccessType('Blob', 'IMAGE/PNG'),
+              createSuccessType('Blob', 'Application/PDF'),
+            ],
+            errors: [],
+          },
+          contentTypes: [
+            'application/json',
+            'APPLICATION/XML',
+            'IMAGE/PNG',
+            'Application/PDF',
+          ],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "accept: 'APPLICATION/XML',\n    options?: OrvalHttpResourceOptions<string, string>",
+      );
+      expect(header).toContain(
+        "accept: 'Application/PDF',\n    options?: OrvalHttpResourceOptions<ArrayBuffer, ArrayBuffer>",
+      );
+      expect(header).toContain(
+        "if (accept.toLowerCase().startsWith('text/') || accept.toLowerCase().includes('xml')) {\n    return httpResource.text<string>(buildRequest",
+      );
+      expect(header).toContain(
+        "if (accept.toLowerCase().startsWith('image/') || accept.toLowerCase().includes('blob')) {\n    return httpResource.blob<Blob>(buildRequest",
+      );
+      expect(header).toContain(
+        "if (accept.toLowerCase().includes('octet-stream') || accept.toLowerCase().includes('pdf')) {\n    return httpResource.arrayBuffer<ArrayBuffer>(buildRequest",
+      );
+    });
+
     // Without a text media type, a text branch would receive the JSON options
     // and fail to typecheck (#4370).
     it('omits the text branch when no text media type is declared', () => {

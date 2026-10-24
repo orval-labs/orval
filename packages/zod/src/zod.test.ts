@@ -1140,6 +1140,21 @@ const additionalPropertiesMaxLengthSchema: OpenApiSchemaObject = {
 };
 
 describe('generateZodValidationSchemaDefinition`', () => {
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so the upgraded
+  // `format: binary` validates as a Blob in any case (#4369).
+  it('validates a mixed-case octet-stream contentMediaType as a Blob', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', contentMediaType: 'Application/Octet-Stream' },
+      createTestContextSpec({ output: { override: { useDates: false } } }),
+      'file',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toEqual([['instanceof', 'Blob']]);
+  });
+
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
       deepRequiredSchema,

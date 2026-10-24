@@ -52,6 +52,7 @@ import {
   getEnumImplementation,
   EnumGeneration,
   type SchemaExtension,
+  isOctetStreamContentType,
 } from '@orval/core';
 import { unique } from '@orval/core';
 import jsesc from 'jsesc';
@@ -1836,7 +1837,7 @@ export const generateZodValidationSchemaDefinition = (
         // format: binary so $ref-based model types generate Blob validation.
         if (
           !urlEncoded &&
-          schema.contentMediaType === 'application/octet-stream' &&
+          isOctetStreamContentType(schema.contentMediaType) &&
           !schema.contentEncoding
         ) {
           functions.push(['instanceof', 'Blob']);

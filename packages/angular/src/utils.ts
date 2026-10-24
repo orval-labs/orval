@@ -56,18 +56,39 @@ export const isJsonContentType = (contentType: string): boolean =>
   contentType.toLowerCase().includes('json');
 
 /**
- * The emitted `accept` check that routes to the JSON branch. Lowercases at
- * runtime only when the operation declares a type or subtype with uppercase
- * letters, so output for lowercase specs stays unchanged. Parameters such as
- * `charset=UTF-8` don't count, because the check never needs them.
+ * Whether the emitted `accept` checks lowercase at runtime: only when the
+ * operation declares a type or subtype with uppercase letters, so output for
+ * lowercase specs stays unchanged. Parameters such as `charset=UTF-8` don't
+ * count, because the checks never need them.
  */
-export const buildAcceptJsonCondition = (contentTypes: string[]): string =>
+const hasUppercaseMediaType = (contentTypes: string[]): boolean =>
   contentTypes.some((contentType) => {
     const baseType = contentType.split(';')[0];
     return baseType !== baseType.toLowerCase();
-  })
+  });
+
+/**
+ * The expression the emitted `accept` checks test.
+ */
+export const getAcceptExpression = (contentTypes: string[]): string =>
+  hasUppercaseMediaType(contentTypes) ? 'accept.toLowerCase()' : 'accept';
+
+/**
+ * The emitted `accept` check that routes to the JSON branch.
+ */
+export const buildAcceptJsonCondition = (contentTypes: string[]): string =>
+  hasUppercaseMediaType(contentTypes)
     ? `accept.toLowerCase().includes('json')`
     : `accept.includes('json') || accept.includes('+json')`;
+
+/**
+ * The emitted `accept` check that routes to the text branch. It matches
+ * `isTextContentType`, which types that branch.
+ */
+export const buildAcceptTextCondition = (contentTypes: string[]): string => {
+  const accept = getAcceptExpression(contentTypes);
+  return `${accept}.startsWith('text/') || ${accept}.includes('xml')`;
+};
 
 /**
  * Indicates whether the configured schema output target is Zod-based.

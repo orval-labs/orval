@@ -1,0 +1,136 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Uppercase Media Types Test
+  description: >-
+    Media types declared with uppercase letters. Media type names are
+    case-insensitive (RFC 9110 §8.3.1), so each one has to be classified like
+    its lowercase spelling, while the declared spelling is kept.
+paths:
+  /items/{id}:
+    get:
+      summary: Get an item as JSON, text, XML, an image or a PDF
+      operationId: getItem
+      tags:
+        - items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item in one of five representations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            TEXT/PLAIN:
+              schema:
+                type: string
+            APPLICATION/XML:
+              schema:
+                $ref: '#/components/schemas/Item'
+            IMAGE/PNG:
+              schema:
+                type: string
+                format: binary
+            Application/PDF:
+              schema:
+                type: string
+                format: binary
+  /notes:
+    get:
+      summary: Get notes as JSON or as text, with an uppercase parameter only
+      operationId: getNotes
+      tags:
+        - notes
+      responses:
+        '200':
+          description: Notes as JSON or text
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
+  /readme:
+    get:
+      summary: Get a single text response declared in uppercase
+      operationId: getReadme
+      tags:
+        - notes
+      responses:
+        '200':
+          description: The readme as text
+          content:
+            TEXT/PLAIN:
+              schema:
+                type: string
+  /uploads:
+    post:
+      summary: Upload a file with a mixed-case multipart media type
+      operationId: createUpload
+      tags:
+        - uploads
+      requestBody:
+        required: true
+        content:
+          Multipart/Form-Data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Upload created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /forms:
+    post:
+      summary: Submit a mixed-case url-encoded form
+      operationId: submitForm
+      tags:
+        - uploads
+      requestBody:
+        required: true
+        content:
+          Application/X-WWW-Form-Urlencoded:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '204':
+          description: Form accepted
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string

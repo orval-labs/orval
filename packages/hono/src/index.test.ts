@@ -144,6 +144,44 @@ describe('generateHandlerFile strategies', () => {
     expect(result).toContain("zValidator('form', UploadPhotoBody)");
     expect(result).not.toContain("zValidator('json'");
   });
+
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so mixed-case
+  // form bodies validate as forms and an uppercase JSON response still gets
+  // its response validator (#4369).
+  it('matches body and response media types regardless of case', async () => {
+    const file = path.join(dir, 'uploadPhoto.ts');
+    const formVerb = createTestGeneratorVerbOptions({
+      operationName: 'uploadPhoto',
+      typeName: 'uploadPhoto',
+      pathRoute: '/photo',
+      tags: ['default'],
+      body: {
+        definition: 'UploadPhotoBody',
+        contentType: 'Multipart/Form-Data',
+      },
+      response: {
+        originalSchema: {
+          '200': {
+            description: 'OK',
+            content: { 'APPLICATION/JSON': { schema: { type: 'string' } } },
+          },
+        },
+      },
+    } as Parameters<typeof createTestGeneratorVerbOptions>[0]);
+
+    const result = await generateHandlerFile({
+      verbs: [formVerb],
+      path: file,
+      header: '/* eslint-disable */\n',
+      validatorModule: path.join(dir, 'endpoints.validator'),
+      zodModule: path.join(dir, 'endpoints.zod'),
+      contextModule: path.join(dir, 'endpoints.context'),
+      strategy: 'smart',
+    });
+
+    expect(result).toContain("zValidator('form', UploadPhotoBody)");
+    expect(result).toContain("zValidator('response', UploadPhotoResponse)");
+  });
 });
 
 // Regression coverage for https://github.com/orval-labs/orval/discussions/3596

@@ -1452,6 +1452,19 @@ export default defineConfig({
     },
     input: { target: '../specifications/dates-transform.yaml' },
   },
+  // Media types declared with uppercase letters (#4369).
+  uppercaseMediaTypes: {
+    output: {
+      target: '../generated/fetch/uppercase-media-types/endpoints.ts',
+      schemas: '../generated/fetch/uppercase-media-types/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/uppercase-media-types.yaml',
+    },
+  },
   operationManifestSingle: {
     output: {
       target: '../generated/fetch/operation-manifest-single/endpoints.ts',

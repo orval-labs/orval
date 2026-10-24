@@ -182,6 +182,29 @@ describe('getQueryParams getter', () => {
     expect(enumDep?.model).not.toContain('NUMBER_');
   });
 
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so a
+  // content-based parameter declared as `APPLICATION/JSON` has a schema (#4369).
+  it('reads the schema of a content-based parameter declared in uppercase', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'filter',
+            in: 'query',
+            content: { 'APPLICATION/JSON': { schema: { type: 'string' } } },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      'export type Params = {\nfilter?: string;\n};',
+    );
+  });
+
   it('queryParamWithDescription should be documented', () => {
     const result = getQueryParams({
       queryParams: [

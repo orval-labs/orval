@@ -879,6 +879,40 @@ describe('generateSolidStartHeader namespace collision', () => {
   });
 });
 
+// The browser sets the multipart Content-Type itself, because only it knows
+// the boundary. Media type names are case-insensitive (RFC 9110 §8.3.1), so
+// a mixed-case declaration must not set it either (#4369).
+describe('generateSolidStart — multipart Content-Type', () => {
+  it('leaves the Content-Type of a mixed-case multipart body to the browser', async () => {
+    const verbOptions = makeVerbOptions({
+      verb: Verbs.POST,
+      mutator: {
+        name: 'customInstance',
+        path: './custom-instance.ts',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: true,
+        hasThirdArg: false,
+        isHook: false,
+      },
+      body: {
+        definition: 'SubmitDataBody',
+        implementation: 'submitDataBody: SubmitDataBody',
+        contentType: 'Multipart/Form-Data',
+        isOptional: false,
+      },
+    });
+
+    const implementation = await generateImplementation(
+      verbOptions,
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).not.toContain("'Content-Type'");
+  });
+});
+
 describe('generateSolidStart — Content-Type header escaping', () => {
   it('escapes single quotes in the request body media type key', async () => {
     const verbOptions = makeVerbOptions({

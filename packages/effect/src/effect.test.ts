@@ -59,6 +59,15 @@ describe('primitives', () => {
     expect(gen({ type: 'string' }).effect).toBe('S.String');
   });
 
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so the upgraded
+  // `format: binary` validates as a File in any case (#4369).
+  it('emits S.instanceOf(File) for a mixed-case octet-stream contentMediaType', () => {
+    expect(
+      gen({ type: 'string', contentMediaType: 'Application/Octet-Stream' })
+        .effect,
+    ).toBe('S.instanceOf(File)');
+  });
+
   it('emits S.Number for type: number', () => {
     expect(gen({ type: 'number' }).effect).toBe('S.Number');
   });
@@ -1048,6 +1057,46 @@ describe('Effect 4 output', () => {
         typeName: 'listPets',
         verb: 'get',
         override: operationOverride,
+      } as GeneratorVerbOptions,
+      { pathRoute: '/pets', context } as GeneratorOptions,
+      'effect',
+    );
+    expect(implementation).toContain('S.Union([S.String, S.Number])');
+  });
+
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so a response
+  // declared as `APPLICATION/JSON` still gets a schema (#4369).
+  it('generates a response schema for an uppercase JSON media type', async () => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/pets': {
+            get: {
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'APPLICATION/JSON': {
+                      schema: {
+                        oneOf: [{ type: 'string' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      output: {
+        override: { effect: { version: 4, generate: { response: true } } },
+      },
+    });
+    const { implementation } = await generateEffect(
+      {
+        typeName: 'listPets',
+        verb: 'get',
+        override: context.output.override,
       } as GeneratorVerbOptions,
       { pathRoute: '/pets', context } as GeneratorOptions,
       'effect',

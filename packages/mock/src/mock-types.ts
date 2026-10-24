@@ -9,6 +9,7 @@ import {
   resolveRef,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
+  isOctetStreamContentType,
 } from '@orval/core';
 
 function asObjectSchema(
@@ -60,7 +61,7 @@ export function classifyStrictMockSchemaType(
 
   if (
     objectSchema.format === 'binary' ||
-    (objectSchema.contentMediaType === 'application/octet-stream' &&
+    (isOctetStreamContentType(objectSchema.contentMediaType) &&
       !objectSchema.contentEncoding)
   ) {
     return 'binary';

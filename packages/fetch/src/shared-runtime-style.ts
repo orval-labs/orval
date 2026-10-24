@@ -19,7 +19,9 @@ import {
   getExplodeParameters,
   getOperationParameters,
   GetterPropType,
+  isFormDataContentType,
   jsDoc,
+  jsStringLiteralEscape,
   makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -31,9 +33,16 @@ import {
 import pkg from '../package.json' with { type: 'json' };
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 
-const isContentTypeNdJson = (contentType: string) =>
-  contentType === 'application/nd-json' ||
-  contentType === 'application/x-ndjson';
+/**
+ * Whether a response media type is an ndjson stream, in any letter case.
+ */
+export const isContentTypeNdJson = (contentType: string) => {
+  const lowerContentType = contentType.toLowerCase();
+  return (
+    lowerContentType === 'application/nd-json' ||
+    lowerContentType === 'application/x-ndjson'
+  );
+};
 
 const isContentTypeJson = (contentType: string) =>
   contentType.toLowerCase().includes('json');
@@ -259,12 +268,17 @@ export const generateSharedRequestFunction = (
       : undefined;
   const responseType = getResponseType(verbOptions);
 
+  // The runtime leaves multipart's Content-Type, boundary included, to the
+  // browser, but recognizes only the lowercase spelling.
+  const runtimeContentType = isFormDataContentType(body.contentType)
+    ? 'multipart/form-data'
+    : body.contentType;
   const executeArgs = [
     `url: ${getUrlFnName}(${getUrlFnProperties})`,
     `method: '${verb.toUpperCase()}'`,
     ...(body.implementation ? [`body: ${body.implementation}`] : []),
     ...(body.implementation && body.contentType
-      ? [`contentType: '${body.contentType}'`]
+      ? [`contentType: '${jsStringLiteralEscape(runtimeContentType)}'`]
       : []),
     ...(headersArgument ? [headersArgument] : []),
     ...(responseType ? [`responseType: '${responseType}'`] : []),

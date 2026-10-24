@@ -16,6 +16,7 @@ import {
   toJsLiteral,
   type MockOptions,
   type OpenApiSchemaObject,
+  isOctetStreamContentType,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
@@ -212,7 +213,7 @@ export function getMockScalar({
   const schemaContentMediaType = item.contentMediaType;
   if (
     !item.format &&
-    schemaContentMediaType === 'application/octet-stream' &&
+    isOctetStreamContentType(schemaContentMediaType) &&
     ALL_FORMAT.binary
   ) {
     return {

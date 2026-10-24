@@ -10,6 +10,7 @@ import {
 } from '../types';
 import {
   getIsBodyVerb,
+  isFormDataContentType,
   isObject,
   jsStringLiteralEscape,
   stringify,
@@ -1027,9 +1028,8 @@ export function generateMutatorConfig({
     paramsFilter,
   );
 
-  const ignoreContentTypes = isAngular ? ['multipart/form-data'] : [];
   const shouldSetContentType =
-    body.contentType && !ignoreContentTypes.includes(body.contentType);
+    body.contentType && !(isAngular && isFormDataContentType(body.contentType));
 
   const headerOptions = shouldSetContentType
     ? `,\n      headers: {'Content-Type': '${jsStringLiteralEscape(

@@ -610,6 +610,25 @@ describe('generateSharedRequestFunction', () => {
     expect(implementation).not.toContain('JSON.stringify');
   });
 
+  it('escapes single quotes in the request body media type key', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        body: {
+          definition: 'Pet',
+          implementation: 'pet',
+          contentType: "application/json', 'X-Evil': 'injected",
+        },
+      }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      String.raw`contentType: 'application/json\', \'X-Evil\': \'injected'`,
+    );
+    expect(implementation).not.toContain("'X-Evil': 'injected'");
+  });
+
   it('wraps the generated FormData builder as the body encoder', () => {
     const implementation = generateSharedRequestFunction(
       makeVerbOptions({
@@ -633,6 +652,55 @@ describe('generateSharedRequestFunction', () => {
     expect(implementation).toContain('return formData;');
     expect(implementation).toContain("contentType: 'multipart/form-data'");
     expect(implementation).toContain('encodeBody: listPetsEncodeBody');
+  });
+
+  // The shared runtime skips the Content-Type header only for the exact
+  // `multipart/form-data` string, and only the browser knows the boundary.
+  // A mixed-case declaration has to reach it in that spelling (#4369).
+  it('passes a mixed-case multipart media type in the spelling the runtime skips', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        body: {
+          definition: 'Pet',
+          implementation: 'pet',
+          contentType: 'Multipart/Form-Data',
+          formData:
+            "const formData = new FormData();\nformData.append('name', pet.name);",
+        },
+        override: { formData: { disabled: false, arrayHandling: 'serialize' } },
+      }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain("contentType: 'multipart/form-data'");
+    expect(implementation).toContain('encodeBody: listPetsEncodeBody');
+  });
+
+  it('streams an uppercase ndjson response', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        response: {
+          definition: { success: 'StreamEntry', errors: '' },
+          contentTypes: ['Application/X-NDJSON'],
+          types: {
+            success: [
+              successType({
+                key: '200',
+                value: 'StreamEntry',
+                contentType: 'Application/X-NDJSON',
+              }),
+            ],
+          },
+        },
+      }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      "headers: { Accept: 'Application/X-NDJSON' }",
+    );
+    expect(implementation).toContain("responseType: 'stream'");
   });
 
   it('forwards spec header parameters', () => {

@@ -1289,6 +1289,29 @@ describe('generateMutatorConfig', () => {
     originalSchema: {},
   };
 
+  // Angular's HttpClient sets the multipart Content-Type, boundary included,
+  // itself. Media type names are case-insensitive (RFC 9110 §8.3.1), so a
+  // mixed-case declaration must not override it either (#4369).
+  it.each(['multipart/form-data', 'Multipart/Form-Data'])(
+    'leaves the Content-Type of a "%s" body to Angular',
+    (contentType) => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: true,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+        isAngular: true,
+      });
+      expect(result).not.toContain('Content-Type');
+    },
+  );
+
   describe('hasSignalParam (API param named "signal")', () => {
     it('should output "signal: querySignal" when hasSignalParam is true', () => {
       const result = generateMutatorConfig({

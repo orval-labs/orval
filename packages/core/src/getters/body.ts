@@ -10,7 +10,13 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import { camel, isBinaryContentType, isInlineSchema, sanitize } from '../utils';
+import {
+  camel,
+  isBinaryContentType,
+  isInlineSchema,
+  isOctetStreamContentType,
+  sanitize,
+} from '../utils';
 import { schemaRenamesKeys } from './property-renames';
 import { getResReqTypes } from './res-req-types';
 
@@ -78,7 +84,7 @@ function buildBody(
         (t.originalSchema !== undefined &&
           !isBooleanJsonSchema(t.originalSchema) &&
           (t.originalSchema.format === 'binary' ||
-            (t.originalSchema.contentMediaType === 'application/octet-stream' &&
+            (isOctetStreamContentType(t.originalSchema.contentMediaType) &&
               !t.originalSchema.contentEncoding))),
     ),
     implementation,

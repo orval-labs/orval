@@ -345,6 +345,29 @@ describe('getBody', () => {
       expect(result.isBlob).toBe(true);
     });
 
+    // `contentMediaType` is a media type too, so it matches in any case (#4369).
+    it('sets isBlob to true for an octet-stream schema declared in mixed case', () => {
+      const requestBody: OpenApiRequestBodyObject = {
+        content: {
+          'text/csv': {
+            schema: {
+              type: 'string',
+              contentMediaType: 'Application/Octet-Stream',
+            },
+          },
+        },
+        required: true,
+      };
+
+      const result = getBody({
+        requestBody,
+        operationName: 'uploadCsv',
+        context: createContext(),
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
     it('sets isBlob to true for image content type', () => {
       const requestBody: OpenApiRequestBodyObject = {
         content: {

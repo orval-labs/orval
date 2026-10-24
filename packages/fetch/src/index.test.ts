@@ -912,6 +912,71 @@ describe('generateRequestFunction — Content-Type header escaping', () => {
   });
 });
 
+// Media type names are case-insensitive (RFC 9110 §8.3.1), so a media type
+// declared in another case has to be handled like its lowercase spelling,
+// while requests keep the declared spelling (#4369).
+describe('generateRequestFunction — media types declared in another case', () => {
+  const bodyVerbOptions = (contentType: string) =>
+    makeVerbOptions({
+      verb: Verbs.POST,
+      body: {
+        definition: 'SubmitDataBody',
+        implementation: 'submitDataBody: SubmitDataBody',
+        contentType,
+        isOptional: false,
+      },
+    });
+
+  // The browser has to set the multipart Content-Type itself, because only
+  // it knows the boundary.
+  it('leaves the Content-Type of a mixed-case multipart body to the browser', () => {
+    const implementation = generateImplementation(
+      bodyVerbOptions('Multipart/Form-Data'),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).not.toContain("'Content-Type'");
+  });
+
+  it('sends an uppercase text/plain body unencoded', () => {
+    const implementation = generateImplementation(
+      bodyVerbOptions('TEXT/PLAIN'),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain("'Content-Type': 'TEXT/PLAIN'");
+    expect(implementation).toContain('body: submitDataBody');
+    expect(implementation).not.toContain('JSON.stringify(submitDataBody)');
+  });
+
+  it('streams an uppercase ndjson response', () => {
+    const verbOptions = makeVerbOptions({
+      response: {
+        definition: { success: 'Pet', errors: '' },
+        contentTypes: ['Application/X-NDJSON'],
+        types: {
+          success: [
+            successType({
+              key: '200',
+              value: 'Pet',
+              contentType: 'Application/X-NDJSON',
+            }),
+          ],
+          errors: [],
+        },
+      },
+    });
+
+    const implementation = generateImplementation(
+      verbOptions,
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).toContain("Accept: 'Application/X-NDJSON'");
+    expect(implementation).toContain('const stream = await fetch(');
+  });
+});
+
 describe('generateRequestFunction — getHeaders helper (#4034)', () => {
   const verbOptionsWithHeaders = () =>
     makeVerbOptions({

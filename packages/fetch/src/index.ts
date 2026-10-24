@@ -24,6 +24,7 @@ import {
   getOperationParameters,
   getQueryDelimiter,
   isExplodeOnly,
+  isFormDataContentType,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -65,6 +66,7 @@ import {
   generateFetchExtraFiles,
   generateSharedClient,
   generateSharedRequestFunction,
+  isContentTypeNdJson,
   isSharedRuntimeStyle,
 } from './shared-runtime-style';
 
@@ -105,7 +107,7 @@ export const getFetchDependencies: ClientDependenciesBuilder = (
 ) => [getFetchZodDependency(override)];
 
 const isRawRequestBodyContentType = (contentType: string) =>
-  contentType === 'text/plain';
+  contentType.toLowerCase() === 'text/plain';
 
 const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   if (!mutator || !mutator.hasSecondArg) {
@@ -436,10 +438,6 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   }
 }\n`;
 
-  const isContentTypeNdJson = (contentType: string) =>
-    contentType === 'application/nd-json' ||
-    contentType === 'application/x-ndjson';
-
   const isContentTypeJson = (contentType: string) =>
     contentType.toLowerCase().includes('json');
 
@@ -713,7 +711,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const returnType = mutator?.inferred ? innerType : `Promise<${innerType}>`;
 
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
-  const ignoreContentTypes = ['multipart/form-data'];
   const overrideHeaders =
     isObject(override.requestOptions) && override.requestOptions.headers
       ? Object.entries(override.requestOptions.headers).map(
@@ -722,17 +719,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : [];
 
   const headersToAdd: string[] = [
-    ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
+    ...(body.contentType && !isFormDataContentType(body.contentType)
       ? [`'Content-Type': '${jsStringLiteralEscape(body.contentType)}'`]
       : []),
     ...(isNdJson && response.contentTypes.length === 1
-      ? [
-          `Accept: ${
-            response.contentTypes[0] === 'application/x-ndjson'
-              ? "'application/x-ndjson'"
-              : "'application/nd-json'"
-          }`,
-        ]
+      ? [`Accept: '${jsStringLiteralEscape(response.contentTypes[0])}'`]
       : []),
     ...overrideHeaders,
     ...(headers ? ['...headers'] : []),
@@ -1059,11 +1050,7 @@ export const getFetchResponseValidationImports = (
 
   // ndjson streams skip the generated parse entirely, so their schema import
   // stays type-only and no Output alias is needed.
-  const isNdJsonResponse = response.contentTypes.some(
-    (contentType) =>
-      contentType === 'application/nd-json' ||
-      contentType === 'application/x-ndjson',
-  );
+  const isNdJsonResponse = response.contentTypes.some(isContentTypeNdJson);
   if (isNdJsonResponse) return undefined;
 
   // A custom mutator issues the request itself, so the generated parse never

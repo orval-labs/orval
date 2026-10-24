@@ -9,6 +9,7 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  findMediaType,
   getEnumMembers,
   getFormDataFieldFileType,
   getNumberWord,
@@ -35,6 +36,7 @@ import {
   safeNumericConstraint,
   stringify,
   toJsLiteral,
+  isOctetStreamContentType,
 } from '@orval/core';
 import { unique } from '@orval/core';
 
@@ -555,7 +557,7 @@ export const generateEffectValidationSchemaDefinition = (
         }
 
         if (
-          schema.contentMediaType === 'application/octet-stream' &&
+          isOctetStreamContentType(schema.contentMediaType) &&
           !schema.contentEncoding
         ) {
           functions.push(['instanceof', 'File']);
@@ -1577,8 +1579,11 @@ const parseBodyAndResponse = ({
     | OpenApiResponseObject
     | OpenApiRequestBodyObject;
 
-  const jsonMedia = resolvedRef.content?.['application/json'];
-  const formDataMedia = resolvedRef.content?.['multipart/form-data'];
+  const jsonMedia = findMediaType(resolvedRef.content, 'application/json');
+  const formDataMedia = findMediaType(
+    resolvedRef.content,
+    'multipart/form-data',
+  );
   const [contentType, mediaType] = jsonMedia
     ? (['application/json', jsonMedia] as const)
     : formDataMedia

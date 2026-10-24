@@ -28,6 +28,9 @@ import {
   filterByContentType,
   getFormDataFieldFileType,
   isBinaryContentType,
+  isFormDataContentType,
+  isFormUrlEncodedContentType,
+  isTextContentType,
 } from '../utils/content-type';
 import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
@@ -67,12 +70,6 @@ const resolveResponseOrRequestRef = (
     imports: GeneratorImport[];
   };
 
-const formDataContentTypes = new Set(['multipart/form-data']);
-
-const formUrlEncodedContentTypes = new Set([
-  'application/x-www-form-urlencoded',
-]);
-
 interface GetResReqContentTypesOptions {
   mediaType: OpenApiMediaTypeObject;
   propName?: string;
@@ -100,7 +97,7 @@ function getResReqContentTypes({
   // For form bodies, pass context that tracks encoding for file type
   // detection. url-encoded bodies additionally flag `urlEncoded` so file/binary
   // fields are typed as `string` rather than `Blob` (#1624).
-  const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
+  const isFormUrlEncoded = isFormUrlEncodedContentType(contentType);
   const formDataContext: FormDataContext | undefined = isFormData
     ? { atPart: false, encoding: mediaType.encoding ?? {} }
     : isFormUrlEncoded
@@ -220,8 +217,8 @@ export function getResReqTypes(
 
         const { contentType, mediaType } = firstEntry;
 
-        const isFormData = formDataContentTypes.has(contentType);
-        const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
+        const isFormData = isFormDataContentType(contentType);
+        const isFormUrlEncoded = isFormUrlEncodedContentType(contentType);
 
         if ((!isFormData && !isFormUrlEncoded) || !mediaType.schema) {
           return [
@@ -318,9 +315,8 @@ export function getResReqTypes(
               propName = propName + pascal(getNumberWord(index + 1));
             }
 
-            const isFormData = formDataContentTypes.has(contentType);
-            const isFormUrlEncoded =
-              formUrlEncodedContentTypes.has(contentType);
+            const isFormData = isFormDataContentType(contentType);
+            const isFormUrlEncoded = isFormUrlEncodedContentType(contentType);
 
             // When schema is a $ref, use schema name for consistent param naming
             let effectivePropName = propName;
@@ -536,9 +532,8 @@ export function getSuccessResponseType(
   const hasJsonResponse = successContentTypes.some((contentType) =>
     contentType.toLowerCase().includes('json'),
   );
-  const hasTextResponse = successContentTypes.some(
-    (contentType) =>
-      contentType.startsWith('text/') || contentType.includes('xml'),
+  const hasTextResponse = successContentTypes.some((contentType) =>
+    isTextContentType(contentType),
   );
 
   if (!hasJsonResponse && hasTextResponse) {
