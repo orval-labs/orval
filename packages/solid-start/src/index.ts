@@ -19,6 +19,7 @@ import {
   getQueryDelimiter,
   GetterPropType,
   isDateTimeParam,
+  isFormDataContentType,
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
@@ -204,7 +205,6 @@ const generateImplementation = (
     }
 
     // Add headers
-    const ignoreContentTypes = ['multipart/form-data'];
     const overrideHeaders =
       isObject(override.requestOptions) && override.requestOptions.headers
         ? Object.entries(override.requestOptions.headers).map(
@@ -213,7 +213,7 @@ const generateImplementation = (
         : [];
 
     const headersToAdd: string[] = [
-      ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
+      ...(body.contentType && !isFormDataContentType(body.contentType)
         ? [`'Content-Type': '${jsStringLiteralEscape(body.contentType)}'`]
         : []),
       ...overrideHeaders,

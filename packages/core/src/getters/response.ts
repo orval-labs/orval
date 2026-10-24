@@ -10,7 +10,11 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import { dedupeUnionType, isBinaryContentType } from '../utils';
+import {
+  dedupeUnionType,
+  isBinaryContentType,
+  isOctetStreamContentType,
+} from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
@@ -83,7 +87,7 @@ export function getResponse({
         (t.originalSchema !== undefined &&
           !isBooleanJsonSchema(t.originalSchema) &&
           (t.originalSchema.format === 'binary' ||
-            (t.originalSchema.contentMediaType === 'application/octet-stream' &&
+            (isOctetStreamContentType(t.originalSchema.contentMediaType) &&
               !t.originalSchema.contentEncoding))),
     ),
     types: groupedByStatus,

@@ -11,7 +11,13 @@ import type {
   OpenApiParameterWithContentObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isSchemaNullable, jsDoc, pascal, sanitize } from '../utils';
+import {
+  findMediaType,
+  isSchemaNullable,
+  jsDoc,
+  pascal,
+  sanitize,
+} from '../utils';
 import { getEnum, getEnumMembers, isEnumReferenceMissingNull } from './enum';
 import { getKey } from './keys';
 
@@ -237,8 +243,8 @@ function getQueryParamsTypes(
       es5IdentifierName: true,
     });
 
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
-    const schema = schemaParam ?? content?.['application/json']?.schema;
+    const schema =
+      schemaParam ?? findMediaType(content, 'application/json')?.schema;
     if (!schema) {
       throw new Error(
         `Query parameter "${name}" has no schema or content definition`,

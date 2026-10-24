@@ -9,7 +9,10 @@ import type {
 } from '../types';
 import { getComponentBaseNames, sanitize, toJsLiteral } from '../utils';
 import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
-import { getFormDataFieldFileType } from '../utils/content-type';
+import {
+  getFormDataFieldFileType,
+  isOctetStreamContentType,
+} from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
 import type { FormDataContext } from './object';
@@ -43,7 +46,7 @@ export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
   // binary.
   const contentMediaType = schema.contentMediaType;
   const contentEncoding = schema.contentEncoding;
-  return contentMediaType === 'application/octet-stream' && !contentEncoding;
+  return isOctetStreamContentType(contentMediaType) && !contentEncoding;
 }
 
 interface BinaryTypeNames {

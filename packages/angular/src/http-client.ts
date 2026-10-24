@@ -24,6 +24,7 @@ import {
   getEnumImplementation,
   getIsBodyVerb,
   type GetterProp,
+  isTextContentType,
   GetterPropType,
   jsStringLiteralEscape,
   makeRouteSafe,
@@ -41,6 +42,7 @@ import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
 import { logger } from './logger';
 import {
   buildAcceptJsonCondition,
+  buildAcceptTextCondition,
   buildServiceClassOpen,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
@@ -307,7 +309,7 @@ const getContentTypeReturnType = (
   if (isJsonContentType(contentType)) {
     return value;
   }
-  if (contentType.startsWith('text/') || contentType.includes('xml')) {
+  if (isTextContentType(contentType)) {
     return 'string';
   }
   return 'Blob';
@@ -838,17 +840,13 @@ export const generateHttpClientImplementation = (
 
   const textSuccessTypes = successTypes.filter(
     ({ contentType, value }) =>
-      !!contentType &&
-      (contentType.startsWith('text/') ||
-        contentType.includes('xml') ||
-        value === 'string'),
+      !!contentType && (isTextContentType(contentType) || value === 'string'),
   );
   const blobSuccessTypes = successTypes.filter(
     ({ contentType }) =>
       !!contentType &&
       !isJsonContentType(contentType) &&
-      !contentType.startsWith('text/') &&
-      !contentType.includes('xml'),
+      !isTextContentType(contentType),
   );
   const multiReturnMembers = [
     parsedJsonReturnType,
@@ -1016,7 +1014,7 @@ export const generateHttpClientImplementation = (
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     }${
       textSuccessTypes.length > 0
-        ? ` else if (accept.startsWith('text/') || accept.includes('xml')) {
+        ? ` else if (${buildAcceptTextCondition(uniqueContentTypes)}) {
       return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
     }`
         : ''

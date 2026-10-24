@@ -7,7 +7,7 @@ import type {
   OpenApiRequestBodyObject,
 } from '../types';
 import { Verbs } from '../types';
-import { isInlineSchema } from '../utils';
+import { findMediaType, isInlineSchema } from '../utils';
 import type { FormDataContext } from './object';
 import { getRefInfo, isComponentRef } from './ref';
 
@@ -97,9 +97,8 @@ function indexRequestBody(
     return;
   }
 
-  const mediaType = requestBody.content[MULTIPART_CONTENT_TYPE];
+  const mediaType = findMediaType(requestBody.content, MULTIPART_CONTENT_TYPE);
 
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
   const schema = mediaType?.schema;
 
   // `isComponentRef` is what rejects a ref that only *starts* at a component,

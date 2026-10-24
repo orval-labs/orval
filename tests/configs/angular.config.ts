@@ -442,6 +442,61 @@ export default defineConfig({
       target: '../specifications/angular-uppercase-media-types.yaml',
     },
   },
+  // Non-JSON media types declared with uppercase letters (#4369).
+  uppercaseNonJsonMediaTypes: {
+    output: {
+      target:
+        '../generated/angular/uppercase-non-json-media-types/endpoints.ts',
+      schemas: '../generated/angular/uppercase-non-json-media-types/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/uppercase-media-types.yaml',
+    },
+  },
+  httpResourceUppercaseNonJsonMediaTypes: {
+    output: {
+      target:
+        '../generated/angular/http-resource-uppercase-non-json-media-types/endpoints.ts',
+      schemas:
+        '../generated/angular/http-resource-uppercase-non-json-media-types/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/uppercase-media-types.yaml',
+    },
+  },
+  httpResourceUppercaseNonJsonMediaTypesZod: {
+    output: {
+      target:
+        '../generated/angular/http-resource-uppercase-non-json-media-types-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/http-resource-uppercase-non-json-media-types-zod/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/uppercase-media-types.yaml',
+    },
+  },
   httpResourceMultiContentDispatch: {
     output: {
       target:

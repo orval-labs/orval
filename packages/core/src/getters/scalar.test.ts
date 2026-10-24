@@ -114,6 +114,16 @@ describe('isBinaryScalarSchema', () => {
     ).toBe(true);
   });
 
+  // Media type names are case-insensitive (RFC 9110 §8.3.1) (#4369).
+  it('returns true for a contentMediaType of application/octet-stream in mixed case', () => {
+    expect(
+      isBinaryScalarSchema({
+        type: 'string',
+        contentMediaType: 'Application/Octet-Stream',
+      }),
+    ).toBe(true);
+  });
+
   it('returns false when contentMediaType has a contentEncoding (base64)', () => {
     expect(
       isBinaryScalarSchema({

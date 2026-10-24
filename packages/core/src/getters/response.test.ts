@@ -262,6 +262,31 @@ describe('getResponse', () => {
       expect(result.isBlob).toBe(true);
     });
 
+    // `contentMediaType` is a media type too, so it matches in any case (#4369).
+    it('should set isBlob to true for an octet-stream schema declared in mixed case', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'CSV file',
+          content: {
+            'text/csv': {
+              schema: {
+                type: 'string',
+                contentMediaType: 'Application/Octet-Stream',
+              },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
     it('should set isBlob to true when success has both json and octet-stream responses', () => {
       const responses: OpenApiResponsesObject = {
         '200': {

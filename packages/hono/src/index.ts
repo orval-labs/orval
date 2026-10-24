@@ -10,6 +10,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
+  findMediaType,
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
@@ -19,6 +20,8 @@ import {
   getOrvalGeneratedTypes,
   getParamsInPath,
   type HonoHandlerStrategy,
+  isFormDataContentType,
+  isFormUrlEncodedContentType,
   isObject,
   isOperationInTagBucket,
   jsDoc,
@@ -46,7 +49,7 @@ function successResponseJsonSchema(
     return undefined;
   }
 
-  return response.content?.['application/json'];
+  return findMediaType(response.content, 'application/json');
 }
 
 import {
@@ -224,17 +227,13 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
  */
 const DEFAULT_HANDLER_BODY = '\n\n  ';
 
-const FORM_CONTENT_TYPES = new Set([
-  'multipart/form-data',
-  'application/x-www-form-urlencoded',
-]);
-
 /**
  * Whether a request body uses a form encoding. Hono validates these with
  * `zValidator('form', …)` against `c.req.parseBody()`, not `'json'`.
  */
 const isFormBody = (body: GeneratorVerbOptions['body']): boolean =>
-  FORM_CONTENT_TYPES.has(body.contentType);
+  isFormDataContentType(body.contentType) ||
+  isFormUrlEncodedContentType(body.contentType);
 
 /**
  * getDesiredValidators returns the `zValidator` targets (and their PascalCase zod

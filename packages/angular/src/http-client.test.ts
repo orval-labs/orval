@@ -1386,6 +1386,44 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('Blob');
     });
 
+    // The same holds for the text and Blob branches: `APPLICATION/XML` is read
+    // as text, and the emitted check has to send it there at runtime too, or
+    // the method would be typed `string` while returning parsed JSON (#4369).
+    it('routes uppercase text and binary media types to their branches', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Pet', 'APPLICATION/XML'),
+              createSuccessType('Blob', 'IMAGE/PNG'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'APPLICATION/XML', 'IMAGE/PNG'],
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        "accept: 'APPLICATION/XML', options?: HttpClientOptions): Observable<string>;",
+      );
+      expect(impl).toContain(
+        "accept: 'IMAGE/PNG', options?: HttpClientOptions): Observable<Blob>;",
+      );
+      expect(impl).toContain('Observable<Pet | string | Blob>');
+      expect(impl).toContain("if (accept.toLowerCase().includes('json'))");
+      expect(impl).toContain(
+        "else if (accept.toLowerCase().startsWith('text/') || accept.toLowerCase().includes('xml'))",
+      );
+    });
+
     it('escapes single quotes in accept media type keys', () => {
       const verbOption = createVerbOption({
         operationId: 'getPetFile',

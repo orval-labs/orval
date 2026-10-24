@@ -155,6 +155,13 @@ describe('getSuccessResponseType', () => {
   it('requests text when no success response is JSON', () => {
     expect(getSuccessResponseType(responseWith('text/plain'))).toBe('text');
   });
+
+  it.each(['TEXT/PLAIN', 'APPLICATION/XML'])(
+    'requests text for "%s"',
+    (contentType) => {
+      expect(getSuccessResponseType(responseWith(contentType))).toBe('text');
+    },
+  );
 });
 
 describe('getDefaultContentType', () => {
@@ -543,6 +550,49 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
   // application/x-www-form-urlencoded is a text-only serialization built with
   // URLSearchParams, whose append() only accepts strings. Binary fields must
   // therefore be typed and appended as strings, not Blob (#1624).
+  describe('form media types declared with uppercase letters (#4369)', () => {
+    const formBody = (
+      contentType: string,
+    ): [string, OpenApiRequestBodyObject][] => [
+      [
+        'requestBody',
+        {
+          content: {
+            [contentType]: {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+
+    it('builds a FormData body for Multipart/Form-Data', () => {
+      const result = getResReqTypes(
+        formBody('Multipart/Form-Data'),
+        'Upload',
+        context,
+      )[0];
+
+      expect(result.formData).toContain('const formData = new FormData();');
+    });
+
+    it('builds a URLSearchParams body for Application/X-WWW-Form-Urlencoded', () => {
+      const result = getResReqTypes(
+        formBody('Application/X-WWW-Form-Urlencoded'),
+        'Upload',
+        context,
+      )[0];
+
+      expect(result.formUrlEncoded).toContain(
+        'const formUrlEncoded = new URLSearchParams();',
+      );
+    });
+  });
+
   describe('x-www-form-urlencoded with binary fields (#1624)', () => {
     const urlEncodedReqBody: [string, OpenApiRequestBodyObject][] = [
       [

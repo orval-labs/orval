@@ -7,6 +7,7 @@ import {
   conventionName,
   DefaultTag,
   escapeRegExp,
+  findMediaType,
   type GeneratorMutator,
   getImportExtension,
   getRefInfo,
@@ -1279,10 +1280,15 @@ function generateZodSchemasFromVerbs(
     // operations whose only payload is multipart (e.g. file uploads). Without
     // this, endpoints that import `${OperationName}Body` from the zod schemas
     // path resolve to a missing export. (issue #3066)
-    const jsonBodyMedia = requestBodyContent?.['application/json'];
-    const formDataBodyMedia = requestBodyContent?.['multipart/form-data'];
-    const formUrlEncodedBodyMedia =
-      requestBodyContent?.['application/x-www-form-urlencoded'];
+    const jsonBodyMedia = findMediaType(requestBodyContent, 'application/json');
+    const formDataBodyMedia = findMediaType(
+      requestBodyContent,
+      'multipart/form-data',
+    );
+    const formUrlEncodedBodyMedia = findMediaType(
+      requestBodyContent,
+      'application/x-www-form-urlencoded',
+    );
     const [bodyContentType, bodyMedia] = jsonBodyMedia
       ? (['application/json', jsonBodyMedia] as const)
       : formDataBodyMedia

@@ -17,6 +17,7 @@ import {
   pascal,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
+  isOctetStreamContentType,
 } from '@orval/core';
 
 import { getDelay } from '../delay';
@@ -188,8 +189,15 @@ function generateDefinition(
   }
 
   const isResponseOverridable = value.includes(overrideVarName);
-  const isTextLikeContentType = (ct: string) =>
-    ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml');
+  // Media type names are case-insensitive (RFC 9110 §8.3.1).
+  const isTextLikeContentType = (ct: string) => {
+    const lowerCt = ct.toLowerCase();
+    return (
+      lowerCt.startsWith('text/') ||
+      lowerCt === 'application/xml' ||
+      lowerCt.endsWith('+xml')
+    );
+  };
   const isTypeExactlyString = (typeExpr: string) =>
     typeExpr.trim().replaceAll(/^\(+|\)+$/g, '') === 'string';
   const isUnionContainingString = (typeExpr: string) =>
@@ -197,13 +205,17 @@ function generateDefinition(
       .split('|')
       .map((part) => part.trim().replaceAll(/^\(+|\)+$/g, ''))
       .includes('string');
-  const isBinaryLikeContentType = (ct: string) =>
-    ct === 'application/octet-stream' ||
-    ct === 'application/pdf' ||
-    ct.startsWith('image/') ||
-    ct.startsWith('audio/') ||
-    ct.startsWith('video/') ||
-    ct.startsWith('font/');
+  const isBinaryLikeContentType = (ct: string) => {
+    const lowerCt = ct.toLowerCase();
+    return (
+      lowerCt === 'application/octet-stream' ||
+      lowerCt === 'application/pdf' ||
+      lowerCt.startsWith('image/') ||
+      lowerCt.startsWith('audio/') ||
+      lowerCt.startsWith('video/') ||
+      lowerCt.startsWith('font/')
+    );
+  };
 
   const preferredContentType = isFunction(mock)
     ? undefined
@@ -243,7 +255,7 @@ function generateDefinition(
 
     return (
       schema.format === 'binary' ||
-      (schema.contentMediaType === 'application/octet-stream' &&
+      (isOctetStreamContentType(schema.contentMediaType) &&
         !schema.contentEncoding)
     );
   };
@@ -294,8 +306,8 @@ function generateDefinition(
         .trim()
     : returnType;
 
-  const hasJsonContentType = contentTypesByPreference.some(
-    (ct) => ct.includes('json') || ct.includes('+json'),
+  const hasJsonContentType = contentTypesByPreference.some((ct) =>
+    ct.toLowerCase().includes('json'),
   );
   const hasStringReturnType =
     isTypeExactlyString(returnType) || isUnionContainingString(returnType);
@@ -393,10 +405,11 @@ function generateDefinition(
   const firstTextCt = shouldIgnorePreferredForTextHelper
     ? contentTypes.find((ct) => isTextLikeContentType(ct))
     : contentTypesByPreference.find((ct) => isTextLikeContentType(ct));
+  const lowerFirstTextCt = firstTextCt?.toLowerCase();
   const textHelper =
-    firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
+    lowerFirstTextCt === 'application/xml' || lowerFirstTextCt?.endsWith('+xml')
       ? 'xml'
-      : firstTextCt === 'text/html'
+      : lowerFirstTextCt === 'text/html'
         ? 'html'
         : 'text';
 
@@ -407,7 +420,7 @@ function generateDefinition(
   // Content-Type header whenever the resolved media type diverges from the
   // helper default so vendor/problem-details contracts survive the mock.
   const firstJsonCt = contentTypesByPreference.find((ct) =>
-    ct.includes('json'),
+    ct.toLowerCase().includes('json'),
   );
   const textHelperDefaultContentType =
     textHelper === 'xml'
@@ -421,7 +434,8 @@ function generateDefinition(
       : // When preferredContentType matched a non-JSON type (e.g. application/octet-stream)
         // and the structured schema falls through to HttpResponse.json(), emit the
         // selected media type as the Content-Type so the contract survives.
-        preferredContentTypeMatch && !preferredContentTypeMatch.includes('json')
+        preferredContentTypeMatch &&
+          !preferredContentTypeMatch.toLowerCase().includes('json')
         ? `, headers: { 'Content-Type': '${jsStringLiteralEscape(
             preferredContentTypeMatch,
           )}' }`

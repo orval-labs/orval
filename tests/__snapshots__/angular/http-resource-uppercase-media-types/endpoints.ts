@@ -156,7 +156,10 @@ export function getItemResource(
     );
   }
 
-  if (accept.startsWith('text/') || accept.includes('xml')) {
+  if (
+    accept.toLowerCase().startsWith('text/') ||
+    accept.toLowerCase().includes('xml')
+  ) {
     return httpResource.text<string>(
       buildRequest,
       options as unknown as OrvalHttpResourceOptions<string, string>,

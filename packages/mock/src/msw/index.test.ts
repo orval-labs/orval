@@ -275,6 +275,45 @@ describe('generateMSW', () => {
       );
     });
 
+    // `contentMediaType` is a media type too, so the upgraded `format: binary`
+    // is binary in any case (#4369).
+    it('should generate Blob mock for a mixed-case octet-stream schema', () => {
+      const binaryJsonVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Blob' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'Application/Octet-Stream',
+                },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json'],
+        },
+      });
+
+      const result = generateMSW(binaryJsonVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toContain('new Blob([');
+      expect(result.implementation.handler).toContain(
+        'new HttpResponse(binaryBody',
+      );
+    });
+
     it('should handle application/pdf as binary', () => {
       const pdfVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
@@ -766,6 +805,54 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('textBody');
       expect(result.implementation.handler).toContain('JSON.stringify');
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
+    });
+
+    // Media type names are case-insensitive (RFC 9110 §8.3.1), so the helper
+    // follows the media type whatever its case, and the mock still answers
+    // with the declared spelling (#4369).
+    it.each([
+      ['TEXT/PLAIN', 'HttpResponse.text('],
+      ['TEXT/HTML', 'HttpResponse.html('],
+      ['APPLICATION/XML', 'HttpResponse.xml('],
+    ])('should pick the text helper for %s', (contentType, helper) => {
+      const textVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: [contentType],
+        },
+      });
+
+      const result = generateMSW(textVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(helper);
+      expect(result.implementation.handler).toContain(
+        `'Content-Type': '${contentType}'`,
+      );
+      expect(result.implementation.handler).not.toContain('HttpResponse.json');
+    });
+
+    it('should handle an uppercase image content type as binary', () => {
+      const imageVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: { success: [{ key: '200', value: 'Blob' }] },
+          contentTypes: ['IMAGE/PNG'],
+        },
+      });
+
+      const result = generateMSW(imageVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(
+        'new HttpResponse(binaryBody',
+      );
+      expect(result.implementation.handler).toContain(
+        "'Content-Type': 'IMAGE/PNG'",
+      );
     });
 
     it('should use HttpResponse.html for text/html responses', () => {

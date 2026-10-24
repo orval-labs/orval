@@ -35,6 +35,31 @@ describe('getFormDataComponentContexts', () => {
     });
   });
 
+  // Media type names are case-insensitive (RFC 9110 §8.3.1), so a
+  // `Multipart/Form-Data` body is a multipart body too (#4369).
+  it('indexes a multipart body declared in mixed case', () => {
+    const context = makeContext({
+      paths: {
+        '/foo': {
+          post: {
+            requestBody: {
+              content: {
+                'Multipart/Form-Data': {
+                  schema: { $ref: '#/components/schemas/upload' },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as OpenApiDocument);
+
+    expect(getFormDataComponentContexts(context).get('upload')).toEqual({
+      atPart: false,
+      encoding: {},
+    });
+  });
+
   it('carries the media type encoding of the multipart body', () => {
     const context = makeContext({
       paths: {

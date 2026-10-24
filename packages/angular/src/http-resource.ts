@@ -28,6 +28,7 @@ import {
   getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
+  isTextContentType,
   jsDoc,
   jsStringLiteralEscape,
   makeRouteSafe,
@@ -69,9 +70,11 @@ import {
 } from './http-client';
 import {
   buildAcceptJsonCondition,
+  buildAcceptTextCondition,
   buildServiceClassOpen,
   type ClientOverride,
   createRouteRegistry,
+  getAcceptExpression,
   getDefaultSuccessType,
   getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
@@ -288,14 +291,15 @@ const isResponseText = (
 ): boolean => {
   if (dataType === 'string') return true;
   if (!contentType) return false;
-  return contentType.startsWith('text/') || contentType.includes('xml');
+  return isTextContentType(contentType);
 };
 
 const isResponseArrayBuffer = (contentType: string | undefined): boolean => {
   if (!contentType) return false;
+  const lowerContentType = contentType.toLowerCase();
   return (
-    contentType.includes('application/octet-stream') ||
-    contentType.includes('application/pdf')
+    lowerContentType.includes('application/octet-stream') ||
+    lowerContentType.includes('application/pdf')
   );
 };
 
@@ -305,7 +309,10 @@ const isResponseBlob = (
 ): boolean => {
   if (isBlob) return true;
   if (!contentType) return false;
-  return contentType.startsWith('image/') || contentType.includes('blob');
+  const lowerContentType = contentType.toLowerCase();
+  return (
+    lowerContentType.startsWith('image/') || lowerContentType.includes('blob')
+  );
 };
 
 type HttpResourceFactoryName =
@@ -356,19 +363,25 @@ const getHttpResourceFactory = (
 
 /**
  * The factory of the multi-content dispatch branch that `contentType` lands
- * in. Checks run in the order of the emitted `if`s.
+ * in. Checks run in the order of the emitted `if`s, which lowercase `accept`
+ * whenever the operation declares an uppercase media type.
  */
 const getDispatchFactory = (
   contentType: string,
 ): HttpResourceFactoryName | undefined => {
   if (isJsonContentType(contentType)) return 'httpResource';
-  if (contentType.startsWith('text/') || contentType.includes('xml')) {
-    return 'httpResource.text';
-  }
-  if (contentType.startsWith('image/') || contentType.includes('blob')) {
+  if (isTextContentType(contentType)) return 'httpResource.text';
+  const lowerContentType = contentType.toLowerCase();
+  if (
+    lowerContentType.startsWith('image/') ||
+    lowerContentType.includes('blob')
+  ) {
     return 'httpResource.blob';
   }
-  if (contentType.includes('octet-stream') || contentType.includes('pdf')) {
+  if (
+    lowerContentType.includes('octet-stream') ||
+    lowerContentType.includes('pdf')
+  ) {
     return 'httpResource.arrayBuffer';
   }
   return undefined;
@@ -1236,6 +1249,7 @@ const buildHttpResourceFunction = (
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
       : `const normalizedRequest: HttpResourceRequest = request;`;
+    const acceptExpression = getAcceptExpression(uniqueContentTypes);
 
     return {
       implementation: `/**
@@ -1264,7 +1278,7 @@ export function ${resourceName}(
 
   ${
     textType
-      ? `if (accept.startsWith('text/') || accept.includes('xml')) {
+      ? `if (${buildAcceptTextCondition(uniqueContentTypes)}) {
     return httpResource.text<string>(buildRequest, ${getBranchOptions(textType)});
   }
 
@@ -1272,7 +1286,7 @@ export function ${resourceName}(
       : ''
   }${
     blobType
-      ? `if (accept.startsWith('image/') || accept.includes('blob')) {
+      ? `if (${acceptExpression}.startsWith('image/') || ${acceptExpression}.includes('blob')) {
     return httpResource.blob<Blob>(buildRequest, ${getBranchOptions(blobType)});
   }
 
@@ -1280,7 +1294,7 @@ export function ${resourceName}(
       : ''
   }${
     arrayBufferType
-      ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
+      ? `if (${acceptExpression}.includes('octet-stream') || ${acceptExpression}.includes('pdf')) {
     return httpResource.arrayBuffer<ArrayBuffer>(buildRequest, ${getBranchOptions(arrayBufferType)});
   }
 

@@ -106,7 +106,10 @@ export class AngularUppercaseMediaTypesTestService {
         responseType: 'json',
         headers,
       });
-    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+    } else if (
+      accept.toLowerCase().startsWith('text/') ||
+      accept.toLowerCase().includes('xml')
+    ) {
       return this.http.get(`/items/${id}`, {
         ...options,
         responseType: 'text',

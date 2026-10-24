@@ -598,6 +598,76 @@ describe('write-zod-specs schemaExtension forwarding', () => {
     }
   });
 
+  // Media type names are case-insensitive (RFC 9110 §8.3.1). Endpoints import
+  // `${OperationName}Body` from the zod schemas path, so a body declared in
+  // another case still needs that export (#3066, #4369).
+  it('writes body schemas for media types declared in another case', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-media-type-case-'),
+    );
+    try {
+      const context = {
+        output: {
+          override: {
+            useDates: false,
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'test', version: '1.0.0' },
+        },
+        target: '',
+        workspace: root,
+      } satisfies MinimalVerbsContext;
+      const bodyOperation = (operationName: string, contentType: string) => ({
+        operationName,
+        typeName: operationName,
+        originalOperation: {
+          parameters: [],
+          requestBody: {
+            content: {
+              [contentType]: {
+                schema: {
+                  type: 'object' as const,
+                  properties: { label: { type: 'string' as const } },
+                },
+              },
+            },
+          },
+        },
+        response: { types: { success: [], errors: [] } },
+      });
+      const verbOptions = {
+        submitJson: bodyOperation('submitJson', 'APPLICATION/JSON'),
+        upload: bodyOperation('upload', 'Multipart/Form-Data'),
+        submitForm: bodyOperation(
+          'submitForm',
+          'Application/X-WWW-Form-Urlencoded',
+        ),
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemasFromVerbs(
+        verbOptions,
+        schemasPath,
+        '.ts',
+        '',
+        createOutputOptions(),
+        context,
+      );
+
+      for (const name of ['SubmitJsonBody', 'UploadBody', 'SubmitFormBody']) {
+        const content = await fs.promises.readFile(
+          path.join(schemasPath, `${name}.ts`),
+          'utf8',
+        );
+        expect(content).toContain('label');
+      }
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('forwards extensions to operation parameters, JSON bodies, responses and multipart bodies', async () => {
     const root = await fs.promises.mkdtemp(
       path.join(tmpdir(), 'orval-zod-verb-extension-'),

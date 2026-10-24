@@ -16,8 +16,9 @@ const binaryApplicationTypes = new Set([
  * so that schema type information is preserved rather than being overridden with Blob.
  */
 export function isBinaryContentType(contentType: string): boolean {
-  // Strip parameters (e.g., "; charset=utf-8") to get the base MIME type
-  const baseType = contentType.split(';')[0].trim();
+  // Strip parameters (e.g., "; charset=utf-8") to get the base MIME type.
+  // Media type names are case-insensitive (RFC 9110 §8.3.1).
+  const baseType = contentType.split(';')[0].trim().toLowerCase();
 
   if (baseType.startsWith('image/')) return true;
   if (baseType.startsWith('audio/')) return true;
@@ -25,6 +26,60 @@ export function isBinaryContentType(contentType: string): boolean {
   if (baseType.startsWith('font/')) return true;
 
   return binaryApplicationTypes.has(baseType);
+}
+
+/**
+ * Whether a content type is read as text: `text/*` or any XML type. Media type
+ * names are case-insensitive (RFC 9110 §8.3.1), so `TEXT/PLAIN` counts.
+ */
+export function isTextContentType(contentType: string): boolean {
+  const lowerContentType = contentType.toLowerCase();
+  return (
+    lowerContentType.startsWith('text/') || lowerContentType.includes('xml')
+  );
+}
+
+/**
+ * Whether a media type is `application/octet-stream`, in any letter case. A
+ * schema's `contentMediaType` carries it for the upgraded `format: binary`.
+ */
+export function isOctetStreamContentType(
+  contentType: string | undefined,
+): boolean {
+  return contentType?.toLowerCase() === 'application/octet-stream';
+}
+
+/**
+ * Whether a content type is `multipart/form-data`, in any letter case.
+ */
+export function isFormDataContentType(contentType: string): boolean {
+  return contentType.toLowerCase() === 'multipart/form-data';
+}
+
+/**
+ * Whether a content type is `application/x-www-form-urlencoded`, in any
+ * letter case.
+ */
+export function isFormUrlEncodedContentType(contentType: string): boolean {
+  return contentType.toLowerCase() === 'application/x-www-form-urlencoded';
+}
+
+/**
+ * Looks up `mediaType` in a `content` map. Media type names are
+ * case-insensitive (RFC 9110 §8.3.1), so a key in another case matches; the
+ * exact spelling wins when both are declared.
+ */
+export function findMediaType<T>(
+  content: Record<string, T> | undefined,
+  mediaType: string,
+): T | undefined {
+  if (!content) return undefined;
+  if (Object.hasOwn(content, mediaType)) return content[mediaType];
+
+  const lowerMediaType = mediaType.toLowerCase();
+  return Object.entries(content).find(
+    ([contentType]) => contentType.toLowerCase() === lowerMediaType,
+  )?.[1];
 }
 
 /**
@@ -77,7 +132,8 @@ export interface ContentTypeFilter {
 }
 
 /**
- * Filters items by content type based on include/exclude rules
+ * Filters items by content type based on include/exclude rules. Media types
+ * match case-insensitively (RFC 9110 §8.3.1).
  *
  * @param items - Array of items with contentType property
  * @param filter - Optional filter configuration
@@ -105,11 +161,14 @@ export function filterByContentType<T extends { contentType: string }>(
     return items;
   }
 
-  return items.filter((item) => {
-    const shouldInclude =
-      !filter.include || filter.include.includes(item.contentType);
+  const include = filter.include?.map((type) => type.toLowerCase());
+  const exclude = filter.exclude?.map((type) => type.toLowerCase());
 
-    const shouldExclude = filter.exclude?.includes(item.contentType) ?? false;
+  return items.filter((item) => {
+    const contentType = item.contentType.toLowerCase();
+    const shouldInclude = !include || include.includes(contentType);
+
+    const shouldExclude = exclude?.includes(contentType) ?? false;
 
     return shouldInclude && !shouldExclude;
   });
