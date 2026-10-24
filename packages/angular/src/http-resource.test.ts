@@ -1937,6 +1937,127 @@ describe('angular httpResource generator', () => {
       expect(header).not.toContain("accept.startsWith('text/')");
       expect(header).not.toContain('httpResource.text');
     });
+
+    // A binary type makes `response.isBlob` true for the whole operation.
+    // The JSON branch still parses JSON, so its options must not take the
+    // blob's `Blob` raw type, and the blob branch must get the blob's own
+    // options (#4370).
+    it('types each branch by its own media type when a binary type is declared', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'image/png'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'image/png'],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "accept: 'application/json',\n    options?: OrvalHttpResourceOptions<Pet, unknown>",
+      );
+      expect(header).toContain(
+        'httpResource<Pet>(buildRequest, options as unknown as OrvalHttpResourceOptions<Pet, unknown>)',
+      );
+      expect(header).toContain(
+        'httpResource.blob<Blob>(buildRequest, options as unknown as OrvalHttpResourceOptions<Blob, Blob>)',
+      );
+    });
+
+    // The dispatch sends `application/json` to the JSON branch whatever its
+    // schema, so a `string` schema must not get text options or a text
+    // branch (#4370).
+    it('types a JSON string response as JSON in a multi-content resource', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('string', 'application/json'),
+              createSuccessType('Pet', 'application/vnd.api+json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/vnd.api+json'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'httpResource<string>(buildRequest, options as unknown as OrvalHttpResourceOptions<string, unknown>)',
+      );
+      expect(header).not.toContain('httpResource.text');
+    });
+
+    // `application/zip` matches no dispatch branch, so the fallback is the
+    // only code that serves it. JSON-parsing it there would break at runtime
+    // while the overload promises a Blob (#4370).
+    it('serves a media type that matches no branch from the fallback', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'application/zip'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/zip'],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        "accept: 'application/zip',\n    options?: OrvalHttpResourceOptions<Blob, Blob>",
+      );
+      expect(header).toContain(
+        '  return httpResource.blob<Blob>(buildRequest, options as unknown as OrvalHttpResourceOptions<Blob, Blob>);\n}',
+      );
+    });
   });
 
   // ─── Multi-content resource reactivity (issue #3713) ───────────────

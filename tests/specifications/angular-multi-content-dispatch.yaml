@@ -1,0 +1,167 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Angular Multi-Content Dispatch Test
+  description: Multi-content responses whose media types land in different httpResource branches
+paths:
+  /items/{id}:
+    get:
+      summary: Get an item in two JSON media types
+      operationId: getItem
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Item in two JSON flavours
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /items/{id}/image:
+    get:
+      summary: Get an item image, or its metadata as JSON
+      operationId: getItemImage
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Image metadata as JSON, or the PNG image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageMetadata'
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /items/{id}/file:
+    get:
+      summary: Get an item as JSON or as raw bytes
+      operationId: getItemFile
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Item as JSON or as an octet stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /items/{id}/preview:
+    get:
+      summary: Get an item preview as text or as an image
+      operationId: getItemPreview
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Preview as plain text or as a PNG image
+          content:
+            text/plain:
+              schema:
+                type: string
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /items/{id}/name:
+    get:
+      summary: Get an item name as a JSON string or as an item
+      operationId: getItemName
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Name as a JSON string, or the whole item
+          content:
+            application/json:
+              schema:
+                type: string
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /items/{id}/label:
+    get:
+      summary: Get an item label as a JSON string or as plain text
+      operationId: getItemLabel
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Label as a JSON string or as plain text
+          content:
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  /items/{id}/archive:
+    get:
+      summary: Get an item as JSON or as a zip archive
+      operationId: getItemArchive
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Item as JSON, or a zip archive that no dispatch branch matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            application/zip:
+              schema:
+                type: string
+                format: binary
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    Item:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    # Only the JSON + image operation uses this schema, so its zod import
+    # depends on that operation alone.
+    ImageMetadata:
+      type: object
+      required:
+        - width
+        - height
+      properties:
+        width:
+          type: integer
+        height:
+          type: integer
