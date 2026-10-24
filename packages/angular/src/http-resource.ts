@@ -354,6 +354,52 @@ const getHttpResourceFactory = (
   return 'httpResource';
 };
 
+/**
+ * The factory of the multi-content dispatch branch that `contentType` lands
+ * in. Checks run in the order of the emitted `if`s.
+ */
+const getDispatchFactory = (
+  contentType: string,
+): HttpResourceFactoryName | undefined => {
+  if (isJsonContentType(contentType)) return 'httpResource';
+  if (contentType.startsWith('text/') || contentType.includes('xml')) {
+    return 'httpResource.text';
+  }
+  if (contentType.startsWith('image/') || contentType.includes('blob')) {
+    return 'httpResource.blob';
+  }
+  if (contentType.includes('octet-stream') || contentType.includes('pdf')) {
+    return 'httpResource.arrayBuffer';
+  }
+  return undefined;
+};
+
+/**
+ * A multi-content resource routes each `accept` value by media type, so a
+ * success type takes the factory of the branch its media type lands in. The
+ * operation-wide `isBlob` and the schema type would disagree with that
+ * routing. A media type no branch matches is typed `Blob` (see
+ * `getContentTypeReturnType`), so the fallback reads it as one.
+ * Single-content resources, and success types without a media type, keep the
+ * plain rules.
+ */
+const getSuccessTypeFactory = (
+  response: GeneratorVerbOptions['response'],
+  successType: ResReqTypesValue,
+): HttpResourceFactoryName => {
+  if (
+    !successType.contentType ||
+    getUniqueContentTypes(response.types.success).length <= 1
+  ) {
+    return getHttpResourceFactory(
+      response,
+      successType.contentType,
+      successType.value,
+    );
+  }
+  return getDispatchFactory(successType.contentType) ?? 'httpResource.blob';
+};
+
 const getHttpResourceRawType = (factory: HttpResourceFactoryName): string => {
   switch (factory) {
     case 'httpResource.text': {
@@ -685,11 +731,7 @@ const getHttpResourceZodParsedImportNames = (
   for (const successType of response.types.success) {
     const schemaName = getParseSchemaName(
       response,
-      getHttpResourceFactory(
-        response,
-        successType.contentType,
-        successType.value,
-      ),
+      getSuccessTypeFactory(response, successType),
       output,
       successType.value,
     );
@@ -714,11 +756,7 @@ const needsZodNamespaceImport = (
   response.types.success.some((successType) =>
     resolveParseSchema(
       response,
-      getHttpResourceFactory(
-        response,
-        successType.contentType,
-        successType.value,
-      ),
+      getSuccessTypeFactory(response, successType),
       output,
       successType.value,
     )?.schemaRef.startsWith('zod.'),
@@ -984,8 +1022,9 @@ const buildHttpResourceFunction = (
       ? (dataArraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
       : dataType;
   const successTypes = response.types.success;
+  const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const overallReturnType =
-    successTypes.length <= 1
+    uniqueContentTypes.length <= 1
       ? parsedDataType
       : [
           ...new Set(
@@ -1002,7 +1041,6 @@ const buildHttpResourceFunction = (
   const resourceAlias = `export type ${pascal(
     typeName,
   )}ResourceResult = NonNullable<${overallReturnType}>`;
-  const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
     isJsonContentType(type.contentType),
@@ -1080,9 +1118,7 @@ const buildHttpResourceFunction = (
       ),
     ].join(' | ');
     const getBranchRawType = (type: ResReqTypesValue): string =>
-      getHttpResourceRawType(
-        getHttpResourceFactory(response, type.contentType, type.value),
-      );
+      getHttpResourceRawType(getSuccessTypeFactory(response, type));
     // Per-branch options types (one per distinct content-type branch).
     // Deduped so text-like content types (text/plain, application/xml) that
     // share the same factory don't produce duplicate union members.
@@ -1141,11 +1177,7 @@ const buildHttpResourceFunction = (
         return `options as ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`;
       }
 
-      const factory = getHttpResourceFactory(
-        response,
-        type.contentType,
-        type.value,
-      );
+      const factory = getSuccessTypeFactory(response, type);
       const branchOptions = buildHttpResourceOptionsLiteral(
         verbOption,
         factory,
@@ -1163,24 +1195,25 @@ const buildHttpResourceFunction = (
       )}`;
     };
 
-    const jsonType = successTypes.find((type) =>
-      isJsonContentType(type.contentType),
-    );
-    const textType = successTypes.find((type) =>
-      isResponseText(type.contentType, type.value),
-    );
-    const arrayBufferType = successTypes.find((type) =>
-      isResponseArrayBuffer(type.contentType),
-    );
-    const blobType = successTypes.find((type) =>
-      isResponseBlob(type.contentType, response.isBlob),
-    );
+    const findBranchType = (factory: HttpResourceFactoryName) =>
+      successTypes.find(
+        (type) => getDispatchFactory(type.contentType) === factory,
+      );
+    const jsonType = findBranchType('httpResource');
+    const textType = findBranchType('httpResource.text');
+    const arrayBufferType = findBranchType('httpResource.arrayBuffer');
+    const blobType = findBranchType('httpResource.blob');
 
-    // Fallback path for unknown accept values must match the branch the
-    // default `accept` argument targets — pick the success type whose content
-    // type is `defaultContentType`, then fall back to the remaining branches
-    // in the same priority order as the runtime dispatch above.
+    // A declared media type that matches no branch above (e.g.
+    // `application/zip`) only ever reaches the fallback, so the fallback
+    // serves it. Otherwise it must match the branch the default `accept`
+    // argument targets: pick the success type whose content type is
+    // `defaultContentType`, then the remaining branches in the same priority
+    // order as the runtime dispatch above.
     const fallbackType =
+      successTypes.find(
+        (type) => getDispatchFactory(type.contentType) === undefined,
+      ) ??
       successTypes.find((type) => type.contentType === defaultContentType) ??
       jsonType ??
       textType ??
@@ -1188,11 +1221,7 @@ const buildHttpResourceFunction = (
       blobType;
 
     const buildFallbackReturn = (type: ResReqTypesValue): string => {
-      const factory = getHttpResourceFactory(
-        response,
-        type.contentType,
-        type.value,
-      );
+      const factory = getSuccessTypeFactory(response, type);
       const returnType =
         factory === 'httpResource'
           ? getBranchReturnType(type)
@@ -1233,11 +1262,15 @@ export function ${resourceName}(
     return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(buildRequest, ${getBranchOptions(jsonType)});
   }
 
-  if (accept.startsWith('text/') || accept.includes('xml')) {
+  ${
+    textType
+      ? `if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(buildRequest, ${getBranchOptions(textType)});
   }
 
-  ${
+  `
+      : ''
+  }${
     blobType
       ? `if (accept.startsWith('image/') || accept.includes('blob')) {
     return httpResource.blob<Blob>(buildRequest, ${getBranchOptions(blobType)});
@@ -1422,16 +1455,22 @@ const getContentTypeReturnType = (
   value: string,
 ): string => {
   if (!contentType) return value;
-  if (isJsonContentType(contentType)) {
-    return value;
+  // Follows the multi-content dispatch, so each branch's value type matches
+  // the factory that serves it.
+  switch (getDispatchFactory(contentType)) {
+    case 'httpResource': {
+      return value;
+    }
+    case 'httpResource.text': {
+      return 'string';
+    }
+    case 'httpResource.arrayBuffer': {
+      return 'ArrayBuffer';
+    }
+    default: {
+      return 'Blob';
+    }
   }
-  if (contentType.startsWith('text/') || contentType.includes('xml')) {
-    return 'string';
-  }
-  if (isResponseArrayBuffer(contentType)) {
-    return 'ArrayBuffer';
-  }
-  return 'Blob';
 };
 
 const getHttpResourceGeneratedResponseType = (

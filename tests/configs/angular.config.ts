@@ -442,6 +442,49 @@ export default defineConfig({
       target: '../specifications/angular-uppercase-media-types.yaml',
     },
   },
+  httpResourceMultiContentDispatch: {
+    output: {
+      target:
+        '../generated/angular/http-resource-multi-content-dispatch/endpoints.ts',
+      schemas:
+        '../generated/angular/http-resource-multi-content-dispatch/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-multi-content-dispatch.yaml',
+    },
+  },
+  // Runtime validation parses only the JSON branches, so their schemas must
+  // be imported even next to binary or text types.
+  httpResourceMultiContentDispatchZod: {
+    output: {
+      target:
+        '../generated/angular/http-resource-multi-content-dispatch-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/http-resource-multi-content-dispatch-zod/model',
+      },
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-multi-content-dispatch.yaml',
+    },
+  },
   issue3103: {
     output: {
       target: '../generated/angular/issue-3103/endpoints.ts',
