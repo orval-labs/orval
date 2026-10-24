@@ -267,12 +267,19 @@ const generateRequestFunctionParts = (
     arrayFormat,
   );
   const deepObjectParameters = getDeepObjectParameters(parameterObjects);
-  const isExplodeParametersOnly = isExplodeOnly(
-    parameterObjects,
-    explodeParameters,
-    arrayFormatParameters,
-    deepObjectParameters,
-  );
+  // An array param composed with a non-array member (`oneOf: [string, array]`)
+  // can still hold a scalar, which only the plain fallback writes.
+  const isExplodeParametersOnly =
+    isExplodeOnly(
+      parameterObjects,
+      explodeParameters,
+      arrayFormatParameters,
+      deepObjectParameters,
+    ) &&
+    [...explodeParameters, ...arrayFormatParameters].every(
+      (parameter) =>
+        resolveSchemaRef(parameter.schema, context).schema.type === 'array',
+    );
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
