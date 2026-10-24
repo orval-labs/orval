@@ -81,6 +81,22 @@ describe('getResponse', () => {
       },
     );
 
+    it('treats an uppercase JSON media type as JSON', () => {
+      const result = getResponse({
+        responses: {
+          200: {
+            description: 'Scalar response',
+            content: { 'application/JSON': { schema: { type: 'integer' } } },
+          },
+        },
+        operationName: 'readValue',
+        context,
+        generatePrimitiveSchemas: true,
+      });
+
+      expect(result.definition.success).toBe('ReadValue200');
+    });
+
     it('leaves primitive definitions unchanged when not requested', () => {
       const result = getResponse({
         responses: { 200: jsonResponse({ type: 'integer' }) },
@@ -109,6 +125,12 @@ describe('getResponse', () => {
         description: 'NDJSON stream',
         content: {
           'application/x-ndjson': { schema: { type: 'string' as const } },
+        },
+      },
+      {
+        description: 'NDJSON stream',
+        content: {
+          'application/X-NDJSON': { schema: { type: 'string' as const } },
         },
       },
     ])(

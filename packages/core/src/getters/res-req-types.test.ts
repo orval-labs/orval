@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createTestContextSpec, type TestOverride } from '../test-utils';
 import type {
   ContextSpec,
+  GetterResponse,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OpenApiResponseObject,
@@ -16,7 +17,9 @@ import { isBinaryContentType } from '../utils/content-type';
 import {
   collectPropertiesThroughAllOf,
   collectRequiredThroughAllOf,
+  getDefaultContentType,
   getResReqTypes,
+  getSuccessResponseType,
   isEffectivelyObjectSchema,
 } from './res-req-types';
 
@@ -124,6 +127,45 @@ describe('isBinaryContentType', () => {
 
   it('should strip MIME type parameters before checking', () => {
     expect(isBinaryContentType('application/json; charset=utf-8')).toBe(false);
+  });
+});
+
+describe('getSuccessResponseType', () => {
+  const responseWith = (...contentTypes: string[]) =>
+    ({
+      isBlob: false,
+      types: {
+        success: contentTypes.map((contentType) => ({ contentType })),
+        errors: [],
+      },
+    }) as unknown as GetterResponse;
+
+  // Clients that read this switch to `responseType: 'text'` when no JSON is
+  // found. Media type names are case-insensitive (RFC 9110 §8.3.1), so an
+  // uppercase JSON media type must keep the JSON default (#4365).
+  it.each(['application/json', 'application/JSON', 'application/VND.API+JSON'])(
+    'keeps the JSON default when "%s" sits next to text/plain',
+    (jsonContentType) => {
+      expect(
+        getSuccessResponseType(responseWith(jsonContentType, 'text/plain')),
+      ).toBeUndefined();
+    },
+  );
+
+  it('requests text when no success response is JSON', () => {
+    expect(getSuccessResponseType(responseWith('text/plain'))).toBe('text');
+  });
+});
+
+describe('getDefaultContentType', () => {
+  // The result becomes the default of the generated `Accept` union, so it has
+  // to keep the declared spelling while matching JSON case-insensitively.
+  it.each([
+    [['text/plain', 'application/JSON'], 'application/JSON'],
+    [['text/plain', 'application/VND.API+JSON'], 'application/VND.API+JSON'],
+    [['text/plain', 'application/json'], 'application/json'],
+  ])('picks the JSON media type from %j', (contentTypes, expected) => {
+    expect(getDefaultContentType(contentTypes)).toBe(expected);
   });
 });
 

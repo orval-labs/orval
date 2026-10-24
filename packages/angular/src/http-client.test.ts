@@ -1350,6 +1350,40 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: 'text/plain'");
       // Default accept prefers JSON when available
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+      // Lowercase specs keep the original check, so their output is unchanged.
+      expect(impl).toContain(
+        "if (accept.includes('json') || accept.includes('+json'))",
+      );
+    });
+
+    // Media type names are case-insensitive (RFC 9110 §8.3.1). A spec that
+    // declares `application/JSON` has to get a method that is typed and
+    // requested as JSON, not as a Blob (#4365).
+    it('routes uppercase JSON media types to the JSON branch', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        response: baseResponse({
+          definition: { success: 'Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/JSON'),
+              createSuccessType('Pet', 'application/VND.API+JSON'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/JSON', 'application/VND.API+JSON'],
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain("if (accept.toLowerCase().includes('json'))");
+      expect(impl).toContain('this.http.get<Pet>');
+      expect(impl).toContain("responseType: 'json'");
+      expect(impl).not.toContain('Blob');
     });
 
     it('escapes single quotes in accept media type keys', () => {
