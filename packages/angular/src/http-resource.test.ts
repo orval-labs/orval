@@ -2102,6 +2102,44 @@ describe('angular httpResource generator', () => {
       );
     });
 
+    // Several statuses with one media type make a single-content resource,
+    // so its result alias must follow the resource type, not the
+    // multi-content dispatch (#4370).
+    it('types the result alias of a single-content resource like the resource', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Blob', 'application/x-pdf'),
+              { ...createSuccessType('Blob', 'application/x-pdf'), key: '203' },
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/x-pdf'],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('httpResource.blob<Blob>(');
+      expect(header).toContain(
+        'export type GetPetByIdResourceResult = NonNullable<Blob>',
+      );
+    });
+
     it('serves an unmatched non-binary media type as a Blob', () => {
       const verbOption = createVerbOption({
         response: baseResponse({

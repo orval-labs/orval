@@ -691,6 +691,78 @@ export function getItemReportResource(
   } as unknown as OrvalHttpResourceOptions<ItemOutput, unknown, true>);
 }
 
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function getItemScanResource(
+  id: Signal<string>,
+  options: OrvalHttpResourceOptions<Blob, Blob, true> & {
+    defaultValue: NoInfer<Blob>;
+  },
+): HttpResourceRef<Blob>;
+export function getItemScanResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<Blob, Blob, true>,
+): HttpResourceRef<Blob | undefined>;
+export function getItemScanResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<Blob, Blob, true>,
+): HttpResourceRef<Blob | undefined> {
+  return httpResource.blob<Blob>(
+    () => applyOrvalRequestExtension(`/items/${id()}/scan`, options),
+    options,
+  );
+}
+
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function getItemSettingsResource(
+  id: Signal<string>,
+  options: OrvalHttpResourceOptions<ItemOutput, unknown, true> & {
+    defaultValue: NoInfer<ItemOutput>;
+  },
+): HttpResourceRef<ItemOutput>;
+export function getItemSettingsResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<ItemOutput, unknown, true>,
+): HttpResourceRef<ItemOutput | undefined>;
+export function getItemSettingsResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<ItemOutput, unknown, true>,
+): HttpResourceRef<ItemOutput | undefined> {
+  return httpResource<ItemOutput>(
+    () => applyOrvalRequestExtension(`/items/${id()}/settings`, options),
+    {
+      ...(options ?? {}),
+      parse: Item.parse,
+    },
+  );
+}
+
+/**
+ * @remarks httpResource is available in Angular 19.2 and later.
+ */
+export function getLatestItemResource(
+  id: Signal<string>,
+  options: OrvalHttpResourceOptions<Item | void, unknown, true> & {
+    defaultValue: NoInfer<Item | void>;
+  },
+): HttpResourceRef<Item | void>;
+export function getLatestItemResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<Item | void, unknown, true>,
+): HttpResourceRef<Item | void | undefined>;
+export function getLatestItemResource(
+  id: Signal<string>,
+  options?: OrvalHttpResourceOptions<Item | void, unknown, true>,
+): HttpResourceRef<Item | void | undefined> {
+  return httpResource<Item | void>(
+    () => applyOrvalRequestExtension(`/items/${id()}/latest`, options),
+    options,
+  );
+}
+
 export type GetItemResourceResult = NonNullable<ItemOutput>;
 export type GetItemImageResourceResult = NonNullable<
   ImageMetadataOutput | Blob
@@ -706,6 +778,9 @@ export type GetItemLabelResourceResult = NonNullable<
 export type GetItemArchiveResourceResult = NonNullable<ItemOutput | Blob>;
 export type GetItemDocumentResourceResult = NonNullable<ItemOutput | Blob>;
 export type GetItemReportResourceResult = NonNullable<ItemOutput | ArrayBuffer>;
+export type GetItemScanResourceResult = NonNullable<Blob>;
+export type GetItemSettingsResourceResult = NonNullable<ItemOutput>;
+export type GetLatestItemResourceResult = NonNullable<Item | void>;
 
 /**
  * Utility type for httpResource results with status tracking.

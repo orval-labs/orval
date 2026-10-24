@@ -171,6 +171,67 @@ paths:
               schema:
                 type: string
                 format: binary
+  /items/{id}/scan:
+    get:
+      summary: Get an item scan, with two statuses that share one media type
+      operationId: getItemScan
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The scan
+          content:
+            application/x-pdf:
+              schema:
+                type: string
+                format: binary
+        '203':
+          description: A cached copy of the scan
+          content:
+            application/x-pdf:
+              schema:
+                type: string
+                format: binary
+  /items/{id}/settings:
+    get:
+      summary: Get item settings as YAML, with two statuses that share one media type
+      operationId: getItemSettings
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The settings
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '203':
+          description: A cached copy of the settings
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /items/{id}/latest:
+    get:
+      summary: Get the latest item, or nothing
+      operationId: getLatestItem
+      tags:
+        - items
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The latest item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '204':
+          description: No item yet
 components:
   parameters:
     Id:

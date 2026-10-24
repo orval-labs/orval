@@ -1022,8 +1022,9 @@ const buildHttpResourceFunction = (
       ? (dataArraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(dataType))
       : dataType;
   const successTypes = response.types.success;
+  const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const overallReturnType =
-    successTypes.length <= 1
+    uniqueContentTypes.length <= 1
       ? parsedDataType
       : [
           ...new Set(
@@ -1040,7 +1041,6 @@ const buildHttpResourceFunction = (
   const resourceAlias = `export type ${pascal(
     typeName,
   )}ResourceResult = NonNullable<${overallReturnType}>`;
-  const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
     isJsonContentType(type.contentType),
