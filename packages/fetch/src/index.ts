@@ -4,6 +4,7 @@ import {
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
+  type ContextSpec,
   emitResponseValidation,
   filterByContentType,
   generateBodyOptions,
@@ -185,6 +186,49 @@ const getMutatorErrorResponseArgument = (
 const isFetchFactoryMode = (output: NormalizedOutputOptions | undefined) =>
   output?.client === OutputClient.FETCH &&
   output.override.fetch.httpClientInjection === 'factory';
+
+// `useDatesTransform` converts only JSON bodies. MCP handlers forward the
+// result to the model as JSON, where a `Date` adds nothing and re-serializes
+// a `format: date` value as a full datetime, so MCP gets no transform.
+const getIsDatesTransformEnabled = (
+  override: GeneratorVerbOptions['override'],
+  context: ContextSpec,
+) => override.useDatesTransform && context.output.client !== OutputClient.MCP;
+
+/**
+ * Builds the `deserialize{Op}Response` function for a verb's response, or
+ * returns `undefined` when its dates are not converted.
+ */
+const getResponseDateDeserializer = (
+  {
+    operationName,
+    response,
+    mutator,
+    override,
+  }: Pick<
+    GeneratorVerbOptions,
+    'operationName' | 'response' | 'mutator' | 'override'
+  >,
+  context: ContextSpec,
+) => {
+  // ndjson is excluded explicitly: its media type contains `json`, which the
+  // core deserializer's content-type check accepts.
+  const isNdJson = response.contentTypes.some(
+    (contentType) =>
+      contentType === 'application/nd-json' ||
+      contentType === 'application/x-ndjson',
+  );
+  // An inferred mutator's return type is unknown to orval — it may not even be
+  // a promise — so its response cannot be converted. Skipping the deserializer
+  // entirely (rather than generating it and simply never wiring it up) keeps
+  // the output free of an unreferenced const, which `tsc --noUnusedLocals`
+  // rejects. The request serializer still applies regardless.
+  return getIsDatesTransformEnabled(override, context) &&
+    !isNdJson &&
+    !mutator?.inferred
+    ? generateResponseDateDeserializer({ operationName, response, context })
+    : undefined;
+};
 
 /**
  * Generates the URL helper function and the fetch request function for a single
@@ -446,22 +490,11 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   );
   const isBlob = response.isBlob;
 
-  // `useDatesTransform` converts only JSON bodies. MCP handlers forward the
-  // result to the model as JSON, where a `Date` adds nothing and re-serializes
-  // a `format: date` value as a full datetime, so MCP gets no transform.
-  // ndjson is excluded explicitly: its media type contains `json`, which the
-  // core deserializer's content-type check accepts.
-  const isDatesTransformEnabled =
-    override.useDatesTransform && context.output.client !== OutputClient.MCP;
-  // An inferred mutator's return type is unknown to orval — it may not even be
-  // a promise — so its response cannot be converted. Skipping the deserializer
-  // entirely (rather than generating it and simply never wiring it up) keeps
-  // the output free of an unreferenced const, which `tsc --noUnusedLocals`
-  // rejects. The request serializer still applies below regardless.
-  const dateDeserializer =
-    isDatesTransformEnabled && !isNdJson && !mutator?.inferred
-      ? generateResponseDateDeserializer({ operationName, response, context })
-      : undefined;
+  const isDatesTransformEnabled = getIsDatesTransformEnabled(override, context);
+  const dateDeserializer = getResponseDateDeserializer(
+    { operationName, response, mutator, override },
+    context,
+  );
   const successStatusCondition = dateDeserializer
     ? getResponseStatusCondition({
         key: response.types.success[0].key,
@@ -786,9 +819,16 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     context.output.override.includeZodSchemaInArguments &&
     isObject(context.output.schemas) &&
     context.output.schemas.type === 'zod';
+  // The mutator validates the raw JSON before the conversion chained onto its
+  // promise runs, so `zod.date()` rejects the date string (#4346). Converting
+  // inside the schema it receives keeps the built-in path's order: convert,
+  // then validate.
+  const mutatorSchemaRef = dateDeserializer
+    ? `zod.preprocess((value) => ${dateDeserializer.name}(value as ${response.definition.success}), ${schemaValueRef})`
+    : schemaValueRef;
   const getFetchFnOptions = ({ withSchema = false } = {}) => {
     const fetchSchemaOption =
-      withSchema && includeZodSchema ? `schema: ${schemaValueRef}` : '';
+      withSchema && includeZodSchema ? `schema: ${mutatorSchemaRef}` : '';
 
     return `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
@@ -1013,14 +1053,18 @@ export const fetchResponseTypeName = (
 
 /**
  * The response-import rewrite a Zod-validated fetch response requires, together
- * with the flag telling the caller whether the emitted expression composes
- * `zod.array(...)` and so needs the `zod` namespace in scope.
+ * with the flag telling the caller whether the emitted expression needs the
+ * `zod` namespace in scope.
  */
 export interface FetchResponseValidationImports {
   /** `response.imports` rewritten for the emitted `parse`/`schema:` reference. */
   imports: GeneratorImport[];
-  /** Set when the validated response is an inline array (`zod.array(Item)`). */
-  composesZodArray: boolean;
+  /**
+   * Set when the emitted expression calls the `zod` namespace: an inline array
+   * (`zod.array(Item)`), or a mutator schema that converts dates first
+   * (`zod.preprocess(...)`).
+   */
+  composesZod: boolean;
 }
 
 /**
@@ -1036,7 +1080,7 @@ export interface FetchResponseValidationImports {
  * response type never imported at all (#4136, #4137).
  */
 export const getFetchResponseValidationImports = (
-  { response, mutator, override }: GeneratorVerbOptions,
+  { operationName, response, mutator, override }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
 ): FetchResponseValidationImports | undefined => {
   const isZodOutput =
@@ -1076,7 +1120,13 @@ export const getFetchResponseValidationImports = (
       schemaImportName,
       { includeOutputType: !mutator },
     ),
-    composesZodArray: !isNamedSchema,
+    composesZod:
+      !isNamedSchema ||
+      (mutator !== undefined &&
+        getResponseDateDeserializer(
+          { operationName, response, mutator, override },
+          context,
+        ) !== undefined),
   };
 };
 

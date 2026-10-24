@@ -31,6 +31,7 @@ import {
   generateFetchFooter,
   generateFetchHeader,
   generateRequestFunction,
+  getFetchResponseValidationImports,
 } from './index';
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
@@ -1448,6 +1449,64 @@ describe('generateRequestFunction — useDatesTransform', () => {
     expect(generate(verbOptions)).toContain(
       '.then((value) => deserializeUpdateAppointmentResponse(value as Appointment))',
     );
+  });
+
+  describe('with the zod schema handed to the mutator (#4346)', () => {
+    function validatedMutatorVerbOptions({ useDatesTransform = true } = {}) {
+      const verbOptions = datedVerbOptions({
+        useDatesTransform,
+        fetch: {
+          includeHttpResponseReturnType: false,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+      });
+      verbOptions.mutator = MUTATOR;
+      verbOptions.response.imports = [
+        { name: 'Appointment', schemaName: 'Appointment', values: true },
+      ];
+      return verbOptions;
+    }
+
+    function zodContext() {
+      const context = makeContext([], false, {
+        path: './model',
+        type: 'zod',
+        splitByTags: false,
+      });
+      context.output.override.includeZodSchemaInArguments = true;
+      return context;
+    }
+
+    it('converts dates before the mutator validates the response', () => {
+      expect(generate(validatedMutatorVerbOptions(), zodContext())).toContain(
+        'schema: zod.preprocess((value) => deserializeUpdateAppointmentResponse(value as Appointment), Appointment)',
+      );
+    });
+
+    it('passes the plain schema when dates are not converted', () => {
+      const implementation = generate(
+        validatedMutatorVerbOptions({ useDatesTransform: false }),
+        zodContext(),
+      );
+      expect(implementation).toMatch(/schema: Appointment\s*}/);
+      expect(implementation).not.toContain('zod.preprocess');
+    });
+
+    it('tells query and swr to import the zod namespace', () => {
+      const context = zodContext();
+      expect(
+        getFetchResponseValidationImports(
+          validatedMutatorVerbOptions(),
+          makeOptions(context),
+        )?.composesZod,
+      ).toBe(true);
+      expect(
+        getFetchResponseValidationImports(
+          validatedMutatorVerbOptions({ useDatesTransform: false }),
+          makeOptions(context),
+        )?.composesZod,
+      ).toBe(false);
+    });
   });
 
   it('gives an inferred mutator no response transform but still serializes the body', () => {
