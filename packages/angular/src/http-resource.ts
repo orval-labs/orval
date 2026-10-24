@@ -1233,11 +1233,15 @@ export function ${resourceName}(
     return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(buildRequest, ${getBranchOptions(jsonType)});
   }
 
-  if (accept.startsWith('text/') || accept.includes('xml')) {
+  ${
+    textType
+      ? `if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(buildRequest, ${getBranchOptions(textType)});
   }
 
-  ${
+  `
+      : ''
+  }${
     blobType
       ? `if (accept.startsWith('image/') || accept.includes('blob')) {
     return httpResource.blob<Blob>(buildRequest, ${getBranchOptions(blobType)});

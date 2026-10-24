@@ -1902,6 +1902,41 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('HttpResourceRef<Pet | undefined>');
       expect(header).not.toContain('httpResource<Blob>');
     });
+
+    // Without a text media type, a text branch would receive the JSON options
+    // and fail to typecheck (#4370).
+    it('omits the text branch when no text media type is declared', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Pet', 'application/vnd.api+json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/vnd.api+json'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('httpResource<Pet>(buildRequest');
+      expect(header).not.toContain("accept.startsWith('text/')");
+      expect(header).not.toContain('httpResource.text');
+    });
   });
 
   // ─── Multi-content resource reactivity (issue #3713) ───────────────

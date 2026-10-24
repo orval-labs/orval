@@ -442,6 +442,25 @@ export default defineConfig({
       target: '../specifications/angular-uppercase-media-types.yaml',
     },
   },
+  httpResourceJsonOnlyMultiContent: {
+    output: {
+      target:
+        '../generated/angular/http-resource-json-only-multi-content/endpoints.ts',
+      schemas:
+        '../generated/angular/http-resource-json-only-multi-content/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-json-only-multi-content.yaml',
+    },
+  },
   issue3103: {
     output: {
       target: '../generated/angular/issue-3103/endpoints.ts',
