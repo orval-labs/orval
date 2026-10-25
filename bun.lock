@@ -17,7 +17,7 @@
     },
     "packages/angular": {
       "name": "@orval/angular",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -29,7 +29,7 @@
     },
     "packages/axios": {
       "name": "@orval/axios",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -41,7 +41,7 @@
     },
     "packages/core": {
       "name": "@orval/core",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@scalar/openapi-types": "catalog:",
         "acorn": "^8.15.0",
@@ -72,7 +72,7 @@
     },
     "packages/effect": {
       "name": "@orval/effect",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -90,7 +90,7 @@
     },
     "packages/fetch": {
       "name": "@orval/fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -102,7 +102,7 @@
     },
     "packages/hono": {
       "name": "@orval/hono",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/zod": "workspace:*",
@@ -124,7 +124,7 @@
     },
     "packages/mcp": {
       "name": "@orval/mcp",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -144,7 +144,7 @@
     },
     "packages/mock": {
       "name": "@orval/mock",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -164,7 +164,7 @@
     },
     "packages/orval": {
       "name": "orval",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "bin": {
         "orval": "./dist/bin/orval.mjs",
       },
@@ -217,7 +217,7 @@
     },
     "packages/pinia-colada": {
       "name": "@orval/pinia-colada",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/axios": "workspace:*",
         "@orval/core": "workspace:*",
@@ -237,7 +237,7 @@
     },
     "packages/query": {
       "name": "@orval/query",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -264,7 +264,7 @@
     },
     "packages/solid-start": {
       "name": "@orval/solid-start",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -276,7 +276,7 @@
     },
     "packages/swr": {
       "name": "@orval/swr",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -295,7 +295,7 @@
     },
     "packages/zod": {
       "name": "@orval/zod",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@orval/core": "workspace:*",
         "globals": "^17.0.0",
@@ -318,7 +318,7 @@
     },
     "samples/angular-app": {
       "name": "angular-app",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
@@ -351,7 +351,7 @@
     },
     "samples/angular-query": {
       "name": "angular-query",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
@@ -388,7 +388,7 @@
     },
     "samples/basic": {
       "name": "basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -402,7 +402,7 @@
     },
     "samples/dynamic-ref": {
       "name": "dynamic-ref",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -413,7 +413,7 @@
     },
     "samples/hono/composite-routes-with-tags-split": {
       "name": "@hono/composite-routes-with-tags-split",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -428,7 +428,7 @@
     },
     "samples/hono/hono-with-fetch-client": {
       "name": "hono-with-fetch-client",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "devDependencies": {
         "msw": "catalog:tooling",
         "orval": "workspace:*",
@@ -437,7 +437,7 @@
     },
     "samples/hono/hono-with-fetch-client/hono-app": {
       "name": "hono-app",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -450,7 +450,7 @@
     },
     "samples/hono/hono-with-fetch-client/next-app": {
       "name": "next-app",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "next": "^15.5.21",
         "react": "catalog:react",
@@ -469,7 +469,7 @@
     },
     "samples/hono/hono-with-zod": {
       "name": "hono-with-zod",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -484,7 +484,7 @@
     },
     "samples/mcp/custom-server": {
       "name": "mcp-custom-server",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@modelcontextprotocol/hono": "catalog:mcp",
         "@modelcontextprotocol/server": "catalog:mcp",
@@ -500,7 +500,7 @@
     },
     "samples/mcp/petstore": {
       "name": "mcp-petstore",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@modelcontextprotocol/server": "catalog:mcp",
         "zod": "catalog:zod4",
@@ -515,9 +515,9 @@
     },
     "samples/next-app-with-fetch": {
       "name": "next-app-with-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
-        "next": "15.5.24",
+        "next": "15.5.28",
         "react": "catalog:react",
         "react-dom": "^18.3.1",
       },
@@ -538,7 +538,7 @@
     },
     "samples/paginated-response": {
       "name": "paginated-response",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -549,7 +549,7 @@
     },
     "samples/paginated-response-tags-split": {
       "name": "paginated-response-tags-split",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "axios": "catalog:axios",
       },
@@ -560,7 +560,7 @@
     },
     "samples/pinia-colada": {
       "name": "pinia-colada-sample",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@pinia/colada": "1.4.5",
         "axios": "catalog:axios",
@@ -576,7 +576,7 @@
     },
     "samples/react-app": {
       "name": "react-app",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "axios": "catalog:axios",
         "react": "catalog:react",
@@ -601,7 +601,7 @@
     },
     "samples/react-app-with-swr/basic": {
       "name": "swr-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "axios": "catalog:axios",
         "react": "catalog:react",
@@ -623,7 +623,7 @@
     },
     "samples/react-app-with-swr/fetch-client": {
       "name": "swr-with-fetch-client",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -649,7 +649,7 @@
     },
     "samples/react-query/basic": {
       "name": "react-query-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/react-query": "catalog:react",
         "ajv": "^8.18.0",
@@ -672,7 +672,7 @@
     },
     "samples/react-query/custom-fetch": {
       "name": "react-query-custom-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/react-query": "catalog:react",
         "react": "catalog:react",
@@ -698,7 +698,7 @@
     },
     "samples/react-query/form-data": {
       "name": "react-query-form-data",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -712,7 +712,7 @@
     },
     "samples/react-query/form-data-mutator": {
       "name": "react-query-form-data-mutator",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -726,7 +726,7 @@
     },
     "samples/react-query/form-url-encoded": {
       "name": "react-query-form-url-encoded",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -740,7 +740,7 @@
     },
     "samples/react-query/form-url-encoded-mutator": {
       "name": "react-query-form-url-encoded-mutator",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -754,7 +754,7 @@
     },
     "samples/react-query/hook-mutator-axios": {
       "name": "react-query-hook-mutator-axios",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -769,7 +769,7 @@
     },
     "samples/react-query/hook-mutator-fetch": {
       "name": "react-query-hook-mutator-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "react": "catalog:react",
@@ -783,7 +783,7 @@
     },
     "samples/solid-query/basic": {
       "name": "solid-query-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "axios": "catalog:axios",
@@ -801,7 +801,7 @@
     },
     "samples/solid-query/custom-fetch": {
       "name": "solid-query-custom-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "msw": "catalog:tooling",
@@ -818,7 +818,7 @@
     },
     "samples/solid-start/basic": {
       "name": "solid-start-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@solidjs/meta": "^0.29.4",
         "@solidjs/router": "^0.15.4",
@@ -840,7 +840,7 @@
     },
     "samples/svelte-query/basic": {
       "name": "svelte-query-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
         "axios": "catalog:axios",
@@ -867,7 +867,7 @@
     },
     "samples/svelte-query/custom-fetch": {
       "name": "svelte-query-custom-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
       },
@@ -888,7 +888,7 @@
     },
     "samples/svelte-query/v6-custom-fetch": {
       "name": "svelte-query-v6-custom-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@sveltestack/svelte-query": "^1.6.0",
         "@tanstack/svelte-query": "^6.0.17",
@@ -910,7 +910,7 @@
     },
     "samples/swr-with-effect": {
       "name": "swr-with-effect",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "effect": "catalog:effect",
         "react": "catalog:react",
@@ -937,7 +937,7 @@
     },
     "samples/swr-with-zod": {
       "name": "swr-with-zod",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -964,7 +964,7 @@
     },
     "samples/vue-query/custom-fetch": {
       "name": "vue-query-custom-fetch",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@tanstack/vue-query": "catalog:vue",
         "vue": "catalog:vue",
@@ -983,7 +983,7 @@
     },
     "samples/vue-query/vue-query-basic": {
       "name": "vue-query-basic",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@tanstack/vue-query": "catalog:vue",
@@ -1007,7 +1007,7 @@
     },
     "samples/zod/zod-with-schema-extension": {
       "name": "zod-with-schema-extensions",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "dependencies": {
         "zod": "catalog:zod4",
       },
@@ -1021,7 +1021,7 @@
     },
     "tests": {
       "name": "orval-tests",
-      "version": "8.44.0",
+      "version": "8.45.0",
       "devDependencies": {
         "@angular/common": "catalog:angular",
         "@angular/core": "catalog:angular",
@@ -1621,25 +1621,25 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@0.2.12", "", { "dependencies": { "@emnapi/core": "^1.4.3", "@emnapi/runtime": "^1.4.3", "@tybys/wasm-util": "^0.10.0" } }, "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ=="],
 
-    "@next/env": ["@next/env@15.5.24", "", {}, "sha512-mBDF7T0XKZjs9SpUAl0buizVO+O02ULjOvWX8o/AZo/5AGw/UAS1Zzcylmd4pqbftzmKQi+L/nB4jgBYKEAl5Q=="],
+    "@next/env": ["@next/env@15.5.28", "", {}, "sha512-xxW5EBI8fMPuVTPBW7LL980IRbuDXlbkUAwp9DDhtb4Lnich3nJ13uYpvrX4VE74hWPf6AvHHAMmGCidcHjbfg=="],
 
     "@next/eslint-plugin-next": ["@next/eslint-plugin-next@16.1.6", "", { "dependencies": { "fast-glob": "3.3.1" } }, "sha512-/Qq3PTagA6+nYVfryAtQ7/9FEr/6YVyvOtl6rZnGsbReGLf0jZU6gkpr1FuChAQpvV46a78p4cmHOVP8mbfSMQ=="],
 
-    "@next/swc-darwin-arm64": ["@next/swc-darwin-arm64@15.5.24", "", { "os": "darwin", "cpu": "arm64" }, "sha512-AGdNLvxZNY6eR2iSnV+6wUa8CiHTMr4F7g3uHH7fT4ICIJBE00R9u4tzN/Vuwsw0cOi8MTD2HJcTCb6siMH88Q=="],
+    "@next/swc-darwin-arm64": ["@next/swc-darwin-arm64@15.5.28", "", { "os": "darwin", "cpu": "arm64" }, "sha512-dPoQYXcfSIqx5o+TOXVXO7kONK5qbtNRDeiTfII0bT3puGIT6VF5e0QwmxNZfEZ5Zety5f3m9P/p4xqwfiLlPg=="],
 
-    "@next/swc-darwin-x64": ["@next/swc-darwin-x64@15.5.24", "", { "os": "darwin", "cpu": "x64" }, "sha512-9HrQajBMmGcrrrvDfRimiCrbAPh3E6uHJmwBovYr6Yrmi9p9PZqI876BrXX280wICh3o2XwUlp4blkB0NNBqFg=="],
+    "@next/swc-darwin-x64": ["@next/swc-darwin-x64@15.5.28", "", { "os": "darwin", "cpu": "x64" }, "sha512-RgCJ7buBivTH+6sddqaVm+/v8kwMHlFkobvdt3DfETutws5HrxnToMIWSN9X3MZ3aAi7BbKrGZZWUDQLEycXqw=="],
 
-    "@next/swc-linux-arm64-gnu": ["@next/swc-linux-arm64-gnu@15.5.24", "", { "os": "linux", "cpu": "arm64" }, "sha512-rl9LSfE75si0WT3cDgdUC1XYCKS+TgxC+/IjitmeycrAG18X/plIP1/vy8dd/HPycYcIvE688PD7FuvEAiEAew=="],
+    "@next/swc-linux-arm64-gnu": ["@next/swc-linux-arm64-gnu@15.5.28", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-OHXQe13olE59aKe++zHavGcJPh5SLHXi6Anret3BBeq1+qhSuOJDNAli/EDDfxs6UTqA4Qddo4uyYry2slyjiQ=="],
 
-    "@next/swc-linux-arm64-musl": ["@next/swc-linux-arm64-musl@15.5.24", "", { "os": "linux", "cpu": "arm64" }, "sha512-TlNAnpsjxSF3aAUtqnfmtXXf8m9sIDBlmF3c7bTAlnshUYu2U0OxN2uf5d0gcFwqHVEdivJNBcCaqNOwPGNimw=="],
+    "@next/swc-linux-arm64-musl": ["@next/swc-linux-arm64-musl@15.5.28", "", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-nTB7bB6vfn4ezCJNYP43ukt2o8L3+WxKF/sTcTxepdXsJh3SM9RhlU7wrZYbH7L4HO5M87dqDTwm8587vAkCiw=="],
 
-    "@next/swc-linux-x64-gnu": ["@next/swc-linux-x64-gnu@15.5.24", "", { "os": "linux", "cpu": "x64" }, "sha512-7dwtlhr0SLndqTG1z9ncRkbJswDZiKWlxzFyXDvJ2RDZRDRHp8zyMJ4D9UH/FgnQeXxxB6gZy2pMcIUoNKQ4pA=="],
+    "@next/swc-linux-x64-gnu": ["@next/swc-linux-x64-gnu@15.5.28", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-WXCfVI32rW3xCusoUX1RpZKtyChWU2Zwe27JUDmM3KrXwcDNc9vV4zEq0GKFAURnuQ/Ouo/XqPvB0yh445XZCg=="],
 
-    "@next/swc-linux-x64-musl": ["@next/swc-linux-x64-musl@15.5.24", "", { "os": "linux", "cpu": "x64" }, "sha512-kGZxM+WhkYs0276lFrMkj7PRtXT3Btp6cwvfSO/cCVLxJJttB5Ccnl2niaCgUja8HgSbEVnMHpg3FJWoOJ9e/g=="],
+    "@next/swc-linux-x64-musl": ["@next/swc-linux-x64-musl@15.5.28", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-Miq+NDb/HWsXuxseYxMM6fuEOQXgTziarkKIRpVKCn8W69cEfhQaQr+90pO+u4q2CbJR2wzXmUuCFyZaJs/Nng=="],
 
-    "@next/swc-win32-arm64-msvc": ["@next/swc-win32-arm64-msvc@15.5.24", "", { "os": "win32", "cpu": "arm64" }, "sha512-jBDDkZ/qKAqkWivWDMkJSXUzbzV0QKRBKJjEHUAvSB97Hzw7NLzJ6yV56Lts/wjir7s4P31GYgpbS6ZL+hasAA=="],
+    "@next/swc-win32-arm64-msvc": ["@next/swc-win32-arm64-msvc@15.5.28", "", { "os": "win32", "cpu": "arm64" }, "sha512-5LR79lemgDlgxvG7MQJ+zHCkVcrUoQuO7CiIvq3I58vNW4goSOE2b+19Z6FujRWMouvni4gvudYFuFuNxolGWA=="],
 
-    "@next/swc-win32-x64-msvc": ["@next/swc-win32-x64-msvc@15.5.24", "", { "os": "win32", "cpu": "x64" }, "sha512-JqtwjvvorjacQ0spgjmUJoxySoYgPwdT1sFdQ0/zmW4iMlP2hjYlCoJIyS7o6Epb4Fug8eco3HXFoBDUCDeH7Q=="],
+    "@next/swc-win32-x64-msvc": ["@next/swc-win32-x64-msvc@15.5.28", "", { "os": "win32", "cpu": "x64" }, "sha512-GNipvXUYROSTf4PXEyH95FrWImIB5zdaK6uEOg0RP1/X2drnvoMwiBkJ0VWdzX7w3iiBm3y5g2TxkKDGVTOQcg=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
@@ -3375,7 +3375,7 @@
 
     "negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
-    "next": ["next@15.5.24", "", { "dependencies": { "@next/env": "15.5.24", "@swc/helpers": "0.5.15", "caniuse-lite": "^1.0.30001579", "postcss": "8.4.31", "styled-jsx": "5.1.6" }, "optionalDependencies": { "@next/swc-darwin-arm64": "15.5.24", "@next/swc-darwin-x64": "15.5.24", "@next/swc-linux-arm64-gnu": "15.5.24", "@next/swc-linux-arm64-musl": "15.5.24", "@next/swc-linux-x64-gnu": "15.5.24", "@next/swc-linux-x64-musl": "15.5.24", "@next/swc-win32-arm64-msvc": "15.5.24", "@next/swc-win32-x64-msvc": "15.5.24", "sharp": "^0.34.3 || ^0.35.3" }, "peerDependencies": { "@opentelemetry/api": "^1.1.0", "@playwright/test": "^1.51.1", "babel-plugin-react-compiler": "*", "react": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "react-dom": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "sass": "^1.3.0" }, "optionalPeers": ["@opentelemetry/api", "@playwright/test", "babel-plugin-react-compiler", "sass"], "bin": { "next": "dist/bin/next" } }, "sha512-Y+xn8EQCoC3ZbsFPyzE+tE8XOdrWeUdUF7NeXbmg9DsgAxl5UYxlsrvgVESHTyTGigoTa1bCUrxn70F5bqt0Gw=="],
+    "next": ["next@15.5.28", "", { "dependencies": { "@next/env": "15.5.28", "@swc/helpers": "0.5.15", "caniuse-lite": "^1.0.30001579", "postcss": "8.4.31", "styled-jsx": "5.1.6" }, "optionalDependencies": { "@next/swc-darwin-arm64": "15.5.28", "@next/swc-darwin-x64": "15.5.28", "@next/swc-linux-arm64-gnu": "15.5.28", "@next/swc-linux-arm64-musl": "15.5.28", "@next/swc-linux-x64-gnu": "15.5.28", "@next/swc-linux-x64-musl": "15.5.28", "@next/swc-win32-arm64-msvc": "15.5.28", "@next/swc-win32-x64-msvc": "15.5.28", "sharp": "^0.34.3 || ^0.35.5" }, "peerDependencies": { "@opentelemetry/api": "^1.1.0", "@playwright/test": "^1.51.1", "babel-plugin-react-compiler": "*", "react": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "react-dom": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "sass": "^1.3.0" }, "optionalPeers": ["@opentelemetry/api", "@playwright/test", "babel-plugin-react-compiler", "sass"], "bin": { "next": "dist/bin/next" } }, "sha512-JjhLBBY1PNnuwPtcZ7t8yxVeJVYvD2Jyp633J+gRCNbzSt7N0E+xqCf6uQiff3+3qmUkwcF/ksfSsK1xsZ76Tw=="],
 
     "next-app": ["next-app@workspace:samples/hono/hono-with-fetch-client/next-app"],
 
