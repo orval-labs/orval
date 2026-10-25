@@ -1,6 +1,6 @@
 {
   "name": "zod-with-schema-extensions",
-  "version": "8.44.0",
+  "version": "8.45.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -23,4 +23,3 @@
     "vite-plus": "catalog:"
   }
 }
-
