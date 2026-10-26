@@ -501,7 +501,8 @@ export const generateHttpClientImplementation = (
   {
     headers,
     queryParams,
-    operationName,
+    operationName: reservedOperationName,
+    methodName,
     typeName,
     response,
     mutator,
@@ -517,6 +518,9 @@ export const generateHttpClientImplementation = (
   }: GeneratorVerbOptions,
   { route: _route, context }: HttpClientGeneratorContext,
 ) => {
+  // Class-local spelling for Angular tag-scoped classes; see
+  // GeneratorVerbOptions.methodName.
+  const operationName = methodName ?? reservedOperationName;
   // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
   // at the single point the route enters this builder so the mutator config and
   // every inline interpolation below stay consistent. `makeRouteSafe` is not
