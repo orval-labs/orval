@@ -1,5 +1,9 @@
+import path from 'node:path';
+
 import {
+  collectOutdatedGeneratedFiles,
   consoleReporter,
+  createGeneratedFileCheck,
   getWarningCount,
   type GlobalOptions,
   isString,
@@ -7,6 +11,7 @@ import {
   resetWarnings,
   setLogLevel,
   setProjectName,
+  withGeneratedFileCheck,
   withReporter,
 } from '@orval/core';
 
@@ -35,6 +40,42 @@ async function generateWithReporter(
   workspace: string,
   options?: GlobalOptions,
 ) {
+  const check = options?.outdated ? createGeneratedFileCheck() : undefined;
+  const run = () => generateProjects(optionsExport, workspace, options);
+  const hasErrors = await (check ? withGeneratedFileCheck(check, run) : run());
+
+  if (check) {
+    // A failed project collected nothing, so an empty result proves nothing.
+    if (hasErrors) {
+      throw new Error(
+        'Cannot check for outdated files: one or more projects failed, see above for details',
+      );
+    }
+    const outdated = await collectOutdatedGeneratedFiles(check);
+    if (outdated.length > 0) {
+      for (const file of outdated) {
+        logger.error(`${file.status}: ${path.relative(workspace, file.path)}`);
+      }
+      throw new Error(
+        `Process failed with ${outdated.length} outdated generated file(s) due to outdated option`,
+      );
+    }
+    logger.info('All generated files are up to date');
+  }
+
+  if (options?.failOnWarnings && getWarningCount() > 0) {
+    throw new Error(
+      `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+    );
+  }
+}
+
+/** Resolves to whether any project failed. */
+async function generateProjects(
+  optionsExport: string | OptionsExport | undefined,
+  workspace: string,
+  options?: GlobalOptions,
+): Promise<boolean> {
   resetWarnings();
 
   if (!optionsExport || isString(optionsExport)) {
@@ -94,13 +135,7 @@ async function generateWithReporter(
     if (hasErrors)
       logger.error('One or more project failed, see above for details');
 
-    if (options?.failOnWarnings && getWarningCount() > 0) {
-      throw new Error(
-        `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
-      );
-    }
-
-    return;
+    return hasErrors;
   }
 
   setLogLevel(options?.logLevel ?? 'info');
@@ -111,6 +146,7 @@ async function generateWithReporter(
     options,
   );
 
+  let hasErrors = false;
   try {
     await generateSpec(workspace, normalizedOptions);
   } catch (error) {
@@ -118,6 +154,7 @@ async function generateWithReporter(
     if (options?.throwOnError) {
       throw error;
     }
+    hasErrors = true;
   }
 
   if (options?.watch) {
@@ -140,9 +177,5 @@ async function generateWithReporter(
     );
   }
 
-  if (options?.failOnWarnings && getWarningCount() > 0) {
-    throw new Error(
-      `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
-    );
-  }
+  return hasErrors;
 }

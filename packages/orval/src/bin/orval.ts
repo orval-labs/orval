@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import { Option, program } from '@commander-js/extra-typings';
 import {
+  collectOutdatedGeneratedFiles,
   consoleReporter,
+  createGeneratedFileCheck,
   getWarningCount,
   isString,
   LOG_LEVELS,
@@ -15,6 +17,7 @@ import {
   setProjectName,
   startMessage,
   SupportedFormatter,
+  withGeneratedFileCheck,
   withReporter,
 } from '@orval/core';
 
@@ -109,123 +112,58 @@ cli
     '--fail-on-warnings',
     'Exit with error code 1 when warnings are emitted',
   )
+  .addOption(
+    new Option(
+      '--outdated',
+      'Compare generated output with existing files without writing; list files that are missing, outdated or obsolete and exit with code 1 when any are found',
+    ).conflicts(['watch']),
+  )
   .action(async (options) => {
     await withReporter(consoleReporter, async () => {
-      resetWarnings();
+      const check = options.outdated ? createGeneratedFileCheck() : undefined;
+      const run = async () => {
+        resetWarnings();
 
-      if (isString(options.input) && isString(options.output)) {
-        setLogLevel(
-          resolveLogLevel({
-            verbose: options.verbose,
-            quiet: options.quiet,
-            logLevel: options.logLevel,
-          }),
-        );
-        logger.info(orvalMessage);
+        if (isString(options.input) && isString(options.output)) {
+          setLogLevel(
+            resolveLogLevel({
+              verbose: options.verbose,
+              quiet: options.quiet,
+              logLevel: options.logLevel,
+            }),
+          );
+          logger.info(orvalMessage);
 
-        const normalizedOptions = await normalizeOptions({
-          input: options.input,
-          output: {
-            target: options.output,
-            clean: options.clean,
-            formatter: options.formatter,
-            mock: options.mock,
-            client: options.client,
-            mode: options.mode,
-            tsconfig: options.tsconfig,
-          },
-        });
-
-        try {
-          await generateSpec(process.cwd(), normalizedOptions);
-        } catch (error) {
-          logger.error(error);
-          process.exit(1);
-        }
-
-        if (options.watch) {
-          await startWatcher(
-            options.watch,
-            async () => {
-              resetWarnings();
-              try {
-                await generateSpec(process.cwd(), normalizedOptions);
-              } catch (error) {
-                logger.error(error);
-                process.exit(1);
-              }
-              if (options.failOnWarnings && getWarningCount() > 0) {
-                logger.error(
-                  `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
-                );
-                process.exit(1);
-              }
+          const normalizedOptions = await normalizeOptions({
+            input: options.input,
+            output: {
+              target: options.output,
+              clean: options.clean,
+              formatter: options.formatter,
+              mock: options.mock,
+              client: options.client,
+              mode: options.mode,
+              tsconfig: options.tsconfig,
             },
-            normalizedOptions.input.target as string,
-          );
-        }
-      } else {
-        const configFilePath = findConfigFile(options.config);
-        const workspace = path.dirname(configFilePath);
-        const configFile = await loadConfigFile(configFilePath);
-        const projects = Object.fromEntries(getConfigProjects(configFile));
-
-        setLogLevel(
-          resolveLogLevel({
-            verbose: options.verbose,
-            quiet: options.quiet,
-            logLevel: options.logLevel ?? configFile.logLevel,
-          }),
-        );
-        logger.info(orvalMessage);
-
-        const missingProjects = options.project?.filter(
-          (p) => !Object.hasOwn(projects, p),
-        );
-
-        if (missingProjects?.length) {
-          logger.error(
-            `Project not found in config: ${missingProjects.join(', ')}`,
-          );
-          process.exit(1);
-        }
-
-        const configs = Object.entries(projects).filter(
-          ([projectName]) =>
-            // only filter by project if specified
-            !Array.isArray(options.project) ||
-            options.project.includes(projectName),
-        );
-
-        let hasErrors = false;
-        for (const [projectName, config] of configs) {
-          setProjectName(projectName);
-          const normalizedOptions = await normalizeOptions(
-            config,
-            workspace,
-            options,
-          );
+          });
 
           try {
-            await generateSpec(workspace, normalizedOptions, projectName);
+            await generateSpec(process.cwd(), normalizedOptions);
           } catch (error) {
-            hasErrors = true;
             logger.error(error);
+            process.exit(1);
           }
 
-          if (options.watch !== undefined) {
-            const fileToWatch = isString(normalizedOptions.input.target)
-              ? normalizedOptions.input.target
-              : undefined;
-
+          if (options.watch) {
             await startWatcher(
               options.watch,
               async () => {
                 resetWarnings();
                 try {
-                  await generateSpec(workspace, normalizedOptions, projectName);
+                  await generateSpec(process.cwd(), normalizedOptions);
                 } catch (error) {
                   logger.error(error);
+                  process.exit(1);
                 }
                 if (options.failOnWarnings && getWarningCount() > 0) {
                   logger.error(
@@ -234,17 +172,112 @@ cli
                   process.exit(1);
                 }
               },
-              fileToWatch,
+              normalizedOptions.input.target as string,
             );
           }
+        } else {
+          const configFilePath = findConfigFile(options.config);
+          const workspace = path.dirname(configFilePath);
+          const configFile = await loadConfigFile(configFilePath);
+          const projects = Object.fromEntries(getConfigProjects(configFile));
+
+          setLogLevel(
+            resolveLogLevel({
+              verbose: options.verbose,
+              quiet: options.quiet,
+              logLevel: options.logLevel ?? configFile.logLevel,
+            }),
+          );
+          logger.info(orvalMessage);
+
+          const missingProjects = options.project?.filter(
+            (p) => !Object.hasOwn(projects, p),
+          );
+
+          if (missingProjects?.length) {
+            logger.error(
+              `Project not found in config: ${missingProjects.join(', ')}`,
+            );
+            process.exit(1);
+          }
+
+          const configs = Object.entries(projects).filter(
+            ([projectName]) =>
+              // only filter by project if specified
+              !Array.isArray(options.project) ||
+              options.project.includes(projectName),
+          );
+
+          let hasErrors = false;
+          for (const [projectName, config] of configs) {
+            setProjectName(projectName);
+            const normalizedOptions = await normalizeOptions(
+              config,
+              workspace,
+              options,
+            );
+
+            try {
+              await generateSpec(workspace, normalizedOptions, projectName);
+            } catch (error) {
+              hasErrors = true;
+              logger.error(error);
+            }
+
+            if (options.watch !== undefined) {
+              const fileToWatch = isString(normalizedOptions.input.target)
+                ? normalizedOptions.input.target
+                : undefined;
+
+              await startWatcher(
+                options.watch,
+                async () => {
+                  resetWarnings();
+                  try {
+                    await generateSpec(
+                      workspace,
+                      normalizedOptions,
+                      projectName,
+                    );
+                  } catch (error) {
+                    logger.error(error);
+                  }
+                  if (options.failOnWarnings && getWarningCount() > 0) {
+                    logger.error(
+                      `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+                    );
+                    process.exit(1);
+                  }
+                },
+                fileToWatch,
+              );
+            }
+          }
+
+          setProjectName(); // clears project name
+
+          if (hasErrors) {
+            logger.error('One or more project failed, see above for details');
+            process.exit(1);
+          }
         }
+      };
+      await (check ? withGeneratedFileCheck(check, run) : run());
 
-        setProjectName(); // clears project name
-
-        if (hasErrors) {
-          logger.error('One or more project failed, see above for details');
+      if (check) {
+        const outdated = await collectOutdatedGeneratedFiles(check);
+        if (outdated.length > 0) {
+          for (const file of outdated) {
+            logger.error(
+              `${file.status}: ${path.relative(process.cwd(), file.path)}`,
+            );
+          }
+          logger.error(
+            `Process exited with ${outdated.length} outdated generated file(s) due to --outdated flag`,
+          );
           process.exit(1);
         }
+        logger.info('All generated files are up to date');
       }
 
       if (options.failOnWarnings && getWarningCount() > 0) {

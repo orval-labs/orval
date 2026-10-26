@@ -119,3 +119,29 @@ Exit with error code 1 when warnings are emitted during generation. Useful in CI
 ```bash
 orval --fail-on-warnings
 ```
+
+### --outdated
+
+Compare what Orval would generate with the files already on disk, without writing anything. Each file that needs regeneration is listed with its status, and the process exits with code 1 when any is found, so CI can catch a specification or configuration change that was not followed by a regeneration:
+
+```bash
+orval --outdated
+```
+
+```
+outdated: src/api/pets.ts
+missing: src/api/model/petSummary.ts
+obsolete: src/api/legacyUsers.ts
+```
+
+- `outdated`: the file exists but its content differs from the generated output, including formatting by `prettier`.
+- `missing`: the file would be generated but does not exist.
+- `obsolete`: the file would be removed by `clean` and is no longer generated. Only reported when `clean` is configured.
+
+Nothing is written or removed, including when `clean` is configured. Running `orval` regenerates the listed files.
+
+<Callout type="warn">
+A project with `hooks.afterAllFilesWrite`, the `biome` or `oxfmt` formatter, or `docs` cannot be checked, because those change files after generation. The check fails with an error for such a project. Disable them when running the check.
+</Callout>
+
+Mutually exclusive with `--watch`.

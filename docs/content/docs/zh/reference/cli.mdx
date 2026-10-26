@@ -119,3 +119,29 @@ orval --quiet
 ```bash
 orval --fail-on-warnings
 ```
+
+### --outdated
+
+将 Orval 将要生成的内容与磁盘上已有的文件进行比较，不写入任何内容。每个需要重新生成的文件都会连同其状态一起列出，发现任何此类文件时以错误码 1 退出，便于在 CI 中捕获修改了规范或配置却忘记重新生成的情况：
+
+```bash
+orval --outdated
+```
+
+```
+outdated: src/api/pets.ts
+missing: src/api/model/petSummary.ts
+obsolete: src/api/legacyUsers.ts
+```
+
+- `outdated`：文件存在，但内容与生成结果不一致（包括 `prettier` 的格式化结果）。
+- `missing`：应当生成的文件不存在。
+- `obsolete`：`clean` 会删除、且本次不再生成的文件。仅在配置了 `clean` 时报告。
+
+即使配置了 `clean`，也不会写入或删除任何文件。运行 `orval` 即可重新生成列出的文件。
+
+<Callout type="warn">
+配置了 `hooks.afterAllFilesWrite`、`biome` 或 `oxfmt` 格式化器、或 `docs` 的项目无法检查，因为它们会在生成后修改文件。对这类项目检查会以错误结束。运行检查时请禁用这些配置。
+</Callout>
+
+与 `--watch` 互斥。

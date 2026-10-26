@@ -2023,6 +2023,7 @@ export interface GlobalOptions {
   output?: string;
   failOnWarnings?: boolean;
   throwOnError?: boolean;
+  outdated?: boolean;
 }
 
 export interface Tsconfig {

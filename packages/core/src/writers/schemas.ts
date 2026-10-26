@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import nodePath from 'node:path';
 
 import { generateImports } from '../generators';
@@ -16,7 +15,7 @@ import {
   upath,
 } from '../utils';
 import { warnAmbiguousBarrelExports } from './barrel-collisions';
-import { writeGeneratedFile } from './file';
+import { readGeneratedFile, writeGeneratedFile } from './file';
 import type { SchemaOutputPlan, SchemaRouteKey } from './schema-output-plan';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
@@ -607,9 +606,7 @@ export async function writeSchemas({
         }
       }
 
-      const existingContent = fs.existsSync(schemaFilePath)
-        ? await fs.promises.readFile(schemaFilePath, 'utf8')
-        : '';
+      const existingContent = (await readGeneratedFile(schemaFilePath)) ?? '';
       const existingExports = [
         ...existingContent.matchAll(
           /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,
@@ -674,8 +671,6 @@ export async function writeRoutedSchemas({
   }
 
   for (const [schemaPath, { schemas }] of grouped) {
-    await fs.promises.mkdir(schemaPath, { recursive: true });
-
     for (const schema of schemas) {
       const imports = schema.imports.map((imp) => ({
         ...imp,
@@ -727,9 +722,7 @@ export async function writeRoutedSchemas({
       for (const [route, directories] of routeDirectories) {
         const routePath = plan.routePathByKey[route];
         const routeIndexPath = nodePath.join(routePath, 'index.ts');
-        const existingContent = fs.existsSync(routeIndexPath)
-          ? await fs.promises.readFile(routeIndexPath, 'utf8')
-          : '';
+        const existingContent = (await readGeneratedFile(routeIndexPath)) ?? '';
         const existingExports = [
           ...existingContent.matchAll(
             /^\s*export\s+\*\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm,

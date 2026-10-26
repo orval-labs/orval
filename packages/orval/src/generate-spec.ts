@@ -4,10 +4,14 @@ import {
   escapePath,
   getConfiguredMockDirectories,
   getFileInfo,
+  getGeneratedFileCheck,
   isString,
+  type ListFilesOptions,
+  listFilesMatching,
   type NormalizedOptions,
   OutputMockType,
   removeFilesAndEmptyFolders,
+  SupportedFormatter,
   upath,
 } from '@orval/core';
 
@@ -70,10 +74,44 @@ export async function generateSpec(
   options: NormalizedOptions,
   projectName?: string,
 ) {
+  const check = getGeneratedFileCheck();
+  if (check) {
+    const reason = options.hooks.afterAllFilesWrite
+      ? 'hooks.afterAllFilesWrite runs after generation and may change the files'
+      : options.output.formatter === SupportedFormatter.BIOME ||
+          options.output.formatter === SupportedFormatter.OXFMT
+        ? `output.formatter "${options.output.formatter}" formats the files on disk after generation`
+        : options.output.docs
+          ? 'output.docs writes documentation that is not compared'
+          : undefined;
+    if (reason) {
+      throw new Error(
+        `Cannot check for outdated files: ${reason}. Disable it when running the check.`,
+      );
+    }
+  }
+
   if (options.output.clean) {
     const extraPatterns = Array.isArray(options.output.clean)
       ? options.output.clean
       : [];
+    // A check removes nothing; what `clean` would remove is recorded so a
+    // file the run no longer produces can be reported as obsolete.
+    const removeOrRecord = check
+      ? async (
+          patterns: string[],
+          directory: string,
+          listOptions?: ListFilesOptions,
+        ) => {
+          for (const file of await listFilesMatching(
+            patterns,
+            directory,
+            listOptions,
+          )) {
+            check.obsoleteCandidates.add(file);
+          }
+        }
+      : removeFilesAndEmptyFolders;
 
     // `target` and directory-form `schemas` are Orval's own directories, so
     // they are emptied. A single-mode named schema is an exact file target and
@@ -95,17 +133,22 @@ export async function generateSpec(
         schemas.mode === 'single' &&
         namesAFile(schemas.path)
       ) {
-        const schemasDirectory = getFileInfo(schemas.path).dirname;
-        await Promise.all([
-          fs.rm(schemas.path, { force: true }),
-          fs.rm(
-            upath.join(
-              schemasDirectory,
-              `__params__${options.output.schemaFileExtension}`,
-            ),
-            { force: true },
+        const schemaFiles = [
+          schemas.path,
+          upath.join(
+            getFileInfo(schemas.path).dirname,
+            `__params__${options.output.schemaFileExtension}`,
           ),
-        ]);
+        ];
+        if (check) {
+          for (const file of schemaFiles) {
+            check.obsoleteCandidates.add(file);
+          }
+        } else {
+          await Promise.all(
+            schemaFiles.map((file) => fs.rm(file, { force: true })),
+          );
+        }
       } else {
         // Directory-form schemas are joined onto directly by their writers.
         // `getFileInfo(...).dirname` would give the parent whenever the last
@@ -133,7 +176,7 @@ export async function generateSpec(
             `!${escapePath(relativeToParent(directory, mockDirectory))}/**`,
         );
 
-      await removeFilesAndEmptyFolders(
+      await removeOrRecord(
         ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
         directory,
       );
@@ -172,12 +215,14 @@ export async function generateSpec(
         continue;
       }
 
-      await removeFilesAndEmptyFolders(mockPatterns, directory, {
+      await removeOrRecord(mockPatterns, directory, {
         followSymbolicLinks: false,
       });
     }
 
-    logger.info('Cleaning output folder');
+    if (!check) {
+      logger.info('Cleaning output folder');
+    }
   }
 
   const writeSpecBuilder = await importSpecs(workspace, options, projectName);

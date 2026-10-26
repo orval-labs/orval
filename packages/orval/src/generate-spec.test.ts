@@ -5,7 +5,9 @@ import path from 'node:path';
 import { styleText } from 'node:util';
 
 import {
+  collectOutdatedGeneratedFiles,
   consoleReporter,
+  createGeneratedFileCheck,
   createSuccessMessage,
   type FakerMockOptions,
   noopReporter,
@@ -15,6 +17,7 @@ import {
   type OutputOptions,
   setLogLevel,
   setProjectName,
+  withGeneratedFileCheck,
   withReporter,
   type WorkspaceExportsFn,
 } from '@orval/core';
@@ -4821,5 +4824,95 @@ describe('generateSpec - colliding operation names (#2685)', () => {
     expect(new Set(declarations).size).toBe(declarations.length);
     expect(declarations).toContain('updateWithJson');
     expect(declarations).toContain('updateWithJson2');
+  });
+});
+
+describe('generateSpec - outdated check', () => {
+  const checkOutdated = async (
+    workspace: string,
+    output?: Partial<OutputOptions>,
+  ) => {
+    const check = createGeneratedFileCheck();
+    await withGeneratedFileCheck(check, () =>
+      generateWithOutput(workspace, output),
+    );
+    return collectOutdatedGeneratedFiles(check);
+  };
+
+  it('reports nothing for a fresh formatted generation and writes nothing', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await generateWithOutput(workspace, { formatter: 'prettier' });
+      const files = (await listFilesRecursively(workspace)).map((file) =>
+        path.join(workspace, file),
+      );
+      const past = new Date('2020-01-01T00:00:00.000Z');
+      await Promise.all(
+        files.map((file) => fs.promises.utimes(file, past, past)),
+      );
+
+      expect(await checkOutdated(workspace, { formatter: 'prettier' })).toEqual(
+        [],
+      );
+      const mtimes = await Promise.all(
+        files.map(async (file) => (await fs.promises.stat(file)).mtimeMs),
+      );
+      expect(mtimes).toEqual(files.map(() => past.getTime()));
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('reports changed, missing and obsolete files and leaves them as they are', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await generateWithOutput(workspace);
+      const [changed, removed] = (await listFilesRecursively(workspace)).map(
+        (file) => path.join(workspace, file),
+      );
+      const stale = path.join(workspace, 'src/client/stale.ts');
+      await fs.promises.appendFile(changed, '// edited\n');
+      await rm(removed);
+      await outputFile(stale, '// stale');
+
+      expect(await checkOutdated(workspace)).toEqual([
+        { path: changed, status: 'outdated' },
+        { path: removed, status: 'missing' },
+        { path: stale, status: 'obsolete' },
+      ]);
+      expect(await fs.promises.readFile(changed, 'utf8')).toMatch(
+        /\/\/ edited\n$/,
+      );
+      expect(fs.existsSync(removed)).toBe(false);
+      expect(fs.existsSync(stale)).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses a project whose hook would change the files', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: { target: './api.ts' },
+          hooks: { afterAllFilesWrite: 'echo' },
+        },
+        workspace,
+      );
+
+      await expect(
+        withGeneratedFileCheck(createGeneratedFileCheck(), () =>
+          generateSpec(workspace, options),
+        ),
+      ).rejects.toThrow(/hooks\.afterAllFilesWrite/);
+      expect(await listFilesRecursively(workspace)).toEqual([]);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 });

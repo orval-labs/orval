@@ -4,7 +4,14 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { withGeneratedFileTransform, writeGeneratedFile } from './file';
+import {
+  collectOutdatedGeneratedFiles,
+  createGeneratedFileCheck,
+  readGeneratedFile,
+  withGeneratedFileCheck,
+  withGeneratedFileTransform,
+  writeGeneratedFile,
+} from './file';
 
 describe('writeGeneratedFile', () => {
   let dir: string;
@@ -67,5 +74,73 @@ describe('writeGeneratedFile', () => {
     await writeGeneratedFile(filePath, 'const a = 2;\n');
 
     expect(await fs.promises.readFile(filePath, 'utf8')).toBe('const a = 2;\n');
+  });
+
+  describe('under an outdated check', () => {
+    it('collects the files instead of writing them', async () => {
+      const check = createGeneratedFileCheck();
+      const missing = path.join(dir, 'missing.ts');
+      const same = path.join(dir, 'same.ts');
+      const changed = path.join(dir, 'changed.ts');
+      await fs.promises.writeFile(same, 'const a = 1;\n');
+      await fs.promises.writeFile(changed, 'const a = 1;\n');
+
+      await withGeneratedFileCheck(check, async () => {
+        await writeGeneratedFile(missing, 'const a = 1;\n');
+        await writeGeneratedFile(same, 'const a = 1;   \n');
+        await writeGeneratedFile(changed, 'const a = 2;\n');
+      });
+
+      expect(fs.existsSync(missing)).toBe(false);
+      expect(await fs.promises.readFile(changed, 'utf8')).toBe(
+        'const a = 1;\n',
+      );
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([
+        { path: changed, status: 'outdated' },
+        { path: missing, status: 'missing' },
+      ]);
+    });
+
+    it('compares the transformed content of the last write to a path', async () => {
+      const check = createGeneratedFileCheck();
+      const filePath = path.join(dir, 'out.ts');
+      await fs.promises.writeFile(
+        filePath,
+        'const value = "test";\nexport {};\n',
+      );
+      const format = async (_filePath: string, content: string) =>
+        content.replaceAll("'", '"');
+
+      await withGeneratedFileCheck(check, () =>
+        withGeneratedFileTransform(format, async () => {
+          await writeGeneratedFile(filePath, "const value = 'test';\n");
+          // A barrel writer reads back what the run produced so far.
+          const pending = await readGeneratedFile(filePath);
+          await writeGeneratedFile(filePath, `${pending}export {};\n`);
+        }),
+      );
+
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([]);
+    });
+
+    it('reports a clean candidate the run did not produce as obsolete', async () => {
+      const check = createGeneratedFileCheck();
+      const kept = path.join(dir, 'kept.ts');
+      const stale = path.join(dir, 'stale.ts');
+      await fs.promises.writeFile(kept, 'x\n');
+      await fs.promises.writeFile(stale, 'x\n');
+      check.obsoleteCandidates
+        .add(kept)
+        .add(stale)
+        .add(path.join(dir, 'gone.ts'));
+
+      await withGeneratedFileCheck(check, () =>
+        writeGeneratedFile(kept, 'x\n'),
+      );
+
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([
+        { path: stale, status: 'obsolete' },
+      ]);
+    });
   });
 });
