@@ -1467,20 +1467,42 @@ describe('generateRequestFunction — useDatesTransform', () => {
       return verbOptions;
     }
 
-    function zodContext() {
+    function zodContext({ variant = 'classic' as 'classic' | 'mini' } = {}) {
       const context = makeContext([], false, {
         path: './model',
         type: 'zod',
         splitByTags: false,
       });
       context.output.override.includeZodSchemaInArguments = true;
+      context.output.override.zod.variant = variant;
       return context;
     }
 
+    // A body the deserializer can't walk reaches zod unchanged, so the
+    // mutator's `safeParse` reports the mismatch instead of throwing.
+    const convertDates = `(value: unknown) => {
+      try {
+        return deserializeUpdateAppointmentResponse(value as Appointment);
+      } catch {
+        return value;
+      }
+    }`;
+
     it('converts dates before the mutator validates the response', () => {
       expect(generate(validatedMutatorVerbOptions(), zodContext())).toContain(
-        'schema: zod.preprocess((value) => deserializeUpdateAppointmentResponse(value as Appointment), Appointment)',
+        `schema: zod.custom<Appointment>().transform(${convertDates}).pipe(Appointment)`,
       );
+    });
+
+    it('pipes through zod.transform for zod/mini, which has no method chains', () => {
+      const implementation = generate(
+        validatedMutatorVerbOptions(),
+        zodContext({ variant: 'mini' }),
+      );
+      expect(implementation).toContain(
+        `schema: zod.pipe(zod.transform(${convertDates}), Appointment)`,
+      );
+      expect(implementation).not.toContain('zod.custom');
     });
 
     it('passes the plain schema when dates are not converted', () => {
@@ -1489,7 +1511,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
         zodContext(),
       );
       expect(implementation).toMatch(/schema: Appointment\s*}/);
-      expect(implementation).not.toContain('zod.preprocess');
+      expect(implementation).not.toContain('zod.custom');
     });
 
     it('tells query and swr to import the zod namespace', () => {

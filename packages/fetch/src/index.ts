@@ -8,6 +8,7 @@ import {
   emitResponseValidation,
   filterByContentType,
   generateBodyOptions,
+  type GeneratedDateDeserializer,
   generateFormDataAndUrlEncodedFunction,
   generateRequestDateSerializer,
   generateResponseDateDeserializer,
@@ -213,11 +214,7 @@ const getResponseDateDeserializer = (
 ) => {
   // ndjson is excluded explicitly: its media type contains `json`, which the
   // core deserializer's content-type check accepts.
-  const isNdJson = response.contentTypes.some(
-    (contentType) =>
-      contentType === 'application/nd-json' ||
-      contentType === 'application/x-ndjson',
-  );
+  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   // An inferred mutator's return type is unknown to orval — it may not even be
   // a promise — so its response cannot be converted. Skipping the deserializer
   // entirely (rather than generating it and simply never wiring it up) keeps
@@ -228,6 +225,49 @@ const getResponseDateDeserializer = (
     !mutator?.inferred
     ? generateResponseDateDeserializer({ operationName, response, context })
     : undefined;
+};
+
+/**
+ * Whether a custom mutator receives the response's zod schema as `schema:`.
+ * When the response also has a date deserializer, that schema converts dates
+ * first. The emitted option and the `zod` import decision both read this.
+ */
+const passesZodSchemaToMutator = (
+  mutator: GeneratorVerbOptions['mutator'],
+  context: ContextSpec,
+) =>
+  mutator !== undefined &&
+  !!context.output.override.includeZodSchemaInArguments &&
+  isObject(context.output.schemas) &&
+  context.output.schemas.type === 'zod';
+
+/**
+ * Wraps `schemaRef` so it converts dates with `deserializer` before it
+ * validates. A value the deserializer can't walk, such as an error string,
+ * passes through unchanged, so `safeParse` reports the mismatch instead of
+ * throwing.
+ *
+ * `zod.preprocess` would type the schema's input as `unknown`, which zod v3
+ * won't assign to the documented mutator option `schema?: ZodType<T>`.
+ * `zod.custom<T>()` accepts any value but keeps the input typed as the
+ * response. `zod/mini` has neither method chains nor `preprocess`.
+ */
+const wrapSchemaWithDateDeserializer = (
+  schemaRef: string,
+  deserializer: GeneratedDateDeserializer,
+  responseType: string,
+  context: ContextSpec,
+) => {
+  const convert = `(value: unknown) => {
+      try {
+        return ${deserializer.name}(value as ${responseType});
+      } catch {
+        return value;
+      }
+    }`;
+  return context.output.override.zod.variant === 'mini'
+    ? `zod.pipe(zod.transform(${convert}), ${schemaRef})`
+    : `zod.custom<${responseType}>().transform(${convert}).pipe(${schemaRef})`;
 };
 
 /**
@@ -815,16 +855,18 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   // the response on its own, but only when the user opted in and the schemas
   // are actually zod ones — the schema is imported as a value in that case.
   const includeZodSchema =
-    isValidateResponse &&
-    context.output.override.includeZodSchemaInArguments &&
-    isObject(context.output.schemas) &&
-    context.output.schemas.type === 'zod';
+    isValidateResponse && passesZodSchemaToMutator(mutator, context);
   // The mutator validates the raw JSON before the conversion chained onto its
   // promise runs, so `zod.date()` rejects the date string (#4346). Converting
   // inside the schema it receives keeps the built-in path's order: convert,
   // then validate.
   const mutatorSchemaRef = dateDeserializer
-    ? `zod.preprocess((value) => ${dateDeserializer.name}(value as ${response.definition.success}), ${schemaValueRef})`
+    ? wrapSchemaWithDateDeserializer(
+        schemaValueRef,
+        dateDeserializer,
+        response.definition.success,
+        context,
+      )
     : schemaValueRef;
   const getFetchFnOptions = ({ withSchema = false } = {}) => {
     const fetchSchemaOption =
@@ -1062,7 +1104,7 @@ export interface FetchResponseValidationImports {
   /**
    * Set when the emitted expression calls the `zod` namespace: an inline array
    * (`zod.array(Item)`), or a mutator schema that converts dates first
-   * (`zod.preprocess(...)`).
+   * (`zod.custom(...)`, or `zod.pipe(...)` for `zod/mini`).
    */
   composesZod: boolean;
 }
@@ -1122,7 +1164,7 @@ export const getFetchResponseValidationImports = (
     ),
     composesZod:
       !isNamedSchema ||
-      (mutator !== undefined &&
+      (passesZodSchemaToMutator(mutator, context) &&
         getResponseDateDeserializer(
           { operationName, response, mutator, override },
           context,
