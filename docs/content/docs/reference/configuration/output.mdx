@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `pinia-colada`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `pinia-colada`, `swr`, `zod`, `effect`, `valibot`, `hono`, `fetch`, `mcp`
 
 See the [Pinia Colada guide](/docs/guides/pinia-colada) for generated Vue
 queries, mutations, query keys, and options.
@@ -1152,7 +1152,7 @@ export type OperationTypes = {
 - `pathParams` pairs each placeholder's spec name with the identifier the client takes.
 - `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat` (only for clients whose URLs are built by the fetch client: `fetch`, `mcp`, and the query, SWR and Pinia Colada clients over `httpClient: 'fetch'`), and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
-- `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod` and `effect` clients and for Zod schemas.
+- `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod`, `effect` and `valibot` clients and for Zod schemas.
 
 The manifest isn't re-exported from the workspace `index.ts`.
 
@@ -2617,6 +2617,36 @@ Pin the Effect major version that generated output targets, instead of inferring
 | `'auto'` | Infer from the resolved `effect` version; fall back to Effect 4 when none is found. |
 
 `version` is output-wide: an operation or tag override cannot change it.
+
+---
+
+## override.valibot
+
+Valibot schema generation options. `strict` and `generate` take the same keys as `override.zod`, and can also be set per operation or tag.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        valibot: {
+          strict: { response: true },
+          generate: { header: false },
+          exactOptional: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional object properties with `v.exactOptional(schema)` instead of `v.optional(schema)`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
 
 ---
 

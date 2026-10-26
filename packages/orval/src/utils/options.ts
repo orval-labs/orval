@@ -8,6 +8,7 @@ import {
   type AngularBaseUrlOptions,
   type ConfigExternal,
   type EffectOptions,
+  type ValibotOptions,
   FormDataArrayHandling,
   type FakerMockOptions,
   type GlobalMockOptions,
@@ -35,6 +36,7 @@ import {
   type Mutator,
   NamingConvention,
   type NormalizedEffectOptions,
+  type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
@@ -531,6 +533,28 @@ function isPackageSpecifierCandidate(
 
     dir = parent;
   }
+}
+
+function normalizeValibotOptions(
+  valibot?: ValibotOptions,
+): NormalizedValibotOptions {
+  return {
+    strict: {
+      param: valibot?.strict?.param ?? false,
+      query: valibot?.strict?.query ?? false,
+      header: valibot?.strict?.header ?? false,
+      body: valibot?.strict?.body ?? false,
+      response: valibot?.strict?.response ?? false,
+    },
+    generate: {
+      param: valibot?.generate?.param ?? true,
+      query: valibot?.generate?.query ?? true,
+      header: valibot?.generate?.header ?? true,
+      body: valibot?.generate?.body ?? true,
+      response: valibot?.generate?.response ?? true,
+    },
+    exactOptional: valibot?.exactOptional ?? false,
+  };
 }
 
 function normalizeEffectOptions(
@@ -1084,6 +1108,7 @@ export async function normalizeOptions(
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         effect: normalizeEffectOptions(outputOptions.override?.effect),
+        valibot: normalizeValibotOptions(outputOptions.override?.valibot),
         swr: {
           generateErrorTypes: false,
           ...outputOptions.override?.swr,
@@ -1554,6 +1579,7 @@ function normalizeOperationsAndTags(
           angular,
           zod,
           effect,
+          valibot,
           ...rest
         },
       ]) => {
@@ -1720,6 +1746,8 @@ function normalizeOperationsAndTags(
                 }
               : {}),
             ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
+            // Kept partial so the deep merge only overrides what is set.
+            ...(valibot ? { valibot } : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),

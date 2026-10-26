@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { noopReporter, withReporter } from '@orval/core';
+import { mergeDeep, noopReporter, withReporter } from '@orval/core';
 import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
 import {
   afterEach,
@@ -3206,6 +3206,52 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.effect.strict.body).toBe(false);
       expect(normalized.output.override.effect.useBrandedTypes).toBe(false);
       expect(normalized.output.override.effect.version).toBe('auto');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps global valibot settings when an operation override sets only some', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'valibot',
+            override: {
+              valibot: { exactOptional: true, generate: { body: false } },
+              operations: {
+                listPets: { valibot: { strict: { query: true } } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      const { override } = normalized.output;
+      expect(override.valibot.exactOptional).toBe(true);
+      expect(override.valibot.generate.body).toBe(false);
+      expect(override.valibot.generate.response).toBe(true);
+      expect(override.operations.listPets?.valibot).toEqual({
+        strict: { query: true },
+      });
+
+      const merged = mergeDeep(override, override.operations.listPets ?? {});
+      expect(merged.valibot).toEqual({
+        strict: { ...override.valibot.strict, query: true },
+        generate: override.valibot.generate,
+        exactOptional: true,
+      });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

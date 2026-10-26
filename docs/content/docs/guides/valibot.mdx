@@ -1,0 +1,75 @@
+---
+title: Valibot
+description: Generate Valibot schemas from OpenAPI
+---
+
+Generate [Valibot](https://valibot.dev/) schemas from your OpenAPI specification for runtime validation.
+
+## Configuration
+
+Set the `client` option to `valibot`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      mode: 'single',
+      target: './src/api/schemas',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates a schema for the params, query, headers, body and response of each operation:
+
+```ts
+import * as v from 'valibot';
+
+export const CreatePetsBody = v.object({
+  id: v.pipe(v.number(), v.integer()),
+  name: v.string(),
+  tag: v.optional(v.string()),
+});
+```
+
+## Usage
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy' });
+
+type Pet = v.InferOutput<typeof CreatePetsBody>;
+```
+
+## Mapping
+
+- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` names a property that is a literal or enum in every object member.
+- `allOf` becomes `v.intersect`. Strict objects inside it are emitted as plain objects, as a strict object rejects the keys of its siblings.
+- Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`.
+- `date` and `date-time` use `v.isoDate` and `v.isoTimestamp`. With `override.useDates` they are converted to `Date`.
+- `minLength` and `maxLength` of strings count code points. A non-integer `multipleOf` is skipped with a warning, as `v.multipleOf` rejects valid decimals.
+- A `pattern` that is not a valid JavaScript regular expression is skipped with a warning.
+
+## Limitations
+
+The first version leaves these out, so they are validated loosely instead of wrongly:
+
+- Circular `$ref`s and `prefixItems` are validated as `unknown` and `unknown[]`, with a warning.
+- `readOnly` and `writeOnly` are not treated specially, so a `readOnly` property that is required is also required in request bodies.
+- `type: object` accepts arrays, as `v.object` and `v.record` do.
+- `uniqueItems`, and `required` keys that are not declared in `properties`, are not enforced.
+- Every `$ref` is inlined, so deeply shared components produce large output.
+- `override.useDates` does not convert a date that is a direct `allOf` member.
+- `oneOf` does not check that exactly one member matches, and `v.union` returns the first match, so properties of a later member are stripped.
+- Query and path values are not coerced from strings.
+- `multipart/form-data` files are `v.file()`.

@@ -22,6 +22,7 @@
     "generate:multi-file": "orval --config ./configs/multi-file.config.ts",
     "generate:zod": "orval --config ./configs/zod.config.ts",
     "generate:effect": "orval --config ./configs/effect.config.ts",
+    "generate:valibot": "orval --config ./configs/valibot.config.ts",
     "generate:mock": "orval --config ./configs/mock.config.ts",
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:runtime-validation": "orval --config ./configs/runtime-validation.config.ts",
@@ -63,6 +64,7 @@
     "svelte": "catalog:svelte",
     "swr": "catalog:swr",
     "typescript": "catalog:",
+    "valibot": "catalog:valibot",
     "vite-plus": "catalog:",
     "vue": "catalog:vue",
     "zod": "catalog:zod4"
