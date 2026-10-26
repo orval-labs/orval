@@ -42,9 +42,15 @@ async function generateWithReporter(
 ) {
   const check = options?.outdated ? createGeneratedFileCheck() : undefined;
   const run = () => generateProjects(optionsExport, workspace, options);
-  await (check ? withGeneratedFileCheck(check, run) : run());
+  const hasErrors = await (check ? withGeneratedFileCheck(check, run) : run());
 
   if (check) {
+    // A failed project collected nothing, so an empty result proves nothing.
+    if (hasErrors) {
+      throw new Error(
+        'Cannot check for outdated files: one or more projects failed, see above for details',
+      );
+    }
     const outdated = await collectOutdatedGeneratedFiles(check);
     if (outdated.length > 0) {
       for (const file of outdated) {
@@ -64,11 +70,12 @@ async function generateWithReporter(
   }
 }
 
+/** Resolves to whether any project failed. */
 async function generateProjects(
   optionsExport: string | OptionsExport | undefined,
   workspace: string,
   options?: GlobalOptions,
-) {
+): Promise<boolean> {
   resetWarnings();
 
   if (!optionsExport || isString(optionsExport)) {
@@ -128,7 +135,7 @@ async function generateProjects(
     if (hasErrors)
       logger.error('One or more project failed, see above for details');
 
-    return;
+    return hasErrors;
   }
 
   setLogLevel(options?.logLevel ?? 'info');
@@ -139,6 +146,7 @@ async function generateProjects(
     options,
   );
 
+  let hasErrors = false;
   try {
     await generateSpec(workspace, normalizedOptions);
   } catch (error) {
@@ -146,6 +154,7 @@ async function generateProjects(
     if (options?.throwOnError) {
       throw error;
     }
+    hasErrors = true;
   }
 
   if (options?.watch) {
@@ -167,4 +176,6 @@ async function generateProjects(
       normalizedOptions.input.target as string,
     );
   }
+
+  return hasErrors;
 }

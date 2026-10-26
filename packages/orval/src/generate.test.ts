@@ -198,6 +198,16 @@ describe('generate - outdated', () => {
       }),
     ).resolves.toBeUndefined();
   });
+
+  it('throws when a project failed instead of reporting it up to date', async () => {
+    vi.mocked(generateSpec).mockRejectedValueOnce(new Error('boom'));
+
+    await expect(
+      generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        outdated: true,
+      }),
+    ).rejects.toThrow(/projects failed/);
+  });
 });
 
 describe('generate - throwOnError', () => {
