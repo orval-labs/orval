@@ -91,6 +91,10 @@ export async function generateSpec(
     }
   }
 
+  // The spec is imported before anything is cleaned, so a spec that fails to
+  // parse (e.g. read mid-write in watch mode) keeps the previous output.
+  const writeSpecBuilder = await importSpecs(workspace, options, projectName);
+
   if (options.output.clean) {
     const extraPatterns = Array.isArray(options.output.clean)
       ? options.output.clean
@@ -225,6 +229,5 @@ export async function generateSpec(
     }
   }
 
-  const writeSpecBuilder = await importSpecs(workspace, options, projectName);
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
 }

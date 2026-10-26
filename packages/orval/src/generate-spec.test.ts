@@ -4916,3 +4916,51 @@ describe('generateSpec - outdated check', () => {
     }
   });
 });
+
+/** Every file below `dir` with its content, keyed by workspace-relative path. */
+const readFilesRecursively = async (
+  dir: string,
+): Promise<Record<string, string>> => {
+  const files = await listFilesRecursively(dir);
+  const contents = await Promise.all(
+    files.map((file) => fs.promises.readFile(path.join(dir, file), 'utf8')),
+  );
+
+  return Object.fromEntries(
+    files.map((file, index) => [file, contents[index]]),
+  );
+};
+
+describe('generateSpec - clean keeps the previous output when the spec fails', () => {
+  it('leaves generated files in place if the spec cannot be parsed', async () => {
+    const workspace = await createTempWorkspace();
+    const specDir = await createTempWorkspace();
+
+    try {
+      const options = await generateWithOutput(workspace);
+      const before = await readFilesRecursively(workspace);
+      expect(Object.keys(before).length).toBeGreaterThan(0);
+
+      // A spec truncated mid-write, as `--watch` can read it.
+      const specFile = path.join(specDir, 'openapi.json');
+      await outputFile(specFile, '{"openapi": "3.1.0", "info": {');
+      const fileOptions = {
+        ...options,
+        input: { ...options.input, target: specFile },
+      };
+
+      await expect(generateSpec(workspace, fileOptions)).rejects.toThrow();
+      expect(await readFilesRecursively(workspace)).toEqual(before);
+
+      // Once the spec is complete again, the next run regenerates normally.
+      await outputFile(specFile, JSON.stringify(PETSTORE_SPEC));
+      await generateSpec(workspace, fileOptions);
+      expect(Object.keys(await readFilesRecursively(workspace))).toEqual(
+        Object.keys(before),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      await rm(specDir, { recursive: true, force: true });
+    }
+  });
+});
