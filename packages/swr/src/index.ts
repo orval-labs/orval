@@ -932,7 +932,7 @@ export const generateSwr: ClientBuilder = (verbOptions, options) => {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports: [
       ...imports,
-      ...(fetchValidationImports?.composesZodArray
+      ...(fetchValidationImports?.composesZod
         ? [getZodNamespaceImport(options.context.output.override)]
         : []),
     ],

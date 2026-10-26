@@ -184,7 +184,7 @@ export const generateQuery: ClientBuilder = async (
     imports: [
       ...imports,
       ...hookImports,
-      ...(responseArraySchema || fetchValidationImports?.composesZodArray
+      ...(responseArraySchema || fetchValidationImports?.composesZod
         ? [getZodNamespaceImport(options.context.output.override)]
         : []),
     ],
