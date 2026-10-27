@@ -41,10 +41,10 @@ const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
 
 // The runtime names fetch types only through `RequestInit`: `BodyInit` and
 // `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
-// declare (#4344). `ClientConfig.mutator` is method syntax on purpose — its
-// parameters are then checked bivariantly, so a mutator typed for
-// `includeZodSchemaInArguments` (`schema: unknown`, `schema?: ZodType`) still
-// fits the config.
+// declare (#4344). `ClientConfig.mutator` types `schema` as optional `never`:
+// a mutator typed for `includeZodSchemaInArguments` may declare any optional
+// `schema` (`schema?: ZodType`), but not a required one, since operations
+// without a validated response pass none.
 export const RUNTIME_TEMPLATE = `${statusCodeTypes}
 
 export type HttpMethod =
@@ -71,7 +71,10 @@ export interface ExecuteArgs {
 }
 
 export interface ClientConfig {
-  mutator?<T>(url: string, init: RequestInit & { schema?: unknown }): Promise<T>;
+  mutator?: <T>(
+    url: string,
+    init: RequestInit & { schema?: never },
+  ) => Promise<T>;
 }
 
 export interface TypedResponse<T> extends Response {
@@ -297,7 +300,9 @@ export const execute = async <R>(
   if (config?.mutator) {
     return config.mutator<R>(
       args.url,
-      args.schema === undefined ? init : { ...init, schema: args.schema },
+      args.schema === undefined
+        ? init
+        : { ...init, schema: args.schema as never },
     );
   }
 

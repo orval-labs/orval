@@ -935,9 +935,22 @@ declare class URLSearchParams {
 
   it.each([
     'RequestInit',
-    'RequestInit & { schema: unknown }',
+    'RequestInit & { schema?: unknown }',
     'RequestInit & { schema?: { parse(data: unknown): unknown } }',
   ])('compiles without the DOM lib for a mutator taking %s', (optionsType) => {
     expect(typeCheck(optionsType)).toEqual([]);
+  });
+
+  // Operations without a validated response pass no schema, so a mutator
+  // requiring one would receive `undefined` at runtime.
+  it.each([
+    'RequestInit & { schema: unknown }',
+    'RequestInit & { schema: { parse(data: unknown): unknown } }',
+  ])('rejects a mutator requiring the schema: %s', (optionsType) => {
+    expect(typeCheck(optionsType)).toEqual([
+      expect.stringContaining(
+        "is not assignable to parameter of type 'ClientConfig'",
+      ),
+    ]);
   });
 });
