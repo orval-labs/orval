@@ -70,6 +70,7 @@ import {
   generateSharedRequestFunction,
   isContentTypeNdJson,
   isSharedRuntimeStyle,
+  passesZodSchemaToMutator,
 } from './shared-runtime-style';
 
 const resolveSchemaRef = (
@@ -226,20 +227,6 @@ const getResponseDateDeserializer = (
     ? generateResponseDateDeserializer({ operationName, response, context })
     : undefined;
 };
-
-/**
- * Whether a custom mutator receives the response's zod schema as `schema:`.
- * When the response also has a date deserializer, that schema converts dates
- * first. The emitted option and the `zod` import decision both read this.
- */
-const passesZodSchemaToMutator = (
-  mutator: GeneratorVerbOptions['mutator'],
-  context: ContextSpec,
-) =>
-  mutator !== undefined &&
-  !!context.output.override.includeZodSchemaInArguments &&
-  isObject(context.output.schemas) &&
-  context.output.schemas.type === 'zod';
 
 /**
  * Wraps `schemaRef` so it converts dates with `deserializer` before it

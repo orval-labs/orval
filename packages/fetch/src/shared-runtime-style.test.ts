@@ -24,7 +24,7 @@ import {
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
 import { generateRequestFunction } from './index';
-import { RUNTIME_TEMPLATE } from './runtime';
+import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 import {
   generateFetchExtraFiles,
   generateSharedClient,
@@ -150,13 +150,25 @@ function makeSharedOptions(
     client = OutputClient.FETCH,
     useDates = false,
     mutator,
+    zodSchemaInArguments = false,
   }: {
     client?: OutputClient;
     useDates?: boolean;
     mutator?: boolean;
+    zodSchemaInArguments?: boolean;
   } = {},
 ): GeneratorOptions {
-  const options = makeOptions(makeContext(parameters, useDates));
+  const options = makeOptions(
+    makeContext(
+      parameters,
+      useDates,
+      zodSchemaInArguments
+        ? { path: './model', type: 'zod', splitByTags: false }
+        : undefined,
+    ),
+  );
+  options.context.output.override.includeZodSchemaInArguments =
+    zodSchemaInArguments;
   options.context.output.target = '/proj/src/api/endpoints.ts';
   options.context.output.client = client;
   Object.assign(options.context.output.override.fetch, {
@@ -761,5 +773,184 @@ describe('generateSharedRequestFunction', () => {
         { name: 'execute', values: true, importPath: '../runtime' },
       ]),
     );
+  });
+
+  describe('hands the zod schema to the client-config mutator (#4344)', () => {
+    const validatedResponse = (
+      success: string,
+      imports: GeneratorVerbOptions['response']['imports'],
+    ): GeneratorVerbOptions['response'] => ({
+      definition: { success, errors: '' },
+      imports,
+      types: {
+        success: [successType({ key: '200', value: success, isRef: true })],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      isBlob: false,
+    });
+    const validatedVerbOptions = (
+      response = validatedResponse('Pet', [{ name: 'Pet' }]),
+      withMutator = true,
+    ) =>
+      makeVerbOptions({
+        response,
+        ...(withMutator ? { mutator: mutator() } : {}),
+        override: {
+          fetch: {
+            includeHttpResponseReturnType: false,
+            forceSuccessResponse: false,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      });
+
+    it('passes a named schema as a value import', () => {
+      const { imports, implementation } = generateSharedClient(
+        validatedVerbOptions(),
+        makeSharedOptions([], { mutator: true, zodSchemaInArguments: true }),
+      );
+
+      expect(implementation).toContain('schema: Pet,');
+      expect(imports).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+        ]),
+      );
+      expect(imports).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'PetOutput' }),
+        ]),
+      );
+    });
+
+    it('composes an inline array schema with the zod namespace', () => {
+      const { imports, implementation } = generateSharedClient(
+        validatedVerbOptions(validatedResponse('Pet[]', [{ name: 'Pet' }])),
+        makeSharedOptions([], { mutator: true, zodSchemaInArguments: true }),
+      );
+
+      expect(implementation).toContain('schema: zod.array(Pet),');
+      expect(imports).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+          expect.objectContaining({ name: 'zod', namespaceImport: true }),
+        ]),
+      );
+    });
+
+    it.each([
+      ['without includeZodSchemaInArguments', true, false],
+      ['without a mutator', false, true],
+    ])('passes no schema %s', (_, withMutator, zodSchemaInArguments) => {
+      const { imports, implementation } = generateSharedClient(
+        validatedVerbOptions(undefined, withMutator),
+        makeSharedOptions([], { mutator: withMutator, zodSchemaInArguments }),
+      );
+
+      expect(implementation).not.toContain('schema:');
+      expect(imports).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+        ]),
+      );
+    });
+  });
+});
+
+describe('shared runtime type-check (#4344)', () => {
+  // A runtime without the DOM lib, such as Bun, declares `RequestInit` and
+  // friends but not the `BodyInit`/`HeadersInit` globals.
+  const FETCH_GLOBALS = `
+declare class Headers implements Iterable<[string, string]> {
+  constructor(init?: Record<string, string>);
+  get(name: string): string | null;
+  entries(): IterableIterator<[string, string]>;
+  [Symbol.iterator](): IterableIterator<[string, string]>;
+}
+declare class Blob {}
+declare class Response {
+  readonly status: number;
+  readonly headers: Headers;
+  text(): Promise<string>;
+  blob(): Promise<Blob>;
+  json(): Promise<unknown>;
+}
+interface RequestInit {
+  method?: string;
+  headers?: Headers | [string, string][] | Record<string, string>;
+  body?: string | Blob | null;
+}
+declare function fetch(url: string, init?: RequestInit): Promise<Response>;
+declare class URLSearchParams {
+  append(name: string, value: string): void;
+  toString(): string;
+}
+`;
+
+  const typeCheck = (mutatorOptionsType: string) => {
+    const files: Record<string, string> = {
+      '/proj/globals.d.ts': FETCH_GLOBALS,
+      '/proj/runtime.ts': RUNTIME_TEMPLATE,
+      '/proj/custom-fetch.ts': `export const customFetch = async <T>(
+  url: string,
+  options: ${mutatorOptionsType},
+): Promise<T> => {
+  return (await fetch(url, options)).json() as Promise<T>;
+};
+`,
+      '/proj/client-config.ts': clientConfigTemplate({
+        runtimeImportPath: './runtime',
+        mutatorImport: "import { customFetch } from './custom-fetch';\n",
+        mutatorName: 'customFetch',
+      }),
+    };
+    const compilerOptions: ts.CompilerOptions = {
+      strict: true,
+      noEmit: true,
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      lib: ['lib.es2022.d.ts'],
+      types: [],
+    };
+    const base = ts.createCompilerHost(compilerOptions);
+    const host: ts.CompilerHost = {
+      ...base,
+      getSourceFile: (fileName, languageVersion, ...rest) =>
+        fileName in files
+          ? ts.createSourceFile(fileName, files[fileName], languageVersion)
+          : base.getSourceFile(fileName, languageVersion, ...rest),
+      fileExists: (fileName) => fileName in files || base.fileExists(fileName),
+      readFile: (fileName) => files[fileName] ?? base.readFile(fileName),
+      directoryExists: (name) =>
+        name === '/proj' || (base.directoryExists?.(name) ?? true),
+    };
+    const program = ts.createProgram(Object.keys(files), compilerOptions, host);
+    return ts
+      .getPreEmitDiagnostics(program)
+      .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+  };
+
+  it.each([
+    'RequestInit',
+    'RequestInit & { schema?: unknown }',
+    'RequestInit & { schema?: { parse(data: unknown): unknown } }',
+  ])('compiles without the DOM lib for a mutator taking %s', (optionsType) => {
+    expect(typeCheck(optionsType)).toEqual([]);
+  });
+
+  // Operations without a validated response pass no schema, so a mutator
+  // requiring one would receive `undefined` at runtime.
+  it.each([
+    'RequestInit & { schema: unknown }',
+    'RequestInit & { schema: { parse(data: unknown): unknown } }',
+  ])('rejects a mutator requiring the schema: %s', (optionsType) => {
+    expect(typeCheck(optionsType)).toEqual([
+      expect.stringContaining(
+        "is not assignable to parameter of type 'ClientConfig'",
+      ),
+    ]);
   });
 });

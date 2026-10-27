@@ -3,6 +3,7 @@ import {
   camel,
   type ClientExtraFilesBuilder,
   type ClientFileBuilder,
+  type ContextSpec,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorClient,
@@ -15,17 +16,24 @@ import {
   getArrayFormatParameters,
   getDeepObjectParameters,
   getDelimitedParameters,
+  getArrayResponseSchema,
   getFormObjectParameters,
   getExplodeParameters,
   getOperationParameters,
+  getSchemaValueRef,
+  getZodNamespaceImport,
   GetterPropType,
+  hasSchemaImport,
   isFormDataContentType,
+  isObject,
+  isPrimitiveResponseType,
   jsDoc,
   jsStringLiteralEscape,
   makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputClient,
+  rewriteImportsForResponseValidation,
   toObjectString,
   upath,
 } from '@orval/core';
@@ -52,6 +60,21 @@ export const isSharedRuntimeStyle = (
 ) =>
   output?.override.fetch.runtimeImplementationStyle === 'shared' &&
   output.client === OutputClient.FETCH;
+
+/**
+ * Whether a custom mutator receives the response's zod schema as `schema:`.
+ * When the response also has a date deserializer, the inline style's schema
+ * converts dates first. The emitted option and the `zod` import decision both
+ * read this.
+ */
+export const passesZodSchemaToMutator = (
+  mutator: GeneratorVerbOptions['mutator'],
+  context: ContextSpec,
+) =>
+  mutator !== undefined &&
+  !!context.output.override.includeZodSchemaInArguments &&
+  isObject(context.output.schemas) &&
+  context.output.schemas.type === 'zod';
 
 const usesClientConfig = (
   output: NormalizedOutputOptions,
@@ -95,6 +118,56 @@ export const getSharedRuntimeImports = (
     { name: 'ResponseOf', importPath: runtimePath },
     ...(hasStream ? [{ name: 'Stream', importPath: runtimePath }] : []),
   ];
+};
+
+/**
+ * The zod schema `execute` hands the client-config mutator as `schema:`, the
+ * same one the inline style passes it (#4344), with the response imports
+ * rewritten so that schema is a value import. The shared runtime converts no
+ * dates, so the schema is passed as is.
+ */
+const getMutatorSchema = (
+  { mutator, override, response }: GeneratorVerbOptions,
+  { context }: GeneratorOptions,
+) => {
+  const responseType = response.definition.success;
+  if (
+    !usesClientConfig(context.output, mutator) ||
+    !passesZodSchemaToMutator(mutator, context) ||
+    !override.fetch.runtimeValidation.enabled ||
+    isPrimitiveResponseType(responseType) ||
+    response.contentTypes.some(isContentTypeNdJson)
+  ) {
+    return undefined;
+  }
+
+  if (hasSchemaImport(response.imports, responseType)) {
+    return {
+      schemaRef: getSchemaValueRef(responseType),
+      imports: rewriteImportsForResponseValidation(
+        response.imports,
+        responseType,
+        { includeOutputType: false },
+      ),
+      composesZod: false,
+    };
+  }
+
+  const arraySchema = getArrayResponseSchema(
+    response.imports,
+    responseType,
+    getSchemaValueRef,
+  );
+  if (!arraySchema) return undefined;
+  return {
+    schemaRef: arraySchema.schemaRef,
+    imports: rewriteImportsForResponseValidation(
+      response.imports,
+      arraySchema.elementName,
+      { includeOutputType: false },
+    ),
+    composesZod: true,
+  };
 };
 
 // Exact codes stay numeric keys so `ResponseOf` can narrow on them; a
@@ -273,6 +346,7 @@ export const generateSharedRequestFunction = (
   const runtimeContentType = isFormDataContentType(body.contentType)
     ? 'multipart/form-data'
     : body.contentType;
+  const mutatorSchema = getMutatorSchema(verbOptions, options);
   const executeArgs = [
     `url: ${getUrlFnName}(${getUrlFnProperties})`,
     `method: '${verb.toUpperCase()}'`,
@@ -283,6 +357,7 @@ export const generateSharedRequestFunction = (
     ...(headersArgument ? [headersArgument] : []),
     ...(responseType ? [`responseType: '${responseType}'`] : []),
     ...(encodeBodyName ? [`encodeBody: ${encodeBodyName}`] : []),
+    ...(mutatorSchema ? [`schema: ${mutatorSchema.schemaRef}`] : []),
     'options',
   ];
 
@@ -298,14 +373,26 @@ export const generateSharedRequestFunction = (
 export const generateSharedClient = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
-): GeneratorClient => ({
-  implementation: generateSharedRequestFunction(verbOptions, options),
-  imports: [
-    ...generateVerbImports(verbOptions),
-    ...getSharedRuntimeImports(verbOptions, options),
-  ],
-  docComment: '',
-});
+): GeneratorClient => {
+  const mutatorSchema = getMutatorSchema(verbOptions, options);
+  const importVerbOptions = mutatorSchema
+    ? {
+        ...verbOptions,
+        response: { ...verbOptions.response, imports: mutatorSchema.imports },
+      }
+    : verbOptions;
+  return {
+    implementation: generateSharedRequestFunction(verbOptions, options),
+    imports: [
+      ...generateVerbImports(importVerbOptions),
+      ...getSharedRuntimeImports(verbOptions, options),
+      ...(mutatorSchema?.composesZod
+        ? [getZodNamespaceImport(options.context.output.override)]
+        : []),
+    ],
+    docComment: '',
+  };
+};
 
 export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
   verbOptions,

@@ -63,14 +63,18 @@ export interface ExecuteArgs {
   method: HttpMethod;
   body?: unknown;
   contentType?: string;
-  headers?: HeadersInit;
+  headers?: RequestInit['headers'];
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
-  encodeBody?: (body: never) => BodyInit;
+  encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
+  schema?: unknown;
   options?: CallOptions;
 }
 
 export interface ClientConfig {
-  mutator?: <T>(url: string, init: RequestInit) => Promise<T>;
+  mutator?: <T>(
+    url: string,
+    init: RequestInit & { schema?: never },
+  ) => Promise<T>;
 }
 
 export interface TypedResponse<T> extends Response {
@@ -266,13 +270,13 @@ const getHeaders = (
   return headers;
 };
 
-const encodeRequestBody = (args: ExecuteArgs): BodyInit | undefined => {
+const encodeRequestBody = (args: ExecuteArgs): RequestInit['body'] => {
   if (args.body === undefined) return undefined;
   if (args.encodeBody) return args.encodeBody(args.body as never);
   if (!args.contentType || args.contentType.toLowerCase().includes('json')) {
     return JSON.stringify(args.body);
   }
-  return args.body as BodyInit;
+  return args.body as NonNullable<RequestInit['body']>;
 };
 
 const decodeResponseBody = async (
@@ -315,7 +319,12 @@ export const execute = async <R>(
   };
 
   if (config?.mutator) {
-    return config.mutator<R>(args.url, init);
+    return config.mutator<R>(
+      args.url,
+      args.schema === undefined
+        ? init
+        : { ...init, schema: args.schema as never },
+    );
   }
 
   const res = await fetchFn(args.url, init);

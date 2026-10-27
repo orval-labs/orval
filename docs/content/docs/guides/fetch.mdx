@@ -167,7 +167,8 @@ export const listPets = (params?: ListPetsParams, options?: CallOptions) =>
 
 Several outputs can point at the same `runtimeOutputPath` to share one
 runtime. A `mutator` is wired through a per-output `client-config.ts` and keeps
-its existing contract. Keep a shared runtime outside the target directory of
+its existing contract, including the `schema` option that
+`includeZodSchemaInArguments` passes it. Keep a shared runtime outside the target directory of
 any output that uses `clean: true` with the inline style, since `clean` wipes
 that directory.
 
