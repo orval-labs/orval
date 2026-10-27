@@ -2,6 +2,8 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiParameterObject,
+  OpenApiRequestBodyObject,
+  OpenApiResponseObject,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
@@ -17,11 +19,15 @@ describe('operations', () => {
       contentType = 'application/json',
       parameters = [],
       components = {},
+      requestBody,
+      content,
     }: {
       code?: string;
       contentType?: string;
       parameters?: OpenApiParameterObject[];
       components?: Record<string, OpenApiSchemaObject>;
+      requestBody?: OpenApiRequestBodyObject;
+      content?: OpenApiResponseObject['content'];
     } = {},
   ) => {
     const context = createTestContextSpec({
@@ -31,10 +37,11 @@ describe('operations', () => {
           '/pets': {
             get: {
               parameters,
+              requestBody,
               responses: {
                 [code]: {
                   description: 'ok',
-                  content: { [contentType]: { schema } },
+                  content: content ?? { [contentType]: { schema } },
                 },
               },
             },
@@ -142,5 +149,79 @@ describe('operations', () => {
     );
     expect(implementation).toContain('constructor: v.string()');
     expect(implementation).toContain("['__proto__']: v.optional(v.string())");
+  });
+
+  describe('request body', () => {
+    const body = (required?: boolean): OpenApiRequestBodyObject => ({
+      ...(required === undefined ? {} : { required }),
+      content: {
+        'application/json': {
+          schema: { type: 'string' },
+        },
+      },
+    });
+
+    // The body schema is the value of the body, so it is never optional,
+    // whether or not the operation marks the body as required.
+    it.each([true, false, undefined])(
+      'validates the body as present when required is %s',
+      async (required) => {
+        const implementation = await run(
+          { type: 'string' },
+          { requestBody: body(required) },
+        );
+        expect(implementation).toContain('ListPetsBody = v.string()');
+      },
+    );
+  });
+
+  describe('media types', () => {
+    const string: OpenApiSchemaObject = { type: 'string' };
+
+    it('skips a null media object', async () => {
+      const implementation = await run(string, {
+        content: {
+          'application/json': null,
+          'application/hal+json': { schema: string },
+        } as unknown as OpenApiResponseObject['content'],
+      });
+      expect(implementation).toContain('ListPetsResponse = v.string()');
+    });
+
+    it('does not let a media type without a schema hide a later one', async () => {
+      const implementation = await run(string, {
+        content: {
+          'application/json': {},
+          'application/hal+json': { schema: string },
+        },
+      });
+      expect(implementation).toContain('ListPetsResponse = v.string()');
+    });
+
+    it('skips a null schema', async () => {
+      const implementation = await run(string, {
+        content: {
+          'application/json': { schema: null },
+          'application/hal+json': { schema: string },
+        } as unknown as OpenApiResponseObject['content'],
+      });
+      expect(implementation).toContain('ListPetsResponse = v.string()');
+    });
+
+    it('skips a false schema', async () => {
+      const implementation = await run(string, {
+        content: {
+          'application/json': { schema: false },
+          'application/hal+json': { schema: string },
+        } as unknown as OpenApiResponseObject['content'],
+      });
+      expect(implementation).toContain('ListPetsResponse = v.string()');
+    });
+
+    it('emits nothing when no media type has a schema', async () => {
+      expect(await run(string, { content: { 'application/json': {} } })).toBe(
+        '',
+      );
+    });
   });
 });

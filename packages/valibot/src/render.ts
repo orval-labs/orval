@@ -5,7 +5,7 @@ import type {
   ValibotAction,
   ValibotEntry,
   ValibotNode,
-} from './schema';
+} from './nodes';
 
 // `v.toDate()` needs valibot 1.2; a transform keeps every 1.x release working.
 const TO_DATE = 'v.transform((value) => new Date(value))';
@@ -61,7 +61,9 @@ export const renderValibot = (
   { exactOptional = false }: RenderOptions = {},
 ): string => {
   const renderEntries = (entries: ValibotEntry[]) =>
-    `{\n${entries.map(({ key, value }) => `  ${renderKey(key)}: ${render(value, { inEntry: true })}`).join(',\n')}\n}`;
+    entries.length === 0
+      ? '{}'
+      : `{\n${entries.map(({ key, value }) => `  ${renderKey(key)}: ${render(value, { inEntry: true })}`).join(',\n')}\n}`;
 
   const renderObject = (schema: ObjectSchema, inIntersection: boolean) => {
     // A strict member of an intersection would reject its siblings' keys.

@@ -21,13 +21,15 @@ export type {
   ParseParametersOptions,
 } from './operation';
 export { type RenderOptions, renderValibot } from './render';
+export type {
+  ValibotAction,
+  ValibotEntry,
+  ValibotNode,
+  ValibotSchema,
+} from './nodes';
 export {
   generateValibotValidationSchemaDefinition,
   type SchemaRules,
-  type ValibotAction,
-  type ValibotEntry,
-  type ValibotNode,
-  type ValibotSchema,
 } from './schema';
 
 // A namespace import lets a bundler drop every `v.*` that is unused.

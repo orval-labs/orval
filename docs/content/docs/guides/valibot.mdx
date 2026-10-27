@@ -55,7 +55,8 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 
 - `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` names a property that is a literal or enum in every object member.
 - `allOf` becomes `v.intersect`. Strict objects inside it are emitted as plain objects, as a strict object rejects the keys of its siblings.
-- Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`.
+- Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`. `additionalProperties: false` without `properties` is an empty object, strict with `strict`.
+- A `required` key with no declared property is kept and required, with the type of `additionalProperties` or `unknown`.
 - `date` and `date-time` use `v.isoDate` and `v.isoTimestamp`. With `override.useDates` they are converted to `Date`.
 - `minLength` and `maxLength` of strings count code points. A non-integer `multipleOf` is skipped with a warning, as `v.multipleOf` rejects valid decimals.
 - A `pattern` that is not a valid JavaScript regular expression is skipped with a warning.
@@ -67,7 +68,8 @@ The first version leaves these out, so they are validated loosely instead of wro
 - Circular `$ref`s and `prefixItems` are validated as `unknown` and `unknown[]`, with a warning.
 - `readOnly` and `writeOnly` are not treated specially, so a `readOnly` property that is required is also required in request bodies.
 - `type: object` accepts arrays, as `v.object` and `v.record` do.
-- `uniqueItems`, and `required` keys that are not declared in `properties`, are not enforced.
+- `uniqueItems` is not enforced.
+- In an `allOf`, `oneOf` or `anyOf`, a key required by the parent or by an `allOf` member is only enforced where a member declares it, and is dropped when none does.
 - Every `$ref` is inlined, so deeply shared components produce large output.
 - `override.useDates` does not convert a date that is a direct `allOf` member.
 - `oneOf` does not check that exactly one member matches, and `v.union` returns the first match, so properties of a later member are stripped.

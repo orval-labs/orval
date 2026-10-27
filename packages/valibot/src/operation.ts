@@ -13,10 +13,8 @@ import {
 } from '@orval/core';
 
 import { logger, warnOnce } from './logger';
-import {
-  generateValibotValidationSchemaDefinition,
-  type ValibotNode,
-} from './schema';
+import { plainNode, type ValibotNode } from './nodes';
+import { generateValibotValidationSchemaDefinition } from './schema';
 
 const tryResolveRefSchema = (
   $ref: string,
@@ -139,12 +137,17 @@ export const parseBodyAndResponse = ({
     OpenApiResponseObject | OpenApiRequestBodyObject
   >(data, context).schema;
 
-  const entries = Object.entries(content ?? {});
+  // A media type without a schema, or without a media object, is skipped so
+  // it cannot hide a later one that has a schema.
+  const schemas = Object.entries(content ?? {}).flatMap(
+    ([contentType, media]): [string, OpenApiSchemaObject][] =>
+      isObject(media) && (isObject(media.schema) || media.schema === true)
+        ? [[contentType.split(';')[0].trim().toLowerCase(), media.schema]]
+        : [],
+  );
   const schema = MEDIA_TYPES.map((pattern) =>
-    entries.find(([contentType]) =>
-      pattern.test(contentType.split(';')[0].trim().toLowerCase()),
-    ),
-  ).find(Boolean)?.[1].schema;
+    schemas.find(([contentType]) => pattern.test(contentType)),
+  ).find(Boolean)?.[1];
   if (!schema) return;
 
   return generateValibotValidationSchemaDefinition(
@@ -244,16 +247,11 @@ export const parseParameters = ({
   ): ValibotNode | undefined =>
     props.size === 0
       ? undefined
-      : {
-          schema: {
-            kind: 'object',
-            mode: isStrict ? 'strictObject' : 'object',
-            entries: [...props].map(([key, value]) => ({ key, value })),
-          },
-          actions: [],
-          nullable: false,
-          optional: false,
-        };
+      : plainNode({
+          kind: 'object',
+          mode: isStrict ? 'strictObject' : 'object',
+          entries: [...props].map(([key, value]) => ({ key, value })),
+        });
 
   return {
     headers: toObject(defs.headers, strict.header),
