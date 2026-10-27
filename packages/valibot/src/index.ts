@@ -23,6 +23,7 @@ export type {
 export { type RenderOptions, renderValibot } from './render';
 export {
   generateValibotValidationSchemaDefinition,
+  type SchemaRules,
   type ValibotAction,
   type ValibotEntry,
   type ValibotNode,

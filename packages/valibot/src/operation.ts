@@ -116,7 +116,7 @@ const MEDIA_TYPES = [
   /^multipart\/form-data$/,
 ];
 
-export interface ParseBodyAndResponseOptions {
+interface ParseBodyAndResponseOptions {
   data:
     | OpenApiResponseObject
     | OpenApiRequestBodyObject
