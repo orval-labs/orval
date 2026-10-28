@@ -30,6 +30,7 @@ import {
   camel,
   dynamicImport,
   escapeRegExp,
+  getOperationTagKey,
   getUniqueName,
   isObject,
   isString,
@@ -55,6 +56,13 @@ export interface GenerateVerbOptionsParams {
   // (TS2451/TS2300 within a file, TS2308 through a barrel). #2685
   reservedOperationNames?: Set<string>;
   reservedTypeNames?: Set<string>;
+  /**
+   * Per-tag method-name reservation sets. Provided only when the output
+   * renders one class per tag bucket and methods therefore only need to be
+   * unique within their tag (built-in Angular `httpClient` in `tags` /
+   * `tags-split` modes). Keyed by the canonical `getOperationTagKey` bucket.
+   */
+  reservedMethodNamesByTag?: Map<string, Set<string>>;
 }
 
 const renameFormIdentifier = (form: string, from: string, to: string) =>
@@ -113,6 +121,8 @@ async function buildVerbOption({
   context,
   body: rawBody,
   operationName,
+  methodName,
+  reservedMethodNamesByTag,
   typeName,
   operationId,
   override,
@@ -130,6 +140,8 @@ async function buildVerbOption({
   context: ContextSpec;
   body: GetterBody;
   operationName: string;
+  methodName?: string;
+  reservedMethodNamesByTag?: Map<string, Set<string>>;
   typeName: string;
   operationId: string;
   override: NormalizedOverrideOutput;
@@ -183,7 +195,15 @@ async function buildVerbOption({
     output,
   });
 
-  const body = resolveBodyNameShadowing(rawBody, operationName, params);
+  // A body parameter named like the generated method shadows it inside hooks
+  // that reference `typeof <operationName>`. The shadow check runs against the
+  // class-local method name when one is assigned (Angular tag-scoped classes):
+  // that is the identifier the generated method actually declares.
+  const body = resolveBodyNameShadowing(
+    rawBody,
+    methodName ?? operationName,
+    params,
+  );
 
   const props = getProps({
     body,
@@ -266,6 +286,7 @@ async function buildVerbOption({
     summary,
     operationId,
     operationName,
+    ...(methodName && methodName !== operationName ? { methodName } : {}),
     typeName,
     response,
     body,
@@ -290,7 +311,62 @@ async function buildVerbOption({
     context.workspace,
   );
 
-  return transformer ? transformer(verbOption) : verbOption;
+  const transformed = transformer ? transformer(verbOption) : verbOption;
+  if (
+    reservedMethodNamesByTag &&
+    (!transformed.deprecated ||
+      output.override.useDeprecatedOperations !== false)
+  ) {
+    // Reserve against the writer's final bucket, after both in-place and
+    // returned-object transformers have had a chance to change names/tags.
+    const candidate =
+      transformed.operationName !== operationName
+        ? transformed.operationName
+        : (transformed.methodName ?? methodName ?? transformed.operationName);
+    const tagKey = getOperationTagKey(transformed);
+    let names = reservedMethodNamesByTag.get(tagKey);
+    if (!names) {
+      names = new Set();
+      reservedMethodNamesByTag.set(tagKey, names);
+    }
+    const finalMethodName = getUniqueName(candidate, names);
+    names.add(finalMethodName);
+    if (finalMethodName !== transformed.operationName) {
+      transformed.methodName = finalMethodName;
+    } else {
+      delete transformed.methodName;
+    }
+
+    // A suffix or transformer rename can introduce a new body-name shadow.
+    const finalBody = resolveBodyNameShadowing(
+      transformed.body,
+      finalMethodName,
+      transformed.params,
+    );
+    if (finalBody !== transformed.body) {
+      const previousName = transformed.body.implementation;
+      transformed.body = finalBody;
+      transformed.props = transformed.props.map((prop) =>
+        prop.name === previousName
+          ? {
+              ...prop,
+              name: finalBody.implementation,
+              definition: renameFormIdentifier(
+                prop.definition,
+                previousName,
+                finalBody.implementation,
+              ),
+              implementation: renameFormIdentifier(
+                prop.implementation,
+                previousName,
+                finalBody.implementation,
+              ),
+            }
+          : prop,
+      );
+    }
+  }
+  return transformed;
 }
 
 export async function generateVerbOptions({
@@ -303,6 +379,7 @@ export async function generateVerbOptions({
   context,
   reservedOperationNames,
   reservedTypeNames,
+  reservedMethodNamesByTag,
 }: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions[]> {
   const {
     requestBody,
@@ -373,8 +450,16 @@ export async function generateVerbOptions({
     return uniqueName;
   };
 
-  operationName = reserve(operationName, reservedOperationNames);
+  // Class-local method names (see GenerateVerbOptionsParams). The bare,
+  // pre-reservation spelling is the class-local candidate: a globally
+  // suffixed name (e.g. `getStatus2`) must not leak a phantom "2" into a
+  // class whose tag never saw the first `getStatus`.
+  const bareOperationName = operationName;
+  operationName = reserve(bareOperationName, reservedOperationNames);
   typeName = reserve(typeName, reservedTypeNames);
+  const baseMethodName = reservedMethodNamesByTag
+    ? bareOperationName
+    : undefined;
 
   const splitByContentType = override.splitByContentType;
 
@@ -398,6 +483,10 @@ export async function generateVerbOptions({
       const suffixedTypeName = contentTypeSuffix
         ? reserve(`${typeName}With${contentTypeSuffix}`, reservedTypeNames)
         : typeName;
+      const suffixedMethodName =
+        baseMethodName !== undefined && contentTypeSuffix
+          ? `${baseMethodName}With${contentTypeSuffix}`
+          : baseMethodName;
 
       const verbOption = await buildVerbOption({
         verb,
@@ -409,6 +498,8 @@ export async function generateVerbOptions({
         context,
         body,
         operationName: suffixedName,
+        methodName: suffixedMethodName,
+        reservedMethodNamesByTag,
         typeName: suffixedTypeName,
         operationId,
         override,
@@ -452,6 +543,8 @@ export async function generateVerbOptions({
     context,
     body,
     operationName,
+    methodName: baseMethodName,
+    reservedMethodNamesByTag,
     typeName,
     operationId,
     override,
@@ -475,6 +568,8 @@ export interface GenerateVerbsOptionsParams {
   reservedOperationNames?: Set<string>;
   /** See {@link GenerateVerbOptionsParams.reservedTypeNames}. */
   reservedTypeNames?: Set<string>;
+  /** See {@link GenerateVerbOptionsParams.reservedMethodNamesByTag}. */
+  reservedMethodNamesByTag?: Map<string, Set<string>>;
 }
 
 export function generateVerbsOptions({
@@ -486,6 +581,7 @@ export function generateVerbsOptions({
   context,
   reservedOperationNames,
   reservedTypeNames,
+  reservedMethodNamesByTag,
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
     filteredVerbs(verbs, input.filters),
@@ -501,6 +597,7 @@ export function generateVerbsOptions({
           context,
           reservedOperationNames,
           reservedTypeNames,
+          reservedMethodNamesByTag,
         });
 
         acc.push(...verbOptions);

@@ -2289,6 +2289,14 @@ export interface GeneratorVerbOptions {
   tags: string[];
   operationId: string;
   operationName: string;
+  /**
+   * Class-local service method name; omitted when identical to
+   * {@link operationName}. Angular `httpClient` in `tags`/`tags-split` mode
+   * renders one service class per tag, so only methods must be unique per
+   * tag — module-level companion exports keep the output-globally unique
+   * `operationName`.
+   */
+  methodName?: string;
   /** Resolved Axios URL-helper name when the output client emits one. */
   urlHelperName?: string;
   typeName: string;

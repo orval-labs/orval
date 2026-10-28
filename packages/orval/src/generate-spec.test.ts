@@ -10,6 +10,7 @@ import {
   createGeneratedFileCheck,
   createSuccessMessage,
   type FakerMockOptions,
+  type GeneratorVerbOptions,
   noopReporter,
   type OpenApiDocument,
   OutputMockType,
@@ -3226,6 +3227,1029 @@ const MASTER_SPEC: OpenApiDocument = {
     },
   },
 };
+
+describe('generateSpec - Angular tag-scoped service method names', () => {
+  // Gateway-style aggregated spec: distinct operationIds, but the
+  // `operationName` tuple fallback gives operations in different tags the
+  // same method name. Each tag renders its own service class in `tags-split`
+  // mode, so the bare method name is legal in both classes — while every
+  // module-level export (type aliases, mock handlers, barrels) stays
+  // output-globally unique through `operationName` / `typeName`.
+  const statusOperation = (tags: string[] | undefined, schema: string) => ({
+    ...(tags ? { tags } : {}),
+    responses: {
+      '200': {
+        description: 'ok',
+        content: {
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${schema}` },
+          },
+        },
+      },
+    },
+  });
+
+  const STATUS_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Gateway', version: '1.0.0' },
+    paths: {
+      '/api/catalog/status': {
+        get: statusOperation(['Catalog'], 'StatusResponse'),
+      },
+      '/api/inventory/status': {
+        get: statusOperation(['Inventory'], 'SearchStatusResponse'),
+      },
+      '/api/search/status': {
+        get: statusOperation(['Search'], 'SearchStatusResponse'),
+      },
+    },
+    components: {
+      schemas: {
+        StatusResponse: {
+          type: 'object',
+          required: ['value'],
+          properties: { value: { type: 'string' } },
+        },
+        SearchStatusResponse: {
+          type: 'object',
+          required: ['value'],
+          properties: { value: { type: 'string' } },
+        },
+      },
+    },
+  };
+
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const methodTupleOverride = (
+    _operation: unknown,
+    route: string,
+    verb: string,
+  ): [string, string] => {
+    const segments = route.split('/').filter(Boolean);
+    return [
+      `${verb}${cap(segments.at(-1) ?? '')}`,
+      `${verb}${segments.slice(1).map(cap).join('')}`,
+    ];
+  };
+
+  const statusPath = (route: string) =>
+    STATUS_SPEC.paths?.[route] as NonNullable<OpenApiDocument['paths']>[string];
+
+  const generateStatusOutput = async (
+    paths: OpenApiDocument['paths'],
+    filtersTags?: string[],
+  ) => {
+    const workspace = await createTempWorkspace();
+
+    const options = await normalizeOptions(
+      {
+        input: {
+          target: { ...STATUS_SPEC, paths },
+          ...(filtersTags ? { filters: { tags: filtersTags } } : undefined),
+        },
+        output: {
+          target: './endpoints.ts',
+          mode: 'tags-split',
+          schemas: { path: './model', splitByTags: true },
+          client: 'angular',
+          indexFiles: true,
+          tagsSplitDeduplication: true,
+          override: { operationName: methodTupleOverride },
+        },
+      },
+      workspace,
+    );
+
+    await generateSpec(workspace, options);
+    return workspace;
+  };
+
+  const readGenerated = (workspace: string, file: string) =>
+    fs.promises.readFile(path.join(workspace, file), 'utf-8');
+
+  const assertTagFileOwnsItsOperation = async (
+    workspace: string,
+    tag: string,
+    expected: {
+      route: string;
+      alias: string;
+      schema: string;
+      otherAlias: string;
+      otherSchema: string;
+    },
+  ) => {
+    const content = await readGenerated(
+      workspace,
+      path.join(tag.toLowerCase(), `${tag.toLowerCase()}.service.ts`),
+    );
+
+    // Both service classes keep the bare method name.
+    expect(content.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+    // Each method calls its own route.
+    expect(content).toContain(`\`${expected.route}\``);
+    // Each file emits its own result alias and imports its own schema.
+    expect(content).toContain(
+      `export type ${expected.alias} = NonNullable<${expected.schema}>`,
+    );
+    expect(content).not.toContain(expected.otherAlias);
+    expect(content).not.toContain(`NonNullable<${expected.otherSchema}>`);
+    expect(content).toMatch(
+      new RegExp(`import type \\{[^}]*\\b${expected.schema}\\b[^}]*\\}`),
+    );
+  };
+
+  const CATALOG_TAG = {
+    route: '/api/catalog/status',
+    alias: 'GetCatalogStatusClientResult',
+    schema: 'StatusResponse',
+    otherAlias: 'GetInventoryStatusClientResult',
+    otherSchema: 'SearchStatusResponse',
+  };
+
+  const INVENTORY_TAG = {
+    route: '/api/inventory/status',
+    alias: 'GetInventoryStatusClientResult',
+    schema: 'SearchStatusResponse',
+    otherAlias: 'GetCatalogStatusClientResult',
+    otherSchema: 'StatusResponse',
+  };
+
+  it('keeps the bare method name in both service classes', async () => {
+    const workspace = await generateStatusOutput(STATUS_SPEC.paths, [
+      'Catalog',
+      'Inventory',
+    ]);
+
+    try {
+      await assertTagFileOwnsItsOperation(workspace, 'Catalog', CATALOG_TAG);
+      await assertTagFileOwnsItsOperation(
+        workspace,
+        'Inventory',
+        INVENTORY_TAG,
+      );
+
+      // The client barrel re-exports both service files; module-level type
+      // exports remain unique (one alias name per operation, via typeName).
+      const barrel = await readGenerated(workspace, 'index.ts');
+      expect(barrel).toContain('./catalog/catalog.service');
+      expect(barrel).toContain('./inventory/inventory.service');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('is stable under reversed path insertion order', async () => {
+    const workspace = await generateStatusOutput(
+      {
+        '/api/inventory/status': statusPath('/api/inventory/status'),
+        '/api/catalog/status': statusPath('/api/catalog/status'),
+        '/api/search/status': statusPath('/api/search/status'),
+      },
+      ['Catalog', 'Inventory'],
+    );
+
+    try {
+      await assertTagFileOwnsItsOperation(workspace, 'Catalog', CATALOG_TAG);
+      await assertTagFileOwnsItsOperation(
+        workspace,
+        'Inventory',
+        INVENTORY_TAG,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps the bare method name when the competing tag is filtered out', async () => {
+    // Filter direction matters: keep the operation that was globally
+    // suffixed in the unfiltered run (Inventory owned `getStatus2`), and
+    // assert no ghost suffix survives into the filtered output.
+    const workspace = await generateStatusOutput(STATUS_SPEC.paths, [
+      'Inventory',
+    ]);
+
+    try {
+      expect(fs.existsSync(path.join(workspace, 'catalog'))).toBe(false);
+
+      await assertTagFileOwnsItsOperation(
+        workspace,
+        'Inventory',
+        INVENTORY_TAG,
+      );
+      const content = await readGenerated(
+        workspace,
+        path.join('inventory', 'inventory.service.ts'),
+      );
+      expect(content).not.toContain('getStatus2');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('applies the same class scoping when route normalization derives equal ids', async () => {
+    // No operationId: the ids are derived from the routes, and `/pet.info`
+    // and `/pet-info` sanitize to the same `GetCatalogPetInfo`. The two
+    // operations live in different tags, so both keep the bare method name
+    // while the module-level spellings stay disambiguated.
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: {
+              ...STATUS_SPEC,
+              paths: {
+                '/catalog/pet.info': {
+                  get: statusOperation(['Catalog'], 'StatusResponse'),
+                },
+                '/catalog/pet-info': {
+                  get: statusOperation(['Inventory'], 'SearchStatusResponse'),
+                },
+              },
+            },
+          },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model', splitByTags: true },
+            client: 'angular',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      for (const [tag, schema] of [
+        ['catalog', 'StatusResponse'],
+        ['inventory', 'SearchStatusResponse'],
+      ] as const) {
+        const content = await readGenerated(
+          workspace,
+          path.join(tag, `${tag}.service.ts`),
+        );
+        // Both survive generation with the same bare method name, each
+        // referencing its own response schema.
+        expect(content.match(/^  getCatalogPetInfo[<(]/gm)).toHaveLength(1);
+        expect(content).toContain(`NonNullable<${schema}>`);
+      }
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  const COLLIDING_METHOD_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Colliding methods', version: '1.0.0' },
+    paths: {
+      '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+      '/b': { get: statusOperation(['TagB'], 'SearchStatusResponse') },
+    },
+    components: STATUS_SPEC.components,
+  };
+
+  const generateCollidingOutput = async (
+    spec: OpenApiDocument,
+    outputOverride: Record<string, unknown> = {},
+    outputExtra: Record<string, unknown> = {},
+  ) => {
+    const workspace = await createTempWorkspace();
+    const options = await normalizeOptions(
+      {
+        input: { target: spec },
+        output: {
+          target: './endpoints.ts',
+          mode: 'tags-split',
+          schemas: { path: './model' },
+          client: 'angular',
+          override: { operationName: () => 'getStatus', ...outputOverride },
+          ...outputExtra,
+        },
+      },
+      workspace,
+    );
+    await generateSpec(workspace, options);
+    return workspace;
+  };
+
+  it('keeps disambiguating same-class method-name collisions', async () => {
+    const workspace = await generateCollidingOutput({
+      ...COLLIDING_METHOD_SPEC,
+      paths: {
+        '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+        '/b': { get: statusOperation(['TagA'], 'SearchStatusResponse') },
+      },
+    });
+
+    try {
+      const content = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(content.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(content.match(/^  getStatus2[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('treats tags that normalize to the same bucket as one class scope', async () => {
+    const workspace = await generateCollidingOutput({
+      ...COLLIDING_METHOD_SPEC,
+      paths: {
+        '/a': { get: statusOperation(['Tag A'], 'StatusResponse') },
+        '/b': { get: statusOperation(['tag-a'], 'SearchStatusResponse') },
+      },
+    });
+
+    try {
+      const content = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(content.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(content.match(/^  getStatus2[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('reserves untagged operations in the canonical default bucket', async () => {
+    const workspace = await generateCollidingOutput({
+      ...COLLIDING_METHOD_SPEC,
+      paths: {
+        '/a': { get: statusOperation(undefined, 'StatusResponse') },
+        '/b': { get: statusOperation(undefined, 'SearchStatusResponse') },
+        '/c': { get: statusOperation(['TagA'], 'StatusResponse') },
+      },
+    });
+
+    try {
+      const defaultContent = await readGenerated(
+        workspace,
+        path.join('default', 'default.service.ts'),
+      );
+      expect(defaultContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(defaultContent.match(/^  getStatus2[<(]/gm)).toHaveLength(1);
+
+      // The tagged class is a different scope: it keeps the bare name even
+      // though both untagged operations already claimed spellings globally.
+      const taggedContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(taggedContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(taggedContent).not.toContain('getStatus3');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('routes multi-tag operations through their first tag', async () => {
+    const workspace = await generateCollidingOutput({
+      ...COLLIDING_METHOD_SPEC,
+      paths: {
+        '/a': { get: statusOperation(['TagA', 'TagB'], 'StatusResponse') },
+        '/b': { get: statusOperation(['TagB'], 'SearchStatusResponse') },
+      },
+    });
+
+    try {
+      // `/a` belongs to TagA's bucket (first tag), so TagB's class only sees
+      // `/b` — one bare method, no suffix.
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent).not.toContain('getStatus2');
+
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('selects the reservation scope per operation, not per path', async () => {
+    const workspace = await generateCollidingOutput({
+      ...COLLIDING_METHOD_SPEC,
+      paths: {
+        '/a': {
+          get: statusOperation(['TagA'], 'StatusResponse'),
+          put: statusOperation(['TagB'], 'SearchStatusResponse'),
+        },
+      },
+    });
+
+    try {
+      // Two verbs on one path, different tags: each scope reserves its own
+      // spelling, so both keep the bare method name in their own class.
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('does not let an excluded deprecated operation consume a local name', async () => {
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': {
+            get: {
+              ...statusOperation(['TagA'], 'StatusResponse'),
+              deprecated: true,
+            },
+          },
+          '/b': { get: statusOperation(['TagA'], 'SearchStatusResponse') },
+        },
+      },
+      { useDeprecatedOperations: false },
+    );
+
+    try {
+      const content = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(content.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(content).not.toContain('getStatus2');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps content-type variant method names collision-safe', async () => {
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': {
+            put: {
+              tags: ['TagA'],
+              requestBody: {
+                content: {
+                  'application/json': { schema: { type: 'object' } },
+                  'multipart/form-data': { schema: { type: 'object' } },
+                },
+              },
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: { $ref: '#/components/schemas/StatusResponse' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/b': { put: statusOperation(['TagB'], 'SearchStatusResponse') },
+        },
+      },
+      { splitByContentType: true, operationName: () => 'update' },
+    );
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      // Variants stay distinct within their class.
+      expect(tagAContent.match(/^  updateWithJson[<(]/gm)).toHaveLength(1);
+      expect(tagAContent.match(/^  updateWithFormData[<(]/gm)).toHaveLength(1);
+      // The other tag keeps the bare name; global module-level spellings
+      // remain distinct (updateWithJson / update2).
+      expect(tagBContent.match(/^  update[<(]/gm)).toHaveLength(1);
+      expect(tagBContent).not.toContain('updateWithJson');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps MSW handler names globally unique while methods share a name', async () => {
+    const workspace = await generateCollidingOutput(
+      COLLIDING_METHOD_SPEC,
+      {},
+      { mock: true },
+    );
+
+    try {
+      const catalogMock = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.msw.ts'),
+      );
+      const inventoryMock = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.msw.ts'),
+      );
+      // Handlers derive from the globally unique operationName, so the two
+      // same-named methods cannot produce ambiguous module-level exports.
+      expect(catalogMock).toContain('getGetStatusMockHandler');
+      expect(catalogMock).not.toContain('getGetStatus2MockHandler');
+      expect(inventoryMock).toContain('getGetStatus2MockHandler');
+      expect(inventoryMock).not.toContain('getGetStatusMockHandler');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps global disambiguation for function clients', async () => {
+    const workspace = await generateCollidingOutput(
+      COLLIDING_METHOD_SPEC,
+      {},
+      {
+        client: 'fetch',
+      },
+    );
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.ts'),
+      );
+      // Module-level functions have no class scope to relax into.
+      expect(tagAContent).toMatch(/export const getStatus =/);
+      expect(tagBContent).toMatch(/export const getStatus2 =/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps global disambiguation for Angular httpResource module functions', async () => {
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      angular: { retrievalClient: 'httpResource' },
+    });
+
+    try {
+      // Resource functions are module-level exports, so the second operation
+      // keeps its globally suffixed name.
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent).toMatch(
+        /export function getStatusResource.*HttpResourceRef/s,
+      );
+      expect(tagBContent).toMatch(
+        /export function getStatus2Resource.*HttpResourceRef/s,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('lets a transformer rename the method when it renames operationName', async () => {
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      transformer: (verbOption: GeneratorVerbOptions) => ({
+        ...verbOption,
+        operationName: `${verbOption.operationName}V2`,
+      }),
+    });
+
+    try {
+      // The transformer renames both globally-reserved names; the class-local
+      // method name must follow the rename, not keep its pre-transform
+      // spelling.
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatusV2[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus2V2[<(]/gm)).toHaveLength(1);
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toBe(null);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toBe(null);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('lets an in-place transformer rename the method', async () => {
+    // A transformer may mutate and return its argument: the rename guard
+    // must compare against the pre-transform spelling, not the shared
+    // object's current field.
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      transformer: (verbOption: GeneratorVerbOptions) => {
+        verbOption.operationName = `${verbOption.operationName}V2`;
+        return verbOption;
+      },
+    });
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatusV2[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus2V2[<(]/gm)).toHaveLength(1);
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toBe(null);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toBe(null);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('reserves method names in the final transformed tag bucket', async () => {
+    // Both operations must reserve their names in the transformed bucket.
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      transformer: (verbOption: GeneratorVerbOptions) => ({
+        ...verbOption,
+        tags: ['Combined'],
+      }),
+    });
+
+    try {
+      const combinedContent = await readGenerated(
+        workspace,
+        path.join('combined', 'combined.service.ts'),
+      );
+      expect(combinedContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(combinedContent.match(/^  getStatus2[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('avoids collisions between moved operations and destination-local names', async () => {
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': { get: statusOperation(['TagB'], 'SearchStatusResponse') },
+          '/c': { get: statusOperation(['TagA'], 'StatusResponse') },
+        },
+      },
+      {
+        transformer: (operation: GeneratorVerbOptions) => {
+          operation.tags = ['TagA'];
+          return operation;
+        },
+      },
+    );
+    try {
+      const content = await readGenerated(workspace, 'tag-a/tag-a.service.ts');
+      expect(
+        [...content.matchAll(/^  (getStatus\d*)[<(]/gm)].map((m) => m[1]),
+      ).toEqual(['getStatus', 'getStatus2', 'getStatus3']);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps names valid when a transformer splits same-tag operations apart', async () => {
+    // A reservation in the original bucket must not leave a phantom suffix
+    // when the transformer moves the operation into a separate class.
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': { get: statusOperation(['TagA'], 'SearchStatusResponse') },
+        },
+      },
+      {
+        transformer: (verbOption: GeneratorVerbOptions) =>
+          verbOption.route === '/b'
+            ? { ...verbOption, tags: ['TagB'] }
+            : verbOption,
+      },
+    );
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent).not.toContain('NonNullable<StatusResponse>');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps the bare method name in plain tags mode', async () => {
+    const workspace = await generateCollidingOutput(
+      COLLIDING_METHOD_SPEC,
+      {},
+      {
+        mode: 'tags',
+      },
+    );
+
+    try {
+      // One file per tag at the target root, one class each: both keep the
+      // bare method name, call their own route, and emit their own alias.
+      const tagAContent = await readGenerated(workspace, 'tag-a.ts');
+      const tagBContent = await readGenerated(workspace, 'tag-b.ts');
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagAContent).toContain('`/a`');
+      expect(tagBContent).toContain('`/b`');
+      expect(tagAContent).toContain(
+        'export type GetStatusClientResult = NonNullable<StatusResponse>',
+      );
+      expect(tagBContent).toContain(
+        'export type GetStatus2ClientResult = NonNullable<SearchStatusResponse>',
+      );
+      expect(tagAContent).not.toContain('GetStatus2ClientResult');
+      expect(tagBContent).not.toContain('NonNullable<StatusResponse>');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('renames a body parameter that shadows the class-local method name', async () => {
+    // A request body schema named `Update` becomes the parameter `update`,
+    // which shadows the bare class-local method. The shadow check runs
+    // against the method name, so the parameter is renamed even though the
+    // globally-reserved operationName (`update2`) never matched it.
+    const workspace = await generateCollidingOutput(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Body shadow', version: '1.0.0' },
+        paths: {
+          '/a': { put: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': {
+            put: {
+              tags: ['TagB'],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Update' },
+                  },
+                },
+              },
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        $ref: '#/components/schemas/SearchStatusResponse',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            Update: {
+              type: 'object',
+              required: ['value'],
+              properties: { value: { type: 'string' } },
+            },
+            ...STATUS_SPEC.components?.schemas,
+          },
+        },
+      },
+      { operationName: () => 'update' },
+    );
+
+    try {
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagBContent.match(/^  update[<(]/gm)).toHaveLength(1);
+      // The shadowing parameter is renamed out of the way...
+      expect(tagBContent).toContain('updateBody: Update');
+      expect(tagBContent).not.toContain('update: Update');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('renames a body parameter that shadows the suffixed method name', async () => {
+    // Same-tag collision: the second method is only suffixed at final
+    // reservation time, so a body parameter matching the suffixed spelling
+    // (`update2` from schema `Update2`) must be re-checked after reservation.
+    const workspace = await generateCollidingOutput(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Body shadow after suffix', version: '1.0.0' },
+        paths: {
+          '/a': { put: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': {
+            put: {
+              tags: ['TagA'],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Update2' },
+                  },
+                },
+              },
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        $ref: '#/components/schemas/SearchStatusResponse',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            Update2: {
+              type: 'object',
+              required: ['value'],
+              properties: { value: { type: 'string' } },
+            },
+            ...STATUS_SPEC.components?.schemas,
+          },
+        },
+      },
+      { operationName: () => 'update' },
+    );
+
+    try {
+      const content = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(content.match(/^  update[<(]/gm)).toHaveLength(1);
+      expect(content.match(/^  update2[<(]/gm)).toHaveLength(1);
+      // The parameter shadowing the suffixed method is renamed out of the way.
+      expect(content).toContain('update2Body: Update2');
+      expect(content).not.toContain('update2: Update2');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps bare methods for a gateway-style tuple override without operationIds', async () => {
+    // Real-world reproduction: an aggregated gateway spec with route-derived
+    // ids only, where the tuple override strips the service segment from the
+    // method and keeps it in the type base — giving every service the same
+    // method name for its own `/…/<resource>` route.
+    const taskOperation = (tags: string[], schema: string) => ({
+      tags,
+      responses: {
+        '200': {
+          description: 'ok',
+          content: {
+            'application/json': {
+              schema: { $ref: `#/components/schemas/${schema}` },
+            },
+          },
+        },
+      },
+    });
+
+    const GATEWAY_TASKS_SPEC = (
+      paths: OpenApiDocument['paths'],
+    ): OpenApiDocument => ({
+      openapi: '3.1.0',
+      info: { title: 'Gateway', version: '1.0.0' },
+      paths,
+      components: {
+        schemas: {
+          TaskResponse: {
+            type: 'object',
+            required: ['id'],
+            properties: { id: { type: 'string' } },
+          },
+          TaskListItem: {
+            type: 'object',
+            required: ['id'],
+            properties: { id: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const gatewayTupleOverride = (
+      _operation: unknown,
+      route: string,
+      verb: string,
+    ): [string, string] => {
+      const segments = route.split('/').filter(Boolean);
+      return [
+        `${verb}${segments.slice(2).map(cap).join('')}`,
+        `${verb}${segments.slice(1).map(cap).join('')}`,
+      ];
+    };
+
+    const assertGatewayOutput = async (paths: OpenApiDocument['paths']) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: GATEWAY_TASKS_SPEC(paths) },
+            output: {
+              target: './endpoints.ts',
+              mode: 'tags-split',
+              schemas: { path: './model' },
+              client: 'angular',
+              override: { operationName: gatewayTupleOverride },
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        const catalogContent = await readGenerated(
+          workspace,
+          path.join('catalog', 'catalog.service.ts'),
+        );
+        const inventoryContent = await readGenerated(
+          workspace,
+          path.join('inventory', 'inventory.service.ts'),
+        );
+        // Identical bare method in both classes...
+        expect(catalogContent.match(/^  getTasks[<(]/gm)).toHaveLength(1);
+        expect(inventoryContent.match(/^  getTasks[<(]/gm)).toHaveLength(1);
+        // ...each calling its own route with its own schema and alias.
+        expect(catalogContent).toContain('`/api/catalog/tasks`');
+        expect(inventoryContent).toContain('`/api/inventory/tasks`');
+        expect(catalogContent).toContain(
+          'export type GetCatalogTasksClientResult = NonNullable<TaskResponse>',
+        );
+        expect(inventoryContent).toContain(
+          'export type GetInventoryTasksClientResult = NonNullable<TaskListItem>',
+        );
+        expect(catalogContent).not.toContain('GetInventoryTasksClientResult');
+        expect(inventoryContent).not.toContain('GetCatalogTasksClientResult');
+        expect(catalogContent).toMatch(
+          /import type \{[^}]*\bTaskResponse\b[^}]*\}/,
+        );
+        expect(inventoryContent).toMatch(
+          /import type \{[^}]*\bTaskListItem\b[^}]*\}/,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    await assertGatewayOutput({
+      '/api/catalog/tasks': { get: taskOperation(['Catalog'], 'TaskResponse') },
+      '/api/inventory/tasks': {
+        get: taskOperation(['Inventory'], 'TaskListItem'),
+      },
+    });
+    // Stable under reversed path insertion order.
+    await assertGatewayOutput({
+      '/api/inventory/tasks': {
+        get: taskOperation(['Inventory'], 'TaskListItem'),
+      },
+      '/api/catalog/tasks': { get: taskOperation(['Catalog'], 'TaskResponse') },
+    });
+  });
+});
 
 describe('generateSpec - workspace barrel idempotency (#3756)', () => {
   // Regression for #3756: the shared workspace barrel (`<workspace>/index.ts`)
