@@ -329,8 +329,18 @@ function renderReusableSchemaEntry(
     const schema = rawName
       ? context.spec.components?.schemas?.[rawName]
       : undefined;
+    // The zod generator maps every integer to `zod.int()` regardless of
+    // `useBigInt`, so the pinned TS type must also say `number` or
+    // `zod.ZodType<X>` rejects the schema (#4390).
+    const typeContext: ContextSpec = {
+      ...context,
+      output: {
+        ...context.output,
+        override: { ...context.output.override, useBigInt: false },
+      },
+    };
     const resolved = schema
-      ? resolveValue({ schema, name: entry.name, context })
+      ? resolveValue({ schema, name: entry.name, context: typeContext })
       : undefined;
     // A direct self-`$ref` makes `resolveValue` alias the self-import (e.g.
     // `__Node`, see `getAliasedImports`). Self-imports are dropped below, so

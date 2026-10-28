@@ -4787,6 +4787,8 @@ is handed to the caller unparsed, and a blob has no parsed fields to walk.
 
 Convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
 
+This only affects generated TypeScript types. Zod schemas (`schemas: { type: 'zod' }` or the `zod` client) keep validating these fields with `zod.int()`, so their inferred types stay `number`, because `JSON.parse` returns numbers.
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
