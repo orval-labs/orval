@@ -266,6 +266,7 @@ const wrapSchemaWithDateDeserializer = (
 export const generateRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  requestFunctionOptions: RequestFunctionOptions = {},
 ) => {
   if (isSharedRuntimeStyle(options.context.output)) {
     return generateSharedRequestFunction(verbOptions, options);
@@ -273,9 +274,18 @@ export const generateRequestFunction = (
   const { responseTypes, implementation } = generateRequestFunctionParts(
     verbOptions,
     options,
+    requestFunctionOptions,
   );
   return responseTypes + implementation;
 };
+
+interface RequestFunctionOptions {
+  /**
+   * With `requestOptions: false`, still accept `options?: { signal }` so a
+   * caller such as a TanStack Query `queryFn` can pass its `AbortSignal`.
+   */
+  signalOnlyOptions?: boolean;
+}
 
 /**
  * Like `generateRequestFunction`, but keeps the exported response types apart
@@ -301,6 +311,7 @@ const generateRequestFunctionParts = (
     params,
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
+  { signalOnlyOptions = false }: RequestFunctionOptions = {},
 ) => {
   let route = _route;
 
@@ -312,6 +323,7 @@ const generateRequestFunctionParts = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
+  const isSignalOnlyOptions = !isRequestOptions && signalOnlyOptions;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isFactoryMode = isFetchFactoryMode(context.output);
@@ -758,7 +770,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     useRuntimeFetcher && isRequestOptions && !mutator && !isFactoryMode
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
+  const optionsParam = isRequestOptions
+    ? getRequestOptionsType(mutator)
+    : isSignalOnlyOptions
+      ? "options?: Pick<RequestInit, 'signal'>"
+      : '';
+  const args = `${toObjectString(props, 'implementation')} ${optionsParam}${fetchFnParam}`;
   const innerType =
     override.fetch.forceSuccessResponse &&
     hasSuccess &&
@@ -861,7 +878,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
     return `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
-    ${isRequestOptions ? '...options,' : ''}
+    ${isRequestOptions || isSignalOnlyOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}${fetchSchemaOption ? `,\n    ${fetchSchemaOption}` : ''}
