@@ -4785,9 +4785,9 @@ is handed to the caller unparsed, and a blob has no parsed fields to walk.
 **Type:** `Boolean`
 **Default:** `false`
 
-Convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
+Type OpenAPI `int64` and `uint64` formats as `bigint` instead of `number` in generated TypeScript types.
 
-This only affects generated TypeScript types. Zod schemas (`schemas: { type: 'zod' }` or the `zod` client) keep validating these fields with `zod.int()`, so their inferred types stay `number`, because `JSON.parse` returns numbers.
+This changes types only; Orval does not convert values at runtime. Plain `JSON.parse` returns these fields as `number` and loses precision beyond `Number.MAX_SAFE_INTEGER`, so preserving exact 64-bit values requires a bigint-aware JSON parser. Zod schemas (`schemas: { type: 'zod' }` or the `zod` client) keep validating these fields with `zod.int()`, so their inferred types stay `number`.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
