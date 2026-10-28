@@ -1,24 +1,6 @@
 import { HTTP_STATUS_CODE_SHARED_TYPES } from '@orval/core';
 
-// `RequestInit['headers']` is declared per runtime, and the old narrowing
-// chain only fitted the DOM's declaration, leaving `return h` unsound in two
-// separate ways:
-//
-//  - Outside the DOM the non-record member need not be an array —
-//    `@cloudflare/workers-types` uses `Iterable<Iterable<string>>`, which
-//    `Array.isArray` cannot exclude (#4034). Narrowing on iterability covers
-//    every declaration, since the record is the only non-iterable member.
-//    That also fixes the runtime half: spreading an iterable as an object
-//    silently dropped every header. Each entry is materialized because
-//    `Object.fromEntries` reads `[0]`/`[1]` rather than iterating, so a
-//    non-indexable entry (`new Set([new Set(['X-Trace', '1'])])`) would
-//    otherwise yield a single `undefined` key and lose the real header.
-//  - The record member's values are not always `string`. Hono's header
-//    record admits `undefined` (#4029), which the declared return type does
-//    not. Building the result entry by entry keeps that guarantee by
-//    construction, and skipping the `undefined` values is what the caller
-//    wants anyway: passed through, they reach the wire as the literal text
-//    "undefined".
+// Headers may be any iterable (#4034) and record values may be undefined (#4029).
 export const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
     if (h instanceof Headers) return Object.fromEntries(h.entries());
@@ -39,12 +21,7 @@ const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
   ({ code }) => `export ${code}`,
 ).join('\n');
 
-// The runtime names fetch types only through `RequestInit`: `BodyInit` and
-// `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
-// declare (#4344). `ClientConfig.mutator` types `schema` as optional `never`:
-// a mutator typed for `includeZodSchemaInArguments` may declare any optional
-// `schema` (`schema?: ZodType`), but not a required one, since operations
-// without a validated response pass none.
+// Fetch types are named only via `RequestInit`: `BodyInit`/`HeadersInit` are DOM-only (#4344).
 export const RUNTIME_TEMPLATE = `${statusCodeTypes}
 
 export type HttpMethod =
@@ -85,25 +62,20 @@ export interface Stream<T> {
   readonly __orvalStream: T;
 }
 
-type WildcardKey = '1XX' | '2XX' | '3XX' | '4XX' | '5XX';
-type WildcardStatus<K> = K extends '1XX'
-  ? HTTPStatusCode1xx
-  : K extends '2XX'
-    ? HTTPStatusCode2xx
-    : K extends '3XX'
-      ? HTTPStatusCode3xx
-      : K extends '4XX'
-        ? HTTPStatusCode4xx
-        : K extends '5XX'
-          ? HTTPStatusCode5xx
-          : never;
+type WildcardStatus = {
+  '1XX': HTTPStatusCode1xx;
+  '2XX': HTTPStatusCode2xx;
+  '3XX': HTTPStatusCode3xx;
+  '4XX': HTTPStatusCode4xx;
+  '5XX': HTTPStatusCode5xx;
+};
 type DeclaredStatuses<R> = {
   [K in Exclude<keyof R, 'default'>]: StatusFor<R, K>;
 }[Exclude<keyof R, 'default'>];
 type StatusFor<R, K extends keyof R> = K extends number
   ? K
-  : K extends WildcardKey
-    ? Exclude<WildcardStatus<K>, Extract<keyof R, number>>
+  : K extends keyof WildcardStatus
+    ? Exclude<WildcardStatus[K], Extract<keyof R, number>>
     : K extends 'default'
       ? [Exclude<keyof R, 'default'>] extends [never]
         ? number
@@ -143,24 +115,19 @@ const stringifyValue = (value: unknown) =>
       ? value.toISOString()
       : Array.isArray(value)
         ? value.join(',')
-        : typeof value === 'string' ||
-            typeof value === 'number' ||
-            typeof value === 'boolean'
-          ? String(value)
-          : JSON.stringify(value);
+        : typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value);
 
 export const serializeQuery = (
   params: Record<string, unknown> | undefined,
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  // Pre-encoded entries that bypass URLSearchParams.
   const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
-      // Joined with a percent-encoded separator; URLSearchParams would write
-      // the space as '+'.
       const delimiter = meta.pipeDelimited?.includes(key)
         ? '%7C'
         : meta.spaceDelimited?.includes(key)
@@ -177,15 +144,13 @@ export const serializeQuery = (
         return;
       }
       if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key, stringifyValue(v));
-        });
+        value.forEach((v) => normalizedParams.append(key, stringifyValue(v)));
         return;
       }
       if (meta.brackets?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key + '[]', stringifyValue(v));
-        });
+        value.forEach((v) =>
+          normalizedParams.append(key + '[]', stringifyValue(v)),
+        );
         return;
       }
       if (meta.comma?.includes(key)) {
@@ -198,17 +163,13 @@ export const serializeQuery = (
       !(value instanceof Date) &&
       (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
     ) {
-      // Plain-object form-style params: flatten writes each property as its own
-      // key, comma writes one key with prop,value pairs.
       const commaParts: string[] = [];
       Object.entries(value).forEach(([subKey, subValue]) => {
         const items = (Array.isArray(subValue) ? subValue : [subValue])
           .filter((v) => v !== undefined)
           .map(stringifyValue);
         if (meta.flattenObject?.includes(key)) {
-          items.forEach((item) => {
-            normalizedParams.append(subKey, item);
-          });
+          items.forEach((item) => normalizedParams.append(subKey, item));
         } else if (items.length > 0) {
           commaParts.push(subKey, ...items);
         }
@@ -229,9 +190,7 @@ export const serializeQuery = (
               '[' +
               encodeURIComponent(subKey) +
               ']=' +
-              (subValue === null
-                ? 'null'
-                : encodeURIComponent(stringifyValue(subValue))),
+              encodeURIComponent(stringifyValue(subValue)),
           );
         }
       });

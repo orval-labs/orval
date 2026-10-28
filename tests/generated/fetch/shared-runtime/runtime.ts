@@ -85,25 +85,20 @@ export interface Stream<T> {
   readonly __orvalStream: T;
 }
 
-type WildcardKey = '1XX' | '2XX' | '3XX' | '4XX' | '5XX';
-type WildcardStatus<K> = K extends '1XX'
-  ? HTTPStatusCode1xx
-  : K extends '2XX'
-    ? HTTPStatusCode2xx
-    : K extends '3XX'
-      ? HTTPStatusCode3xx
-      : K extends '4XX'
-        ? HTTPStatusCode4xx
-        : K extends '5XX'
-          ? HTTPStatusCode5xx
-          : never;
+type WildcardStatus = {
+  '1XX': HTTPStatusCode1xx;
+  '2XX': HTTPStatusCode2xx;
+  '3XX': HTTPStatusCode3xx;
+  '4XX': HTTPStatusCode4xx;
+  '5XX': HTTPStatusCode5xx;
+};
 type DeclaredStatuses<R> = {
   [K in Exclude<keyof R, 'default'>]: StatusFor<R, K>;
 }[Exclude<keyof R, 'default'>];
 type StatusFor<R, K extends keyof R> = K extends number
   ? K
-  : K extends WildcardKey
-    ? Exclude<WildcardStatus<K>, Extract<keyof R, number>>
+  : K extends keyof WildcardStatus
+    ? Exclude<WildcardStatus[K], Extract<keyof R, number>>
     : K extends 'default'
       ? [Exclude<keyof R, 'default'>] extends [never]
         ? number
@@ -143,24 +138,19 @@ const stringifyValue = (value: unknown) =>
       ? value.toISOString()
       : Array.isArray(value)
         ? value.join(',')
-        : typeof value === 'string' ||
-            typeof value === 'number' ||
-            typeof value === 'boolean'
-          ? String(value)
-          : JSON.stringify(value);
+        : typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value);
 
 export const serializeQuery = (
   params: Record<string, unknown> | undefined,
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  // Pre-encoded entries that bypass URLSearchParams.
   const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
-      // Joined with a percent-encoded separator; URLSearchParams would write
-      // the space as '+'.
       const delimiter = meta.pipeDelimited?.includes(key)
         ? '%7C'
         : meta.spaceDelimited?.includes(key)
@@ -177,15 +167,13 @@ export const serializeQuery = (
         return;
       }
       if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key, stringifyValue(v));
-        });
+        value.forEach((v) => normalizedParams.append(key, stringifyValue(v)));
         return;
       }
       if (meta.brackets?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key + '[]', stringifyValue(v));
-        });
+        value.forEach((v) =>
+          normalizedParams.append(key + '[]', stringifyValue(v)),
+        );
         return;
       }
       if (meta.comma?.includes(key)) {
@@ -198,17 +186,13 @@ export const serializeQuery = (
       !(value instanceof Date) &&
       (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
     ) {
-      // Plain-object form-style params: flatten writes each property as its own
-      // key, comma writes one key with prop,value pairs.
       const commaParts: string[] = [];
       Object.entries(value).forEach(([subKey, subValue]) => {
         const items = (Array.isArray(subValue) ? subValue : [subValue])
           .filter((v) => v !== undefined)
           .map(stringifyValue);
         if (meta.flattenObject?.includes(key)) {
-          items.forEach((item) => {
-            normalizedParams.append(subKey, item);
-          });
+          items.forEach((item) => normalizedParams.append(subKey, item));
         } else if (items.length > 0) {
           commaParts.push(subKey, ...items);
         }
@@ -229,9 +213,7 @@ export const serializeQuery = (
               '[' +
               encodeURIComponent(subKey) +
               ']=' +
-              (subValue === null
-                ? 'null'
-                : encodeURIComponent(stringifyValue(subValue))),
+              encodeURIComponent(stringifyValue(subValue)),
           );
         }
       });
