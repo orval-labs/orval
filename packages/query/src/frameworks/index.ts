@@ -117,7 +117,9 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
     generateRequestFunction(verbOptions, options) {
       return options.context.output.httpClient === OutputHttpClient.AXIOS
         ? generateAxiosRequestFunction(verbOptions, options, composed)
-        : generateFetchRequestFunction(verbOptions, options);
+        : generateFetchRequestFunction(verbOptions, options, {
+            signalOnlyOptions: verbOptions.override.query.signal,
+          });
     },
 
     getInfiniteQueryHttpProps(
