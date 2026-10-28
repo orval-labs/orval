@@ -11,13 +11,9 @@ export type FindRequestsParams = {
   code?: string;
   types?: string[];
   tagIds?: number[];
-  /**
-   * @minimum 0
-   */
+  /** @minimum 0 */
   page: number;
-  /**
-   * @minimum 1
-   */
+  /** @minimum 1 */
   size: number;
   sort?: string[];
 };

@@ -6,8 +6,6 @@
  */
 
 export type ListHouseCatsParams = {
-  /**
-   * Page number
-   */
+  /** Page number */
   page?: number;
 };

@@ -11,8 +11,6 @@ export type AddListParams = {
    * @pattern ^\+\d{10, 15}
    */
   limit?: string;
-  /**
-   * birth date
-   */
+  /** birth date */
   birthdate?: string;
 };

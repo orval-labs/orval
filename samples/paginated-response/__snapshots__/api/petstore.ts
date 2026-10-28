@@ -112,9 +112,7 @@ export type ShelterFolder = ShelterFolderTemplate<
 };
 
 export type ListPetsParams = {
-  /**
-   * @minimum 1
-   */
+  /** @minimum 1 */
   page?: number;
   /**
    * @minimum 1
@@ -124,9 +122,7 @@ export type ListPetsParams = {
 };
 
 export type ListOwnersParams = {
-  /**
-   * @minimum 1
-   */
+  /** @minimum 1 */
   page?: number;
   /**
    * @minimum 1
