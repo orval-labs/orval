@@ -122,6 +122,7 @@ async function buildVerbOption({
   body: rawBody,
   operationName,
   methodName,
+  reservedMethodNamesByTag,
   typeName,
   operationId,
   override,
@@ -140,6 +141,7 @@ async function buildVerbOption({
   body: GetterBody;
   operationName: string;
   methodName?: string;
+  reservedMethodNamesByTag?: Map<string, Set<string>>;
   typeName: string;
   operationId: string;
   override: NormalizedOverrideOutput;
@@ -309,21 +311,62 @@ async function buildVerbOption({
     context.workspace,
   );
 
-  if (transformer) {
-    const transformed = transformer(verbOption);
-    // A transformer is authoritative over names: when it renames
-    // `operationName`, the class-local method name follows instead of
-    // shadowing the rename.
-    if (
-      verbOption.methodName !== undefined &&
-      transformed.operationName !== verbOption.operationName
-    ) {
-      transformed.methodName = transformed.operationName;
+  const transformed = transformer ? transformer(verbOption) : verbOption;
+  if (
+    reservedMethodNamesByTag &&
+    (!transformed.deprecated ||
+      output.override.useDeprecatedOperations !== false)
+  ) {
+    // Reserve against the writer's final bucket, after both in-place and
+    // returned-object transformers have had a chance to change names/tags.
+    const candidate =
+      transformed.operationName !== operationName
+        ? transformed.operationName
+        : (transformed.methodName ?? methodName ?? transformed.operationName);
+    const tagKey = getOperationTagKey(transformed);
+    let names = reservedMethodNamesByTag.get(tagKey);
+    if (!names) {
+      names = new Set();
+      reservedMethodNamesByTag.set(tagKey, names);
     }
-    return transformed;
-  }
+    const finalMethodName = getUniqueName(candidate, names);
+    names.add(finalMethodName);
+    if (finalMethodName !== transformed.operationName) {
+      transformed.methodName = finalMethodName;
+    } else {
+      delete transformed.methodName;
+    }
 
-  return verbOption;
+    // A suffix or transformer rename can introduce a new body-name shadow.
+    const finalBody = resolveBodyNameShadowing(
+      transformed.body,
+      finalMethodName,
+      transformed.params,
+    );
+    if (finalBody !== transformed.body) {
+      const previousName = transformed.body.implementation;
+      transformed.body = finalBody;
+      transformed.props = transformed.props.map((prop) =>
+        prop.name === previousName
+          ? {
+              ...prop,
+              name: finalBody.implementation,
+              definition: renameFormIdentifier(
+                prop.definition,
+                previousName,
+                finalBody.implementation,
+              ),
+              implementation: renameFormIdentifier(
+                prop.implementation,
+                previousName,
+                finalBody.implementation,
+              ),
+            }
+          : prop,
+      );
+    }
+  }
+  return transformed;
 }
 
 export async function generateVerbOptions({
@@ -411,26 +454,12 @@ export async function generateVerbOptions({
   // pre-reservation spelling is the class-local candidate: a globally
   // suffixed name (e.g. `getStatus2`) must not leak a phantom "2" into a
   // class whose tag never saw the first `getStatus`.
-  let methodNames: Set<string> | undefined;
-  if (reservedMethodNamesByTag) {
-    const tagKey = getOperationTagKey({ tags });
-    methodNames = reservedMethodNamesByTag.get(tagKey);
-    if (!methodNames) {
-      methodNames = new Set();
-      reservedMethodNamesByTag.set(tagKey, methodNames);
-    }
-  }
-  const reserveMethodName = (name: string): string | undefined => {
-    if (!methodNames || !shouldReserve) return undefined;
-    const uniqueName = getUniqueName(name, methodNames);
-    methodNames.add(uniqueName);
-    return uniqueName;
-  };
-
   const bareOperationName = operationName;
   operationName = reserve(bareOperationName, reservedOperationNames);
   typeName = reserve(typeName, reservedTypeNames);
-  const baseMethodName = reserveMethodName(bareOperationName);
+  const baseMethodName = reservedMethodNamesByTag
+    ? bareOperationName
+    : undefined;
 
   const splitByContentType = override.splitByContentType;
 
@@ -456,7 +485,7 @@ export async function generateVerbOptions({
         : typeName;
       const suffixedMethodName =
         baseMethodName !== undefined && contentTypeSuffix
-          ? reserveMethodName(`${baseMethodName}With${contentTypeSuffix}`)
+          ? `${baseMethodName}With${contentTypeSuffix}`
           : baseMethodName;
 
       const verbOption = await buildVerbOption({
@@ -470,6 +499,7 @@ export async function generateVerbOptions({
         body,
         operationName: suffixedName,
         methodName: suffixedMethodName,
+        reservedMethodNamesByTag,
         typeName: suffixedTypeName,
         operationId,
         override,
@@ -514,6 +544,7 @@ export async function generateVerbOptions({
     body,
     operationName,
     methodName: baseMethodName,
+    reservedMethodNamesByTag,
     typeName,
     operationId,
     override,

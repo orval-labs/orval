@@ -3856,6 +3856,119 @@ describe('generateSpec - Angular tag-scoped service method names', () => {
     }
   });
 
+  it('lets an in-place transformer rename the method', async () => {
+    // A transformer may mutate and return its argument: the rename guard
+    // must compare against the pre-transform spelling, not the shared
+    // object's current field.
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      transformer: (verbOption: GeneratorVerbOptions) => {
+        verbOption.operationName = `${verbOption.operationName}V2`;
+        return verbOption;
+      },
+    });
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatusV2[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus2V2[<(]/gm)).toHaveLength(1);
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toBe(null);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toBe(null);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('reserves method names in the final transformed tag bucket', async () => {
+    // Both operations must reserve their names in the transformed bucket.
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      transformer: (verbOption: GeneratorVerbOptions) => ({
+        ...verbOption,
+        tags: ['Combined'],
+      }),
+    });
+
+    try {
+      const combinedContent = await readGenerated(
+        workspace,
+        path.join('combined', 'combined.service.ts'),
+      );
+      expect(combinedContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(combinedContent.match(/^  getStatus2[<(]/gm)).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('avoids collisions between moved operations and destination-local names', async () => {
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': { get: statusOperation(['TagB'], 'SearchStatusResponse') },
+          '/c': { get: statusOperation(['TagA'], 'StatusResponse') },
+        },
+      },
+      {
+        transformer: (operation: GeneratorVerbOptions) => {
+          operation.tags = ['TagA'];
+          return operation;
+        },
+      },
+    );
+    try {
+      const content = await readGenerated(workspace, 'tag-a/tag-a.service.ts');
+      expect(
+        [...content.matchAll(/^  (getStatus\d*)[<(]/gm)].map((m) => m[1]),
+      ).toEqual(['getStatus', 'getStatus2', 'getStatus3']);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps names valid when a transformer splits same-tag operations apart', async () => {
+    // A reservation in the original bucket must not leave a phantom suffix
+    // when the transformer moves the operation into a separate class.
+    const workspace = await generateCollidingOutput(
+      {
+        ...COLLIDING_METHOD_SPEC,
+        paths: {
+          '/a': { get: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': { get: statusOperation(['TagA'], 'SearchStatusResponse') },
+        },
+      },
+      {
+        transformer: (verbOption: GeneratorVerbOptions) =>
+          verbOption.route === '/b'
+            ? { ...verbOption, tags: ['TagB'] }
+            : verbOption,
+      },
+    );
+
+    try {
+      const tagAContent = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      const tagBContent = await readGenerated(
+        workspace,
+        path.join('tag-b', 'tag-b.service.ts'),
+      );
+      expect(tagAContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+      expect(tagBContent).not.toContain('NonNullable<StatusResponse>');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('keeps the bare method name in plain tags mode', async () => {
     const workspace = await generateCollidingOutput(
       COLLIDING_METHOD_SPEC,
@@ -3947,6 +4060,71 @@ describe('generateSpec - Angular tag-scoped service method names', () => {
       // The shadowing parameter is renamed out of the way...
       expect(tagBContent).toContain('updateBody: Update');
       expect(tagBContent).not.toContain('update: Update');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('renames a body parameter that shadows the suffixed method name', async () => {
+    // Same-tag collision: the second method is only suffixed at final
+    // reservation time, so a body parameter matching the suffixed spelling
+    // (`update2` from schema `Update2`) must be re-checked after reservation.
+    const workspace = await generateCollidingOutput(
+      {
+        openapi: '3.1.0',
+        info: { title: 'Body shadow after suffix', version: '1.0.0' },
+        paths: {
+          '/a': { put: statusOperation(['TagA'], 'StatusResponse') },
+          '/b': {
+            put: {
+              tags: ['TagA'],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Update2' },
+                  },
+                },
+              },
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        $ref: '#/components/schemas/SearchStatusResponse',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            Update2: {
+              type: 'object',
+              required: ['value'],
+              properties: { value: { type: 'string' } },
+            },
+            ...STATUS_SPEC.components?.schemas,
+          },
+        },
+      },
+      { operationName: () => 'update' },
+    );
+
+    try {
+      const content = await readGenerated(
+        workspace,
+        path.join('tag-a', 'tag-a.service.ts'),
+      );
+      expect(content.match(/^  update[<(]/gm)).toHaveLength(1);
+      expect(content.match(/^  update2[<(]/gm)).toHaveLength(1);
+      // The parameter shadowing the suffixed method is renamed out of the way.
+      expect(content).toContain('update2Body: Update2');
+      expect(content).not.toContain('update2: Update2');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
