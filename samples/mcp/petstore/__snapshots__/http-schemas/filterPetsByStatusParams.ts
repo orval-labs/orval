@@ -14,8 +14,6 @@
  */
 
 export type FilterPetsByStatusParams = {
-  /**
-   * Status value that needs to be considered for filter
-   */
+  /** Status value that needs to be considered for filter */
   status: string;
 };

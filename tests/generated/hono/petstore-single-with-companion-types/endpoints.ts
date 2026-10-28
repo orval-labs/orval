@@ -105,9 +105,7 @@ export interface PetWithTag {
 }
 
 export type ListPetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: string;
   /**
    * Which property to sort by?
@@ -126,9 +124,7 @@ export const ListPetsSort = {
 } as const;
 
 export type CreatePetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: string;
   /**
    * Which property to sort by?

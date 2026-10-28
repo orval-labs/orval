@@ -28,21 +28,13 @@ export interface Error {
 }
 
 export type ListPetsByCountryParams = {
-  /**
-   * Filter pets by substring
-   */
+  /** Filter pets by substring */
   q?: string[];
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: number;
-  /**
-   * How many items to skip
-   */
+  /** How many items to skip */
   offset?: number;
-  /**
-   * How to order the items
-   */
+  /** How to order the items */
   order?: ListPetsByCountryOrder;
   /**
    * Which property to sort by?
@@ -54,9 +46,7 @@ export type ListPetsByCountryParams = {
    * Example: true
    */
   cnonly?: boolean;
-  /**
-   * include pets tag
-   */
+  /** include pets tag */
   tag?: string[];
 };
 
@@ -79,9 +69,7 @@ export const ListPetsByCountrySort = {
 } as const;
 
 export type ListPetsByAgeParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: string;
   /**
    * Filter by latest birthdate.

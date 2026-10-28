@@ -7,12 +7,8 @@
  */
 
 export type ListItemsParams = {
-  /**
-   * Maximum number of results
-   */
+  /** Maximum number of results */
   limit?: number;
-  /**
-   * Filter expression
-   */
+  /** Filter expression */
   filter: string;
 };

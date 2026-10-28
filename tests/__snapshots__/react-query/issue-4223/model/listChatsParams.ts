@@ -6,8 +6,6 @@
  */
 
 export type ListChatsParams = {
-  /**
-   * @nullable
-   */
+  /** @nullable */
   before?: string | null;
 };

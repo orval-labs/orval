@@ -108,15 +108,13 @@ export interface PetWithTag {
 }
 
 export type ListPetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
-/**
- * Which property to sort by?
- * Example: name sorts ASC while -name sorts DESC.
- */
-sort: ListPetsSort;
+  /** How many items to return at one time (max 100) */
+  limit?: string;
+  /**
+   * Which property to sort by?
+   * Example: name sorts ASC while -name sorts DESC.
+   */
+  sort: ListPetsSort;
 };
 
 export type ListPetsSort = typeof ListPetsSort[keyof typeof ListPetsSort];
@@ -130,15 +128,13 @@ export const ListPetsSort = {
 } as const;
 
 export type CreatePetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
-/**
- * Which property to sort by?
- * Example: name sorts ASC while -name sorts DESC.
- */
-sort: CreatePetsSort;
+  /** How many items to return at one time (max 100) */
+  limit?: string;
+  /**
+   * Which property to sort by?
+   * Example: name sorts ASC while -name sorts DESC.
+   */
+  sort: CreatePetsSort;
 };
 
 export type CreatePetsSort = typeof CreatePetsSort[keyof typeof CreatePetsSort];

@@ -14,8 +14,6 @@
  */
 
 export type FindPetsByTagsParams = {
-  /**
-   * Tags to filter by
-   */
+  /** Tags to filter by */
   tags?: string[];
 };
