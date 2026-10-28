@@ -6,7 +6,7 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { builder, generateQuery } from './index';
+import { builder, generateQuery, generateQueryHeader } from './index';
 
 const successType = (
   overrides: Partial<ResReqTypesValue> & Pick<ResReqTypesValue, 'value'>,
@@ -592,4 +592,42 @@ describe('generateQuery — prefetch through queryClient.query() (#4030)', () =>
       expect(implementation).not.toContain('queryClient.query(');
     },
   );
+});
+
+describe('generateQueryHeader SecondParameter helper (#4388)', () => {
+  const clientImplementation =
+    'export const listItems = (options?: SecondParameter<typeof customFetch>) => {};';
+  const params = {
+    title: 'Api',
+    isMutator: true,
+    isGlobalMutator: true,
+    provideIn: false as const,
+    hasAwaitedType: true,
+    output: { httpClient: OutputHttpClient.AXIOS },
+    verbOptions: {},
+  };
+
+  it('declares the helper when an operation override references it', () => {
+    const header = generateQueryHeader({
+      ...params,
+      isRequestOptions: false,
+      clientImplementation,
+    } as never);
+    const implementation =
+      typeof header === 'string' ? header : header.implementation;
+
+    expect(implementation).toContain('type SecondParameter<');
+  });
+
+  it('omits the helper when nothing references it', () => {
+    const header = generateQueryHeader({
+      ...params,
+      isRequestOptions: false,
+      clientImplementation: '',
+    } as never);
+    const implementation =
+      typeof header === 'string' ? header : header.implementation;
+
+    expect(implementation).not.toContain('type SecondParameter<');
+  });
 });

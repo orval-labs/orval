@@ -59,6 +59,11 @@ const WITH_QUERY_KEY_HELPER = `const withQueryKey = <T extends object, K>(query:
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   const needsWithQueryKey =
     params.clientImplementation.includes('withQueryKey(');
+  // An operation-level `requestOptions` override can reference the helper
+  // even when the global default is `false` (#4388).
+  const needsSecondParameter =
+    (params.isRequestOptions && params.isMutator) ||
+    params.clientImplementation.includes('SecondParameter<');
 
   const innerHeader = getQueryHeader(params);
   const innerImpl =
@@ -73,7 +78,7 @@ export const generateQueryHeader: ClientHeaderBuilder = (params) => {
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
   }
 ${
-  params.isRequestOptions && params.isMutator
+  needsSecondParameter
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
