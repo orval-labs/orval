@@ -11,7 +11,7 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { builder, generateSwr } from './index';
+import { builder, generateSwr, generateSwrHeader } from './index';
 
 describe('swr builder', () => {
   it('returns a valid builder function', () => {
@@ -146,5 +146,27 @@ describe('generateSwr — fetch runtimeValidation imports (#4136, #4137)', () =>
     expect(imports).not.toContainEqual(
       expect.objectContaining({ name: 'ItemOutput' }),
     );
+  });
+});
+
+describe('generateSwrHeader SecondParameter helper (#4388)', () => {
+  it('declares the helper when an operation override references it', () => {
+    const clientImplementation =
+      'export const listItems = (options?: SecondParameter<typeof customFetch>) => {};';
+    const header = generateSwrHeader({
+      title: 'Api',
+      isRequestOptions: false,
+      isMutator: true,
+      isGlobalMutator: true,
+      provideIn: false,
+      hasAwaitedType: true,
+      output: { httpClient: OutputHttpClient.AXIOS },
+      verbOptions: {},
+      clientImplementation,
+    } as never);
+    const implementation =
+      typeof header === 'string' ? header : header.implementation;
+
+    expect(implementation).toContain('type SecondParameter<');
   });
 });
