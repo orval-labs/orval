@@ -117,6 +117,7 @@ const possibleSchemaTypes = new Set([
 export const predefinedZodFormats = new Set([
   'date',
   'time',
+  'time-local',
   'date-time',
   'date-time-local',
   'email',
@@ -1880,7 +1881,10 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (schema.format === 'time') {
+        // Zod's time validator rejects offsets, so it matches OpenAPI
+        // `time-local` exactly; `time` keeps the same mapping for
+        // backwards compatibility.
+        if (schema.format === 'time' || schema.format === 'time-local') {
           const options = context.output.override.zod.timeOptions;
           const formatAPI = getZodTimeFormat(isZodV4);
 

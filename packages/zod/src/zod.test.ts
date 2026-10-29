@@ -175,6 +175,47 @@ describe.each([
   },
 );
 
+describe.each([
+  { version: 3, variant: 'classic' },
+  { version: 4, variant: 'classic' },
+  { version: 4, variant: 'mini' },
+] as const)('time-local (Zod $version, $variant)', ({ version, variant }) => {
+  const render = (format: string) => {
+    const context = makeContextSpec();
+    context.output.override.zod.timeOptions = { precision: 3 };
+    const definition = generateZodValidationSchemaDefinition(
+      { type: 'string', format },
+      context,
+      'localTime',
+      false,
+      version === 4,
+      { required: true },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      version === 4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+  };
+
+  it('generates the same time validation as time', () => {
+    const validator =
+      variant === 'mini'
+        ? '/*#__PURE__*/ zod.iso.time({"precision":3})'
+        : version === 4
+          ? 'zod.iso.time({"precision":3})'
+          : 'zod.string().time({"precision":3})';
+
+    expect(render('time-local')).toBe(validator);
+    expect(render('time')).toBe(validator);
+  });
+});
+
 // A `const` renders as `zod.literal(...)`. Chaining bound or pattern checks
 // onto it did not compile with Zod 3 or Zod 4 classic (TS2339), nor with Zod 4
 // mini for a numeric const (TS2345), so they are skipped.
@@ -2152,6 +2193,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const expectedZodFormatByOpenApiFormat = new Map([
       ['date', getZodDateFormat(true)],
       ['time', getZodTimeFormat(true)],
+      ['time-local', getZodTimeFormat(true)],
       ['date-time', getZodDateTimeFormat(true)],
       ['date-time-local', getZodDateTimeFormat(true)],
       ['email', 'email'],
