@@ -138,7 +138,7 @@ export default defineConfig({
 
 ### `oneOf` 与 `anyOf`
 
-`oneOf` 表示恰好只有一个分支匹配，因此在 Zod 4 中，Orval 会将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）和混合类型的枚举同样保持 `zod.union`。Zod 3 没有 `xor`，因此 `oneOf` 在 Zod 3 中仍输出为 `zod.union([...])`。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。
+`oneOf` 表示恰好只有一个分支匹配，因此在 Zod 4.2 及以上版本中，Orval 会将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）同样保持 `zod.union`。在没有 `xor` 的 Zod 3 和 Zod 4.0/4.1 中，以及启用 [`coerce`](/zh/docs/reference/configuration/output#coerce) 时，`oneOf` 仍输出为 `zod.union([...])`，因为类型转换可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`）。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。
 
 ## Zod Mini
 

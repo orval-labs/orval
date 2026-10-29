@@ -67,6 +67,7 @@ import {
   getZodTimeFormat,
   assertZodTarget,
   resolveIsZodV4,
+  supportsZodXor,
 } from './compatible-v4';
 import {
   assertZodMethodName,
@@ -2257,7 +2258,7 @@ export const generateZodValidationSchemaDefinition = (
       ]);
     } else {
       functions.push([
-        'anyOf',
+        'oneOf',
         enumMembers.map((member) => ({
           functions: [
             [
@@ -2540,6 +2541,14 @@ export const parseZodValidationSchemaDefinition = (
       ? coerceTypes.includes(fn as ZodCoerceType)
       : COERCIBLE_TYPES.has(fn));
 
+  // `oneOf` is an exclusive union, but `zod.xor` only exists from Zod 4.2, and
+  // coercion can make distinct branches overlap (`"42"` passes both
+  // `zod.string()` and `zod.coerce.number()`), so those keep a plain union.
+  const useXor =
+    isZodV4 &&
+    supportsZodXor(context.output.packageJson) &&
+    !(Array.isArray(coerceTypes) ? coerceTypes.length > 0 : coerceTypes);
+
   const buildCombinedArgs = (
     fn: string,
     args: unknown,
@@ -2758,7 +2767,7 @@ ${Object.entries(objectArgs)
         }
         current = {
           expr: zodMiniCall(
-            fn === 'oneOf' ? 'xor' : 'union',
+            fn === 'oneOf' && useXor ? 'xor' : 'union',
             `[${unionArgs
               .map((arg) => {
                 appendConstsChunk(arg.consts.join('\n'));
@@ -3185,8 +3194,7 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      // `oneOf` is an exclusive union; Zod 3 has no `xor`.
-      return `.${fn === 'oneOf' && isZodV4 ? 'xor' : 'union'}([${union.join(',')}])`;
+      return `.${fn === 'oneOf' && useXor ? 'xor' : 'union'}([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {

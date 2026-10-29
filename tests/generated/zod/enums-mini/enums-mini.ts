@@ -93,7 +93,7 @@ export const GetApiDuckResponse = /*#__PURE__*/ zod.object({
 /**
  * @summary sample cat dog
  */
-export const GetApiCatDogResponse = /*#__PURE__*/ zod.union([
+export const GetApiCatDogResponse = /*#__PURE__*/ zod.xor([
   /*#__PURE__*/ zod.literal(1),
   /*#__PURE__*/ zod.literal('2'),
   /*#__PURE__*/ zod.literal('a'),
@@ -116,7 +116,7 @@ export const GetApiPetTrainingResponse = /*#__PURE__*/ zod.enum({
 /**
  * @summary sample pet needs training
  */
-export const GetApiPetNeedsTrainingResponse = /*#__PURE__*/ zod.union([
+export const GetApiPetNeedsTrainingResponse = /*#__PURE__*/ zod.xor([
   /*#__PURE__*/ zod.literal(true),
   /*#__PURE__*/ zod.literal(false),
 ]);

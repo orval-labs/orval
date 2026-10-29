@@ -3,6 +3,7 @@ import type {
   GeneratorMutator,
   GeneratorOptions,
   NormalizedMutator,
+  ZodCoerceType,
   ZodVariantOption,
   OpenApiDocument,
   OpenApiReferenceObject,
@@ -3506,7 +3507,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'anyOf',
+            'oneOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -3530,8 +3531,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       const expectedZod =
         variant === 'mini'
-          ? '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.union([/*#__PURE__*/ zod.literal(true),/*#__PURE__*/ zod.literal(false)]))'
-          : 'zod.union([zod.literal(true),zod.literal(false)]).optional()';
+          ? '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.xor([/*#__PURE__*/ zod.literal(true),/*#__PURE__*/ zod.literal(false)]))'
+          : isZodV4
+            ? 'zod.xor([zod.literal(true),zod.literal(false)]).optional()'
+            : 'zod.union([zod.literal(true),zod.literal(false)]).optional()';
 
       expect(parsed.zod).toBe(expectedZod);
     });
@@ -4108,7 +4111,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'anyOf',
+            'oneOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4154,7 +4157,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'anyOf',
+            'oneOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4195,7 +4198,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'anyOf',
+            'oneOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4235,7 +4238,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['anyOf', [{ functions: [['literal', 1]], consts: [] }]],
+          ['oneOf', [{ functions: [['literal', 1]], consts: [] }]],
           ['optional', undefined],
         ],
         consts: [],
@@ -4268,7 +4271,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'anyOf',
+            'oneOf',
             [
               { functions: [['literal', "'cat'"]], consts: [] },
               { functions: [['literal', 1]], consts: [] },
@@ -13536,7 +13539,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.functions).toContainEqual([
-      'anyOf',
+      'oneOf',
       [
         {
           functions: [['literal', String.raw`'App\\Models\\Document'`]],
@@ -15395,6 +15398,7 @@ describe('oneOf as zod.xor', () => {
     schema: OpenApiSchemaObject,
     isZodV4: boolean,
     variant: ZodVariantOption = 'classic',
+    coerceTypes: boolean | ZodCoerceType[] = false,
   ) =>
     parseZodValidationSchemaDefinition(
       generateZodValidationSchemaDefinition(
@@ -15406,7 +15410,7 @@ describe('oneOf as zod.xor', () => {
         { required: true },
       ),
       ctx,
-      false,
+      coerceTypes,
       false,
       isZodV4,
       undefined,
@@ -15432,6 +15436,50 @@ describe('oneOf as zod.xor', () => {
     expect(render(pet, false)).toBe('zod.union([zod.string(),zod.number()])');
   });
 
+  it('keeps zod.union for oneOf when coercion can make branches overlap', () => {
+    expect(render(pet, true, 'classic', true)).toBe(
+      'zod.union([zod.coerce.string(),zod.coerce.number()])',
+    );
+    expect(render(pet, true, 'classic', ['number'])).toBe(
+      'zod.union([zod.string(),zod.coerce.number()])',
+    );
+    expect(render(pet, true, 'mini', ['number'])).toContain('zod.union([');
+  });
+
+  it('emits zod.xor for oneOf when coercion is an empty list', () => {
+    expect(render(pet, true, 'classic', [])).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+  });
+
+  it('keeps zod.union for oneOf on Zod 4 releases before 4.2 (#4395)', () => {
+    const renderWith = (zod: string, variant: ZodVariantOption = 'classic') =>
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(pet, ctx, 'pet', false, true, {
+          required: true,
+        }),
+        createTestContextSpec({
+          output: {
+            override: { useDates: false },
+            packageJson: { dependencies: { zod } },
+          },
+        }),
+        false,
+        false,
+        true,
+        undefined,
+        undefined,
+        variant,
+      ).zod;
+
+    expect(renderWith('^4.0.0')).toBe('zod.union([zod.string(),zod.number()])');
+    expect(renderWith('4.1.13')).toBe('zod.union([zod.string(),zod.number()])');
+    expect(renderWith('4.1.13', 'mini')).toContain('zod.union([');
+    expect(renderWith('4.2.0')).toBe('zod.xor([zod.string(),zod.number()])');
+    expect(renderWith('^4.4.0')).toBe('zod.xor([zod.string(),zod.number()])');
+    expect(renderWith('^4.4.0', 'mini')).toContain('zod.xor([');
+  });
+
   it('keeps zod.union for anyOf', () => {
     expect(
       render({ anyOf: [{ type: 'string' }, { type: 'number' }] }, true),
@@ -15442,12 +15490,6 @@ describe('oneOf as zod.xor', () => {
     expect(
       render({ type: ['integer', 'number'] } as OpenApiSchemaObject, true),
     ).toBe('zod.union([zod.int(),zod.number()])');
-  });
-
-  it('keeps zod.union for mixed enum literals', () => {
-    expect(render({ enum: ['a', 1] }, true)).toBe(
-      "zod.union([zod.literal('a'),zod.literal(1)])",
-    );
   });
 
   it('emits zod.xor intersected with sibling properties', () => {

@@ -27,6 +27,28 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
 };
 
 /**
+ * `zod.xor` shipped in Zod 4.2.0 (classic and mini). Earlier Zod 4 releases
+ * would fail at import time on `zod.xor`, so `oneOf` keeps `zod.union` there.
+ * Mirrors {@link resolveIsZodV4}: with no detectable zod version the modern
+ * baseline is assumed.
+ */
+export const supportsZodXor = (packageJson: PackageJson | undefined) => {
+  if (!packageJson) {
+    return true;
+  }
+
+  const version = getZodPackageVersion(packageJson);
+
+  if (!version) {
+    return true;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '4.2.0');
+};
+
+/**
  * Resolves whether to emit Zod 4-style output.
  *
  * An explicit `override.zod.version` of `3` or `4` always wins; `'auto'` (the

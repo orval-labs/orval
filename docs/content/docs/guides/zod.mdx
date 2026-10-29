@@ -141,7 +141,7 @@ Pinning the version keeps output stable: the same spec produces the same schemas
 
 ### `oneOf` and `anyOf`
 
-`oneOf` means exactly one branch must match, so on Zod 4 Orval emits it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor). `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`) and mixed-type enums, whose members can overlap. Zod 3 has no `xor`, so `oneOf` stays `zod.union([...])` there. A `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](/docs/reference/configuration/output#generatediscriminatedunion) is enabled.
+`oneOf` means exactly one branch must match, so on Zod 4.2+ Orval emits it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor). `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`), whose members can overlap. `oneOf` stays `zod.union([...])` on Zod 3 and Zod 4.0/4.1, which have no `xor`, and when [`coerce`](/docs/reference/configuration/output#coerce) is enabled, since coercion can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`). A `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](/docs/reference/configuration/output#generatediscriminatedunion) is enabled.
 
 ## Zod Mini
 
