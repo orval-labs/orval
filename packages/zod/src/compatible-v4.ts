@@ -30,7 +30,8 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
  * `zod.xor` shipped in Zod 4.2.0 (classic and mini). Earlier Zod 4 releases
  * would fail at import time on `zod.xor`, so `oneOf` keeps `zod.union` there.
  * Mirrors {@link resolveIsZodV4}: with no detectable zod version the modern
- * baseline is assumed.
+ * baseline is assumed. Unlike {@link isZodVersionV4}, the prerelease suffix is
+ * kept so `4.2.0-canary.*` builds that predate `xor` stay on `zod.union`.
  */
 export const supportsZodXor = (packageJson: PackageJson | undefined) => {
   if (!packageJson) {
@@ -43,9 +44,7 @@ export const supportsZodXor = (packageJson: PackageJson | undefined) => {
     return true;
   }
 
-  const withoutRc = version.split('-')[0];
-
-  return compareVersions(withoutRc, '4.2.0');
+  return compareVersions(version, '4.2.0');
 };
 
 /**

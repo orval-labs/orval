@@ -136,6 +136,8 @@ export default defineConfig({
 
 固定版本可以保持输出稳定：同一份规范在每台机器和 CI 中都会生成相同的 schema，而不会受本地恰好安装了哪个 `zod` 版本影响。
 
+该选项只决定输出 Zod 3 还是 Zod 4 语法。依赖特定 Zod 4 版本的输出（例如下文中 `oneOf` 的 `zod.xor`）仍取决于解析到的 `zod` 版本，因此若要让输出完全可复现，请同时固定 `zod` 依赖本身的版本。
+
 ### `oneOf` 与 `anyOf`
 
 `oneOf` 表示恰好只有一个分支匹配，因此在 Zod 4.2 及以上版本中，Orval 会将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）同样保持 `zod.union`。在没有 `xor` 的 Zod 3 和 Zod 4.0/4.1 中，以及启用 [`coerce`](/zh/docs/reference/configuration/output#coerce) 时，`oneOf` 仍输出为 `zod.union([...])`，因为类型转换可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`）。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。

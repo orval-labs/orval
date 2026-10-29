@@ -139,6 +139,8 @@ export default defineConfig({
 
 Pinning the version keeps output stable: the same spec produces the same schemas on every machine and in CI, independent of which `zod` version happens to be installed.
 
+The override only selects Zod 3 or Zod 4 syntax. Output that depends on a specific Zod 4 release, such as `zod.xor` for `oneOf` (see below), still follows the resolved `zod` version, so pin the `zod` dependency itself for fully reproducible output.
+
 ### `oneOf` and `anyOf`
 
 `oneOf` means exactly one branch must match, so on Zod 4.2+ Orval emits it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor). `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`), whose members can overlap. `oneOf` stays `zod.union([...])` on Zod 3 and Zod 4.0/4.1, which have no `xor`, and when [`coerce`](/docs/reference/configuration/output#coerce) is enabled, since coercion can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`). A `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](/docs/reference/configuration/output#generatediscriminatedunion) is enabled.
