@@ -37,9 +37,9 @@ export const ListPetsHeader = zod.preprocess(
 export const ListPetsResponseItem = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.object({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -112,9 +112,9 @@ export const CreatePetsBody = zod.preprocess(
 export const CreatePetsResponse = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.object({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -161,9 +161,9 @@ export const ShowPetByIdParams = zod.preprocess(
 export const ShowPetByIdResponse = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.object({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -230,9 +230,9 @@ export const ShowPetWithOwnerResponse = zod.preprocess(
     tag: zod.string(),
     pet: zod.union([
       zod
-        .union([
+        .xor([
           zod
-            .union([
+            .xor([
               zod.object({
                 cuteness: zod.int(),
                 breed: zod.enum(['Labradoodle']),

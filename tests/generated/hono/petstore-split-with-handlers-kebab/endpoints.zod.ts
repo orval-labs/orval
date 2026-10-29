@@ -23,9 +23,9 @@ export const ListPetsHeader = zod.object({
 });
 
 export const ListPetsResponseItem = zod
-  .union([
+  .xor([
     zod
-      .union([
+      .xor([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -81,9 +81,9 @@ export const CreatePetsBody = zod.object({
 });
 
 export const CreatePetsResponse = zod
-  .union([
+  .xor([
     zod
-      .union([
+      .xor([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -121,9 +121,9 @@ export const ShowPetByIdParams = zod.object({
 });
 
 export const ShowPetByIdResponse = zod
-  .union([
+  .xor([
     zod
-      .union([
+      .xor([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -172,9 +172,9 @@ export const ShowPetWithOwnerResponse = zod.object({
   tag: zod.string(),
   pet: zod.union([
     zod
-      .union([
+      .xor([
         zod
-          .union([
+          .xor([
             zod.object({
               cuteness: zod.int(),
               breed: zod.enum(['Labradoodle']),

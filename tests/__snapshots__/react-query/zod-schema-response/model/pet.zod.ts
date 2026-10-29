@@ -7,9 +7,9 @@
 import * as zod from 'zod';
 
 export const Pet = zod
-  .union([
+  .xor([
     zod
-      .union([
+      .xor([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),

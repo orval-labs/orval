@@ -136,6 +136,10 @@ export default defineConfig({
 
 固定版本可以保持输出稳定：同一份规范在每台机器和 CI 中都会生成相同的 schema，而不会受本地恰好安装了哪个 `zod` 版本影响。
 
+### `oneOf` 与 `anyOf`
+
+`oneOf` 表示恰好只有一个分支匹配，因此在 Zod 4 中，Orval 会将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）和混合类型的枚举同样保持 `zod.union`。Zod 3 没有 `xor`，因此 `oneOf` 在 Zod 3 中仍输出为 `zod.union([...])`。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。
+
 ## Zod Mini
 
 将 `override.zod.variant` 设为 `'mini'`，即可针对 [Zod Mini](https://zod.dev/packages/mini) 生成 schema：

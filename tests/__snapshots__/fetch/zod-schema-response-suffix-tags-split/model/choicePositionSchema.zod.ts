@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-export const ChoicePositionSchema = zod.union([
+export const ChoicePositionSchema = zod.xor([
   zod.object({
     id: zod.string(),
     quantity: zod.number(),

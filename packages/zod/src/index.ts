@@ -1443,7 +1443,7 @@ export const generateZodValidationSchemaDefinition = (
         );
 
       // For oneOf/anyOf, use allOf to combine union with common properties
-      // This generates: zod.union([...]).and(commonProperties)
+      // This generates: zod.xor([...]).and(commonProperties) (or zod.union)
       if (schema.oneOf || schema.anyOf) {
         functions.push([
           'allOf',
@@ -1684,8 +1684,10 @@ export const generateZodValidationSchemaDefinition = (
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
   if (isObject(type) && 'multiType' in type) {
     const types = type.multiType;
+    // `type: ['integer', 'number']` overlaps, so this is a plain union, not an
+    // exclusive `oneOf`.
     functions.push([
-      'oneOf',
+      'anyOf',
       types.map((t) =>
         generateZodValidationSchemaDefinition(
           {
@@ -2255,7 +2257,7 @@ export const generateZodValidationSchemaDefinition = (
       ]);
     } else {
       functions.push([
-        'oneOf',
+        'anyOf',
         enumMembers.map((member) => ({
           functions: [
             [
@@ -2756,7 +2758,7 @@ ${Object.entries(objectArgs)
         }
         current = {
           expr: zodMiniCall(
-            'union',
+            fn === 'oneOf' ? 'xor' : 'union',
             `[${unionArgs
               .map((arg) => {
                 appendConstsChunk(arg.consts.join('\n'));
@@ -3183,7 +3185,8 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.union([${union.join(',')}])`;
+      // `oneOf` is an exclusive union; Zod 3 has no `xor`.
+      return `.${fn === 'oneOf' && isZodV4 ? 'xor' : 'union'}([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {

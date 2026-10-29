@@ -10,7 +10,7 @@ export const UpdateShelterIntakeBody = zod.object({
   shelterId: zod.string(),
   pets: zod.record(
     zod.string(),
-    zod.union([
+    zod.xor([
       zod.object({
         petType: zod.enum(['cat']),
         arrivedOn: zod.date(),

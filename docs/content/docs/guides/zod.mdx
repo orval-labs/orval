@@ -139,6 +139,10 @@ export default defineConfig({
 
 Pinning the version keeps output stable: the same spec produces the same schemas on every machine and in CI, independent of which `zod` version happens to be installed.
 
+### `oneOf` and `anyOf`
+
+`oneOf` means exactly one branch must match, so on Zod 4 Orval emits it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor). `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`) and mixed-type enums, whose members can overlap. Zod 3 has no `xor`, so `oneOf` stays `zod.union([...])` there. A `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](/docs/reference/configuration/output#generatediscriminatedunion) is enabled.
+
 ## Zod Mini
 
 Set `override.zod.variant` to `'mini'` to generate schemas against [Zod Mini](https://zod.dev/packages/mini):

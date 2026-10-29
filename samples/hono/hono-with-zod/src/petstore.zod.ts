@@ -17,9 +17,9 @@ export const ListPetsQueryParams = zod.object({
 export const ListPetsResponseItem = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.strictObject({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -63,9 +63,9 @@ export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 export const CreatePetsResponse = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.strictObject({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -100,9 +100,9 @@ export const CreatePetsResponse = zod.preprocess(
 );
 
 export const UpdatePetsBody = zod
-  .union([
+  .xor([
     zod
-      .union([
+      .xor([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -138,9 +138,9 @@ export const UpdatePetsBody = zod
 export const UpdatePetsResponse = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.strictObject({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -181,9 +181,9 @@ export const ShowPetByIdParams = zod.object({
 export const ShowPetByIdResponse = zod.preprocess(
   stripNill,
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.strictObject({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),

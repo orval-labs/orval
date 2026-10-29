@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-export const ListOneOf200Item = zod.union([
+export const ListOneOf200Item = zod.xor([
   zod.object({
     a: zod.string().optional(),
   }),

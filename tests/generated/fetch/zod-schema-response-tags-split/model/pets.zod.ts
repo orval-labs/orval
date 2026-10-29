@@ -8,9 +8,9 @@ import * as zod from 'zod';
 
 export const Pets = zod.array(
   zod
-    .union([
+    .xor([
       zod
-        .union([
+        .xor([
           zod.object({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),

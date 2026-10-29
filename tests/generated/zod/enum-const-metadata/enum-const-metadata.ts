@@ -10,7 +10,7 @@ import * as zod from 'zod';
 /**
  * @summary sample annotated const branches
  */
-export const GetApiPetStatusResponse = zod.union([
+export const GetApiPetStatusResponse = zod.xor([
   zod
     .literal('PENDING')
     .meta({ title: 'Pending', description: 'Awaiting manual review' }),
@@ -27,7 +27,7 @@ export const GetApiPetStatusResponse = zod.union([
 /**
  * @summary sample const branches without member metadata
  */
-export const GetApiPetSizeResponse = zod.union([
+export const GetApiPetSizeResponse = zod.xor([
   zod.literal('SMALL'),
   zod.literal('LARGE').describe('Over 25 kg'),
 ]);

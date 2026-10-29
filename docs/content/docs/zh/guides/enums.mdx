@@ -125,10 +125,10 @@ export type Status = typeof Status[keyof typeof Status];
 
 ### `oneOf`/`const` 分支
 
-带有注解的 `oneOf`/`const` 分支仍然保持字面量联合类型的形式。每个带注解的分支会把 `title`、`description` 和 `deprecated` 写入 [`.meta()`](https://zod.dev/metadata)，因此这些值在运行时可以通过 `zod.globalRegistry` 读取：
+带有注解的 `oneOf`/`const` 分支仍然保持字面量联合类型的形式（Zod 4 为 `zod.xor`，Zod 3 为 `zod.union`）。每个带注解的分支会把 `title`、`description` 和 `deprecated` 写入 [`.meta()`](https://zod.dev/metadata)，因此这些值在运行时可以通过 `zod.globalRegistry` 读取：
 
 ```ts
-export const Status = zod.union([
+export const Status = zod.xor([
   zod
     .literal('PENDING')
     .meta({ title: 'Pending', description: 'Awaiting manual review' }),

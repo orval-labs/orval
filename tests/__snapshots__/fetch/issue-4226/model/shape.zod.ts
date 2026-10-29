@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-export const Shape = zod.union([
+export const Shape = zod.xor([
   zod
     .object({
       shape_type: zod.enum(['circle']),

@@ -3506,7 +3506,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4108,7 +4108,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4154,7 +4154,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4195,7 +4195,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4235,7 +4235,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['oneOf', [{ functions: [['literal', 1]], consts: [] }]],
+          ['anyOf', [{ functions: [['literal', 1]], consts: [] }]],
           ['optional', undefined],
         ],
         consts: [],
@@ -4268,7 +4268,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', "'cat'"]], consts: [] },
               { functions: [['literal', 1]], consts: [] },
@@ -6054,7 +6054,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             }),
           ).toContain(
             `"kind": ${intersect(
-              `${pure}zod.union([${regex('notificationKindOneRegExp')},${regex(
+              `${pure}zod.xor([${regex('notificationKindOneRegExp')},${regex(
                 'notificationKindTwoRegExp',
               )}])`,
               `${pure}zod.enum(['A', 'B'])`,
@@ -6119,10 +6119,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
           expect(render('Kind')).toContain("zod.discriminatedUnion('kind', [");
         });
 
-        it('falls back to a plain union when the ref is intersected', () => {
+        it('falls back to a plain xor when the ref is intersected', () => {
           const zod = render('PatternKind');
           expect(zod).not.toContain('discriminatedUnion');
-          expect(zod).toContain('zod.union([');
+          expect(zod).toContain('zod.xor([');
         });
       },
     );
@@ -12483,7 +12483,7 @@ describe('oneOf const branch metadata (#3835)', () => {
 
   it('puts title and deprecated in .meta() on zod v4', () => {
     expect(render(status, true)).toBe(
-      `zod.union([zod.literal("PENDING").meta({ title: 'Pending', description: 'Awaiting manual review' }),zod.literal("LEGACY").meta({ title: 'Legacy', description: 'No longer issued', deprecated: true })])`,
+      `zod.xor([zod.literal("PENDING").meta({ title: 'Pending', description: 'Awaiting manual review' }),zod.literal("LEGACY").meta({ title: 'Legacy', description: 'No longer issued', deprecated: true })])`,
     );
   });
 
@@ -12512,10 +12512,10 @@ describe('oneOf const branch metadata (#3835)', () => {
       oneOf: [{ const: 'ACTIVE' }, { const: 'LEGACY', description: 'gone' }],
     };
 
-    const expected = `zod.union([zod.literal("ACTIVE"),zod.literal("LEGACY").describe('gone')])`;
+    const members = `[zod.literal("ACTIVE"),zod.literal("LEGACY").describe('gone')]`;
 
-    expect(render(plain, true)).toBe(expected);
-    expect(render(plain, false)).toBe(expected);
+    expect(render(plain, true)).toBe(`zod.xor(${members})`);
+    expect(render(plain, false)).toBe(`zod.union(${members})`);
   });
 
   it('emits a deprecated-only branch without an empty description', () => {
@@ -13536,7 +13536,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.functions).toContainEqual([
-      'oneOf',
+      'anyOf',
       [
         {
           functions: [['literal', String.raw`'App\\Models\\Document'`]],
@@ -15383,5 +15383,83 @@ describe('object schemas narrowed by an enum (#4351)', () => {
 
     expect(zodSchema).not.toContain('looseObject');
     expect(zodSchema).toContain('zod.literal(null)');
+  });
+});
+
+describe('oneOf as zod.xor', () => {
+  const ctx = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (
+    schema: OpenApiSchemaObject,
+    isZodV4: boolean,
+    variant: ZodVariantOption = 'classic',
+  ) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        ctx,
+        'Pet',
+        false,
+        isZodV4,
+        { required: true },
+      ),
+      ctx,
+      false,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+
+  const pet: OpenApiSchemaObject = {
+    oneOf: [{ type: 'string' }, { type: 'number' }],
+  };
+
+  it('emits zod.xor for oneOf on zod v4', () => {
+    expect(render(pet, true)).toBe('zod.xor([zod.string(),zod.number()])');
+  });
+
+  it('emits zod.xor for oneOf on zod mini', () => {
+    expect(render(pet, true, 'mini')).toBe(
+      '/*#__PURE__*/ zod.xor([/*#__PURE__*/ zod.string(),/*#__PURE__*/ zod.number()])',
+    );
+  });
+
+  it('keeps zod.union for oneOf on zod v3', () => {
+    expect(render(pet, false)).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps zod.union for anyOf', () => {
+    expect(
+      render({ anyOf: [{ type: 'string' }, { type: 'number' }] }, true),
+    ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps zod.union for type arrays, whose members can overlap', () => {
+    expect(
+      render({ type: ['integer', 'number'] } as OpenApiSchemaObject, true),
+    ).toBe('zod.union([zod.int(),zod.number()])');
+  });
+
+  it('keeps zod.union for mixed enum literals', () => {
+    expect(render({ enum: ['a', 1] }, true)).toBe(
+      "zod.union([zod.literal('a'),zod.literal(1)])",
+    );
+  });
+
+  it('emits zod.xor intersected with sibling properties', () => {
+    expect(
+      render(
+        {
+          type: 'object',
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+          properties: { id: { type: 'string' } },
+        } as OpenApiSchemaObject,
+        true,
+      ),
+    ).toContain('zod.xor([');
   });
 });

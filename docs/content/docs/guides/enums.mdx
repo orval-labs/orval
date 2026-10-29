@@ -124,10 +124,10 @@ When metadata produces an enum **object** (`z.enum({ Cat: 'cat', ... })`), the g
 
 ### `oneOf`/`const` branches
 
-Annotated `oneOf`/`const` branches keep the union-of-literals shape. Each annotated branch carries its `title`, `description` and `deprecated` in [`.meta()`](https://zod.dev/metadata), so the values stay readable at runtime through `zod.globalRegistry`:
+Annotated `oneOf`/`const` branches keep the union-of-literals shape (`zod.xor` on Zod 4, `zod.union` on Zod 3). Each annotated branch carries its `title`, `description` and `deprecated` in [`.meta()`](https://zod.dev/metadata), so the values stay readable at runtime through `zod.globalRegistry`:
 
 ```ts
-export const Status = zod.union([
+export const Status = zod.xor([
   zod
     .literal('PENDING')
     .meta({ title: 'Pending', description: 'Awaiting manual review' }),
