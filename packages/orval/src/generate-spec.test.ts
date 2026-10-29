@@ -794,6 +794,184 @@ describe('generateSpec - schemas without target', () => {
       }
     },
   );
+
+  const TAGGED_OPERATIONS_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Tagged operations', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        post: {
+          operationId: 'createPet',
+          tags: ['pets'],
+          parameters: [
+            { name: 'dryRun', in: 'query', schema: { type: 'boolean' } },
+          ],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/NewPet' },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Created',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/stores': {
+        get: {
+          operationId: 'listStores',
+          tags: ['stores'],
+          responses: {
+            '200': {
+              description: 'Stores',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Store' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        NewPet: {
+          type: 'object',
+          required: ['name'],
+          properties: { name: { type: 'string' } },
+        },
+        Pet: {
+          type: 'object',
+          required: ['id', 'name'],
+          properties: { id: { type: 'integer' }, name: { type: 'string' } },
+        },
+        Store: {
+          type: 'object',
+          properties: {
+            pets: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Pet' },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const readTree = async (dir: string): Promise<Record<string, string>> => {
+    const entries = await readdir(dir, {
+      recursive: true,
+      withFileTypes: true,
+    });
+    return Object.fromEntries(
+      await Promise.all(
+        entries
+          .filter((entry) => entry.isFile())
+          .map(async (entry) => {
+            const file = path.join(entry.parentPath, entry.name);
+            return [
+              path.relative(dir, file).replaceAll('\\', '/'),
+              await fs.promises.readFile(file, 'utf8'),
+            ] as const;
+          }),
+      ),
+    );
+  };
+
+  const generateModel = async (output: OutputOptions) => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        { input: { target: TAGGED_OPERATIONS_SPEC }, output },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      return {
+        rootEntries: (await readdir(workspace)).toSorted(),
+        model: await readTree(path.join(workspace, 'model')),
+      };
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  };
+
+  it.each<[string, OutputOptions]>([
+    [
+      'zod operation schemas',
+      { client: 'zod', schemas: { path: './model', type: 'zod' } },
+    ],
+    [
+      'typescript schemas split by tags',
+      {
+        mode: 'tags-split',
+        schemas: { path: './model', type: 'typescript', splitByTags: true },
+      },
+    ],
+  ])('writes the same %s as an output with a target', async (_, output) => {
+    const withTarget = await generateModel({
+      ...output,
+      target: './endpoints.ts',
+    });
+    const withoutTarget = await generateModel(output);
+
+    expect(withoutTarget.rootEntries).toEqual(['model']);
+    expect(Object.keys(withoutTarget.model).length).toBeGreaterThan(0);
+    expect(withoutTarget.model).toEqual(withTarget.model);
+  });
+
+  it('assigns zod schemas to the tags whose operations use them', async () => {
+    const { model } = await generateModel({
+      client: 'zod',
+      mode: 'tags-split',
+      schemas: { path: './model', type: 'zod', splitByTags: true },
+    });
+
+    expect(Object.keys(model)).toEqual(
+      expect.arrayContaining([
+        'pet.zod.ts',
+        'pets/newPet.zod.ts',
+        'pets/createPetBody.zod.ts',
+        'stores/store.zod.ts',
+      ]),
+    );
+  });
+
+  it('writes the workspace index for a split-mode output with no target', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: TAGGED_OPERATIONS_SPEC },
+          output: {
+            workspace: './api',
+            mode: 'split',
+            schemas: './model',
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const index = await fs.promises.readFile(
+        path.join(workspace, 'api', 'index.ts'),
+        'utf8',
+      );
+      expect(index).toContain('./model');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('generateSpec - generateReusableSchemas inline (single mode)', () => {

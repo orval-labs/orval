@@ -3,6 +3,7 @@ import {
   buildSchemaTagMap,
   createSchemaOutputPlanForOutput,
   type ContextSpec,
+  generateVerbImports,
   generateVerbsOptions,
   getOperationUrlHelperNames,
   type GeneratorApiBuilder,
@@ -198,9 +199,13 @@ export async function getApiBuilder({
         output.baseUrl,
       );
       acc.schemas.push(...schemas);
+      for (const verbOption of resolvedVerbOptions) {
+        acc.verbOptions[verbOption.operationId] = verbOption;
+        acc.operationVerbOptions?.push(verbOption);
+      }
 
       // `schemas` without `target` is a schemas-only output: keep the
-      // operation-derived schemas but emit no operations.
+      // operation-derived schemas and verb options but emit no operations.
       if (!output.target) {
         return acc;
       }
@@ -217,10 +222,6 @@ export async function getApiBuilder({
         output,
       );
 
-      for (const verbOption of resolvedVerbOptions) {
-        acc.verbOptions[verbOption.operationId] = verbOption;
-        acc.operationVerbOptions?.push(verbOption);
-      }
       for (const [key, value] of Object.entries(pathOperations)) {
         let operationKey = key;
         let counter = 1;
@@ -245,10 +246,17 @@ export async function getApiBuilder({
   const schemaTagMap =
     isObject(output.schemas) && output.schemas.splitByTags
       ? buildSchemaTagMap(
-          Object.values(api.operations).map((operation) => ({
-            imports: operation.imports,
-            tags: operation.tags,
-          })),
+          // A schemas-only output has no operations; their verb imports carry
+          // the same schema references.
+          output.target
+            ? Object.values(api.operations).map((operation) => ({
+                imports: operation.imports,
+                tags: operation.tags,
+              }))
+            : (api.operationVerbOptions ?? []).map((verbOption) => ({
+                imports: generateVerbImports(verbOption),
+                tags: verbOption.tags,
+              })),
           [...componentSchemas, ...api.schemas],
         )
       : undefined;
@@ -262,14 +270,18 @@ export async function getApiBuilder({
     schemaTagMap,
   );
 
-  const extraFiles = await generateExtraFiles(
-    output.client,
-    api.verbOptions,
-    output,
-    context,
-    schemaTagMap,
-    schemaOutputPlan,
-  );
+  // Client extra files sit next to the operations, which a schemas-only
+  // output does not emit.
+  const extraFiles = output.target
+    ? await generateExtraFiles(
+        output.client,
+        api.verbOptions,
+        output,
+        context,
+        schemaTagMap,
+        schemaOutputPlan,
+      )
+    : [];
 
   return {
     operations: api.operations,
