@@ -66,14 +66,26 @@ export interface ExecuteArgs {
   headers?: RequestInit['headers'];
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
+  reviver?: (key: string, value: unknown) => unknown;
+  transform?: (data: unknown, status: number) => unknown;
+  throwOnError?: boolean;
+  returnData?: boolean;
+  serializeHeaders?: boolean;
   schema?: unknown;
+  errorResponses?: readonly ErrorResponseMeta[];
   options?: CallOptions;
+}
+
+export interface ErrorResponseMeta {
+  status: number;
+  contentType: string;
 }
 
 export interface ClientConfig {
   mutator?: <T>(
     url: string,
     init: RequestInit & { schema?: never },
+    meta: { errorResponses: readonly ErrorResponseMeta[] },
   ) => Promise<T>;
 }
 
@@ -110,11 +122,11 @@ type StatusFor<R, K extends keyof R> = K extends number
         : Exclude<HTTPStatusCodes, DeclaredStatuses<R>>
       : never;
 
-export type ResponseOf<R> = {
-  [K in keyof R]: R[K] extends Stream<infer T>
-    ? { stream: TypedResponse<T>; status: StatusFor<R, K>; headers: Headers }
-    : { data: R[K]; status: StatusFor<R, K>; headers: Headers };
-}[keyof R];
+export type ResponseOf<R, H = Headers, Keys extends keyof R = keyof R> = {
+  [K in Keys]: R[K] extends Stream<infer T>
+    ? { stream: TypedResponse<T>; status: StatusFor<R, K>; headers: H }
+    : { data: R[K]; status: StatusFor<R, K>; headers: H };
+}[Keys];
 
 export type StatusOf<Res, S extends number> = Res extends {
   status: infer St extends number;
@@ -279,10 +291,22 @@ const encodeRequestBody = (args: ExecuteArgs): RequestInit['body'] => {
   return args.body as NonNullable<RequestInit['body']>;
 };
 
+const getResponseHeaders = (res: Response, args: ExecuteArgs) =>
+  args.serializeHeaders
+    ? Object.fromEntries(
+        [...res.headers.entries()].filter(([name]) => name !== 'set-cookie'),
+      )
+    : res.headers;
+
 const decodeResponseBody = async (
   res: Response,
-  responseType: ExecuteArgs['responseType'],
+  { responseType, reviver, transform }: ExecuteArgs,
 ): Promise<unknown> => {
+  const parseJson = (body: string) => {
+    const data: unknown = JSON.parse(body, reviver);
+    return transform ? transform(data, res.status) : data;
+  };
+
   if (responseType === 'blob') {
     return [204, 205, 304].includes(res.status) ? null : await res.blob();
   }
@@ -294,10 +318,10 @@ const decodeResponseBody = async (
   if (responseType === 'auto' || responseType === 'void') {
     if (!body) return responseType === 'void' ? undefined : {};
     const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
-    return contentType.includes('json') ? JSON.parse(body) : body;
+    return contentType.includes('json') ? parseJson(body) : body;
   }
 
-  return body ? JSON.parse(body) : {};
+  return body ? parseJson(body) : {};
 };
 
 export const execute = async <R>(
@@ -319,20 +343,33 @@ export const execute = async <R>(
   };
 
   if (config?.mutator) {
-    return config.mutator<R>(
-      args.url,
+    const mutatorInit =
       args.schema === undefined
         ? init
-        : { ...init, schema: args.schema as never },
-    );
+        : { ...init, schema: args.schema as never };
+    return config.mutator<R>(args.url, mutatorInit, {
+      errorResponses: args.errorResponses ?? [],
+    });
   }
 
   const res = await fetchFn(args.url, init);
 
-  if (args.responseType === 'stream') {
-    return { status: res.status, stream: res, headers: res.headers } as R;
+  if (args.throwOnError && !res.ok) {
+    const err: globalThis.Error & { info?: unknown; status?: number } =
+      new globalThis.Error();
+    err.info = await decodeResponseBody(res, { ...args, transform: undefined });
+    err.status = res.status;
+    throw err;
   }
 
-  const data = await decodeResponseBody(res, args.responseType);
-  return { data, status: res.status, headers: res.headers } as R;
+  if (args.responseType === 'stream') {
+    if (args.returnData) return res as R;
+    const headers = getResponseHeaders(res, args);
+    return { status: res.status, stream: res, headers } as R;
+  }
+
+  const data = await decodeResponseBody(res, args);
+  if (args.returnData) return data as R;
+  const headers = getResponseHeaders(res, args);
+  return { data, status: res.status, headers } as R;
 };

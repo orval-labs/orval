@@ -3504,7 +3504,10 @@ const pets = await api.listPets({ limit: '10' });
 response decoding, query serialization and the status-code types) once into a
 shared runtime module, and turns every operation into a thin wrapper around
 it. Call signatures and the `{ data, status, headers }` response shape stay the
-same as with `'inline'`.
+same as with `'inline'`. The other `override.fetch` options behave as they do
+with `'inline'`, with two exceptions: `httpClientInjection: 'factory'` is
+supported by the inline style only, and instead of `useRuntimeFetcher` a
+per-call `fetch` is passed as `options.fetch`.
 
 ```ts title="orval.config.ts"
 export default defineConfig({

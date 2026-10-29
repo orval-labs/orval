@@ -111,7 +111,7 @@ function makeVerbOptions(
       requestOptions: false,
       formUrlEncoded: false,
       fetch: {
-        includeHttpResponseReturnType: false,
+        includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         runtimeValidation: { enabled: false, strategy: 'throw' },
       },
@@ -311,7 +311,7 @@ describe('generateSharedRequestFunction', () => {
           requestOptions: false,
           formUrlEncoded: false,
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: false, strategy: 'throw' },
             arrayFormat: 'brackets',
@@ -357,7 +357,7 @@ describe('generateSharedRequestFunction', () => {
           requestOptions: false,
           formUrlEncoded: false,
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: false, strategy: 'throw' },
             arrayFormat: 'repeat',
@@ -472,11 +472,13 @@ describe('generateSharedRequestFunction', () => {
 
   it('keeps a path-only URL builder identical to the inline one', () => {
     const verbOptions = makeVerbOptions();
-    const builder = (implementation: string) =>
-      implementation.slice(
-        implementation.indexOf('export const getListPetsUrl'),
-        implementation.indexOf('\n}\n') + 3,
+    const builder = (implementation: string) => {
+      const start = implementation.indexOf('export const getListPetsUrl');
+      return implementation.slice(
+        start,
+        implementation.indexOf('\n}\n', start) + 3,
       );
+    };
 
     const inline = builder(
       generateRequestFunction(verbOptions, makeOptions(makeContext())),
@@ -799,7 +801,7 @@ describe('generateSharedRequestFunction', () => {
         ...(withMutator ? { mutator: mutator() } : {}),
         override: {
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
@@ -840,21 +842,282 @@ describe('generateSharedRequestFunction', () => {
       );
     });
 
-    it.each([
-      ['without includeZodSchemaInArguments', true, false],
-      ['without a mutator', false, true],
-    ])('passes no schema %s', (_, withMutator, zodSchemaInArguments) => {
+    it('passes no schema without includeZodSchemaInArguments', () => {
       const { imports, implementation } = generateSharedClient(
-        validatedVerbOptions(undefined, withMutator),
-        makeSharedOptions([], { mutator: withMutator, zodSchemaInArguments }),
+        validatedVerbOptions(),
+        makeSharedOptions([], { mutator: true }),
       );
 
       expect(implementation).not.toContain('schema:');
+      expect(implementation).not.toContain('transform:');
       expect(imports).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: 'Pet', values: true }),
         ]),
       );
+    });
+  });
+});
+
+describe('shared runtime options', () => {
+  const response: GeneratorVerbOptions['response'] = {
+    definition: { success: 'Pet', errors: 'Problem' },
+    imports: [{ name: 'Pet' }, { name: 'Problem' }],
+    types: {
+      success: [successType({ key: '200', value: 'Pet', isRef: true })],
+      errors: [successType({ key: '404', value: 'Problem', isRef: true })],
+    },
+    contentTypes: ['application/json'],
+    schemas: [],
+    isBlob: false,
+  };
+  const verbOptions = (
+    fetch: Partial<GeneratorVerbOptions['override']['fetch']> = {},
+    overrides: Parameters<typeof makeVerbOptions>[0] = {},
+  ) =>
+    makeVerbOptions({
+      response,
+      ...overrides,
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: false,
+          serializeResponseHeaders: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
+          ...fetch,
+        },
+      },
+    });
+
+  it('narrows to the success responses and throws on the rest', () => {
+    const { imports, implementation } = generateSharedClient(
+      verbOptions({ forceSuccessResponse: true }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'export type listPetsResponseSuccess = ResponseOf<{ 200: Pet; 404: Problem }, Headers, 200>;',
+    );
+    expect(implementation).toContain('execute<listPetsResponseSuccess>');
+    expect(implementation).toContain('throwOnError: true');
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        { name: 'ResponseOf', importPath: '../runtime' },
+      ]),
+    );
+  });
+
+  it('returns the bare data without the response envelope', () => {
+    const { imports, implementation } = generateSharedClient(
+      verbOptions({ includeHttpResponseReturnType: false }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).not.toContain('export type');
+    expect(implementation).toContain('execute<Pet>');
+    expect(implementation).toContain('returnData: true');
+    expect(imports).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'ResponseOf' })]),
+    );
+  });
+
+  it('types and serializes the headers as a plain record', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions({ serializeResponseHeaders: true }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'ResponseOf<{ 200: Pet; 404: Problem }, Record<string, string>>',
+    );
+    expect(implementation).toContain('serializeHeaders: true');
+  });
+
+  it('passes the json reviver', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        {},
+        {
+          fetchReviver: {
+            name: 'reviver',
+            path: './reviver',
+            default: true,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: true,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        },
+      ),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain('reviver: reviver');
+  });
+
+  it.each([
+    ['throw', 'transform: (data) => Pet.parse(data)'],
+    ['both', 'const result = Pet.safeParse(data);'],
+  ] as const)(
+    'validates the response with the %s strategy as the zod output type',
+    (strategy, expected) => {
+      const { imports, implementation } = generateSharedClient(
+        verbOptions({ runtimeValidation: { enabled: true, strategy } }),
+        makeSharedOptions([], { zodSchemaInArguments: true }),
+      );
+
+      expect(implementation).toContain(expected);
+      expect(implementation).toContain('200: PetOutput; 404: Problem');
+      expect(imports).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+          expect.objectContaining({ name: 'PetOutput' }),
+        ]),
+      );
+    },
+  );
+
+  it('hands the error responses to a three-argument mutator', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        { forceSuccessResponse: true, includeHttpErrorResponse: true },
+        {
+          mutator: {
+            name: 'customFetch',
+            path: '../custom-fetch',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: 'ErrorType',
+            hasSecondArg: true,
+            hasThirdArg: true,
+            isHook: false,
+          },
+        },
+      ),
+      makeSharedOptions([], { mutator: true }),
+    );
+
+    expect(implementation).toContain('errorResponses: [');
+    // The mutator issues the request itself, so the runtime-only options stay out.
+    expect(implementation).not.toContain('throwOnError');
+  });
+
+  describe('execute', () => {
+    type Execute = (
+      args: Record<string, unknown>,
+      config?: { mutator: (...args: unknown[]) => Promise<unknown> },
+    ) => Promise<unknown>;
+    const execute: Execute = (args, config) => {
+      const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.CommonJS,
+        },
+      });
+      const exports: { execute: Execute } = {
+        execute: () => Promise.reject(new Error('runtime not loaded')),
+      };
+      runInNewContext(outputText, {
+        exports,
+        URLSearchParams,
+        Date,
+        Headers,
+        Response,
+        JSON,
+        Object,
+        Symbol,
+        Array,
+        globalThis: { Error },
+      });
+      return exports.execute(args, config);
+    };
+    const respond =
+      (body: string, status = 200, contentType = 'application/json') =>
+      () =>
+        Promise.resolve(
+          new Response(body, {
+            status,
+            headers: { 'content-type': contentType, 'set-cookie': 'a=b' },
+          }),
+        );
+    const call = (
+      args: Record<string, unknown>,
+      body: string,
+      status?: number,
+      contentType?: string,
+    ) =>
+      execute({
+        url: '/pets',
+        method: 'GET',
+        ...args,
+        options: { fetch: respond(body, status, contentType) },
+      });
+
+    it('revives and transforms a JSON body', async () => {
+      const result = await call(
+        {
+          reviver: (key: string, value: unknown) =>
+            key === 'n' ? Number(value) : value,
+          transform: (data: { n: number }, status: number) => ({
+            ...data,
+            status,
+          }),
+          returnData: true,
+        },
+        '{"n":"1"}',
+      );
+
+      expect(result).toEqual({ n: 1, status: 200 });
+    });
+
+    it('leaves a text body untransformed', async () => {
+      const result = await call(
+        { responseType: 'text', transform: () => 'x', returnData: true },
+        'plain',
+        200,
+        'text/plain',
+      );
+
+      expect(result).toBe('plain');
+    });
+
+    it('throws the decoded error body without transforming it', async () => {
+      const failure = await call(
+        { throwOnError: true, transform: () => 'x' },
+        '{"title":"nope"}',
+        404,
+      ).catch((error: unknown) => error);
+
+      expect(failure).toMatchObject({ info: { title: 'nope' }, status: 404 });
+    });
+
+    it('serializes the headers without set-cookie', async () => {
+      const result = await call({ serializeHeaders: true }, '{}');
+
+      expect(result).toMatchObject({
+        headers: { 'content-type': 'application/json' },
+      });
+      expect((result as { headers: object }).headers).not.toHaveProperty(
+        'set-cookie',
+      );
+    });
+
+    it('always hands the mutator the error responses', async () => {
+      const calls: unknown[][] = [];
+      const mutator = (...args: unknown[]) => {
+        calls.push(args);
+        return Promise.resolve(undefined);
+      };
+      const errorResponses = [{ status: 404, contentType: '' }];
+
+      await execute({ url: '/a', method: 'GET' }, { mutator });
+      await execute({ url: '/b', method: 'GET', errorResponses }, { mutator });
+
+      expect(calls.map((args) => args[2])).toEqual([
+        { errorResponses: [] },
+        { errorResponses },
+      ]);
     });
   });
 });
@@ -871,6 +1134,7 @@ declare class Headers implements Iterable<[string, string]> {
 }
 declare class Blob {}
 declare class Response {
+  readonly ok: boolean;
   readonly status: number;
   readonly headers: Headers;
   text(): Promise<string>;
@@ -889,13 +1153,13 @@ declare class URLSearchParams {
 }
 `;
 
-  const typeCheck = (mutatorOptionsType: string) => {
+  const typeCheck = (mutatorOptionsType: string, extraParameters = '') => {
     const files: Record<string, string> = {
       '/proj/globals.d.ts': FETCH_GLOBALS,
       '/proj/runtime.ts': RUNTIME_TEMPLATE,
       '/proj/custom-fetch.ts': `export const customFetch = async <T>(
   url: string,
-  options: ${mutatorOptionsType},
+  options: ${mutatorOptionsType},${extraParameters}
 ): Promise<T> => {
   return (await fetch(url, options)).json() as Promise<T>;
 };
@@ -939,6 +1203,15 @@ declare class URLSearchParams {
     'RequestInit & { schema?: { parse(data: unknown): unknown } }',
   ])('compiles without the DOM lib for a mutator taking %s', (optionsType) => {
     expect(typeCheck(optionsType)).toEqual([]);
+  });
+
+  it('compiles for a mutator taking the error responses', () => {
+    expect(
+      typeCheck(
+        'RequestInit',
+        '\n  meta: { errorResponses: readonly { status: number; contentType: string }[] },',
+      ),
+    ).toEqual([]);
   });
 
   // Operations without a validated response pass no schema, so a mutator

@@ -1982,7 +1982,7 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
   it('switches to the shared emitter for the fetch client only', () => {
     expect(
       generateImplementation(makeVerbOptions(), sharedOptions()),
-    ).toContain('execute<listPetsResponse>');
+    ).toContain('execute<');
     for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
       const implementation = generateImplementation(
         makeVerbOptions(),

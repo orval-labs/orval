@@ -3,8 +3,9 @@ import {
   camel,
   type ClientExtraFilesBuilder,
   type ClientFileBuilder,
-  type ContextSpec,
+  emitResponseValidation,
   generateFormDataAndUrlEncodedFunction,
+  generateRequestDateSerializer,
   generateVerbImports,
   type GeneratorClient,
   type GeneratorImport,
@@ -20,12 +21,15 @@ import {
   getFormObjectParameters,
   getExplodeParameters,
   getOperationParameters,
+  getResponseStatusCondition,
+  getSchemaOutputTypeRef,
   getSchemaValueRef,
   getZodNamespaceImport,
   GetterPropType,
   hasSchemaImport,
   isFormDataContentType,
   isObject,
+  isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   jsDoc,
   jsStringLiteralEscape,
@@ -39,18 +43,15 @@ import {
 } from '@orval/core';
 
 import pkg from '../package.json' with { type: 'json' };
+import {
+  getIsDatesTransformEnabled,
+  getMutatorErrorResponses,
+  getResponseDateDeserializer,
+  isContentTypeNdJson,
+  passesZodSchemaToMutator,
+  wrapSchemaWithDateDeserializer,
+} from './response-helpers';
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
-
-/**
- * Whether a response media type is an ndjson stream, in any letter case.
- */
-export const isContentTypeNdJson = (contentType: string) => {
-  const lowerContentType = contentType.toLowerCase();
-  return (
-    lowerContentType === 'application/nd-json' ||
-    lowerContentType === 'application/x-ndjson'
-  );
-};
 
 const isContentTypeJson = (contentType: string) =>
   contentType.toLowerCase().includes('json');
@@ -60,21 +61,6 @@ export const isSharedRuntimeStyle = (
 ) =>
   output?.override.fetch.runtimeImplementationStyle === 'shared' &&
   output.client === OutputClient.FETCH;
-
-/**
- * Whether a custom mutator receives the response's zod schema as `schema:`.
- * When the response also has a date deserializer, the inline style's schema
- * converts dates first. The emitted option and the `zod` import decision both
- * read this.
- */
-export const passesZodSchemaToMutator = (
-  mutator: GeneratorVerbOptions['mutator'],
-  context: ContextSpec,
-) =>
-  mutator !== undefined &&
-  !!context.output.override.includeZodSchemaInArguments &&
-  isObject(context.output.schemas) &&
-  context.output.schemas.type === 'zod';
 
 const usesClientConfig = (
   output: NormalizedOutputOptions,
@@ -90,7 +76,7 @@ const getRuntimeImportPath = (
   getImportExtension(output.fileExtension, output.tsconfig);
 
 export const getSharedRuntimeImports = (
-  { mutator, response }: GeneratorVerbOptions,
+  { mutator, override, response }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
 ): GeneratorImport[] => {
   const { output } = context;
@@ -109,64 +95,62 @@ export const getSharedRuntimeImports = (
         output.override.fetch.clientConfigOutputPath,
       )
     : runtimePath;
+  const hasEnvelope = override.fetch.includeHttpResponseReturnType;
   const hasStream = response.contentTypes.some(isContentTypeNdJson);
 
   return [
     { name: 'execute', values: true, importPath: executePath },
     { name: 'serializeQuery', values: true, importPath: runtimePath },
     { name: 'CallOptions', importPath: runtimePath },
-    { name: 'ResponseOf', importPath: runtimePath },
-    ...(hasStream ? [{ name: 'Stream', importPath: runtimePath }] : []),
+    ...(hasEnvelope ? [{ name: 'ResponseOf', importPath: runtimePath }] : []),
+    ...(hasEnvelope && hasStream
+      ? [{ name: 'Stream', importPath: runtimePath }]
+      : []),
   ];
 };
 
 /**
- * The zod schema `execute` hands the client-config mutator as `schema:`, the
- * same one the inline style passes it (#4344), with the response imports
- * rewritten so that schema is a value import. The shared runtime converts no
- * dates, so the schema is passed as is.
+ * The zod schema a verb's response is validated with, under the same rules as
+ * the inline style: generated code parses it in `transform`, while a
+ * client-config mutator receives it as `schema:` (#4344) and keeps the input
+ * type names. `imports` are the response imports rewritten so the schema is a
+ * value import.
  */
-const getMutatorSchema = (
+const getResponseValidation = (
   { mutator, override, response }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
 ) => {
   const responseType = response.definition.success;
+  const hasClientMutator = usesClientConfig(context.output, mutator);
   if (
-    !usesClientConfig(context.output, mutator) ||
-    !passesZodSchemaToMutator(mutator, context) ||
     !override.fetch.runtimeValidation.enabled ||
+    !isObject(context.output.schemas) ||
+    context.output.schemas.type !== 'zod' ||
+    (hasClientMutator && !passesZodSchemaToMutator(mutator, context)) ||
     isPrimitiveResponseType(responseType) ||
     response.contentTypes.some(isContentTypeNdJson)
   ) {
     return undefined;
   }
 
-  if (hasSchemaImport(response.imports, responseType)) {
-    return {
-      schemaRef: getSchemaValueRef(responseType),
-      imports: rewriteImportsForResponseValidation(
-        response.imports,
-        responseType,
-        { includeOutputType: false },
-      ),
-      composesZod: false,
-    };
+  const arraySchema = hasSchemaImport(response.imports, responseType)
+    ? undefined
+    : getArrayResponseSchema(response.imports, responseType, getSchemaValueRef);
+  if (!hasSchemaImport(response.imports, responseType) && !arraySchema) {
+    return undefined;
   }
 
-  const arraySchema = getArrayResponseSchema(
-    response.imports,
-    responseType,
-    getSchemaValueRef,
-  );
-  if (!arraySchema) return undefined;
   return {
-    schemaRef: arraySchema.schemaRef,
+    schemaRef: arraySchema?.schemaRef ?? getSchemaValueRef(responseType),
+    outputTypeRef: hasClientMutator
+      ? undefined
+      : (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(responseType)),
     imports: rewriteImportsForResponseValidation(
       response.imports,
-      arraySchema.elementName,
-      { includeOutputType: false },
+      arraySchema?.elementName ?? responseType,
+      { includeOutputType: !hasClientMutator },
     ),
-    composesZod: true,
+    composesZod: arraySchema !== undefined,
   };
 };
 
@@ -178,13 +162,37 @@ const statusKeyLiteral = (key: string) => {
   return /^\d+$/.test(key) ? key : `'${key.toUpperCase()}'`;
 };
 
-const getResponseMap = ({ response, typeName }: GeneratorVerbOptions) => {
+/**
+ * The declared response type of a verb: a `ResponseOf` envelope alias, or
+ * with `includeHttpResponseReturnType: false` the bare success type.
+ */
+const getResponseTypes = (
+  { override, response, typeName }: GeneratorVerbOptions,
+  outputTypeRef: string | undefined,
+) => {
+  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
+  if (!override.fetch.includeHttpResponseReturnType) {
+    return {
+      declarations: '',
+      resultType:
+        outputTypeRef ?? (isNdJson ? 'Response' : response.definition.success),
+    };
+  }
+
   const allResponses = [...response.types.success, ...response.types.errors];
   const entries = new Map<string, string[]>();
   for (const { key, value, contentType } of allResponses) {
+    // A validated body is parsed, so it is typed as the schema's output.
+    const isValidated =
+      outputTypeRef !== undefined &&
+      response.types.success.some((success) => success.key === key) &&
+      value === response.definition.success &&
+      (contentType === '' || isContentTypeJson(contentType));
     const dataType = isContentTypeNdJson(contentType)
       ? `Stream<${value || 'unknown'}>`
-      : value || 'unknown';
+      : isValidated
+        ? outputTypeRef
+        : value || 'unknown';
     const dataTypes = entries.get(key) ?? [];
     if (!dataTypes.includes(dataType)) dataTypes.push(dataType);
     entries.set(key, dataTypes);
@@ -194,8 +202,27 @@ const getResponseMap = ({ response, typeName }: GeneratorVerbOptions) => {
   const members = [...entries.entries()].map(
     ([key, dataTypes]) => `${statusKeyLiteral(key)}: ${dataTypes.join(' | ')}`,
   );
+  const map = `{ ${members.join('; ')} }`;
+  const headersType = override.fetch.serializeResponseHeaders
+    ? 'Record<string, string>'
+    : undefined;
 
-  return `export type ${typeName}Response = ResponseOf<{ ${members.join('; ')} }>;\n`;
+  const successKeys = [
+    ...new Set(response.types.success.map(({ key }) => key)),
+  ];
+  if (override.fetch.forceSuccessResponse && successKeys.length > 0) {
+    const resultType = `${typeName}ResponseSuccess`;
+    return {
+      declarations: `export type ${resultType} = ResponseOf<${map}, ${headersType ?? 'Headers'}, ${successKeys.map(statusKeyLiteral).join(' | ')}>;\n`,
+      resultType,
+    };
+  }
+
+  const resultType = `${typeName}Response`;
+  return {
+    declarations: `export type ${resultType} = ResponseOf<${map}${headersType ? `, ${headersType}` : ''}>;\n`,
+    resultType,
+  };
 };
 
 const getResponseType = ({
@@ -222,9 +249,11 @@ export const generateSharedRequestFunction = (
   const {
     body,
     doc,
+    fetchReviver,
     formData,
     formUrlEncoded,
     headers,
+    mutator,
     operationName,
     override,
     params,
@@ -232,7 +261,6 @@ export const generateSharedRequestFunction = (
     props,
     queryParams,
     response,
-    typeName,
     verb,
   } = verbOptions;
   const { context, pathRoute } = options;
@@ -346,47 +374,160 @@ export const generateSharedRequestFunction = (
   const runtimeContentType = isFormDataContentType(body.contentType)
     ? 'multipart/form-data'
     : body.contentType;
-  const mutatorSchema = getMutatorSchema(verbOptions, options);
+  const hasClientMutator = usesClientConfig(context.output, mutator);
+  const validation = getResponseValidation(verbOptions, options);
+  const { declarations, resultType } = getResponseTypes(
+    verbOptions,
+    validation?.outputTypeRef,
+  );
+  const successType = response.definition.success;
+
+  // Dates are converted before the response is validated, as inline does.
+  const dateDeserializer = getResponseDateDeserializer(verbOptions, context);
+  const requestSerializer = getIsDatesTransformEnabled(override, context)
+    ? generateRequestDateSerializer({ operationName, body, context })
+    : undefined;
+  const successStatusCondition = (accessor: string) =>
+    getResponseStatusCondition({
+      key: response.types.success[0].key,
+      declaredKeys: [...response.types.success, ...response.types.errors].map(
+        ({ key }) => key,
+      ),
+      accessor,
+    });
+
+  const transform = (() => {
+    if (hasClientMutator || (!dateDeserializer && !validation)) {
+      return undefined;
+    }
+    const converted = dateDeserializer
+      ? `(${successStatusCondition('status')} ? ${dateDeserializer.name}(data as ${successType}) : data)`
+      : 'data';
+    if (!validation) return `(data, status) => ${converted}`;
+    const validated = emitResponseValidation({
+      schemaRef: validation.schemaRef,
+      operationName,
+      strategy: override.fetch.runtimeValidation.strategy,
+      context: 'fetch-assign',
+      inputExpression: converted,
+    });
+    // A primitive schema would reject an error body, so only a 2xx one is
+    // validated, as inline does.
+    const validatesPrimitive = response.types.success.some(
+      ({ value, schemas }) =>
+        schemas.some(
+          ({ name, schema }) =>
+            name === value &&
+            schema !== undefined &&
+            isPrimitiveResponseSchema(schema),
+        ),
+    );
+    return validatesPrimitive
+      ? `(data, status) => status >= 200 && status < 300 ? ${validated} : ${converted}`
+      : `(data${dateDeserializer ? ', status' : ''}) => ${validated}`;
+  })();
+
+  const mutatorSchemaRef =
+    hasClientMutator && validation
+      ? dateDeserializer
+        ? wrapSchemaWithDateDeserializer(
+            validation.schemaRef,
+            dateDeserializer,
+            successType,
+            context,
+          )
+        : validation.schemaRef
+      : undefined;
+  const errorResponses = getMutatorErrorResponses(verbOptions, context);
+  const { includeHttpResponseReturnType, forceSuccessResponse } =
+    override.fetch;
+
+  const bodyArgument = requestSerializer
+    ? `${requestSerializer.name}(${body.implementation})`
+    : body.implementation;
   const executeArgs = [
     `url: ${getUrlFnName}(${getUrlFnProperties})`,
     `method: '${verb.toUpperCase()}'`,
-    ...(body.implementation ? [`body: ${body.implementation}`] : []),
+    ...(body.implementation ? [`body: ${bodyArgument}`] : []),
     ...(body.implementation && body.contentType
       ? [`contentType: '${jsStringLiteralEscape(runtimeContentType)}'`]
       : []),
     ...(headersArgument ? [headersArgument] : []),
     ...(responseType ? [`responseType: '${responseType}'`] : []),
     ...(encodeBodyName ? [`encodeBody: ${encodeBodyName}`] : []),
-    ...(mutatorSchema ? [`schema: ${mutatorSchema.schemaRef}`] : []),
+    // A client-config mutator issues the request itself, so it only gets the
+    // schema and the error metadata.
+    ...(hasClientMutator
+      ? [
+          ...(mutatorSchemaRef ? [`schema: ${mutatorSchemaRef}`] : []),
+          ...(errorResponses
+            ? [`errorResponses: ${JSON.stringify(errorResponses)}`]
+            : []),
+        ]
+      : [
+          ...(fetchReviver ? [`reviver: ${fetchReviver.name}`] : []),
+          ...(transform ? [`transform: ${transform}`] : []),
+          ...(forceSuccessResponse ? ['throwOnError: true'] : []),
+          ...(includeHttpResponseReturnType ? [] : ['returnData: true']),
+          ...(includeHttpResponseReturnType &&
+          override.fetch.serializeResponseHeaders
+            ? ['serializeHeaders: true']
+            : []),
+        ]),
     'options',
   ];
 
+  // A client-config mutator returns the raw response, so its dates are
+  // converted after it resolves, as inline does.
+  const mutatorDateTransform =
+    hasClientMutator && dateDeserializer
+      ? includeHttpResponseReturnType
+        ? `.then((res) => {
+    if (${successStatusCondition('res.status')}) {
+      res.data = ${dateDeserializer.name}(res.data as ${successType});
+    }
+    return res;
+  })`
+        : `.then(${dateDeserializer.name})`
+      : '';
+
   const fetchImplementation = `export const ${operationName} = (${toObjectString(props, 'implementation')} options?: CallOptions) =>
-  execute<${typeName}Response>({
+  execute<${resultType}>({
     ${executeArgs.join(',\n    ')},
-  });
+  })${mutatorDateTransform};
 `;
 
-  return `${getResponseMap(verbOptions)}\n${getUrlFnImplementation}\n${encodeBodyImplementation}${doc}${fetchImplementation}\n`;
+  const dateTransformImplementations = [dateDeserializer, requestSerializer]
+    .filter((helper) => helper !== undefined)
+    .map(({ implementation }) => `\n${implementation}`)
+    .join('');
+
+  return `${declarations}\n${getUrlFnImplementation}\n${encodeBodyImplementation}${doc}${fetchImplementation}\n${dateTransformImplementations}`;
 };
 
 export const generateSharedClient = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ): GeneratorClient => {
-  const mutatorSchema = getMutatorSchema(verbOptions, options);
-  const importVerbOptions = mutatorSchema
+  const validation = getResponseValidation(verbOptions, options);
+  const importVerbOptions = validation
     ? {
         ...verbOptions,
-        response: { ...verbOptions.response, imports: mutatorSchema.imports },
+        response: { ...verbOptions.response, imports: validation.imports },
       }
     : verbOptions;
+  const composesZod =
+    validation !== undefined &&
+    (validation.composesZod ||
+      (usesClientConfig(options.context.output, verbOptions.mutator) &&
+        getResponseDateDeserializer(verbOptions, options.context) !==
+          undefined));
   return {
     implementation: generateSharedRequestFunction(verbOptions, options),
     imports: [
       ...generateVerbImports(importVerbOptions),
       ...getSharedRuntimeImports(verbOptions, options),
-      ...(mutatorSchema?.composesZod
+      ...(composesZod
         ? [getZodNamespaceImport(options.context.output.override)]
         : []),
     ],
