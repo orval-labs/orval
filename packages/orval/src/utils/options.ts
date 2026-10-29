@@ -843,7 +843,9 @@ export async function normalizeOptions(
       parserOptions: inputOptions.parserOptions,
     },
     output: {
-      target: outputTarget,
+      // Unset only for schemas-only outputs (validated below); the API builder
+      // and writers check for it before generating operations.
+      target: outputTarget as string,
       schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
       operationSchemas: outputOptions.operationSchemas
         ? normalizePath(outputOptions.operationSchemas, outputWorkspace)

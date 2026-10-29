@@ -197,8 +197,12 @@ export async function getApiBuilder({
         resolvedVerbs.servers ?? context.spec.servers,
         output.baseUrl,
       );
+      acc.schemas.push(...schemas);
+
+      // `schemas` without `target` is a schemas-only output: keep the
+      // operation-derived schemas but emit no operations.
       if (!output.target) {
-        throw new Error('Output does not have a target');
+        return acc;
       }
       const pathOperations = await generateOperations(
         output.client,
@@ -217,7 +221,6 @@ export async function getApiBuilder({
         acc.verbOptions[verbOption.operationId] = verbOption;
         acc.operationVerbOptions?.push(verbOption);
       }
-      acc.schemas.push(...schemas);
       for (const [key, value] of Object.entries(pathOperations)) {
         let operationKey = key;
         let counter = 1;

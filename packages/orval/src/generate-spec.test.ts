@@ -762,6 +762,40 @@ describe('generateSpec - schemas: false', () => {
   });
 });
 
+describe('generateSpec - schemas without target', () => {
+  it.each(['zod', 'axios'] as const)(
+    'writes only schema files when %s output has no target',
+    async (client) => {
+      const workspace = await createTempWorkspace();
+      const schemasDir = path.join(workspace, 'model');
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: PETSTORE_SPEC },
+            output: {
+              client,
+              schemas:
+                client === 'zod' ? { path: './model', type: 'zod' } : './model',
+            },
+          },
+          workspace,
+        );
+
+        await generateSpec(workspace, options);
+
+        expect((await readdir(workspace)).toSorted()).toEqual(['model']);
+        const schemaFiles = await readdir(schemasDir);
+        expect(schemaFiles).toContain(
+          client === 'zod' ? 'pet.zod.ts' : 'pet.ts',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
   // Regression for #3463 follow-up: with `client: 'zod'` +
   // `generateReusableSchemas` + operations + no `schemas:` dir, operations
