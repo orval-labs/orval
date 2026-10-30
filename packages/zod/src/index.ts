@@ -1143,16 +1143,28 @@ export const generateZodValidationSchemaDefinition = (
       return { functions, consts };
     }
 
-    logger.verbose(
-      requiredBySibling
-        ? `$ref ${schema.$ref} has properties required by a sibling allOf member; falling back to inlining.`
-        : `$ref ${schema.$ref} has non-chainable siblings ` +
-            `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
-    );
-    schema = dereference(
-      schema as OpenApiSchemaObject | OpenApiReferenceObject,
-      context,
-    );
+    if (allSiblingsChainable) {
+      // Inline only this level, so nested `$ref`s (recursive ones included)
+      // stay named references instead of being dereferenced to `{}`.
+      logger.verbose(
+        `$ref ${schema.$ref} has properties required by a sibling allOf member; inlining one level.`,
+      );
+      schema = toObjectSchema(
+        resolveShallow(
+          schema as OpenApiSchemaObject | OpenApiReferenceObject,
+          context,
+        ),
+      );
+    } else {
+      logger.verbose(
+        `$ref ${schema.$ref} has non-chainable siblings ` +
+          `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
+      );
+      schema = dereference(
+        schema as OpenApiSchemaObject | OpenApiReferenceObject,
+        context,
+      );
+    }
   }
 
   // Dynamic-ref-aware path: when useReusableSchemas is true, resolve the

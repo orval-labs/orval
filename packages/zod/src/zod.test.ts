@@ -5928,6 +5928,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
                 required: ['b'],
                 properties: { a: { type: 'string' }, b: { type: 'string' } },
               },
+              Node: {
+                type: 'object',
+                properties: {
+                  a: { type: 'string' },
+                  next: { $ref: '#/components/schemas/Node' },
+                },
+              },
               Mid: {
                 allOf: [
                   { $ref: '#/components/schemas/Base' },
@@ -5974,7 +5981,16 @@ describe('generateZodValidationSchemaDefinition`', () => {
         const { zod, usedRefs } = render(['c'], 'Mid');
         expect(zod).toContain('"c": zod.string()');
         expect(zod).not.toContain('"c": zod.string().optional()');
-        expect(usedRefs.size).toBe(0);
+        // Only `Mid` is inlined; its `Base` member does not hold `c`.
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it('keeps nested refs named when inlining a recursive schema', () => {
+        const { zod, usedRefs } = render(['a'], 'Node');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(zod).toContain('"next": __REF_Node__.optional()');
+        expect(usedRefs).toEqual(new Set(['Node']));
       });
 
       it('keeps the named schema when it already requires the key', () => {
