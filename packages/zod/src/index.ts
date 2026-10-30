@@ -2378,8 +2378,11 @@ export const generateZodValidationSchemaDefinition = (
           .join(', ')}]`,
       ]);
     } else {
+      // `enum` means "equals one of the values", not an exclusive union: a
+      // repeated value (`[1, 'a', 1]`, or `[1, 1.0]`, which parse to the same
+      // number) would match two literals and fail `zod.xor`, so use `anyOf`.
       functions.push([
-        'oneOf',
+        'anyOf',
         enumMembers.map((member) => ({
           functions: [
             [

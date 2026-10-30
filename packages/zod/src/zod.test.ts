@@ -3550,7 +3550,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4152,7 +4152,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4198,7 +4198,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4239,7 +4239,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4279,7 +4279,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['oneOf', [{ functions: [['literal', 1]], consts: [] }]],
+          ['anyOf', [{ functions: [['literal', 1]], consts: [] }]],
           ['optional', undefined],
         ],
         consts: [],
@@ -4312,7 +4312,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', "'cat'"]], consts: [] },
               { functions: [['literal', 1]], consts: [] },
@@ -13594,7 +13594,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.functions).toContainEqual([
-      'oneOf',
+      'anyOf',
       [
         {
           functions: [['literal', String.raw`'App\\Models\\Document'`]],
@@ -15599,6 +15599,16 @@ describe('oneOf as zod.xor', () => {
     expect(
       render({ anyOf: [{ type: 'string' }, { type: 'number' }] }, true),
     ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps zod.union for a mixed-type enum, which is not exclusive (#4395)', () => {
+    // `enum` means "equals one of the values"; repeated values are deduped.
+    expect(render({ enum: [1, 'a', 1] } as OpenApiSchemaObject, true)).toBe(
+      `zod.union([zod.literal(1),zod.literal('a')])`,
+    );
+    expect(
+      render({ enum: [1, 'a'] } as OpenApiSchemaObject, true, 'mini'),
+    ).toContain('zod.union([');
   });
 
   it('keeps zod.union for type arrays, whose members can overlap', () => {

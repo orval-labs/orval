@@ -2493,7 +2493,7 @@ Behavior:
 - **Not with coerced branches.** [Coercion](#coerce) can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`), so a `oneOf` stays `zod.union([...])` when any branch, including its nested properties, is coerced. A coerce list that matches no branch (`coerce: ['date']` with `oneOf: [string, number]`) keeps `zod.xor`. A branch that references a [reusable schema](#generatereusableschemas) counts as coerced whenever coercion is enabled.
 - **Not when a branch renders looser than the spec.** Orval drops keywords it cannot express (`not`, `if`/`then`/`else`, `patternProperties`, `dependentRequired`, …), and `{}` or a `required`-only branch with no sibling `properties` renders as `zod.unknown()`. Two such branches both match, so `zod.xor` would reject valid input (`oneOf: [{ required: ['x'] }, { required: ['y'] }]` would reject everything). A `oneOf` with any such branch stays `zod.union([...])`.
 - **Not with a `discriminator`.** The discriminator picks the branch by value, and branches sharing a value would both match, so such a `oneOf` stays `zod.union([...])`, or `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](#generatediscriminatedunion) is enabled.
-- `anyOf` and type arrays (`type: ['integer', 'number']`) always stay `zod.union([...])`.
+- `anyOf`, type arrays (`type: ['integer', 'number']`) and mixed-type `enum`s (`enum: [1, 'a']`) always stay `zod.union([...])`.
 - Works with the [`mini`](#variant) variant.
 
 ### exactOptional

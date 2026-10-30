@@ -143,7 +143,7 @@ The override only selects Zod 3 or Zod 4 syntax. Output that depends on a specif
 
 ### `oneOf` and `anyOf`
 
-Both `oneOf` and `anyOf` are emitted as `zod.union([...])` by default. `oneOf` means exactly one branch must match, so set [`generateXor`](/docs/reference/configuration/output#generatexor) to emit it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor) on Zod 4.2+. It is opt-in because non-strict object branches strip unknown keys, so a payload for a subtype also matches its supertype (`oneOf: [Pet, Dog]` where `Dog` extends `Pet`) and `zod.xor` rejects it. `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`), whose members can overlap. Even with `generateXor`, `oneOf` stays `zod.union([...])`:
+Both `oneOf` and `anyOf` are emitted as `zod.union([...])` by default. `oneOf` means exactly one branch must match, so set [`generateXor`](/docs/reference/configuration/output#generatexor) to emit it as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor) on Zod 4.2+. It is opt-in because non-strict object branches strip unknown keys, so a payload for a subtype also matches its supertype (`oneOf: [Pet, Dog]` where `Dog` extends `Pet`) and `zod.xor` rejects it. `anyOf` stays a `zod.union([...])`, and so do type arrays (`type: ['integer', 'number']`), whose members can overlap, and mixed-type `enum`s, which mean "equals one of the values". Even with `generateXor`, `oneOf` stays `zod.union([...])`:
 
 - on Zod 3 and Zod 4.0/4.1, which have no `xor`, or when no `zod` version can be detected;
 - when a branch is [coerced](/docs/reference/configuration/output#coerce), since coercion can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`);

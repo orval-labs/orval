@@ -30,8 +30,8 @@ export const GetItemsWithMultiplePropsResponseItem = zod.object({
     .optional(),
   world: zod
     .xor([
-      zod.xor([zod.literal(1), zod.literal(2), zod.literal(3)]),
-      zod.xor([zod.literal(true), zod.literal(false)]),
+      zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]),
+      zod.union([zod.literal(true), zod.literal(false)]),
       zod.null(),
     ])
     .optional(),
@@ -56,8 +56,8 @@ export const GetNestedItemsResponseItem = zod.object({
         .optional(),
       world: zod
         .xor([
-          zod.xor([zod.literal(1), zod.literal(2), zod.literal(3)]),
-          zod.xor([zod.literal(true), zod.literal(false)]),
+          zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]),
+          zod.union([zod.literal(true), zod.literal(false)]),
           zod.null(),
         ])
         .optional(),
@@ -87,35 +87,35 @@ export const GetMixedTypeEnumsResponseItem = zod.object({
   numberEnum: zod
     .xor([
       zod
-        .xor([
+        .union([
           zod.literal(1.5),
           zod.literal(2.5),
           zod.literal(3.5),
           zod.literal(null),
         ])
         .nullable(),
-      zod.xor([zod.literal(100.1), zod.literal(200.2)]),
+      zod.union([zod.literal(100.1), zod.literal(200.2)]),
       zod.null(),
     ])
     .optional(),
   integerEnum: zod
     .xor([
       zod
-        .xor([
+        .union([
           zod.literal(10),
           zod.literal(20),
           zod.literal(30),
           zod.literal(null),
         ])
         .nullable(),
-      zod.xor([zod.literal(1000), zod.literal(2000)]),
+      zod.union([zod.literal(1000), zod.literal(2000)]),
       zod.null(),
     ])
     .optional(),
   booleanEnum: zod
     .xor([
       zod
-        .xor([zod.literal(true), zod.literal(false), zod.literal(null)])
+        .union([zod.literal(true), zod.literal(false), zod.literal(null)])
         .nullable(),
       zod.literal(true),
       zod.null(),

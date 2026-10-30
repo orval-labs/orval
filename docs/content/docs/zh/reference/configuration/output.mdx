@@ -2067,7 +2067,7 @@ export const Id = zod.xor([zod.string(), zod.number()]);
 - **分支被类型转换时不生效。** [类型转换](#coerce)可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`），因此只要任一分支（包括其嵌套属性）被类型转换，`oneOf` 就仍输出为 `zod.union([...])`。不匹配任何分支的 coerce 列表（例如 `oneOf: [string, number]` 搭配 `coerce: ['date']`）仍会输出 `zod.xor`。引用了[可复用 schema](#generatereusableschemas) 的分支，只要启用了类型转换就视为被转换。
 - **分支的输出比规范更宽松时不生效。** Orval 会丢弃无法表达的关键字（`not`、`if`/`then`/`else`、`patternProperties`、`dependentRequired` 等），而 `{}` 以及没有同级 `properties` 的仅含 `required` 的分支会输出为 `zod.unknown()`。两个这样的分支会同时匹配，`zod.xor` 因而会拒绝合法输入（`oneOf: [{ required: ['x'] }, { required: ['y'] }]` 会拒绝所有值）。只要含有这样的分支，`oneOf` 就仍输出为 `zod.union([...])`。
 - **带 `discriminator` 时不生效。** discriminator 按值选择分支，若多个分支共用同一个值就会同时匹配，因此这样的 `oneOf` 仍输出为 `zod.union([...])`；启用 [`generateDiscriminatedUnion`](#generatediscriminatedunion) 时则输出为 `zod.discriminatedUnion(...)`。
-- `anyOf` 和类型数组（`type: ['integer', 'number']`）始终输出为 `zod.union([...])`。
+- `anyOf`、类型数组（`type: ['integer', 'number']`）和混合类型的 `enum`（`enum: [1, 'a']`）始终输出为 `zod.union([...])`。
 - 同样支持 [`mini`](#variant) 变体。
 
 ### exactOptional
