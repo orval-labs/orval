@@ -564,6 +564,34 @@ const getDefaultProperties = (
   return Object.keys(merged).length > 0 ? merged : undefined;
 };
 
+/**
+ * The `required` keys a schema enforces at its own object level, including
+ * those of its (resolved) `allOf` members.
+ *
+ * @param seen Nodes on the current recursion path, guarding against a
+ *   self-referential `allOf`
+ */
+const getAllOfRequiredKeys = (
+  schema: OpenApiNonBooleanSchemaObject,
+  name: string,
+  context: ContextSpec,
+  seen = new Set<object>(),
+): string[] => {
+  const own: string[] = getRequiredKeys(schema, name);
+  if (!schema.allOf || seen.has(schema)) return own;
+
+  seen.add(schema);
+  const inherited = schema.allOf.flatMap((member, index) => {
+    const resolved = resolveUnionMemberSchema(member, context);
+    return resolved
+      ? getAllOfRequiredKeys(resolved, `${name}.allOf[${index}]`, context, seen)
+      : [];
+  });
+  seen.delete(schema);
+
+  return [...own, ...inherited];
+};
+
 // A schema that renders to a single `zod.object({...})` — i.e. not a union,
 // not an intersection (`allOf`), and shaped like an object.
 const isPlainObjectSchema = (
@@ -1071,7 +1099,31 @@ export const generateZodValidationSchemaDefinition = (
     const siblings = Object.keys(schema).filter((k) => k !== '$ref');
     const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
-    if (allSiblingsChainable) {
+    // A sibling `allOf` member may require a key that the referenced schema
+    // declares but leaves optional. The named schema cannot carry that, so
+    // inline it and let `additionalRequired` mark the key.
+    const additionalRequired = rules.additionalRequired ?? [];
+    const resolvedRef =
+      additionalRequired.length > 0
+        ? resolveUnionMemberSchema(
+            schema as OpenApiSchemaObject | OpenApiReferenceObject,
+            context,
+          )
+        : undefined;
+    const refProperties = resolvedRef
+      ? getDefaultProperties(resolvedRef, context)
+      : undefined;
+    const refRequired = resolvedRef
+      ? getAllOfRequiredKeys(resolvedRef, schema.$ref, context)
+      : [];
+    const requiredBySibling =
+      refProperties !== undefined &&
+      additionalRequired.some(
+        (key) =>
+          Object.hasOwn(refProperties, key) && !refRequired.includes(key),
+      );
+
+    if (allSiblingsChainable && !requiredBySibling) {
       const refName = getRefInfo(schema.$ref, context).name;
       const functions: [string, unknown][] = [
         ['namedRef', { name: refName, sourceRef: schema.$ref }],
@@ -1092,8 +1144,10 @@ export const generateZodValidationSchemaDefinition = (
     }
 
     logger.verbose(
-      `$ref ${schema.$ref} has non-chainable siblings ` +
-        `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
+      requiredBySibling
+        ? `$ref ${schema.$ref} has properties required by a sibling allOf member; falling back to inlining.`
+        : `$ref ${schema.$ref} has non-chainable siblings ` +
+            `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
     );
     schema = dereference(
       schema as OpenApiSchemaObject | OpenApiReferenceObject,
@@ -1328,6 +1382,9 @@ export const generateZodValidationSchemaDefinition = (
       ? [
           ...new Set([
             ...getRequiredKeys(schema, name),
+            // Keys required by an outer `allOf` this one is a member of. It is
+            // still the same object level, so they reach these members too.
+            ...(rules?.additionalRequired ?? []),
             ...schemas.flatMap((member, index) => {
               // Only the member's top-level `required` is needed. For `$ref`
               // members resolve shallowly (no deep property dereference) and

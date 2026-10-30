@@ -1725,6 +1725,49 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.optional()');
   });
 
+  it('applies a required array from an outer allOf member to properties of a nested allOf (issue #4402)', () => {
+    const base: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { a: { type: 'string' }, b: { type: 'string' } },
+    };
+    const mid: OpenApiSchemaObject = {
+      allOf: [base, { type: 'object', properties: { c: { type: 'string' } } }],
+    };
+    const leaf: OpenApiSchemaObject = {
+      allOf: [
+        mid,
+        {
+          type: 'object',
+          required: ['a', 'c'],
+          properties: { d: { type: 'string' } },
+        },
+      ],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        leaf,
+        createTestContextSpec({ output: { override: { useDates: false } } }),
+        'leaf',
+        false,
+        false,
+        { required: true },
+      ),
+      createTestContextSpec({ output: { override: { useDates: false } } }),
+      false,
+      false,
+      false,
+    );
+
+    // `a` (two levels down) and `c` (one level down) are required by Leaf.
+    expect(parsed.zod).toContain('"a": zod.string()');
+    expect(parsed.zod).not.toContain('"a": zod.string().optional()');
+    expect(parsed.zod).toContain('"c": zod.string()');
+    expect(parsed.zod).not.toContain('"c": zod.string().optional()');
+    expect(parsed.zod).toContain('"b": zod.string().optional()');
+    expect(parsed.zod).toContain('"d": zod.string().optional()');
+  });
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
@@ -5873,6 +5916,72 @@ describe('generateZodValidationSchemaDefinition`', () => {
           String.raw`'Subject identifier.\n\nMust be normalized first.'`,
         ],
       ]);
+    });
+
+    describe('allOf $ref whose properties a sibling member requires (issue #4402)', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Base: {
+                type: 'object',
+                required: ['b'],
+                properties: { a: { type: 'string' }, b: { type: 'string' } },
+              },
+              Mid: {
+                allOf: [
+                  { $ref: '#/components/schemas/Base' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
+            },
+          },
+        },
+      });
+      const render = (required: string[], ref = 'Base') =>
+        parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            {
+              allOf: [
+                { $ref: `#/components/schemas/${ref}` },
+                {
+                  type: 'object',
+                  required,
+                  properties: { d: { type: 'string' } },
+                },
+              ],
+            },
+            context,
+            'child',
+            false,
+            false,
+            { required: true, useReusableSchemas: true },
+          ),
+          context,
+          false,
+          false,
+          false,
+        );
+
+      it('inlines the $ref so the required key is enforced', () => {
+        const { zod, usedRefs } = render(['a']);
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs.size).toBe(0);
+      });
+
+      it('inlines a $ref to a nested allOf', () => {
+        const { zod, usedRefs } = render(['c'], 'Mid');
+        expect(zod).toContain('"c": zod.string()');
+        expect(zod).not.toContain('"c": zod.string().optional()');
+        expect(usedRefs.size).toBe(0);
+      });
+
+      it('keeps the named schema when it already requires the key', () => {
+        const { zod, usedRefs } = render(['b', 'd']);
+        expect(zod).toContain('__REF_Base__');
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
     });
 
     describe.each([
