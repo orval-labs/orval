@@ -957,7 +957,7 @@ describe('shared runtime options', () => {
   });
 
   it.each([
-    ['throw', 'transform: (data) => Pet.parse(data)'],
+    ['throw', 'validate: (data) => Pet.parse(data)'],
     ['both', 'const result = Pet.safeParse(data);'],
   ] as const)(
     'validates the response with the %s strategy as the zod output type',
@@ -1080,6 +1080,23 @@ describe('shared runtime options', () => {
       );
 
       expect(result).toBe('plain');
+    });
+
+    it('validates only a response declared as JSON, as inline does', async () => {
+      const validate = (data: unknown) => ({ validated: data });
+      const transform = () => 'transformed';
+
+      // No Content-Type: inline neither parses nor validates the body.
+      expect(
+        await call({ validate, returnData: true }, '{"n":1}', 200, ''),
+      ).toBe('{"n":1}');
+      // An empty JSON body is validated as `{}`, but not converted.
+      expect(await call({ validate, transform, returnData: true }, '')).toEqual(
+        { validated: {} },
+      );
+      expect(
+        await call({ validate, transform, returnData: true }, '{"n":1}'),
+      ).toEqual({ validated: 'transformed' });
     });
 
     it('throws the decoded error body without transforming it', async () => {

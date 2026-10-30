@@ -396,20 +396,20 @@ export const generateSharedRequestFunction = (
       accessor,
     });
 
-  const transform = (() => {
-    if (hasClientMutator || (!dateDeserializer && !validation)) {
-      return undefined;
-    }
-    const converted = dateDeserializer
-      ? `(${successStatusCondition('status')} ? ${dateDeserializer.name}(data as ${successType}) : data)`
-      : 'data';
-    if (!validation) return `(data, status) => ${converted}`;
+  // Like inline, dates are converted in a non-empty JSON body, before the
+  // body is validated, and validation runs whenever the response is JSON.
+  const transform =
+    !hasClientMutator && dateDeserializer
+      ? `(data, status) => ${successStatusCondition('status')} ? ${dateDeserializer.name}(data as ${successType}) : data`
+      : undefined;
+  const validate = (() => {
+    if (hasClientMutator || !validation) return undefined;
     const validated = emitResponseValidation({
       schemaRef: validation.schemaRef,
       operationName,
       strategy: override.fetch.runtimeValidation.strategy,
       context: 'fetch-assign',
-      inputExpression: converted,
+      inputExpression: 'data',
     });
     // A primitive schema would reject an error body, so only a 2xx one is
     // validated, as inline does.
@@ -423,8 +423,8 @@ export const generateSharedRequestFunction = (
         ),
     );
     return validatesPrimitive
-      ? `(data, status) => status >= 200 && status < 300 ? ${validated} : ${converted}`
-      : `(data${dateDeserializer ? ', status' : ''}) => ${validated}`;
+      ? `(data, status) => status >= 200 && status < 300 ? ${validated} : data`
+      : `(data) => ${validated}`;
   })();
 
   const mutatorSchemaRef =
@@ -467,6 +467,7 @@ export const generateSharedRequestFunction = (
       : [
           ...(fetchReviver ? [`reviver: ${fetchReviver.name}`] : []),
           ...(transform ? [`transform: ${transform}`] : []),
+          ...(validate ? [`validate: ${validate}`] : []),
           ...(forceSuccessResponse ? ['throwOnError: true'] : []),
           ...(includeHttpResponseReturnType ? [] : ['returnData: true']),
           ...(includeHttpResponseReturnType &&

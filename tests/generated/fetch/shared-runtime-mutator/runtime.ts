@@ -68,6 +68,7 @@ export interface ExecuteArgs {
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   reviver?: (key: string, value: unknown) => unknown;
   transform?: (data: unknown, status: number) => unknown;
+  validate?: (data: unknown, status: number) => unknown;
   throwOnError?: boolean;
   returnData?: boolean;
   serializeHeaders?: boolean;
@@ -300,7 +301,7 @@ const getResponseHeaders = (res: Response, args: ExecuteArgs) =>
 
 const decodeResponseBody = async (
   res: Response,
-  { responseType, reviver, transform }: ExecuteArgs,
+  { responseType, reviver, transform, validate }: ExecuteArgs,
 ): Promise<unknown> => {
   const parseJson = (body: string) => {
     const data: unknown = JSON.parse(body, reviver);
@@ -315,10 +316,12 @@ const decodeResponseBody = async (
 
   if (responseType === 'text') return body !== null ? body : '';
 
-  if (responseType === 'auto' || responseType === 'void') {
-    if (!body) return responseType === 'void' ? undefined : {};
+  if (responseType === 'auto' || responseType === 'void' || validate) {
+    const empty = responseType === 'void' ? undefined : {};
     const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
-    return contentType.includes('json') ? parseJson(body) : body;
+    if (!contentType.includes('json')) return body ? body : empty;
+    const data = body ? parseJson(body) : empty;
+    return validate ? validate(data, res.status) : data;
   }
 
   return body ? parseJson(body) : {};
@@ -357,7 +360,11 @@ export const execute = async <R>(
   if (args.throwOnError && !res.ok) {
     const err: globalThis.Error & { info?: unknown; status?: number } =
       new globalThis.Error();
-    err.info = await decodeResponseBody(res, { ...args, transform: undefined });
+    err.info = await decodeResponseBody(res, {
+      ...args,
+      transform: undefined,
+      validate: undefined,
+    });
     err.status = res.status;
     throw err;
   }
