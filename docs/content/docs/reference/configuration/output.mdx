@@ -2488,7 +2488,9 @@ Behavior:
 - **Overlapping branches fail.** Non-strict object branches strip unknown keys, so a payload for a subtype also matches its supertype (`oneOf: [Pet, Dog]` where `Dog` extends `Pet` via `allOf`), and so does any payload when every field of a branch is optional. `zod.xor` rejects those payloads, so enable this only when your `oneOf` branches are disjoint (distinct primitive types, literals, or [`strict`](#strict) objects).
 - **Zod 4.2+ only.** Zod 3 and Zod 4.0/4.1 have no `xor`, so `oneOf` stays `zod.union([...])` there. The check follows the resolved `zod` version, not the `version` override.
 - **Not with [`coerce`](#coerce).** Coercion can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`), so `oneOf` stays `zod.union([...])` when coercion is enabled.
-- `anyOf` and type arrays (`type: ['integer', 'number']`) always stay `zod.union([...])`, and a `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](#generatediscriminatedunion) is enabled.
+- **Not when a branch renders looser than the spec.** Orval drops keywords it cannot express (`not`, `if`/`then`/`else`, `patternProperties`, `dependentRequired`, …), and `{}` or a `required`-only branch with no sibling `properties` renders as `zod.unknown()`. Two such branches both match, so `zod.xor` would reject valid input (`oneOf: [{ required: ['x'] }, { required: ['y'] }]` would reject everything). A `oneOf` with any such branch stays `zod.union([...])`.
+- **Not with a `discriminator`.** The discriminator picks the branch by value, and branches sharing a value would both match, so such a `oneOf` stays `zod.union([...])`, or `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](#generatediscriminatedunion) is enabled.
+- `anyOf` and type arrays (`type: ['integer', 'number']`) always stay `zod.union([...])`.
 - Works with the [`mini`](#variant) variant.
 
 ### exactOptional

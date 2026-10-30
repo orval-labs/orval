@@ -638,6 +638,101 @@ const getForbiddenKeys = (
   return forbidden.size > 0 ? [...forbidden] : undefined;
 };
 
+// --- Exclusive unions -----------------------------------------------------
+//
+// `zod.xor` rejects a value that matches more than one branch, so it is only
+// sound when every branch is rendered exactly. Where the rendering is looser
+// than the spec, a plain union merely validates loosely, but `xor` sees two
+// loose branches both match and rejects valid input: with
+// `oneOf: [{ required: ['x'] }, { required: ['y'] }]` and no sibling
+// `properties`, both branches render as `zod.unknown()` and every value fails.
+// (#4395)
+
+// Keywords this generator does not translate, so a schema carrying one renders
+// looser than the spec. `not` is listed too: only an empty `not` (`never`) and
+// the forbidden-keys form rewritten by `withSiblingProperties` are honoured.
+const DROPPED_KEYWORDS = [
+  'not',
+  'if',
+  'then',
+  'else',
+  'dependentSchemas',
+  'dependentRequired',
+  'dependencies',
+  'patternProperties',
+  'propertyNames',
+  'contains',
+  'unevaluatedProperties',
+] as const;
+
+// A rendered branch that accepts any value: `zod.unknown()` (`{}`, `true`, a
+// branch with only `required`/`not`/annotations), or a union with such a member.
+const isPermissiveDefinition = (
+  definition: ZodValidationSchemaDefinition,
+): boolean => {
+  const first = definition.functions.at(0);
+  if (!first) return true;
+  const [fn, args] = first;
+  if (fn === 'unknown' || fn === 'any') return true;
+  const base = decodeDiscriminatorSeparator(fn)?.base ?? fn;
+  if (base === 'oneOf' || base === 'anyOf') {
+    return (args as ZodValidationSchemaDefinition[]).some(
+      isPermissiveDefinition,
+    );
+  }
+  if (base === 'allOf') {
+    return (args as ZodValidationSchemaDefinition[]).every(
+      isPermissiveDefinition,
+    );
+  }
+  return false;
+};
+
+// Whether a branch, including nested schemas and `$ref` targets, avoids every
+// keyword in `DROPPED_KEYWORDS`. Unresolvable and recursive refs count as
+// lossy: inlining breaks a cycle with `{}`.
+const isFaithfullyRendered = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+  seen = new Set<string>(),
+): boolean => {
+  if (!isObject(schema)) return true;
+  if ('$ref' in schema && typeof schema.$ref === 'string') {
+    if (seen.has(schema.$ref)) return false;
+    const resolved = tryResolveRefSchema(schema.$ref, context);
+    if (!resolved) return false;
+    return isFaithfullyRendered(
+      resolved,
+      context,
+      new Set([...seen, schema.$ref]),
+    );
+  }
+  const concrete = schema as OpenApiNonBooleanSchemaObject;
+  if (
+    DROPPED_KEYWORDS.some(
+      (key) =>
+        key in concrete &&
+        !(
+          key === 'not' &&
+          isObject(concrete.not) &&
+          Object.keys(concrete.not).length === 0
+        ),
+    )
+  ) {
+    return false;
+  }
+  const children = [
+    ...Object.values(isObject(concrete.properties) ? concrete.properties : {}),
+    ...(Array.isArray(concrete.items) ? concrete.items : [concrete.items]),
+    ...(Array.isArray(concrete.prefixItems) ? concrete.prefixItems : []),
+    concrete.additionalProperties,
+    ...(concrete.allOf ?? []),
+    ...(concrete.oneOf ?? []),
+    ...(concrete.anyOf ?? []),
+  ] as (OpenApiSchemaObject | OpenApiReferenceObject | undefined)[];
+  return children.every((child) => isFaithfullyRendered(child, context, seen));
+};
+
 // The branch must declare the discriminator key as a literal value — a `const`
 // or an `enum`. Both zod v3 (>=3.20) and v4 build their branch lookup by
 // reading discrete literal values off each option, and throw at construction if
@@ -1408,13 +1503,35 @@ export const generateZodValidationSchemaDefinition = (
       useReusableSchemas &&
       (rules?.schemaExtension?.length ?? 0) > 0 &&
       schemas.some((member) => isObject(member) && '$ref' in member);
+    // `generateXor` renders `oneOf` as `zod.xor`, which is only sound when no
+    // branch renders looser than the spec (see `isFaithfullyRendered`). A
+    // `discriminator` picks the branch by value instead, and branches sharing a
+    // value would both match, so it stays a union too. Demoting to `anyOf`
+    // keeps `zod.union`.
+    const exclusiveSeparator =
+      separator === 'oneOf' &&
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
+      context.output?.override?.zod?.generateXor &&
+      (schema.discriminator !== undefined ||
+        baseSchemas.some(isPermissiveDefinition) ||
+        !schemas.every((member) =>
+          isFaithfullyRendered(
+            withSiblingProperties(withParentType(member)),
+            context,
+          ),
+        ))
+        ? 'anyOf'
+        : separator;
     const unionSeparator =
       discriminatorProperty &&
       (isZodV4 ||
         (!baseSchemas.some(hasRootRefinements) &&
           !hasPotentialReusableRefinements))
-        ? encodeDiscriminatorSeparator(separator, discriminatorProperty)
-        : separator;
+        ? encodeDiscriminatorSeparator(
+            exclusiveSeparator,
+            discriminatorProperty,
+          )
+        : exclusiveSeparator;
 
     // Handle allOf/oneOf/anyOf with additional properties - merge additional properties into the schema
     if ((schema.allOf || schema.oneOf || schema.anyOf) && schema.properties) {

@@ -15571,4 +15571,92 @@ describe('oneOf as zod.xor', () => {
       ),
     ).toContain('zod.xor([');
   });
+
+  describe('keeps zod.union when a branch renders looser than the spec (#4395)', () => {
+    const variants: ZodVariantOption[] = ['classic', 'mini'];
+
+    it.each(variants)(
+      'for required-only branches without sibling properties (%s)',
+      (variant) => {
+        const zod = render(
+          { oneOf: [{ required: ['x'] }, { required: ['y'] }] },
+          true,
+          variant,
+        );
+        expect(zod).toContain('zod.union([');
+        expect(zod).not.toContain('zod.xor(');
+      },
+    );
+
+    it('for an empty branch', () => {
+      expect(render({ oneOf: [{ type: 'string' }, {}] }, true)).toBe(
+        'zod.union([zod.string(),zod.unknown()])',
+      );
+    });
+
+    it('for a nested union with a permissive member', () => {
+      expect(
+        render(
+          {
+            oneOf: [{ type: 'string' }, { anyOf: [{ type: 'number' }, {}] }],
+          },
+          true,
+        ),
+      ).toContain('zod.union([zod.string(),');
+    });
+
+    it('for a branch carrying a keyword the generator drops', () => {
+      for (const branch of [
+        {
+          type: 'object',
+          properties: { a: { type: 'string', not: { pattern: '^x' } } },
+        },
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          patternProperties: { '^x': { type: 'number' } },
+        },
+      ] as OpenApiSchemaObject[]) {
+        const zod = render({ oneOf: [branch, { type: 'number' }] }, true);
+        expect(zod).not.toContain('zod.xor(');
+      }
+    });
+
+    it('for a discriminator, whose branches may share a value', () => {
+      const kind = (value: string): OpenApiSchemaObject => ({
+        type: 'object',
+        required: ['kind'],
+        properties: { kind: { type: 'string', enum: [value] } },
+      });
+
+      expect(
+        render(
+          {
+            oneOf: [kind('a'), kind('a')],
+            discriminator: { propertyName: 'kind' },
+          } as OpenApiSchemaObject,
+          true,
+        ),
+      ).not.toContain('zod.xor(');
+    });
+  });
+
+  it('emits zod.xor for required-only branches rewritten against sibling properties', () => {
+    expect(
+      render(
+        {
+          type: 'object',
+          properties: { x: { type: 'string' }, y: { type: 'string' } },
+          oneOf: [{ required: ['x'] }, { required: ['y'] }],
+        } as OpenApiSchemaObject,
+        true,
+      ),
+    ).toContain('zod.xor([');
+  });
+
+  it('keeps zod.xor for an empty `not`, which renders as zod.never()', () => {
+    expect(render({ oneOf: [{ type: 'string' }, { not: {} }] }, true)).toBe(
+      'zod.xor([zod.string(),zod.never()])',
+    );
+  });
 });
