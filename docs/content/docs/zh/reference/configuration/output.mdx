@@ -2428,12 +2428,12 @@ export default defineConfig({
 
 控制你重新运行 orval 时，如何处理**已经存在**的 handler 文件。不存在的文件始终会直接全新生成。
 
-- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要可选的 `typescript` peer dependency；如果不存在，会带 warning 回退到 `skip`。
+- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要 TypeScript compiler API；如果无法加载，生成会失败，现有 handler 文件保持不变。
 - `skip`：对已存在的 handler 文件保持逐字节不变。新增 operation 仍然会生成新文件（在 `split` 模式下）。
 - `full`：根据 spec 重建文件头、imports 和 validator chain，只把每个 handler body 再拼接回去。**这是破坏性的。** 自定义 imports、middleware 和顶层 helpers 都会丢失。只有当你刻意保持 handlers 很轻，并希望它们和 spec 最大程度同步时才建议使用。
 
 <Callout type="info">
-  `smart` 和 `full` 会使用 TypeScript compiler API 来解析现有 handler 文件。`typescript` 是一个可选 peer dependency，而几乎所有 orval 项目本来就已经有它，因此通常不需要额外安装。
+  `smart` 和 `full` 会使用 TypeScript compiler API 来解析现有 handler 文件。`@orval/hono` 自带 `typescript` 依赖来完成这项工作，因此无论你的项目使用哪个 TypeScript 版本都可以正常工作（包括 TypeScript 7，它的包已不再提供 JS compiler API）。
 </Callout>
 
 <Callout type="warn">

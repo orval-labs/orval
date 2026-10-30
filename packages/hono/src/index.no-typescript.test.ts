@@ -1,8 +1,7 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { OrvalReporter } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -13,8 +12,9 @@ import {
 } from 'vite-plus/test';
 
 import { createTestGeneratorVerbOptions } from '../../core/src/test-utils';
+import { generateHandlerFile } from './index';
 
-// Simulate the optional `typescript` peer dependency being absent.
+// Simulate the TypeScript compiler API being unavailable.
 vi.mock('./handler-merge', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./handler-merge')>();
   return { ...actual, ensureTypeScript: vi.fn().mockResolvedValue(false) };
@@ -37,55 +37,41 @@ export const listPetsHandlers = factory.createHandlers(
 
 describe('generateHandlerFile when typescript is unavailable', () => {
   let dir: string;
+  let file: string;
 
   beforeEach(async () => {
     dir = await mkdtemp(path.join(tmpdir(), 'orval-hono-nots-'));
-    // The "warn once" guard is module-scoped state in ./index. Reset the module
-    // registry so each test gets a fresh guard and the warning assertion below
-    // doesn't depend on test order.
-    vi.resetModules();
+    file = path.join(dir, 'listPets.ts');
+    await writeFile(file, existing, 'utf8');
   });
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  const run = async (strategy: 'smart' | 'full', reporter?: OrvalReporter) => {
-    const { generateHandlerFile } = await import('./index');
-    const { withReporter } = await import('@orval/core');
-    const file = path.join(dir, 'listPets.ts');
-    await writeFile(file, existing, 'utf8');
-    const generate = () =>
-      generateHandlerFile({
-        verbs: [verb('listPets')],
-        path: file,
-        header: '/* eslint-disable */\n',
-        zodModule: path.join(dir, 'endpoints.zod'),
-        contextModule: path.join(dir, 'endpoints.context'),
-        strategy,
-      });
-    return reporter ? withReporter(reporter, generate) : generate();
-  };
-
-  it('smart falls back to leaving the file unchanged and warns', async () => {
-    const warn = vi.fn();
-    const result = await run('smart', {
-      // oxlint-disable-next-line eslint/no-empty-function
-      info() {},
-      warn,
-      // oxlint-disable-next-line eslint/no-empty-function
-      error() {},
-      // oxlint-disable-next-line eslint/no-empty-function
-      verbose() {},
-      // oxlint-disable-next-line eslint/no-empty-function
-      debug() {},
+  const run = (strategy: 'smart' | 'full' | 'skip') =>
+    generateHandlerFile({
+      verbs: [verb('listPets'), verb('createPet')],
+      path: file,
+      header: '/* eslint-disable */\n',
+      zodModule: path.join(dir, 'endpoints.zod'),
+      contextModule: path.join(dir, 'endpoints.context'),
+      strategy,
     });
-    expect(result).toBe(existing);
-    expect(warn).toHaveBeenCalled();
-  });
 
-  it('full also falls back to leaving the file unchanged', async () => {
-    const result = await run('full');
-    expect(result).toBe(existing);
+  // Silently keeping the stale file would let the regenerated router reference
+  // handlers (here `createPetHandlers`) that the file does not export.
+  it.each(['smart', 'full'] as const)(
+    '%s fails generation and leaves the file unchanged',
+    async (strategy) => {
+      await expect(run(strategy)).rejects.toThrow(
+        /requires the TypeScript compiler API/,
+      );
+      expect(await readFile(file, 'utf8')).toBe(existing);
+    },
+  );
+
+  it('skip does not need the compiler API', async () => {
+    await expect(run('skip')).resolves.toBe(existing);
   });
 });

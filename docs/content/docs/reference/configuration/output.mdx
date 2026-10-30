@@ -3015,9 +3015,9 @@ file that does not exist yet is always generated fresh.
 - `smart` (default) — non-destructively reconcile only the parts orval owns: its
   own imports (names, module paths, casing) and the `zValidator(...)` arguments,
   and append handlers for new operations. Your custom imports, middleware,
-  handler bodies, and top-level helpers are preserved. Requires the optional
-  `typescript` peer dependency (see note below); if it is absent, smart falls
-  back to `skip` with a warning.
+  handler bodies, and top-level helpers are preserved. Requires the TypeScript
+  compiler API (see note below); if it cannot be loaded, generation fails and
+  existing handler files are left unchanged.
 - `skip` — leave an existing handler file byte-for-byte unchanged. New operations
   still get fresh files (in `split` mode).
 - `full` — rebuild the file header, imports, and validator chain from the spec,
@@ -3027,8 +3027,9 @@ file that does not exist yet is always generated fresh.
 
 <Callout type="info">
   `smart` and `full` use the TypeScript compiler API to parse existing handler
-  files. `typescript` is an optional peer dependency — virtually every orval
-  project already has it, so nothing extra is installed.
+  files. `@orval/hono` ships its own `typescript` dependency for this, so it
+  works regardless of the TypeScript version your project uses (including
+  TypeScript 7, whose package no longer exposes the JS compiler API).
 </Callout>
 
 <Callout type="warn">
