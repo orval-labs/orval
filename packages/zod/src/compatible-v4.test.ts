@@ -289,10 +289,11 @@ describe('getLooseObjectFunctionName', () => {
 describe('supportsZodXor', () => {
   const withZod = (zod: string) => ({ dependencies: { zod } });
 
-  it('assumes the modern baseline without a detectable zod version', () => {
-    expect(supportsZodXor(undefined)).toBe(true);
+  it('returns false without a detectable zod version (#4395)', () => {
+    // Zod 4.0/4.1 has no `zod.xor`, so an unknown version must not assume it.
+    expect(supportsZodXor(undefined)).toBe(false);
     expect(supportsZodXor({ dependencies: { 'other-package': '1.0.0' } })).toBe(
-      true,
+      false,
     );
   });
 

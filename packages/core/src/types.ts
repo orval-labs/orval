@@ -1193,8 +1193,9 @@ export interface ZodOptions extends BaseZodOptions {
    * Non-strict object branches strip unknown keys, so a subtype payload also
    * matches its supertype (`oneOf: [Pet, Dog]`) and fails `xor`; enable this
    * only when the `oneOf` branches are disjoint. Kept as `zod.union` on Zod 3,
-   * Zod 4.0/4.1, when `coerce` is enabled, for a `oneOf` with a
-   * `discriminator`, and when a branch renders looser than the spec (`{}`,
+   * Zod 4.0/4.1, when no `zod` version can be detected, when `coerce` is
+   * enabled, for a `oneOf` with a `discriminator`, and when a branch renders
+   * looser than the spec (`{}`,
    * `required`-only branches, or keywords such as `not`/`if` that Orval drops).
    * Default `false` (opt-in), so existing output is unchanged.
    */

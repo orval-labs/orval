@@ -15431,7 +15431,10 @@ describe('object schemas narrowed by an enum (#4351)', () => {
 
 describe('oneOf as zod.xor', () => {
   const ctx = createTestContextSpec({
-    output: { override: { useDates: false, zod: { generateXor: true } } },
+    output: {
+      override: { useDates: false, zod: { generateXor: true } },
+      packageJson: { dependencies: { zod: '^4.4.0' } },
+    },
   });
 
   const render = (
@@ -15545,6 +15548,33 @@ describe('oneOf as zod.xor', () => {
     expect(renderWith('4.2.0')).toBe('zod.xor([zod.string(),zod.number()])');
     expect(renderWith('^4.4.0')).toBe('zod.xor([zod.string(),zod.number()])');
     expect(renderWith('^4.4.0', 'mini')).toContain('zod.xor([');
+  });
+
+  it('keeps zod.union for oneOf when the zod version is unknown (#4395)', () => {
+    // No `package.json` (hoisted install, programmatic `generate()`) may still
+    // run Zod 4.0/4.1, where `zod.xor` is undefined.
+    const unknownCtx = createTestContextSpec({
+      output: { override: { useDates: false, zod: { generateXor: true } } },
+    });
+
+    expect(
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          pet,
+          unknownCtx,
+          'pet',
+          false,
+          true,
+          {
+            required: true,
+          },
+        ),
+        unknownCtx,
+        false,
+        false,
+        true,
+      ).zod,
+    ).toBe('zod.union([zod.string(),zod.number()])');
   });
 
   it('keeps zod.union for anyOf', () => {
