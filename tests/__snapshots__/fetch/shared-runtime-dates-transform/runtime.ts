@@ -67,11 +67,11 @@ export interface ExecuteArgs {
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   reviver?: (key: string, value: unknown) => unknown;
-  transform?: (data: unknown, status: number) => unknown;
-  validate?: (data: unknown, status: number) => unknown;
+  deserializeResponseDates?: (data: unknown, status: number) => unknown;
+  validateResponse?: (data: unknown, status: number) => unknown;
   throwOnError?: boolean;
   returnData?: boolean;
-  serializeHeaders?: boolean;
+  serializeResponseHeaders?: boolean;
   schema?: unknown;
   errorResponses?: readonly ErrorResponseMeta[];
   options?: CallOptions;
@@ -293,7 +293,7 @@ const encodeRequestBody = (args: ExecuteArgs): RequestInit['body'] => {
 };
 
 const getResponseHeaders = (res: Response, args: ExecuteArgs) =>
-  args.serializeHeaders
+  args.serializeResponseHeaders
     ? Object.fromEntries(
         [...res.headers.entries()].filter(([name]) => name !== 'set-cookie'),
       )
@@ -301,11 +301,18 @@ const getResponseHeaders = (res: Response, args: ExecuteArgs) =>
 
 const decodeResponseBody = async (
   res: Response,
-  { responseType, reviver, transform, validate }: ExecuteArgs,
+  {
+    responseType,
+    reviver,
+    deserializeResponseDates,
+    validateResponse,
+  }: ExecuteArgs,
 ): Promise<unknown> => {
   const parseJson = (body: string) => {
     const data: unknown = JSON.parse(body, reviver);
-    return transform ? transform(data, res.status) : data;
+    return deserializeResponseDates
+      ? deserializeResponseDates(data, res.status)
+      : data;
   };
 
   if (responseType === 'blob') {
@@ -316,12 +323,12 @@ const decodeResponseBody = async (
 
   if (responseType === 'text') return body !== null ? body : '';
 
-  if (responseType === 'auto' || responseType === 'void' || validate) {
+  if (responseType === 'auto' || responseType === 'void' || validateResponse) {
     const empty = responseType === 'void' ? undefined : {};
     const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
     if (!contentType.includes('json')) return body ? body : empty;
     const data = body ? parseJson(body) : empty;
-    return validate ? validate(data, res.status) : data;
+    return validateResponse ? validateResponse(data, res.status) : data;
   }
 
   return body ? parseJson(body) : {};
@@ -362,8 +369,8 @@ export const execute = async <R>(
       new globalThis.Error();
     err.info = await decodeResponseBody(res, {
       ...args,
-      transform: undefined,
-      validate: undefined,
+      deserializeResponseDates: undefined,
+      validateResponse: undefined,
     });
     err.status = res.status;
     throw err;

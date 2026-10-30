@@ -849,7 +849,7 @@ describe('generateSharedRequestFunction', () => {
       );
 
       expect(implementation).not.toContain('schema:');
-      expect(implementation).not.toContain('transform:');
+      expect(implementation).not.toContain('validateResponse:');
       expect(imports).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: 'Pet', values: true }),
@@ -930,7 +930,7 @@ describe('shared runtime options', () => {
     expect(implementation).toContain(
       'ResponseOf<{ 200: Pet; 404: Problem }, Record<string, string>>',
     );
-    expect(implementation).toContain('serializeHeaders: true');
+    expect(implementation).toContain('serializeResponseHeaders: true');
   });
 
   it('passes the json reviver', () => {
@@ -957,7 +957,7 @@ describe('shared runtime options', () => {
   });
 
   it.each([
-    ['throw', 'validate: (data) => Pet.parse(data)'],
+    ['throw', 'validateResponse: (data) => Pet.parse(data)'],
     ['both', 'const result = Pet.safeParse(data);'],
   ] as const)(
     'validates the response with the %s strategy as the zod output type',
@@ -1054,12 +1054,12 @@ describe('shared runtime options', () => {
         options: { fetch: respond(body, status, contentType) },
       });
 
-    it('revives and transforms a JSON body', async () => {
+    it('revives a JSON body and deserializes its dates', async () => {
       const result = await call(
         {
           reviver: (key: string, value: unknown) =>
             key === 'n' ? Number(value) : value,
-          transform: (data: { n: number }, status: number) => ({
+          deserializeResponseDates: (data: { n: number }, status: number) => ({
             ...data,
             status,
           }),
@@ -1071,9 +1071,13 @@ describe('shared runtime options', () => {
       expect(result).toEqual({ n: 1, status: 200 });
     });
 
-    it('leaves a text body untransformed', async () => {
+    it('leaves the dates of a text body alone', async () => {
       const result = await call(
-        { responseType: 'text', transform: () => 'x', returnData: true },
+        {
+          responseType: 'text',
+          deserializeResponseDates: () => 'x',
+          returnData: true,
+        },
         'plain',
         200,
         'text/plain',
@@ -1083,25 +1087,35 @@ describe('shared runtime options', () => {
     });
 
     it('validates only a response declared as JSON, as inline does', async () => {
-      const validate = (data: unknown) => ({ validated: data });
-      const transform = () => 'transformed';
+      const validateResponse = (data: unknown) => ({ validated: data });
+      const deserializeResponseDates = () => 'deserialized';
 
       // No Content-Type: inline neither parses nor validates the body.
       expect(
-        await call({ validate, returnData: true }, '{"n":1}', 200, ''),
+        await call({ validateResponse, returnData: true }, '{"n":1}', 200, ''),
       ).toBe('{"n":1}');
       // An empty JSON body is validated as `{}`, but not converted.
-      expect(await call({ validate, transform, returnData: true }, '')).toEqual(
-        { validated: {} },
-      );
       expect(
-        await call({ validate, transform, returnData: true }, '{"n":1}'),
-      ).toEqual({ validated: 'transformed' });
+        await call(
+          { validateResponse, deserializeResponseDates, returnData: true },
+          '',
+        ),
+      ).toEqual({ validated: {} });
+      expect(
+        await call(
+          { validateResponse, deserializeResponseDates, returnData: true },
+          '{"n":1}',
+        ),
+      ).toEqual({ validated: 'deserialized' });
     });
 
-    it('throws the decoded error body without transforming it', async () => {
+    it('throws the decoded error body without deserializing or validating it', async () => {
       const failure = await call(
-        { throwOnError: true, transform: () => 'x' },
+        {
+          throwOnError: true,
+          deserializeResponseDates: () => 'x',
+          validateResponse: () => 'x',
+        },
         '{"title":"nope"}',
         404,
       ).catch((error: unknown) => error);
@@ -1110,7 +1124,7 @@ describe('shared runtime options', () => {
     });
 
     it('serializes the headers without set-cookie', async () => {
-      const result = await call({ serializeHeaders: true }, '{}');
+      const result = await call({ serializeResponseHeaders: true }, '{}');
 
       expect(result).toMatchObject({
         headers: { 'content-type': 'application/json' },

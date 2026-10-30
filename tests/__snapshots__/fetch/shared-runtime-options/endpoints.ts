@@ -39,9 +39,9 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
     url: getListPetsUrl(params),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validate: (data) => Pets.parse(data),
+    validateResponse: (data) => Pets.parse(data),
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });
 
@@ -71,9 +71,9 @@ export const createPets = (
     body: createPetsBody,
     contentType: 'application/json',
     reviver: fetchReviverMutator,
-    validate: (data) => Pet.parse(data),
+    validateResponse: (data) => Pet.parse(data),
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });
 
@@ -95,9 +95,9 @@ export const showPetById = (petId: string, options?: CallOptions) =>
     url: getShowPetByIdUrl(petId),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validate: (data) => Pet.parse(data),
+    validateResponse: (data) => Pet.parse(data),
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });
 
@@ -121,7 +121,7 @@ export const deletePetById = (petId: string, options?: CallOptions) =>
     responseType: 'void',
     reviver: fetchReviverMutator,
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });
 
@@ -145,7 +145,7 @@ export const healthCheck = (options?: CallOptions) =>
     responseType: 'auto',
     reviver: fetchReviverMutator,
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });
 
@@ -167,8 +167,8 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
     url: getShowPetWithOwnerUrl(petId),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validate: (data) => PetWithTag.parse(data),
+    validateResponse: (data) => PetWithTag.parse(data),
     throwOnError: true,
-    serializeHeaders: true,
+    serializeResponseHeaders: true,
     options,
   });

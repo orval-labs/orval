@@ -31,7 +31,7 @@ export const getOrderDetails = (orderId: string, options?: CallOptions) =>
   execute<getOrderDetailsResponse>({
     url: getGetOrderDetailsUrl(orderId),
     method: 'GET',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeGetOrderDetailsResponse(data as OrderDetails)
         : data,
@@ -71,7 +71,7 @@ export const getPetProfile = (petId: string, options?: CallOptions) =>
   execute<getPetProfileResponse>({
     url: getGetPetProfileUrl(petId),
     method: 'GET',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeGetPetProfileResponse(data as Cat | Dog)
         : data,
@@ -105,7 +105,7 @@ export const getAuditRecord = (auditId: string, options?: CallOptions) =>
   execute<getAuditRecordResponse>({
     url: getGetAuditRecordUrl(auditId),
     method: 'GET',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeGetAuditRecordResponse(data as AuditRecord)
         : data,
@@ -143,7 +143,7 @@ export const listShelterPets = (shelterId: string, options?: CallOptions) =>
   execute<listShelterPetsResponse>({
     url: getListShelterPetsUrl(shelterId),
     method: 'GET',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeListShelterPetsResponse(data as Cat | Dog)
         : data,
@@ -182,7 +182,7 @@ export const getShelterLastInspection = (
   execute<getShelterLastInspectionResponse>({
     url: getGetShelterLastInspectionUrl(shelterId),
     method: 'GET',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeGetShelterLastInspectionResponse(data as LastInspection)
         : data,
@@ -225,7 +225,7 @@ export const updateAppointment = (
     method: 'PUT',
     body: serializeUpdateAppointmentRequest(appointment),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateAppointmentResponse(data as Appointment)
         : data,
@@ -296,7 +296,7 @@ export const updateAppointmentDuplicateDate = (
       appointmentWithDuplicateDate,
     ),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateAppointmentDuplicateDateResponse(
             data as AppointmentWithDuplicateDate,
@@ -348,7 +348,7 @@ export const updateAppointmentReminder = (
     method: 'PATCH',
     body: serializeUpdateAppointmentReminderRequest(reminderUpdate),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateAppointmentReminderResponse(data as Appointment)
         : data,
@@ -403,7 +403,7 @@ export const updateShelterIntake = (
     method: 'PUT',
     body: serializeUpdateShelterIntakeRequest(shelterIntake),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateShelterIntakeResponse(data as ShelterIntake)
         : data,
@@ -473,7 +473,7 @@ export const updateShelterRecords = (
     method: 'PUT',
     body: serializeUpdateShelterRecordsRequest(shelterRecords),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateShelterRecordsResponse(data as ShelterRecords)
         : data,
@@ -555,7 +555,7 @@ export const updateAppointmentWindow = (
     method: 'PUT',
     body: serializeUpdateAppointmentWindowRequest(appointmentWindow),
     contentType: 'application/json',
-    transform: (data, status) =>
+    deserializeResponseDates: (data, status) =>
       status === 200
         ? deserializeUpdateAppointmentWindowResponse(data as AppointmentWindow)
         : data,

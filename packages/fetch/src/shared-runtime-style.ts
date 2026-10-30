@@ -111,7 +111,7 @@ export const getSharedRuntimeImports = (
 
 /**
  * The zod schema a verb's response is validated with, under the same rules as
- * the inline style: generated code parses it in `transform`, while a
+ * the inline style: generated code parses it in `validateResponse`, while a
  * client-config mutator receives it as `schema:` (#4344) and keeps the input
  * type names. `imports` are the response imports rewritten so the schema is a
  * value import.
@@ -398,11 +398,11 @@ export const generateSharedRequestFunction = (
 
   // Like inline, dates are converted in a non-empty JSON body, before the
   // body is validated, and validation runs whenever the response is JSON.
-  const transform =
+  const deserializeResponseDates =
     !hasClientMutator && dateDeserializer
       ? `(data, status) => ${successStatusCondition('status')} ? ${dateDeserializer.name}(data as ${successType}) : data`
       : undefined;
-  const validate = (() => {
+  const validateResponse = (() => {
     if (hasClientMutator || !validation) return undefined;
     const validated = emitResponseValidation({
       schemaRef: validation.schemaRef,
@@ -466,13 +466,17 @@ export const generateSharedRequestFunction = (
         ]
       : [
           ...(fetchReviver ? [`reviver: ${fetchReviver.name}`] : []),
-          ...(transform ? [`transform: ${transform}`] : []),
-          ...(validate ? [`validate: ${validate}`] : []),
+          ...(deserializeResponseDates
+            ? [`deserializeResponseDates: ${deserializeResponseDates}`]
+            : []),
+          ...(validateResponse
+            ? [`validateResponse: ${validateResponse}`]
+            : []),
           ...(forceSuccessResponse ? ['throwOnError: true'] : []),
           ...(includeHttpResponseReturnType ? [] : ['returnData: true']),
           ...(includeHttpResponseReturnType &&
           override.fetch.serializeResponseHeaders
-            ? ['serializeHeaders: true']
+            ? ['serializeResponseHeaders: true']
             : []),
         ]),
     'options',

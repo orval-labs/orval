@@ -30,7 +30,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
   execute<PetsOutput>({
     url: getListPetsUrl(params),
     method: 'GET',
-    validate: (data) => Pets.parse(data),
+    validateResponse: (data) => Pets.parse(data),
     returnData: true,
     options,
   });
@@ -54,7 +54,7 @@ export const createPets = (
     method: 'POST',
     body: createPetsBody,
     contentType: 'application/json',
-    validate: (data) => Pet.parse(data),
+    validateResponse: (data) => Pet.parse(data),
     returnData: true,
     options,
   });
@@ -70,7 +70,7 @@ export const showPetById = (petId: string, options?: CallOptions) =>
   execute<PetOutput>({
     url: getShowPetByIdUrl(petId),
     method: 'GET',
-    validate: (data) => Pet.parse(data),
+    validateResponse: (data) => Pet.parse(data),
     returnData: true,
     options,
   });
@@ -118,7 +118,7 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
   execute<PetWithTagOutput>({
     url: getShowPetWithOwnerUrl(petId),
     method: 'GET',
-    validate: (data) => PetWithTag.parse(data),
+    validateResponse: (data) => PetWithTag.parse(data),
     returnData: true,
     options,
   });
