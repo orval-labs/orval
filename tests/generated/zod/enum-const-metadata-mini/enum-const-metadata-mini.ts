@@ -10,7 +10,7 @@ import * as zod from 'zod/mini';
 /**
  * @summary sample annotated const branches
  */
-export const GetApiPetStatusResponse = /*#__PURE__*/ zod.xor([
+export const GetApiPetStatusResponse = /*#__PURE__*/ zod.union([
   /*#__PURE__*/ zod.literal('PENDING').check(
     /*#__PURE__*/ zod.meta({
       title: 'Pending',
@@ -35,7 +35,7 @@ export const GetApiPetStatusResponse = /*#__PURE__*/ zod.xor([
 /**
  * @summary sample const branches without member metadata
  */
-export const GetApiPetSizeResponse = /*#__PURE__*/ zod.xor([
+export const GetApiPetSizeResponse = /*#__PURE__*/ zod.union([
   /*#__PURE__*/ zod.literal('SMALL'),
   /*#__PURE__*/ zod
     .literal('LARGE')

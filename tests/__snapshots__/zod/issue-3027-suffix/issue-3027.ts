@@ -31,7 +31,7 @@ export const GetPortfolioResponse = zod.object({
         }),
       }),
     ),
-  oneChoice: zod.xor([
+  oneChoice: zod.union([
     zod.object({
       id: zod.string(),
       quantity: zod.number(),

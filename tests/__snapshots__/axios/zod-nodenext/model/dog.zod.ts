@@ -8,7 +8,7 @@ import * as zod from 'zod';
 import { Dachshund } from './dachshund.zod.js';
 import { Labradoodle } from './labradoodle.zod.js';
 
-export const Dog = zod.xor([Labradoodle, Dachshund]).and(
+export const Dog = zod.union([Labradoodle, Dachshund]).and(
   zod.object({
     barksPerMinute: zod.int().optional(),
     type: zod.enum(['dog']),

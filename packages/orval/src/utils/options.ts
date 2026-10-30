@@ -1072,6 +1072,7 @@ export async function normalizeOptions(
           generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
+          generateXor: outputOptions.override?.zod?.generateXor ?? false,
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
           generateCompanionTypes:
             outputOptions.override?.zod?.generateCompanionTypes ?? false,
@@ -1510,6 +1511,7 @@ const unsupportedZodKeys = [
   'generateReusableSchemas',
   'generateMeta',
   'generateDiscriminatedUnion',
+  'generateXor',
   'exactOptional',
 ] as const satisfies readonly Exclude<
   keyof ZodOptions,

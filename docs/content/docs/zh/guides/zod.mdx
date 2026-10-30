@@ -136,11 +136,11 @@ export default defineConfig({
 
 固定版本可以保持输出稳定：同一份规范在每台机器和 CI 中都会生成相同的 schema，而不会受本地恰好安装了哪个 `zod` 版本影响。
 
-该选项只决定输出 Zod 3 还是 Zod 4 语法。依赖特定 Zod 4 版本的输出（例如下文中 `oneOf` 的 `zod.xor`）仍取决于解析到的 `zod` 版本，因此若要让输出完全可复现，请同时固定 `zod` 依赖本身的版本。
+该选项只决定输出 Zod 3 还是 Zod 4 语法。依赖特定 Zod 4 版本的输出（例如下文中启用 `generateXor` 时 `oneOf` 的 `zod.xor`）仍取决于解析到的 `zod` 版本，因此若要让输出完全可复现，请同时固定 `zod` 依赖本身的版本。
 
 ### `oneOf` 与 `anyOf`
 
-`oneOf` 表示恰好只有一个分支匹配，因此在 Zod 4.2 及以上版本中，Orval 会将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）同样保持 `zod.union`。在没有 `xor` 的 Zod 3 和 Zod 4.0/4.1 中，以及启用 [`coerce`](/zh/docs/reference/configuration/output#coerce) 时，`oneOf` 仍输出为 `zod.union([...])`，因为类型转换可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`）。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。
+默认情况下，`oneOf` 和 `anyOf` 都输出为 `zod.union([...])`。`oneOf` 表示恰好只有一个分支匹配，因此可以设置 [`generateXor`](/zh/docs/reference/configuration/output#generatexor)，在 Zod 4.2 及以上版本中将其输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)。该选项需要显式开启，因为非 strict 的对象分支会剥离未知键，子类型的数据也会匹配其父类型（例如 `Dog` 继承 `Pet` 时的 `oneOf: [Pet, Dog]`），从而被 `zod.xor` 拒绝。`anyOf` 仍输出为 `zod.union([...])`；成员可能重叠的类型数组（`type: ['integer', 'number']`）同样保持 `zod.union`。即使启用了 `generateXor`，在没有 `xor` 的 Zod 3 和 Zod 4.0/4.1 中，以及启用 [`coerce`](/zh/docs/reference/configuration/output#coerce) 时，`oneOf` 仍输出为 `zod.union([...])`，因为类型转换可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`）。启用 [`generateDiscriminatedUnion`](/zh/docs/reference/configuration/output#generatediscriminatedunion) 时，带 `discriminator` 的 `oneOf` 仍输出为 `zod.discriminatedUnion(...)`。
 
 ## Zod Mini
 
@@ -211,7 +211,7 @@ export default defineConfig({
 
 按 operation 和按 tag 的 override 仅接受那些能作用于单个 schema 的选项：`strict`、`generate`、`coerce`、`preprocess`、`params`、`useBrandedTypes` 和 `generateCompanionTypes`。
 
-而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion` 和 `exactOptional`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
+而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion`、`generateXor` 和 `exactOptional`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
 
 ```
 ⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.

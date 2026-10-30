@@ -29,9 +29,9 @@ export type ListPetsHeader = zod.input<typeof ListPetsHeader>;
 export type ListPetsHeaderOutput = zod.output<typeof ListPetsHeader>;
 
 export const ListPetsResponseItem = zod
-  .xor([
+  .union([
     zod
-      .xor([
+      .union([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -107,9 +107,9 @@ export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
 export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
 
 export const CreatePetsResponse = zod
-  .xor([
+  .union([
     zod
-      .xor([
+      .union([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -153,9 +153,9 @@ export type ShowPetByIdParams = zod.input<typeof ShowPetByIdParams>;
 export type ShowPetByIdParamsOutput = zod.output<typeof ShowPetByIdParams>;
 
 export const ShowPetByIdResponse = zod
-  .xor([
+  .union([
     zod
-      .xor([
+      .union([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -223,9 +223,9 @@ export const ShowPetWithOwnerResponse = zod.object({
   tag: zod.string(),
   pet: zod.union([
     zod
-      .xor([
+      .union([
         zod
-          .xor([
+          .union([
             zod.object({
               cuteness: zod.int(),
               breed: zod.enum(['Labradoodle']),

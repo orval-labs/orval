@@ -2469,6 +2469,28 @@ Behavior:
 - **Inheritance (`allOf`).** Branches composed with `allOf` are flattened into a single object so they remain valid discriminated-union options — this is the case that previously forced the feature to be reverted ([#2085](https://github.com/orval-labs/orval/issues/2085)). With [`generateReusableSchemas`](#generatereusableschemas), a branch that references an `allOf` schema stays a plain union (the referenced schema can't be guaranteed to be an object from the reference alone).
 - Works with both Zod v3 (>= 3.20) and v4, and with the [`mini`](#variant) variant.
 
+### generateXor
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit `oneOf` as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor) instead of `zod.union([...])`, so a value that matches more than one branch is rejected, as JSON Schema `oneOf` requires.
+
+```ts
+// override: { zod: { generateXor: true } }
+export const Id = zod.xor([zod.string(), zod.number()]);
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, `oneOf` is emitted as `zod.union([...])` exactly as before.
+- **Overlapping branches fail.** Non-strict object branches strip unknown keys, so a payload for a subtype also matches its supertype (`oneOf: [Pet, Dog]` where `Dog` extends `Pet` via `allOf`), and so does any payload when every field of a branch is optional. `zod.xor` rejects those payloads, so enable this only when your `oneOf` branches are disjoint (distinct primitive types, literals, or [`strict`](#strict) objects).
+- **Zod 4.2+ only.** Zod 3 and Zod 4.0/4.1 have no `xor`, so `oneOf` stays `zod.union([...])` there. The check follows the resolved `zod` version, not the `version` override.
+- **Not with [`coerce`](#coerce).** Coercion can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`), so `oneOf` stays `zod.union([...])` when coercion is enabled.
+- `anyOf` and type arrays (`type: ['integer', 'number']`) always stay `zod.union([...])`, and a `oneOf` with a `discriminator` is still emitted as `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](#generatediscriminatedunion) is enabled.
+- Works with the [`mini`](#variant) variant.
+
 ### exactOptional
 
 **Type:** `boolean`

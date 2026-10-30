@@ -23,7 +23,7 @@ export type Dachshund = zod.input<typeof Dachshund>;
 export type DachshundOutput = zod.output<typeof Dachshund>;
 
 export const Dog = zod
-  .xor([
+  .union([
     zod.object({
       cuteness: zod.int(),
       breed: zod.enum(['Labradoodle']),
@@ -52,9 +52,9 @@ export type Cat = zod.input<typeof Cat>;
 export type CatOutput = zod.output<typeof Cat>;
 
 export const Pet = zod
-  .xor([
+  .union([
     zod
-      .xor([
+      .union([
         zod.object({
           cuteness: zod.int(),
           breed: zod.enum(['Labradoodle']),
@@ -92,9 +92,9 @@ export type PetOutput = zod.output<typeof Pet>;
 
 export const Pets = zod.array(
   zod
-    .xor([
+    .union([
       zod
-        .xor([
+        .union([
           zod.object({
             cuteness: zod.int(),
             breed: zod.enum(['Labradoodle']),
@@ -143,9 +143,9 @@ export const PetWithTag = zod.object({
   tag: zod.string(),
   pet: zod.union([
     zod
-      .xor([
+      .union([
         zod
-          .xor([
+          .union([
             zod.object({
               cuteness: zod.int(),
               breed: zod.enum(['Labradoodle']),

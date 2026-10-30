@@ -10,9 +10,9 @@ export const PetWithTag = zod.object({
   tag: zod.string(),
   pet: zod.union([
     zod
-      .xor([
+      .union([
         zod
-          .xor([
+          .union([
             zod.object({
               cuteness: zod.int(),
               breed: zod.enum(['Labradoodle']),

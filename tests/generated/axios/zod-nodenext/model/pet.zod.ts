@@ -8,7 +8,7 @@ import * as zod from 'zod';
 import { Cat } from './cat.zod.js';
 import { Dog } from './dog.zod.js';
 
-export const Pet = zod.xor([Dog, Cat]).and(
+export const Pet = zod.union([Dog, Cat]).and(
   zod.object({
     '@id': zod.string().optional(),
     id: zod.int(),

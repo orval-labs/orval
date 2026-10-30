@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-export const IntakePet = zod.xor([
+export const IntakePet = zod.union([
   zod.object({
     petType: zod.enum(['cat']),
     arrivedOn: zod.date(),

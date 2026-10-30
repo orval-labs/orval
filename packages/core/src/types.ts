@@ -1187,6 +1187,16 @@ export interface ZodOptions extends BaseZodOptions {
    */
   generateDiscriminatedUnion?: boolean;
   /**
+   * When true (Zod 4.2+ only), emits `oneOf` as `zod.xor([...])` instead of
+   * `zod.union([...])`, so a value matching more than one branch is rejected.
+   * Non-strict object branches strip unknown keys, so a subtype payload also
+   * matches its supertype (`oneOf: [Pet, Dog]`) and fails `xor`; enable this
+   * only when the `oneOf` branches are disjoint. Kept as `zod.union` on Zod 3,
+   * Zod 4.0/4.1 and when `coerce` is enabled. Default `false` (opt-in), so
+   * existing output is unchanged.
+   */
+  generateXor?: boolean;
+  /**
    * When true (zod v4 only), emits optional object properties with
    * `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of
    * `.optional()`, so consumers with `exactOptionalPropertyTypes` infer
@@ -1381,6 +1391,7 @@ export interface NormalizedZodOptions {
   generateReusableSchemas: boolean;
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
+  generateXor: boolean;
   exactOptional: boolean;
   generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;

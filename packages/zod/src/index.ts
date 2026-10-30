@@ -1444,7 +1444,7 @@ export const generateZodValidationSchemaDefinition = (
         );
 
       // For oneOf/anyOf, use allOf to combine union with common properties
-      // This generates: zod.xor([...]).and(commonProperties) (or zod.union)
+      // This generates: zod.union([...]).and(commonProperties) (zod.xor with generateXor)
       if (schema.oneOf || schema.anyOf) {
         functions.push([
           'allOf',
@@ -2541,10 +2541,15 @@ export const parseZodValidationSchemaDefinition = (
       ? coerceTypes.includes(fn as ZodCoerceType)
       : COERCIBLE_TYPES.has(fn));
 
-  // `oneOf` is an exclusive union, but `zod.xor` only exists from Zod 4.2, and
-  // coercion can make distinct branches overlap (`"42"` passes both
-  // `zod.string()` and `zod.coerce.number()`), so those keep a plain union.
+  // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
+  // branches strip unknown keys, so a subtype payload also matches its
+  // supertype (`oneOf: [Pet, Dog]`) and would start failing validation.
+  // `zod.xor` only exists from Zod 4.2, and coercion can make distinct
+  // branches overlap (`"42"` passes both `zod.string()` and
+  // `zod.coerce.number()`), so those keep a plain union.
   const useXor =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
+    !!context.output?.override?.zod?.generateXor &&
     isZodV4 &&
     supportsZodXor(context.output.packageJson) &&
     !(Array.isArray(coerceTypes) ? coerceTypes.length > 0 : coerceTypes);

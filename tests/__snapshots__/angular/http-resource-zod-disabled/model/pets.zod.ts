@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-export const Pets = zod.array(zod.xor([zod.xor([zod.object({
+export const Pets = zod.array(zod.union([zod.union([zod.object({
   "cuteness": zod.int(),
   "breed": zod.enum(['Labradoodle'])
 }),zod.object({
