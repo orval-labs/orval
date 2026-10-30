@@ -1725,6 +1725,121 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.optional()');
   });
 
+  it('applies a required array from an outer allOf member to properties of a nested allOf (issue #4402)', () => {
+    const base: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { a: { type: 'string' }, b: { type: 'string' } },
+    };
+    const mid: OpenApiSchemaObject = {
+      allOf: [base, { type: 'object', properties: { c: { type: 'string' } } }],
+    };
+    const leaf: OpenApiSchemaObject = {
+      allOf: [
+        mid,
+        {
+          type: 'object',
+          required: ['a', 'c'],
+          properties: { d: { type: 'string' } },
+        },
+      ],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        leaf,
+        createTestContextSpec({ output: { override: { useDates: false } } }),
+        'leaf',
+        false,
+        false,
+        { required: true },
+      ),
+      createTestContextSpec({ output: { override: { useDates: false } } }),
+      false,
+      false,
+      false,
+    );
+
+    // `a` (two levels down) and `c` (one level down) are required by Leaf.
+    expect(parsed.zod).toContain('"a": zod.string()');
+    expect(parsed.zod).not.toContain('"a": zod.string().optional()');
+    expect(parsed.zod).toContain('"c": zod.string()');
+    expect(parsed.zod).not.toContain('"c": zod.string().optional()');
+    expect(parsed.zod).toContain('"b": zod.string().optional()');
+    expect(parsed.zod).toContain('"d": zod.string().optional()');
+  });
+
+  describe.each([false, true])(
+    'outer allOf required at the same object level (issue #4402, isZodV4: %s)',
+    (isZodV4) => {
+      const render = (schema: OpenApiSchemaObject) => {
+        const context = createTestContextSpec({
+          output: { override: { useDates: false } },
+        });
+        return parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            schema,
+            context,
+            'leaf',
+            false,
+            isZodV4,
+            { required: true },
+          ),
+          context,
+          false,
+          false,
+          isZodV4,
+        ).zod;
+      };
+
+      it('reaches the branches of a nested oneOf', () => {
+        const zod = render({
+          allOf: [
+            {
+              oneOf: [
+                { type: 'object', properties: { a: { type: 'string' } } },
+                { type: 'object', properties: { a: { type: 'number' } } },
+              ],
+            },
+            { required: ['a'] },
+          ],
+        });
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).toContain('"a": zod.number()');
+        expect(zod).not.toContain('.optional()');
+      });
+
+      it('applies a required array nested in an allOf member to a sibling', () => {
+        const zod = render({
+          allOf: [
+            { type: 'object', properties: { x: { type: 'string' } } },
+            { allOf: [{ required: ['x'] }] },
+          ],
+        });
+        expect(zod).toContain('"x": zod.string()');
+        expect(zod).not.toContain('"x": zod.string().optional()');
+      });
+
+      it('leaves the spec required array untouched', () => {
+        const required = ['a'];
+        const schema: OpenApiSchemaObject = {
+          required,
+          allOf: [
+            {
+              type: 'object',
+              required: ['b'],
+              properties: { a: { type: 'string' }, b: { type: 'string' } },
+            },
+          ],
+        };
+        const first = render(schema);
+        const second = render(schema);
+        expect(second).toBe(first);
+        expect(schema.required).toBe(required);
+        expect(required).toEqual(['a']);
+      });
+    },
+  );
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
@@ -5873,6 +5988,157 @@ describe('generateZodValidationSchemaDefinition`', () => {
           String.raw`'Subject identifier.\n\nMust be normalized first.'`,
         ],
       ]);
+    });
+
+    describe('allOf $ref whose properties a sibling member requires (issue #4402)', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Base: {
+                type: 'object',
+                required: ['b'],
+                properties: { a: { type: 'string' }, b: { type: 'string' } },
+              },
+              Node: {
+                type: 'object',
+                properties: {
+                  a: { type: 'string' },
+                  next: { $ref: '#/components/schemas/Node' },
+                },
+              },
+              Mid: {
+                allOf: [
+                  { $ref: '#/components/schemas/Base' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
+              Cat: { type: 'object', properties: { meow: { type: 'string' } } },
+              Dog: { type: 'object', properties: { bark: { type: 'string' } } },
+              Pet: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                oneOf: [
+                  { $ref: '#/components/schemas/Cat' },
+                  { $ref: '#/components/schemas/Dog' },
+                ],
+              },
+              Choice: {
+                oneOf: [
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                  { type: 'object', properties: { a: { type: 'number' } } },
+                ],
+              },
+              SelfAllOf: {
+                allOf: [
+                  { $ref: '#/components/schemas/SelfAllOf' },
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                ],
+              },
+              BadBase: {
+                type: 'object',
+                required: true,
+                properties: { a: { type: 'string' } },
+              } as unknown as OpenApiSchemaObject,
+              BadMid: {
+                allOf: [
+                  { $ref: '#/components/schemas/BadBase' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
+            },
+          },
+        },
+      });
+      const render = (required: string[], ref = 'Base', isZodV4 = false) =>
+        parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            {
+              allOf: [
+                { $ref: `#/components/schemas/${ref}` },
+                {
+                  type: 'object',
+                  required,
+                  properties: { d: { type: 'string' } },
+                },
+              ],
+            },
+            context,
+            'child',
+            false,
+            isZodV4,
+            { required: true, useReusableSchemas: true },
+          ),
+          context,
+          false,
+          false,
+          isZodV4,
+        );
+
+      it('inlines the $ref so the required key is enforced', () => {
+        const { zod, usedRefs } = render(['a']);
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs.size).toBe(0);
+      });
+
+      it('inlines a $ref to a nested allOf', () => {
+        const { zod, usedRefs } = render(['c'], 'Mid');
+        expect(zod).toContain('"c": zod.string()');
+        expect(zod).not.toContain('"c": zod.string().optional()');
+        // Only `Mid` is inlined; its `Base` member does not hold `c`.
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it('keeps nested refs named when inlining a recursive schema', () => {
+        const { zod, usedRefs } = render(['a'], 'Node');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(zod).toContain('"next": __REF_Node__.optional()');
+        expect(usedRefs).toEqual(new Set(['Node']));
+      });
+
+      it('keeps the named schema when it already requires the key', () => {
+        const { zod, usedRefs } = render(['b', 'd']);
+        expect(zod).toContain('__REF_Base__');
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it.each([false, true])(
+        'requires a common property of an inlined oneOf $ref (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['name'], 'Pet', isZodV4);
+          expect(zod).toContain('"name": zod.string()');
+          expect(zod).not.toContain('"name": zod.string().optional()');
+          // The branches do not declare `name`, so they stay named.
+          expect(usedRefs).toEqual(new Set(['Cat', 'Dog']));
+        },
+      );
+
+      it.each([false, true])(
+        'inlines a $ref to a oneOf whose branches declare the key (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['a'], 'Choice', isZodV4);
+          expect(zod).toContain('"a": zod.string()');
+          expect(zod).toContain('"a": zod.number()');
+          expect(zod).not.toContain('"a": zod.string().optional()');
+          expect(zod).not.toContain('"a": zod.number().optional()');
+          expect(usedRefs.size).toBe(0);
+        },
+      );
+
+      it('keeps a self-referential allOf named after inlining it once', () => {
+        const { zod, usedRefs } = render(['a'], 'SelfAllOf');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs).toEqual(new Set(['SelfAllOf']));
+      });
+
+      it('names the $ref member that has a boolean required', () => {
+        expect(() => render(['c'], 'BadMid')).toThrow(
+          'schema "#/components/schemas/BadBase" has `required: true`',
+        );
+      });
     });
 
     describe.each([
