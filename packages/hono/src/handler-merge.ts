@@ -21,7 +21,7 @@ import type * as TS from 'typescript';
  * `skip` code path never pays for loading it. It is not resolved from the
  * consumer's project: TypeScript 7 (the native port) no longer exposes
  * `createSourceFile`/`ScriptTarget` from its main entry. If the resolved module
- * still lacks the compiler API, `smart`/`full` fall back to `skip`.
+ * still lacks the compiler API, `smart`/`full` fail generation.
  */
 let ts!: typeof TS;
 let typeScriptAvailable: boolean | undefined;

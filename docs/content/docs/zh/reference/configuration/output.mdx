@@ -2428,7 +2428,7 @@ export default defineConfig({
 
 控制你重新运行 orval 时，如何处理**已经存在**的 handler 文件。不存在的文件始终会直接全新生成。
 
-- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要 TypeScript compiler API；如果无法加载，会带 warning 回退到 `skip`。
+- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要 TypeScript compiler API；如果无法加载，生成会失败，现有 handler 文件保持不变。
 - `skip`：对已存在的 handler 文件保持逐字节不变。新增 operation 仍然会生成新文件（在 `split` 模式下）。
 - `full`：根据 spec 重建文件头、imports 和 validator chain，只把每个 handler body 再拼接回去。**这是破坏性的。** 自定义 imports、middleware 和顶层 helpers 都会丢失。只有当你刻意保持 handlers 很轻，并希望它们和 spec 最大程度同步时才建议使用。
 
