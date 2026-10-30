@@ -6111,7 +6111,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
     describe.each(['classic', 'mini'] as const)(
       'discriminator narrowed from an allOf $ref (%s)',
       (variant) => {
-        const render = (kindRef: string) => {
+        // `generateXor` also passes `hasZodXor`, so the result cannot depend
+        // on whether the test context resolves a zod version.
+        const render = (kindRef: string, generateXor = false) => {
           const context = makeContextSpec({
             spec: {
               components: {
@@ -6125,6 +6127,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           context.output.override.zod = {
             ...context.output.override.zod,
             generateDiscriminatedUnion: true,
+            generateXor,
           };
           const branch = (value: string): OpenApiSchemaObject => ({
             type: 'object',
@@ -6156,6 +6159,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
             undefined,
             undefined,
             variant,
+            false,
+            generateXor,
           ).zod;
         };
 
@@ -6167,6 +6172,15 @@ describe('generateZodValidationSchemaDefinition`', () => {
           const zod = render('PatternKind');
           expect(zod).not.toContain('discriminatedUnion');
           expect(zod).toContain('zod.union([');
+        });
+
+        // A `oneOf` with a `discriminator` never becomes `zod.xor`: branches
+        // sharing a discriminator value would both match. (#4395)
+        it('keeps the fallback a plain union with generateXor', () => {
+          const zod = render('PatternKind', true);
+          expect(zod).not.toContain('discriminatedUnion');
+          expect(zod).toContain('zod.union([');
+          expect(zod).not.toContain('zod.xor(');
         });
       },
     );
