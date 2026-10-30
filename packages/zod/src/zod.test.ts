@@ -65,6 +65,7 @@ import {
   getZodDateFormat,
   getZodDateTimeFormat,
   getZodTimeFormat,
+  supportsZodXor,
 } from './compatible-v4';
 
 const testOutput = OutputClient.ZOD;
@@ -15431,10 +15432,7 @@ describe('object schemas narrowed by an enum (#4351)', () => {
 
 describe('oneOf as zod.xor', () => {
   const ctx = createTestContextSpec({
-    output: {
-      override: { useDates: false, zod: { generateXor: true } },
-      packageJson: { dependencies: { zod: '^4.4.0' } },
-    },
+    output: { override: { useDates: false, zod: { generateXor: true } } },
   });
 
   const render = (
@@ -15442,6 +15440,7 @@ describe('oneOf as zod.xor', () => {
     isZodV4: boolean,
     variant: ZodVariantOption = 'classic',
     coerceTypes: boolean | ZodCoerceType[] = false,
+    hasZodXor = true,
   ) =>
     parseZodValidationSchemaDefinition(
       generateZodValidationSchemaDefinition(
@@ -15459,6 +15458,8 @@ describe('oneOf as zod.xor', () => {
       undefined,
       undefined,
       variant,
+      false,
+      hasZodXor,
     ).zod;
 
   const pet: OpenApiSchemaObject = {
@@ -15486,6 +15487,11 @@ describe('oneOf as zod.xor', () => {
         ),
         defaultCtx,
         false,
+        false,
+        true,
+        undefined,
+        undefined,
+        'classic',
         false,
         true,
       ).zod,
@@ -15522,87 +15528,34 @@ describe('oneOf as zod.xor', () => {
     );
   });
 
-  it('keeps zod.union for oneOf on Zod 4 releases before 4.2 (#4395)', () => {
-    const renderWith = (zod: string, variant: ZodVariantOption = 'classic') =>
-      parseZodValidationSchemaDefinition(
-        generateZodValidationSchemaDefinition(pet, ctx, 'pet', false, true, {
-          required: true,
-        }),
-        createTestContextSpec({
-          output: {
-            override: { useDates: false, zod: { generateXor: true } },
-            packageJson: { dependencies: { zod } },
-          },
-        }),
-        false,
-        false,
-        true,
-        undefined,
-        undefined,
-        variant,
-      ).zod;
+  it('takes xor support from the caller, not the context (#4395)', () => {
+    const union = 'zod.union([zod.string(),zod.number()])';
 
-    expect(renderWith('^4.0.0')).toBe('zod.union([zod.string(),zod.number()])');
-    expect(renderWith('4.1.13')).toBe('zod.union([zod.string(),zod.number()])');
-    expect(renderWith('4.1.13', 'mini')).toContain('zod.union([');
-    expect(renderWith('4.2.0')).toBe('zod.xor([zod.string(),zod.number()])');
-    expect(renderWith('^4.4.0')).toBe('zod.xor([zod.string(),zod.number()])');
-    expect(renderWith('^4.4.0', 'mini')).toContain('zod.xor([');
+    expect(render(pet, true, 'classic', false, false)).toBe(union);
+    expect(render(pet, true, 'mini', false, false)).toContain('zod.union([');
+    // Zod 3 output never uses `xor`, whatever the installed version.
+    expect(render(pet, false, 'classic', false, true)).toBe(union);
   });
 
-  it('keeps zod.union for a non-semver zod specifier instead of throwing (#4395)', () => {
-    for (const generateXor of [false, true]) {
-      const workspaceCtx = createTestContextSpec({
-        output: {
-          override: { useDates: false, zod: { generateXor } },
-          packageJson: { dependencies: { zod: 'workspace:*' } },
-        },
-      });
+  it('keeps zod.union unless supportsZodXor detects Zod 4.2+ (#4395)', () => {
+    const renderWith = (
+      packageJson: Parameters<typeof supportsZodXor>[0],
+      variant: ZodVariantOption = 'classic',
+    ) => render(pet, true, variant, false, supportsZodXor(packageJson));
+    const withZod = (zod: string) => ({ dependencies: { zod } });
 
-      expect(
-        parseZodValidationSchemaDefinition(
-          generateZodValidationSchemaDefinition(
-            pet,
-            workspaceCtx,
-            'pet',
-            false,
-            true,
-            { required: true },
-          ),
-          workspaceCtx,
-          false,
-          false,
-          true,
-        ).zod,
-      ).toBe('zod.union([zod.string(),zod.number()])');
-    }
-  });
+    expect(renderWith(withZod('^4.0.0'))).toContain('zod.union([');
+    expect(renderWith(withZod('4.1.13'))).toContain('zod.union([');
+    expect(renderWith(withZod('4.1.13'), 'mini')).toContain('zod.union([');
+    // Non-semver specifiers and an unknown version must not throw or assume
+    // `xor`, which is undefined on Zod 4.0/4.1.
+    expect(renderWith(withZod('workspace:*'))).toContain('zod.union([');
+    expect(renderWith(undefined)).toContain('zod.union([');
 
-  it('keeps zod.union for oneOf when the zod version is unknown (#4395)', () => {
-    // No `package.json` (hoisted install, programmatic `generate()`) may still
-    // run Zod 4.0/4.1, where `zod.xor` is undefined.
-    const unknownCtx = createTestContextSpec({
-      output: { override: { useDates: false, zod: { generateXor: true } } },
-    });
-
-    expect(
-      parseZodValidationSchemaDefinition(
-        generateZodValidationSchemaDefinition(
-          pet,
-          unknownCtx,
-          'pet',
-          false,
-          true,
-          {
-            required: true,
-          },
-        ),
-        unknownCtx,
-        false,
-        false,
-        true,
-      ).zod,
-    ).toBe('zod.union([zod.string(),zod.number()])');
+    expect(renderWith(withZod('4.2.0'))).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+    expect(renderWith(withZod('^4.4.0'), 'mini')).toContain('zod.xor([');
   });
 
   it('keeps zod.union for anyOf', () => {

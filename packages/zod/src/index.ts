@@ -2602,6 +2602,9 @@ export const parseZodValidationSchemaDefinition = (
   paramsInjection?: ZodParamsInjection,
   variant: ZodVariantOption = 'classic',
   exactOptional = false,
+  // Whether the installed Zod has `zod.xor` (`supportsZodXor`). Resolved once
+  // by the caller next to `isZodV4` rather than per parse.
+  hasZodXor = false,
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
@@ -2665,14 +2668,14 @@ export const parseZodValidationSchemaDefinition = (
   // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
   // branches strip unknown keys, so a subtype payload also matches its
   // supertype (`oneOf: [Pet, Dog]`) and would start failing validation.
-  // `zod.xor` only exists from Zod 4.2, and coercion can make distinct
-  // branches overlap (`"42"` passes both `zod.string()` and
+  // `zod.xor` only exists from Zod 4.2 (`hasZodXor`), and coercion can make
+  // distinct branches overlap (`"42"` passes both `zod.string()` and
   // `zod.coerce.number()`), so those keep a plain union.
   const useXor =
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     !!context.output?.override?.zod?.generateXor &&
     isZodV4 &&
-    supportsZodXor(context.output.packageJson) &&
+    hasZodXor &&
     !(Array.isArray(coerceTypes) ? coerceTypes.length > 0 : coerceTypes);
 
   const buildCombinedArgs = (
@@ -4460,6 +4463,7 @@ const generateZodRoute = async (
     context.output.override.zod.version,
     context.output.packageJson,
   );
+  const hasZodXor = supportsZodXor(context.output.packageJson);
   assertZodTarget({ variant: zodVariant, isZodV4 });
   const useReusableSchemas =
     context.output.override.zod.generateReusableSchemas;
@@ -4564,6 +4568,7 @@ const generateZodRoute = async (
     makeParamsInjection('param', 'Params'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
@@ -4586,6 +4591,7 @@ const generateZodRoute = async (
     makeParamsInjection('query', 'QueryParams'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessHeader = override.zod.preprocess?.header
@@ -4608,6 +4614,7 @@ const generateZodRoute = async (
     makeParamsInjection('header', 'Header'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessBody = override.zod.preprocess?.body
@@ -4630,6 +4637,7 @@ const generateZodRoute = async (
     makeParamsInjection('body', 'Body'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -4656,6 +4664,7 @@ const generateZodRoute = async (
       ),
       zodVariant,
       override.zod.exactOptional,
+      hasZodXor,
     ),
   );
 
@@ -4913,6 +4922,7 @@ export {
   getZodTypeName,
   isZodVersionV4,
   resolveIsZodV4,
+  supportsZodXor,
 } from './compatible-v4';
 export { renderZodExport, type ZodExportBlock } from './export-emitter';
 
