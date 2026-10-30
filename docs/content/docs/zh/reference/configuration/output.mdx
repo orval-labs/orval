@@ -2064,7 +2064,7 @@ export const Id = zod.xor([zod.string(), zod.number()]);
   - 已安装 `zod` 时，从 `node_modules/zod/package.json` 读取其版本。
   - 否则使用 `package.json` 中声明的版本范围，且只看其下限：`^4.2.0` 或 `>=4.3.0 <5` 会输出 `zod.xor`；而 `^4.1.0`、`4.x`、`<5` 仍可能解析到 4.0/4.1，因此保持 `zod.union([...])`；没有 semver 下限的声明（`workspace:*`、`link:`、dist-tag）同样如此。因此安装 `zod` 前后的输出可能不同；声明 `^4.2.0` 或更高版本即可保持稳定。
   - 如果无法检测到 `zod` 版本（找不到输出目录对应的 `package.json`、依赖被提升安装，或以编程方式调用 `generate()`），`oneOf` 同样输出为 `zod.union([...])`，因为实际安装的版本可能早于 `xor`。
-- **不与 [`coerce`](#coerce) 同时生效。** 类型转换可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`），因此启用类型转换时 `oneOf` 仍输出为 `zod.union([...])`。
+- **分支被类型转换时不生效。** [类型转换](#coerce)可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`），因此只要任一分支（包括其嵌套属性）被类型转换，`oneOf` 就仍输出为 `zod.union([...])`。不匹配任何分支的 coerce 列表（例如 `oneOf: [string, number]` 搭配 `coerce: ['date']`）仍会输出 `zod.xor`。引用了[可复用 schema](#generatereusableschemas) 的分支，只要启用了类型转换就视为被转换。
 - **分支的输出比规范更宽松时不生效。** Orval 会丢弃无法表达的关键字（`not`、`if`/`then`/`else`、`patternProperties`、`dependentRequired` 等），而 `{}` 以及没有同级 `properties` 的仅含 `required` 的分支会输出为 `zod.unknown()`。两个这样的分支会同时匹配，`zod.xor` 因而会拒绝合法输入（`oneOf: [{ required: ['x'] }, { required: ['y'] }]` 会拒绝所有值）。只要含有这样的分支，`oneOf` 就仍输出为 `zod.union([...])`。
 - **带 `discriminator` 时不生效。** discriminator 按值选择分支，若多个分支共用同一个值就会同时匹配，因此这样的 `oneOf` 仍输出为 `zod.union([...])`；启用 [`generateDiscriminatedUnion`](#generatediscriminatedunion) 时则输出为 `zod.discriminatedUnion(...)`。
 - `anyOf` 和类型数组（`type: ['integer', 'number']`）始终输出为 `zod.union([...])`。

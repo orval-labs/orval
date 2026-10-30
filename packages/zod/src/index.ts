@@ -2668,15 +2668,35 @@ export const parseZodValidationSchemaDefinition = (
   // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
   // branches strip unknown keys, so a subtype payload also matches its
   // supertype (`oneOf: [Pet, Dog]`) and would start failing validation.
-  // `zod.xor` only exists from Zod 4.2 (`hasZodXor`), and coercion can make
-  // distinct branches overlap (`"42"` passes both `zod.string()` and
-  // `zod.coerce.number()`), so those keep a plain union.
+  // `zod.xor` only exists from Zod 4.2 (`hasZodXor`).
   const useXor =
     // oxlint-disable-next-line typescript/no-unnecessary-condition
-    !!context.output?.override?.zod?.generateXor &&
-    isZodV4 &&
-    hasZodXor &&
-    !(Array.isArray(coerceTypes) ? coerceTypes.length > 0 : coerceTypes);
+    !!context.output?.override?.zod?.generateXor && isZodV4 && hasZodXor;
+
+  // Coercion can make distinct branches overlap (`"42"` passes both
+  // `zod.string()` and `zod.coerce.number()`), so a `oneOf` with a coerced
+  // validator anywhere in a branch keeps a plain union. Mirrors the coercion
+  // checks of both emitters below. A `namedRef` component is rendered
+  // elsewhere, so it counts as coerced whenever coercion is enabled.
+  const isCoercedFn = (fn: string): boolean =>
+    fn === 'namedRef'
+      ? !!coerceTypes && (!Array.isArray(coerceTypes) || coerceTypes.length > 0)
+      : fn === 'int'
+        ? !!shouldCoerce('number')
+        : !!shouldCoerce(fn) &&
+          (fn !== 'date' || !!context.output.override.useDates);
+  const containsCoercion = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsCoercion);
+    if (!isObject(value)) return false;
+    if (Array.isArray(value.functions)) {
+      return (value.functions as [string, unknown][]).some(
+        ([fn, args]) => isCoercedFn(fn) || containsCoercion(args),
+      );
+    }
+    return Object.values(value).some(containsCoercion);
+  };
+  const unionFn = (fn: string, members: ZodValidationSchemaDefinition[]) =>
+    fn === 'oneOf' && useXor && !containsCoercion(members) ? 'xor' : 'union';
 
   const buildCombinedArgs = (
     fn: string,
@@ -2896,7 +2916,7 @@ ${Object.entries(objectArgs)
         }
         current = {
           expr: zodMiniCall(
-            fn === 'oneOf' && useXor ? 'xor' : 'union',
+            unionFn(fn, unionArgs),
             `[${unionArgs
               .map((arg) => {
                 appendConstsChunk(arg.consts.join('\n'));
@@ -3323,7 +3343,7 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.${fn === 'oneOf' && useXor ? 'xor' : 'union'}([${union.join(',')}])`;
+      return `.${unionFn(fn, unionArgs)}([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {

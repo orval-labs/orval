@@ -15522,6 +15522,29 @@ describe('oneOf as zod.xor', () => {
     expect(render(pet, true, 'mini', ['number'])).toContain('zod.union([');
   });
 
+  it('emits zod.xor for oneOf when no branch is coerced (#4395)', () => {
+    // `coerce: ['date']` coerces nothing in `oneOf: [string, number]`.
+    expect(render(pet, true, 'classic', ['date'])).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+    expect(render(pet, true, 'mini', ['boolean'])).toContain('zod.xor([');
+  });
+
+  it('keeps zod.union for oneOf when a nested property is coerced (#4395)', () => {
+    const objects: OpenApiSchemaObject = {
+      oneOf: [
+        { type: 'object', properties: { a: { type: 'string' } } },
+        { type: 'object', properties: { a: { type: 'number' } } },
+      ],
+    };
+
+    for (const variant of ['classic', 'mini'] as const) {
+      const zod = render(objects, true, variant, ['number']);
+      expect(zod).toContain('zod.coerce.number(');
+      expect(zod).not.toContain('zod.xor(');
+    }
+  });
+
   it('emits zod.xor for oneOf when coercion is an empty list', () => {
     expect(render(pet, true, 'classic', [])).toBe(
       'zod.xor([zod.string(),zod.number()])',
