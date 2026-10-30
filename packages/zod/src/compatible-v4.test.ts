@@ -314,6 +314,28 @@ describe('supportsZodXor', () => {
     expect(supportsZodXor(withZod('4.3.0-canary.1'))).toBe(true);
   });
 
+  it('returns false for specifiers that are not semver (#4395)', () => {
+    for (const zod of [
+      'workspace:*',
+      'link:../zod',
+      'file:../zod',
+      'github:colinhacks/zod',
+      'next',
+    ]) {
+      expect(() => supportsZodXor(withZod(zod))).not.toThrow();
+      expect(supportsZodXor(withZod(zod))).toBe(false);
+    }
+  });
+
+  it('uses the resolved version over a non-semver specifier', () => {
+    expect(
+      supportsZodXor({
+        dependencies: { zod: 'workspace:*' },
+        resolvedVersions: { zod: '4.4.2' },
+      }),
+    ).toBe(true);
+  });
+
   it('prefers resolvedVersions over declared ranges', () => {
     expect(
       supportsZodXor({

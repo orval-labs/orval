@@ -34,7 +34,10 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
  * to be modern: Zod 4 output works on every 4.x, but `zod.xor` would be
  * undefined on 4.0/4.1, so `zod.union` is kept. Unlike
  * {@link isZodVersionV4}, the prerelease suffix is kept so `4.2.0-canary.*`
- * builds that predate `xor` stay on `zod.union`.
+ * builds that predate `xor` stay on `zod.union`. A specifier that is not a
+ * semver range (`workspace:*`, `link:`, `file:`, `github:`, a dist-tag such
+ * as `next`) makes `compareVersions` throw; it is treated as unknown too, so
+ * generation does not fail.
  */
 export const supportsZodXor = (packageJson: PackageJson | undefined) => {
   if (!packageJson) {
@@ -47,7 +50,11 @@ export const supportsZodXor = (packageJson: PackageJson | undefined) => {
     return false;
   }
 
-  return compareVersions(version, '4.2.0');
+  try {
+    return compareVersions(version, '4.2.0');
+  } catch {
+    return false;
+  }
 };
 
 /**

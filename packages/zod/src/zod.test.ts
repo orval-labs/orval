@@ -15550,6 +15550,34 @@ describe('oneOf as zod.xor', () => {
     expect(renderWith('^4.4.0', 'mini')).toContain('zod.xor([');
   });
 
+  it('keeps zod.union for a non-semver zod specifier instead of throwing (#4395)', () => {
+    for (const generateXor of [false, true]) {
+      const workspaceCtx = createTestContextSpec({
+        output: {
+          override: { useDates: false, zod: { generateXor } },
+          packageJson: { dependencies: { zod: 'workspace:*' } },
+        },
+      });
+
+      expect(
+        parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            pet,
+            workspaceCtx,
+            'pet',
+            false,
+            true,
+            { required: true },
+          ),
+          workspaceCtx,
+          false,
+          false,
+          true,
+        ).zod,
+      ).toBe('zod.union([zod.string(),zod.number()])');
+    }
+  });
+
   it('keeps zod.union for oneOf when the zod version is unknown (#4395)', () => {
     // No `package.json` (hoisted install, programmatic `generate()`) may still
     // run Zod 4.0/4.1, where `zod.xor` is undefined.
