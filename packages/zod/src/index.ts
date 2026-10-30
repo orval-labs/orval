@@ -526,70 +526,53 @@ const acceptsEnumValues = (
 };
 
 /**
- * The property schemas an object default is formatted against. An `allOf`
+ * The properties and `required` keys a schema contributes to its own object
+ * level: its own, plus those of its resolved `allOf` members, at any depth.
+ * JSON Schema applies every `allOf` member to the same instance, so a
+ * `required` in one member covers properties declared by another.
+ *
+ * Properties: a later member overrides an earlier one, and the schema's own
+ * win. They are also what an object default is formatted against: an `allOf`
  * wrapper (e.g. `allOf: [$ref]` plus a sibling `default`) has none of its own,
- * so they are gathered from its resolved members; without them a tuple property
- * is hoisted as a plain array and widens to `T[]` (#4255). A later member
- * overrides an earlier one, and the schema's own properties win.
+ * and without them a tuple property is hoisted as a plain array and widens to
+ * `T[]` (#4255).
  *
- * @param schema Schema carrying the object default
- * @param context Spec context, used to resolve `$ref` members
+ * @param name Used in the error for a misplaced boolean `required`. A `$ref`
+ *   member is named by its `$ref`, an inline one by its position.
  * @param seen Nodes on the current recursion path, guarding against a
  *   self-referential `allOf`
  */
-const getDefaultProperties = (
-  schema: OpenApiNonBooleanSchemaObject,
-  context: ContextSpec,
-  seen = new Set<object>(),
-): Record<string, unknown> | undefined => {
-  const own = isObject(schema.properties)
-    ? (schema.properties as Record<string, unknown>)
-    : undefined;
-  if (!schema.allOf) return own;
-
-  if (seen.has(schema)) return undefined;
-  seen.add(schema);
-
-  const merged: Record<string, unknown> = {};
-  for (const member of schema.allOf) {
-    const resolved = resolveUnionMemberSchema(member, context);
-    if (!resolved) continue;
-    Object.assign(merged, getDefaultProperties(resolved, context, seen));
-  }
-  Object.assign(merged, own);
-  // `seen` tracks the current path only: a schema reached again through a
-  // later sibling must still be collected so that sibling wins.
-  seen.delete(schema);
-
-  return Object.keys(merged).length > 0 ? merged : undefined;
-};
-
-/**
- * The `required` keys a schema enforces at its own object level, including
- * those of its (resolved) `allOf` members.
- *
- * @param seen Nodes on the current recursion path, guarding against a
- *   self-referential `allOf`
- */
-const getAllOfRequiredKeys = (
+const getObjectLevel = (
   schema: OpenApiNonBooleanSchemaObject,
   name: string,
   context: ContextSpec,
   seen = new Set<object>(),
-): string[] => {
-  const own: string[] = getRequiredKeys(schema, name);
-  if (!schema.allOf || seen.has(schema)) return own;
+): { properties: Record<string, unknown>; required: string[] } => {
+  const own = isObject(schema.properties)
+    ? (schema.properties as Record<string, unknown>)
+    : {};
+  const required: string[] = getRequiredKeys(schema, name);
+  if (!schema.allOf || seen.has(schema)) return { properties: own, required };
 
   seen.add(schema);
-  const inherited = schema.allOf.flatMap((member, index) => {
+  const properties: Record<string, unknown> = {};
+  schema.allOf.forEach((member, index) => {
     const resolved = resolveUnionMemberSchema(member, context);
-    return resolved
-      ? getAllOfRequiredKeys(resolved, `${name}.allOf[${index}]`, context, seen)
-      : [];
+    if (!resolved) return;
+    const memberName =
+      isObject(member) && typeof member.$ref === 'string'
+        ? member.$ref
+        : `${name}.allOf[${index}]`;
+    const level = getObjectLevel(resolved, memberName, context, seen);
+    Object.assign(properties, level.properties);
+    required.push(...level.required);
   });
+  Object.assign(properties, own);
+  // `seen` tracks the current path only: a schema reached again through a
+  // later sibling must still be collected so that sibling wins.
   seen.delete(schema);
 
-  return [...own, ...inherited];
+  return { properties, required };
 };
 
 // A schema that renders to a single `zod.object({...})` — i.e. not a union,
@@ -990,6 +973,11 @@ export const generateZodValidationSchemaDefinition = (
      * name is unaffected. (#3171)
      */
     additionalRequired?: string[];
+    /**
+     * `$ref`s inlined so far at this object level to apply `additionalRequired`.
+     * Forwarded with it, and kept named if met again. (#4402)
+     */
+    inlinedRefs?: string[];
 
     schemaExtension?: SchemaExtension;
 
@@ -1044,6 +1032,7 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   let schema: OpenApiNonBooleanSchemaObject = schemaInput;
+  let inlinedRefs = rules?.inlinedRefs ?? [];
 
   const CHAINABLE_SIBLINGS = new Set(['default', 'description']);
   const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
@@ -1100,28 +1089,39 @@ export const generateZodValidationSchemaDefinition = (
     const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
     // A sibling `allOf` member may require a key that the referenced schema
-    // declares but leaves optional. The named schema cannot carry that, so
-    // inline it and let `additionalRequired` mark the key.
+    // declares (in its own object level or in a `oneOf`/`anyOf` branch) but
+    // leaves optional. The named schema cannot carry that, so inline it and
+    // let `additionalRequired` mark the key. Refs already inlined on this path
+    // stay named, so a self-referential `allOf` cannot recurse forever.
     const additionalRequired = rules.additionalRequired ?? [];
-    const resolvedRef =
-      additionalRequired.length > 0
-        ? resolveUnionMemberSchema(
-            schema as OpenApiSchemaObject | OpenApiReferenceObject,
-            context,
-          )
+    const target =
+      allSiblingsChainable &&
+      additionalRequired.length > 0 &&
+      !inlinedRefs.includes(schema.$ref)
+        ? tryResolveRefSchema(schema.$ref, context)
         : undefined;
-    const refProperties = resolvedRef
-      ? getDefaultProperties(resolvedRef, context)
-      : undefined;
-    const refRequired = resolvedRef
-      ? getAllOfRequiredKeys(resolvedRef, schema.$ref, context)
-      : [];
-    const requiredBySibling =
-      refProperties !== undefined &&
-      additionalRequired.some(
-        (key) =>
-          Object.hasOwn(refProperties, key) && !refRequired.includes(key),
+    const requiredBySibling = ((): boolean => {
+      if (typeof target !== 'object') return false;
+      const targetLevel = getObjectLevel(target, schema.$ref, context);
+      const separator = target.oneOf ? 'oneOf' : 'anyOf';
+      const declared = new Set([
+        ...Object.keys(targetLevel.properties),
+        ...(target.oneOf ?? target.anyOf ?? []).flatMap((branch, index) => {
+          const resolved = resolveUnionMemberSchema(branch, context);
+          if (!resolved) return [];
+          const branchName =
+            isObject(branch) && typeof branch.$ref === 'string'
+              ? branch.$ref
+              : `${schema.$ref}.${separator}[${index}]`;
+          return Object.keys(
+            getObjectLevel(resolved, branchName, context).properties,
+          );
+        }),
+      ]);
+      return additionalRequired.some(
+        (key) => declared.has(key) && !targetLevel.required.includes(key),
       );
+    })();
 
     if (allSiblingsChainable && !requiredBySibling) {
       const refName = getRefInfo(schema.$ref, context).name;
@@ -1143,18 +1143,18 @@ export const generateZodValidationSchemaDefinition = (
       return { functions, consts };
     }
 
-    if (allSiblingsChainable) {
+    if (requiredBySibling) {
       // Inline only this level, so nested `$ref`s (recursive ones included)
       // stay named references instead of being dereferenced to `{}`.
       logger.verbose(
         `$ref ${schema.$ref} has properties required by a sibling allOf member; inlining one level.`,
       );
-      schema = toObjectSchema(
-        resolveShallow(
-          schema as OpenApiSchemaObject | OpenApiReferenceObject,
-          context,
-        ),
-      );
+      inlinedRefs = [...inlinedRefs, schema.$ref];
+      const { $ref: _, ...refSiblings } = schema;
+      schema = {
+        ...(target as OpenApiNonBooleanSchemaObject),
+        ...refSiblings,
+      };
     } else {
       logger.verbose(
         `$ref ${schema.$ref} has non-chainable siblings ` +
@@ -1388,43 +1388,19 @@ export const generateZodValidationSchemaDefinition = (
     // (and on the composing schema itself) applies to properties contributed by
     // any member. Collect them all so each member's own properties can be marked
     // required even when the `required` lives in a sibling member — e.g. props
-    // in a `$ref` base + `required` in a constraint-only sibling. Only valid for
-    // `allOf` (a conjunction); `oneOf`/`anyOf` are alternatives. (#3171)
+    // in a `$ref` base + `required` in a constraint-only sibling. (#3171)
+    // Keys required by an outer `allOf` this schema is a member of apply to the
+    // same object, so they reach these members too, `oneOf`/`anyOf` branches
+    // included. The union's own `required` is not added: its branches are
+    // alternatives. (#4402)
     const allOfRequired = schema.allOf
       ? [
           ...new Set([
-            ...getRequiredKeys(schema, name),
-            // Keys required by an outer `allOf` this one is a member of. It is
-            // still the same object level, so they reach these members too.
+            ...getObjectLevel(schema, name, context).required,
             ...(rules?.additionalRequired ?? []),
-            ...schemas.flatMap((member, index) => {
-              // Only the member's top-level `required` is needed. For `$ref`
-              // members resolve shallowly (no deep property dereference) and
-              // tolerate unresolvable refs — they simply contribute no keys.
-              /* oxlint-disable typescript/no-unnecessary-condition */
-              const isRef =
-                typeof member === 'object' &&
-                member !== null &&
-                '$ref' in member &&
-                typeof member.$ref === 'string';
-              /* oxlint-enable typescript/no-unnecessary-condition */
-              const resolved = isRef
-                ? tryResolveRefSchema(member.$ref as string, context)
-                : (member as OpenApiSchemaObject);
-              if (!resolved) return [];
-              // A constraint-only member never reaches the object path below,
-              // so a misplaced boolean here would otherwise pass unreported.
-              // Name the member, not the composing schema, or the message
-              // points at the wrong place in the document.
-              // oxlint-disable-next-line typescript/no-unsafe-return
-              return getRequiredKeys(
-                resolved,
-                isRef ? (member.$ref as string) : `${name}.allOf[${index}]`,
-              );
-            }),
           ]),
         ]
-      : undefined;
+      : rules?.additionalRequired;
 
     // Constraint-only branches have to be rendered against the composing
     // schema's `properties`, otherwise their `required` is lost. Only for
@@ -1542,6 +1518,7 @@ export const generateZodValidationSchemaDefinition = (
         {
           required: true,
           additionalRequired: allOfRequired,
+          inlinedRefs,
           propertyOverrides: (
             withSiblingProperties(schema) as OpenApiNonBooleanSchemaObject &
               Record<string, unknown>
@@ -1623,6 +1600,7 @@ export const generateZodValidationSchemaDefinition = (
           {
             required: true,
             additionalRequired: allOfRequired,
+            inlinedRefs,
             constNameRegistry,
             useReusableSchemas,
             schemaExtension: rules?.schemaExtension,
@@ -1786,10 +1764,10 @@ export const generateZodValidationSchemaDefinition = (
         return undefined;
       };
 
-      const properties = getDefaultProperties(schema, context);
+      const { properties } = getObjectLevel(schema, name, context);
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
-          const formatted = formatDefaultEntryValue(value, properties?.[key]);
+          const formatted = formatDefaultEntryValue(value, properties[key]);
           return formatted === undefined
             ? undefined
             : `${JSON.stringify(key)}: ${formatted}`;
@@ -1804,10 +1782,7 @@ export const generateZodValidationSchemaDefinition = (
       // hoisting it into a named const. A named const loses TypeScript's
       // contextual type information, widening tuple arrays to `T[]` and
       // enum-literal properties to their base type (#4023, #4024).
-      if (
-        properties !== undefined &&
-        Object.values(properties).some((p) => needsInlineDefault(p))
-      ) {
+      if (Object.values(properties).some((p) => needsInlineDefault(p))) {
         defaultVarName = defaultValue;
         defaultValue = undefined;
       }

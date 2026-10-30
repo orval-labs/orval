@@ -1768,6 +1768,59 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('"d": zod.string().optional()');
   });
 
+  describe.each([false, true])(
+    'outer allOf required at the same object level (issue #4402, isZodV4: %s)',
+    (isZodV4) => {
+      const render = (schema: OpenApiSchemaObject) => {
+        const context = createTestContextSpec({
+          output: { override: { useDates: false } },
+        });
+        return parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            schema,
+            context,
+            'leaf',
+            false,
+            isZodV4,
+            { required: true },
+          ),
+          context,
+          false,
+          false,
+          isZodV4,
+        ).zod;
+      };
+
+      it('reaches the branches of a nested oneOf', () => {
+        const zod = render({
+          allOf: [
+            {
+              oneOf: [
+                { type: 'object', properties: { a: { type: 'string' } } },
+                { type: 'object', properties: { a: { type: 'number' } } },
+              ],
+            },
+            { required: ['a'] },
+          ],
+        });
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).toContain('"a": zod.number()');
+        expect(zod).not.toContain('.optional()');
+      });
+
+      it('applies a required array nested in an allOf member to a sibling', () => {
+        const zod = render({
+          allOf: [
+            { type: 'object', properties: { x: { type: 'string' } } },
+            { allOf: [{ required: ['x'] }] },
+          ],
+        });
+        expect(zod).toContain('"x": zod.string()');
+        expect(zod).not.toContain('"x": zod.string().optional()');
+      });
+    },
+  );
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
@@ -5941,11 +5994,44 @@ describe('generateZodValidationSchemaDefinition`', () => {
                   { type: 'object', properties: { c: { type: 'string' } } },
                 ],
               },
+              Cat: { type: 'object', properties: { meow: { type: 'string' } } },
+              Dog: { type: 'object', properties: { bark: { type: 'string' } } },
+              Pet: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                oneOf: [
+                  { $ref: '#/components/schemas/Cat' },
+                  { $ref: '#/components/schemas/Dog' },
+                ],
+              },
+              Choice: {
+                oneOf: [
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                  { type: 'object', properties: { a: { type: 'number' } } },
+                ],
+              },
+              SelfAllOf: {
+                allOf: [
+                  { $ref: '#/components/schemas/SelfAllOf' },
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                ],
+              },
+              BadBase: {
+                type: 'object',
+                required: true,
+                properties: { a: { type: 'string' } },
+              } as unknown as OpenApiSchemaObject,
+              BadMid: {
+                allOf: [
+                  { $ref: '#/components/schemas/BadBase' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
             },
           },
         },
       });
-      const render = (required: string[], ref = 'Base') =>
+      const render = (required: string[], ref = 'Base', isZodV4 = false) =>
         parseZodValidationSchemaDefinition(
           generateZodValidationSchemaDefinition(
             {
@@ -5961,13 +6047,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
             context,
             'child',
             false,
-            false,
+            isZodV4,
             { required: true, useReusableSchemas: true },
           ),
           context,
           false,
           false,
-          false,
+          isZodV4,
         );
 
       it('inlines the $ref so the required key is enforced', () => {
@@ -5997,6 +6083,42 @@ describe('generateZodValidationSchemaDefinition`', () => {
         const { zod, usedRefs } = render(['b', 'd']);
         expect(zod).toContain('__REF_Base__');
         expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it.each([false, true])(
+        'requires a common property of an inlined oneOf $ref (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['name'], 'Pet', isZodV4);
+          expect(zod).toContain('"name": zod.string()');
+          expect(zod).not.toContain('"name": zod.string().optional()');
+          // The branches do not declare `name`, so they stay named.
+          expect(usedRefs).toEqual(new Set(['Cat', 'Dog']));
+        },
+      );
+
+      it.each([false, true])(
+        'inlines a $ref to a oneOf whose branches declare the key (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['a'], 'Choice', isZodV4);
+          expect(zod).toContain('"a": zod.string()');
+          expect(zod).toContain('"a": zod.number()');
+          expect(zod).not.toContain('"a": zod.string().optional()');
+          expect(zod).not.toContain('"a": zod.number().optional()');
+          expect(usedRefs.size).toBe(0);
+        },
+      );
+
+      it('keeps a self-referential allOf named after inlining it once', () => {
+        const { zod, usedRefs } = render(['a'], 'SelfAllOf');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs).toEqual(new Set(['SelfAllOf']));
+      });
+
+      it('names the $ref member that has a boolean required', () => {
+        expect(() => render(['c'], 'BadMid')).toThrow(
+          'schema "#/components/schemas/BadBase" has `required: true`',
+        );
       });
     });
 
