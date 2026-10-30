@@ -42,6 +42,7 @@ import {
   parseZodValidationSchemaDefinition,
   renderZodExport,
   resolveIsZodV4,
+  supportsZodXor,
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
 
@@ -782,6 +783,7 @@ export function generateZodSchemasInline(
     output.override.zod.version,
     output.packageJson,
   );
+  const hasZodXor = supportsZodXor(output.packageJson);
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -824,6 +826,7 @@ export function generateZodSchemasInline(
       undefined,
       output.override.zod.variant,
       output.override.zod.exactOptional,
+      hasZodXor,
     );
 
     schemas.push({
@@ -857,6 +860,7 @@ function generateZodSchemasInlineReusable(
     output.override.zod.version,
     output.packageJson,
   );
+  const hasZodXor = supportsZodXor(output.packageJson);
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -892,6 +896,7 @@ function generateZodSchemasInlineReusable(
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     exactOptional: output.override.zod.exactOptional,
+    hasZodXor,
     schemaExtension: output.override.zod.schemaExtension,
     paramsMutator,
     constNameRegistry,
@@ -965,6 +970,7 @@ export async function writeZodSchemas(
     output.override.zod.version,
     output.packageJson,
   );
+  const hasZodXor = supportsZodXor(output.packageJson);
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -1023,6 +1029,7 @@ export async function writeZodSchemas(
       undefined,
       output.override.zod.variant,
       output.override.zod.exactOptional,
+      hasZodXor,
     );
 
     schemasToWrite.push({
@@ -1091,6 +1098,7 @@ async function writeZodSchemasReusable(
     output.override.zod.version,
     output.packageJson,
   );
+  const hasZodXor = supportsZodXor(output.packageJson);
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -1128,6 +1136,7 @@ async function writeZodSchemasReusable(
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     exactOptional: output.override.zod.exactOptional,
+    hasZodXor,
     schemaExtension: output.override.zod.schemaExtension,
     paramsMutator,
   });
@@ -1265,6 +1274,7 @@ function generateZodSchemasFromVerbs(
     output.override.zod.version,
     output.packageJson,
   );
+  const hasZodXor = supportsZodXor(output.packageJson);
   assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -1613,6 +1623,7 @@ function generateZodSchemasFromVerbs(
       undefined,
       output.override.zod.variant,
       output.override.zod.exactOptional,
+      hasZodXor,
     );
 
     // Operation schemas sit at the top of the dependency graph, so any

@@ -67,6 +67,7 @@ import {
   getZodTimeFormat,
   assertZodTarget,
   resolveIsZodV4,
+  supportsZodXor,
 } from './compatible-v4';
 import {
   assertZodMethodName,
@@ -635,6 +636,101 @@ const getForbiddenKeys = (
     }
   }
   return forbidden.size > 0 ? [...forbidden] : undefined;
+};
+
+// --- Exclusive unions -----------------------------------------------------
+//
+// `zod.xor` rejects a value that matches more than one branch, so it is only
+// sound when every branch is rendered exactly. Where the rendering is looser
+// than the spec, a plain union merely validates loosely, but `xor` sees two
+// loose branches both match and rejects valid input: with
+// `oneOf: [{ required: ['x'] }, { required: ['y'] }]` and no sibling
+// `properties`, both branches render as `zod.unknown()` and every value fails.
+// (#4395)
+
+// Keywords this generator does not translate, so a schema carrying one renders
+// looser than the spec. `not` is listed too: only an empty `not` (`never`) and
+// the forbidden-keys form rewritten by `withSiblingProperties` are honoured.
+const DROPPED_KEYWORDS = [
+  'not',
+  'if',
+  'then',
+  'else',
+  'dependentSchemas',
+  'dependentRequired',
+  'dependencies',
+  'patternProperties',
+  'propertyNames',
+  'contains',
+  'unevaluatedProperties',
+] as const;
+
+// A rendered branch that accepts any value: `zod.unknown()` (`{}`, `true`, a
+// branch with only `required`/`not`/annotations), or a union with such a member.
+const isPermissiveDefinition = (
+  definition: ZodValidationSchemaDefinition,
+): boolean => {
+  const first = definition.functions.at(0);
+  if (!first) return true;
+  const [fn, args] = first;
+  if (fn === 'unknown' || fn === 'any') return true;
+  const base = decodeDiscriminatorSeparator(fn)?.base ?? fn;
+  if (base === 'oneOf' || base === 'anyOf') {
+    return (args as ZodValidationSchemaDefinition[]).some(
+      isPermissiveDefinition,
+    );
+  }
+  if (base === 'allOf') {
+    return (args as ZodValidationSchemaDefinition[]).every(
+      isPermissiveDefinition,
+    );
+  }
+  return false;
+};
+
+// Whether a branch, including nested schemas and `$ref` targets, avoids every
+// keyword in `DROPPED_KEYWORDS`. Unresolvable and recursive refs count as
+// lossy: inlining breaks a cycle with `{}`.
+const isFaithfullyRendered = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+  seen = new Set<string>(),
+): boolean => {
+  if (!isObject(schema)) return true;
+  if ('$ref' in schema && typeof schema.$ref === 'string') {
+    if (seen.has(schema.$ref)) return false;
+    const resolved = tryResolveRefSchema(schema.$ref, context);
+    if (!resolved) return false;
+    return isFaithfullyRendered(
+      resolved,
+      context,
+      new Set([...seen, schema.$ref]),
+    );
+  }
+  const concrete = schema as OpenApiNonBooleanSchemaObject;
+  if (
+    DROPPED_KEYWORDS.some(
+      (key) =>
+        key in concrete &&
+        !(
+          key === 'not' &&
+          isObject(concrete.not) &&
+          Object.keys(concrete.not).length === 0
+        ),
+    )
+  ) {
+    return false;
+  }
+  const children = [
+    ...Object.values(isObject(concrete.properties) ? concrete.properties : {}),
+    ...(Array.isArray(concrete.items) ? concrete.items : [concrete.items]),
+    ...(Array.isArray(concrete.prefixItems) ? concrete.prefixItems : []),
+    concrete.additionalProperties,
+    ...(concrete.allOf ?? []),
+    ...(concrete.oneOf ?? []),
+    ...(concrete.anyOf ?? []),
+  ] as (OpenApiSchemaObject | OpenApiReferenceObject | undefined)[];
+  return children.every((child) => isFaithfullyRendered(child, context, seen));
 };
 
 // The branch must declare the discriminator key as a literal value — a `const`
@@ -1407,13 +1503,35 @@ export const generateZodValidationSchemaDefinition = (
       useReusableSchemas &&
       (rules?.schemaExtension?.length ?? 0) > 0 &&
       schemas.some((member) => isObject(member) && '$ref' in member);
+    // `generateXor` renders `oneOf` as `zod.xor`, which is only sound when no
+    // branch renders looser than the spec (see `isFaithfullyRendered`). A
+    // `discriminator` picks the branch by value instead, and branches sharing a
+    // value would both match, so it stays a union too. Demoting to `anyOf`
+    // keeps `zod.union`.
+    const exclusiveSeparator =
+      separator === 'oneOf' &&
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
+      context.output?.override?.zod?.generateXor &&
+      (schema.discriminator !== undefined ||
+        baseSchemas.some(isPermissiveDefinition) ||
+        !schemas.every((member) =>
+          isFaithfullyRendered(
+            withSiblingProperties(withParentType(member)),
+            context,
+          ),
+        ))
+        ? 'anyOf'
+        : separator;
     const unionSeparator =
       discriminatorProperty &&
       (isZodV4 ||
         (!baseSchemas.some(hasRootRefinements) &&
           !hasPotentialReusableRefinements))
-        ? encodeDiscriminatorSeparator(separator, discriminatorProperty)
-        : separator;
+        ? encodeDiscriminatorSeparator(
+            exclusiveSeparator,
+            discriminatorProperty,
+          )
+        : exclusiveSeparator;
 
     // Handle allOf/oneOf/anyOf with additional properties - merge additional properties into the schema
     if ((schema.allOf || schema.oneOf || schema.anyOf) && schema.properties) {
@@ -1444,7 +1562,7 @@ export const generateZodValidationSchemaDefinition = (
         );
 
       // For oneOf/anyOf, use allOf to combine union with common properties
-      // This generates: zod.union([...]).and(commonProperties)
+      // This generates: zod.union([...]).and(commonProperties) (zod.xor with generateXor)
       if (schema.oneOf || schema.anyOf) {
         functions.push([
           'allOf',
@@ -1685,8 +1803,10 @@ export const generateZodValidationSchemaDefinition = (
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
   if (isObject(type) && 'multiType' in type) {
     const types = type.multiType;
+    // `type: ['integer', 'number']` overlaps, so this is a plain union, not an
+    // exclusive `oneOf`.
     functions.push([
-      'oneOf',
+      'anyOf',
       types.map((t) =>
         generateZodValidationSchemaDefinition(
           {
@@ -2258,8 +2378,11 @@ export const generateZodValidationSchemaDefinition = (
           .join(', ')}]`,
       ]);
     } else {
+      // `enum` means "equals one of the values", not an exclusive union: a
+      // repeated value (`[1, 'a', 1]`, or `[1, 1.0]`, which parse to the same
+      // number) would match two literals and fail `zod.xor`, so use `anyOf`.
       functions.push([
-        'oneOf',
+        'anyOf',
         enumMembers.map((member) => ({
           functions: [
             [
@@ -2482,6 +2605,9 @@ export const parseZodValidationSchemaDefinition = (
   paramsInjection?: ZodParamsInjection,
   variant: ZodVariantOption = 'classic',
   exactOptional = false,
+  // Whether the installed Zod has `zod.xor` (`supportsZodXor`). Resolved once
+  // by the caller next to `isZodV4` rather than per parse.
+  hasZodXor = false,
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
@@ -2541,6 +2667,39 @@ export const parseZodValidationSchemaDefinition = (
     (Array.isArray(coerceTypes)
       ? coerceTypes.includes(fn as ZodCoerceType)
       : COERCIBLE_TYPES.has(fn));
+
+  // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
+  // branches strip unknown keys, so a subtype payload also matches its
+  // supertype (`oneOf: [Pet, Dog]`) and would start failing validation.
+  // `zod.xor` only exists from Zod 4.2 (`hasZodXor`).
+  const useXor =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
+    !!context.output?.override?.zod?.generateXor && isZodV4 && hasZodXor;
+
+  // Coercion can make distinct branches overlap (`"42"` passes both
+  // `zod.string()` and `zod.coerce.number()`), so a `oneOf` with a coerced
+  // validator anywhere in a branch keeps a plain union. Mirrors the coercion
+  // checks of both emitters below. A `namedRef` component is rendered
+  // elsewhere, so it counts as coerced whenever coercion is enabled.
+  const isCoercedFn = (fn: string): boolean =>
+    fn === 'namedRef'
+      ? !!coerceTypes && (!Array.isArray(coerceTypes) || coerceTypes.length > 0)
+      : fn === 'int'
+        ? !!shouldCoerce('number')
+        : !!shouldCoerce(fn) &&
+          (fn !== 'date' || !!context.output.override.useDates);
+  const containsCoercion = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(containsCoercion);
+    if (!isObject(value)) return false;
+    if (Array.isArray(value.functions)) {
+      return (value.functions as [string, unknown][]).some(
+        ([fn, args]) => isCoercedFn(fn) || containsCoercion(args),
+      );
+    }
+    return Object.values(value).some(containsCoercion);
+  };
+  const unionFn = (fn: string, members: ZodValidationSchemaDefinition[]) =>
+    fn === 'oneOf' && useXor && !containsCoercion(members) ? 'xor' : 'union';
 
   const buildCombinedArgs = (
     fn: string,
@@ -2760,7 +2919,7 @@ ${Object.entries(objectArgs)
         }
         current = {
           expr: zodMiniCall(
-            'union',
+            unionFn(fn, unionArgs),
             `[${unionArgs
               .map((arg) => {
                 appendConstsChunk(arg.consts.join('\n'));
@@ -3187,7 +3346,7 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.union([${union.join(',')}])`;
+      return `.${unionFn(fn, unionArgs)}([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {
@@ -4327,6 +4486,7 @@ const generateZodRoute = async (
     context.output.override.zod.version,
     context.output.packageJson,
   );
+  const hasZodXor = supportsZodXor(context.output.packageJson);
   assertZodTarget({ variant: zodVariant, isZodV4 });
   const useReusableSchemas =
     context.output.override.zod.generateReusableSchemas;
@@ -4431,6 +4591,7 @@ const generateZodRoute = async (
     makeParamsInjection('param', 'Params'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
@@ -4453,6 +4614,7 @@ const generateZodRoute = async (
     makeParamsInjection('query', 'QueryParams'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessHeader = override.zod.preprocess?.header
@@ -4475,6 +4637,7 @@ const generateZodRoute = async (
     makeParamsInjection('header', 'Header'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessBody = override.zod.preprocess?.body
@@ -4497,6 +4660,7 @@ const generateZodRoute = async (
     makeParamsInjection('body', 'Body'),
     zodVariant,
     override.zod.exactOptional,
+    hasZodXor,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -4523,6 +4687,7 @@ const generateZodRoute = async (
       ),
       zodVariant,
       override.zod.exactOptional,
+      hasZodXor,
     ),
   );
 
@@ -4780,6 +4945,7 @@ export {
   getZodTypeName,
   isZodVersionV4,
   resolveIsZodV4,
+  supportsZodXor,
 } from './compatible-v4';
 export { renderZodExport, type ZodExportBlock } from './export-emitter';
 

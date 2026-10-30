@@ -2044,6 +2044,32 @@ export const Pet = zod.discriminatedUnion('petType', [
 - **继承（`allOf`）。** 通过 `allOf` 组合的分支会被扁平化为单个对象，这样它们仍能作为合法的 discriminated-union 选项。此前这个场景曾导致该功能被回退（[#2085](https://github.com/orval-labs/orval/issues/2085)）。如果启用了 [`generateReusableSchemas`](#generatereusableschemas)，引用了 `allOf` schema 的分支会继续使用普通 union，因为仅从引用本身无法保证目标一定是对象。
 - 同时支持 Zod v3（>= 3.20）和 v4，也支持 [`mini`](#variant) 变体。
 
+### generateXor
+
+**类型：** `boolean`
+**默认值：** `false`
+
+将 `oneOf` 输出为 [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor)，而不是 `zod.union([...])`，这样同时匹配多个分支的值会被拒绝，符合 JSON Schema `oneOf` 的语义。
+
+```ts
+// override: { zod: { generateXor: true } }
+export const Id = zod.xor([zod.string(), zod.number()]);
+```
+
+行为：
+
+- **显式开启。** 保持为 `false` 时，`oneOf` 仍像以前一样输出为 `zod.union([...])`。
+- **重叠的分支会校验失败。** 非 strict 的对象分支会剥离未知键，因此子类型的数据也会匹配其父类型（例如 `Dog` 通过 `allOf` 继承 `Pet` 时的 `oneOf: [Pet, Dog]`）；某个分支的字段全部可选时，任何数据也都会匹配它。`zod.xor` 会拒绝这类数据，因此请只在 `oneOf` 各分支互不重叠（不同的原始类型、字面量或 [`strict`](#strict) 对象）时开启。
+- **仅 Zod 4.2 及以上。** Zod 3 和 Zod 4.0/4.1 没有 `xor`，因此 `oneOf` 仍输出为 `zod.union([...])`。判断依据是 `zod` 的版本，而不是 `version` 选项：
+  - 已安装 `zod` 时，从 `node_modules/zod/package.json` 读取其版本。
+  - 否则使用 `package.json` 中声明的版本范围，且只看其下限：`^4.2.0` 或 `>=4.3.0 <5` 会输出 `zod.xor`；而 `^4.1.0`、`4.x`、`<5` 仍可能解析到 4.0/4.1，因此保持 `zod.union([...])`；没有 semver 下限的声明（`workspace:*`、`link:`、dist-tag）同样如此。因此安装 `zod` 前后的输出可能不同；声明 `^4.2.0` 或更高版本即可保持稳定。
+  - 如果无法检测到 `zod` 版本（找不到输出目录对应的 `package.json`、依赖被提升安装，或以编程方式调用 `generate()`），`oneOf` 同样输出为 `zod.union([...])`，因为实际安装的版本可能早于 `xor`。
+- **分支被类型转换时不生效。** [类型转换](#coerce)可能使分支重叠（`"42"` 同时通过 `zod.string()` 和 `zod.coerce.number()`），因此只要任一分支（包括其嵌套属性）被类型转换，`oneOf` 就仍输出为 `zod.union([...])`。不匹配任何分支的 coerce 列表（例如 `oneOf: [string, number]` 搭配 `coerce: ['date']`）仍会输出 `zod.xor`。引用了[可复用 schema](#generatereusableschemas) 的分支，只要启用了类型转换就视为被转换。
+- **分支的输出比规范更宽松时不生效。** Orval 会丢弃无法表达的关键字（`not`、`if`/`then`/`else`、`patternProperties`、`dependentRequired` 等），而 `{}` 以及没有同级 `properties` 的仅含 `required` 的分支会输出为 `zod.unknown()`。两个这样的分支会同时匹配，`zod.xor` 因而会拒绝合法输入（`oneOf: [{ required: ['x'] }, { required: ['y'] }]` 会拒绝所有值）。只要含有这样的分支，`oneOf` 就仍输出为 `zod.union([...])`。
+- **带 `discriminator` 时不生效。** discriminator 按值选择分支，若多个分支共用同一个值就会同时匹配，因此这样的 `oneOf` 仍输出为 `zod.union([...])`；启用 [`generateDiscriminatedUnion`](#generatediscriminatedunion) 时则输出为 `zod.discriminatedUnion(...)`。
+- `anyOf`、类型数组（`type: ['integer', 'number']`）和混合类型的 `enum`（`enum: [1, 'a']`）始终输出为 `zod.union([...])`。
+- 同样支持 [`mini`](#variant) 变体。
+
 ### exactOptional
 
 **类型：** `boolean`

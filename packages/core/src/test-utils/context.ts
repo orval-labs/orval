@@ -122,6 +122,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
       generateReusableSchemas: false,
       generateMeta: false,
       generateDiscriminatedUnion: false,
+      generateXor: false,
       exactOptional: false,
       generateCompanionTypes: false,
       dateTimeOptions: {},
