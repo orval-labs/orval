@@ -491,7 +491,8 @@ export interface OutputOptions {
   workspace?: string;
   /** Filter or extend the exports written to the workspace `index.ts`. */
   workspaceExports?: WorkspaceExportsFn;
-  target: string;
+  /** Operation output file. Optional when `schemas` is set: only schemas are generated. */
+  target?: string;
   schemas?: string | SchemaOptions | false;
   /**
    * Separate path for operation-derived types (params, bodies, responses).
