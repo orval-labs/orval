@@ -559,13 +559,13 @@ export const generateHandlerFile = async ({
   }
 
   // `smart` and `full` parse the existing file with the TypeScript compiler API.
-  // typescript is an optional peer dependency; without it we cannot safely
-  // reconcile or splice, so we preserve the existing file untouched and warn.
+  // If the compiler API cannot be loaded we cannot safely reconcile or splice,
+  // so we preserve the existing file untouched and warn.
   if (!(await ensureTypeScript())) {
     if (!warnedMissingTypeScript) {
       warnedMissingTypeScript = true;
       logger.warn(
-        `hono handlerGenerationStrategy '${strategy}' requires the optional peer dependency "typescript", which is not installed. Existing handler files are left unchanged (as with 'skip'). Install typescript to enable handler reconciliation.`,
+        `hono handlerGenerationStrategy '${strategy}' requires the TypeScript compiler API, which could not be loaded. Existing handler files are left unchanged (as with 'skip').`,
       );
     }
     return source;

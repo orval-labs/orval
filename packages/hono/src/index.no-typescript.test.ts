@@ -14,7 +14,7 @@ import {
 
 import { createTestGeneratorVerbOptions } from '../../core/src/test-utils';
 
-// Simulate the optional `typescript` peer dependency being absent.
+// Simulate the TypeScript compiler API being unavailable.
 vi.mock('./handler-merge', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./handler-merge')>();
   return { ...actual, ensureTypeScript: vi.fn().mockResolvedValue(false) };

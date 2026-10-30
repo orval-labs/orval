@@ -106,6 +106,7 @@
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/zod": "workspace:*",
+        "typescript": "catalog:",
       },
       "devDependencies": {
         "@hono/zod-validator": "catalog:hono",
@@ -115,12 +116,6 @@
         "vite-plus": "catalog:",
         "zod": "catalog:zod4",
       },
-      "peerDependencies": {
-        "typescript": ">=5",
-      },
-      "optionalPeers": [
-        "typescript",
-      ],
     },
     "packages/mcp": {
       "name": "@orval/mcp",
