@@ -136,7 +136,7 @@ export default defineConfig({
 
 固定版本可以保持输出稳定：同一份规范在每台机器和 CI 中都会生成相同的 schema，而不会受本地恰好安装了哪个 `zod` 版本影响。
 
-该选项只决定输出 Zod 3 还是 Zod 4 语法。依赖特定 Zod 4 版本的输出（例如下文中启用 `generateXor` 时 `oneOf` 的 `zod.xor`）仍取决于解析到的 `zod` 版本，因此若要让输出完全可复现，请同时固定 `zod` 依赖本身的版本。
+该选项只决定输出 Zod 3 还是 Zod 4 语法。依赖特定 Zod 4 版本的输出（例如下文中启用 `generateXor` 时 `oneOf` 的 `zod.xor`）仍取决于 `zod` 的版本：已安装的版本，或在尚未安装 `zod` 时所声明版本范围的下限。若要让输出完全可复现，请声明下限已包含该特性的版本范围（`zod.xor` 需要 `^4.2.0`）。
 
 ### `oneOf` 与 `anyOf`
 

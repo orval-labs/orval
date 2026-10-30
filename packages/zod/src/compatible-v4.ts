@@ -26,25 +26,48 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
   return compareVersions(withoutRc, '4.0.0');
 };
 
+// A declared range whose every match is at least its own version: an exact
+// version or `^`/`~`/`>=`/`=` followed by one, optionally capped by an upper
+// bound (`>=4.3.0 <5`). An npm alias (`npm:zod@^4.2.0`) is unwrapped first.
+// Anything else (`4.x`, `<5`, `>4.1.0`, `||`, hyphen ranges, `workspace:*`,
+// dist-tags) has no lower bound that can be read off it.
+const LOWER_BOUNDED_RANGE =
+  /^(?:\^|~|>=|=)?\s*v?(\d+\.\d+\.\d+(?:-[\w.]+)?)(?:\s+<=?\s*v?\d[\w.]*)?$/;
+
+const getRangeLowerBound = (range: string) =>
+  LOWER_BOUNDED_RANGE.exec(
+    range.trim().replace(/^npm:(?:@[^/]+\/)?[^@]+@/, ''),
+  )?.[1];
+
 /**
  * `zod.xor` shipped in Zod 4.2.0 (classic and mini). Earlier Zod 4 releases
- * would fail at import time on `zod.xor`, so `oneOf` keeps `zod.union` there.
- * Unlike {@link resolveIsZodV4}, an undetectable zod version (no
- * `package.json`, a hoisted install, programmatic `generate()`) is not assumed
- * to be modern: Zod 4 output works on every 4.x, but `zod.xor` would be
- * undefined on 4.0/4.1, so `zod.union` is kept. Unlike
- * {@link isZodVersionV4}, the prerelease suffix is kept so `4.2.0-canary.*`
- * builds that predate `xor` stay on `zod.union`. A specifier that is not a
- * semver range (`workspace:*`, `link:`, `file:`, `github:`, a dist-tag such
- * as `next`) makes `compareVersions` throw; it is treated as unknown too, so
- * generation does not fail.
+ * would fail at import time on `zod.xor`, so `oneOf` keeps `zod.union` unless
+ * every Zod the project can run has it:
+ *
+ * - The installed version (`resolvedVersions`, read from
+ *   `node_modules/zod/package.json`) is exact, so it is compared directly.
+ * - Without an install, a declared range only counts when its lower bound is
+ *   at least 4.2.0 (`^4.2.0`, `>=4.3.0 <5`). `^4.1.0` may still resolve to
+ *   4.1.x, and `4.x` or `<5` to 4.0, so those keep `zod.union`; so does any
+ *   specifier without a readable lower bound (`workspace:*`, `link:`,
+ *   `github:`, a dist-tag such as `next`).
+ * - Unlike {@link resolveIsZodV4}, an undetectable zod version (no
+ *   `package.json`, a hoisted install, programmatic `generate()`) is not
+ *   assumed to be modern: Zod 4 output works on every 4.x, but `zod.xor` would
+ *   be undefined on 4.0/4.1.
+ *
+ * Unlike {@link isZodVersionV4}, the prerelease suffix is kept so
+ * `4.2.0-canary.*` builds that predate `xor` stay on `zod.union`.
  */
 export const supportsZodXor = (packageJson: PackageJson | undefined) => {
   if (!packageJson) {
     return false;
   }
 
-  const version = getZodPackageVersion(packageJson);
+  const installed = packageJson.resolvedVersions?.zod;
+  const version = installed
+    ? installed
+    : getRangeLowerBound(getZodPackageVersion(packageJson) ?? '');
 
   if (!version) {
     return false;

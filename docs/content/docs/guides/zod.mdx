@@ -139,7 +139,7 @@ export default defineConfig({
 
 Pinning the version keeps output stable: the same spec produces the same schemas on every machine and in CI, independent of which `zod` version happens to be installed.
 
-The override only selects Zod 3 or Zod 4 syntax. Output that depends on a specific Zod 4 release, such as `zod.xor` for `oneOf` with `generateXor` (see below), still follows the resolved `zod` version, so pin the `zod` dependency itself for fully reproducible output.
+The override only selects Zod 3 or Zod 4 syntax. Output that depends on a specific Zod 4 release, such as `zod.xor` for `oneOf` with `generateXor` (see below), still follows the `zod` version: the installed one, or the lower bound of the declared range when `zod` is not installed yet. Declare a range whose lower bound already has the feature (`^4.2.0` for `zod.xor`) for fully reproducible output.
 
 ### `oneOf` and `anyOf`
 
