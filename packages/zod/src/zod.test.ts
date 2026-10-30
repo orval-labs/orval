@@ -1818,6 +1818,25 @@ describe('generateZodValidationSchemaDefinition`', () => {
         expect(zod).toContain('"x": zod.string()');
         expect(zod).not.toContain('"x": zod.string().optional()');
       });
+
+      it('leaves the spec required array untouched', () => {
+        const required = ['a'];
+        const schema: OpenApiSchemaObject = {
+          required,
+          allOf: [
+            {
+              type: 'object',
+              required: ['b'],
+              properties: { a: { type: 'string' }, b: { type: 'string' } },
+            },
+          ],
+        };
+        const first = render(schema);
+        const second = render(schema);
+        expect(second).toBe(first);
+        expect(schema.required).toBe(required);
+        expect(required).toEqual(['a']);
+      });
     },
   );
 

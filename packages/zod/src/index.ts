@@ -551,7 +551,7 @@ const getObjectLevel = (
   const own = isObject(schema.properties)
     ? (schema.properties as Record<string, unknown>)
     : {};
-  const required: string[] = getRequiredKeys(schema, name);
+  const required: string[] = [...getRequiredKeys(schema, name)];
   if (!schema.allOf || seen.has(schema)) return { properties: own, required };
 
   seen.add(schema);
