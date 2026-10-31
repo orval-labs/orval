@@ -84,7 +84,8 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
     getQueryOptionsDefinitionPrefix: () => 'Use',
 
     // --- Common implementation defaults ---
-    getHookPropsDefinitions: (props) => toObjectString(props, 'implementation'),
+    getHookPropsDefinitions: (props, field = 'implementation') =>
+      toObjectString(props, field),
 
     getQueryKeyRouteString(route, shouldSplitQueryKey) {
       if (shouldSplitQueryKey) {
@@ -177,11 +178,18 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       pageParamType,
       initialData,
       httpClient,
+      forQueryOptions = false,
       hasInvalidation,
       useRuntimeFetcher,
       options,
     }) {
       const prefix = composed.getQueryOptionsDefinitionPrefix();
+      // Only the hook's own parameter is wrapped; the options factory and the
+      // prefetch helpers keep the plain type.
+      const wrapHookType = (optionsType: string) =>
+        type && !forQueryOptions && composed.wrapHookQueryOptionsType
+          ? composed.wrapHookQueryOptionsType(optionsType)
+          : optionsType;
       const definition = getQueryOptionsDefinition({
         operationName,
         mutator,
@@ -211,7 +219,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
       if (!isRequestOptions) {
         return `${type ? 'queryOptions' : 'mutationOptions'}${
           initialData === 'defined' || requiresUserQueryOptions ? '' : '?'
-        }: ${definition}`;
+        }: ${wrapHookType(definition)}`;
       }
 
       const requestType = getQueryArgumentsRequestType(
@@ -227,7 +235,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         type ? 'query' : 'mutation'
       }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
 
-      return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
+      return `options${isQueryRequired ? '' : '?'}: ${wrapHookType(optionsType)}\n`;
     },
 
     generateMutationOnSuccess({

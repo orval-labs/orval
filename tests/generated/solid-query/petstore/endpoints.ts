@@ -77,6 +77,11 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
+type MaybeAccessor<T> = T | (() => T);
+
+const resolveAccessor = <T>(value: MaybeAccessor<T>): T =>
+  typeof value === 'function' ? (value as () => T)() : value;
+
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;
@@ -218,9 +223,9 @@ export function useListPetsInfinite<
   >,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: undefined | number,
-  options: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -256,7 +261,7 @@ export function useListPetsInfinite<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -268,9 +273,9 @@ export function useListPetsInfinite<
   >,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: undefined | number,
-  options: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -306,7 +311,7 @@ export function useListPetsInfinite<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -318,9 +323,9 @@ export function useListPetsInfinite<
   >,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: undefined | number,
-  options: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -344,7 +349,7 @@ export function useListPetsInfinite<
         'initialPageParam' | 'getNextPageParam'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -360,9 +365,9 @@ export function useListPetsInfinite<
   >,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: number = 1,
-  options: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> = 1,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -386,23 +391,25 @@ export function useListPetsInfinite<
         'initialPageParam' | 'getNextPageParam'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPetsInfiniteQueryOptions(
-    params,
-    version,
-    options,
-  );
+  const queryOptions = () =>
+    getListPetsInfiniteQueryOptions(
+      resolveAccessor(params),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useInfiniteQuery(
-    () => getListPetsInfiniteQueryOptions(params, version, options),
-    queryClient,
-  );
+  const query = useInfiniteQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export const getListPetsQueryOptions = <
@@ -446,9 +453,9 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: undefined | number,
-  options: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -466,7 +473,7 @@ export function useListPets<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -475,9 +482,9 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version?: number,
-  options?: {
+  params: MaybeAccessor<ListPetsParams>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -495,7 +502,7 @@ export function useListPets<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -504,9 +511,9 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version?: number,
-  options?: {
+  params: MaybeAccessor<ListPetsParams>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -514,7 +521,7 @@ export function useListPets<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -527,9 +534,9 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params: ListPetsParams,
-  version: number = 1,
-  options?: {
+  params: MaybeAccessor<ListPetsParams>,
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -537,19 +544,25 @@ export function useListPets<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPetsQueryOptions(params, version, options);
+  const queryOptions = () =>
+    getListPetsQueryOptions(
+      resolveAccessor(params),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getListPetsQueryOptions(params, version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export type createPetsResponse200 = {
@@ -698,10 +711,10 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: undefined | number,
-  options: {
+  createPetsBody: MaybeAccessor<CreatePetsBody>,
+  params: MaybeAccessor<CreatePetsParams>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -719,7 +732,7 @@ export function useCreatePets<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -728,10 +741,10 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
+  createPetsBody: MaybeAccessor<CreatePetsBody>,
+  params: MaybeAccessor<CreatePetsParams>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -749,7 +762,7 @@ export function useCreatePets<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -758,10 +771,10 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
+  createPetsBody: MaybeAccessor<CreatePetsBody>,
+  params: MaybeAccessor<CreatePetsParams>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -769,7 +782,7 @@ export function useCreatePets<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -782,10 +795,10 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
+  createPetsBody: MaybeAccessor<CreatePetsBody>,
+  params: MaybeAccessor<CreatePetsParams>,
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -793,24 +806,26 @@ export function useCreatePets<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getCreatePetsQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
+  const queryOptions = () =>
+    getCreatePetsQueryOptions(
+      resolveAccessor(createPetsBody),
+      resolveAccessor(params),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getCreatePetsQueryOptions(createPetsBody, params, version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export type showPetByIdResponse200 = {
@@ -914,9 +929,9 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
-  version: undefined | number,
-  options: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -938,7 +953,7 @@ export function useShowPetById<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -947,9 +962,9 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -971,7 +986,7 @@ export function useShowPetById<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -980,9 +995,9 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -994,7 +1009,7 @@ export function useShowPetById<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1007,9 +1022,9 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
-  version: number = 1,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1021,19 +1036,25 @@ export function useShowPetById<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
+  const queryOptions = () =>
+    getShowPetByIdQueryOptions(
+      resolveAccessor(petId),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getShowPetByIdQueryOptions(petId, version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export type deletePetByIdResponse204 = {
@@ -1142,9 +1163,9 @@ export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
 >(
-  petId: string,
-  version: undefined | number,
-  options: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -1166,7 +1187,7 @@ export function useDeletePetById<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1175,9 +1196,9 @@ export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1199,7 +1220,7 @@ export function useDeletePetById<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1208,9 +1229,9 @@ export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1222,7 +1243,7 @@ export function useDeletePetById<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1235,9 +1256,9 @@ export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
 >(
-  petId: string,
-  version: number = 1,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1249,19 +1270,25 @@ export function useDeletePetById<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getDeletePetByIdQueryOptions(petId, version, options);
+  const queryOptions = () =>
+    getDeletePetByIdQueryOptions(
+      resolveAccessor(petId),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getDeletePetByIdQueryOptions(petId, version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export type healthCheckResponse200 = {
@@ -1364,8 +1391,8 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  version: undefined | number,
-  options: {
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -1387,7 +1414,7 @@ export function useHealthCheck<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1396,8 +1423,8 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  version?: number,
-  options?: {
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1419,7 +1446,7 @@ export function useHealthCheck<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1428,8 +1455,8 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  version?: number,
-  options?: {
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1441,7 +1468,7 @@ export function useHealthCheck<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1454,8 +1481,8 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  version: number = 1,
-  options?: {
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1467,19 +1494,24 @@ export function useHealthCheck<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getHealthCheckQueryOptions(version, options);
+  const queryOptions = () =>
+    getHealthCheckQueryOptions(
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getHealthCheckQueryOptions(version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 export type showPetWithOwnerResponse200 = {
@@ -1587,9 +1619,9 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
-  version: undefined | number,
-  options: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -1611,7 +1643,7 @@ export function useShowPetWithOwner<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1620,9 +1652,9 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1644,7 +1676,7 @@ export function useShowPetWithOwner<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1653,9 +1685,9 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
-  version?: number,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version?: MaybeAccessor<number>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1667,7 +1699,7 @@ export function useShowPetWithOwner<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -1680,9 +1712,9 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
-  version: number = 1,
-  options?: {
+  petId: MaybeAccessor<string>,
+  version: MaybeAccessor<number> = 1,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -1694,17 +1726,23 @@ export function useShowPetWithOwner<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getShowPetWithOwnerQueryOptions(petId, version, options);
+  const queryOptions = () =>
+    getShowPetWithOwnerQueryOptions(
+      resolveAccessor(petId),
+      resolveAccessor(version),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getShowPetWithOwnerQueryOptions(petId, version, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }

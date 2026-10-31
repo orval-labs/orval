@@ -1,15 +1,22 @@
-import { OutputClient, pascal } from '@orval/core';
+import {
+  type GetterProps,
+  GetterPropType,
+  OutputClient,
+  pascal,
+  toObjectString,
+} from '@orval/core';
 
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
+  QueryInitContext,
   QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
 import { isInfiniteQuery } from '../query-options';
-import { getQueryTypeForFramework } from '../utils';
+import { escapeRegExpMetaChars, getQueryTypeForFramework } from '../utils';
 
 // `initialData` is excluded from the accepted options because an
 // optional-but-present `initialData` matches neither the `{ initialData: T }`
@@ -25,6 +32,61 @@ const INFINITE_QUERY_OPTIONS_CONSTRAINT = {
   require: ['initialPageParam', 'getNextPageParam'],
   exclude: ['initialData'],
 } as const;
+
+/**
+ * Names of the helpers emitted in the file header (see `SOLID_ACCESSOR_HELPER`
+ * in `../index.ts`) when a hook takes accessor parameters.
+ */
+export const SOLID_MAYBE_ACCESSOR = 'MaybeAccessor';
+export const SOLID_RESOLVE_ACCESSOR = 'resolveAccessor';
+
+/**
+ * Widens one hook parameter to `MaybeAccessor<T>`, so callers can pass a
+ * signal (or any `() => T`) and the query re-runs when it changes (#3195).
+ *
+ * A default value stays outside the wrapper (`version: MaybeAccessor<number>
+ * = 1`); the optional marker is kept. Named path params are typed by their
+ * object type and passed through un-destructured, because the options factory
+ * destructures (and applies defaults) once the accessor is resolved.
+ */
+const wrapPropWithMaybeAccessor = (
+  prop: GetterProps[number],
+  field: 'definition' | 'implementation',
+): string => {
+  if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+    // When every path param has a default, the object itself defaults to `{}`.
+    const objectDefault =
+      field === 'implementation' && prop.implementation.endsWith(' = {}')
+        ? ' = {}'
+        : '';
+    return `${prop.name}: ${SOLID_MAYBE_ACCESSOR}<${prop.schema.name}>${objectDefault}`;
+  }
+
+  const value = prop[field];
+  const match = new RegExp(
+    String.raw`^(${escapeRegExpMetaChars(prop.name)}\??)\s*:\s*([\s\S]+)$`,
+  ).exec(value);
+  if (!match) return value;
+
+  const [, name, rest] = match;
+  // `=` that is not part of an arrow (`=>`) starts the default value.
+  const defaultMatch = /^([\s\S]*?)\s*=(?!>)\s*([\s\S]+)$/.exec(rest);
+  const [type, defaultValue] = defaultMatch
+    ? [defaultMatch[1], defaultMatch[2]]
+    : [rest, undefined];
+
+  // A prop widened to `undefined | T` (see `widenOptionalPropsToUndefined`)
+  // keeps the `undefined` outside the wrapper. `MaybeAccessor<undefined | T>`
+  // would also admit an accessor returning `undefined`, which the
+  // implementation's `MaybeAccessor<T> = default` does not, so the overloads
+  // would stop matching it (TS2394).
+  const widened = /^undefined\s*\|\s*([\s\S]+)$/.exec(type.trim());
+  const innerType = widened ? widened[1] : type.trim();
+
+  return `${name}: ${SOLID_MAYBE_ACCESSOR}<${innerType}>${
+    widened ? ' | undefined' : ''
+  }${defaultValue === undefined ? '' : ` = ${defaultValue}`}`;
+};
 
 export const createSolidAdapter = ({
   hasQueryV5,
@@ -59,6 +121,38 @@ export const createSolidAdapter = ({
 
   getQueryOptionsDefinitionPrefix(): string {
     return hasSolidQueryUsePrefix ? 'Use' : 'Create';
+  },
+
+  getHookPropsDefinitions(
+    props: GetterProps,
+    field: 'definition' | 'implementation' = 'implementation',
+  ): string {
+    // Only the hook takes accessors. The query key, the options factory and
+    // every helper keep plain parameters: a key holding a function would never
+    // be stable, so values are resolved once, inside the tracked thunk.
+    return toObjectString(
+      props.map((prop) => wrapPropWithMaybeAccessor(prop, field)),
+    );
+  },
+
+  wrapHookQueryOptionsType(optionsType: string): string {
+    return `${SOLID_MAYBE_ACCESSOR}<${optionsType.trim()}>`;
+  },
+
+  generateQueryInit({
+    props,
+    queryOptionsFnName,
+    queryOptionsVarName,
+    isRequestOptions,
+  }: QueryInitContext): string {
+    // One thunk serves both `useQuery` and the returned `queryKey` getter.
+    // Resolving the accessors inside it is what lets Solid track them: the
+    // component body runs once, so a value read outside would be frozen.
+    const args = [
+      ...props.map((prop) => `${SOLID_RESOLVE_ACCESSOR}(${prop.name})`),
+      `${SOLID_RESOLVE_ACCESSOR}(${isRequestOptions ? 'options' : 'queryOptions'})`,
+    ].join(', ');
+    return `const ${queryOptionsVarName} = () => ${queryOptionsFnName}(${args});`;
   },
 
   getOptionsReturnTypeName(
@@ -200,21 +294,19 @@ export const createSolidAdapter = ({
     // concrete result type that TS cannot prove assignable to the generic
     // `…Result<TData, TError>`; the caller-facing type comes from the hook's
     // explicit return-type annotation. See #3347.
-    return `return mergeProps(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
+    //
+    // `queryKey` is a getter over the options thunk, so it follows the current
+    // parameters and tracks when read inside a reactive scope (#3195).
+    return `return mergeProps(${queryResultVarName}, { get queryKey() { return ${queryOptionsVarName}().queryKey; } }) as any;`;
   },
 
   generateQueryInvocationArgs({
-    queryOptionsFnName,
-    queryProperties,
-    isRequestOptions,
+    queryOptionsVarName,
     optionalQueryClientArgument,
   }: QueryInvocationContext): string {
-    // Solid Query requires options to be wrapped in an arrow function for reactivity
-    const optionsArg = isRequestOptions ? 'options' : 'queryOptions';
-    const args = queryProperties
-      ? `${queryProperties},${optionsArg}`
-      : optionsArg;
-    return `() => ${queryOptionsFnName}(${args})${optionalQueryClientArgument ? ', queryClient' : ''}`;
+    // Solid Query takes the options as an accessor; the thunk from
+    // `generateQueryInit` is one.
+    return `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`;
   },
 
   generateMutationImplementation({
