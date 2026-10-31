@@ -139,7 +139,18 @@ describe('formats', () => {
     it('decides most values without splitting the string', () => {
       const { valibot } = gen({ type: 'string', minLength: 3, maxLength: 5 });
       expect(valibot).toContain('value.length >= 6 || [...value].length >= 3');
-      expect(valibot).toContain('value.length <= 5 || [...value].length <= 5');
+      expect(valibot).toContain(
+        'value.length <= 5 || (value.length <= 10 && [...value].length <= 5)',
+      );
+    });
+
+    it('rejects a huge string without splitting it', () => {
+      const { ok } = gen({ type: 'string', minLength: 3, maxLength: 5 });
+      const huge = 'a'.repeat(2 ** 26);
+      const start = performance.now();
+      expect(ok(huge)).toBe(false);
+      // Splitting the string takes seconds and gigabytes.
+      expect(performance.now() - start).toBeLessThan(1000);
     });
 
     it('names the expected length in the error', () => {

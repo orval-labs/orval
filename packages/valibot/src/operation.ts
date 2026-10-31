@@ -12,6 +12,7 @@ import {
   toObjectSchema,
 } from '@orval/core';
 
+import { withFileParts, type PartEncoding } from './form-data';
 import { logger, warnOnce } from './logger';
 import { plainNode, type ValibotNode } from './nodes';
 import { omitReadOnly } from './read-only';
@@ -121,6 +122,12 @@ const URL_ENCODED_TYPE = /^application\/x-www-form-urlencoded$/;
 // The same order as the zod package. `+json` vendor types validate like JSON.
 const MEDIA_TYPES = [JSON_TYPE, MULTIPART_TYPE, URL_ENCODED_TYPE];
 
+interface MediaSchema {
+  contentType: string;
+  schema: OpenApiSchemaObject;
+  encoding?: PartEncoding;
+}
+
 interface ParseBodyAndResponseOptions {
   data:
     | OpenApiResponseObject
@@ -150,24 +157,32 @@ export const parseBodyAndResponse = ({
   // A media type without a schema, or without a media object, is skipped so
   // it cannot hide a later one that has a schema.
   const schemas = Object.entries(content ?? {}).flatMap(
-    ([contentType, media]): [string, OpenApiSchemaObject][] =>
+    ([contentType, media]): MediaSchema[] =>
       isObject(media) && (isObject(media.schema) || media.schema === true)
-        ? [[contentType.split(';')[0].trim().toLowerCase(), media.schema]]
+        ? [
+            {
+              contentType: contentType.split(';')[0].trim().toLowerCase(),
+              schema: media.schema,
+              encoding: isObject(media.encoding) ? media.encoding : undefined,
+            },
+          ]
         : [],
   );
-  const [contentType, schema] =
-    MEDIA_TYPES.map((pattern) =>
-      schemas.find(([type]) => pattern.test(type)),
-    ).find(Boolean) ?? [];
-  if (!contentType || schema === undefined) return;
+  const media = MEDIA_TYPES.map((pattern) =>
+    schemas.find(({ contentType }) => pattern.test(contentType)),
+  ).find(Boolean);
+  if (!media) return;
 
-  const resolved = dereference(schema, context);
-  return generateValibotValidationSchemaDefinition(
+  const resolved = dereference(media.schema, context);
+  const node = generateValibotValidationSchemaDefinition(
     isRequest ? omitReadOnly(resolved) : resolved,
     context,
     strict,
-    { required: true, urlEncoded: URL_ENCODED_TYPE.test(contentType) },
+    { required: true, urlEncoded: URL_ENCODED_TYPE.test(media.contentType) },
   );
+  return MULTIPART_TYPE.test(media.contentType)
+    ? withFileParts(node, resolved, media.encoding)
+    : node;
 };
 
 // The first success response, the way the zod package picks it.

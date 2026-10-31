@@ -14,7 +14,12 @@ import {
   type ValibotEntry,
   type ValibotNode,
 } from './nodes';
-import { hasProperties, isNonBoolean } from './schema-type';
+import {
+  getMultiTypes,
+  hasProperties,
+  isNonBoolean,
+  resolveType,
+} from './schema-type';
 
 // Marks the given keys as required in every object reachable through the
 // composition constructors.
@@ -144,6 +149,11 @@ const onlyComposition = (
       ? { ...rest, oneOf: schema.oneOf }
       : { ...rest, anyOf: schema.anyOf };
 
+// Whether the schema describes an object, with or without properties.
+const isObjectSchema = (schema: OpenApiNonBooleanSchemaObject): boolean =>
+  hasProperties(schema) ||
+  (resolveType(schema) === 'object' && getMultiTypes(schema).length <= 1);
+
 // Every keyword applies, so the groups are intersected. The first group keeps
 // the schema's own keywords; the discriminator is repeated for the others so
 // each `oneOf` can still become a `v.variant`.
@@ -169,31 +179,67 @@ const generateIntersection = (
   );
 };
 
+// The schema of the object made of the schema's own properties. The keys in
+// `alsoRequired` are required on top of its own.
+const ownObjectSchema = (
+  schema: OpenApiNonBooleanSchemaObject,
+  alsoRequired: string[] = [],
+): OpenApiNonBooleanSchemaObject => ({
+  properties: schema.properties,
+  // Keys with no property here belong to a member.
+  required: [
+    ...(Array.isArray(schema.required)
+      ? schema.required.filter((name) =>
+          Object.hasOwn(schema.properties ?? {}, name),
+        )
+      : []),
+    ...alsoRequired,
+  ],
+  additionalProperties: schema.additionalProperties,
+  type: 'object',
+});
+
 // The object made of the schema's own properties, if it has any.
 const ownObject = (
   schema: OpenApiNonBooleanSchemaObject,
   child: ChildGenerator,
-): ValibotNode | undefined => {
-  if (!hasProperties(schema)) return undefined;
-  return child({
-    properties: schema.properties,
-    // Keys with no property here belong to a member.
-    required: Array.isArray(schema.required)
-      ? schema.required.filter((name) =>
-          Object.hasOwn(schema.properties ?? {}, name),
-        )
-      : undefined,
-    additionalProperties: schema.additionalProperties,
-    type: 'object',
-  });
+): ValibotNode | undefined =>
+  hasProperties(schema) ? child(ownObjectSchema(schema)) : undefined;
+
+const isUnknown = (node: ValibotNode): boolean =>
+  node.schema.kind === 'unknown';
+
+// An alternative that only lists `required` keys has no type, so it is
+// `v.unknown()` and would accept anything. It is the object of the schema's
+// own properties with those keys required instead.
+const narrowOwnObject = (
+  member: OpenApiSchemaObject,
+  node: ValibotNode,
+  schema: OpenApiNonBooleanSchemaObject,
+  child: ChildGenerator,
+): ValibotNode => {
+  if (!isUnknown(node) || !isNonBoolean(member)) return node;
+  const keys = Array.isArray(member.required)
+    ? member.required.filter(isString)
+    : [];
+  return keys.length > 0 && isObjectSchema(schema)
+    ? {
+        ...child(ownObjectSchema(schema, keys)),
+        actions: node.actions,
+        nullable: node.nullable,
+      }
+    : node;
 };
 
 const NULL_TYPE = 'null' as const;
 
 // The schema of the scalar and array keywords next to a composition, which
 // the composition is intersected with. `object` is left to `ownObject`.
+// `hasUnchecked` is set when a member is `v.unknown()`: the type is then the
+// only check on the values that member lets through.
 const ownScalar = (
   schema: OpenApiNonBooleanSchemaObject,
+  hasUnchecked: boolean,
   child: ChildGenerator,
 ): ValibotNode | undefined => {
   const declared = Array.isArray(schema.type) ? schema.type : [schema.type];
@@ -228,7 +274,10 @@ const ownScalar = (
   };
   // A type alone repeats what the members already check.
   const { type: _type, ...checks } = keywords;
-  if (Object.values(checks).every((value) => value === undefined)) {
+  if (
+    !hasUnchecked &&
+    Object.values(checks).every((value) => value === undefined)
+  ) {
     return undefined;
   }
   const node = child(keywords);
@@ -255,14 +304,15 @@ const generateGroup = (
   // An instance of an allOf satisfies every member, so a key required by the
   // parent or any member is required wherever it is declared.
   const required = new Set(requiredKeysOf(schema));
-  const members = (schema[key] ?? []).map((member) =>
-    requireFields(
-      child(key === 'allOf' ? withoutRequired(member) : member),
+  const members = (schema[key] ?? []).map((member) => {
+    const node = child(key === 'allOf' ? withoutRequired(member) : member);
+    return requireFields(
+      key === 'allOf' ? node : narrowOwnObject(member, node, schema, child),
       required,
-    ),
-  );
+    );
+  });
   const ownNode = ownObject(schema, child);
-  const ownKeywords = ownScalar(schema, child);
+  const ownKeywords = ownScalar(schema, members.some(isUnknown), child);
   const own = [
     ...(ownNode ? [requireFields(ownNode, required)] : []),
     ...(ownKeywords ? [ownKeywords] : []),

@@ -39,12 +39,13 @@ const renderAction = (
     case 'minCodePoints':
     case 'maxCodePoints': {
       // Code points are never more than the UTF-16 units and never fewer than
-      // half of them, so most values are decided without splitting the string.
+      // half of them, so the string is only split when its length is within
+      // twice the bound, which keeps the copy small whatever the input.
       const isMin = action.kind === 'minCodePoints';
       const count = Number(action.value);
       const test = isMin
         ? `value.length >= ${count * 2} || [...value].length >= ${count}`
-        : `value.length <= ${count} || [...value].length <= ${count}`;
+        : `value.length <= ${count} || (value.length <= ${count * 2} && [...value].length <= ${count})`;
       return `v.check((value) => ${test}, 'Invalid length: Expected ${isMin ? '>=' : '<='}${count}')`;
     }
     case 'toDate': {

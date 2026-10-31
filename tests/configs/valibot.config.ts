@@ -41,6 +41,11 @@ export default defineConfig({
   ),
   tuples: valibotProject('tuples', 'typed-arrays-tuples-v3-1'),
   'form-data': valibotProject('form-data', 'form-data'),
+  'nullable-binary-parts': valibotProject(
+    'nullable-binary-parts',
+    'nullable-binary-parts',
+  ),
+  'one-of-required': valibotProject('one-of-required', 'one-of-required'),
   'strict-exact-optional': valibotProject('strict-exact-optional', 'petstore', {
     strict: {
       param: true,

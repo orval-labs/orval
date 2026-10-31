@@ -33,6 +33,17 @@ describe('omitReadOnly', () => {
     expect(result.allOf).toEqual([{ type: 'object', properties: { name } }]);
   });
 
+  it('removes a key that the parent hides from a oneOf and anyOf member', () => {
+    const result = omitReadOnly({
+      type: 'object',
+      properties: { id, name },
+      oneOf: [{ required: ['id'] }, { required: ['name'] }],
+      anyOf: [{ required: ['id', 'name'] }],
+    });
+    expect(result.oneOf).toEqual([{ required: [] }, { required: ['name'] }]);
+    expect(result.anyOf).toEqual([{ required: ['name'] }]);
+  });
+
   it('reaches nested objects, items, additionalProperties and oneOf members', () => {
     const nested: OpenApiNonBooleanSchemaObject = {
       type: 'object',

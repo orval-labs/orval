@@ -53,14 +53,16 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 
 ## Mapping
 
-- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` names a property that is a literal or enum in every object member. Descriptions of the members and of the discriminator are left off, as `v.variant` takes no pipe.
-- Keywords such as `type`, `enum`, `pattern`, `minLength` or `items` next to `allOf`, `oneOf` or `anyOf` are intersected with the composition.
+- `oneOf` and `anyOf` become `v.union`. They become `v.variant` when a `discriminator` names a property, the schema has no `properties` of its own, and every alternative is an object where that property is required and is a `const` or `enum`. Descriptions of the alternatives and of the discriminator are left off, as `v.variant` takes no pipe.
+- An alternative of `oneOf` or `anyOf` that lists only `required` keys, such as `{ required: [cpf, name] }`, is a copy of the object of the schema's own `properties` with those keys required, or an object of just those keys when it has no `properties`. The schema has to be an object, and only the first of `allOf`, `oneOf` and `anyOf` that it has is covered. A listed key without a property is still required.
+- `properties`, `enum` and the keywords of a scalar or array, such as `type`, `format`, `pattern`, `minimum` or `items`, next to `allOf`, `oneOf` or `anyOf` are intersected with the composition. When `type` allows `object`, only `properties` and `enum` are.
 - `allOf` becomes `v.intersect`. Strict objects inside it are emitted as plain objects, as a strict object rejects the keys of its siblings.
 - Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`. `additionalProperties: false` without `properties` is an empty object, strict with `strict`.
 - A `required` key with no declared property is kept and required, with the type of `additionalProperties` or `unknown`.
 - `date` and `date-time` use `v.isoDate` and `v.isoTimestamp`. With `override.useDates` they are converted to `Date`.
 - `minLength` and `maxLength` of strings count code points. A non-integer `multipleOf` is skipped with a warning, as `v.multipleOf` rejects valid decimals.
 - A `pattern` that is not a valid JavaScript regular expression is skipped with a warning.
+- A string with `format: binary` or the `contentMediaType` `application/octet-stream` is `v.file()`, and `v.string()` in a url-encoded body. In a `multipart/form-data` body a top-level part, or the items of an array part, is also `v.file()` when its `encoding.contentType` or `contentMediaType` is a binary media type such as `image/png`, and `v.union([v.file(), v.string()])` for another one, such as `text/csv`.
 
 ## Limitations
 
@@ -71,10 +73,11 @@ The first version leaves these out, so they are validated loosely instead of wro
 - `const` with an object or array value, and an `enum` with object or array members, are not validated, with a warning. A `$ref` that cannot be resolved is validated as `unknown`, with a warning.
 - `type: object` accepts arrays, as `v.object` and `v.record` do.
 - `uniqueItems` is not enforced.
+- A member of `allOf`, `oneOf` or `anyOf` that has no `type`, `properties`, `enum`, `const` or composition of its own, such as `{ format: email }`, is `v.unknown()`, so its keywords are not checked. The `type` next to the composition still is, unless it allows `object`. An alternative with only `required` is `v.unknown()` too when the schema is not covered by the rule above.
 - In an `allOf`, `oneOf` or `anyOf`, a key required by the parent or by an `allOf` member is only enforced where a member declares it, and is dropped when none does.
 - Every `$ref` is inlined, so deeply shared components produce large output. Components are not emitted as reusable constants.
 - Optional properties named like `Object.prototype` members, such as `toString`, are not handled specially.
 - `override.useDates` does not convert a date that is a direct `allOf` member.
 - `oneOf` does not check that exactly one member matches, and `v.union` returns the first match, so properties of a later member are stripped.
 - Query and path values are not coerced from strings.
-- `multipart/form-data` files are `v.file()`.
+- `v.file()` rejects a `Blob` that is not a `File`. The string checks of a part that `encoding` or `contentMediaType` makes a binary file are not applied, and the parts of a body built with `allOf`, `oneOf` or `anyOf` are not looked at.

@@ -51,8 +51,15 @@ const strip = (
   inherited: ReadonlySet<string>,
 ): OpenApiNonBooleanSchemaObject => {
   const hidden = new Set([...inherited, ...readOnlyKeys(schema)]);
-  const nested = (member: OpenApiSchemaObject): OpenApiSchemaObject =>
-    isNonBoolean(member) ? omitReadOnly(member) : member;
+  // The keys hidden here are hidden from the `required` of members that
+  // describe the same instance.
+  const nested = (
+    member: OpenApiSchemaObject,
+    shared: ReadonlySet<string> = new Set(),
+  ): OpenApiSchemaObject =>
+    isNonBoolean(member)
+      ? closeIfEmptied(member, strip(member, shared))
+      : member;
   const result: OpenApiNonBooleanSchemaObject = { ...schema };
 
   if (isObject(schema.properties)) {
@@ -71,7 +78,9 @@ const strip = (
   }
   for (const key of ['oneOf', 'anyOf'] as const) {
     const members = schema[key];
-    if (Array.isArray(members)) result[key] = members.map(nested);
+    if (Array.isArray(members)) {
+      result[key] = members.map((member) => nested(member, hidden));
+    }
   }
   if (Array.isArray(schema.allOf)) {
     // A member left with nothing is dropped, as it would be an open object.

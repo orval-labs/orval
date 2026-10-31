@@ -1,0 +1,83 @@
+---
+title: Valibot
+description: 从 OpenAPI 生成 Valibot schema
+---
+
+从 OpenAPI 规范生成 [Valibot](https://valibot.dev/) schema，用于运行时校验。
+
+## 配置
+
+将 `client` 选项设置为 `valibot`：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      mode: 'single',
+      target: './src/api/schemas',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 schema：
+
+```ts
+import * as v from 'valibot';
+
+export const CreatePetsBody = v.object({
+  id: v.pipe(v.number(), v.integer()),
+  name: v.string(),
+  tag: v.optional(v.string()),
+});
+```
+
+## 用法
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy' });
+
+type Pet = v.InferOutput<typeof CreatePetsBody>;
+```
+
+## 映射规则
+
+- `oneOf` 和 `anyOf` 生成 `v.union`。当 `discriminator` 指定了一个属性，该 schema 自身没有 `properties`，并且每个备选项都是对象，且该属性在其中是必填的 `const` 或 `enum` 时，生成 `v.variant`。备选项和 discriminator 上的描述会被去掉，因为 `v.variant` 不接受 pipe。
+- `oneOf` 或 `anyOf` 的备选项如果只列出 `required` 键，例如 `{ required: [cpf, name] }`，则会变成该 schema 自身 `properties` 所组成对象的一份副本，并把这些键设为必填；如果该 schema 没有 `properties`，则是只含这些键的对象。该 schema 必须是对象；如果同时有多个 `allOf`、`oneOf`、`anyOf`，只处理按此顺序排在最前的那一个。列出的键即使没有对应的属性，也仍然是必填。
+- 与 `allOf`、`oneOf` 或 `anyOf` 并列的 `properties`、`enum`，以及标量或数组的关键字（例如 `type`、`format`、`pattern`、`minimum` 或 `items`），会与该组合取交集。当 `type` 允许 `object` 时，只有 `properties` 和 `enum` 会这样处理。
+- `allOf` 生成 `v.intersect`。其中的 strict 对象会生成普通对象，因为 strict 对象会拒绝同级成员的键。
+- 对象默认去掉未知的键。`strict` 生成 `v.strictObject`，`additionalProperties: true` 生成 `v.looseObject`。没有 `properties` 的 `additionalProperties: false` 是空对象，启用 `strict` 时为 strict 空对象。
+- 没有声明属性的 `required` 键会保留并设为必填，类型取自 `additionalProperties`，没有则为 `unknown`。
+- `date` 和 `date-time` 使用 `v.isoDate` 和 `v.isoTimestamp`。设置 `override.useDates` 后会转换为 `Date`。
+- 字符串的 `minLength` 和 `maxLength` 按码点（code point）计数。非整数的 `multipleOf` 会被跳过并给出警告，因为 `v.multipleOf` 会拒绝合法的小数。
+- 不是合法 JavaScript 正则表达式的 `pattern` 会被跳过并给出警告。
+- `format: binary` 或 `contentMediaType` 为 `application/octet-stream` 的字符串生成 `v.file()`；在 url-encoded 请求体中则生成 `v.string()`。在 `multipart/form-data` 请求体中，如果顶层字段（或数组字段的元素）的 `encoding.contentType` 或 `contentMediaType` 是二进制媒体类型（例如 `image/png`），也生成 `v.file()`；如果是其他媒体类型（例如 `text/csv`），则生成 `v.union([v.file(), v.string()])`。
+
+## 限制
+
+第一个版本没有实现下面这些内容，因此它们会被宽松地校验，而不是被错误地校验：
+
+- 循环 `$ref` 和 `prefixItems` 分别按 `unknown` 和 `unknown[]` 校验，并给出警告。暂未使用 `v.lazy`。
+- 请求体中会去掉 `readOnly` 属性及其 `required` 项，这与 zod client 一致。`writeOnly` 没有特殊处理。
+- 值为对象或数组的 `const`，以及成员为对象或数组的 `enum`，不会被校验，并给出警告。无法解析的 `$ref` 按 `unknown` 校验，并给出警告。
+- `type: object` 会接受数组，`v.object` 和 `v.record` 也是如此。
+- 不校验 `uniqueItems`。
+- `allOf`、`oneOf` 或 `anyOf` 的成员如果没有 `type`、`properties`、`enum`、`const`，自身也没有组合关键字，例如 `{ format: email }`，就是 `v.unknown()`，它的关键字不会被检查。与该组合并列的 `type` 仍然会被检查，但允许 `object` 的 `type` 除外。只有 `required` 的备选项，在 schema 不符合上述规则时，也是 `v.unknown()`。
+- 在 `allOf`、`oneOf` 或 `anyOf` 中，由父级或某个 `allOf` 成员要求的必填键，只在有成员声明了该键的地方生效；没有成员声明时，该要求会被丢弃。
+- 每个 `$ref` 都会被内联，因此大量共享的组件会产生很大的输出。组件不会生成为可复用的常量。
+- 与 `Object.prototype` 成员同名的可选属性（例如 `toString`）没有特殊处理。
+- `override.useDates` 不会转换直接作为 `allOf` 成员的日期。
+- `oneOf` 不检查是否恰好只有一个成员匹配，并且 `v.union` 返回第一个匹配项，因此后面成员的属性会被去掉。
+- query 和 path 的值不会从字符串转换类型。
+- `v.file()` 会拒绝不是 `File` 的 `Blob`。`encoding` 或 `contentMediaType` 把字段变成二进制文件后，该字段上针对字符串的检查不会生效；用 `allOf`、`oneOf` 或 `anyOf` 组成的请求体，其字段不会被检查。

@@ -173,6 +173,107 @@ describe('composition', () => {
     expect(ok({ b: 1 })).toBe(true);
   });
 
+  describe('alternatives without a type', () => {
+    const cpfOrCnpj: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['name', 'password'],
+      properties: {
+        name: { type: 'string' },
+        password: { type: 'string' },
+        cpf: { type: 'string' },
+        cnpj: { type: 'string' },
+      },
+      oneOf: [
+        { required: ['cpf', 'name'] },
+        { required: ['cnpj', 'password'] },
+      ],
+    };
+
+    it('requires the keys of an alternative that has only required', () => {
+      const { ok } = gen(cpfOrCnpj);
+      expect(ok({ name: 'a', password: 'b' })).toBe(false);
+      expect(ok({ name: 'a', password: 'b', cpf: '1' })).toBe(true);
+      expect(ok({ name: 'a', password: 'b', cnpj: '2' })).toBe(true);
+      expect(ok({ password: 'b', cpf: '1' })).toBe(false);
+      expect(ok({ name: 'a', password: 'b', cpf: 1 })).toBe(false);
+    });
+
+    it('gives each alternative its own copy of the object', () => {
+      const { valibot, output } = gen(cpfOrCnpj);
+      expect(valibot.match(/v\.union\(/g)).toHaveLength(1);
+      expect(valibot.match(/cnpj: v\.optional/g)).toHaveLength(2);
+      expect(
+        output({ name: 'a', password: 'b', cpf: '1', extra: true }),
+      ).toEqual({ name: 'a', password: 'b', cpf: '1' });
+    });
+
+    it('does the same for anyOf', () => {
+      const { ok } = gen({
+        ...cpfOrCnpj,
+        oneOf: undefined,
+        anyOf: cpfOrCnpj.oneOf,
+      });
+      expect(ok({ name: 'a', password: 'b' })).toBe(false);
+      expect(ok({ name: 'a', password: 'b', cnpj: '2' })).toBe(true);
+    });
+
+    it('requires a key that the schema does not declare', () => {
+      const { ok } = gen({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        anyOf: [{ required: ['a'] }, { required: ['b'] }],
+      });
+      expect(ok({})).toBe(false);
+      expect(ok({ a: 'x' })).toBe(true);
+      expect(ok({ b: 1 })).toBe(true);
+    });
+
+    it('requires the keys of an object without properties', () => {
+      const { ok } = gen({
+        type: 'object',
+        anyOf: [{ required: ['a'] }, { required: ['b'] }],
+      });
+      expect(ok({})).toBe(false);
+      expect(ok('str')).toBe(false);
+      expect(ok({ b: 1 })).toBe(true);
+    });
+
+    it('keeps the description of an alternative that only requires keys', () => {
+      const { valibot } = gen({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        anyOf: [{ required: ['a'], description: 'Has a.' }, { type: 'null' }],
+      });
+      expect(valibot).toContain("v.description('Has a.')");
+    });
+
+    it('leaves an alternative alone when the schema is not an object', () => {
+      const { ok } = gen({
+        type: 'string',
+        anyOf: [{ required: ['a'] }, { minLength: 2 }],
+      });
+      expect(ok('x')).toBe(true);
+      expect(ok({ a: 1 })).toBe(false);
+    });
+
+    it('keeps the type next to members that check nothing', () => {
+      const { ok } = gen({
+        type: 'string',
+        anyOf: [{ format: 'email' }, { pattern: '^\\+\\d+$' }],
+      });
+      expect(ok('hello')).toBe(true);
+      expect(ok(123)).toBe(false);
+      expect(ok({ a: 1 })).toBe(false);
+    });
+
+    it('keeps the type next to an allOf member that checks nothing', () => {
+      const { ok } = gen({ type: 'integer', allOf: [{ maximum: 10 }] });
+      expect(ok(5)).toBe(true);
+      expect(ok('x')).toBe(false);
+      expect(ok(1.5)).toBe(false);
+    });
+  });
+
   it('keeps v.variant when the options and discriminators have descriptions', () => {
     const option = (kind: string): OpenApiSchemaObject => ({
       type: 'object',

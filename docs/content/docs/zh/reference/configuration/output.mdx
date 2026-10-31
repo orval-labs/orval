@@ -27,7 +27,7 @@ export default defineConfig({
 
 **类型：** `String | Function`
 **默认值：** `'axios-functions'`
-**可选值：** `angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`pinia-colada`、`swr`、`zod`、`effect`、`hono`、`fetch`、`mcp`
+**可选值：** `angular`、`angular-query`、`axios`、`axios-functions`、`react-query`、`solid-start`、`solid-query`、`svelte-query`、`vue-query`、`pinia-colada`、`swr`、`zod`、`effect`、`valibot`、`hono`、`fetch`、`mcp`
 
 关于生成 Vue query、mutation、query key 和 options 的说明，请参阅 [Pinia Colada 指南](/zh/docs/guides/pinia-colada)。
 
@@ -876,7 +876,7 @@ export default defineConfig({
 - `pathParams` 将每个占位符在 spec 中的名称与 client 接收的标识符对应起来。
 - `serialization` 列出 query 参数写入 URL 的方式，与 fetch client 的 `get<Op>Url` 一致。`override.fetch.arrayFormat` 仅对由 fetch client 生成 URL 的客户端生效：`fetch`、`mcp`，以及 `httpClient: 'fetch'` 下的 query、SWR 和 Pinia Colada 客户端。
 - `mock` 是 [mock generator](#mock) 为该 operation 生成的 `get<Op>ResponseMock` 工厂名称，没有则为 `null`。manifest 只记录名称，不会导入 mock 代码。
-- `OperationTypes` 引用 orval 已生成的类型。`response` 是响应体类型，而不是 client 的返回类型。`zod`、`effect` client 以及 Zod schemas 不生成该类型映射。
+- `OperationTypes` 引用 orval 已生成的类型。`response` 是响应体类型，而不是 client 的返回类型。`zod`、`effect`、`valibot` client 以及 Zod schemas 不生成该类型映射。
 
 manifest 不会从 workspace 的 `index.ts` 重新导出。
 
@@ -2173,6 +2173,35 @@ export default defineConfig({
 **默认值：** `false`
 
 对可选的 Struct 属性使用 `S.optionalWith(schema, { exact: true })`，而不是 `S.optional(schema)`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
+
+---
+
+## override.valibot
+
+Valibot schema 生成选项。`strict` 和 `generate` 的键与 `override.zod` 相同，也可以按 operation 或按 tag 设置。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        valibot: {
+          strict: { response: true },
+          generate: { header: false },
+          exactOptional: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### exactOptional
+
+**类型：** `boolean`
+**默认值：** `false`
+
+对可选的对象属性使用 `v.exactOptional(schema)`，而不是 `v.optional(schema)`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
 
 ---
 
