@@ -61,6 +61,7 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 - Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`. `additionalProperties: false` without `properties` is an empty object, strict with `strict`.
 - A `required` key with no declared property is kept and required, with the type of `additionalProperties` or `unknown`.
 - `date` and `date-time` use `v.isoDate` and `v.isoTimestamp`. With `override.useDates` they are converted to `Date`.
+- The string `default` of a `number` or `integer`, as .NET writes it, such as `"1.5"`, is read as a number. A default the schema rejects, such as `NaN`, `Infinity` or a fraction for an integer, is left out with a warning. A string default next to an `enum` or a second type is kept.
 - `minLength` and `maxLength` of strings count code points. A non-integer `multipleOf` is skipped with a warning, as `v.multipleOf` rejects valid decimals.
 - A `pattern` that is not a valid JavaScript regular expression is skipped with a warning.
 - A string with `format: binary` or the `contentMediaType` `application/octet-stream` is `v.file()`, and `v.string()` in a url-encoded body. In a `multipart/form-data` body a top-level part, or the items of an array part, is also `v.file()` when its `encoding.contentType` or `contentMediaType` is a binary media type such as `image/png`, and `v.union([v.file(), v.string()])` for another one, such as `text/csv`.

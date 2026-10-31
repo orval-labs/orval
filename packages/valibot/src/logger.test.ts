@@ -81,4 +81,10 @@ describe('warnings', () => {
     gen(schema);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining(message));
   });
+  it('warns about a number default that is left out', () => {
+    gen({ type: 'number', default: 'NaN' }, { required: false });
+    expect(warn).toHaveBeenCalledWith(
+      'The default "NaN" does not fit a number, it is left out.',
+    );
+  });
 });

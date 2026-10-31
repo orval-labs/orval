@@ -298,6 +298,36 @@ const isNever = (schema: OpenApiSchemaObject | undefined): boolean =>
     isObject(schema.not) &&
     Object.keys(schema.not).length === 0);
 
+const JSON_NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+
+// .NET writes the default of a `double` as a string, such as `"1.5"` or
+// `"NaN"`. A default the number schema rejects, such as `NaN`, `Infinity` or a
+// fraction of an integer, is left out, or every value without the key fails.
+const generateDefault = (
+  schema: OpenApiNonBooleanSchemaObject,
+): string | undefined => {
+  const value = schema.default;
+  const isPlainNumber =
+    (schema.type === 'number' || schema.type === 'integer') &&
+    schema.enum === undefined &&
+    schema.const === undefined;
+  if (!isPlainNumber || !(isString(value) || typeof value === 'number')) {
+    return toJsLiteral(value);
+  }
+  const parsed =
+    isString(value) && !JSON_NUMBER.test(value.trim())
+      ? Number.NaN
+      : Number(value);
+  const fits =
+    Number.isFinite(parsed) &&
+    (schema.type === 'number' || Number.isInteger(parsed));
+  if (fits) return String(parsed);
+  warnOnce(
+    `The default "${String(value)}" does not fit a ${schema.type}, it is left out.`,
+  );
+  return undefined;
+};
+
 export const generateValibotValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | undefined,
   context: ContextSpec,
@@ -317,7 +347,9 @@ export const generateValibotValidationSchemaDefinition = (
 
   const schema = toCanonicalNullable(schemaInput);
   const nullable = isNullable(schema);
-  const hasDefault = schema.default !== undefined;
+  const defaultValue =
+    schema.default === undefined ? undefined : generateDefault(schema);
+  const hasDefault = defaultValue !== undefined;
   const child: ChildGenerator = (member, isRequired = true) =>
     generateValibotValidationSchemaDefinition(member, context, strict, {
       required: isRequired,
@@ -331,6 +363,6 @@ export const generateValibotValidationSchemaDefinition = (
     actions: generateActions(schema, base, context),
     nullable,
     optional: !hasDefault && !required,
-    defaultValue: hasDefault ? toJsLiteral(schema.default) : undefined,
+    defaultValue,
   };
 };

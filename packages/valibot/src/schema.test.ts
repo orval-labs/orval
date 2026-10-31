@@ -151,6 +151,51 @@ describe('objects', () => {
     expect(ok({ name: 'x' })).toBe(false);
   });
 
+  it.each([
+    ['number', '1.5', 1.5],
+    ['number', '-2e3', -2000],
+    ['integer', '7', 7],
+  ] as const)(
+    'reads the string default of a %s as a number',
+    (type, text, value) => {
+      const { valibot, output } = gen({
+        type: 'object',
+        properties: { n: { type, default: text } },
+      });
+      expect(valibot).not.toContain(`'${text}'`);
+      expect(output({})).toEqual({ n: value });
+    },
+  );
+
+  it.each([
+    ['number', 'NaN'],
+    ['number', 'Infinity'],
+    ['number', '0x10'],
+    ['number', '__proto__'],
+    ['number', Number.POSITIVE_INFINITY],
+    ['integer', '1.5'],
+  ] as const)('leaves out a default a %s rejects (%s)', (type, value) => {
+    const { output } = gen({
+      type: 'object',
+      properties: { n: { type, default: value } },
+    });
+    expect(output({})).toEqual({});
+  });
+
+  it.each([
+    [{ type: 'number', enum: ['1', '2'], default: '1' }, '1'],
+    [{ type: ['number', 'string'], default: 'abc' }, 'abc'],
+  ] satisfies [OpenApiSchemaObject, unknown][])(
+    'keeps a string default that the schema can accept',
+    (schema, value) => {
+      const { output } = gen({
+        type: 'object',
+        properties: { n: schema },
+      });
+      expect(output({})).toEqual({ n: value });
+    },
+  );
+
   it('does not apply a default to a required key without a property', () => {
     const { ok } = gen({
       type: 'object',

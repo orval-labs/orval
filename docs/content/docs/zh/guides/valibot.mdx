@@ -61,6 +61,7 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 - 对象默认去掉未知的键。`strict` 生成 `v.strictObject`，`additionalProperties: true` 生成 `v.looseObject`。没有 `properties` 的 `additionalProperties: false` 是空对象，启用 `strict` 时为 strict 空对象。
 - 没有声明属性的 `required` 键会保留并设为必填，类型取自 `additionalProperties`，没有则为 `unknown`。
 - `date` 和 `date-time` 使用 `v.isoDate` 和 `v.isoTimestamp`。设置 `override.useDates` 后会转换为 `Date`。
+- `number` 或 `integer` 的字符串 `default`（.NET 的写法，例如 `"1.5"`）会按数字读取。schema 会拒绝的默认值，例如 `NaN`、`Infinity` 或整数的小数，会被去掉并给出警告。与 `enum` 或第二种类型并列的字符串默认值保持不变。
 - 字符串的 `minLength` 和 `maxLength` 按码点（code point）计数。非整数的 `multipleOf` 会被跳过并给出警告，因为 `v.multipleOf` 会拒绝合法的小数。
 - 不是合法 JavaScript 正则表达式的 `pattern` 会被跳过并给出警告。
 - `format: binary` 或 `contentMediaType` 为 `application/octet-stream` 的字符串生成 `v.file()`；在 url-encoded 请求体中则生成 `v.string()`。在 `multipart/form-data` 请求体中，如果顶层字段（或数组字段的元素）的 `encoding.contentType` 或 `contentMediaType` 是二进制媒体类型（例如 `image/png`），也生成 `v.file()`；如果是其他媒体类型（例如 `text/csv`），则生成 `v.union([v.file(), v.string()])`。
