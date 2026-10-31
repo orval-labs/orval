@@ -24,6 +24,10 @@ import {
   getVueQueryDependencies,
 } from './dependencies';
 import { createFrameworkAdapter } from './frameworks';
+import {
+  SOLID_MAYBE_ACCESSOR,
+  SOLID_RESOLVE_ACCESSOR,
+} from './frameworks/solid';
 import { generateQueryHook } from './query-generator';
 import { normalizeQueryOptions } from './utils';
 
@@ -56,9 +60,21 @@ const WITH_QUERY_KEY_HELPER = `const withQueryKey = <T extends object, K>(query:
   return result;
 };`;
 
+// Emitted once per file for the solid-query client, whose hooks accept either a
+// value or an accessor for each parameter and resolve it inside the tracked
+// options thunk (#3195). Spelled out rather than imported: `solid-js` ships
+// `Accessor` but no `MaybeAccessor`.
+const SOLID_ACCESSOR_HELPER = `type ${SOLID_MAYBE_ACCESSOR}<T> = T | (() => T);
+
+const ${SOLID_RESOLVE_ACCESSOR} = <T,>(value: ${SOLID_MAYBE_ACCESSOR}<T>): T =>
+  typeof value === 'function' ? (value as () => T)() : value;`;
+
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   const needsWithQueryKey =
     params.clientImplementation.includes('withQueryKey(');
+  const needsSolidAccessor = params.clientImplementation.includes(
+    `${SOLID_RESOLVE_ACCESSOR}(`,
+  );
   // An operation-level `requestOptions` override can reference the helper
   // even when the global default is `false` (#4388).
   const needsSecondParameter =
@@ -83,7 +99,9 @@ ${
     : ''
 }
 ${innerImpl}
-${needsWithQueryKey ? `${WITH_QUERY_KEY_HELPER}\n\n` : ''}`;
+${needsWithQueryKey ? `${WITH_QUERY_KEY_HELPER}\n\n` : ''}${
+    needsSolidAccessor ? `${SOLID_ACCESSOR_HELPER}\n\n` : ''
+  }`;
 
   if (innerSharedTypes && innerSharedTypes.length > 0) {
     return {

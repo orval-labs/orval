@@ -28,6 +28,11 @@ import { mergeProps } from 'solid-js';
 
 import type { Cat, ListHouseCatsParams } from './model';
 
+type MaybeAccessor<T> = T | (() => T);
+
+const resolveAccessor = <T>(value: MaybeAccessor<T>): T =>
+  typeof value === 'function' ? (value as () => T)() : value;
+
 export type listHouseCatsResponse200 = {
   data: Cat[];
   status: 200;
@@ -168,9 +173,9 @@ export function useListHouseCatsInfinite<
   >,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params: undefined | ListHouseCatsParams,
-  options: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params: MaybeAccessor<ListHouseCatsParams> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -206,7 +211,7 @@ export function useListHouseCatsInfinite<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -218,9 +223,9 @@ export function useListHouseCatsInfinite<
   >,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params: undefined | ListHouseCatsParams,
-  options: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params: MaybeAccessor<ListHouseCatsParams> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -256,7 +261,7 @@ export function useListHouseCatsInfinite<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -268,9 +273,9 @@ export function useListHouseCatsInfinite<
   >,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params: undefined | ListHouseCatsParams,
-  options: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params: MaybeAccessor<ListHouseCatsParams> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -294,7 +299,7 @@ export function useListHouseCatsInfinite<
         'initialPageParam' | 'getNextPageParam'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -310,9 +315,9 @@ export function useListHouseCatsInfinite<
   >,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params: undefined | ListHouseCatsParams,
-  options: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params: MaybeAccessor<ListHouseCatsParams> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidInfiniteQueryOptions<
@@ -336,23 +341,25 @@ export function useListHouseCatsInfinite<
         'initialPageParam' | 'getNextPageParam'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListHouseCatsInfiniteQueryOptions(
-    houseId,
-    params,
-    options,
-  );
+  const queryOptions = () =>
+    getListHouseCatsInfiniteQueryOptions(
+      resolveAccessor(houseId),
+      resolveAccessor(params),
+      resolveAccessor(options),
+    );
 
-  const query = useInfiniteQuery(
-    () => getListHouseCatsInfiniteQueryOptions(houseId, params, options),
-    queryClient,
-  );
+  const query = useInfiniteQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 /**
@@ -417,9 +424,9 @@ export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params: undefined | ListHouseCatsParams,
-  options: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params: MaybeAccessor<ListHouseCatsParams> | undefined,
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -441,7 +448,7 @@ export function useListHouseCats<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -450,9 +457,9 @@ export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params?: ListHouseCatsParams,
-  options?: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params?: MaybeAccessor<ListHouseCatsParams>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -474,7 +481,7 @@ export function useListHouseCats<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -483,9 +490,9 @@ export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params?: ListHouseCatsParams,
-  options?: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params?: MaybeAccessor<ListHouseCatsParams>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -497,7 +504,7 @@ export function useListHouseCats<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
@@ -510,9 +517,9 @@ export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
 >(
-  houseId: number | undefined | null,
-  params?: ListHouseCatsParams,
-  options?: {
+  houseId: MaybeAccessor<number | undefined | null>,
+  params?: MaybeAccessor<ListHouseCatsParams>,
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -524,19 +531,25 @@ export function useListHouseCats<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListHouseCatsQueryOptions(houseId, params, options);
+  const queryOptions = () =>
+    getListHouseCatsQueryOptions(
+      resolveAccessor(houseId),
+      resolveAccessor(params),
+      resolveAccessor(options),
+    );
 
-  const query = useQuery(
-    () => getListHouseCatsQueryOptions(houseId, params, options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }
 
 /**

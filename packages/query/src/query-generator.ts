@@ -41,6 +41,7 @@ import {
   requiresUserSuppliedQueryOptions,
 } from './query-options';
 import {
+  escapeRegExpMetaChars,
   getHasSignal,
   getOperationMetaLiteral,
   getPrefetchCall,
@@ -319,9 +320,6 @@ export const getSuppressedInfiniteQueryWarning = ({
   );
 };
 
-const escapeRegExpMetaChars = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-
 /**
  * Wraps the body parameter's type in a property string with the mutator's
  * `BodyType<T>` envelope so that user-facing Query helpers (hook signature,
@@ -337,6 +335,8 @@ const escapeRegExpMetaChars = (value: string): string =>
  *   - `name: T`                — required body
  *   - `name?: T`               — optional body
  *   - `name: undefined | T`    — `definedInitialData` overload transform
+ *
+ * Each may also be wrapped as `name: MaybeAccessor<…>` by the Solid adapter.
  *
  * `body.definition` is fully regex-escaped so types containing metachars
  * (e.g. `Pet[]`, `Foo | Bar`, anonymous object types) are matched
@@ -358,7 +358,7 @@ export const wrapPropsBodyWithMutatorBodyType = ({
   const bodyDefinitionPattern = escapeRegExpMetaChars(body.definition);
   return propsString.replace(
     new RegExp(
-      String.raw`(\w+\??:\s*(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
+      String.raw`(\w+\??:\s*(?:MaybeAccessor<)?(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
     ),
     `$1${mutator.bodyTypeName}<${body.definition}>`,
   );
@@ -800,7 +800,7 @@ const generateQueryImplementation = ({
   // The override-type overloads end in the same mandatory `options` parameter as
   // the hook, so their props need the same widening (TS1016).
   const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
-    propsString: toObjectString(
+    propsString: adapter.getHookPropsDefinitions(
       requiresUserQueryOptions
         ? widenOptionalPropsToUndefined(props, 'definition')
         : props,
@@ -811,7 +811,7 @@ const generateQueryImplementation = ({
   });
   const definedInitialDataQueryPropsDefinitions =
     wrapPropsBodyWithMutatorBodyType({
-      propsString: toObjectString(
+      propsString: adapter.getHookPropsDefinitions(
         widenOptionalPropsToUndefined(props, 'definition'),
         'definition',
       ),
@@ -1253,7 +1253,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
+    props,
     queryOptionsFnName,
+    queryOptionsVarName,
     queryProperties,
     isRequestOptions,
     mutator,

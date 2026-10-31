@@ -436,6 +436,17 @@ describe('wrapPropsBodyWithMutatorBodyType', () => {
       isBlob: false,
     }) satisfies GetterBody;
 
+  // Solid hook parameters are `MaybeAccessor<…>` (#3195).
+  it('wraps a body inside a solid MaybeAccessor', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody: MaybeAccessor<CreatePetsBody>',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('createPetsBody: MaybeAccessor<BodyType<CreatePetsBody>>');
+  });
+
   it('returns propsString unchanged when mutator is undefined', () => {
     expect(
       wrapPropsBodyWithMutatorBodyType({

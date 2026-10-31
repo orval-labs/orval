@@ -37,7 +37,9 @@ export interface QueryReturnStatementContext {
 }
 
 export interface QueryInitContext {
+  props: GetterProps;
   queryOptionsFnName: string;
+  queryOptionsVarName: string;
   queryProperties: string;
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
@@ -111,9 +113,24 @@ export interface FrameworkAdapter {
 
   /**
    * Get prop definitions for the hook function signature.
-   * Angular: getter types (T | (() => T)). Svelte v6: accessor () => types. Others: standard.
+   * Angular: getter types (T | (() => T)). Svelte v6: accessor () => types.
+   * Solid: `MaybeAccessor<T>`. Others: standard.
+   *
+   * `field` picks which prop string to render: the hook implementation uses
+   * `implementation` (keeps default values), the overload signatures use
+   * `definition` (overloads cannot declare defaults).
    */
-  getHookPropsDefinitions(props: GetterProps): string;
+  getHookPropsDefinitions(
+    props: GetterProps,
+    field?: 'definition' | 'implementation',
+  ): string;
+
+  /**
+   * Wraps the type of the hook's trailing query `options` parameter (hook and
+   * overload signatures only, never the options factory or prefetch helpers).
+   * Solid: `MaybeAccessor<…>` so the options can be a signal. Others: unset.
+   */
+  wrapHookQueryOptionsType?(optionsType: string): string;
 
   // --- Named Path Params ---
   /** Whether named path params should be destructured (true for all except Vue) */

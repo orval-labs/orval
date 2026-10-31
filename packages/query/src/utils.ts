@@ -16,6 +16,10 @@ import {
   type QueryOptions,
 } from '@orval/core';
 
+/** Escapes `value` for literal use inside a `RegExp` source. */
+export const escapeRegExpMetaChars = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 export const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},
   outputWorkspace: string,
