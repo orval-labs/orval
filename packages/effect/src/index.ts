@@ -9,7 +9,6 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  findMediaType,
   getEnumMembers,
   getFormDataFieldFileType,
   getNumberWord,
@@ -272,6 +271,12 @@ export const generateEffectValidationSchemaDefinition = (
     required?: boolean;
     propertyOverrides?: Record<string, EffectValidationSchemaDefinition>;
     constNameRegistry?: Record<string, number>;
+    /**
+     * Set for `application/x-www-form-urlencoded` bodies, which serialize via
+     * `URLSearchParams` (strings only), so binary fields stay `string` at any
+     * depth instead of becoming `File`.
+     */
+    urlEncoded?: boolean;
   },
 ): EffectValidationSchemaDefinition => {
   if (schemaInput == null || typeof schemaInput !== 'object') {
@@ -291,6 +296,7 @@ export const generateEffectValidationSchemaDefinition = (
 
   const consts: string[] = [];
   const constNameRegistry = rules?.constNameRegistry ?? {};
+  const urlEncoded = rules?.urlEncoded ?? false;
   const constsCounter = isNumber(constNameRegistry[name])
     ? constNameRegistry[name] + 1
     : 0;
@@ -345,6 +351,7 @@ export const generateEffectValidationSchemaDefinition = (
           {
             required: true,
             constNameRegistry,
+            urlEncoded,
           },
         ),
         exceptKeys(requiredKeys, directionalKeysOf(schema)),
@@ -369,6 +376,7 @@ export const generateEffectValidationSchemaDefinition = (
           {
             required: true,
             constNameRegistry,
+            urlEncoded,
           },
         ),
         exceptKeys(
@@ -478,6 +486,7 @@ export const generateEffectValidationSchemaDefinition = (
           {
             required: true,
             constNameRegistry,
+            urlEncoded,
           },
         ),
       ),
@@ -514,6 +523,7 @@ export const generateEffectValidationSchemaDefinition = (
                   {
                     required: true,
                     constNameRegistry,
+                    urlEncoded,
                   },
                 ),
               ),
@@ -533,6 +543,7 @@ export const generateEffectValidationSchemaDefinition = (
             {
               required: true,
               constNameRegistry,
+              urlEncoded,
             },
           ),
         ]);
@@ -551,12 +562,13 @@ export const generateEffectValidationSchemaDefinition = (
           break;
         }
 
-        if (schema.format === 'binary') {
+        if (!urlEncoded && schema.format === 'binary') {
           functions.push(['instanceof', 'File']);
           break;
         }
 
         if (
+          !urlEncoded &&
           isOctetStreamContentType(schema.contentMediaType) &&
           !schema.contentEncoding
         ) {
@@ -633,6 +645,7 @@ export const generateEffectValidationSchemaDefinition = (
                     {
                       required: schema.required?.includes(key),
                       constNameRegistry,
+                      urlEncoded,
                     },
                   ),
               }))
@@ -660,6 +673,7 @@ export const generateEffectValidationSchemaDefinition = (
               {
                 required: true,
                 constNameRegistry,
+                urlEncoded,
               },
             ),
           ]);
@@ -1548,6 +1562,11 @@ export const generateFormDataEffectSchema = (
   );
 };
 
+const isMediaType =
+  (pattern: string) =>
+  ([contentType]: [string, unknown]): boolean =>
+    new RegExp(pattern).test(contentType.split(';')[0].trim().toLowerCase());
+
 const parseBodyAndResponse = ({
   data,
   context,
@@ -1579,16 +1598,30 @@ const parseBodyAndResponse = ({
     | OpenApiResponseObject
     | OpenApiRequestBodyObject;
 
-  const jsonMedia = findMediaType(resolvedRef.content, 'application/json');
-  const formDataMedia = findMediaType(
-    resolvedRef.content,
-    'multipart/form-data',
-  );
+  // Only JSON (including `+json` vendor types), form-data and form-urlencoded
+  // are handled. Media type parameters (`; charset=utf-8`) are ignored and
+  // names match case-insensitively (RFC 9110 §8.3.1), as in `@orval/zod`.
+  const contentEntries = Object.entries(resolvedRef.content ?? {});
+  const jsonMedia = contentEntries.find(
+    isMediaType(String.raw`^application\/([^/;]+\+)?json$`),
+  )?.[1];
+  const formDataMedia = contentEntries.find(
+    isMediaType(String.raw`^multipart\/form-data$`),
+  )?.[1];
+  // form-urlencoded bodies are plain objects serialized via URLSearchParams,
+  // so they validate like JSON (no file fields).
+  const formUrlEncodedMedia = contentEntries.find(
+    isMediaType(String.raw`^application\/x-www-form-urlencoded$`),
+  )?.[1];
   const [contentType, mediaType] = jsonMedia
     ? (['application/json', jsonMedia] as const)
     : formDataMedia
       ? (['multipart/form-data', formDataMedia] as const)
-      : [undefined, undefined];
+      : formUrlEncodedMedia
+        ? (['application/x-www-form-urlencoded', formUrlEncodedMedia] as const)
+        : [undefined, undefined];
+
+  const urlEncoded = contentType === 'application/x-www-form-urlencoded';
 
   const schema = mediaType?.schema;
   if (!schema) {
@@ -1623,7 +1656,7 @@ const parseBodyAndResponse = ({
         context,
         name,
         strict,
-        { required: true },
+        { required: true, urlEncoded },
       ),
       isArray: true,
       rules: {
@@ -1654,7 +1687,7 @@ const parseBodyAndResponse = ({
           context,
           name,
           strict,
-          { required: true },
+          { required: true, urlEncoded },
         ),
     isArray: false,
   };
