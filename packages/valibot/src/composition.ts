@@ -197,6 +197,9 @@ const ownObject = (
 const isUnknown = (node: ValibotNode): boolean =>
   node.schema.kind === 'unknown';
 
+const requiredNames = (member: OpenApiNonBooleanSchemaObject): string[] =>
+  Array.isArray(member.required) ? member.required.filter(isString) : [];
+
 // An alternative that only lists `required` keys has no type, so it is
 // `v.unknown()` and would accept anything. It is the object of the schema's
 // own properties with those keys required instead.
@@ -205,19 +208,23 @@ const narrowOwnObject = (
   node: ValibotNode,
   schema: OpenApiNonBooleanSchemaObject,
   child: ChildGenerator,
-): ValibotNode => {
-  if (!isUnknown(node) || !isNonBoolean(member)) return node;
-  const keys = Array.isArray(member.required)
-    ? member.required.filter(isString)
-    : [];
+): ValibotNode | undefined => {
+  if (!isUnknown(node) || !isNonBoolean(member)) return undefined;
+  const keys = requiredNames(member);
   return keys.length > 0 && isObjectSchema(schema)
     ? {
         ...child(ownObjectSchema(schema, keys)),
         actions: node.actions,
         nullable: node.nullable,
       }
-    : node;
+    : undefined;
 };
+
+interface Alternative {
+  node: ValibotNode;
+  // A narrowed copy of the own object, with declared keys only, that rejects null.
+  isOwnObjectCopy: boolean;
+}
 
 const NULL_TYPE = 'null' as const;
 
@@ -292,13 +299,25 @@ const generateGroup = (
   // An instance of an allOf satisfies every member, so a key required by the
   // parent or any member is required wherever it is declared.
   const required = new Set(requiredKeysOf(schema));
-  const members = (schema[key] ?? []).map((member) => {
+  const alternatives = (schema[key] ?? []).map((member): Alternative => {
     const node = child(key === 'allOf' ? withoutRequired(member) : member);
-    return requireFields(
-      key === 'allOf' ? node : narrowOwnObject(member, node, schema, child),
-      required,
-    );
+    const narrowed =
+      key === 'allOf'
+        ? undefined
+        : narrowOwnObject(member, node, schema, child);
+    // A key with no property is only on its own copy, which strict rejects
+    // on the other copies.
+    const declared =
+      isNonBoolean(member) &&
+      requiredNames(member).every((name) =>
+        Object.hasOwn(schema.properties ?? {}, name),
+      );
+    return {
+      node: requireFields(narrowed ?? node, required),
+      isOwnObjectCopy: narrowed !== undefined && !narrowed.nullable && declared,
+    };
   });
+  const members = alternatives.map(({ node }) => node);
   const ownNode = ownObject(schema, child);
   const ownKeywords = ownScalar(schema, members.some(isUnknown), child);
   const own = [
@@ -317,8 +336,11 @@ const generateGroup = (
     return plainBase({ kind: 'intersect', members: [...members, ...own] });
   }
   const union = plainNode({ kind: 'union', members });
+  // The own object adds nothing when every alternative is a copy of it.
+  const coversOwn =
+    ownKeywords === undefined && alternatives.every((a) => a.isOwnObjectCopy);
   return plainBase(
-    own.length > 0
+    own.length > 0 && !coversOwn
       ? { kind: 'intersect', members: [union, ...own] }
       : union.schema,
   );

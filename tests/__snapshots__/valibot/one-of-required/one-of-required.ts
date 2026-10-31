@@ -6,25 +6,17 @@
  */
 import * as v from 'valibot';
 
-export const CreateUserBody = v.intersect([
-  v.union([
-    v.object({
-      name: v.string(),
-      password: v.string(),
-      cpf: v.string(),
-      cnpj: v.optional(v.string()),
-    }),
-    v.object({
-      name: v.string(),
-      password: v.string(),
-      cpf: v.optional(v.string()),
-      cnpj: v.string(),
-    }),
-  ]),
+export const CreateUserBody = v.union([
+  v.object({
+    name: v.string(),
+    password: v.string(),
+    cpf: v.string(),
+    cnpj: v.optional(v.string()),
+  }),
   v.object({
     name: v.string(),
     password: v.string(),
     cpf: v.optional(v.string()),
-    cnpj: v.optional(v.string()),
+    cnpj: v.string(),
   }),
 ]);

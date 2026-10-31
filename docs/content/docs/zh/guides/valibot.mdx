@@ -54,7 +54,7 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 ## 映射规则
 
 - `oneOf` 和 `anyOf` 生成 `v.union`。当 `discriminator` 指定了一个属性，该 schema 自身没有 `properties`，并且每个备选项都是对象，且该属性在其中是必填的 `const` 或 `enum` 时，生成 `v.variant`。备选项和 discriminator 上的描述会被去掉，因为 `v.variant` 不接受 pipe。
-- `oneOf` 或 `anyOf` 的备选项如果只列出 `required` 键，例如 `{ required: [cpf, name] }`，则会变成该 schema 自身 `properties` 所组成对象的一份副本，并把这些键设为必填；如果该 schema 没有 `properties`，则是只含这些键的对象。该 schema 必须是对象；如果同时有多个 `allOf`、`oneOf`、`anyOf`，只处理按此顺序排在最前的那一个。列出的键即使没有对应的属性，也仍然是必填。
+- `oneOf` 或 `anyOf` 的备选项如果只列出 `required` 键，例如 `{ required: [cpf, name] }`，则会变成该 schema 自身 `properties` 所组成对象的一份副本，并把这些键设为必填；如果该 schema 没有 `properties`，则是只含这些键的对象。该 schema 必须是对象；如果同时有多个 `allOf`、`oneOf`、`anyOf`，只处理按此顺序排在最前的那一个。列出的键即使没有对应的属性，也仍然是必填。如果每个备选项都是这样的副本，且只列出有对应属性的键，则不会再把联合与 `properties` 所组成的对象做交叉。
 - 与 `allOf`、`oneOf` 或 `anyOf` 并列的 `properties`、`enum`，以及标量或数组的关键字（例如 `type`、`format`、`pattern`、`minimum` 或 `items`），会与该组合取交集。当 `type` 允许 `object` 时，只有 `properties` 和 `enum` 会这样处理。
 - 与 `allOf`、`oneOf` 或 `anyOf` 并列的 `type: null` 或 `enum: [null]`（Swashbuckle 用这种非规范写法表示可为空的 `$ref`）会按 `anyOf: [组合, { type: null }]` 处理，与生成的类型一致。并列的 `const` 保持不变。并列的标量或数组关键字因为没有 `type`，不会被校验。
 - `allOf` 生成 `v.intersect`。其中的 strict 对象会生成普通对象，因为 strict 对象会拒绝同级成员的键。

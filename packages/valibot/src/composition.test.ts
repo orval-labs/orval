@@ -261,19 +261,64 @@ describe('composition', () => {
 
     it('gives each alternative its own copy of the object', () => {
       const { valibot, output } = gen(cpfOrCnpj);
+      expect(valibot).not.toContain('v.intersect(');
       expect(valibot.match(/v\.union\(/g)).toHaveLength(1);
-      expect(valibot.match(/cnpj: v\.optional/g)).toHaveLength(2);
+      expect(valibot.match(/cnpj: v\.optional/g)).toHaveLength(1);
       expect(
         output({ name: 'a', password: 'b', cpf: '1', extra: true }),
       ).toEqual({ name: 'a', password: 'b', cpf: '1' });
     });
 
+    it('keeps the own object next to an alternative that is not a copy of it', () => {
+      const { valibot, ok } = gen({
+        ...cpfOrCnpj,
+        oneOf: [{ required: ['cpf'] }, { type: 'object', required: ['name'] }],
+      });
+      expect(valibot).toContain('v.intersect(');
+      expect(ok({ name: 'a', password: 'b' })).toBe(true);
+      expect(ok({ name: 'a', password: 'b', cpf: 1 })).toBe(false);
+    });
+
+    it('keeps the own checks next to the alternatives', () => {
+      const { valibot, ok } = gen({
+        ...cpfOrCnpj,
+        enum: ['x'],
+      });
+      expect(valibot).toContain('v.intersect(');
+      expect(ok({ name: 'a', password: 'b', cpf: '1' })).toBe(false);
+    });
+
+    it('keeps the alternatives strict when the schema is', () => {
+      const { ok } = gen(cpfOrCnpj, { strict: true });
+      expect(ok({ name: 'a', password: 'b', cpf: '1' })).toBe(true);
+      expect(ok({ name: 'a', password: 'b', cpf: '1', extra: 1 })).toBe(false);
+    });
+
+    it('keeps the own object next to keys that have no property', () => {
+      const { valibot, ok } = gen(
+        {
+          type: 'object',
+          properties: { n: { type: 'string' } },
+          anyOf: [{ required: ['a'] }, { required: ['b'] }],
+        },
+        { strict: true },
+      );
+      expect(valibot).toContain('v.intersect(');
+      expect(ok({ a: 1, b: 2 })).toBe(true);
+    });
+
+    it('drops the own object for a single alternative', () => {
+      const { valibot } = gen({ ...cpfOrCnpj, oneOf: [{ required: ['cpf'] }] });
+      expect(valibot).not.toContain('v.intersect(');
+    });
+
     it('does the same for anyOf', () => {
-      const { ok } = gen({
+      const { valibot, ok } = gen({
         ...cpfOrCnpj,
         oneOf: undefined,
         anyOf: cpfOrCnpj.oneOf,
       });
+      expect(valibot).not.toContain('v.intersect(');
       expect(ok({ name: 'a', password: 'b' })).toBe(false);
       expect(ok({ name: 'a', password: 'b', cnpj: '2' })).toBe(true);
     });
