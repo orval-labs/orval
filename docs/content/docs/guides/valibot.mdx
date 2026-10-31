@@ -53,7 +53,8 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 
 ## Mapping
 
-- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` names a property that is a literal or enum in every object member.
+- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` names a property that is a literal or enum in every object member. Descriptions of the members and of the discriminator are left off, as `v.variant` takes no pipe.
+- Keywords such as `type`, `enum`, `pattern`, `minLength` or `items` next to `allOf`, `oneOf` or `anyOf` are intersected with the composition.
 - `allOf` becomes `v.intersect`. Strict objects inside it are emitted as plain objects, as a strict object rejects the keys of its siblings.
 - Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`. `additionalProperties: false` without `properties` is an empty object, strict with `strict`.
 - A `required` key with no declared property is kept and required, with the type of `additionalProperties` or `unknown`.
@@ -65,12 +66,14 @@ type Pet = v.InferOutput<typeof CreatePetsBody>;
 
 The first version leaves these out, so they are validated loosely instead of wrongly:
 
-- Circular `$ref`s and `prefixItems` are validated as `unknown` and `unknown[]`, with a warning.
-- `readOnly` and `writeOnly` are not treated specially, so a `readOnly` property that is required is also required in request bodies.
+- Circular `$ref`s and `prefixItems` are validated as `unknown` and `unknown[]`, with a warning. `v.lazy` is not used yet.
+- `readOnly` properties are left out of request bodies, with their `required` entry, as in the zod client. `writeOnly` is not treated specially.
+- `const` with an object or array value, and an `enum` with object or array members, are not validated, with a warning. A `$ref` that cannot be resolved is validated as `unknown`, with a warning.
 - `type: object` accepts arrays, as `v.object` and `v.record` do.
 - `uniqueItems` is not enforced.
 - In an `allOf`, `oneOf` or `anyOf`, a key required by the parent or by an `allOf` member is only enforced where a member declares it, and is dropped when none does.
-- Every `$ref` is inlined, so deeply shared components produce large output.
+- Every `$ref` is inlined, so deeply shared components produce large output. Components are not emitted as reusable constants.
+- Optional properties named like `Object.prototype` members, such as `toString`, are not handled specially.
 - `override.useDates` does not convert a date that is a direct `allOf` member.
 - `oneOf` does not check that exactly one member matches, and `v.union` returns the first match, so properties of a later member are stripped.
 - Query and path values are not coerced from strings.

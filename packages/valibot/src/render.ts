@@ -38,8 +38,14 @@ const renderAction = (
     }
     case 'minCodePoints':
     case 'maxCodePoints': {
-      const op = action.kind === 'minCodePoints' ? '>=' : '<=';
-      return `v.check((value) => [...value].length ${op} ${action.value}, 'Invalid length')`;
+      // Code points are never more than the UTF-16 units and never fewer than
+      // half of them, so most values are decided without splitting the string.
+      const isMin = action.kind === 'minCodePoints';
+      const count = Number(action.value);
+      const test = isMin
+        ? `value.length >= ${count * 2} || [...value].length >= ${count}`
+        : `value.length <= ${count} || [...value].length <= ${count}`;
+      return `v.check((value) => ${test}, 'Invalid length: Expected ${isMin ? '>=' : '<='}${count}')`;
     }
     case 'toDate': {
       // A transformed member would not merge with its siblings.

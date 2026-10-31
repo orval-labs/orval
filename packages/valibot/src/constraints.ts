@@ -98,11 +98,13 @@ export const patternActions = (pattern: string): ValibotAction[] => {
 
 export const stringBase = (
   schema: OpenApiNonBooleanSchemaObject,
+  urlEncoded = false,
 ): BaseSchema => {
   if (
-    schema.format === 'binary' ||
-    (isOctetStreamContentType(schema.contentMediaType) &&
-      !schema.contentEncoding)
+    !urlEncoded &&
+    (schema.format === 'binary' ||
+      (isOctetStreamContentType(schema.contentMediaType) &&
+        !schema.contentEncoding))
   ) {
     return plainBase({ kind: 'file' });
   }

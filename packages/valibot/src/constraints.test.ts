@@ -134,4 +134,27 @@ describe('formats', () => {
       expect(gen({ type: 'string', format }).valibot).toBe('v.string()');
     }
   });
+
+  describe('string length', () => {
+    it('decides most values without splitting the string', () => {
+      const { valibot } = gen({ type: 'string', minLength: 3, maxLength: 5 });
+      expect(valibot).toContain('value.length >= 6 || [...value].length >= 3');
+      expect(valibot).toContain('value.length <= 5 || [...value].length <= 5');
+    });
+
+    it('names the expected length in the error', () => {
+      const { valibot } = gen({ type: 'string', maxLength: 2 });
+      expect(valibot).toContain("'Invalid length: Expected <=2'");
+    });
+
+    it('counts code points around the shortcuts', () => {
+      const { ok } = gen({ type: 'string', minLength: 2, maxLength: 3 });
+      expect(ok('ab')).toBe(true);
+      expect(ok('a')).toBe(false);
+      expect(ok('\u{1F600}a')).toBe(true);
+      expect(ok('\u{1F600}\u{1F600}\u{1F600}')).toBe(true);
+      expect(ok('\u{1F600}\u{1F600}\u{1F600}a')).toBe(false);
+      expect(ok('\u{1F600}')).toBe(false);
+    });
+  });
 });

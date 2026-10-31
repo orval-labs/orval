@@ -1,5 +1,6 @@
 import {
   getRequiredKeys,
+  isSchemaNullable,
   isString,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
@@ -73,6 +74,30 @@ const isBareNode = (node: ValibotNode): boolean =>
   !node.optional &&
   node.defaultValue === undefined;
 
+// Descriptions are documentation only and `v.variant` does not take a pipe,
+// so they are left off its options and discriminators.
+const withoutDescription = (node: ValibotNode): ValibotNode => ({
+  ...node,
+  actions: node.actions.filter((action) => action.kind !== 'describe'),
+});
+
+const withBareDiscriminator = (node: ValibotNode, key: string): ValibotNode => {
+  const bare = withoutDescription(node);
+  const { schema } = bare;
+  if (schema.kind !== 'object') return bare;
+  return {
+    ...bare,
+    schema: {
+      ...schema,
+      entries: schema.entries.map((entry) =>
+        entry.key === key
+          ? { ...entry, value: withoutDescription(entry.value) }
+          : entry,
+      ),
+    },
+  };
+};
+
 // `v.variant` needs every option to be a bare object whose discriminator is a
 // literal or a picklist.
 const toVariant = (
@@ -89,8 +114,9 @@ const toVariant = (
       (entry.schema.kind === 'literal' || entry.schema.kind === 'picklist')
     );
   };
-  return members.every(isVariantOption)
-    ? plainNode({ kind: 'variant', key, options: members })
+  const options = members.map((member) => withBareDiscriminator(member, key));
+  return options.every(isVariantOption)
+    ? plainNode({ kind: 'variant', key, options })
     : undefined;
 };
 
@@ -162,6 +188,55 @@ const ownObject = (
   });
 };
 
+const NULL_TYPE = 'null' as const;
+
+// The schema of the scalar and array keywords next to a composition, which
+// the composition is intersected with. `object` is left to `ownObject`.
+const ownScalar = (
+  schema: OpenApiNonBooleanSchemaObject,
+  child: ChildGenerator,
+): ValibotNode | undefined => {
+  const declared = Array.isArray(schema.type) ? schema.type : [schema.type];
+  // A type that allows objects cannot be told apart from the members here.
+  const typed = declared.includes('object')
+    ? []
+    : declared.filter((type) => type !== undefined && type !== 'null');
+  // A composition that accepts null needs a type that does too.
+  const types =
+    typed.length > 0 && isSchemaNullable(schema)
+      ? [...typed, NULL_TYPE]
+      : typed;
+  const keywords = {
+    type: types.length > 1 ? types : types[0],
+    enum: schema.enum,
+    format: schema.format,
+    pattern: schema.pattern,
+    minLength: schema.minLength,
+    maxLength: schema.maxLength,
+    minimum: schema.minimum,
+    maximum: schema.maximum,
+    exclusiveMinimum: schema.exclusiveMinimum,
+    exclusiveMaximum: schema.exclusiveMaximum,
+    multipleOf: schema.multipleOf,
+    items: schema.items,
+    // Only a present key means a tuple.
+    ...(schema.prefixItems ? { prefixItems: schema.prefixItems } : {}),
+    minItems: schema.minItems,
+    maxItems: schema.maxItems,
+    contentEncoding: schema.contentEncoding,
+    contentMediaType: schema.contentMediaType,
+  };
+  // A type alone repeats what the members already check.
+  const { type: _type, ...checks } = keywords;
+  if (Object.values(checks).every((value) => value === undefined)) {
+    return undefined;
+  }
+  const node = child(keywords);
+  // Keywords without a type check nothing, and an unknown member would only
+  // bring back keys that the other members strip.
+  return node.schema.kind === 'unknown' ? undefined : node;
+};
+
 // The members of an allOf are generated without their `required`, which the
 // parent applies to all of them.
 const withoutRequired = (member: OpenApiSchemaObject): OpenApiSchemaObject => {
@@ -187,7 +262,11 @@ const generateGroup = (
     ),
   );
   const ownNode = ownObject(schema, child);
-  const own = ownNode ? [requireFields(ownNode, required)] : [];
+  const ownKeywords = ownScalar(schema, child);
+  const own = [
+    ...(ownNode ? [requireFields(ownNode, required)] : []),
+    ...(ownKeywords ? [ownKeywords] : []),
+  ];
 
   const discriminator = schema.discriminator?.propertyName;
   const variant =

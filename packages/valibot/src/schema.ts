@@ -39,6 +39,8 @@ import {
 
 export interface SchemaRules {
   required?: boolean;
+  // Form bodies are serialized as strings, so a binary field stays a string.
+  urlEncoded?: boolean;
 }
 
 // A required key without a property is kept, with the type of the additional
@@ -121,6 +123,10 @@ const generateConst = (value: unknown): BaseSchema | undefined => {
     : undefined;
 };
 
+const hasStructuredMember = (values: unknown): boolean =>
+  Array.isArray(values) &&
+  values.some((value) => isObject(value) || Array.isArray(value));
+
 const generateEnum = (
   schema: OpenApiNonBooleanSchemaObject,
   nullable: boolean,
@@ -169,6 +175,7 @@ const generateByType = (
   type: ResolvedType,
   child: ChildGenerator,
   strict: boolean,
+  urlEncoded: boolean,
 ): BaseSchema => {
   switch (type) {
     case 'array': {
@@ -178,7 +185,7 @@ const generateByType = (
       return plainBase({ kind: 'null' });
     }
     case 'string': {
-      return stringBase(schema);
+      return stringBase(schema, urlEncoded);
     }
     case 'number':
     case 'integer': {
@@ -209,9 +216,15 @@ const generateBase = (
   child: ChildGenerator,
   strict: boolean,
   nullable: boolean,
+  urlEncoded: boolean,
 ): BaseSchema => {
   const constant = generateConst(schema.const);
   if (constant) return constant;
+  if (schema.const !== undefined) {
+    warnOnce(
+      '`const` with an object or array value is not supported, it is not validated.',
+    );
+  }
 
   const composition = generateComposition(schema, child);
   if (composition) return composition;
@@ -227,10 +240,12 @@ const generateBase = (
     });
   }
 
-  if (schema.enum && type !== 'array' && type !== 'null') {
+  if (hasStructuredMember(schema.enum)) {
+    warnOnce('`enum` with object or array members is not validated.');
+  } else if (schema.enum && type !== 'array' && type !== 'null') {
     return generateEnum(schema, nullable);
   }
-  return generateByType(schema, type, child, strict);
+  return generateByType(schema, type, child, strict, urlEncoded);
 };
 
 // The checks and wrappers a schema adds on top of its base.
@@ -275,6 +290,13 @@ const isNullable = (schema: OpenApiNonBooleanSchemaObject): boolean => {
   );
 };
 
+// `false` is `{ not: {} }`, which nothing satisfies.
+const isNever = (schema: OpenApiSchemaObject | undefined): boolean =>
+  schema === false ||
+  (isNonBoolean(schema) &&
+    isObject(schema.not) &&
+    Object.keys(schema.not).length === 0);
+
 export const generateValibotValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | undefined,
   context: ContextSpec,
@@ -282,10 +304,12 @@ export const generateValibotValidationSchemaDefinition = (
   rules?: SchemaRules,
 ): ValibotNode => {
   const required = rules?.required ?? false;
+  const urlEncoded = rules?.urlEncoded ?? false;
 
-  if (!isNonBoolean(schemaInput)) {
+  const never = isNever(schemaInput);
+  if (!isNonBoolean(schemaInput) || never) {
     return {
-      ...plainNode({ kind: schemaInput === false ? 'never' : 'unknown' }),
+      ...plainNode({ kind: never ? 'never' : 'unknown' }),
       optional: !required,
     };
   }
@@ -296,9 +320,10 @@ export const generateValibotValidationSchemaDefinition = (
   const child: ChildGenerator = (member, isRequired = true) =>
     generateValibotValidationSchemaDefinition(member, context, strict, {
       required: isRequired,
+      urlEncoded,
     });
 
-  const base = generateBase(schema, child, strict, nullable);
+  const base = generateBase(schema, child, strict, nullable, urlEncoded);
 
   return {
     schema: base.schema,

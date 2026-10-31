@@ -172,4 +172,75 @@ describe('composition', () => {
     expect(ok({})).toBe(false);
     expect(ok({ b: 1 })).toBe(true);
   });
+
+  it('keeps v.variant when the options and discriminators have descriptions', () => {
+    const option = (kind: string): OpenApiSchemaObject => ({
+      type: 'object',
+      description: `The ${kind}.`,
+      required: ['kind'],
+      properties: {
+        kind: { const: kind, description: 'The kind.' },
+        x: { type: 'string' },
+      },
+    });
+    const { valibot, ok } = gen({
+      oneOf: [option('a'), option('b')],
+      discriminator: { propertyName: 'kind' },
+    });
+    expect(valibot).toContain("v.variant('kind'");
+    expect(valibot).not.toContain('description');
+    expect(ok({ kind: 'a', x: 'y' })).toBe(true);
+    expect(ok({ kind: 'c' })).toBe(false);
+  });
+
+  it('applies the scalar keywords next to a composition', () => {
+    const { ok } = gen({
+      type: 'string',
+      minLength: 3,
+      anyOf: [
+        { type: 'string', pattern: '^a' },
+        { type: 'string', pattern: '^b' },
+      ],
+    });
+    expect(ok('abc')).toBe(true);
+    expect(ok('ab')).toBe(false);
+    expect(ok('cde')).toBe(false);
+    expect(ok(1)).toBe(false);
+  });
+
+  it('applies items next to a composition', () => {
+    const { ok } = gen({
+      type: 'array',
+      items: { type: 'string' },
+      allOf: [{ type: 'array', minItems: 1 }],
+    });
+    expect(ok(['a'])).toBe(true);
+    expect(ok([1])).toBe(false);
+    expect(ok([])).toBe(false);
+  });
+
+  it('keeps an object accepted when the type next to a composition allows one', () => {
+    const { ok } = gen({
+      type: ['string', 'object'],
+      oneOf: [{ type: 'string' }, a],
+    });
+    expect(ok({ a: 'x' })).toBe(true);
+    expect(ok('x')).toBe(true);
+  });
+
+  it('keeps null accepted when a member is null', () => {
+    const { ok } = gen({
+      type: ['string', 'null'],
+      anyOf: [{ type: 'null' }, { type: 'string', format: 'email' }],
+    });
+    expect(ok(null)).toBe(true);
+    expect(ok('a@b.co')).toBe(true);
+    expect(ok('x')).toBe(false);
+  });
+
+  it('adds nothing for keywords that have no type', () => {
+    const { valibot, output } = gen({ minimum: 3, oneOf: [a] });
+    expect(valibot).not.toContain('v.unknown()');
+    expect(output({ a: 'x', extra: 1 })).toEqual({ a: 'x' });
+  });
 });

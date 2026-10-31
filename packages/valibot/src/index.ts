@@ -7,6 +7,7 @@ import {
   pascal,
 } from '@orval/core';
 
+import { startRun } from './logger';
 import {
   getSingleResponse,
   parseBodyAndResponse,
@@ -60,6 +61,8 @@ const generateValibotRoute = (
     throw new Error(`No such path ${pathRoute} in ${context.projectName}`);
   }
 
+  startRun(context.spec);
+
   const operation = verb === 'query' ? undefined : spec[verb];
   const options = override.valibot;
 
@@ -75,6 +78,7 @@ const generateValibotRoute = (
     context,
     strict: options.strict.body,
     generate: options.generate.body,
+    isRequest: true,
   });
 
   const response = parseBodyAndResponse({
@@ -82,6 +86,7 @@ const generateValibotRoute = (
     context,
     strict: options.strict.response,
     generate: options.generate.response,
+    isRequest: false,
   });
 
   const name = pascal(typeName);

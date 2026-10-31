@@ -64,9 +64,9 @@ describe('enums and literals', () => {
     expect(ok('a\\b')).toBe(true);
   });
 
-  it('drops array and object enum members', () => {
+  it('does not enforce an enum with array or object members', () => {
     const { valibot } = gen({ enum: ['a', ['b'], { c: 1 }] } as never);
-    expect(valibot).toBe("v.literal('a')");
+    expect(valibot).toBe('v.unknown()');
   });
 });
 
@@ -206,5 +206,15 @@ describe('objects', () => {
     const hostile = 'x(); console.log(1); v.string';
     expect(gen({ type: hostile } as never).valibot).toBe('v.unknown()');
     expect(gen({ type: 'foo' } as never).valibot).toBe('v.unknown()');
+  });
+
+  it('does not enforce an enum of objects', () => {
+    const { valibot, ok } = gen({ type: 'object', enum: [{ a: 1 }] });
+    expect(valibot).not.toContain('v.never()');
+    expect(ok({ a: 2 })).toBe(true);
+  });
+
+  it('validates { not: {} } as never', () => {
+    expect(gen({ not: {} }).valibot).toBe('v.never()');
   });
 });

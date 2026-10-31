@@ -14,6 +14,7 @@ import {
 
 import { logger, warnOnce } from './logger';
 import { plainNode, type ValibotNode } from './nodes';
+import { omitReadOnly } from './read-only';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
 const tryResolveRefSchema = (
@@ -60,11 +61,14 @@ const dereferenceObject = (
     name: string,
   ): Record<string, unknown> | undefined => {
     const referenced = tryResolveRefSchema(name, context);
-    if (!referenced || typeof referenced !== 'object') return;
+    if (typeof referenced !== 'boolean' && !isObject(referenced)) {
+      warnOnce(`Unresolvable $ref "${name}" is validated as unknown.`);
+      return;
+    }
     const siblings = Object.fromEntries(
       Object.entries(schema).filter(([key]) => key !== '$ref'),
     );
-    return { ...referenced, ...siblings };
+    return { ...toObjectSchema(referenced), ...siblings };
   };
 
   const resolved = refName ? resolveReferenced(refName) : schema;
@@ -87,7 +91,10 @@ const dereferenceObject = (
       }
       return [
         key,
-        key === 'default' || key === 'example' || key === 'examples'
+        key === 'default' ||
+        key === 'example' ||
+        key === 'examples' ||
+        key.startsWith('x-')
           ? value
           : dereferenceValue(value, resolvedContext),
       ];
@@ -107,12 +114,12 @@ export const dereference = (
   return isObject(schema) ? dereferenceObject(schema, context) : {};
 };
 
-// `+json` vendor types and form bodies validate as plain objects.
-const MEDIA_TYPES = [
-  /^application\/([^/;]+\+)?json$/,
-  /^application\/x-www-form-urlencoded$/,
-  /^multipart\/form-data$/,
-];
+const JSON_TYPE = /^application\/([^/;]+\+)?json$/;
+const MULTIPART_TYPE = /^multipart\/form-data$/;
+const URL_ENCODED_TYPE = /^application\/x-www-form-urlencoded$/;
+
+// The same order as the zod package. `+json` vendor types validate like JSON.
+const MEDIA_TYPES = [JSON_TYPE, MULTIPART_TYPE, URL_ENCODED_TYPE];
 
 interface ParseBodyAndResponseOptions {
   data:
@@ -123,6 +130,8 @@ interface ParseBodyAndResponseOptions {
   context: ContextSpec;
   strict: boolean;
   generate: boolean;
+  // A request leaves out its read-only properties.
+  isRequest: boolean;
 }
 
 export const parseBodyAndResponse = ({
@@ -130,6 +139,7 @@ export const parseBodyAndResponse = ({
   context,
   strict,
   generate,
+  isRequest,
 }: ParseBodyAndResponseOptions): ValibotNode | undefined => {
   if (!data || !generate) return;
 
@@ -145,16 +155,18 @@ export const parseBodyAndResponse = ({
         ? [[contentType.split(';')[0].trim().toLowerCase(), media.schema]]
         : [],
   );
-  const schema = MEDIA_TYPES.map((pattern) =>
-    schemas.find(([contentType]) => pattern.test(contentType)),
-  ).find(Boolean)?.[1];
-  if (!schema) return;
+  const [contentType, schema] =
+    MEDIA_TYPES.map((pattern) =>
+      schemas.find(([type]) => pattern.test(type)),
+    ).find(Boolean) ?? [];
+  if (!contentType || schema === undefined) return;
 
+  const resolved = dereference(schema, context);
   return generateValibotValidationSchemaDefinition(
-    dereference(schema, context),
+    isRequest ? omitReadOnly(resolved) : resolved,
     context,
     strict,
-    { required: true },
+    { required: true, urlEncoded: URL_ENCODED_TYPE.test(contentType) },
   );
 };
 

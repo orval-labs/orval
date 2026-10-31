@@ -1,15 +1,16 @@
-import type {
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  OpenApiParameterObject,
-  OpenApiRequestBodyObject,
-  OpenApiResponseObject,
-  OpenApiSchemaObject,
+import {
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type OpenApiParameterObject,
+  type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
+  type OpenApiSchemaObject,
 } from '@orval/core';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { generateValibot, getValibotDependencies } from '.';
 import { createTestContextSpec } from '../../core/src/test-utils';
+import { logger, resetWarnings } from './logger';
 
 describe('operations', () => {
   const run = async (
@@ -221,6 +222,142 @@ describe('operations', () => {
     it('emits nothing when no media type has a schema', async () => {
       expect(await run(string, { content: { 'application/json': {} } })).toBe(
         '',
+      );
+    });
+  });
+
+  describe('media type priority', () => {
+    const object = (field: OpenApiSchemaObject): OpenApiSchemaObject => ({
+      type: 'object',
+      required: ['f'],
+      properties: { f: field },
+    });
+
+    it('prefers JSON, then multipart, then url-encoded', async () => {
+      const content = {
+        'application/x-www-form-urlencoded': {
+          schema: object({ type: 'number' }),
+        },
+        'multipart/form-data': { schema: object({ type: 'boolean' }) },
+      };
+      const both = await run({}, { content });
+      expect(both).toContain('f: v.boolean()');
+      const json = await run(
+        {},
+        {
+          content: {
+            ...content,
+            'application/json': { schema: object({ type: 'string' }) },
+          },
+        },
+      );
+      expect(json).toContain('f: v.string()');
+    });
+
+    const binary: OpenApiSchemaObject = { type: 'string', format: 'binary' };
+
+    it('keeps a binary field of a url-encoded body a string', async () => {
+      const implementation = await run(
+        {},
+        {
+          content: {
+            'application/x-www-form-urlencoded': { schema: object(binary) },
+          },
+        },
+      );
+      expect(implementation).toContain('f: v.string()');
+    });
+
+    it('validates a binary field of a multipart body as a file', async () => {
+      const implementation = await run(
+        {},
+        {
+          content: { 'multipart/form-data': { schema: object(binary) } },
+        },
+      );
+      expect(implementation).toContain('f: v.file()');
+    });
+  });
+
+  describe('readOnly', () => {
+    const pet: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'integer', readOnly: true },
+        name: { type: 'string' },
+      },
+    };
+
+    it('leaves a read-only property out of a request body', async () => {
+      const implementation = await run(pet, {
+        requestBody: { content: { 'application/json': { schema: pet } } },
+      });
+      expect(implementation).toContain(
+        'ListPetsBody = v.object({\n  name: v.string()\n})',
+      );
+    });
+
+    it('keeps it in a response', async () => {
+      expect(await run(pet)).toContain('id: v.pipe(v.number(), v.integer())');
+    });
+
+    it('leaves it out of a referenced body, with its required entry', async () => {
+      const implementation = await run(pet, {
+        components: { Pet: pet },
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Pet' },
+              },
+            },
+          },
+        },
+      });
+      expect(implementation).toContain(
+        'ListPetsBody = v.array(v.object({\n  name: v.string()\n}))',
+      );
+    });
+  });
+
+  describe('references', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('validates a $ref to false as never', async () => {
+      const implementation = await run(
+        {
+          type: 'object',
+          properties: { a: { $ref: '#/components/schemas/Nothing' } },
+        },
+        { components: { Nothing: false } },
+      );
+      expect(implementation).toContain('a: v.optional(v.never())');
+    });
+
+    it('does not warn about a $ref in a vendor extension', async () => {
+      resetWarnings();
+      const warn = vi.spyOn(logger, 'warn');
+      await run({
+        type: 'string',
+        'x-link': { $ref: '#/components/schemas/Missing' },
+      } as OpenApiSchemaObject);
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns about a $ref that cannot be resolved', async () => {
+      resetWarnings();
+      const warn = vi.spyOn(logger, 'warn');
+      const implementation = await run({
+        type: 'object',
+        properties: { a: { $ref: '#/components/schemas/Missing' } },
+      });
+      expect(implementation).toContain('a: v.optional(v.unknown())');
+      expect(warn).toHaveBeenCalledWith(
+        'Unresolvable $ref "#/components/schemas/Missing" is validated as unknown.',
       );
     });
   });
