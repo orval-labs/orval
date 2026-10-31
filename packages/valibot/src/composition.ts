@@ -15,10 +15,13 @@ import {
   type ValibotNode,
 } from './nodes';
 import {
+  type CompositionKey,
+  getCompositionKeys,
   getMultiTypes,
   hasProperties,
   isNonBoolean,
   resolveType,
+  withoutOuterAnnotations,
 } from './schema-type';
 
 // Marks the given keys as required in every object reachable through the
@@ -125,18 +128,6 @@ const toVariant = (
     : undefined;
 };
 
-type CompositionKey = 'allOf' | 'oneOf' | 'anyOf';
-
-const COMPOSITION_KEYS: readonly CompositionKey[] = ['allOf', 'oneOf', 'anyOf'];
-
-// The composition keywords the schema uses, in a fixed order.
-const getCompositionKeys = (
-  schema: OpenApiNonBooleanSchemaObject,
-): CompositionKey[] =>
-  COMPOSITION_KEYS.filter(
-    (key) => Array.isArray(schema[key]) && schema[key].length > 0,
-  );
-
 // The schema with just one of its composition keywords.
 const onlyComposition = (
   key: CompositionKey,
@@ -162,15 +153,12 @@ const generateIntersection = (
   keys: CompositionKey[],
   child: ChildGenerator,
 ): ValibotNode[] => {
-  // `default` and `description` belong to the outer schema only.
   const {
-    default: _default,
-    description: _description,
     allOf: _allOf,
     oneOf: _oneOf,
     anyOf: _anyOf,
     ...ownKeywords
-  } = schema;
+  } = withoutOuterAnnotations(schema);
   const later: OpenApiNonBooleanSchemaObject = schema.discriminator
     ? { discriminator: schema.discriminator }
     : {};

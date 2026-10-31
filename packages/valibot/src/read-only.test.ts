@@ -2,6 +2,7 @@ import type { OpenApiNonBooleanSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { omitReadOnly } from './read-only';
+import { gen } from './test-helpers';
 
 const id: OpenApiNonBooleanSchemaObject = { type: 'integer', readOnly: true };
 const name: OpenApiNonBooleanSchemaObject = { type: 'string' };
@@ -102,5 +103,25 @@ describe('omitReadOnly', () => {
       type: 'object',
       additionalProperties: false,
     });
+  });
+  it('keeps null on a nullable composition left without properties', () => {
+    const { ok } = gen(
+      omitReadOnly({
+        type: 'object',
+        properties: {
+          audit: {
+            type: 'null',
+            allOf: [
+              {
+                type: 'object',
+                properties: { by: { type: 'string', readOnly: true } },
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(ok({ audit: null })).toBe(true);
+    expect(ok({ audit: {} })).toBe(true);
   });
 });

@@ -24,6 +24,67 @@ describe('composition', () => {
     ).toBe('v.union([v.string(), v.number()])');
   });
 
+  it.each([
+    ['allOf', 'null'],
+    ['allOf', ['null']],
+    ['oneOf', 'null'],
+    ['anyOf', 'null'],
+  ] as const)(
+    'reads type null next to %s as a nullable composition (type %j)',
+    (key, type) => {
+      const { ok } = gen({
+        type: typeof type === 'string' ? type : [...type],
+        [key]: [a],
+      });
+      expect(ok(null)).toBe(true);
+      expect(ok({ a: 'x' })).toBe(true);
+      expect(ok({})).toBe(false);
+    },
+  );
+
+  it('emits one null for a nullable composition', () => {
+    expect(gen({ type: 'null', allOf: [a] }).valibot).toBe(
+      'v.union([v.object({\n  a: v.string()\n}), v.null()])',
+    );
+  });
+
+  it.each([
+    ['enum [null]', { enum: [null], allOf: [a] }],
+    [
+      'a sibling oneOf with null',
+      { type: 'null', allOf: [a], oneOf: [b, { type: 'null' }] },
+    ],
+    [
+      'own properties',
+      {
+        type: 'null',
+        properties: { c: { type: 'string' } },
+        oneOf: [a, { type: 'null' }],
+      },
+    ],
+  ] satisfies [string, OpenApiSchemaObject][])(
+    'accepts null for a nullable composition with %s',
+    (_name, schema) => {
+      expect(gen(schema).ok(null)).toBe(true);
+    },
+  );
+
+  it('ignores a composition keyword that is not an array', () => {
+    const { ok } = gen({
+      type: 'null',
+      allOf: [a],
+      oneOf: {},
+    } as unknown as OpenApiSchemaObject);
+    expect(ok(null)).toBe(true);
+    expect(ok({ a: 'x' })).toBe(true);
+  });
+
+  it('keeps const over a nullable composition', () => {
+    expect(gen({ type: 'null', const: null, allOf: [a] }).valibot).toBe(
+      'v.null()',
+    );
+  });
+
   it('emits v.intersect for allOf and merges the outputs', () => {
     const { valibot, output } = gen({ allOf: [a, b] });
     expect(valibot).toContain('v.intersect');

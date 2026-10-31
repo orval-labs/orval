@@ -35,6 +35,8 @@ import {
   isNonBoolean,
   type ResolvedType,
   resolveType,
+  toCanonicalNullable,
+  withoutOuterAnnotations,
 } from './schema-type';
 
 export interface SchemaRules {
@@ -232,8 +234,7 @@ const generateBase = (
   const type = resolveType(schema);
   const types = getMultiTypes(schema);
   if (types.length > 1) {
-    // `default` and `description` belong to the outer schema only.
-    const { default: _default, description: _description, ...bare } = schema;
+    const bare = withoutOuterAnnotations(schema);
     return plainBase({
       kind: 'union',
       members: types.map((t) => child({ ...bare, type: t })),
@@ -314,7 +315,7 @@ export const generateValibotValidationSchemaDefinition = (
     };
   }
 
-  const schema = schemaInput;
+  const schema = toCanonicalNullable(schemaInput);
   const nullable = isNullable(schema);
   const hasDefault = schema.default !== undefined;
   const child: ChildGenerator = (member, isRequired = true) =>

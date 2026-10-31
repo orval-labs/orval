@@ -4,7 +4,7 @@ import {
   type OpenApiSchemaObject,
 } from '@orval/core';
 
-import { isNonBoolean } from './schema-type';
+import { isNonBoolean, toCanonicalNullable } from './schema-type';
 
 const isReadOnly = (schema: OpenApiSchemaObject | undefined): boolean =>
   isNonBoolean(schema) && schema.readOnly === true;
@@ -47,9 +47,10 @@ const closeIfEmptied = (
     : after;
 
 const strip = (
-  schema: OpenApiNonBooleanSchemaObject,
+  input: OpenApiNonBooleanSchemaObject,
   inherited: ReadonlySet<string>,
 ): OpenApiNonBooleanSchemaObject => {
+  const schema = toCanonicalNullable(input);
   const hidden = new Set([...inherited, ...readOnlyKeys(schema)]);
   // The keys hidden here are hidden from the `required` of members that
   // describe the same instance.
