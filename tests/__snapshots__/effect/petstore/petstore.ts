@@ -25,6 +25,88 @@ export const ListPetsHeader = S.Struct({
   }),
 });
 
+export const ListPetsResponseItem = S.Union([
+  S.Struct({
+    cuteness: S.Number,
+    breed: S.Literals(['Labradoodle']),
+  })
+    .pipe(
+      S.fieldsAssign(
+        S.Struct({
+          barksPerMinute: S.optional(S.Number),
+          type: S.Literals(['dog']),
+        }).fields,
+      ),
+    )
+    .pipe(
+      S.fieldsAssign(
+        S.Struct({
+          '@id': S.optional(S.String),
+          id: S.Number,
+          name: S.String,
+          tag: S.optional(S.String),
+          email: S.optional(
+            S.String.check(S.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
+          ),
+          callingCode: S.optional(S.Literals(['+33', '+420'])),
+          country: S.optional(
+            S.Literals(["People's Republic of China", 'Uruguay']),
+          ),
+        }).fields,
+      ),
+    ),
+  S.Struct({
+    length: S.Number,
+    breed: S.Literals(['Dachshund']),
+  })
+    .pipe(
+      S.fieldsAssign(
+        S.Struct({
+          barksPerMinute: S.optional(S.Number),
+          type: S.Literals(['dog']),
+        }).fields,
+      ),
+    )
+    .pipe(
+      S.fieldsAssign(
+        S.Struct({
+          '@id': S.optional(S.String),
+          id: S.Number,
+          name: S.String,
+          tag: S.optional(S.String),
+          email: S.optional(
+            S.String.check(S.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
+          ),
+          callingCode: S.optional(S.Literals(['+33', '+420'])),
+          country: S.optional(
+            S.Literals(["People's Republic of China", 'Uruguay']),
+          ),
+        }).fields,
+      ),
+    ),
+  S.Struct({
+    petsRequested: S.optional(S.Number),
+    type: S.Literals(['cat']),
+  }).pipe(
+    S.fieldsAssign(
+      S.Struct({
+        '@id': S.optional(S.String),
+        id: S.Number,
+        name: S.String,
+        tag: S.optional(S.String),
+        email: S.optional(
+          S.String.check(S.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
+        ),
+        callingCode: S.optional(S.Literals(['+33', '+420'])),
+        country: S.optional(
+          S.Literals(["People's Republic of China", 'Uruguay']),
+        ),
+      }).fields,
+    ),
+  ),
+]);
+export const ListPetsResponse = S.Array(ListPetsResponseItem);
+
 /**
  * @summary Create a pet
  */

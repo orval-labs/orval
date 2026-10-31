@@ -2,6 +2,7 @@ import type {
   ContextSpec,
   GeneratorOptions,
   GeneratorVerbOptions,
+  OpenApiMediaTypeObject,
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '@orval/core';
@@ -1122,5 +1123,154 @@ describe('Effect 4 output', () => {
     expect(getEffectDependencies()[0].exports.map((e) => e.name)).toEqual([
       'Schema',
     ]);
+  });
+});
+
+// Effect used to read only exact `application/json` and `multipart/form-data`,
+// so `+json` vendor types, media type parameters and url-encoded bodies got no
+// schema at all (#4407), the same gap #3433 closed in `@orval/zod`.
+describe('content types', () => {
+  const generateFor = async (
+    content: Record<string, OpenApiMediaTypeObject>,
+    target: 'body' | 'response',
+  ) => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/pets': {
+            post: {
+              ...(target === 'body'
+                ? { requestBody: { content } }
+                : { requestBody: undefined }),
+              responses: {
+                '200': {
+                  description: 'ok',
+                  ...(target === 'response' ? { content } : {}),
+                },
+              },
+            },
+          },
+        },
+      },
+      output: {
+        override: {
+          effect: {
+            version: 4,
+            generate: { body: true, response: true },
+          },
+        },
+      },
+    });
+    const { implementation } = await generateEffect(
+      {
+        typeName: 'createPets',
+        operationName: 'createPets',
+        verb: 'post',
+        override: context.output.override,
+      } as GeneratorVerbOptions,
+      { pathRoute: '/pets', context } as GeneratorOptions,
+      'effect',
+    );
+    return implementation;
+  };
+
+  const petSchema = {
+    type: 'object',
+    required: ['name'],
+    properties: { name: { type: 'string' } },
+  } satisfies OpenApiSchemaObject;
+
+  it.each([
+    'application/hal+json',
+    'application/vnd.api+json',
+    'application/json; charset=utf-8',
+    'Application/Problem+JSON',
+  ])('generates a response schema for %s', async (mediaType) => {
+    const implementation = await generateFor(
+      { [mediaType]: { schema: petSchema } },
+      'response',
+    );
+    expect(implementation).toContain('export const CreatePetsResponse');
+    expect(implementation).toContain('"name": S.String');
+  });
+
+  it('generates a body schema for a +json request body', async () => {
+    const implementation = await generateFor(
+      { 'application/merge-patch+json': { schema: petSchema } },
+      'body',
+    );
+    expect(implementation).toContain('export const CreatePetsBody');
+    expect(implementation).toContain('"name": S.String');
+  });
+
+  it('generates a body schema for application/x-www-form-urlencoded', async () => {
+    const implementation = await generateFor(
+      { 'application/x-www-form-urlencoded': { schema: petSchema } },
+      'body',
+    );
+    expect(implementation).toContain('export const CreatePetsBody');
+    expect(implementation).toContain('"name": S.String');
+  });
+
+  // URLSearchParams only carries strings, so a binary field is a string there,
+  // not a File, at any depth.
+  it('keeps binary fields as strings in a url-encoded body', async () => {
+    const implementation = await generateFor(
+      {
+        'application/x-www-form-urlencoded': {
+          schema: {
+            type: 'object',
+            required: ['file', 'nested'],
+            properties: {
+              file: { type: 'string', format: 'binary' },
+              nested: {
+                type: 'object',
+                required: ['raw'],
+                properties: {
+                  raw: {
+                    type: 'string',
+                    contentMediaType: 'application/octet-stream',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      'body',
+    );
+    expect(implementation).toContain('export const CreatePetsBody');
+    expect(implementation).not.toContain('File');
+  });
+
+  it('prefers JSON over url-encoded when both are declared', async () => {
+    const implementation = await generateFor(
+      {
+        'application/x-www-form-urlencoded': {
+          schema: {
+            type: 'object',
+            required: ['file'],
+            properties: { file: { type: 'string', format: 'binary' } },
+          },
+        },
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['file'],
+            properties: { file: { type: 'string', format: 'binary' } },
+          },
+        },
+      },
+      'body',
+    );
+    expect(implementation).toContain('S.instanceOf(File)');
+  });
+
+  it('still skips content types it does not handle', async () => {
+    const implementation = await generateFor(
+      { 'application/xml': { schema: petSchema } },
+      'body',
+    );
+    expect(implementation).not.toContain('CreatePetsBody');
   });
 });
