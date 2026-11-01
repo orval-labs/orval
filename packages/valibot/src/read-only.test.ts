@@ -124,4 +124,34 @@ describe('omitReadOnly', () => {
     expect(ok({ audit: null })).toBe(true);
     expect(ok({ audit: {} })).toBe(true);
   });
+
+  it('keeps null on a nullable object left empty', () => {
+    const { ok } = gen(
+      omitReadOnly({ type: ['object', 'null'], properties: { id } }),
+      { strict: true },
+    );
+    expect(ok(null)).toBe(true);
+    expect(ok({})).toBe(true);
+    expect(ok({ id: 1 })).toBe(false);
+  });
+
+  it('keeps null on an object emptied through a nullable allOf member', () => {
+    const { ok } = gen(
+      omitReadOnly({
+        type: 'object',
+        properties: {
+          audit: {
+            allOf: [
+              {
+                type: ['object', 'null'],
+                properties: { by: { type: 'string', readOnly: true } },
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(ok({ audit: null })).toBe(true);
+    expect(ok({ audit: {} })).toBe(true);
+  });
 });

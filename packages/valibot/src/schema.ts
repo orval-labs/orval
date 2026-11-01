@@ -285,6 +285,12 @@ const isNullable = (schema: OpenApiNonBooleanSchemaObject): boolean => {
   );
 };
 
+// `v.null()` and a union holding it already accept null.
+const acceptsNull = (schema: ValibotSchema): boolean =>
+  schema.kind === 'null' ||
+  (schema.kind === 'union' &&
+    schema.members.some((member) => member.schema.kind === 'null'));
+
 // `false` is `{ not: {} }`, which nothing satisfies.
 const isNever = (schema: OpenApiSchemaObject | undefined): boolean =>
   schema === false ||
@@ -294,14 +300,28 @@ const isNever = (schema: OpenApiSchemaObject | undefined): boolean =>
 
 const JSON_NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
+// The only type, besides `null`, when it is a number.
+const numberType = (
+  schema: OpenApiNonBooleanSchemaObject,
+): 'number' | 'integer' | undefined => {
+  const types = Array.isArray(schema.type)
+    ? getMultiTypes(schema)
+    : [schema.type];
+  const [type] = types;
+  return types.length === 1 && (type === 'number' || type === 'integer')
+    ? type
+    : undefined;
+};
+
 // .NET writes a `double` default as a string such as `"NaN"`. A default the
 // number schema rejects is left out, or every value without the key fails.
 const generateDefault = (
   schema: OpenApiNonBooleanSchemaObject,
 ): string | undefined => {
   const value = schema.default;
+  const type = numberType(schema);
   const isPlainNumber =
-    (schema.type === 'number' || schema.type === 'integer') &&
+    type !== undefined &&
     schema.enum === undefined &&
     schema.const === undefined;
   if (!isPlainNumber || !(isString(value) || typeof value === 'number')) {
@@ -312,11 +332,10 @@ const generateDefault = (
       ? Number.NaN
       : Number(value);
   const fits =
-    Number.isFinite(parsed) &&
-    (schema.type === 'number' || Number.isInteger(parsed));
+    Number.isFinite(parsed) && (type === 'number' || Number.isInteger(parsed));
   if (fits) return String(parsed);
   warnOnce(
-    `The default "${String(value)}" does not fit a ${schema.type}, it is left out.`,
+    `The default "${String(value)}" does not fit a ${type}, it is left out.`,
   );
   return undefined;
 };
@@ -354,8 +373,7 @@ export const generateValibotValidationSchemaDefinition = (
   return {
     schema: base.schema,
     actions: generateActions(schema, base, context),
-    // `v.null()` already accepts null.
-    nullable: nullable && base.schema.kind !== 'null',
+    nullable: nullable && !acceptsNull(base.schema),
     optional: !hasDefault && !required,
     defaultValue,
   };

@@ -1,4 +1,5 @@
 import {
+  isNullOnlyEnum,
   isObject,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
@@ -85,7 +86,7 @@ const isListOf = (values: unknown, only: null | 'null'): boolean =>
 const isNullMarker = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   schema.type === 'null' ||
   isListOf(schema.type, 'null') ||
-  (schema.type === undefined && isListOf(schema.enum, null));
+  (schema.type === undefined && isNullOnlyEnum(schema));
 
 /**
  * Swashbuckle writes a nullable `$ref` as `type: null` next to a composition.

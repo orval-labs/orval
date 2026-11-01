@@ -1,10 +1,15 @@
 import {
   isObject,
+  isSchemaNullable,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
 } from '@orval/core';
 
-import { isNonBoolean, toCanonicalNullable } from './schema-type';
+import {
+  hasProperties,
+  isNonBoolean,
+  toCanonicalNullable,
+} from './schema-type';
 
 const isReadOnly = (schema: OpenApiSchemaObject | undefined): boolean =>
   isNonBoolean(schema) && schema.readOnly === true;
@@ -19,8 +24,8 @@ const readOnlyKeys = (schema: OpenApiNonBooleanSchemaObject): string[] => [
 ];
 
 const declaresContent = (schema: OpenApiNonBooleanSchemaObject): boolean =>
-  Object.keys(schema.properties ?? {}).length > 0 ||
-  (schema.allOf?.length ?? 0) > 0;
+  hasProperties(schema) ||
+  (Array.isArray(schema.allOf) && schema.allOf.length > 0);
 
 const isEmptied = (
   before: OpenApiSchemaObject | undefined,
@@ -34,13 +39,27 @@ const isEmptied = (
   !after.anyOf &&
   !after.additionalProperties;
 
+// Null stays accepted when the schema, or an allOf member now dropped, allowed it.
+const wasNullable = (
+  before: OpenApiNonBooleanSchemaObject,
+  after: OpenApiNonBooleanSchemaObject,
+): boolean =>
+  isSchemaNullable(after) ||
+  (Array.isArray(before.allOf) ? before.allOf : []).some(
+    (member) => isNonBoolean(member) && isSchemaNullable(member),
+  );
+
 // An emptied object would be an open dictionary, so it is closed instead.
 const closeIfEmptied = (
   before: OpenApiNonBooleanSchemaObject,
   after: OpenApiNonBooleanSchemaObject,
 ): OpenApiNonBooleanSchemaObject =>
   isEmptied(before, after)
-    ? { ...after, type: 'object', additionalProperties: false }
+    ? {
+        ...after,
+        type: wasNullable(before, after) ? ['object', 'null'] : 'object',
+        additionalProperties: false,
+      }
     : after;
 
 const strip = (

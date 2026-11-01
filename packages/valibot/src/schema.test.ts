@@ -262,4 +262,36 @@ describe('objects', () => {
   it('validates { not: {} } as never', () => {
     expect(gen({ not: {} }).valibot).toBe('v.never()');
   });
+
+  it('treats an enum: [null] member of a union as the null branch without a second nullable', () => {
+    for (const key of ['oneOf', 'anyOf'] as const) {
+      const { valibot, ok } = gen({
+        [key]: [{ type: 'string' }, { enum: [null] }],
+      });
+      expect(valibot).toBe('v.union([v.string(), v.null()])');
+      expect(ok(null)).toBe(true);
+      expect(ok('a')).toBe(true);
+      expect(ok(1)).toBe(false);
+    }
+  });
+
+  it('keeps the nullable wrapper when the null member is inside an intersect', () => {
+    const { ok } = gen({
+      type: ['object', 'null'],
+      properties: { x: { type: 'string' } },
+      anyOf: [
+        { type: 'object', properties: { y: { type: 'string' } } },
+        { enum: [null] },
+      ],
+    });
+    expect(ok(null)).toBe(true);
+  });
+
+  it('reads a string default of a nullable number', () => {
+    const { valibot } = gen(
+      { type: ['number', 'null'], default: '5' },
+      { required: false },
+    );
+    expect(valibot).toContain(', 5)');
+  });
 });
