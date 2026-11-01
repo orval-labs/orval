@@ -1231,3 +1231,52 @@ describe('collectReferencedComponents with operationIds', () => {
     expect(result.schemas.toSorted()).toEqual(['Pet', 'Pets']);
   });
 });
+
+describe('collectReferencedComponents with path-level parameters', () => {
+  const spec = makeSpec({
+    paths: {
+      '/pets': {
+        get: { operationId: 'listPets', tags: ['pets'], responses: {} },
+      },
+      '/owners/{ownerId}': {
+        parameters: [
+          {
+            name: 'ownerId',
+            in: 'path',
+            required: true,
+            schema: { $ref: '#/components/schemas/OwnerId' },
+          },
+        ],
+        get: { operationId: 'getOwner', tags: ['owners'], responses: {} },
+      },
+    },
+    components: {
+      schemas: { OwnerId: { type: 'string', format: 'uuid' } },
+    },
+  });
+
+  it.each([
+    ['tags include', ['pets'], 'include', undefined],
+    ['tags exclude', ['owners'], 'exclude', undefined],
+    ['operationIds include', undefined, 'include', ['listPets']],
+    ['operationIds exclude', undefined, 'exclude', ['getOwner']],
+  ] as const)(
+    'skips them when every operation on the path is filtered out (%s)',
+    (_, tags, mode, operationIds) => {
+      const result = collectReferencedComponents(
+        spec,
+        tags && [...tags],
+        mode,
+        operationIds && [...operationIds],
+      );
+      expect(result.schemas).toEqual([]);
+    },
+  );
+
+  it('keeps them when the path keeps an operation', () => {
+    const result = collectReferencedComponents(spec, undefined, 'include', [
+      'getOwner',
+    ]);
+    expect(result.schemas).toEqual(['OwnerId']);
+  });
+});

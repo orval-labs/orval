@@ -155,12 +155,19 @@ export const collectReferencedComponents = (
   operationIds?: InputFiltersOptions['operationIds'],
 ): Record<ComponentType, string[]> => {
   const filters = { tags, mode, operationIds };
+  const httpMethods = new Set<string>(OPERATION_METHODS);
   const refs = Object.values(spec.paths ?? {})
     .filter((pathItem): pathItem is OpenApiPathItemObject => !!pathItem)
     .flatMap((pathItem) => {
-      const verbs = filteredVerbs(pathItem, filters);
+      // Only HTTP methods are operations; in `exclude` mode `filteredVerbs`
+      // also returns path-item fields such as `parameters`.
+      const operations = filteredVerbs(pathItem, filters).filter(([method]) =>
+        httpMethods.has(method.toLowerCase()),
+      );
+      // Path-level parameters only matter when the path keeps an operation.
+      if (operations.length === 0) return [];
       return [
-        ...verbs.flatMap(([, operation]) => findRefs(operation)),
+        ...operations.flatMap(([, operation]) => findRefs(operation)),
         ...findRefs(pathItem.parameters),
       ];
     });
