@@ -23,12 +23,15 @@ export function filteredVerbs(
   verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
 ): [string, OpenApiOperationObject][] {
-  if (filters?.tags === undefined) {
+  if (filters?.tags === undefined && filters?.operationIds === undefined) {
     return Object.entries(verbs) as [string, OpenApiOperationObject][];
   }
 
   const filterTags = filters.tags;
+  const filterOperationIds = filters.operationIds;
   const filterMode = filters.mode ?? 'include';
+  const passes = (isMatch: boolean) =>
+    filterMode === 'exclude' ? !isMatch : isMatch;
 
   return (Object.entries(verbs) as [string, OpenApiOperationObject][]).filter(
     ([, operation]) => {
@@ -36,15 +39,38 @@ export function filteredVerbs(
       if (!operation || typeof operation !== 'object') {
         return false;
       }
-      const operationTags = operation.tags ?? [];
+      // An operation must pass every filter that is set.
+      if (filterTags) {
+        const operationTags = operation.tags ?? [];
 
-      const isMatch = operationTags.some((tag) =>
-        filterTags.some((filterTag) =>
-          filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
-        ),
-      );
+        const isMatch = operationTags.some((tag) =>
+          filterTags.some((filterTag) =>
+            filterTag instanceof RegExp
+              ? filterTag.test(tag)
+              : filterTag === tag,
+          ),
+        );
 
-      return filterMode === 'exclude' ? !isMatch : isMatch;
+        if (!passes(isMatch)) return false;
+      }
+
+      if (filterOperationIds) {
+        const { operationId } = operation;
+
+        const isMatch =
+          operationId !== undefined &&
+          filterOperationIds.some((filter) => {
+            if (isString(filter)) return filter === operationId;
+            // Reset lastIndex so stateful flags (`g`, `y`) cannot leak
+            // between operations.
+            filter.lastIndex = 0;
+            return filter.test(operationId);
+          });
+
+        if (!passes(isMatch)) return false;
+      }
+
+      return true;
     },
   );
 }
@@ -124,10 +150,11 @@ function resolveReferencedComponents(
 
 export const collectReferencedComponents = (
   spec: OpenApiDocument,
-  tags: (string | RegExp)[],
+  tags: InputFiltersOptions['tags'],
   mode: InputFiltersOptions['mode'],
+  operationIds?: InputFiltersOptions['operationIds'],
 ): Record<ComponentType, string[]> => {
-  const filters = { tags, mode };
+  const filters = { tags, mode, operationIds };
   const refs = Object.values(spec.paths ?? {})
     .filter((pathItem): pathItem is OpenApiPathItemObject => !!pathItem)
     .flatMap((pathItem) => {

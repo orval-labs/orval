@@ -132,6 +132,49 @@ describe('filteredVerbs', () => {
   });
 });
 
+describe('filteredVerbs with filters.operationIds', () => {
+  const verbs = {
+    get: { operationId: 'listPets', tags: ['pets'], responses: {} },
+    post: { operationId: 'createPets', tags: ['pets'], responses: {} },
+    put: { operationId: 'updateUser', tags: ['users'], responses: {} },
+    delete: { tags: ['pets'], responses: {} },
+  };
+
+  const keys = (filters: NormalizedInputOptions['filters']) =>
+    filteredVerbs(verbs, filters).map(([verb]) => verb);
+
+  it('keeps only matching operations in include mode', () => {
+    expect(keys({ operationIds: ['listPets', /User$/] })).toEqual([
+      'get',
+      'put',
+    ]);
+  });
+
+  it('drops matching operations in exclude mode', () => {
+    expect(keys({ operationIds: ['createPets'], mode: 'exclude' })).toEqual([
+      'get',
+      'put',
+      'delete',
+    ]);
+  });
+
+  it('does not let a global RegExp carry lastIndex between operations', () => {
+    expect(keys({ operationIds: [/Pets/g] })).toEqual(['get', 'post']);
+  });
+
+  it('requires both the tag and the operationId to match in include mode', () => {
+    expect(keys({ tags: ['pets'], operationIds: [/^list/, /User$/] })).toEqual([
+      'get',
+    ]);
+  });
+
+  it('drops operations matching either filter in exclude mode', () => {
+    expect(
+      keys({ tags: ['users'], operationIds: ['createPets'], mode: 'exclude' }),
+    ).toEqual(['get', 'delete']);
+  });
+});
+
 describe('collectReferencedComponents', () => {
   it('returns empty components when no operations match the tag filter', () => {
     const spec = makeSpec({
@@ -1151,5 +1194,40 @@ describe('filterPathsBySchemas', () => {
     expect(pathItem?.description).toBe('Operations about users');
     expect(Array.isArray(pathItem?.parameters)).toBe(true);
     expect(pathItem && 'post' in pathItem).toBe(false);
+  });
+});
+
+describe('collectReferencedComponents with operationIds', () => {
+  it('prunes components used only by excluded operations', () => {
+    const jsonRef = (name: string) => ({
+      200: {
+        description: 'OK',
+        content: {
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${name}` },
+          },
+        },
+      },
+    });
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: { operationId: 'listPets', responses: jsonRef('Pets') },
+          post: { operationId: 'legacyUpload', responses: jsonRef('Upload') },
+        },
+      },
+      components: {
+        schemas: {
+          Pets: { type: 'array', items: { $ref: '#/components/schemas/Pet' } },
+          Pet: { type: 'object' },
+          Upload: { type: 'object' },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, undefined, 'exclude', [
+      'legacyUpload',
+    ]);
+    expect(result.schemas.toSorted()).toEqual(['Pet', 'Pets']);
   });
 });

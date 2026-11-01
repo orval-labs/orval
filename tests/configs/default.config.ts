@@ -39,6 +39,20 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'petstore-filter-operation-ids': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        tags: ['pets'],
+        operationIds: [/PetById$/],
+      },
+    },
+    output: {
+      target: '../generated/default/petstore-filter-operation-ids/endpoints.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'issue-3689-schema-filter': {
     input: {
       target: '../specifications/issue-3689.yaml',
