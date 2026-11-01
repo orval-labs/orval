@@ -1232,6 +1232,63 @@ describe('collectReferencedComponents with operationIds', () => {
   });
 });
 
+describe('collectReferencedComponents with $ref path items', () => {
+  const spec = makeSpec({
+    paths: {
+      '/owners/{ownerId}': { $ref: '#/components/pathItems/Owners' },
+    },
+    components: {
+      pathItems: {
+        Owners: {
+          parameters: [
+            {
+              name: 'ownerId',
+              in: 'path',
+              required: true,
+              schema: { $ref: '#/components/schemas/OwnerId' },
+            },
+          ],
+          get: {
+            operationId: 'getOwner',
+            tags: ['owners'],
+            responses: {
+              200: {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Owner' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      schemas: {
+        Owner: { type: 'object' },
+        OwnerId: { type: 'string', format: 'uuid' },
+      },
+    },
+  });
+
+  it('collects schemas used by the referenced operations (tags)', () => {
+    const result = collectReferencedComponents(spec, ['owners'], 'include');
+    expect(result.schemas.toSorted()).toEqual(['Owner', 'OwnerId']);
+  });
+
+  it('collects schemas used by the referenced operations (operationIds)', () => {
+    const result = collectReferencedComponents(spec, undefined, 'include', [
+      'getOwner',
+    ]);
+    expect(result.schemas.toSorted()).toEqual(['Owner', 'OwnerId']);
+  });
+
+  it('skips them when the referenced operations are filtered out', () => {
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual([]);
+  });
+});
+
 describe('collectReferencedComponents with path-level parameters', () => {
   const spec = makeSpec({
     paths: {

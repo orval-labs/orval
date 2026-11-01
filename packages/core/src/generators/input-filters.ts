@@ -158,6 +158,17 @@ export const collectReferencedComponents = (
   const httpMethods = new Set<string>(OPERATION_METHODS);
   const refs = Object.values(spec.paths ?? {})
     .filter((pathItem): pathItem is OpenApiPathItemObject => !!pathItem)
+    // Resolve `$ref` path items the same way `getApiBuilder` does, so the
+    // schemas their operations use are kept. Output overrides only affect
+    // generated names, so an empty `override` is enough to resolve the ref.
+    .map((pathItem) =>
+      isInlineSchema(pathItem)
+        ? pathItem
+        : resolveRef<OpenApiPathItemObject>(pathItem, {
+            spec,
+            output: { override: {} },
+          } as unknown as ContextSpec).schema,
+    )
     .flatMap((pathItem) => {
       // Only HTTP methods are operations; in `exclude` mode `filteredVerbs`
       // also returns path-item fields such as `parameters`.
