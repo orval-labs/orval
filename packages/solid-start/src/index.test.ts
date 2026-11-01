@@ -791,6 +791,68 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
     expect(implementation).not.toContain('const explodeParameters');
     expect(implementation).not.toContain('v instanceof Date ? v.toISOString()');
   });
+
+  it('generates toISOString() for a nullable date-time param written as anyOf', async () => {
+    const parameters = [
+      {
+        name: 'since',
+        in: 'query',
+        schema: {
+          anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain(
+      'value instanceof Date ? value.toISOString()',
+    );
+  });
+
+  it('generates toISOString() for an exploded nullable array<date-time> param written as anyOf', async () => {
+    const parameters = [
+      {
+        name: 'dates',
+        in: 'query',
+        schema: {
+          anyOf: [
+            { type: 'array', items: { type: 'string', format: 'date-time' } },
+            { type: 'null' },
+          ],
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const explodeParameters = ["dates"]');
+    expect(implementation).toContain('v instanceof Date ? v.toISOString()');
+    // `null` is not an array, so only the plain fallback can write it
+    expect(implementation).toContain("value === null ? 'null'");
+  });
+
+  it('does NOT generate toISOString() for query values when only a path param is date-time', async () => {
+    const parameters = [
+      {
+        name: 'day',
+        in: 'path',
+        required: true,
+        schema: { type: 'string', format: 'date-time' },
+      },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).not.toContain('instanceof Date');
+  });
 });
 
 describe('generateSolidStartHeader namespace collision', () => {
