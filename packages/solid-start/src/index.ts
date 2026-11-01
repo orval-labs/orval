@@ -368,11 +368,17 @@ const generateImplementation = (
 
   const isExplodeParametersOnly =
     explodeParameters.length + deepObjectParameters.length ===
-    parameters.length;
+      parameters.length &&
+    explodeParameters.every(
+      (parameter) =>
+        resolveSchemaRef(parameter.schema, context).schema.type === 'array',
+    );
 
   const hasDateParams =
     !!context.output.override.useDates &&
-    parameterObjects.some((parameter) => isDateTimeParam(parameter, context));
+    parameterObjects
+      .filter((parameter) => parameter.in === 'query')
+      .some((parameter) => isDateTimeParam(parameter, context));
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
