@@ -555,10 +555,15 @@ export interface InputFiltersOptions {
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
   /**
-   * When `tags` is set, orval limits the output to only the schemas referenced
-   * by the matching operations. Set this to `true` to keep every
-   * `#/components/schemas` entry (including unreferenced ones) while still
-   * filtering endpoints by `tags`. The other component sections (`responses`,
+   * Filter operations by `operationId`. Uses the same `mode` as `tags`; when
+   * both are set, an operation must pass both filters.
+   */
+  operationIds?: (string | RegExp)[];
+  /**
+   * When `tags` or `operationIds` is set, orval limits the output to only the
+   * schemas referenced by the matching operations. Set this to `true` to keep
+   * every `#/components/schemas` entry (including unreferenced ones) while
+   * still filtering endpoints by `tags` or `operationIds`. The other component sections (`responses`,
    * `parameters`, `requestBodies`) remain pruned to what the matching
    * operations use. Ignored when `schemas` is set.
    *

@@ -29,12 +29,13 @@ function filterSpecComponents(
     return filterPathsBySchemas(spec, filters.schemas, filters.mode);
   }
 
-  if (!filters?.tags) return spec;
+  if (!filters?.tags && !filters?.operationIds) return spec;
 
   const referenced = collectReferencedComponents(
     spec,
     filters.tags,
     filters.mode,
+    filters.operationIds,
   );
 
   const allSchemas = spec.components?.schemas ?? {};

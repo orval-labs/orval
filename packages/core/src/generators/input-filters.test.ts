@@ -132,6 +132,49 @@ describe('filteredVerbs', () => {
   });
 });
 
+describe('filteredVerbs with filters.operationIds', () => {
+  const verbs = {
+    get: { operationId: 'listPets', tags: ['pets'], responses: {} },
+    post: { operationId: 'createPets', tags: ['pets'], responses: {} },
+    put: { operationId: 'updateUser', tags: ['users'], responses: {} },
+    delete: { tags: ['pets'], responses: {} },
+  };
+
+  const keys = (filters: NormalizedInputOptions['filters']) =>
+    filteredVerbs(verbs, filters).map(([verb]) => verb);
+
+  it('keeps only matching operations in include mode', () => {
+    expect(keys({ operationIds: ['listPets', /User$/] })).toEqual([
+      'get',
+      'put',
+    ]);
+  });
+
+  it('drops matching operations in exclude mode', () => {
+    expect(keys({ operationIds: ['createPets'], mode: 'exclude' })).toEqual([
+      'get',
+      'put',
+      'delete',
+    ]);
+  });
+
+  it('does not let a global RegExp carry lastIndex between operations', () => {
+    expect(keys({ operationIds: [/Pets/g] })).toEqual(['get', 'post']);
+  });
+
+  it('requires both the tag and the operationId to match in include mode', () => {
+    expect(keys({ tags: ['pets'], operationIds: [/^list/, /User$/] })).toEqual([
+      'get',
+    ]);
+  });
+
+  it('drops operations matching either filter in exclude mode', () => {
+    expect(
+      keys({ tags: ['users'], operationIds: ['createPets'], mode: 'exclude' }),
+    ).toEqual(['get', 'delete']);
+  });
+});
+
 describe('collectReferencedComponents', () => {
   it('returns empty components when no operations match the tag filter', () => {
     const spec = makeSpec({
@@ -1151,5 +1194,146 @@ describe('filterPathsBySchemas', () => {
     expect(pathItem?.description).toBe('Operations about users');
     expect(Array.isArray(pathItem?.parameters)).toBe(true);
     expect(pathItem && 'post' in pathItem).toBe(false);
+  });
+});
+
+describe('collectReferencedComponents with operationIds', () => {
+  it('prunes components used only by excluded operations', () => {
+    const jsonRef = (name: string) => ({
+      200: {
+        description: 'OK',
+        content: {
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${name}` },
+          },
+        },
+      },
+    });
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: { operationId: 'listPets', responses: jsonRef('Pets') },
+          post: { operationId: 'legacyUpload', responses: jsonRef('Upload') },
+        },
+      },
+      components: {
+        schemas: {
+          Pets: { type: 'array', items: { $ref: '#/components/schemas/Pet' } },
+          Pet: { type: 'object' },
+          Upload: { type: 'object' },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, undefined, 'exclude', [
+      'legacyUpload',
+    ]);
+    expect(result.schemas.toSorted()).toEqual(['Pet', 'Pets']);
+  });
+});
+
+describe('collectReferencedComponents with $ref path items', () => {
+  const spec = makeSpec({
+    paths: {
+      '/owners/{ownerId}': { $ref: '#/components/pathItems/Owners' },
+    },
+    components: {
+      pathItems: {
+        Owners: {
+          parameters: [
+            {
+              name: 'ownerId',
+              in: 'path',
+              required: true,
+              schema: { $ref: '#/components/schemas/OwnerId' },
+            },
+          ],
+          get: {
+            operationId: 'getOwner',
+            tags: ['owners'],
+            responses: {
+              200: {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Owner' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      schemas: {
+        Owner: { type: 'object' },
+        OwnerId: { type: 'string', format: 'uuid' },
+      },
+    },
+  });
+
+  it('collects schemas used by the referenced operations (tags)', () => {
+    const result = collectReferencedComponents(spec, ['owners'], 'include');
+    expect(result.schemas.toSorted()).toEqual(['Owner', 'OwnerId']);
+  });
+
+  it('collects schemas used by the referenced operations (operationIds)', () => {
+    const result = collectReferencedComponents(spec, undefined, 'include', [
+      'getOwner',
+    ]);
+    expect(result.schemas.toSorted()).toEqual(['Owner', 'OwnerId']);
+  });
+
+  it('skips them when the referenced operations are filtered out', () => {
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual([]);
+  });
+});
+
+describe('collectReferencedComponents with path-level parameters', () => {
+  const spec = makeSpec({
+    paths: {
+      '/pets': {
+        get: { operationId: 'listPets', tags: ['pets'], responses: {} },
+      },
+      '/owners/{ownerId}': {
+        parameters: [
+          {
+            name: 'ownerId',
+            in: 'path',
+            required: true,
+            schema: { $ref: '#/components/schemas/OwnerId' },
+          },
+        ],
+        get: { operationId: 'getOwner', tags: ['owners'], responses: {} },
+      },
+    },
+    components: {
+      schemas: { OwnerId: { type: 'string', format: 'uuid' } },
+    },
+  });
+
+  it.each([
+    ['tags include', ['pets'], 'include', undefined],
+    ['tags exclude', ['owners'], 'exclude', undefined],
+    ['operationIds include', undefined, 'include', ['listPets']],
+    ['operationIds exclude', undefined, 'exclude', ['getOwner']],
+  ] as const)(
+    'skips them when every operation on the path is filtered out (%s)',
+    (_, tags, mode, operationIds) => {
+      const result = collectReferencedComponents(
+        spec,
+        tags && [...tags],
+        mode,
+        operationIds && [...operationIds],
+      );
+      expect(result.schemas).toEqual([]);
+    },
+  );
+
+  it('keeps them when the path keeps an operation', () => {
+    const result = collectReferencedComponents(spec, undefined, 'include', [
+      'getOwner',
+    ]);
+    expect(result.schemas).toEqual(['OwnerId']);
   });
 });
