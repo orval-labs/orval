@@ -28,7 +28,7 @@ export default defineConfig({
 
 ## Generated Output
 
-Orval generates a schema for the params, query, headers, body and response of each operation:
+Orval generates a Valibot schema for the params, query, headers, body and response of each operation:
 
 ```ts
 import * as v from 'valibot';
@@ -40,46 +40,77 @@ export const CreatePetsBody = v.object({
 });
 ```
 
+## Options
+
+Options live under [`override.valibot`](/docs/reference/configuration/output#overridevalibot):
+
+- `strict` - per location (`param`, `query`, `header`, `body`, `response`), emit `v.strictObject` instead of `v.object`. All `false` by default.
+- `generate` - per location, choose which schemas are generated. All `true` by default.
+- `exactOptional` - use `v.exactOptional` for optional properties, for projects with `exactOptionalPropertyTypes`. `false` by default.
+
 ## Usage
+
+### Parsing Data
 
 ```ts
 import * as v from 'valibot';
 import { CreatePetsBody } from './src/api/schemas';
 
-const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy' });
+const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy', tag: 'dog' });
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### Type Inference
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
 
 type Pet = v.InferOutput<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### Safe Parsing
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const result = v.safeParse(CreatePetsBody, unknownData);
+
+if (result.success) {
+  console.log(result.output);
+} else {
+  console.error(result.issues);
+}
 ```
 
 ## Mapping
 
-- `oneOf` and `anyOf` become `v.union`. They become `v.variant` when a `discriminator` names a property, the schema has no `properties` of its own, and every alternative is an object where that property is required and is a `const` or `enum`. Descriptions of the alternatives and of the discriminator are left off, as `v.variant` takes no pipe.
-- An alternative of `oneOf` or `anyOf` that lists only `required` keys, such as `{ required: [cpf, name] }`, is a copy of the object of the schema's own `properties` with those keys required, or an object of just those keys when it has no `properties`. The schema has to be an object, and only the first of `allOf`, `oneOf` and `anyOf` that it has is covered. A listed key without a property is still required. When every alternative is such a copy and lists only keys that have a property, the union is not intersected with the object of `properties` again.
-- `properties`, `enum` and the keywords of a scalar or array, such as `type`, `format`, `pattern`, `minimum` or `items`, next to `allOf`, `oneOf` or `anyOf` are intersected with the composition. When `type` allows `object`, only `properties` and `enum` are.
-- `type: null` or `enum: [null]` next to `allOf`, `oneOf` or `anyOf`, the non-canonical form in which Swashbuckle writes a nullable `$ref`, is read as `anyOf: [composition, { type: null }]`, as the generated types read it. A `const` next to it is kept as is. Scalar and array keywords next to it have no `type` left, so they are not checked.
-- `allOf` becomes `v.intersect`. Strict objects inside it are emitted as plain objects, as a strict object rejects the keys of its siblings.
-- Objects strip unknown keys. `strict` emits `v.strictObject`, `additionalProperties: true` emits `v.looseObject`. `additionalProperties: false` without `properties` is an empty object, strict with `strict`.
-- A `required` key with no declared property is kept and required, with the type of `additionalProperties` or `unknown`.
-- `date` and `date-time` use `v.isoDate` and `v.isoTimestamp`. With `override.useDates` they are converted to `Date`.
-- The string `default` of a `number` or `integer`, as .NET writes it, such as `"1.5"`, is read as a number. A default the schema rejects, such as `NaN`, `Infinity` or a fraction for an integer, is left out with a warning. A string default next to an `enum` or a second type is kept.
-- `minLength` and `maxLength` of strings count code points. A non-integer `multipleOf` is skipped with a warning, as `v.multipleOf` rejects valid decimals.
-- A `pattern` that is not a valid JavaScript regular expression is skipped with a warning.
-- A string with `format: binary` or the `contentMediaType` `application/octet-stream` is `v.file()`, and `v.string()` in a url-encoded body. In a `multipart/form-data` body a top-level part, or the items of an array part, is also `v.file()` when its `encoding.contentType` or `contentMediaType` is a binary media type such as `image/png`, and `v.union([v.file(), v.string()])` for another one, such as `text/csv`.
+- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` is set. `allOf` becomes `v.intersect`.
+- Objects strip unknown keys. The `strict` option emits `v.strictObject`, and `additionalProperties` emits `v.looseObject` or `v.record`.
+- `date` and `date-time` strings are validated as ISO dates. With `override.useDates` they are converted to `Date`.
+- Binary fields (`format: binary`) become `v.file()`, including file parts in `multipart/form-data` bodies.
+- `readOnly` properties are left out of request bodies, as in the Zod client.
 
 ## Limitations
 
-The first version leaves these out, so they are validated loosely instead of wrongly:
+- Recursive schemas (circular `$ref`) are validated as `unknown`, with a warning.
+- `prefixItems` tuples are validated as `unknown[]`, with a warning.
+- Every `$ref` is inlined, so components are not emitted as reusable constants and shared schemas can make the output large.
+- `oneOf` does not check that exactly one alternative matches.
+- Valibot schemas are not wired into the HTTP clients yet: `schemas: { type: 'valibot' }` and runtime validation of responses are not available.
 
-- Circular `$ref`s and `prefixItems` are validated as `unknown` and `unknown[]`, with a warning. `v.lazy` is not used yet.
-- `readOnly` properties are left out of request bodies, with their `required` entry, as in the zod client. `writeOnly` is not treated specially.
-- `const` with an object or array value, and an `enum` with object or array members, are not validated, with a warning. A `$ref` that cannot be resolved is validated as `unknown`, with a warning.
-- `type: object` accepts arrays, as `v.object` and `v.record` do.
-- `uniqueItems` is not enforced.
-- A member of `allOf`, `oneOf` or `anyOf` that has no `type`, `properties`, `enum`, `const` or composition of its own, such as `{ format: email }`, is `v.unknown()`, so its keywords are not checked. The `type` next to the composition still is, unless it allows `object`. An alternative with only `required` is `v.unknown()` too when the schema is not covered by the rule above.
-- In an `allOf`, `oneOf` or `anyOf`, a key required by the parent or by an `allOf` member is only enforced where a member declares it, and is dropped when none does.
-- Every `$ref` is inlined, so deeply shared components produce large output. Components are not emitted as reusable constants.
-- Optional properties named like `Object.prototype` members, such as `toString`, are not handled specially.
-- `override.useDates` does not convert a date that is a direct `allOf` member.
-- `oneOf` does not check that exactly one member matches, and `v.union` returns the first match, so properties of a later member are stripped.
-- Query and path values are not coerced from strings.
-- `v.file()` rejects a `Blob` that is not a `File`. The string checks of a part that `encoding` or `contentMediaType` makes a binary file are not applied, and the parts of a body built with `allOf`, `oneOf` or `anyOf` are not looked at.
+## Combining with HTTP Clients
+
+The `valibot` client generates schemas only. To use it with another client, generate that client in a separate output and parse responses yourself:
+
+```ts
+import * as v from 'valibot';
+import { showPetById } from './src/api/endpoints';
+import { ShowPetByIdResponse } from './src/api/schemas';
+
+const response = await showPetById('1');
+const pet = v.parse(ShowPetByIdResponse, response.data);
+```
