@@ -20,6 +20,21 @@ describe('nullable, optional and defaults', () => {
     expect(ok(null)).toBe(true);
   });
 
+  it('emits v.nullish for an optional nullable without a default', () => {
+    const { valibot, ok } = gen(
+      { type: ['string', 'null'] },
+      { required: false },
+    );
+    expect(valibot).toBe('v.nullish(v.string())');
+    expect(ok(null)).toBe(true);
+    expect(ok(undefined)).toBe(true);
+  });
+
+  it('does not wrap v.null() in v.nullable', () => {
+    const { valibot } = gen({ enum: [null], nullable: true } as never);
+    expect(valibot).toBe('v.null()');
+  });
+
   it('applies a default for undefined only', () => {
     const { valibot, output, ok } = gen(
       { type: 'integer', default: 5 },
@@ -52,23 +67,7 @@ describe('nullable, optional and defaults', () => {
     );
     expect(valibot).toContain('v.exactOptional(v.string())');
     expect(valibot).toContain('v.exactOptional(v.nullable(v.string()))');
-  });
-
-  it('escapes string defaults', () => {
-    const { output } = gen(
-      { type: 'string', default: "it's `${x}`" },
-      { required: false },
-    );
-    expect(output(undefined)).toBe("it's `${x}`");
-  });
-});
-
-describe('review regressions', () => {
-  it('skips a fractional multipleOf and keeps an integer one', () => {
-    expect(gen({ type: 'number', multipleOf: 0.01 }).ok(19.99)).toBe(true);
-    expect(gen({ type: 'number', multipleOf: 5 }).valibot).toContain(
-      'v.multipleOf(5)',
-    );
+    expect(valibot).not.toContain('v.nullish');
   });
 
   it('puts default and description on the outer multi-type schema only', () => {
@@ -78,40 +77,6 @@ describe('review regressions', () => {
     );
     expect(valibot.match(/v\.description/g)).toHaveLength(1);
     expect(output(undefined)).toBe('x');
-  });
-
-  it('applies the parent required to oneOf members', () => {
-    const { ok } = gen({
-      required: ['id'],
-      oneOf: [{ type: 'object', properties: { id: { type: 'string' } } }],
-    });
-    expect(ok({})).toBe(false);
-  });
-
-  it('intersects every composition keyword', () => {
-    const { ok } = gen({
-      allOf: [{ type: 'object', required: ['a'], properties: { a: {} } }],
-      oneOf: [
-        { type: 'object', required: ['b'], properties: { b: {} } },
-        { type: 'object', required: ['c'], properties: { c: {} } },
-      ],
-    });
-    expect(ok({ a: 1 })).toBe(false);
-    expect(ok({ a: 1, c: 1 })).toBe(true);
-  });
-
-  it('emits v.file() so the module loads without a global File', () => {
-    expect(gen({ type: 'string', format: 'binary' }).valibot).toBe('v.file()');
-  });
-
-  it('does not convert dates inside an allOf', () => {
-    const { ok } = gen(
-      {
-        allOf: [{ type: 'string', format: 'date-time' }, { description: 'x' }],
-      },
-      { useDates: true },
-    );
-    expect(ok('2024-01-01T00:00:00Z')).toBe(true);
   });
 
   it('keeps a null property schema optional', () => {
@@ -128,5 +93,13 @@ describe('review regressions', () => {
       { exactOptional: true },
     );
     expect(ok([undefined])).toBe(true);
+  });
+
+  it('escapes string defaults', () => {
+    const { output } = gen(
+      { type: 'string', default: "it's `${x}`" },
+      { required: false },
+    );
+    expect(output(undefined)).toBe("it's `${x}`");
   });
 });

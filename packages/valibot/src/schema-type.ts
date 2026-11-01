@@ -30,7 +30,7 @@ export const isNonBoolean = (
   schema: OpenApiSchemaObject | undefined,
 ): schema is OpenApiNonBooleanSchemaObject => isObject(schema);
 
-// Types of a multi-type schema other than `null`, which is the nullable flag.
+// The types other than `null`, which is the nullable flag.
 export const getMultiTypes = (
   schema: OpenApiNonBooleanSchemaObject,
 ): Exclude<SchemaType, 'null'>[] =>
@@ -62,7 +62,6 @@ export type CompositionKey = 'allOf' | 'oneOf' | 'anyOf';
 
 const COMPOSITION_KEYS: readonly CompositionKey[] = ['allOf', 'oneOf', 'anyOf'];
 
-// The composition keywords the schema uses, in a fixed order.
 export const getCompositionKeys = (
   schema: OpenApiNonBooleanSchemaObject,
 ): CompositionKey[] =>
@@ -70,7 +69,6 @@ export const getCompositionKeys = (
     (key) => Array.isArray(schema[key]) && schema[key].length > 0,
   );
 
-// `default` and `description` belong to the outer schema only.
 export const withoutOuterAnnotations = (
   schema: OpenApiNonBooleanSchemaObject,
 ): OpenApiNonBooleanSchemaObject => {
@@ -90,9 +88,8 @@ const isNullMarker = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   (schema.type === undefined && isListOf(schema.enum, null));
 
 /**
- * Swashbuckle writes a nullable `$ref` as `type: null` next to a composition,
- * which core reads as `T | null`. It is rewritten to the canonical
- * `anyOf: [composition, { type: null }]`.
+ * Swashbuckle writes a nullable `$ref` as `type: null` next to a composition.
+ * It is rewritten to `anyOf: [composition, { type: null }]`.
  */
 export const toCanonicalNullable = (
   schema: OpenApiNonBooleanSchemaObject,

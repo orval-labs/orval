@@ -113,6 +113,26 @@ describe('composition', () => {
     expect(ok({ b: 'x' })).toBe(true);
   });
 
+  it('applies the parent required to oneOf members', () => {
+    const { ok } = gen({
+      required: ['id'],
+      oneOf: [{ type: 'object', properties: { id: { type: 'string' } } }],
+    });
+    expect(ok({})).toBe(false);
+  });
+
+  it('intersects every composition keyword', () => {
+    const { ok } = gen({
+      allOf: [{ type: 'object', required: ['a'], properties: { a: {} } }],
+      oneOf: [
+        { type: 'object', required: ['b'], properties: { b: {} } },
+        { type: 'object', required: ['c'], properties: { c: {} } },
+      ],
+    });
+    expect(ok({ a: 1 })).toBe(false);
+    expect(ok({ a: 1, c: 1 })).toBe(true);
+  });
+
   it('forces a required key through a discriminated union and an open object', () => {
     const option = (kind: string): OpenApiSchemaObject => ({
       type: 'object',

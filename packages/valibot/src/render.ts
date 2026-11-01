@@ -22,9 +22,7 @@ export interface RenderOptions {
 }
 
 interface RenderPosition {
-  // A member of `v.intersect`.
   inIntersection?: boolean;
-  // A property of an object.
   inEntry?: boolean;
 }
 
@@ -38,9 +36,8 @@ const renderAction = (
     }
     case 'minCodePoints':
     case 'maxCodePoints': {
-      // Code points are never more than the UTF-16 units and never fewer than
-      // half of them, so the string is only split when its length is within
-      // twice the bound, which keeps the copy small whatever the input.
+      // Code points are between half and all of the UTF-16 units, so the string is
+      // only split when its length is within twice the bound.
       const isMin = action.kind === 'minCodePoints';
       const count = Number(action.value);
       const test = isMin
@@ -125,8 +122,8 @@ export const renderValibot = (
     node: ValibotNode,
     { inIntersection = false, inEntry = false }: RenderPosition = {},
   ): string => {
-    const optionalFn =
-      exactOptional && inEntry ? 'v.exactOptional' : 'v.optional';
+    const isExact = exactOptional && inEntry;
+    const optionalFn = isExact ? 'v.exactOptional' : 'v.optional';
     const actions = node.actions.flatMap((action) => {
       const rendered = renderAction(action, inIntersection);
       return rendered === undefined ? [] : [rendered];
@@ -134,10 +131,14 @@ export const renderValibot = (
 
     let out = renderSchema(node, inIntersection);
     if (actions.length > 0) out = `v.pipe(${out}, ${actions.join(', ')})`;
-    if (node.nullable) out = `v.nullable(${out})`;
-    if (node.defaultValue !== undefined) {
-      return `${optionalFn}(${out}, ${node.defaultValue})`;
+    const hasDefault = node.defaultValue !== undefined;
+    // `v.nullish` with a default would also replace null, and valibot has no
+    // exact variant of it.
+    if (node.nullable && node.optional && !hasDefault && !isExact) {
+      return `v.nullish(${out})`;
     }
+    if (node.nullable) out = `v.nullable(${out})`;
+    if (hasDefault) return `${optionalFn}(${out}, ${node.defaultValue})`;
     return node.optional ? `${optionalFn}(${out})` : out;
   };
 

@@ -352,7 +352,7 @@ describe('operations', () => {
         ['scan'],
       );
       expect(implementation).toContain(
-        'notes: v.optional(v.nullable(v.union([v.file(), v.string()])))',
+        'notes: v.nullish(v.union([v.file(), v.string()]))',
       );
       expect(implementation).toContain(
         "image: v.optional(v.pipe(v.file(), v.description('The image.')))",

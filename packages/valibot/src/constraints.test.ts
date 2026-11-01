@@ -52,7 +52,10 @@ describe('constraints', () => {
     expect(exclusive.ok(10)).toBe(false);
     expect(exclusive.ok(5)).toBe(true);
 
-    expect(gen({ type: 'number', multipleOf: 5 }).ok(7)).toBe(false);
+    const multiple = gen({ type: 'number', multipleOf: 5 });
+    expect(multiple.ok(10)).toBe(true);
+    expect(multiple.ok(7)).toBe(false);
+    expect(gen({ type: 'number', multipleOf: 0.01 }).ok(19.99)).toBe(true);
   });
 
   it('rejects a non-finite constraint instead of emitting it', () => {
@@ -124,9 +127,20 @@ describe('formats', () => {
   });
 
   it('accepts a File for binary and rejects a plain Blob', () => {
-    const { ok } = gen({ type: 'string', format: 'binary' });
+    const { valibot, ok } = gen({ type: 'string', format: 'binary' });
+    expect(valibot).toBe('v.file()');
     expect(ok(new File(['x'], 'a.txt'))).toBe(true);
     expect(ok(new Blob(['x']))).toBe(false);
+  });
+
+  it('does not convert dates inside an allOf', () => {
+    const { ok } = gen(
+      {
+        allOf: [{ type: 'string', format: 'date-time' }, { description: 'x' }],
+      },
+      { useDates: true },
+    );
+    expect(ok('2024-01-01T00:00:00Z')).toBe(true);
   });
 
   it('ignores an inherited property name as a format', () => {

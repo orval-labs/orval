@@ -9,7 +9,6 @@ import { isNonBoolean, toCanonicalNullable } from './schema-type';
 const isReadOnly = (schema: OpenApiSchemaObject | undefined): boolean =>
   isNonBoolean(schema) && schema.readOnly === true;
 
-// The read-only properties of a schema and of its `allOf` members.
 const readOnlyKeys = (schema: OpenApiNonBooleanSchemaObject): string[] => [
   ...Object.entries(isObject(schema.properties) ? schema.properties : {})
     .filter(([, property]) => isReadOnly(property))
@@ -23,7 +22,6 @@ const declaresContent = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   Object.keys(schema.properties ?? {}).length > 0 ||
   (schema.allOf?.length ?? 0) > 0;
 
-// Whether the read-only properties were all that a schema declared.
 const isEmptied = (
   before: OpenApiSchemaObject | undefined,
   after: OpenApiSchemaObject,
@@ -36,8 +34,7 @@ const isEmptied = (
   !after.anyOf &&
   !after.additionalProperties;
 
-// An object left without properties would be an open dictionary, so it is
-// closed instead: a request has nothing to send there.
+// An emptied object would be an open dictionary, so it is closed instead.
 const closeIfEmptied = (
   before: OpenApiNonBooleanSchemaObject,
   after: OpenApiNonBooleanSchemaObject,
@@ -52,8 +49,7 @@ const strip = (
 ): OpenApiNonBooleanSchemaObject => {
   const schema = toCanonicalNullable(input);
   const hidden = new Set([...inherited, ...readOnlyKeys(schema)]);
-  // The keys hidden here are hidden from the `required` of members that
-  // describe the same instance.
+  // Hidden keys are also hidden from the `required` of sibling members.
   const nested = (
     member: OpenApiSchemaObject,
     shared: ReadonlySet<string> = new Set(),
@@ -85,7 +81,6 @@ const strip = (
   }
   if (Array.isArray(schema.allOf)) {
     // A member left with nothing is dropped, as it would be an open object.
-    // Its siblings share the keys hidden here.
     const members = schema.allOf.map((member) =>
       isNonBoolean(member) ? strip(member, hidden) : member,
     );
@@ -99,10 +94,9 @@ const strip = (
 };
 
 /**
- * A schema without its read-only properties, which a request must not send.
- * Their names are also removed from `required`. The zod package does this for
- * the top level and array items of a request body; here nested objects and
- * composition members are handled as well.
+ * A schema without its read-only properties, which a request must not send,
+ * also removed from `required`. Goes beyond zod by handling nested objects and
+ * composition members.
  */
 export const omitReadOnly = (
   schema: OpenApiNonBooleanSchemaObject,

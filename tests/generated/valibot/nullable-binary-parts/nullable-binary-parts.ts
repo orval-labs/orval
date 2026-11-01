@@ -14,16 +14,16 @@ export const CreateUploadBody = v.object({
   name: v.string(),
   attachment: v.nullable(v.file()),
   thumbnail: v.optional(v.file()),
-  notes: v.optional(v.nullable(v.union([v.file(), v.string()]))),
+  notes: v.nullish(v.union([v.file(), v.string()])),
 });
 
 export const CreateUploadResponse = v.object({
   id: v.string(),
-  label: v.optional(v.nullable(v.string())),
+  label: v.nullish(v.string()),
   owner: v.nullable(
     v.object({
       id: v.string(),
-      displayName: v.optional(v.nullable(v.string())),
+      displayName: v.nullish(v.string()),
     }),
   ),
 });
@@ -35,11 +35,11 @@ export const GetLatestUploadResponse = v.object({
   upload: v.union([
     v.object({
       id: v.string(),
-      label: v.optional(v.nullable(v.string())),
+      label: v.nullish(v.string()),
       owner: v.nullable(
         v.object({
           id: v.string(),
-          displayName: v.optional(v.nullable(v.string())),
+          displayName: v.nullish(v.string()),
         }),
       ),
     }),

@@ -1,16 +1,13 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 
 /**
- * Typed intermediate tree: `generateValibotValidationSchemaDefinition` builds
- * it from a schema and `renderValibot` turns it into source. Only kinds the
- * renderer knows are emitted, so nothing taken from the document can pick a
- * `v.*` function.
+ * Typed intermediate tree between the schema walk and the renderer. Only kinds
+ * the renderer knows are emitted, so nothing in the document picks a `v.*`.
  */
 
 type ObjectMode = 'object' | 'strictObject' | 'looseObject';
 
-// Object entries are a list, not a record, so a key such as `__proto__` or
-// `constructor` is just data.
+// A list rather than a record, so a key such as `__proto__` is just data.
 export interface ValibotEntry {
   key: string;
   value: ValibotNode;
@@ -77,7 +74,6 @@ type ValueActionKind =
   | 'minCodePoints'
   | 'maxCodePoints';
 
-// Actions that go into `v.pipe`.
 export type ValibotAction =
   | { kind: FlagActionKind }
   | { kind: ValueActionKind; value: string }
@@ -93,13 +89,11 @@ export interface ValibotNode {
   defaultValue?: string;
 }
 
-// A schema and the checks its type implies, before wrappers are applied.
 export interface BaseSchema {
   schema: ValibotSchema;
   actions: ValibotAction[];
 }
 
-// Generates the node of a nested schema, which is required unless said so.
 export type ChildGenerator = (
   member: OpenApiSchemaObject | undefined,
   isRequired?: boolean,

@@ -24,8 +24,7 @@ import {
   withoutOuterAnnotations,
 } from './schema-type';
 
-// Marks the given keys as required in every object reachable through the
-// composition constructors.
+// Requires the keys in every object reachable through the composition.
 const requireFields = (
   node: ValibotNode,
   keys: ReadonlySet<string>,
@@ -67,7 +66,6 @@ const requireFields = (
   }
 };
 
-// Keys required by the schema and, through nested `allOf`, by its members.
 const requiredKeysOf = (schema: OpenApiNonBooleanSchemaObject): string[] => [
   ...getRequiredKeys(schema, 'schema').filter(isString),
   ...(Array.isArray(schema.allOf) ? schema.allOf : []).flatMap((member) =>
@@ -75,15 +73,13 @@ const requiredKeysOf = (schema: OpenApiNonBooleanSchemaObject): string[] => [
   ),
 ];
 
-// A node that is only its constructor: no checks, wrappers or default.
 const isBareNode = (node: ValibotNode): boolean =>
   node.actions.length === 0 &&
   !node.nullable &&
   !node.optional &&
   node.defaultValue === undefined;
 
-// Descriptions are documentation only and `v.variant` does not take a pipe,
-// so they are left off its options and discriminators.
+// `v.variant` takes no pipe, so descriptions are left off its options.
 const withoutDescription = (node: ValibotNode): ValibotNode => ({
   ...node,
   actions: node.actions.filter((action) => action.kind !== 'describe'),
@@ -106,8 +102,7 @@ const withBareDiscriminator = (node: ValibotNode, key: string): ValibotNode => {
   };
 };
 
-// `v.variant` needs every option to be a bare object whose discriminator is a
-// literal or a picklist.
+// `v.variant` options are bare objects with a literal or picklist discriminator.
 const toVariant = (
   members: ValibotNode[],
   key: string,
@@ -128,26 +123,18 @@ const toVariant = (
     : undefined;
 };
 
-// The schema with just one of its composition keywords.
 const onlyComposition = (
   key: CompositionKey,
   schema: OpenApiNonBooleanSchemaObject,
   rest: OpenApiNonBooleanSchemaObject,
-): OpenApiNonBooleanSchemaObject =>
-  key === 'allOf'
-    ? { ...rest, allOf: schema.allOf }
-    : key === 'oneOf'
-      ? { ...rest, oneOf: schema.oneOf }
-      : { ...rest, anyOf: schema.anyOf };
+): OpenApiNonBooleanSchemaObject => ({ ...rest, [key]: schema[key] });
 
-// Whether the schema describes an object, with or without properties.
 const isObjectSchema = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   hasProperties(schema) ||
   (resolveType(schema) === 'object' && getMultiTypes(schema).length <= 1);
 
-// Every keyword applies, so the groups are intersected. The first group keeps
-// the schema's own keywords; the discriminator is repeated for the others so
-// each `oneOf` can still become a `v.variant`.
+// The groups are intersected; the discriminator is repeated so each `oneOf`
+// can still become a `v.variant`.
 const generateIntersection = (
   schema: OpenApiNonBooleanSchemaObject,
   keys: CompositionKey[],
@@ -167,8 +154,7 @@ const generateIntersection = (
   );
 };
 
-// The schema of the object made of the schema's own properties. The keys in
-// `alsoRequired` are required on top of its own.
+// `alsoRequired` keys are required on top of the own ones.
 const ownObjectSchema = (
   schema: OpenApiNonBooleanSchemaObject,
   alsoRequired: string[] = [],
@@ -187,7 +173,6 @@ const ownObjectSchema = (
   type: 'object',
 });
 
-// The object made of the schema's own properties, if it has any.
 const ownObject = (
   schema: OpenApiNonBooleanSchemaObject,
   child: ChildGenerator,
@@ -200,9 +185,8 @@ const isUnknown = (node: ValibotNode): boolean =>
 const requiredNames = (member: OpenApiNonBooleanSchemaObject): string[] =>
   Array.isArray(member.required) ? member.required.filter(isString) : [];
 
-// An alternative that only lists `required` keys has no type, so it is
-// `v.unknown()` and would accept anything. It is the object of the schema's
-// own properties with those keys required instead.
+// A required-only alternative has no type and would accept anything, so it
+// becomes the own object with those keys required.
 const narrowOwnObject = (
   member: OpenApiSchemaObject,
   node: ValibotNode,
@@ -228,10 +212,8 @@ interface Alternative {
 
 const NULL_TYPE = 'null' as const;
 
-// The schema of the scalar and array keywords next to a composition, which
-// the composition is intersected with. `object` is left to `ownObject`.
-// `hasUnchecked` is set when a member is `v.unknown()`: the type is then the
-// only check on the values that member lets through.
+// Scalar and array keywords next to a composition, intersected with it.
+// `hasUnchecked`: a `v.unknown()` member leaves the type as the only check.
 const ownScalar = (
   schema: OpenApiNonBooleanSchemaObject,
   hasUnchecked: boolean,
@@ -247,8 +229,7 @@ const ownScalar = (
     typed.length > 0 && isSchemaNullable(schema)
       ? [...typed, NULL_TYPE]
       : typed;
-  const keywords = {
-    type: types.length > 1 ? types : types[0],
+  const checks = {
     enum: schema.enum,
     format: schema.format,
     pattern: schema.pattern,
@@ -268,36 +249,35 @@ const ownScalar = (
     contentMediaType: schema.contentMediaType,
   };
   // A type alone repeats what the members already check.
-  const { type: _type, ...checks } = keywords;
   if (
     !hasUnchecked &&
     Object.values(checks).every((value) => value === undefined)
   ) {
     return undefined;
   }
-  const node = child(keywords);
+  const node = child({
+    type: types.length > 1 ? types : types[0],
+    ...checks,
+  });
   // Keywords without a type check nothing, and an unknown member would only
   // bring back keys that the other members strip.
   return node.schema.kind === 'unknown' ? undefined : node;
 };
 
-// The members of an allOf are generated without their `required`, which the
-// parent applies to all of them.
+// An allOf member is generated without `required`, which the parent applies.
 const withoutRequired = (member: OpenApiSchemaObject): OpenApiSchemaObject => {
   if (!isNonBoolean(member)) return member;
   const { required: _required, ...rest } = member;
   return rest;
 };
 
-// A single keyword: `allOf` intersects, `oneOf` and `anyOf` union, and a
-// discriminator turns the union into `v.variant` where it can.
 const generateGroup = (
   schema: OpenApiNonBooleanSchemaObject,
   key: CompositionKey,
   child: ChildGenerator,
 ): BaseSchema => {
-  // An instance of an allOf satisfies every member, so a key required by the
-  // parent or any member is required wherever it is declared.
+  // An allOf instance satisfies every member, so a key required by the parent
+  // or any member is required wherever it is declared.
   const required = new Set(requiredKeysOf(schema));
   const alternatives = (schema[key] ?? []).map((member): Alternative => {
     const node = child(key === 'allOf' ? withoutRequired(member) : member);
@@ -336,7 +316,6 @@ const generateGroup = (
     return plainBase({ kind: 'intersect', members: [...members, ...own] });
   }
   const union = plainNode({ kind: 'union', members });
-  // The own object adds nothing when every alternative is a copy of it.
   const coversOwn =
     ownKeywords === undefined && alternatives.every((a) => a.isOwnObjectCopy);
   return plainBase(
@@ -346,10 +325,7 @@ const generateGroup = (
   );
 };
 
-/**
- * The schema of `allOf`, `oneOf` and `anyOf`, or `undefined` when the schema
- * uses none of them.
- */
+/** The `allOf`, `oneOf` and `anyOf` groups of a schema, if it has any. */
 export const generateComposition = (
   schema: OpenApiNonBooleanSchemaObject,
   child: ChildGenerator,

@@ -45,8 +45,7 @@ export interface SchemaRules {
   urlEncoded?: boolean;
 }
 
-// A required key without a property is kept, with the type of the additional
-// properties as in a record. A default cannot apply to it.
+// A required key without a property gets the additional properties type.
 const undeclaredEntries = (
   keys: string[],
   additional: OpenApiNonBooleanSchemaObject | undefined,
@@ -92,7 +91,6 @@ const generateObject = (
     if (typedAdditional) {
       return { kind: 'objectWithRest', entries, rest: child(typedAdditional) };
     }
-    // Without properties the object is a dictionary, so it keeps its keys.
     const isDictionary = declared.length === 0 && additional !== false;
     return {
       kind: 'object',
@@ -171,7 +169,6 @@ const generateArray = (
   return plainBase({ kind: 'array', item: child(schema.items) });
 };
 
-// The schema of a single type, with the checks the type implies.
 const generateByType = (
   schema: OpenApiNonBooleanSchemaObject,
   type: ResolvedType,
@@ -203,7 +200,6 @@ const generateByType = (
       return plainBase(generateObject(schema, child, strict));
     }
     default: {
-      // Untyped schemas with `properties` are objects.
       return plainBase(
         hasProperties(schema)
           ? generateObject(schema, child, strict)
@@ -249,7 +245,6 @@ const generateBase = (
   return generateByType(schema, type, child, strict, urlEncoded);
 };
 
-// The checks and wrappers a schema adds on top of its base.
 const generateActions = (
   schema: OpenApiNonBooleanSchemaObject,
   base: BaseSchema,
@@ -280,7 +275,6 @@ const generateActions = (
   ];
 };
 
-// `null` is a member of the type or of a union, so it is not added again.
 const isNullable = (schema: OpenApiNonBooleanSchemaObject): boolean => {
   const hasNullMember = [
     ...(Array.isArray(schema.oneOf) ? schema.oneOf : []),
@@ -300,9 +294,8 @@ const isNever = (schema: OpenApiSchemaObject | undefined): boolean =>
 
 const JSON_NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
-// .NET writes the default of a `double` as a string, such as `"1.5"` or
-// `"NaN"`. A default the number schema rejects, such as `NaN`, `Infinity` or a
-// fraction of an integer, is left out, or every value without the key fails.
+// .NET writes a `double` default as a string such as `"NaN"`. A default the
+// number schema rejects is left out, or every value without the key fails.
 const generateDefault = (
   schema: OpenApiNonBooleanSchemaObject,
 ): string | undefined => {
@@ -361,7 +354,8 @@ export const generateValibotValidationSchemaDefinition = (
   return {
     schema: base.schema,
     actions: generateActions(schema, base, context),
-    nullable,
+    // `v.null()` already accepts null.
+    nullable: nullable && base.schema.kind !== 'null',
     optional: !hasDefault && !required,
     defaultValue,
   };

@@ -1,125 +1,25 @@
 import {
   type ContextSpec,
   isObject,
-  isString,
-  type OpenApiNonBooleanSchemaObject,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   resolveRef,
-  toObjectSchema,
 } from '@orval/core';
 
+import { dereference } from './dereference';
 import { withFileParts, type PartEncoding } from './form-data';
-import { logger, warnOnce } from './logger';
 import { plainNode, type ValibotNode } from './nodes';
 import { omitReadOnly } from './read-only';
 import { generateValibotValidationSchemaDefinition } from './schema';
-
-const tryResolveRefSchema = (
-  $ref: string,
-  context: ContextSpec,
-): OpenApiSchemaObject | undefined => {
-  try {
-    return resolveRef<OpenApiSchemaObject>({ $ref }, context).schema;
-  } catch (error) {
-    logger.verbose(
-      `Failed to resolve $ref "${$ref}": ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    return;
-  }
-};
-
-const dereferenceValue = (value: unknown, context: ContextSpec): unknown => {
-  if (isObject(value)) return dereferenceObject(value, context);
-  return Array.isArray(value)
-    ? value.map((item: unknown) => dereferenceValue(item, context))
-    : value;
-};
-
-const dereferenceObject = (
-  schema: Record<string, unknown>,
-  context: ContextSpec,
-): OpenApiNonBooleanSchemaObject => {
-  const refName = isString(schema.$ref) ? schema.$ref : undefined;
-  if (refName && context.parents?.includes(refName)) {
-    warnOnce(`Circular $ref "${refName}" is validated as unknown.`);
-    return {};
-  }
-
-  const resolvedContext: ContextSpec = {
-    ...context,
-    ...(refName
-      ? { parents: [...(context.parents ?? []), refName] }
-      : undefined),
-  };
-
-  const resolveReferenced = (
-    name: string,
-  ): Record<string, unknown> | undefined => {
-    const referenced = tryResolveRefSchema(name, context);
-    if (typeof referenced !== 'boolean' && !isObject(referenced)) {
-      warnOnce(`Unresolvable $ref "${name}" is validated as unknown.`);
-      return;
-    }
-    const siblings = Object.fromEntries(
-      Object.entries(schema).filter(([key]) => key !== '$ref'),
-    );
-    return { ...toObjectSchema(referenced), ...siblings };
-  };
-
-  const resolved = refName ? resolveReferenced(refName) : schema;
-  if (!resolved) return {};
-
-  // The entries are rebuilt from a JSON document, so the compiler cannot see
-  // that the result is still a schema.
-  return Object.fromEntries(
-    Object.entries(resolved).map(([key, value]) => {
-      if (key === 'properties' && isObject(value)) {
-        return [
-          key,
-          Object.fromEntries(
-            Object.entries(value).map(([name, property]) => [
-              name,
-              dereferenceValue(property, resolvedContext),
-            ]),
-          ),
-        ];
-      }
-      return [
-        key,
-        key === 'default' ||
-        key === 'example' ||
-        key === 'examples' ||
-        key.startsWith('x-')
-          ? value
-          : dereferenceValue(value, resolvedContext),
-      ];
-    }),
-  ) as OpenApiNonBooleanSchemaObject;
-};
-
-/**
- * Inlines every `$ref`. A circular `$ref` becomes an empty schema, which is
- * validated as `unknown`.
- */
-export const dereference = (
-  schema: OpenApiSchemaObject | OpenApiReferenceObject,
-  context: ContextSpec,
-): OpenApiNonBooleanSchemaObject => {
-  if (typeof schema === 'boolean') return toObjectSchema(schema);
-  return isObject(schema) ? dereferenceObject(schema, context) : {};
-};
 
 const JSON_TYPE = /^application\/([^/;]+\+)?json$/;
 const MULTIPART_TYPE = /^multipart\/form-data$/;
 const URL_ENCODED_TYPE = /^application\/x-www-form-urlencoded$/;
 
-// The same order as the zod package. `+json` vendor types validate like JSON.
+// Same order as the zod package; `+json` vendor types validate like JSON.
 const MEDIA_TYPES = [JSON_TYPE, MULTIPART_TYPE, URL_ENCODED_TYPE];
 
 interface MediaSchema {
@@ -137,7 +37,6 @@ interface ParseBodyAndResponseOptions {
   context: ContextSpec;
   strict: boolean;
   generate: boolean;
-  // A request leaves out its read-only properties.
   isRequest: boolean;
 }
 
@@ -154,8 +53,7 @@ export const parseBodyAndResponse = ({
     OpenApiResponseObject | OpenApiRequestBodyObject
   >(data, context).schema;
 
-  // A media type without a schema, or without a media object, is skipped so
-  // it cannot hide a later one that has a schema.
+  // A media type without a schema is skipped so it cannot hide a later one.
   const schemas = Object.entries(content ?? {}).flatMap(
     ([contentType, media]): MediaSchema[] =>
       isObject(media) && (isObject(media.schema) || media.schema === true)
@@ -185,7 +83,6 @@ export const parseBodyAndResponse = ({
     : node;
 };
 
-// The first success response, the way the zod package picks it.
 export const getSingleResponse = (
   responses:
     | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
@@ -216,15 +113,12 @@ export interface ParsedParameters {
   params?: ValibotNode;
 }
 
-type ParameterTarget = keyof ParsedParameters;
+type ParameterLocation = 'param' | 'query' | 'header';
 
-const PARAMETER_LOCATIONS = new Map<
-  string,
-  { location: 'param' | 'query' | 'header'; target: ParameterTarget }
->([
-  ['path', { location: 'param', target: 'params' }],
-  ['query', { location: 'query', target: 'queryParams' }],
-  ['header', { location: 'header', target: 'headers' }],
+const PARAMETER_LOCATIONS = new Map<string, ParameterLocation>([
+  ['path', 'param'],
+  ['query', 'query'],
+  ['header', 'header'],
 ]);
 
 export const parseParameters = ({
@@ -233,12 +127,11 @@ export const parseParameters = ({
   strict,
   generate,
 }: ParseParametersOptions): ParsedParameters => {
-  // Keyed by name, so a repeated parameter keeps its position and its last
-  // schema.
-  const defs: Record<ParameterTarget, Map<string, ValibotNode>> = {
-    params: new Map(),
-    queryParams: new Map(),
-    headers: new Map(),
+  // Keyed by name: a repeated parameter keeps its position and last schema.
+  const defs: Record<ParameterLocation, Map<string, ValibotNode>> = {
+    param: new Map(),
+    query: new Map(),
+    header: new Map(),
   };
 
   for (const item of data ?? []) {
@@ -249,12 +142,12 @@ export const parseParameters = ({
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!('schema' in parameter) || !parameter.in || !parameter.name) continue;
 
-    const target = PARAMETER_LOCATIONS.get(parameter.in);
-    if (!target || !generate[target.location]) continue;
+    const location = PARAMETER_LOCATIONS.get(parameter.in);
+    if (!location || !generate[location]) continue;
 
     const resolvedSchema = dereference(parameter.schema, context);
 
-    defs[target.target].set(
+    defs[location].set(
       parameter.name,
       generateValibotValidationSchemaDefinition(
         {
@@ -262,7 +155,7 @@ export const parseParameters = ({
           description: parameter.description ?? resolvedSchema.description,
         },
         context,
-        strict[target.location],
+        strict[location],
         { required: parameter.required },
       ),
     );
@@ -281,8 +174,8 @@ export const parseParameters = ({
         });
 
   return {
-    headers: toObject(defs.headers, strict.header),
-    queryParams: toObject(defs.queryParams, strict.query),
-    params: toObject(defs.params, strict.param),
+    headers: toObject(defs.header, strict.header),
+    queryParams: toObject(defs.query, strict.query),
+    params: toObject(defs.param, strict.param),
   };
 };

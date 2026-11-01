@@ -15,7 +15,8 @@ import {
 } from './operation';
 import { renderValibot } from './render';
 
-export { dereference, parseParameters } from './operation';
+export { dereference } from './dereference';
+export { parseParameters } from './operation';
 export type {
   Locations,
   ParsedParameters,

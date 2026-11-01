@@ -8,7 +8,6 @@ import {
 
 import { plainNode, type ValibotNode, type ValibotSchema } from './nodes';
 
-// The `encoding` of a media object: one entry for each part.
 export type PartEncoding = Record<string, { contentType?: string } | undefined>;
 
 const FILE: ValibotSchema = { kind: 'file' };
@@ -24,8 +23,7 @@ const getPartContentType = (
   return isString(contentType) ? contentType : undefined;
 };
 
-// A string that is already a file stays one. A binary part is a file, and a
-// text part is a file or the string it was, with the wrappers kept.
+// A binary part is a file; a text part is a file or the string it was.
 const toFile = (
   node: ValibotNode,
   schema: OpenApiSchemaObject,
@@ -62,7 +60,6 @@ const toFile = (
     : node;
 };
 
-// The part itself, or the items of an array part.
 const toFilePart = (
   node: ValibotNode,
   part: OpenApiSchemaObject,
@@ -82,10 +79,9 @@ const toFilePart = (
 };
 
 /**
- * Turns the top-level parts of a `multipart/form-data` body that carry a file
- * into files, as the type generator does: a part is a file when its
- * `encoding.contentType` or `contentMediaType` says so, not only when it is
- * `format: binary`.
+ * Turns the top-level parts that carry a file into files, as the type
+ * generator does: `encoding.contentType` or `contentMediaType` marks a part,
+ * not only `format: binary`.
  */
 export const withFileParts = (
   node: ValibotNode,
