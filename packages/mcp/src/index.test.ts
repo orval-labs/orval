@@ -137,6 +137,52 @@ describe('MCP SDK v2 output', () => {
     );
     expect(header).not.toContain('@modelcontextprotocol/sdk');
   });
+
+  it('imports every schema type used by path params and the body', () => {
+    const schemasContext = createTestContextSpec({
+      spec,
+      output: {
+        target: '/project/src/handlers.ts',
+        schemas: '/project/src/http-schemas',
+      },
+    });
+    const header = getMcpHeader({
+      title: '',
+      isRequestOptions: false,
+      isMutator: false,
+      isGlobalMutator: false,
+      provideIn: false,
+      hasAwaitedType: false,
+      output: schemasContext.output,
+      verbOptions: {
+        addPet: createTestGeneratorVerbOptions({
+          operationName: 'addPet',
+          typeName: 'addPet',
+          params: [
+            {
+              name: 'kind',
+              definition: 'kind: PetKind',
+              implementation: 'kind: PetKind',
+              default: undefined,
+              required: true,
+              imports: [{ name: 'PetKind' }],
+            },
+          ],
+          body: {
+            definition: 'Cat | Dog',
+            implementation: 'addPetBody',
+            imports: [{ name: 'Cat' }, { name: 'Dog' }],
+            isOptional: false,
+          },
+        }),
+      },
+      clientImplementation: '',
+    });
+
+    expect(header).toContain(
+      "import type {\n  PetKind,\n  Cat,\n  Dog\n} from './http-schemas';",
+    );
+  });
 });
 
 describe('McpServer instructions', () => {
