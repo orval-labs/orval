@@ -7,7 +7,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
 import {
@@ -19,6 +19,7 @@ import {
   getAngularHttpResourceOnlyDependencies,
   routeRegistry,
 } from './http-resource';
+import { logger } from './logger';
 import {
   angularOverride,
   createAngularOutput,
@@ -2606,6 +2607,36 @@ describe('angular httpResource generator', () => {
 
       expect(header).toContain(
         'return applyOrvalRequestExtension(customHttpRequest(request), options);',
+      );
+    });
+
+    it('warns when a two-argument mutator is skipped', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-http.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+        } as GeneratorMutator,
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+      generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(warn).toHaveBeenCalledWith(
+        'getPetById: httpResource skipped the two-argument mutator customHttpRequest; httpResource has no HttpClient instance to pass to it.',
       );
     });
 

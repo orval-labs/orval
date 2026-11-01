@@ -2458,6 +2458,95 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('ThirdParameter');
     });
 
+    it('passes the selected Accept header to mutators for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        headers: createQueryParams({
+          schema: { name: 'GetPetFileHeaders', model: '', imports: [] },
+        }),
+        props: [
+          ...createVerbOption().props,
+          {
+            name: 'headers',
+            definition: 'headers?: GetPetFileHeaders',
+            implementation: 'headers?: GetPetFileHeaders',
+            default: false,
+            required: false,
+            type: GetterPropType.HEADER,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-instance.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+      expect(impl).toContain('headers: {...headers, Accept: accept}');
+    });
+
+    it('uses the shared query filter helper for mutator configs', () => {
+      const verbOption = createVerbOption({
+        queryParams: createQueryParams({
+          schema: { name: 'GetPetParams', model: '', imports: [] },
+        }),
+        props: [
+          {
+            name: 'params',
+            definition: 'params?: GetPetParams',
+            implementation: 'params?: GetPetParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-http.ts',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, {
+        route: '/api/pets',
+        context: { output: createOutput() },
+      });
+
+      expect(impl).toContain(
+        'params: filterParams(params ?? {}, new Set<string>([]))',
+      );
+      expect(impl).not.toContain(
+        'Object.fromEntries(Object.entries(params ?? {})',
+      );
+    });
+
     const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
       generateHttpClientImplementation(
         createVerbOption({

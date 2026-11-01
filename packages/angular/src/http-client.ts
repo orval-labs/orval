@@ -608,6 +608,16 @@ export const generateHttpClientImplementation = (
       )} }) : event))`
     : '';
 
+  const successContentTypes = getUniqueContentTypes(response.types.success);
+  const mutatorAcceptTypeName =
+    mutator && successContentTypes.length > 1
+      ? getAcceptHelperName(typeName)
+      : undefined;
+  const defaultMutatorAccept = mutatorAcceptTypeName
+    ? (successContentTypes.find(isJsonContentType) ??
+      getDefaultContentType(successContentTypes))
+    : undefined;
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -622,6 +632,7 @@ export const generateHttpClientImplementation = (
       isExactOptionalPropertyTypes,
       isAngular: true,
       paramsFilter,
+      accept: mutatorAcceptTypeName ? 'accept' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -649,11 +660,26 @@ export const generateHttpClientImplementation = (
       'implementation',
     );
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${propsImplementation}\n ${
-      isRequestOptions && mutator.hasThirdArg
-        ? `options?: ThirdParameter<typeof ${mutator.name}>`
-        : ''
-    }) {${bodyForm}
+    const extraParams = [
+      ...(mutatorAcceptTypeName && defaultMutatorAccept
+        ? [
+            `accept: ${mutatorAcceptTypeName} = '${jsStringLiteralEscape(defaultMutatorAccept)}'`,
+          ]
+        : []),
+      ...(isRequestOptions && mutator.hasThirdArg
+        ? [`options?: ThirdParameter<typeof ${mutator.name}>`]
+        : []),
+    ];
+
+    const cleanPropsImplementation = propsImplementation.replace(/,\s*$/, '');
+    const allParams = [cleanPropsImplementation, ...extraParams].filter(
+      Boolean,
+    );
+
+    const implementationParams =
+      allParams.length > 0 ? `${allParams.join(',\n    ')},` : '';
+
+    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
