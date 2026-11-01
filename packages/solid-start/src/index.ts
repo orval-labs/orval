@@ -320,20 +320,8 @@ const generateImplementation = (
   );
 
   const hasExplodedDateParams =
-    context.output.override.useDates &&
-    explodeParameters.some((parameter) => {
-      const { schema: schemaObject } = resolveSchemaRef(
-        parameter.schema,
-        context,
-      );
-      const itemsFormat = schemaObject.items
-        ? (resolveSchemaRef(
-            schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
-            context,
-          ).schema.format as string | undefined)
-        : undefined;
-      return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
-    });
+    !!context.output.override.useDates &&
+    explodeParameters.some((parameter) => isDateTimeParam(parameter, context));
 
   // `pipeDelimited` / `spaceDelimited` arrays join their percent-encoded
   // items with `%7C` / `%20`, bypassing URLSearchParams (which writes a
@@ -383,23 +371,8 @@ const generateImplementation = (
     parameters.length;
 
   const hasDateParams =
-    context.output.override.useDates &&
-    parameterObjects.some((parameter) => {
-      if (!isSchemaParameter(parameter)) {
-        return false;
-      }
-      const { schema: schemaObject } = resolveSchemaRef(
-        parameter.schema,
-        context,
-      );
-      const itemsFormat = schemaObject.items
-        ? (resolveSchemaRef(
-            schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
-            context,
-          ).schema.format as string | undefined)
-        : undefined;
-      return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
-    });
+    !!context.output.override.useDates &&
+    parameterObjects.some((parameter) => isDateTimeParam(parameter, context));
 
   const explodeArrayImplementation =
     explodeParameters.length > 0

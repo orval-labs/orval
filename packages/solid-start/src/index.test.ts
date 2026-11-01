@@ -791,6 +791,48 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
     expect(implementation).not.toContain('const explodeParameters');
     expect(implementation).not.toContain('v instanceof Date ? v.toISOString()');
   });
+
+  it('generates toISOString() for a nullable date-time param written as anyOf', async () => {
+    const parameters = [
+      {
+        name: 'since',
+        in: 'query',
+        schema: {
+          anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain(
+      'value instanceof Date ? value.toISOString()',
+    );
+  });
+
+  it('generates toISOString() for an exploded nullable array<date-time> param written as anyOf', async () => {
+    const parameters = [
+      {
+        name: 'dates',
+        in: 'query',
+        schema: {
+          anyOf: [
+            { type: 'array', items: { type: 'string', format: 'date-time' } },
+            { type: 'null' },
+          ],
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const explodeParameters = ["dates"]');
+    expect(implementation).toContain('v instanceof Date ? v.toISOString()');
+  });
 });
 
 describe('generateSolidStartHeader namespace collision', () => {
