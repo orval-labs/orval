@@ -3046,7 +3046,7 @@ ${Object.entries(objectArgs)
         const value = requireCurrent(fn);
         current = {
           ...value,
-          expr: value.expr + renderZodRefine(args, variant, isZodV4 ? 4 : 3),
+          expr: renderZodRefine(args, variant, isZodV4 ? 4 : 3, value.expr),
         };
         continue;
       }
@@ -3235,9 +3235,7 @@ ${Object.entries(objectArgs)
     const mergedObjectString = `zod.${objectType}({
 ${Object.entries(mergedProperties)
   .map(([key, schema]) => {
-    const value = schema.functions
-      .map((prop) => parseProperty(prop, [...fieldPath, key]))
-      .join('');
+    const value = parsePropertyChain(schema.functions, [...fieldPath, key]);
     appendConstsChunk(schema.consts.join('\n'));
     return `  ${JSON.stringify(key)}: ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
@@ -3296,14 +3294,12 @@ ${Object.entries(mergedProperties)
       }
     }
     appendConstsChunk(member.consts.join('\n'));
-    const value = member.functions
-      .map((prop) => parseProperty(prop, fieldPath))
-      .join('');
+    const value = parsePropertyChain(member.functions, fieldPath);
     return `${value.startsWith('.') ? 'zod' : ''}${value}`;
   };
 
   const parseProperty = (
-    property: [string, unknown],
+    property: readonly [string, unknown],
     fieldPath: readonly string[] = [],
   ): string => {
     const [fn, args = ''] = property;
@@ -3330,7 +3326,9 @@ ${Object.entries(mergedProperties)
     }
 
     if (fn === 'refine') {
-      return renderZodRefine(args, variant, isZodV4 ? 4 : 3);
+      // Refinements need the complete schema expression for contextual typing.
+      // They are handled by parsePropertyChain, never as detached suffixes.
+      throw new TypeError('Cannot render refinement without its schema');
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
@@ -3352,9 +3350,7 @@ ${Object.entries(mergedProperties)
       // Fallback to original .and() approach for non-object or non-strict cases
       let acc = '';
       for (const partSchema of allOfArgs) {
-        const value = partSchema.functions
-          .map((prop) => parseProperty(prop, fieldPath))
-          .join('');
+        const value = parsePropertyChain(partSchema.functions, fieldPath);
         const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
         if (partSchema.consts.length > 0) {
@@ -3376,9 +3372,7 @@ ${Object.entries(mergedProperties)
       // Can't use zod.union() with a single item
       if (unionArgs.length === 1) {
         appendConstsChunk(unionArgs[0].consts.join('\n'));
-        return unionArgs[0].functions
-          .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
-          .join('');
+        return parsePropertyChain(unionArgs[0].functions, fieldPath);
       }
 
       if (discriminator) {
@@ -3396,9 +3390,7 @@ ${Object.entries(mergedProperties)
           functions: [string, unknown][];
           consts: string[];
         }) => {
-          const value = functions
-            .map((prop) => parseProperty(prop, fieldPath))
-            .join('');
+          const value = parsePropertyChain(functions, fieldPath);
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
           // consts are missing here
           appendConstsChunk(argConsts.join('\n'));
@@ -3411,9 +3403,10 @@ ${Object.entries(mergedProperties)
 
     if (fn === 'additionalProperties') {
       const additionalPropertiesArgs = args as ZodValidationSchemaDefinition;
-      const value = additionalPropertiesArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
-        .join('');
+      const value = parsePropertyChain(
+        additionalPropertiesArgs.functions,
+        fieldPath,
+      );
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
       if (Array.isArray(additionalPropertiesArgs.consts)) {
         appendConstsChunk(additionalPropertiesArgs.consts.join('\n'));
@@ -3423,9 +3416,7 @@ ${Object.entries(mergedProperties)
 
     if (fn === 'catchall') {
       const catchallArgs = args as ZodValidationSchemaDefinition;
-      const value = catchallArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
-        .join('');
+      const value = parsePropertyChain(catchallArgs.functions, fieldPath);
       if (Array.isArray(catchallArgs.consts)) {
         appendConstsChunk(catchallArgs.consts.join('\n'));
       }
@@ -3444,9 +3435,7 @@ ${Object.entries(mergedProperties)
       const parsedObject = `zod.${objectType}({
 ${Object.entries(objectArgs)
   .map(([key, schema]) => {
-    const value = schema.functions
-      .map((prop) => parseProperty(prop, [...fieldPath, key]))
-      .join('');
+    const value = parsePropertyChain(schema.functions, [...fieldPath, key]);
     appendConstsChunk(schema.consts.join('\n'));
     const fieldZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
     // Opt-in via `coerce.<location>: ['array', ...]`: a server framework (e.g.
@@ -3483,9 +3472,7 @@ ${Object.entries(objectArgs)
 
     if (fn === 'array') {
       const arrayArgs = args as ZodValidationSchemaDefinition;
-      const value = arrayArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
-        .join('');
+      const value = parsePropertyChain(arrayArgs.functions, fieldPath);
       if (isString(arrayArgs.consts)) {
         appendConstsChunk(arrayArgs.consts);
       } else if (Array.isArray(arrayArgs.consts)) {
@@ -3501,9 +3488,7 @@ ${Object.entries(objectArgs)
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
         .map((x) => {
-          const value = x.functions
-            .map((prop) => parseProperty(prop, fieldPath))
-            .join('');
+          const value = parsePropertyChain(x.functions, fieldPath);
           // Tuple-item consts (e.g. min/max on prefixItems, #3983) must be
           // emitted just like `array` does above, or the generated code
           // references undeclared constants.
@@ -3516,9 +3501,7 @@ ${Object.entries(objectArgs)
     }
     if (fn === 'rest') {
       const restArgs = args as ZodValidationSchemaDefinition;
-      const restValue = restArgs.functions
-        .map((prop) => parseProperty(prop, fieldPath))
-        .join('');
+      const restValue = parsePropertyChain(restArgs.functions, fieldPath);
       if (Array.isArray(restArgs.consts)) {
         appendConstsChunk(restArgs.consts.join('\n'));
       }
@@ -3577,6 +3560,31 @@ ${Object.entries(objectArgs)
     return `.${fn}(${combinedArgs})`;
   };
 
+  // Render refinements with the schema they extend. Passing an expression to
+  // renderZodRefine scopes captured bindings outside the Zod call, so the
+  // predicate and options callbacks retain TypeScript contextual typing.
+  // Rendering each function separately and joining with `.join('')` instead
+  // would route refinements through the legacy, untyped tuple serializer.
+  const parsePropertyChain = (
+    functions: ReadonlyArray<readonly [string, unknown]>,
+    fieldPath: readonly string[] = [],
+  ): string => {
+    let expression = '';
+    for (const property of functions) {
+      if (property[0] === 'refine') {
+        expression = renderZodRefine(
+          property[1],
+          variant,
+          isZodV4 ? 4 : 3,
+          `${expression.startsWith('.') ? 'zod' : ''}${expression}`,
+        );
+      } else {
+        expression += parseProperty(property, fieldPath);
+      }
+    }
+    return expression;
+  };
+
   appendConstsChunk(input.consts.join('\n'));
 
   if (variant === 'mini') {
@@ -3593,7 +3601,7 @@ ${Object.entries(objectArgs)
     return { zod: value, consts, usedRefs };
   }
 
-  const schema = input.functions.map((prop) => parseProperty(prop)).join('');
+  const schema = parsePropertyChain(input.functions);
   const value = preprocess
     ? `.preprocess(${preprocess.name}, ${
         schema.startsWith('.') ? 'zod' : ''

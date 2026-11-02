@@ -233,7 +233,20 @@ const serializeCaptureValue = (
  * With options, an argument fragment is returned (possibly using a spread IIFE
  * to declare captured values once for both arguments).
  */
-export const serializeCallable = (descriptor: BoundRefinement): string => {
+/**
+ * Keep captured declarations separate from callable arguments so the emitter
+ * can place the binding scope around the whole Zod expression. This preserves
+ * contextual typing for both the predicate and options callbacks.
+ */
+export interface SerializedCallableParts {
+  predicate: string;
+  options?: string;
+  declarations: string[];
+}
+
+export const serializeCallableParts = (
+  descriptor: BoundRefinement,
+): SerializedCallableParts => {
   const { callable, options, bindings } = descriptor;
 
   if (typeof callable !== 'function') {
@@ -286,12 +299,26 @@ export const serializeCallable = (descriptor: BoundRefinement): string => {
     }
   }
 
-  if (optionsSource === undefined) {
-    if (declarations.length === 0) return predicateSource;
-    return `(() => {\n${declarations.join('\n')}\n  return ${predicateSource};\n})()`;
+  return {
+    predicate: predicateSource,
+    options: optionsSource,
+    declarations,
+  };
+};
+
+/**
+ * Standalone legacy serializer. The complete-expression emitter should instead
+ * use `serializeCallableParts` to retain TypeScript contextual typing.
+ */
+export const serializeCallable = (descriptor: BoundRefinement): string => {
+  const { predicate, options, declarations } =
+    serializeCallableParts(descriptor);
+  if (options === undefined) {
+    if (declarations.length === 0) return predicate;
+    return `(() => {\n${declarations.join('\n')}\n  return ${predicate};\n})()`;
   }
 
-  const args = `${predicateSource}, ${optionsSource}`;
+  const args = `${predicate}, ${options}`;
   if (declarations.length === 0) return args;
   return `...(() => {\n${declarations.join('\n')}\n  return [${args}] as const;\n})()`;
 };

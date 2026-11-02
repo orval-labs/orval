@@ -1336,7 +1336,7 @@ export type Zod3RefinementOptions<TValue> =
 export interface Zod4RefinementIssue {
   readonly code: 'custom';
   readonly input: unknown;
-  readonly path?: PropertyKey[];
+  readonly path?: Array<string | number>;
   readonly message?: string;
   readonly params?: Record<string, unknown>;
 }
@@ -1352,7 +1352,7 @@ export type Zod4RefinementOptions =
           ) => string | { message: string } | undefined | null);
       /** @deprecated Zod 4 prefers `error`. */
       message?: string;
-      path?: PropertyKey[];
+      path?: Array<string | number>;
       abort?: boolean;
       when?: (payload: {
         value: unknown;
