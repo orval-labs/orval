@@ -85,12 +85,12 @@ export async function getApiBuilder({
   }> = [];
   const reservedOperationNames = new Set<string>();
   const reservedTypeNames = new Set<string>();
-  // Angular `httpClient` in `tags`/`tags-split` mode renders one service
-  // class per tag, so its method names only need per-tag uniqueness. Every
-  // other client/mode emits module-level names and keeps the global set.
+  // Angular in `tags`/`tags-split` mode renders one service class per tag, so
+  // its method names only need per-tag uniqueness. Its module-level
+  // `httpResource` functions are named from the globally reserved `typeName`.
+  // Every other client/mode emits module-level names and keeps the global set.
   const reservedMethodNamesByTag =
     output.client === OutputClient.ANGULAR &&
-    output.override.angular.client === 'httpClient' &&
     (output.mode === OutputMode.TAGS || output.mode === OutputMode.TAGS_SPLIT)
       ? new Map<string, Set<string>>()
       : undefined;
