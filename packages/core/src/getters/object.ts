@@ -738,10 +738,19 @@ export function getObject({
   const hasPatternProperties =
     patternProperties !== undefined &&
     Object.keys(patternProperties).length > 0;
+  // In-place conditional applicators (`if`/`then`/`else`, `dependentSchemas`)
+  // can evaluate properties that `unevaluatedProperties: false` then allows,
+  // and getObject does not model them, so keep the permissive fallback.
+  const hasConditionalApplicator =
+    schemaItem.if !== undefined ||
+    schemaItem.then !== undefined ||
+    schemaItem.else !== undefined ||
+    schemaItem.dependentSchemas !== undefined;
   if (
     itemType === 'object' &&
     outerAdditionalProps === false &&
-    !hasPatternProperties
+    !hasPatternProperties &&
+    !hasConditionalApplicator
   ) {
     return {
       value: '{ [key: string]: never }' + nullable,

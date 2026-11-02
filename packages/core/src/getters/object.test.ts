@@ -202,6 +202,26 @@ describe('getObject', () => {
       );
     });
 
+    it('keeps the permissive type when a conditional applicator can evaluate properties', () => {
+      expect(
+        render({
+          type: 'object',
+          unevaluatedProperties: false,
+          if: { required: ['kind'] },
+          else: { properties: { a: { type: 'string' } } },
+        }),
+      ).toBe('{ [key: string]: unknown }');
+      expect(
+        render({
+          type: 'object',
+          unevaluatedProperties: false,
+          dependentSchemas: {
+            a: { properties: { b: { type: 'string' } } },
+          },
+        }),
+      ).toBe('{ [key: string]: unknown }');
+    });
+
     it('treats an empty patternProperties map as closed', () => {
       expect(
         render({
