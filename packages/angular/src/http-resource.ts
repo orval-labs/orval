@@ -1082,8 +1082,7 @@ const buildHttpResourceFunction = (
   route: string,
   output: NormalizedOutputOptions,
 ): { implementation: string; resourceAlias: string } => {
-  const { operationName, typeName, response, props, params, mutator } =
-    verbOption;
+  const { typeName, response, props, params, mutator } = verbOption;
 
   const dataType = response.definition.success || 'unknown';
   const omitParse = isZodSchemaOutput(output);
@@ -1097,7 +1096,9 @@ const buildHttpResourceFunction = (
     responseSchemaImports,
     dataType,
   );
-  const resourceName = `${operationName}Resource`;
+  // A module-level export, so it takes the globally unique `typeName` (like its
+  // `ResourceResult` alias) rather than the class-local method name (#4424).
+  const resourceName = `${typeName}Resource`;
   const parsedDataType =
     omitParse &&
     output.override.angular.runtimeValidation.enabled &&

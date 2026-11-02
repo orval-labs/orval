@@ -4039,6 +4039,63 @@ describe('generateSpec - Angular tag-scoped service method names', () => {
     }
   });
 
+  it('keeps bare class methods with Angular retrievalClient both (#4424)', async () => {
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      angular: { retrievalClient: 'both' },
+    });
+
+    try {
+      for (const tag of ['tag-a', 'tag-b']) {
+        const service = await readGenerated(
+          workspace,
+          path.join(tag, `${tag}.service.ts`),
+        );
+        expect(service.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+        expect(service).not.toMatch(/^  getStatus2[<(]/m);
+      }
+      // Resource functions are module-level exports and stay globally unique.
+      expect(
+        await readGenerated(workspace, path.join('tag-a', 'tag-a.resource.ts')),
+      ).toMatch(/export function getStatusResource\(/);
+      expect(
+        await readGenerated(workspace, path.join('tag-b', 'tag-b.resource.ts')),
+      ).toMatch(/export function getStatus2Resource\(/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('names Angular resource functions from the tuple type name (#4424)', async () => {
+    const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
+      angular: { retrievalClient: 'both' },
+      operationName: (_operation: unknown, route: string): [string, string] => [
+        'getStatus',
+        route === '/a' ? 'tagAGetStatus' : 'tagBGetStatus',
+      ],
+    });
+
+    try {
+      for (const [tag, resource] of [
+        ['tag-a', 'tagAGetStatusResource'],
+        ['tag-b', 'tagBGetStatusResource'],
+      ] as const) {
+        const service = await readGenerated(
+          workspace,
+          path.join(tag, `${tag}.service.ts`),
+        );
+        expect(service.match(/^  getStatus[<(]/gm)).toHaveLength(1);
+        const resources = await readGenerated(
+          workspace,
+          path.join(tag, `${tag}.resource.ts`),
+        );
+        expect(resources).toContain(`export function ${resource}(`);
+        expect(resources).not.toMatch(/export function getStatus\d*Resource\(/);
+      }
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('lets a transformer rename the method when it renames operationName', async () => {
     const workspace = await generateCollidingOutput(COLLIDING_METHOD_SPEC, {
       transformer: (verbOption: GeneratorVerbOptions) => ({
