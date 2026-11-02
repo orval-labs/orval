@@ -259,20 +259,21 @@ function filterParams(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchCatalogResource(
-  params: Signal<SearchCatalogParams> | undefined,
+  params: Signal<SearchCatalogParams | undefined> | undefined,
   options: OrvalHttpResourceOptions<CatalogItem[], unknown> & {
     defaultValue: NoInfer<CatalogItem[]>;
   },
 ): HttpResourceRef<CatalogItem[]>;
 export function searchCatalogResource(
-  params?: Signal<SearchCatalogParams>,
+  params?: Signal<SearchCatalogParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined>;
 export function searchCatalogResource(
-  params?: Signal<SearchCatalogParams>,
+  params?: Signal<SearchCatalogParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined> {
   return httpResource<CatalogItem[]>(() => {
+    if (params && params() === undefined) return undefined;
     const request = {
       url: `/catalog-items`,
       params: filterParams(
@@ -291,20 +292,21 @@ export function searchCatalogResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchCatalogCommaResource(
-  params: Signal<SearchCatalogCommaParams> | undefined,
+  params: Signal<SearchCatalogCommaParams | undefined> | undefined,
   options: OrvalHttpResourceOptions<CatalogItem[], unknown> & {
     defaultValue: NoInfer<CatalogItem[]>;
   },
 ): HttpResourceRef<CatalogItem[]>;
 export function searchCatalogCommaResource(
-  params?: Signal<SearchCatalogCommaParams>,
+  params?: Signal<SearchCatalogCommaParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined>;
 export function searchCatalogCommaResource(
-  params?: Signal<SearchCatalogCommaParams>,
+  params?: Signal<SearchCatalogCommaParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined> {
   return httpResource<CatalogItem[]>(() => {
+    if (params && params() === undefined) return undefined;
     const request = {
       url: `/catalog-items/comma`,
       params: filterParams(
@@ -323,20 +325,21 @@ export function searchCatalogCommaResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchCatalogDeepObjectResource(
-  params: Signal<SearchCatalogDeepObjectParams> | undefined,
+  params: Signal<SearchCatalogDeepObjectParams | undefined> | undefined,
   options: OrvalHttpResourceOptions<CatalogItem[], unknown> & {
     defaultValue: NoInfer<CatalogItem[]>;
   },
 ): HttpResourceRef<CatalogItem[]>;
 export function searchCatalogDeepObjectResource(
-  params?: Signal<SearchCatalogDeepObjectParams>,
+  params?: Signal<SearchCatalogDeepObjectParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined>;
 export function searchCatalogDeepObjectResource(
-  params?: Signal<SearchCatalogDeepObjectParams>,
+  params?: Signal<SearchCatalogDeepObjectParams | undefined>,
   options?: OrvalHttpResourceOptions<CatalogItem[], unknown>,
 ): HttpResourceRef<CatalogItem[] | undefined> {
   return httpResource<CatalogItem[]>(() => {
+    if (params && params() === undefined) return undefined;
     const request = {
       url: `/catalog-items/deep-object`,
       params: filterParams(

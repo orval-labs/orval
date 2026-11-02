@@ -453,15 +453,26 @@ Generated resource functions use signals and return `HttpResourceRef<T>`:
 
 ```ts title="pets.service.ts"
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
 ): HttpResourceRef<Pet | undefined> {
-  return httpResource<Pet>(() => `/pets/${petId()}`);
+  return httpResource<Pet>(() =>
+    petId() === undefined ? undefined : `/pets/${petId()}`,
+  );
 }
 ```
 
 Because Orval returns Angular's native `HttpResourceRef`, you automatically get
 Angular's resource APIs such as `hasValue()`, `status()`, `error()`,
 `reload()`, and the resource snapshot API for advanced composition.
+
+Input signals accept `undefined`. While a required input holds `undefined`, the
+resource stays idle and sends no request, as Angular's `resource()` does with
+`undefined` params, so a resource can wait for state that isn't ready yet:
+
+```ts title="pet.page.ts"
+const petId = signal<string | undefined>(undefined);
+const pet = showPetByIdResource(petId); // idle until petId is set
+```
 
 ### Which operations become `httpResource` functions?
 

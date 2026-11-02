@@ -180,20 +180,21 @@ function filterParams(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listThingsResource(
-  params: Signal<ListThingsParams>,
+  params: Signal<ListThingsParams | undefined>,
   options: OrvalHttpResourceOptions<string[], unknown> & {
     defaultValue: NoInfer<string[]>;
   },
 ): HttpResourceRef<string[]>;
 export function listThingsResource(
-  params: Signal<ListThingsParams>,
+  params: Signal<ListThingsParams | undefined>,
   options?: OrvalHttpResourceOptions<string[], unknown>,
 ): HttpResourceRef<string[] | undefined>;
 export function listThingsResource(
-  params: Signal<ListThingsParams>,
+  params: Signal<ListThingsParams | undefined>,
   options?: OrvalHttpResourceOptions<string[], unknown>,
 ): HttpResourceRef<string[] | undefined> {
   return httpResource<string[]>(() => {
+    if (params() === undefined) return undefined;
     const request = {
       url: `/things`,
       params: filterParams(params?.() ?? {}, new Set<string>(['cursor'])),
