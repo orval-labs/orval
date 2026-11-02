@@ -17,7 +17,7 @@ export default defineConfig({
     output: {
       client: 'valibot',
       mode: 'single',
-      target: './src/api/schemas',
+      target: './src/api/schemas.ts',
     },
     input: {
       target: './petstore.yaml',
@@ -28,7 +28,7 @@ export default defineConfig({
 
 ## Generated Output
 
-Orval generates a Valibot schema for the params, query, headers, body and response of each operation:
+Orval generates a Valibot schema for the params, query, headers, body and response of each operation. The body and response schemas come from JSON, `multipart/form-data` or `application/x-www-form-urlencoded` content, and the response schema from the `200` response (or the first other 2xx response with content). Other media types, such as `text/plain`, get no schema:
 
 ```ts
 import * as v from 'valibot';
@@ -100,6 +100,7 @@ if (result.success) {
 - `prefixItems` tuples are validated as `unknown[]`, with a warning.
 - Every `$ref` is inlined, so components are not emitted as reusable constants and shared schemas can make the output large.
 - `oneOf` does not check that exactly one alternative matches.
+- Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected.
 - Valibot schemas are not wired into the HTTP clients yet: `schemas: { type: 'valibot' }` and runtime validation of responses are not available.
 
 ## Combining with HTTP Clients

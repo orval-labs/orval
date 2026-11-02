@@ -17,7 +17,7 @@ export default defineConfig({
     output: {
       client: 'valibot',
       mode: 'single',
-      target: './src/api/schemas',
+      target: './src/api/schemas.ts',
     },
     input: {
       target: './petstore.yaml',
@@ -28,7 +28,7 @@ export default defineConfig({
 
 ## 生成结果
 
-Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 Valibot schema：
+Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 Valibot schema。body 和 response 的 schema 来自 JSON、`multipart/form-data` 或 `application/x-www-form-urlencoded` 内容，response 取 `200` 响应（没有时取第一个带内容的其他 2xx 响应）。其他媒体类型（例如 `text/plain`）不会生成 schema：
 
 ```ts
 import * as v from 'valibot';
@@ -100,6 +100,7 @@ if (result.success) {
 - `prefixItems` 元组按 `unknown[]` 校验，并给出警告。
 - 每个 `$ref` 都会被内联，因此组件不会生成为可复用的常量，共享的 schema 可能让输出变得很大。
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
+- 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。
 - Valibot schema 暂未接入 HTTP client：目前不支持 `schemas: { type: 'valibot' }`，也不支持对响应做运行时校验。
 
 ## 与 HTTP Client 结合使用
