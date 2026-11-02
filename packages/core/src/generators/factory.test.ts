@@ -876,3 +876,79 @@ describe('generateFactory with schemas.importPath', () => {
     expect(typeImport?.importPath).not.toContain('factories');
   });
 });
+
+describe('generateFactory (formatType)', () => {
+  const dayjs = {
+    type: 'Dayjs',
+    decode: 'dayjs',
+    decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+  };
+
+  it('decodes the default and the placeholder of a mapped format', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'endsAt'],
+      properties: {
+        startsAt: { type: 'string', format: 'date-time' },
+        endsAt: {
+          type: 'string',
+          format: 'date-time',
+          default: '2026-01-01T00:00:00Z',
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({
+        override: { formatType: { 'date-time': dayjs } },
+      }),
+    );
+
+    expect(result?.model).toContain(
+      `startsAt: dayjs('${new Date(0).toISOString()}')`,
+    );
+    expect(result?.model).toContain('endsAt: dayjs("2026-01-01T00:00:00Z")');
+    expect(result?.imports).toContainEqual({
+      ...dayjs.decodeImport,
+      values: true,
+    });
+  });
+
+  it('treats a Date mapping like useDates', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt'],
+      properties: { startsAt: { type: 'string', format: 'date-time' } },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({
+        override: { formatType: { 'date-time': { type: 'Date' } } },
+      }),
+    );
+
+    expect(result?.model).toContain('startsAt: new Date(0)');
+  });
+
+  it('fails when a mapped format has no decode', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['price'],
+      properties: { price: { type: 'string', format: 'money' } },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Product',
+        createMockContext({
+          override: { formatType: { money: { type: 'Big' } } },
+        }),
+      ),
+    ).toThrow('override.formatType.money (Big): factory methods need `decode`');
+  });
+});

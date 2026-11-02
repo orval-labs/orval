@@ -1998,3 +1998,121 @@ describe('getMockScalar (format lookup is own-property only)', () => {
     expect(result.value).toBe('faker.lorem.word()');
   });
 });
+
+describe('getMockScalar (formatType)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+  const dateTime = { type: 'string', format: 'date-time', name: 'startsAt' };
+  const dayjsImport = { name: 'dayjs', importPath: 'dayjs', default: true };
+
+  it('uses the mapped mock and its import', () => {
+    const result = getScalar({
+      ...baseArg,
+      item: dateTime,
+      context: scalarContext({
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            mock: 'dayjs(faker.date.past())',
+            mockImport: dayjsImport,
+            decode: 'dayjs',
+            decodeImport: dayjsImport,
+          },
+        },
+      }),
+    });
+
+    expect(result.value).toBe('dayjs(faker.date.past())');
+    expect(result.imports).toEqual([{ ...dayjsImport, values: true }]);
+  });
+
+  it('decodes the faker string without a mock', () => {
+    const result = getScalar({
+      ...baseArg,
+      item: dateTime,
+      context: scalarContext({
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            decode: 'dayjs',
+            decodeImport: dayjsImport,
+          },
+        },
+      }),
+    });
+
+    expect(result.value).toBe(
+      "dayjs(faker.date.past().toISOString().slice(0, 19) + 'Z')",
+    );
+    expect(result.imports).toEqual([{ ...dayjsImport, values: true }]);
+  });
+
+  it('mocks a mapped format faker has no generator for', () => {
+    const item = {
+      type: 'string',
+      format: 'money',
+      pattern: '^[0-9]+$',
+      name: 'price',
+    };
+    const mock = (formatType: {
+      type: string;
+      mock?: string;
+      decode?: string;
+    }) =>
+      getScalar({
+        ...baseArg,
+        item,
+        context: scalarContext({ formatType: { money: formatType } }),
+      }).value;
+
+    expect(mock({ type: 'Big', mock: 'Big(1)', decode: 'Big' })).toBe('Big(1)');
+    expect(mock({ type: 'Big', decode: 'Big' })).toBe(
+      'Big(faker.helpers.fromRegExp("^[0-9]+$"))',
+    );
+  });
+
+  it('keeps the enum mock of a mapped format', () => {
+    const result = getScalar({
+      ...baseArg,
+      item: { ...dateTime, enum: ['2024-01-01T00:00:00Z'] },
+      context: scalarContext({
+        formatType: { 'date-time': { type: 'Dayjs' } },
+      }),
+    });
+
+    expect(result.value).not.toContain('dayjs');
+  });
+
+  it('treats a Date mapping like useDates', () => {
+    const result = getScalar({
+      ...baseArg,
+      item: dateTime,
+      context: scalarContext({
+        formatType: { 'date-time': { type: 'Date' } },
+      }),
+    });
+
+    expect(result.value).toBe(
+      "new Date(faker.date.past().toISOString().slice(0, 19) + 'Z')",
+    );
+  });
+
+  it('fails without mock or decode', () => {
+    expect(() =>
+      getScalar({
+        ...baseArg,
+        item: dateTime,
+        context: scalarContext({
+          formatType: { 'date-time': { type: 'Dayjs' } },
+        }),
+      }),
+    ).toThrow(
+      'override.formatType.date-time (Dayjs): mocks need `mock` or `decode`',
+    );
+  });
+});

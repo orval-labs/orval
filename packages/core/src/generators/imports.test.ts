@@ -5,6 +5,7 @@ import type { GeneratorMutator } from '../types';
 import {
   addDependency,
   generateDependencyImports,
+  generateImports,
   generateMutatorImports,
   generateVerbImports,
 } from './imports';
@@ -21,6 +22,23 @@ const makeMutator = (path: string): GeneratorMutator => ({
 });
 
 describe('imports generator helpers', () => {
+  describe('generateImports', () => {
+    it('writes default imports', () => {
+      expect(
+        generateImports({
+          imports: [
+            { name: 'dayjs', importPath: 'dayjs', default: true, values: true },
+            { name: 'Big', importPath: 'big.js', default: true },
+          ],
+        }),
+      ).toBe(
+        ["import type Big from 'big.js';", "import dayjs from 'dayjs';"].join(
+          '\n',
+        ),
+      );
+    });
+  });
+
   describe('generateVerbImports', () => {
     it('aliases a Zod schema named "Error" when it is required as a runtime value', () => {
       const verbOptions = createTestGeneratorVerbOptions({

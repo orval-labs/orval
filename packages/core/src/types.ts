@@ -1447,27 +1447,36 @@ export type SchemaExtension<
 /** Known OpenAPI string formats with autocomplete, open to any string */
 export type StringFormat = 'date' | 'date-time' | 'time' | (string & {});
 
+export interface FormatTypeImport {
+  name: string;
+  importPath: string;
+  default?: boolean;
+}
+
 /** User-facing configuration for a single string-format type override */
 export interface FormatTypeConfig {
   /** TypeScript type name (e.g. 'Dayjs', 'Temporal.PlainDate', 'UUID') */
   type: string;
   /** Import for the type if needed */
-  import?: { name: string; importPath: string; default?: boolean };
+  import?: FormatTypeImport;
+  /** Function expression turning a wire string into `type` (e.g. 'dayjs') */
+  decode?: string;
+  decodeImport?: FormatTypeImport;
   /** Zod schema config */
   zod?: {
     /** Expression appended as .transform() (e.g. 'dayjs') */
     transform?: string;
     /** Import for the transform function */
-    transformImport?: { name: string; importPath: string; default?: boolean };
+    transformImport?: FormatTypeImport;
     /** Replace the entire Zod schema chain with a custom codec reference */
     codec?: string;
     /** Import for the codec */
-    codecImport?: { name: string; importPath: string; default?: boolean };
+    codecImport?: FormatTypeImport;
   };
   /** Faker mock expression override */
   mock?: string;
   /** Import for the mock expression's runtime dependency */
-  mockImport?: { name: string; importPath: string; default?: boolean };
+  mockImport?: FormatTypeImport;
 }
 
 export type FormatTypeMap = { [K in StringFormat]?: FormatTypeConfig };
@@ -1475,6 +1484,8 @@ export type FormatTypeMap = { [K in StringFormat]?: FormatTypeConfig };
 export interface NormalizedFormatTypeConfig {
   type: string;
   import?: GeneratorImport;
+  decode?: string;
+  decodeImport?: GeneratorImport;
   zod?: {
     transform?: string;
     transformImport?: GeneratorImport;

@@ -9,6 +9,7 @@ import {
   type AngularOptions,
   type ConfigExternal,
   type EffectOptions,
+  type FormatTypeImport,
   type FormatTypeMap,
   FormDataArrayHandling,
   type FakerMockOptions,
@@ -88,9 +89,7 @@ export function normalizeFormatType(
 ): NormalizedFormatTypeMap | undefined {
   if (!formatTypeConfig) return undefined;
 
-  const normalizeImport = (
-    imp: { name: string; importPath: string; default?: boolean } | undefined,
-  ) =>
+  const normalizeImport = (imp: FormatTypeImport | undefined) =>
     imp
       ? { name: imp.name, importPath: imp.importPath, default: imp.default }
       : undefined;
@@ -108,6 +107,8 @@ export function normalizeFormatType(
     normalized[format] = {
       type: config.type,
       import: normalizeImport(config.import),
+      decode: config.decode,
+      decodeImport: normalizeImport(config.decodeImport),
       zod: config.zod
         ? {
             transform: config.zod.transform,

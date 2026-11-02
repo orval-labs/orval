@@ -35,6 +35,9 @@ export function getFormatTypeConfig(
     : undefined;
 }
 
+const isDateFormat = (format: string | undefined) =>
+  format === 'date' || format === 'date-time';
+
 export function resolveFormatType(
   format: string | undefined,
   override: NormalizedOverrideOutput,
@@ -42,11 +45,55 @@ export function resolveFormatType(
   if (!format) return undefined;
   const config = getFormatTypeConfig(format, override);
   if (config) return { type: config.type, import: config.import };
-  if (override.useDates && (format === 'date' || format === 'date-time')) {
+  if (override.useDates && isDateFormat(format)) {
     return { type: 'Date' };
   }
   return undefined;
 }
+
+/**
+ * Whether values of the format are built-in `Date`s, converted the way
+ * `useDates` converts them: `useDates`, or a `type: 'Date'` mapping of
+ * `date` / `date-time`.
+ */
+export const isDateFormatType = (
+  format: string | undefined,
+  override: NormalizedOverrideOutput,
+) =>
+  isDateFormat(format) && resolveFormatType(format, override)?.type === 'Date';
+
+/**
+ * The `formatType` entry behind the type `getScalar` gives this schema when
+ * that type is not a built-in `Date`, so generated code has to convert its
+ * values with the entry's own functions. Enums and constants keep their
+ * literal types.
+ */
+export function getCustomFormatType(
+  schema: OpenApiSchemaObject,
+  override: NormalizedOverrideOutput,
+): NormalizedFormatTypeConfig | undefined {
+  if (
+    isBooleanJsonSchema(schema) ||
+    schema.enum ||
+    schema.const !== undefined ||
+    isDateFormatType(schema.format, override)
+  ) {
+    return undefined;
+  }
+  return getFormatTypeConfig(schema.format, override);
+}
+
+/** A call of a `formatType` function expression such as `decode`. */
+export const callFormatTypeFunction = (fn: string, argument: string) =>
+  `${/^[\w$.]+$/.test(fn) ? fn : `(${fn})`}(${argument})`;
+
+/** The generation error for a path that cannot convert a mapped format. */
+export const getFormatTypeError = (
+  format: string | undefined,
+  config: NormalizedFormatTypeConfig,
+  requirement: string,
+) =>
+  new Error(`override.formatType.${format} (${config.type}): ${requirement}`);
 
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
 type SchemaEnumValue = string | number | boolean | null;
@@ -363,7 +410,10 @@ export function getScalar({
       );
       // `useDates` types a date enum as `Date` too; a custom type keeps the
       // enum's literals.
-      if (formatResolved && (!isEnum || formatResolved.type === 'Date')) {
+      if (
+        formatResolved &&
+        (!isEnum || isDateFormatType(schemaFormat, context.output.override))
+      ) {
         value = formatResolved.type;
         if (formatResolved.import) formatImports.push(formatResolved.import);
       }

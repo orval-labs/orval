@@ -3,11 +3,15 @@ import {
   type ContextSpec,
   EnumGeneration,
   type GeneratorImport,
+  callFormatTypeFunction,
+  getCustomFormatType,
   getFormatTypeConfig,
+  getFormatTypeError,
   getRefInfo,
   isInlineSchema,
   getStringLiteralType,
   isBoolean,
+  isDateFormatType,
   isNullOnlyEnum,
   isNumber,
   isString,
@@ -16,6 +20,7 @@ import {
   safeNumericConstraint,
   toJsLiteral,
   type MockOptions,
+  type NormalizedFormatTypeConfig,
   type OpenApiSchemaObject,
   isOctetStreamContentType,
 } from '@orval/core';
@@ -57,6 +62,29 @@ interface GetMockScalarOptions {
   // Set only by the array case for its `items`: an enum there mocks the whole
   // array, so it picks a subset instead of a single value.
   isArrayItems?: boolean;
+}
+
+/**
+ * The mock of a value whose `formatType` mapping changes the type of
+ * `fakerValue`, the wire string Orval would otherwise mock.
+ */
+function getFormatTypeMock(
+  format: string | undefined,
+  config: NormalizedFormatTypeConfig,
+  fakerValue: string,
+  imports: GeneratorImport[],
+): string {
+  if (config.mock) {
+    if (config.mockImport) imports.push({ ...config.mockImport, values: true });
+    return config.mock;
+  }
+  if (config.decode) {
+    if (config.decodeImport) {
+      imports.push({ ...config.decodeImport, values: true });
+    }
+    return callFormatTypeFunction(config.decode, fakerValue);
+  }
+  throw getFormatTypeError(format, config, 'mocks need `mock` or `decode`');
 }
 
 export function getMockScalar({
@@ -160,13 +188,15 @@ export function getMockScalar({
           : undefined
         : item.example;
     if (propertyExample !== undefined) {
+      const exampleImports: GeneratorImport[] = [];
       return {
         value: formatSchemaExampleValue(
           propertyExample,
           item as OpenApiSchemaObject,
           context,
+          exampleImports,
         ),
-        imports: [],
+        imports: exampleImports,
         name: item.name,
         overrided: true,
       };
@@ -231,31 +261,29 @@ export function getMockScalar({
   // truthy non-strings that get interpolated into the generated mock (emitting
   // uncompilable TypeScript) or crash the `.startsWith` check in combine.ts.
   // Mirrors the guard on the media-type map in core's `body.ts`.
+  const customFormatType = getCustomFormatType(
+    item as OpenApiSchemaObject,
+    context.output.override,
+  );
   if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];
-    const formatConfig = getFormatTypeConfig(
-      item.format,
-      context.output.override,
-    );
     const mockImports: GeneratorImport[] = [];
 
-    if (formatConfig) {
-      if (formatConfig.mock) {
-        value = formatConfig.mock;
-        if (formatConfig.mockImport) {
-          mockImports.push({ ...formatConfig.mockImport, values: true });
-        }
-      } else if (formatConfig.type === 'Date') {
-        value = `new Date(${value})`;
-      }
-    } else {
-      const dateFormats = ['date', 'date-time'];
-      if (
-        dateFormats.includes(item.format) &&
-        context.output.override.useDates
-      ) {
-        value = `new Date(${value})`;
-      }
+    if (customFormatType) {
+      value = getFormatTypeMock(
+        item.format,
+        customFormatType,
+        value,
+        mockImports,
+      );
+    } else if (isDateFormatType(item.format, context.output.override)) {
+      const dateConfig = getFormatTypeConfig(
+        item.format,
+        context.output.override,
+      );
+      value = dateConfig?.mock
+        ? getFormatTypeMock(item.format, dateConfig, value, mockImports)
+        : `new Date(${value})`;
     }
 
     return {
@@ -587,6 +615,14 @@ export function getMockScalar({
         value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
       } else if ('const' in item) {
         value = JSON.stringify(item.const);
+      }
+      if (customFormatType) {
+        value = getFormatTypeMock(
+          item.format,
+          customFormatType,
+          value,
+          stringImports,
+        );
       }
 
       return {

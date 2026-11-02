@@ -1,10 +1,16 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { getFormatTypeConfig } from '../getters/scalar';
+import {
+  callFormatTypeFunction,
+  getCustomFormatType,
+  getFormatTypeError,
+  isDateFormatType,
+} from '../getters/scalar';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   GeneratorImport,
+  NormalizedFormatTypeConfig,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
@@ -291,7 +297,9 @@ function buildPayload(
 
   const { constValue } = getExtendedProps(schema);
   if (constValue !== undefined) return formatValue(constValue);
-  if (schema.default !== undefined) return buildDefaultPayload(schema, context);
+  if (schema.default !== undefined) {
+    return buildDefaultPayload(schema, context, imports);
+  }
 
   const schemaType = inferSchemaType(schema);
 
@@ -299,7 +307,7 @@ function buildPayload(
   if (schemaType === 'array')
     return buildArrayPayload(schema, context, parents, imports);
 
-  return buildPrimitivePayload(schema, schemaType, context);
+  return buildPrimitivePayload(schema, schemaType, context, imports);
 }
 
 function buildRefPayload(
@@ -495,31 +503,49 @@ function inferSchemaType(schema: OpenApiSchemaObject): string | undefined {
   return type;
 }
 
+/** A factory value of a custom `formatType`, decoded from its wire string. */
+function buildFormatTypePayload(
+  format: string | undefined,
+  formatType: NormalizedFormatTypeConfig,
+  wireValue: string,
+  imports: GeneratorImport[],
+): string {
+  if (!formatType.decode) {
+    throw getFormatTypeError(
+      format,
+      formatType,
+      'factory methods need `decode`',
+    );
+  }
+  if (formatType.decodeImport) {
+    imports.push({ ...formatType.decodeImport, values: true });
+  }
+  return callFormatTypeFunction(formatType.decode, wireValue);
+}
+
 function buildDefaultPayload(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
+  imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return formatValue(undefined);
+  const formatType = getCustomFormatType(schema, context.output.override);
+  if (formatType) {
+    return buildFormatTypePayload(
+      schema.format,
+      formatType,
+      formatValue(schema.default),
+      imports,
+    );
+  }
   if (
     typeof schema.default === 'string' &&
-    (schema.format === 'date' || schema.format === 'date-time')
+    isDateFormatType(schema.format, context.output.override)
   ) {
     // The default is document text, and this builds a single-quoted literal by
     // hand: an unescaped `'` closed it and appended expressions to the
     // `new Date(...)` argument, which the factory then evaluated on every call.
-    const dateDefault = `new Date('${jsStringLiteralEscape(schema.default)}')`;
-    const formatConfig = getFormatTypeConfig(
-      schema.format,
-      context.output.override,
-    );
-    if (formatConfig) {
-      return formatConfig.type === 'Date'
-        ? dateDefault
-        : formatValue(schema.default);
-    }
-    if (context.output.override.useDates) {
-      return dateDefault;
-    }
+    return `new Date('${jsStringLiteralEscape(schema.default)}')`;
   }
   return formatValue(schema.default);
 }
@@ -528,6 +554,7 @@ function buildPrimitivePayload(
   schema: OpenApiSchemaObject,
   schemaType: string | undefined,
   context: ContextSpec,
+  imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return '{}';
   if (schemaType === 'null') return 'null';
@@ -554,21 +581,21 @@ function buildPrimitivePayload(
     if (enumValues && enumValues.length > 0) {
       return formatValue(enumValues[0]);
     }
-    if (schema.format === 'date' || schema.format === 'date-time') {
-      const formatConfig = getFormatTypeConfig(
+    const isDateFormat =
+      schema.format === 'date' || schema.format === 'date-time';
+    const wireValue = isDateFormat ? `'${new Date(0).toISOString()}'` : "''";
+    const formatType = getCustomFormatType(schema, context.output.override);
+    if (formatType) {
+      return buildFormatTypePayload(
         schema.format,
-        context.output.override,
+        formatType,
+        wireValue,
+        imports,
       );
-      if (formatConfig) {
-        return formatConfig.type === 'Date'
-          ? 'new Date(0)'
-          : `'${new Date(0).toISOString()}'`;
-      }
-      return context.output.override.useDates
-        ? 'new Date(0)'
-        : `'${new Date(0).toISOString()}'`;
     }
-    return "''";
+    return isDateFormatType(schema.format, context.output.override)
+      ? 'new Date(0)'
+      : wireValue;
   }
 
   return 'undefined as unknown';
