@@ -30,11 +30,11 @@ export const ListPetsResponseItem = /*#__PURE__*/ zod.object({
   id: /*#__PURE__*/ zod.int(),
   name: /*#__PURE__*/ zod.string(),
   tag: /*#__PURE__*/ zod.optional(
-    /*#__PURE__*/ zod.string().check(
-      /*#__PURE__*/ zod.refine(
-        (() => {
-          const maxPrecision = 3;
-          return (value) => {
+    (() => {
+      const maxPrecision = 3;
+      return /*#__PURE__*/ zod.string().check(
+        /*#__PURE__*/ zod.refine(
+          (value) => {
             if (
               typeof value !== 'string' ||
               !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
@@ -45,10 +45,16 @@ export const ListPetsResponseItem = /*#__PURE__*/ zod.object({
             const precision = value.split('.')[1]?.length ?? 0;
 
             return precision === 0 || precision <= maxPrecision;
-          };
-        })(),
-      ),
-    ),
+          },
+          {
+            error: (issue) =>
+              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+            abort: true,
+            params: { maxPrecision: 3, format: 'decimal' },
+          },
+        ),
+      );
+    })(),
   ),
   status: /*#__PURE__*/ zod.optional(
     /*#__PURE__*/ zod.enum(['new', 'sold', 'uknown']),
@@ -62,11 +68,11 @@ export const ListPetsResponse = /*#__PURE__*/ zod.array(ListPetsResponseItem);
  */
 export const CreatePetsBody = /*#__PURE__*/ zod.object({
   name: /*#__PURE__*/ zod.string(),
-  tag: /*#__PURE__*/ zod.string().check(
-    /*#__PURE__*/ zod.refine(
-      (() => {
-        const maxPrecision = 3;
-        return (value) => {
+  tag: (() => {
+    const maxPrecision = 3;
+    return /*#__PURE__*/ zod.string().check(
+      /*#__PURE__*/ zod.refine(
+        (value) => {
           if (
             typeof value !== 'string' ||
             !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
@@ -77,21 +83,27 @@ export const CreatePetsBody = /*#__PURE__*/ zod.object({
           const precision = value.split('.')[1]?.length ?? 0;
 
           return precision === 0 || precision <= maxPrecision;
-        };
-      })(),
-    ),
-  ),
+        },
+        {
+          error: (issue) =>
+            `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+          abort: true,
+          params: { maxPrecision: 3, format: 'decimal' },
+        },
+      ),
+    );
+  })(),
 });
 
 export const CreatePetsResponse = /*#__PURE__*/ zod.object({
   id: /*#__PURE__*/ zod.int(),
   name: /*#__PURE__*/ zod.string(),
   tag: /*#__PURE__*/ zod.optional(
-    /*#__PURE__*/ zod.string().check(
-      /*#__PURE__*/ zod.refine(
-        (() => {
-          const maxPrecision = 3;
-          return (value) => {
+    (() => {
+      const maxPrecision = 3;
+      return /*#__PURE__*/ zod.string().check(
+        /*#__PURE__*/ zod.refine(
+          (value) => {
             if (
               typeof value !== 'string' ||
               !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
@@ -102,10 +114,16 @@ export const CreatePetsResponse = /*#__PURE__*/ zod.object({
             const precision = value.split('.')[1]?.length ?? 0;
 
             return precision === 0 || precision <= maxPrecision;
-          };
-        })(),
-      ),
-    ),
+          },
+          {
+            error: (issue) =>
+              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+            abort: true,
+            params: { maxPrecision: 3, format: 'decimal' },
+          },
+        ),
+      );
+    })(),
   ),
   status: /*#__PURE__*/ zod.optional(
     /*#__PURE__*/ zod.enum(['new', 'sold', 'uknown']),
@@ -126,11 +144,11 @@ export const ShowPetByIdResponse = /*#__PURE__*/ zod.object({
   id: /*#__PURE__*/ zod.int(),
   name: /*#__PURE__*/ zod.string(),
   tag: /*#__PURE__*/ zod.optional(
-    /*#__PURE__*/ zod.string().check(
-      /*#__PURE__*/ zod.refine(
-        (() => {
-          const maxPrecision = 3;
-          return (value) => {
+    (() => {
+      const maxPrecision = 3;
+      return /*#__PURE__*/ zod.string().check(
+        /*#__PURE__*/ zod.refine(
+          (value) => {
             if (
               typeof value !== 'string' ||
               !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
@@ -141,10 +159,16 @@ export const ShowPetByIdResponse = /*#__PURE__*/ zod.object({
             const precision = value.split('.')[1]?.length ?? 0;
 
             return precision === 0 || precision <= maxPrecision;
-          };
-        })(),
-      ),
-    ),
+          },
+          {
+            error: (issue) =>
+              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+            abort: true,
+            params: { maxPrecision: 3, format: 'decimal' },
+          },
+        ),
+      );
+    })(),
   ),
   status: /*#__PURE__*/ zod.optional(
     /*#__PURE__*/ zod.enum(['new', 'sold', 'uknown']),

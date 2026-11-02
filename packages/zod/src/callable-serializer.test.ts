@@ -1,5 +1,7 @@
 import { runInNewContext } from 'node:vm';
 
+import type { BoundRefinement } from '@orval/core';
+import * as ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { serializeCallable } from './callable-serializer';
@@ -21,6 +23,18 @@ const evaluate = (source: string): ((value: unknown) => boolean) => {
     }
     return output;
   };
+};
+
+/** Evaluate both emitted arguments, including the `as const` tuple emitted for shared captures. */
+const evaluateRefinementArgs = (source: string): [unknown, unknown] => {
+  const javascript = ts.transpileModule(`const args = [${source}]; args;`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const result: unknown = runInNewContext(javascript);
+  if (!Array.isArray(result) || result.length !== 2) {
+    throw new TypeError('Expected two serialized refinement arguments');
+  }
+  return [result[0] as unknown, result[1] as unknown];
 };
 
 describe('serializeCallable', () => {
@@ -223,6 +237,133 @@ describe('serializeCallable', () => {
     });
     expect(evaluate(source)(message)).toBe(true);
     expect(evaluate(source)('different')).toBe(false);
+  });
+
+  it('serializes all Zod 4 refinement options and shares bindings across callbacks', () => {
+    const maximum = 10;
+    const fieldName = 'amount';
+    const descriptor: BoundRefinement<number, 4> = {
+      callable: (value) => value <= maximum,
+      options: {
+        error: (issue) =>
+          `${fieldName}: ${String(issue.input)} exceeds ${maximum}`,
+        abort: true,
+        path: ['payload', 0],
+        params: { maximum, kind: 'limit' },
+        when: ({ value }) => typeof value === 'number' && value > maximum - 2,
+      },
+      bindings: { maximum, fieldName },
+    };
+
+    const source = serializeCallable(descriptor);
+    expect(source).toContain('return [');
+    expect(source).toContain('] as const;');
+    expect(source.match(/const maximum = 10;/g)).toHaveLength(1);
+    expect(source).toContain('const fieldName = "amount";');
+
+    const [callable, rawOptions] = evaluateRefinementArgs(source);
+    expect(typeof callable).toBe('function');
+    if (!isCallable(callable)) throw new TypeError('Missing predicate');
+    expect(callable(11)).toBe(false);
+    expect(callable(10)).toBe(true);
+
+    const options = rawOptions as {
+      error: (issue: { input: unknown }) => string;
+      abort: boolean;
+      path: (string | number)[];
+      params: { maximum: number; kind: string };
+      when: (payload: { value: unknown }) => boolean;
+    };
+    expect(options.error({ input: 11 })).toBe('amount: 11 exceeds 10');
+    expect(options.abort).toBe(true);
+    expect(options.path).toEqual(['payload', 0]);
+    expect(options.params).toEqual({ maximum: 10, kind: 'limit' });
+    expect(options.when({ value: 9 })).toBe(true);
+    expect(options.when({ value: 7 })).toBe(false);
+  });
+
+  it('serializes Zod 3 options factories and bindings used only by options', () => {
+    const prefix = 'Quantity';
+    const descriptor: BoundRefinement<number, 3> = {
+      callable: (value) => value > 0,
+      options: (value) => ({
+        message: `${prefix}: ${value} must be positive`,
+        path: ['quantity'],
+        params: { provided: value },
+      }),
+      bindings: { prefix },
+    };
+    const source = serializeCallable(descriptor);
+    expect(source).toContain('const prefix = "Quantity";');
+    const [callable, optionsFactory] = evaluateRefinementArgs(source);
+    if (!isCallable(callable) || !isCallable(optionsFactory)) {
+      throw new TypeError('Serialized Zod 3 arguments must be callables');
+    }
+    expect(callable(-1)).toBe(false);
+    expect(optionsFactory(-1)).toEqual({
+      message: 'Quantity: -1 must be positive',
+      path: ['quantity'],
+      params: { provided: -1 },
+    });
+  });
+
+  it('serializes static options without adding an unnecessary lexical wrapper', () => {
+    const callable = (value: number) => value > 1;
+    const source = serializeCallable({
+      callable,
+      options: { message: 'Too small', path: ['amount'] },
+      bindings: null,
+    });
+    expect(source).not.toContain('(() =>');
+    const [predicate, options] = evaluateRefinementArgs(source);
+    expect(typeof predicate).toBe('function');
+    expect(options).toEqual({ message: 'Too small', path: ['amount'] });
+    expect(
+      serializeCallable({ callable, options: 'Too small', bindings: null }),
+    ).toBe(`(${callable.toString()}), "Too small"`);
+  });
+
+  it('does not execute options functions during serialization', () => {
+    let invoked = 0;
+    const callable = (value: number) => value >= 0;
+    const options = () => {
+      invoked++;
+      return { message: 'invalid' };
+    };
+    expect(() =>
+      serializeCallable({ callable, options, bindings: null }),
+    ).toThrow('unresolved external reference(s): invoked');
+    expect(invoked).toBe(0);
+  });
+
+  it('rejects unresolved, native, and unused references in nested options', () => {
+    const minimum = 3;
+    const callable = (value: number) => value > minimum;
+    const missing = 4;
+    expect(() =>
+      serializeCallable({
+        callable,
+        options: { error: () => String(missing) },
+        bindings: { minimum },
+      }),
+    ).toThrow('unresolved external reference(s): missing');
+    expect(() =>
+      serializeCallable({
+        callable,
+        options: {
+          // @ts-expect-error Test the runtime rejection of invalid native callbacks.
+          error: Math.max,
+        },
+        bindings: { minimum },
+      }),
+    ).toThrow('Cannot serialize a native callable');
+    expect(() =>
+      serializeCallable({
+        callable: (value: number) => value > 0,
+        options: { error: 'invalid' },
+        bindings: { minimum },
+      }),
+    ).toThrow('Unused callable binding: minimum');
   });
 
   it('rejects unused bindings', () => {
