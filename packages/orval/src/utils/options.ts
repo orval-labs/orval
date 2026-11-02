@@ -13,6 +13,7 @@ import {
   type FakerMockOptions,
   type GlobalMockOptions,
   getFileInfo,
+  getTagKey,
   type GlobalOptions,
   type HonoOptions,
   type Hook,
@@ -1296,6 +1297,30 @@ export async function normalizeOptions(
     }
   }
 
+  // In tag modes the Angular service class of a tag bucket reads its
+  // `provideIn` from the `override.tags` entry whose key maps to that bucket.
+  // Two keys mapping to the same bucket (`Pet Store` and `pet-store`) would
+  // make that pick depend on key order, so reject the config instead.
+  if (
+    normalizedOptions.output.client === OutputClient.ANGULAR &&
+    tagBucketModes.has(normalizedOptions.output.mode)
+  ) {
+    const tagKeyOwners = new Map<string, string>();
+    for (const tag of Object.keys(normalizedOptions.output.override.tags)) {
+      const tagKey = getTagKey(tag);
+      const owner = tagKeyOwners.get(tagKey);
+      if (owner !== undefined) {
+        throw new Error(
+          styleText(
+            'red',
+            `\`override.tags["${owner}"]\` and \`override.tags["${tag}"]\` both resolve to the "${tagKey}" tag. Keep a single entry per tag.`,
+          ),
+        );
+      }
+      tagKeyOwners.set(tagKey, tag);
+    }
+  }
+
   if (
     normalizedOptions.output.httpClient === OutputHttpClient.FETCH &&
     normalizedOptions.output.optionsParamRequired &&
@@ -1532,6 +1557,13 @@ true satisfies UnlistedZodKey extends never ? true : never;
 const supportedZodKeysLabel = `${operationZodOverrideKeys
   .slice(0, -1)
   .join(', ')}, and ${operationZodOverrideKeys.at(-1)}`;
+
+const tagBucketModes = new Set<OutputMode>([
+  OutputMode.TAGS,
+  OutputMode.TAGS_SPLIT,
+  OutputMode.TAGS_OPERATIONS,
+  OutputMode.TAGS_OPERATIONS_SPLIT,
+]);
 
 function normalizeOperationsAndTags(
   operationsOrTags: Record<string, OperationOptions>,

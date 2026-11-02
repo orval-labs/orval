@@ -59,7 +59,9 @@ export function isOperationInTagBucket(
  *
  * Config keys are written the way the tag appears in the spec (`Admin Users`),
  * while bucket keys are canonical (`admin-users`), so both sides go through
- * {@link getTagKey} before comparing.
+ * {@link getTagKey} before comparing. For the Angular client in tag modes,
+ * option normalization rejects configs where two keys resolve to the same
+ * bucket, so the match does not depend on key order.
  */
 export function getTagOverride(
   tags: Record<string, NormalizedOperationOptions | undefined>,

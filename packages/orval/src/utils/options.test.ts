@@ -1503,6 +1503,62 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('override.tags keys that resolve to the same tag bucket', () => {
+    const normalizeWithTags = async (
+      client: 'angular' | 'fetch',
+      mode: 'single' | 'tags' | 'tags-split' | 'tags-operations',
+    ) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client,
+              mode,
+              override: {
+                tags: {
+                  'Pet Store': { angular: { provideIn: false } },
+                  'pet-store': { angular: { provideIn: 'root' } },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it.each(['tags', 'tags-split', 'tags-operations'] as const)(
+      'rejects them for the angular client in %s mode',
+      async (mode) => {
+        await expect(normalizeWithTags('angular', mode)).rejects.toThrow(
+          /`override\.tags\["Pet Store"\]` and `override\.tags\["pet-store"\]` both resolve to the "pet-store" tag/,
+        );
+      },
+    );
+
+    it('accepts them outside tag modes', async () => {
+      await expect(
+        normalizeWithTags('angular', 'single'),
+      ).resolves.toBeDefined();
+    });
+
+    it('accepts them for other clients', async () => {
+      await expect(normalizeWithTags('fetch', 'tags')).resolves.toBeDefined();
+    });
+  });
+
   it('normalizes schemas: false to undefined', async () => {
     const workspace = await createTempWorkspace();
 
