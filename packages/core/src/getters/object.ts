@@ -723,22 +723,34 @@ export function getObject({
     };
   }
 
-  const keyType =
-    itemType === 'object' ? getIndexSignatureKey(schemaItem) : 'string';
   // A closed object (`additionalProperties: false` / `unevaluatedProperties:
-  // false`) with no declared properties admits only `{}`, so the index
-  // signature value must be `never` rather than `unknown`. `patternProperties`
+  // false`) with no declared properties admits only `{}`, so emit a `never`
+  // string index signature. `propertyNames` cannot widen that (no key is
+  // allowed at all), and a `Partial<Record<K, never>>` form would still accept
+  // `{ k: undefined, extra: 1 }` through a variable without
+  // `exactOptionalPropertyTypes`, so it is ignored here. `patternProperties`
   // still allows matching keys, so keep the permissive type there. See #4429.
-  const isClosedEmptyObject =
+  if (
     itemType === 'object' &&
     outerAdditionalProps === false &&
-    !schemaItem.patternProperties;
-  const indexValueType = isClosedEmptyObject ? 'never' : 'unknown';
-  const recordType = getPropertyNamesRecordType(
-    schemaItem,
-    indexValueType,
-    context,
-  );
+    !schemaItem.patternProperties
+  ) {
+    return {
+      value: '{ [key: string]: never }' + nullable,
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'object',
+      isRef: false,
+      hasReadonlyProps: readOnlyFlag ?? false,
+      useTypeAlias: false,
+      dependencies: [],
+    };
+  }
+
+  const keyType =
+    itemType === 'object' ? getIndexSignatureKey(schemaItem) : 'string';
+  const recordType = getPropertyNamesRecordType(schemaItem, 'unknown', context);
   if (itemType === 'object' && recordType) {
     return {
       value: recordType.value + nullable,
@@ -754,9 +766,8 @@ export function getObject({
   }
   return {
     value:
-      (itemType === 'object'
-        ? `{ [key: ${keyType}]: ${indexValueType} }`
-        : 'unknown') + nullable,
+      (itemType === 'object' ? `{ [key: ${keyType}]: unknown }` : 'unknown') +
+      nullable,
     imports: [],
     schemas: [],
     isEnum: false,

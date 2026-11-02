@@ -202,6 +202,16 @@ describe('getObject', () => {
       );
     });
 
+    it('ignores propertyNames and still emits a string never index signature', () => {
+      expect(
+        render({
+          type: 'object',
+          additionalProperties: false,
+          propertyNames: { enum: ['allowed'] },
+        }),
+      ).toBe('{ [key: string]: never }');
+    });
+
     it('keeps the nullable suffix', () => {
       expect(
         render({ type: 'object', additionalProperties: false }, ' | null'),
