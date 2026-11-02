@@ -28,7 +28,7 @@ export default defineConfig({
 
 ## 生成结果
 
-Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 Valibot schema。body 和 response 的 schema 来自 JSON、`multipart/form-data` 或 `application/x-www-form-urlencoded` 内容，response 取 `200` 响应（没有时取第一个带内容的其他 2xx 响应）。其他媒体类型（例如 `text/plain`）不会生成 schema：
+Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 Valibot schema。body 和 response 的 schema 来自 JSON、`multipart/form-data` 或 `application/x-www-form-urlencoded` 内容，response 依次取 `200`、`2XX`/`2xx` 响应，否则取第一个除 `204` 和 `205` 以外的其他 2xx 响应。其他媒体类型（例如 `text/plain`）不会生成 schema：
 
 ```ts
 import * as v from 'valibot';

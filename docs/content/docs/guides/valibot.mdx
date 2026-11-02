@@ -28,7 +28,7 @@ export default defineConfig({
 
 ## Generated Output
 
-Orval generates a Valibot schema for the params, query, headers, body and response of each operation. The body and response schemas come from JSON, `multipart/form-data` or `application/x-www-form-urlencoded` content, and the response schema from the `200` response (or the first other 2xx response with content). Other media types, such as `text/plain`, get no schema:
+Orval generates a Valibot schema for the params, query, headers, body and response of each operation. The body and response schemas come from JSON, `multipart/form-data` or `application/x-www-form-urlencoded` content, and the response schema from the `200` response, then `2XX`/`2xx`, then the first other 2xx response except `204` and `205`. Other media types, such as `text/plain`, get no schema:
 
 ```ts
 import * as v from 'valibot';
