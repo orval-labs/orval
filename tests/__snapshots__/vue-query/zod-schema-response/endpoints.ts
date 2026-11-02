@@ -103,7 +103,6 @@ export type ListPetsQueryError = AxiosError<Error>;
 /**
  * @summary List all pets
  */
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
@@ -308,7 +307,6 @@ export type ShowPetByIdQueryError = AxiosError<Error>;
 /**
  * @summary Info for a specific pet
  */
-
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
@@ -498,7 +496,6 @@ export type HealthCheckQueryError = AxiosError<Error>;
 /**
  * @summary health check
  */
-
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = AxiosError<Error>,
@@ -606,7 +603,6 @@ export type ShowPetWithOwnerQueryError = AxiosError<Error>;
 /**
  * @summary combinate nullable and $ref
  */
-
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,

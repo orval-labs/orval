@@ -129,7 +129,6 @@ export type ListPetsInfiniteQueryError = Error;
 /**
  * @summary List all pets
  */
-
 export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
@@ -214,7 +213,6 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -311,7 +309,6 @@ export type CreatePetsQueryError = Error;
 /**
  * @summary Create a pet
  */
-
 export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
@@ -414,7 +411,6 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -496,7 +492,6 @@ export type PostApiV1UserLogoutQueryError = unknown;
 /**
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
-
 export function usePostApiV1UserLogout<
   TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError = unknown,

@@ -233,7 +233,6 @@ export function useListPetsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
@@ -459,7 +458,6 @@ export function useListBetsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListBetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listBets>>,
@@ -691,7 +689,6 @@ export function useListEventsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListEventsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listEvents>>,
@@ -923,7 +920,6 @@ export function useListRacesInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListRacesInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listRaces>>,

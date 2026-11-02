@@ -95,6 +95,9 @@ export type MusclesControllerFindAllQueryResult = NonNullable<
 >;
 export type MusclesControllerFindAllQueryError = unknown;
 
+/**
+ * @summary Return all muscles
+ */
 export function useMusclesControllerFindAll<
   TData = Awaited<ReturnType<typeof musclesControllerFindAll>>,
   TError = unknown,
@@ -121,6 +124,9 @@ export function useMusclesControllerFindAll<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Return all muscles
+ */
 export function useMusclesControllerFindAll<
   TData = Awaited<ReturnType<typeof musclesControllerFindAll>>,
   TError = unknown,
@@ -147,6 +153,9 @@ export function useMusclesControllerFindAll<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Return all muscles
+ */
 export function useMusclesControllerFindAll<
   TData = Awaited<ReturnType<typeof musclesControllerFindAll>>,
   TError = unknown,
@@ -168,7 +177,6 @@ export function useMusclesControllerFindAll<
 /**
  * @summary Return all muscles
  */
-
 export function useMusclesControllerFindAll<
   TData = Awaited<ReturnType<typeof musclesControllerFindAll>>,
   TError = unknown,
@@ -326,6 +334,9 @@ export type MusclesControllerCreateQueryResult = NonNullable<
 >;
 export type MusclesControllerCreateQueryError = unknown;
 
+/**
+ * @summary Create muscle
+ */
 export function useMusclesControllerCreate<
   TData = Awaited<ReturnType<typeof musclesControllerCreate>>,
   TError = unknown,
@@ -353,6 +364,9 @@ export function useMusclesControllerCreate<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Create muscle
+ */
 export function useMusclesControllerCreate<
   TData = Awaited<ReturnType<typeof musclesControllerCreate>>,
   TError = unknown,
@@ -380,6 +394,9 @@ export function useMusclesControllerCreate<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Create muscle
+ */
 export function useMusclesControllerCreate<
   TData = Awaited<ReturnType<typeof musclesControllerCreate>>,
   TError = unknown,
@@ -402,7 +419,6 @@ export function useMusclesControllerCreate<
 /**
  * @summary Create muscle
  */
-
 export function useMusclesControllerCreate<
   TData = Awaited<ReturnType<typeof musclesControllerCreate>>,
   TError = unknown,
@@ -545,6 +561,9 @@ export type MusclesControllerFindOneQueryResult = NonNullable<
 >;
 export type MusclesControllerFindOneQueryError = unknown;
 
+/**
+ * @summary Return one muscle
+ */
 export function useMusclesControllerFindOne<
   TData = Awaited<ReturnType<typeof musclesControllerFindOne>>,
   TError = unknown,
@@ -572,6 +591,9 @@ export function useMusclesControllerFindOne<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Return one muscle
+ */
 export function useMusclesControllerFindOne<
   TData = Awaited<ReturnType<typeof musclesControllerFindOne>>,
   TError = unknown,
@@ -599,6 +621,9 @@ export function useMusclesControllerFindOne<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Return one muscle
+ */
 export function useMusclesControllerFindOne<
   TData = Awaited<ReturnType<typeof musclesControllerFindOne>>,
   TError = unknown,
@@ -621,7 +646,6 @@ export function useMusclesControllerFindOne<
 /**
  * @summary Return one muscle
  */
-
 export function useMusclesControllerFindOne<
   TData = Awaited<ReturnType<typeof musclesControllerFindOne>>,
   TError = unknown,

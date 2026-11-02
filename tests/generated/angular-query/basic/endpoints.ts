@@ -169,7 +169,6 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-
 export function injectListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -365,7 +364,6 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-
 export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -553,7 +551,6 @@ export type HealthCheckQueryError = Error;
 /**
  * @summary health check
  */
-
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
@@ -656,7 +653,6 @@ export type ShowPetWithOwnerQueryError = Error;
 /**
  * @summary combinate nullable and $ref
  */
-
 export function injectShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,

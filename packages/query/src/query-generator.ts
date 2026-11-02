@@ -49,6 +49,35 @@ import {
 } from './utils';
 
 /**
+ * JSDoc for the generated hooks of an operation: the operation's description,
+ * `@summary` and `@deprecated` (the same block the plain request function
+ * gets), plus an optional `@route METHOD /path` line.
+ */
+export const getHookDoc = ({
+  description,
+  summary,
+  deprecated,
+  route,
+}: {
+  description?: string;
+  summary?: string;
+  deprecated?: boolean;
+  route?: string;
+}): string => {
+  const doc = jsDoc({ description, summary, deprecated });
+
+  if (!route) {
+    return doc;
+  }
+
+  const routeLine = ` * @route ${route.replaceAll('*/', String.raw`*\/`)}\n`;
+
+  return doc
+    ? doc.replace(/ \*\/\n$/, `${routeLine} */\n`)
+    : `/**\n${routeLine} */\n`;
+};
+
+/**
  * Decide whether the current operation's configuration conflicts with a
  * `mutationInvalidates` rule. The rule wires its invalidation through the
  * Mutation hook's `onSuccess`, so referencing an operation that is not
@@ -1135,10 +1164,11 @@ ${hookOptions}
     deprecated,
   });
 
+  // Callers only ever see the overloads, so each one carries the docs.
   const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
   const prefetchContext = {
     usePrefetch,
@@ -1285,8 +1315,7 @@ export type ${pascal(
 export type ${pascal(optionTypeName)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
-${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
     {
       propsString: adapter.getHookPropsDefinitions(signatureProps),
       body,
@@ -1367,7 +1396,9 @@ export const generateQueryHook = async (
     response,
     operationId,
     summary,
+    description,
     deprecated,
+    pathRoute,
   } = verbOptions;
   const {
     route,
@@ -1386,7 +1417,14 @@ export const generateQueryHook = async (
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   const httpClient = context.output.httpClient;
-  const doc = jsDoc({ summary, deprecated });
+  const doc = getHookDoc({
+    description,
+    summary,
+    deprecated,
+    route: override.query.docs?.route
+      ? `${verb.toUpperCase()} ${pathRoute}`
+      : undefined,
+  });
 
   let implementation = '';
   let mutators: GeneratorMutator[] | undefined;

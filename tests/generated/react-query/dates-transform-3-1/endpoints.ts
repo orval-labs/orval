@@ -178,7 +178,6 @@ export function useGetSubscription<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetSubscription<
   TData = Awaited<ReturnType<typeof getSubscription>>,
   TError = unknown,

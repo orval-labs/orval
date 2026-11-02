@@ -163,7 +163,6 @@ export function useGetWidget<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetWidget<
   TData = Awaited<ReturnType<typeof getWidget>>,
   TError = unknown,

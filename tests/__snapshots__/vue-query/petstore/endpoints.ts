@@ -149,7 +149,6 @@ export type ListPetsInfiniteQueryError = AxiosError<Error>;
 /**
  * @summary List all pets
  */
-
 export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
@@ -236,7 +235,6 @@ export type ListPetsQueryError = AxiosError<Error>;
 /**
  * @summary List all pets
  */
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
@@ -362,7 +360,6 @@ export type CreatePetsQueryError = AxiosError<Error>;
 /**
  * @summary Create a pet
  */
-
 export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = AxiosError<Error>,
@@ -482,7 +479,6 @@ export type ShowPetByIdQueryError = AxiosError<Error>;
 /**
  * @summary Info for a specific pet
  */
-
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
@@ -600,7 +596,6 @@ export type DeletePetByIdQueryError = AxiosError<Error>;
 /**
  * @summary Deletes a specific pet
  */
-
 export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = AxiosError<Error>,
@@ -705,7 +700,6 @@ export type HealthCheckQueryError = AxiosError<Error>;
 /**
  * @summary health check
  */
-
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = AxiosError<Error>,
@@ -827,7 +821,6 @@ export type ShowPetWithOwnerQueryError = AxiosError<Error>;
 /**
  * @summary combinate nullable and $ref
  */
-
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,

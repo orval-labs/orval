@@ -178,7 +178,6 @@ export type SearchPetsQueryError = Error;
 /**
  * @summary search by query params
  */
-
 export function injectSearchPets<
   TData = Awaited<ReturnType<typeof searchPets>>,
   TError = Error,
@@ -277,7 +276,6 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-
 export function injectListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -465,7 +463,6 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-
 export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -820,7 +817,6 @@ export type ShowPetTextQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-
 export function injectShowPetText<
   TData = Awaited<ReturnType<typeof showPetText>>,
   TError = Error,
@@ -928,6 +924,7 @@ export type UploadFileMutationError = void | Error;
 export type UploadFileMutationVariables = { petId: number; data?: Blob };
 
 /**
+ * Upload image of the pet.
  * @summary Uploads an image.
  */
 export const injectUploadFile = <
@@ -1030,6 +1027,7 @@ export type UploadFormDataMutationVariables = {
 };
 
 /**
+ * Upload a file for a pet using multipart/form-data.
  * @summary Upload a file via multipart form data.
  */
 export const injectUploadFormData = <
@@ -1119,9 +1117,9 @@ export type DownloadFileQueryResult = NonNullable<
 export type DownloadFileQueryError = void | Error;
 
 /**
+ * Download image of the pet.
  * @summary Download an image.
  */
-
 export function injectDownloadFile<
   TData = Awaited<ReturnType<typeof downloadFile>>,
   TError = void | Error,
@@ -1215,7 +1213,6 @@ export type HealthCheckQueryError = Error;
 /**
  * @summary Health check
  */
-
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,

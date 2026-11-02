@@ -13,6 +13,7 @@ import { createFrameworkAdapter } from './frameworks';
 import {
   allowUndefinedParam,
   getBuilderQueryFnProperty,
+  getHookDoc,
   getInfinitePageParamType,
   getInfiniteQueryBody,
   getMutationInvalidatesConflictWarning,
@@ -1208,5 +1209,36 @@ describe('infinite query page param in the request body', () => {
         "http, {...params, ...(pageParam != null ? { 'before': pageParam } : {})}",
       );
     });
+  });
+});
+
+describe('getHookDoc', () => {
+  it('returns an empty string when the operation has no docs', () => {
+    expect(getHookDoc({})).toBe('');
+  });
+
+  it('renders a route-only block when there is nothing else to document', () => {
+    expect(getHookDoc({ route: 'GET /pets' })).toBe(
+      '/**\n * @route GET /pets\n */\n',
+    );
+  });
+
+  it('appends the route after description, deprecated and summary', () => {
+    expect(
+      getHookDoc({
+        description: 'Lists pets.',
+        summary: 'List pets',
+        deprecated: true,
+        route: 'GET /pets/{petId}',
+      }),
+    ).toBe(
+      '/**\n * Lists pets.\n * @deprecated\n * @summary List pets\n * @route GET /pets/{petId}\n */\n',
+    );
+  });
+
+  it('escapes a comment terminator in the route', () => {
+    expect(getHookDoc({ route: 'GET /a*/b' })).toContain(
+      String.raw`@route GET /a*\/b`,
+    );
   });
 });

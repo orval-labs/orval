@@ -1399,6 +1399,43 @@ export default defineConfig({
 
 仅适用于 React Query v5。Suspense queries 不受影响——TanStack 不会在其 `queryFn` 中使用 `SkipToken`。
 
+### docs
+
+**类型：** `Object`
+
+生成的 query 和 mutation hooks 总会带上 operation 的 JSDoc（description、`@summary` 和 `@deprecated`），并写在每个重载签名上，因此悬停时即可看到。使用 `docs` 可以向该注释块追加更多内容。
+
+#### route
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+以 `@route` 行的形式加入 operation 的 HTTP 方法和 OpenAPI 路径。
+
+```ts
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          docs: { route: true },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts
+/**
+ * Info for a specific pet
+ * @summary Info for a specific pet
+ * @route GET /pets/{petId}
+ */
+export function useShowPetById<...>(...)
+```
+
 ### mutationInvalidates
 
 **类型：** `Array`

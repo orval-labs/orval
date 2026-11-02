@@ -166,6 +166,9 @@ export type ListHouseCatsInfiniteQueryResult = NonNullable<
 >;
 export type ListHouseCatsInfiniteQueryError = unknown;
 
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCatsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listHouseCats>>,
@@ -216,6 +219,9 @@ export function useListHouseCatsInfinite<
 ): DefinedUseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCatsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listHouseCats>>,
@@ -266,6 +272,9 @@ export function useListHouseCatsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCatsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listHouseCats>>,
@@ -307,7 +316,6 @@ export function useListHouseCatsInfinite<
 /**
  * @summary List all cats of a house
  */
-
 export function useListHouseCatsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listHouseCats>>,
@@ -420,6 +428,9 @@ export type ListHouseCatsQueryResult = NonNullable<
 >;
 export type ListHouseCatsQueryError = unknown;
 
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
@@ -453,6 +464,9 @@ export function useListHouseCats<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
@@ -486,6 +500,9 @@ export function useListHouseCats<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all cats of a house
+ */
 export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,
@@ -512,7 +529,6 @@ export function useListHouseCats<
 /**
  * @summary List all cats of a house
  */
-
 export function useListHouseCats<
   TData = Awaited<ReturnType<typeof listHouseCats>>,
   TError = unknown,

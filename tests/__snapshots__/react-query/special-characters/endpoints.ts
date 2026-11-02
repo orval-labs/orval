@@ -177,6 +177,9 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
+/**
+ * @summary List all pets
+ */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -200,6 +203,9 @@ export function useListPets<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all pets
+ */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -223,6 +229,9 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all pets
+ */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -241,7 +250,6 @@ export function useListPets<
 /**
  * @summary List all pets
  */
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -518,6 +526,9 @@ export type ListPetsNestedArrayQueryResult = NonNullable<
 >;
 export type ListPetsNestedArrayQueryError = Error;
 
+/**
+ * @summary List all pets as nested array
+ */
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = Error,
@@ -545,6 +556,9 @@ export function useListPetsNestedArray<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all pets as nested array
+ */
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = Error,
@@ -572,6 +586,9 @@ export function useListPetsNestedArray<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List all pets as nested array
+ */
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = Error,
@@ -594,7 +611,6 @@ export function useListPetsNestedArray<
 /**
  * @summary List all pets as nested array
  */
-
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = Error,
@@ -712,6 +728,9 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
+/**
+ * @summary Info for a specific pet
+ */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -735,6 +754,9 @@ export function useShowPetById<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Info for a specific pet
+ */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -758,6 +780,9 @@ export function useShowPetById<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Info for a specific pet
+ */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -776,7 +801,6 @@ export function useShowPetById<
 /**
  * @summary Info for a specific pet
  */
-
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,

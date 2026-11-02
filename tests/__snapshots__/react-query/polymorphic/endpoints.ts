@@ -181,7 +181,6 @@ export function useGetPolymorphicResponse<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetPolymorphicResponse<
   TData = Awaited<ReturnType<typeof getPolymorphicResponse>>,
   TError = unknown,

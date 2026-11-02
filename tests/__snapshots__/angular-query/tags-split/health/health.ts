@@ -74,7 +74,6 @@ export type HealthCheckQueryError = Error;
 /**
  * @summary health check
  */
-
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,

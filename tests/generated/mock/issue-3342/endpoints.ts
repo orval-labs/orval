@@ -733,6 +733,9 @@ export type ListProfilesQueryResult = NonNullable<
 >;
 export type ListProfilesQueryError = unknown;
 
+/**
+ * @summary List profiles
+ */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -755,6 +758,9 @@ export function useListProfiles<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List profiles
+ */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -777,6 +783,9 @@ export function useListProfiles<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary List profiles
+ */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -794,7 +803,6 @@ export function useListProfiles<
 /**
  * @summary List profiles
  */
-
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,

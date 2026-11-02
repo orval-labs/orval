@@ -145,7 +145,6 @@ export type HealthCheckQueryError = Error;
 /**
  * @summary health check
  */
-
 export function createHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,

@@ -1937,6 +1937,9 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useSkipToken)
       ? {}
       : { useSkipToken: queryOptions.useSkipToken }),
+    ...(globalOptions.docs || queryOptions.docs
+      ? { docs: { ...globalOptions.docs, ...queryOptions.docs } }
+      : {}),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),
