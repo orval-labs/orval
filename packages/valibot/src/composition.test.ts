@@ -470,4 +470,76 @@ describe('composition', () => {
     expect(valibot).not.toContain('v.unknown()');
     expect(output({ a: 'x', extra: 1 })).toEqual({ a: 'x' });
   });
+
+  describe('allOf members that check nothing', () => {
+    const base: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        createdAt: { type: 'string', format: 'date-time' },
+      },
+    };
+    const input = { name: 'a', createdAt: '2020-01-01T00:00:00Z', secret: 'x' };
+
+    it.each([
+      ['a description', { description: 'A pet' }],
+      ['an empty schema', {}],
+      ['true', true],
+    ] satisfies [string, OpenApiSchemaObject][])(
+      'leaves out %s and still strips other keys',
+      (_label, member) => {
+        const { valibot, output } = gen({ allOf: [base, member] });
+        expect(valibot).not.toContain('v.unknown()');
+        expect(output(input)).toEqual({
+          name: 'a',
+          createdAt: '2020-01-01T00:00:00Z',
+        });
+      },
+    );
+
+    it('keeps dates parsed next to a description member', () => {
+      const { output } = gen(
+        { allOf: [base, { description: 'A pet' }] },
+        { useDates: true },
+      );
+      expect(output(input)).toEqual({
+        name: 'a',
+        createdAt: new Date('2020-01-01T00:00:00Z'),
+      });
+    });
+
+    it('keeps dates parsed next to an open object member', () => {
+      const { valibot, output } = gen(
+        { allOf: [base, { type: 'object', additionalProperties: true }] },
+        { useDates: true },
+      );
+      expect(valibot).not.toContain('v.record');
+      expect(output(input)).toEqual({
+        name: 'a',
+        createdAt: new Date('2020-01-01T00:00:00Z'),
+      });
+    });
+
+    it('keeps an open object member next to a nullable object', () => {
+      const { ok } = gen({
+        allOf: [
+          { type: ['object', 'null'], properties: { a: { type: 'string' } } },
+          { type: 'object', additionalProperties: true },
+        ],
+      });
+      expect(ok({ a: 'x' })).toBe(true);
+      expect(ok(null)).toBe(false);
+    });
+
+    it('keeps an open object member when no other member is an object', () => {
+      const { ok } = gen({
+        allOf: [
+          { type: 'object', additionalProperties: true },
+          { description: 'x' },
+        ],
+      });
+      expect(ok({ a: 1 })).toBe(true);
+      expect(ok('x')).toBe(false);
+    });
+  });
 });

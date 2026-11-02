@@ -264,6 +264,36 @@ const ownScalar = (
   return node.schema.kind === 'unknown' ? undefined : node;
 };
 
+const isObjectNode = (node: ValibotNode): boolean =>
+  node.schema.kind === 'object' || node.schema.kind === 'objectWithRest';
+
+// A member that accepts any object, such as `additionalProperties: true`.
+const isOpenRecord = (node: ValibotNode): boolean =>
+  node.schema.kind === 'record' &&
+  node.schema.value.schema.kind === 'unknown' &&
+  node.actions.length === 0 &&
+  !node.nullable;
+
+const isAnnotationOnly = (node: ValibotNode): boolean =>
+  isUnknown(node) && node.actions.every(({ kind }) => kind === 'describe');
+
+// An intersection returns each member's output merged, so a member that checks
+// nothing would add back the keys the others strip, and its raw values would
+// not merge with a date the others transform. Such members are left out: an
+// unknown one always, an open record when an object member already checks the
+// type.
+const allOfMembers = (members: ValibotNode[]): ValibotNode[] => {
+  // A nullable object member accepts null, which the record rejects.
+  const hasObject = members.some(
+    (member) => isObjectNode(member) && !member.nullable,
+  );
+  const kept = members.filter(
+    (member) =>
+      !isAnnotationOnly(member) && !(hasObject && isOpenRecord(member)),
+  );
+  return kept.length > 0 ? kept : [plainNode({ kind: 'unknown' })];
+};
+
 // An allOf member is generated without `required`, which the parent applies.
 const withoutRequired = (member: OpenApiSchemaObject): OpenApiSchemaObject => {
   if (!isNonBoolean(member)) return member;
@@ -313,7 +343,10 @@ const generateGroup = (
   if (variant) return plainBase(variant.schema);
 
   if (key === 'allOf') {
-    return plainBase({ kind: 'intersect', members: [...members, ...own] });
+    return plainBase({
+      kind: 'intersect',
+      members: allOfMembers([...members, ...own]),
+    });
   }
   const union = plainNode({ kind: 'union', members });
   const coversOwn =
