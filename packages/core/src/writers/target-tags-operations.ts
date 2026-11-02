@@ -9,7 +9,12 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import { getOperationTagKey, isOperationInTagBucket, pascal } from '../utils';
+import {
+  getOperationTagKey,
+  getTagOverride,
+  isOperationInTagBucket,
+  pascal,
+} from '../utils';
 import { flattenMockOutput } from './mock-outputs';
 import { hasTypeScriptAwaitedType } from './typescript-version';
 
@@ -202,7 +207,9 @@ export async function generateTargetForTagsOperations(
       isRequestOptions: options.override.requestOptions !== false,
       isMutator,
       isGlobalMutator: !!options.override.mutator,
-      provideIn: options.override.angular.provideIn,
+      provideIn:
+        getTagOverride(options.override.tags, tag)?.angular?.provideIn ??
+        options.override.angular.provideIn,
       hasAwaitedType,
       titles,
       output: options,

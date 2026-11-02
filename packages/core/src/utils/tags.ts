@@ -1,4 +1,4 @@
-import { DefaultTag } from '../types';
+import { DefaultTag, type NormalizedOperationOptions } from '../types';
 import { kebab } from './case';
 
 /**
@@ -52,4 +52,22 @@ export function isOperationInTagBucket(
 ): boolean {
   if (tagKey == null) return true;
   return getOperationTagKey(operation) === getTagKey(tagKey);
+}
+
+/**
+ * The `override.tags` entry that applies to a tag bucket.
+ *
+ * `tagKey` must be the canonical bucket key from {@link getOperationTagKey},
+ * so it is compared as-is: canonicalizing it again would map the empty key of
+ * a punctuation-only tag (`-`) to the `default` bucket. Config keys are written
+ * the way the tag appears in the spec (`Admin Users`), so only they go through
+ * {@link getTagKey}. For the Angular client in tag modes, option normalization
+ * rejects configs where two keys resolve to the same bucket, so the match does
+ * not depend on key order.
+ */
+export function getTagOverride(
+  tags: Record<string, NormalizedOperationOptions | undefined>,
+  tagKey: string,
+): NormalizedOperationOptions | undefined {
+  return Object.entries(tags).find(([key]) => getTagKey(key) === tagKey)?.[1];
 }

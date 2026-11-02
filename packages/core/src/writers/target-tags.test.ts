@@ -5,7 +5,7 @@ import {
   createSplitModeOperation,
   createSplitModeOutput,
 } from '../test-utils/split-modes';
-import { OutputMode, type WriteSpecBuilder } from '../types';
+import { OutputClient, OutputMode, type WriteSpecBuilder } from '../types';
 import { generateTargetForTags } from './target-tags';
 
 // Regression: tag bucket keys come from the OpenAPI document, and `kebab` leaves
@@ -85,4 +85,57 @@ describe('generateTargetForTags — tags that collide with Object.prototype', ()
 
     expect([...buckets.keys()].sort()).toEqual(['health', 'pets']);
   });
+});
+
+describe('generateTargetForTags: per-tag angular.provideIn (issue #4425)', () => {
+  const generateProvideInByTag = async (mode: OutputMode) => {
+    const provideInByTag = new Map<string, unknown>();
+    const builder: WriteSpecBuilder = {
+      ...builderWith({
+        getPlans: createSplitModeOperation({
+          tags: ['Public'],
+          operationName: 'getPlans',
+        }),
+        listReports: createSplitModeOperation({
+          tags: ['Admin Reports'],
+          operationName: 'listReports',
+        }),
+        listUsers: createSplitModeOperation({
+          tags: ['Users'],
+          operationName: 'listUsers',
+        }),
+      }),
+      header: async ({ tag, provideIn }) => {
+        provideInByTag.set(tag ?? '', provideIn);
+        return { implementation: '', implementationMock: '' };
+      },
+    };
+    const output = createSplitModeOutput('petstore.ts', {
+      mode,
+      client: OutputClient.ANGULAR,
+    });
+    output.override.angular.provideIn = 'root';
+    output.override.tags = {
+      Public: {
+        angular: { ...output.override.angular, provideIn: false },
+      },
+      'Admin Reports': {
+        angular: { ...output.override.angular, provideIn: 'any' },
+      },
+    };
+
+    await generateTargetForTags(builder, output);
+    return provideInByTag;
+  };
+
+  it.each([OutputMode.TAGS, OutputMode.TAGS_SPLIT])(
+    'uses the tag-level value for the service class in %s mode',
+    async (mode) => {
+      const provideInByTag = await generateProvideInByTag(mode);
+
+      expect(provideInByTag.get('public')).toBe(false);
+      expect(provideInByTag.get('admin-reports')).toBe('any');
+      expect(provideInByTag.get('users')).toBe('root');
+    },
+  );
 });
