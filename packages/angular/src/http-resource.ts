@@ -478,6 +478,11 @@ const isDirectRequestBody = ({
   return !!body.definition && !hasFormData && !hasFormUrlEncoded;
 };
 
+// The parameter getter writes a schema default into the implementation, so this
+// is the default the route and the generated signal both go by.
+const hasRouteDefault = (param: GeneratorVerbOptions['params'][number]) =>
+  getDefaultValueFromImplementation(param.implementation) !== undefined;
+
 interface IdleInput {
   readonly name: string;
   readonly optional: boolean;
@@ -496,12 +501,7 @@ const getIdleInputs = (
 ): IdleInput[] => {
   if (!supportsIdleGuard) return [];
   const routeDefaults = new Set(
-    verbOption.params
-      .filter(
-        (param) =>
-          getDefaultValueFromImplementation(param.implementation) !== undefined,
-      )
-      .map((param) => param.name),
+    verbOption.params.filter(hasRouteDefault).map((param) => param.name),
   );
   return verbOption.props.flatMap((prop): IdleInput[] => {
     switch (prop.type) {
@@ -542,13 +542,9 @@ const buildSignalProps = (
   params: GeneratorVerbOptions['params'],
   idleInputs: readonly IdleInput[],
 ): GeneratorVerbOptions['props'] => {
-  const paramDefaults = new Map<string, boolean>();
-  for (const param of params) {
-    const hasDefault =
-      getDefaultValueFromImplementation(param.implementation) !== undefined ||
-      param.default !== undefined;
-    paramDefaults.set(param.name, hasDefault);
-  }
+  const paramDefaults = new Map(
+    params.map((param) => [param.name, hasRouteDefault(param)]),
+  );
   const acceptsUndefined = new Set(idleInputs.map((input) => input.name));
 
   return props.map((prop) => {

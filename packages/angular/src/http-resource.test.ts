@@ -2810,7 +2810,7 @@ describe('angular httpResource generator', () => {
         }),
       );
 
-      expect(header).toContain('petId?: Signal<string>,');
+      expect(header).toContain('petId: Signal<string>,');
       expect(header).not.toContain('Signal<string | undefined>');
       expect(header).not.toContain('return undefined;');
     });
