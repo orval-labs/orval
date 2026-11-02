@@ -1,3 +1,4 @@
+import type { BoundRefinement } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
@@ -270,6 +271,151 @@ describe('schemaExtension refinement emission', () => {
       `.refine((${isNonEmptyString.toString()}))`,
     );
     expect(renderZodRefine([])).toBe('');
+  });
+
+  it('uses version-specific BoundRefinement option types', () => {
+    const callable = (value: number) => value > 0;
+    const zod3: BoundRefinement<number, 3> = {
+      callable,
+      options: (value) => ({ message: `Invalid ${value}`, path: ['quantity'] }),
+      bindings: null,
+    };
+    const zod4: BoundRefinement<number, 4> = {
+      callable,
+      options: {
+        error: (issue) => `Invalid ${String(issue.input)}`,
+        abort: true,
+      },
+      bindings: null,
+    };
+    const invalidZod3: BoundRefinement<number, 3> = {
+      callable,
+      // @ts-expect-error `error` is only supported by Zod 4.
+      options: { error: 'Not a Zod 3 option' },
+      bindings: null,
+    };
+    const invalidZod4: BoundRefinement<number, 4> = {
+      callable,
+      // @ts-expect-error Zod 4 removes functions as the second argument.
+      options: (value: number) => ({ message: String(value) }),
+      bindings: null,
+    };
+    expect(renderZodRefine(zod3, 'classic', 3)).toContain('message');
+    expect(renderZodRefine(zod4, 'classic', 4)).toContain('abort');
+    expect(invalidZod3.options).toEqual({ error: 'Not a Zod 3 option' });
+    expect(() => renderZodRefine(invalidZod4, 'classic', 4)).toThrow('Zod 4');
+  });
+
+  it('renders static Zod 3 refinement options as the second argument', () => {
+    const callable = (value: number) => value > 0;
+    expect(
+      renderZodRefine(
+        {
+          callable,
+          options: {
+            message: 'Must be positive',
+            path: ['quantity'],
+            params: { min: 0 },
+          },
+          bindings: null,
+        },
+        'classic',
+        3,
+      ),
+    ).toBe(
+      `.refine((${callable.toString()}), { "message": "Must be positive", "path": ["quantity"], "params": { "min": 0 } })`,
+    );
+    expect(
+      renderZodRefine(
+        { callable, options: 'Required', bindings: null },
+        'classic',
+        3,
+      ),
+    ).toBe(`.refine((${callable.toString()}), "Required")`);
+  });
+
+  it('renders a Zod 3 options factory with the predicate in the same closure', () => {
+    const minimum = 4;
+    const callable = (value: number) => value >= minimum;
+    const options = (value: number) => ({
+      message: `Expected >= ${minimum}; got ${value}`,
+    });
+    const output = renderZodRefine(
+      { callable, options, bindings: { minimum } },
+      'classic',
+      3,
+    );
+    expect(output).toContain('.refine(...(() => {');
+    expect(output).toContain('const minimum = 4;');
+    expect(output).toContain('] as const;');
+    expect(output).toContain(options.toString());
+  });
+
+  it('renders Zod 4 options with error/when callbacks for classic and Mini', () => {
+    const maximum = 8;
+    const descriptor = {
+      callable: (value: number) => value <= maximum,
+      options: {
+        error: (issue: { input: unknown }) =>
+          `Input ${String(issue.input)} exceeds ${maximum}`,
+        abort: true,
+        when: ({ value }: { value: unknown }) => typeof value === 'number',
+        params: { maximum },
+      },
+      bindings: { maximum },
+    };
+    const classic = renderZodRefine(descriptor, 'classic', 4);
+    const mini = renderZodRefine(descriptor, 'mini', 4);
+    expect(classic).toContain('.refine(...(() => {');
+    expect(mini).toContain('.check(/*#__PURE__*/ zod.refine(...(() => {');
+    expect(classic).toContain('"abort": true');
+    expect(classic).toContain('"when": (');
+    expect(classic).toContain('"error": (');
+    expect(classic).toContain('"params": { "maximum": 8 }');
+    expect(mini).toContain('const maximum = 8;');
+  });
+
+  it('forwards the selected version from appendZodRefinements', () => {
+    const descriptor = {
+      callable: (value: number) => value > 0,
+      options: (value: number) => ({ message: `bad: ${value}` }),
+      bindings: null,
+    };
+    expect(
+      appendZodRefinements(
+        'zod.number()',
+        [['refine', descriptor]],
+        'classic',
+        3,
+      ),
+    ).toContain('.refine(');
+    expect(() =>
+      appendZodRefinements(
+        'zod.number()',
+        [['refine', descriptor]],
+        'classic',
+        4,
+      ),
+    ).toThrow(
+      'Zod 4 does not support a function as the second refine argument',
+    );
+    expect(() => renderZodRefine(nonEmptyDescriptor, 'mini', 3)).toThrow(
+      'Zod Mini requires Zod 4',
+    );
+  });
+
+  it('rejects legacy message descriptors and malformed options at the renderer boundary', () => {
+    const invalid = [
+      { callable: isNonEmptyString, message: 'Legacy', bindings: null },
+      { callable: isNonEmptyString, options: 123, bindings: null },
+      { callable: isNonEmptyString, options: null, bindings: null },
+      { callable: isNonEmptyString, options: [], bindings: null },
+    ];
+    for (const value of invalid) {
+      expect(() => renderZodRefine(value)).toThrow(
+        'schemaExtension must return refinement descriptors',
+      );
+    }
   });
 
   it('rejects raw functions and invalid descriptors', () => {

@@ -1095,7 +1095,7 @@ export type ZodVersionOption = 3 | 4 | 'auto';
 
 export type ZodVariantOption = 'classic' | 'mini';
 
-interface BaseZodOptions {
+interface BaseZodOptions<TVersion extends ZodVersionOption = ZodVersionOption> {
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -1150,10 +1150,12 @@ interface BaseZodOptions {
    * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
    * validatorsGenerator may return either a single validator or a list, or null if evaluation indicates that
    * no refinements should be added. */
-  schemaExtension?: SchemaExtension;
+  schemaExtension?: SchemaExtension<TVersion>;
 }
 
-export interface ZodOptions extends BaseZodOptions {
+interface ZodOptionsBase<
+  TVersion extends ZodVersionOption,
+> extends BaseZodOptions<TVersion> {
   /**
    * Select the generated Zod API style. `classic` imports from `zod`; `mini`
    * imports from `zod/mini` and emits the functional/check-based Zod Mini API.
@@ -1166,7 +1168,7 @@ export interface ZodOptions extends BaseZodOptions {
    * infers from the detected package and otherwise falls back to Zod 4 output.
    * See {@link ZodVersionOption}.
    */
-  version?: ZodVersionOption;
+  version?: TVersion;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
@@ -1219,8 +1221,18 @@ export interface ZodOptions extends BaseZodOptions {
    * to append additional .refine() callbacks. These .refine() callbacks are generated
    * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
    * validatorsGenerator may return either a single validator or a list. */
-  schemaExtension?: SchemaExtension;
+  schemaExtension?: SchemaExtension<TVersion>;
 }
+
+/**
+ * Make version: 3 / 4 a discriminator so schemaExtension options are checked
+ * against the selected Zod major. `auto` cannot be resolved at type-check time,
+ * so it intentionally accepts either version's options.
+ */
+export type ZodOptions =
+  | (ZodOptionsBase<3> & { version: 3 })
+  | (ZodOptionsBase<4> & { version: 4 })
+  | (ZodOptionsBase<'auto'> & { version?: 'auto' });
 
 /**
  * Per-operation/tag Zod overrides only include settings that are actually
@@ -1304,16 +1316,76 @@ export type ZodCoerceType =
 
 type SchemaExtensionFormat = string;
 
-/** Function signature expected by the applicable Zod version's "check" validation method */
+/** Predicate accepted by a Zod `.refine()` call. */
 export type RefinementFunction<TValue = never> = (value: TValue) => boolean;
 
+/** Options accepted by the second argument of Zod 3's `.refine()`. */
+export type Zod3RefinementParams = {
+  message?: string;
+  path?: (string | number)[];
+  params?: object;
+};
+
+/** Zod 3 also permits producing the options from the validated value. */
+export type Zod3RefinementOptions<TValue> =
+  | string
+  | Zod3RefinementParams
+  | ((value: TValue) => Zod3RefinementParams);
+
+/** The custom issue handed to Zod 4's `error` callback. */
+export interface Zod4RefinementIssue {
+  readonly code: 'custom';
+  readonly input: unknown;
+  readonly path?: PropertyKey[];
+  readonly message?: string;
+  readonly params?: Record<string, unknown>;
+}
+
+/** Options accepted by Zod 4's `.refine()` / `zod.refine()`. */
+export type Zod4RefinementOptions =
+  | string
+  | {
+      error?:
+        | string
+        | ((
+            issue: Zod4RefinementIssue,
+          ) => string | { message: string } | undefined | null);
+      /** @deprecated Zod 4 prefers `error`. */
+      message?: string;
+      path?: PropertyKey[];
+      abort?: boolean;
+      when?: (payload: {
+        value: unknown;
+        issues: readonly unknown[];
+      }) => boolean;
+      params?: Record<string, unknown>;
+    };
+
 /**
- * A Callable to be inserted into a refinement, along with bindings to all variables referenced
- * in its scope. Anything referencing beyond the callable itself must be declared as a binding.
- * If no bindings are needed, null is an acceptable value.
+ * Match `.refine()` options to the generated Zod version. When version is
+ * `'auto'` (or not supplied), both forms remain available because the installed
+ * Zod major is only determined during generation.
  */
-export type BoundRefinement<TValue = never> = {
+export type ZodRefinementOptions<
+  TValue = never,
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = TVersion extends 3
+  ? Zod3RefinementOptions<TValue>
+  : TVersion extends 4
+    ? Zod4RefinementOptions
+    : Zod3RefinementOptions<TValue> | Zod4RefinementOptions;
+
+/**
+ * A refinement plus its optional Zod `.refine()` second argument. Both the
+ * validator and any functions nested inside `options` can capture values from
+ * `bindings`. If no bindings are needed, null is an acceptable value.
+ */
+export type BoundRefinement<
+  TValue = never,
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = {
   callable: RefinementFunction<TValue>;
+  options?: ZodRefinementOptions<TValue, TVersion>;
   bindings: Readonly<Record<string, unknown>> | null;
 };
 
@@ -1334,12 +1406,17 @@ type SchemaExtensionValue<T extends PrimitiveSchemaType> = T extends 'string'
 export type SchemaExtensionEntry<
   T extends PrimitiveSchemaType,
   TValue = SchemaExtensionValue<T>,
+  TVersion extends ZodVersionOption = ZodVersionOption,
 > = {
   type: T;
   format: SchemaExtensionFormat;
   validatorsGenerator: (
     openapi_object: Exclude<SchemaObject, boolean>,
-  ) => null | undefined | BoundRefinement<TValue> | BoundRefinement<TValue>[];
+  ) =>
+    | null
+    | undefined
+    | BoundRefinement<TValue, TVersion>
+    | BoundRefinement<TValue, TVersion>[];
 };
 
 /**
@@ -1352,14 +1429,17 @@ export type SchemaExtensionEntry<
 export const defineSchemaExtension = <
   T extends PrimitiveSchemaType,
   TValue = SchemaExtensionValue<T>,
+  TVersion extends ZodVersionOption = ZodVersionOption,
 >(
-  entry: SchemaExtensionEntry<T, TValue>,
-): SchemaExtensionEntry<T, TValue> => entry;
+  entry: SchemaExtensionEntry<T, TValue, TVersion>,
+): SchemaExtensionEntry<T, TValue, TVersion> => entry;
 
 /** Additional validation checks to append to validation chains for properties of type SchemaType
  * (excluding null and unknown types) and any format SchemaExtensionFormat.  */
-export type SchemaExtension = {
-  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never>;
+export type SchemaExtension<
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = {
+  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never, TVersion>;
 }[PrimitiveSchemaType][];
 
 export interface NormalizedZodOptions {

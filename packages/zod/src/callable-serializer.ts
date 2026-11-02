@@ -125,6 +125,7 @@ const findFreeIdentifiers = (source: string): string[] => {
 const serializeCaptureValue = (
   value: unknown,
   active = new Set<object>(),
+  onFunction?: (value: (...args: never[]) => unknown) => string,
 ): string => {
   if (value === null) return 'null';
   switch (typeof value) {
@@ -142,9 +143,11 @@ const serializeCaptureValue = (
       if (value === -Infinity) return '-Infinity';
       if (Object.is(value, -0)) return '-0';
       return String(value);
-    case 'symbol':
     case 'function':
-      throw new TypeError(`Cannot serialize captured ${typeof value}`);
+      if (onFunction) return onFunction(value as (...args: never[]) => unknown);
+      throw new TypeError('Cannot serialize captured function');
+    case 'symbol':
+      throw new TypeError('Cannot serialize captured symbol');
   }
 
   if (value instanceof RegExp) {
@@ -183,7 +186,9 @@ const serializeCaptureValue = (
         if (!descriptor || !('value' in descriptor)) {
           throw new TypeError('Cannot serialize captured accessor');
         }
-        entries.push(serializeCaptureValue(descriptor.value, active));
+        entries.push(
+          serializeCaptureValue(descriptor.value, active, onFunction),
+        );
       }
       if (Reflect.ownKeys(value).length !== value.length + 1) {
         throw new TypeError(
@@ -210,7 +215,7 @@ const serializeCaptureValue = (
       const property =
         key === '__proto__' ? `[${JSON.stringify(key)}]` : JSON.stringify(key);
       entries.push(
-        `${property}: ${serializeCaptureValue(descriptor.value, active)}`,
+        `${property}: ${serializeCaptureValue(descriptor.value, active, onFunction)}`,
       );
     }
     return `{ ${entries.join(', ')} }`;
@@ -220,32 +225,40 @@ const serializeCaptureValue = (
 };
 
 /**
- * Render a callable as an expression with its captured values re-declared.
+ * Serialize a refinement and its optional Zod `.refine()` second argument.
+ * Functions anywhere inside `options` share the predicate's captured bindings.
+ * Nothing is invoked during code generation; all functions are emitted as source.
  *
- * JavaScript cannot reflect the values held in a function's lexical closure.
- * The caller must pass those values in `bindings`; free identifiers that are
- * neither provided nor standard JS globals are rejected.
- *
- * `serializeCallable(fn, { limit: 5 })` yields a self-contained IIFE holding
- * `const limit = 5;` and returning the original function. Self-contained
- * functions keep their old `(${fn.toString()})` representation.
+ * Without options, the original single-expression representation is retained.
+ * With options, an argument fragment is returned (possibly using a spread IIFE
+ * to declare captured values once for both arguments).
  */
-
 export const serializeCallable = (descriptor: BoundRefinement): string => {
-  const { callable, bindings } = descriptor;
+  const { callable, options, bindings } = descriptor;
 
   if (typeof callable !== 'function') {
     throw new TypeError('RefinementDescriptor.callable must be a function');
   }
 
-  const source = callable.toString();
+  const free = new Set<string>();
+  const serializeFunction = (fn: (...args: never[]) => unknown): string => {
+    const source = fn.toString();
+    if (source.includes('[native code]')) {
+      throw new TypeError('Cannot serialize a native callable as a refinement');
+    }
+    for (const name of findFreeIdentifiers(source)) {
+      free.add(name);
+    }
+    return `(${source})`;
+  };
 
-  if (source.includes('[native code]')) {
-    throw new TypeError('Cannot serialize a native callable as a refinement');
-  }
+  const predicateSource = serializeFunction(callable);
+  const optionsSource =
+    options === undefined
+      ? undefined
+      : serializeCaptureValue(options, new Set<object>(), serializeFunction);
 
   const resolvedBindings = bindings ?? {};
-  const free = findFreeIdentifiers(source);
   const declarations: string[] = [];
   const used = new Set<string>();
   const unresolved: string[] = [];
@@ -273,6 +286,12 @@ export const serializeCallable = (descriptor: BoundRefinement): string => {
     }
   }
 
-  if (declarations.length === 0) return `(${source})`;
-  return `(() => {\n${declarations.join('\n')}\n  return (${source});\n})()`;
+  if (optionsSource === undefined) {
+    if (declarations.length === 0) return predicateSource;
+    return `(() => {\n${declarations.join('\n')}\n  return ${predicateSource};\n})()`;
+  }
+
+  const args = `${predicateSource}, ${optionsSource}`;
+  if (declarations.length === 0) return args;
+  return `...(() => {\n${declarations.join('\n')}\n  return [${args}] as const;\n})()`;
 };
