@@ -57,18 +57,17 @@ export function isOperationInTagBucket(
 /**
  * The `override.tags` entry that applies to a tag bucket.
  *
- * Config keys are written the way the tag appears in the spec (`Admin Users`),
- * while bucket keys are canonical (`admin-users`), so both sides go through
- * {@link getTagKey} before comparing. For the Angular client in tag modes,
- * option normalization rejects configs where two keys resolve to the same
- * bucket, so the match does not depend on key order.
+ * `tagKey` must be the canonical bucket key from {@link getOperationTagKey},
+ * so it is compared as-is: canonicalizing it again would map the empty key of
+ * a punctuation-only tag (`-`) to the `default` bucket. Config keys are written
+ * the way the tag appears in the spec (`Admin Users`), so only they go through
+ * {@link getTagKey}. For the Angular client in tag modes, option normalization
+ * rejects configs where two keys resolve to the same bucket, so the match does
+ * not depend on key order.
  */
 export function getTagOverride(
   tags: Record<string, NormalizedOperationOptions | undefined>,
   tagKey: string,
 ): NormalizedOperationOptions | undefined {
-  const canonicalTagKey = getTagKey(tagKey);
-  return Object.entries(tags).find(
-    ([key]) => getTagKey(key) === canonicalTagKey,
-  )?.[1];
+  return Object.entries(tags).find(([key]) => getTagKey(key) === tagKey)?.[1];
 }
