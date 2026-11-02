@@ -29,6 +29,7 @@ await describeApiGenerationSnapshots({
     generated('solid-start'),
     generated('svelte-query'),
     generated('swr'),
+    generated('valibot'),
     generated('vue-query'),
     generated('zod'),
   ],

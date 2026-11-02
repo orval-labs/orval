@@ -177,6 +177,7 @@
         "@orval/query": "workspace:*",
         "@orval/solid-start": "workspace:*",
         "@orval/swr": "workspace:*",
+        "@orval/valibot": "workspace:*",
         "@orval/zod": "workspace:*",
         "@scalar/json-magic": "^0.16.1",
         "@scalar/openapi-parser": "^0.29.15",
@@ -286,6 +287,25 @@
       },
       "optionalPeers": [
         "swr",
+      ],
+    },
+    "packages/valibot": {
+      "name": "@orval/valibot",
+      "version": "8.45.0",
+      "dependencies": {
+        "@orval/core": "workspace:*",
+      },
+      "devDependencies": {
+        "rimraf": "catalog:",
+        "typescript": "catalog:",
+        "valibot": "catalog:valibot",
+        "vite-plus": "catalog:",
+      },
+      "peerDependencies": {
+        "valibot": ">=1",
+      },
+      "optionalPeers": [
+        "valibot",
       ],
     },
     "packages/zod": {
@@ -1045,6 +1065,7 @@
         "svelte": "catalog:svelte",
         "swr": "catalog:swr",
         "typescript": "catalog:",
+        "valibot": "catalog:valibot",
         "vite-plus": "catalog:",
         "vue": "catalog:vue",
         "zod": "catalog:zod4",
@@ -1118,6 +1139,9 @@
     "tooling": {
       "@faker-js/faker": "10.3.0",
       "msw": "2.12.10",
+    },
+    "valibot": {
+      "valibot": "1.5.0",
     },
     "vue": {
       "@tanstack/vue-query": "5.92.7",
@@ -1693,6 +1717,8 @@
     "@orval/solid-start": ["@orval/solid-start@workspace:packages/solid-start"],
 
     "@orval/swr": ["@orval/swr@workspace:packages/swr"],
+
+    "@orval/valibot": ["@orval/valibot@workspace:packages/valibot"],
 
     "@orval/zod": ["@orval/zod@workspace:packages/zod"],
 
@@ -4107,6 +4133,8 @@
     "util-deprecate": ["util-deprecate@1.0.2", "", {}, "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="],
 
     "v8-compile-cache-lib": ["v8-compile-cache-lib@3.0.1", "", {}, "sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg=="],
+
+    "valibot": ["valibot@1.5.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ=="],
 
     "validate-npm-package-license": ["validate-npm-package-license@3.0.4", "", { "dependencies": { "spdx-correct": "^3.0.0", "spdx-expression-parse": "^3.0.0" } }, "sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew=="],
 

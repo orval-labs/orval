@@ -1,0 +1,117 @@
+---
+title: Valibot
+description: 从 OpenAPI 生成 Valibot schema
+---
+
+从 OpenAPI 规范生成 [Valibot](https://valibot.dev/) schema，用于运行时校验。
+
+## 配置
+
+将 `client` 选项设置为 `valibot`：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      mode: 'single',
+      target: './src/api/schemas.ts',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会为每个 operation 的 params、query、headers、body 和 response 各生成一个 Valibot schema。body 和 response 的 schema 来自 JSON、`multipart/form-data` 或 `application/x-www-form-urlencoded` 内容，response 依次取 `200`、`2XX`/`2xx` 响应，否则取第一个除 `204` 和 `205` 以外的其他 2xx 响应。其他媒体类型（例如 `text/plain`）不会生成 schema：
+
+```ts
+import * as v from 'valibot';
+
+export const CreatePetsBody = v.object({
+  id: v.pipe(v.number(), v.integer()),
+  name: v.string(),
+  tag: v.optional(v.string()),
+});
+```
+
+## 选项
+
+选项位于 [`override.valibot`](/docs/reference/configuration/output#overridevalibot)：
+
+- `strict` - 按位置（`param`、`query`、`header`、`body`、`response`）生成 `v.strictObject` 而不是 `v.object`。默认全部为 `false`。
+- `generate` - 按位置选择是否生成 schema。默认全部为 `true`。
+- `exactOptional` - 可选属性使用 `v.exactOptional`，适用于启用了 `exactOptionalPropertyTypes` 的项目。默认 `false`。
+
+## 用法
+
+### 解析数据
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy', tag: 'dog' });
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### 类型推断
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+type Pet = v.InferOutput<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### 安全解析
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const result = v.safeParse(CreatePetsBody, unknownData);
+
+if (result.success) {
+  console.log(result.output);
+} else {
+  console.error(result.issues);
+}
+```
+
+## 映射规则
+
+- `oneOf` 和 `anyOf` 生成 `v.union`；设置了 `discriminator` 时生成 `v.variant`。`allOf` 生成 `v.intersect`。
+- 对象会去掉未知的键。`strict` 选项生成 `v.strictObject`，`additionalProperties` 生成 `v.looseObject` 或 `v.record`。
+- `date` 和 `date-time` 字符串按 ISO 日期校验。设置 `override.useDates` 后会转换为 `Date`。
+- 二进制字段（`format: binary`）生成 `v.file()`，包括 `multipart/form-data` 请求体中的文件字段。
+- 请求体中会去掉 `readOnly` 属性，这与 Zod client 一致。
+
+## 限制
+
+- 递归 schema（循环 `$ref`）按 `unknown` 校验，并给出警告。
+- `prefixItems` 元组按 `unknown[]` 校验，并给出警告。
+- 每个 `$ref` 都会被内联，因此组件不会生成为可复用的常量，共享的 schema 可能让输出变得很大。
+- `oneOf` 不检查是否恰好只有一个备选项匹配。
+- 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。
+- Valibot schema 暂未接入 HTTP client：目前不支持 `schemas: { type: 'valibot' }`，也不支持对响应做运行时校验。
+
+## 与 HTTP Client 结合使用
+
+`valibot` client 只生成 schema。若要与其他 client 配合，请在单独的输出中生成该 client，然后自行解析响应：
+
+```ts
+import * as v from 'valibot';
+import { showPetById } from './src/api/endpoints';
+import { ShowPetByIdResponse } from './src/api/schemas';
+
+const response = await showPetById('1');
+const pet = v.parse(ShowPetByIdResponse, response.data);
+```

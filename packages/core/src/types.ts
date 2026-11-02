@@ -189,6 +189,7 @@ export interface NormalizedOverrideOutput {
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   effect: NormalizedEffectOptions;
+  valibot: NormalizedValibotOptions;
   axios: NormalizedAxiosOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
@@ -277,6 +278,7 @@ export interface NormalizedOperationOptions {
   swr?: SwrOptions;
   zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -603,6 +605,7 @@ export const OutputClient = {
   PINIA_COLADA: 'pinia-colada',
   ZOD: 'zod',
   EFFECT: 'effect',
+  VALIBOT: 'valibot',
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
@@ -968,6 +971,7 @@ export interface OverrideOutput {
   angular?: AngularOptions;
   zod?: ZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -1291,6 +1295,16 @@ export interface EffectOptions {
   version?: EffectVersionOption;
 }
 
+export interface ValibotOptions {
+  strict?: ZodOptions['strict'];
+  generate?: ZodOptions['generate'];
+  /**
+   * When true, optional object properties use `v.exactOptional(schema)` so
+   * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
+   */
+  exactOptional?: boolean;
+}
+
 export type ZodCoerceType =
   | 'string'
   | 'number'
@@ -1411,6 +1425,12 @@ export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
   OperationZodOverrideKey
 >;
+
+export interface NormalizedValibotOptions {
+  strict: NormalizedZodOptions['strict'];
+  generate: NormalizedZodOptions['generate'];
+  exactOptional: boolean;
+}
 
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];
@@ -1867,6 +1887,7 @@ export interface OperationOptions {
   swr?: SwrOptions;
   zod?: OperationZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,

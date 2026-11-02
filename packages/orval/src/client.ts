@@ -42,6 +42,7 @@ const GENERATOR_LOADERS: Record<string, () => Promise<GeneratorModule>> = {
   'pinia-colada': () => import('@orval/pinia-colada'),
   zod: () => import('@orval/zod'),
   effect: () => import('@orval/effect'),
+  valibot: () => import('@orval/valibot'),
   hono: () => import('@orval/hono'),
   fetch: () => import('@orval/fetch'),
   mcp: () => import('@orval/mcp'),
@@ -179,6 +180,7 @@ const createGeneratorClient = (
     case OutputClient.SWR:
     case OutputClient.ZOD:
     case OutputClient.EFFECT:
+    case OutputClient.VALIBOT:
     case OutputClient.HONO:
     case OutputClient.FETCH:
     case OutputClient.MCP:
@@ -290,6 +292,11 @@ export const getGeneratorClient = async (
         OutputClient.EFFECT,
         output,
         modules.effect,
+      ),
+      valibot: createGeneratorClient(
+        OutputClient.VALIBOT,
+        output,
+        modules.valibot,
       ),
       hono: createGeneratorClient(OutputClient.HONO, output, modules.hono),
       fetch: createGeneratorClient(OutputClient.FETCH, output, modules.fetch),

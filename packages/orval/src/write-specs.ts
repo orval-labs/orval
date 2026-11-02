@@ -566,7 +566,7 @@ function isNamedReExportOf(line: string, specifier: string): boolean {
 function isSchemaValidatorClient(
   client: NormalizedOptions['output']['client'],
 ): boolean {
-  return client === 'zod' || client === 'effect';
+  return client === 'zod' || client === 'effect' || client === 'valibot';
 }
 
 function shouldGenerateZodSchemasInline(

@@ -1,0 +1,117 @@
+---
+title: Valibot
+description: Generate Valibot schemas from OpenAPI
+---
+
+Generate [Valibot](https://valibot.dev/) schemas from your OpenAPI specification for runtime validation.
+
+## Configuration
+
+Set the `client` option to `valibot`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      mode: 'single',
+      target: './src/api/schemas.ts',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates a Valibot schema for the params, query, headers, body and response of each operation. The body and response schemas come from JSON, `multipart/form-data` or `application/x-www-form-urlencoded` content, and the response schema from the `200` response, then `2XX`/`2xx`, then the first other 2xx response except `204` and `205`. Other media types, such as `text/plain`, get no schema:
+
+```ts
+import * as v from 'valibot';
+
+export const CreatePetsBody = v.object({
+  id: v.pipe(v.number(), v.integer()),
+  name: v.string(),
+  tag: v.optional(v.string()),
+});
+```
+
+## Options
+
+Options live under [`override.valibot`](/docs/reference/configuration/output#overridevalibot):
+
+- `strict` - per location (`param`, `query`, `header`, `body`, `response`), emit `v.strictObject` instead of `v.object`. All `false` by default.
+- `generate` - per location, choose which schemas are generated. All `true` by default.
+- `exactOptional` - use `v.exactOptional` for optional properties, for projects with `exactOptionalPropertyTypes`. `false` by default.
+
+## Usage
+
+### Parsing Data
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = v.parse(CreatePetsBody, { id: 1, name: 'Buddy', tag: 'dog' });
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### Type Inference
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+type Pet = v.InferOutput<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### Safe Parsing
+
+```ts
+import * as v from 'valibot';
+import { CreatePetsBody } from './src/api/schemas';
+
+const result = v.safeParse(CreatePetsBody, unknownData);
+
+if (result.success) {
+  console.log(result.output);
+} else {
+  console.error(result.issues);
+}
+```
+
+## Mapping
+
+- `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` is set. `allOf` becomes `v.intersect`.
+- Objects strip unknown keys. The `strict` option emits `v.strictObject`, and `additionalProperties` emits `v.looseObject` or `v.record`.
+- `date` and `date-time` strings are validated as ISO dates. With `override.useDates` they are converted to `Date`.
+- Binary fields (`format: binary`) become `v.file()`, including file parts in `multipart/form-data` bodies.
+- `readOnly` properties are left out of request bodies, as in the Zod client.
+
+## Limitations
+
+- Recursive schemas (circular `$ref`) are validated as `unknown`, with a warning.
+- `prefixItems` tuples are validated as `unknown[]`, with a warning.
+- Every `$ref` is inlined, so components are not emitted as reusable constants and shared schemas can make the output large.
+- `oneOf` does not check that exactly one alternative matches.
+- Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected.
+- Valibot schemas are not wired into the HTTP clients yet: `schemas: { type: 'valibot' }` and runtime validation of responses are not available.
+
+## Combining with HTTP Clients
+
+The `valibot` client generates schemas only. To use it with another client, generate that client in a separate output and parse responses yourself:
+
+```ts
+import * as v from 'valibot';
+import { showPetById } from './src/api/endpoints';
+import { ShowPetByIdResponse } from './src/api/schemas';
+
+const response = await showPetById('1');
+const pet = v.parse(ShowPetByIdResponse, response.data);
+```
