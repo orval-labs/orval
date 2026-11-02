@@ -3505,7 +3505,7 @@ ${Object.entries(objectArgs)
       if (Array.isArray(restArgs.consts)) {
         appendConstsChunk(restArgs.consts.join('\n'));
       }
-      return `.rest(zod${restValue})`;
+      return `.rest(${restValue.startsWith('.') ? 'zod' : ''}${restValue})`;
     }
     const shouldCoerceType =
       coerceTypes &&
