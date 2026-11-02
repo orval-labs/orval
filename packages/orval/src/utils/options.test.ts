@@ -1455,6 +1455,54 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('falls back to the global angular provideIn on tag overrides that omit it (issue #4425)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                provideIn: 'any',
+              },
+              tags: {
+                Public: {
+                  angular: {
+                    provideIn: false,
+                  },
+                },
+                Users: {
+                  angular: {
+                    queryObjectSerialization: 'legacy',
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.tags.Public?.angular?.provideIn).toBe(
+        false,
+      );
+      expect(normalized.output.override.tags.Users?.angular?.provideIn).toBe(
+        'any',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes schemas: false to undefined', async () => {
     const workspace = await createTempWorkspace();
 

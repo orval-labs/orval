@@ -11,6 +11,7 @@ import {
 import {
   escapeRegExp,
   getOperationTagKey,
+  getTagOverride,
   isOperationInTagBucket,
   pascal,
 } from '../utils';
@@ -284,7 +285,9 @@ export async function generateTargetForTags(
           isRequestOptions: options.override.requestOptions !== false,
           isMutator,
           isGlobalMutator: !!options.override.mutator,
-          provideIn: options.override.angular.provideIn,
+          provideIn:
+            getTagOverride(options.override.tags, tag)?.angular?.provideIn ??
+            options.override.angular.provideIn,
           hasAwaitedType,
           titles,
           output: options,

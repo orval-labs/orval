@@ -11,6 +11,7 @@ import {
 } from '../test-utils/split-modes';
 import { OutputClient, OutputMockType, OutputMode } from '../types';
 import { writeTagsOperationsMode } from './tags-operations-mode';
+import { generateTargetForTagsOperations } from './target-tags-operations';
 
 describe('writeTagsOperationsMode', () => {
   let tmpDir: string;
@@ -551,5 +552,54 @@ describe('writeTagsOperationsMode', () => {
     expect(fs.readFileSync(listPetsPath, 'utf8')).toContain(
       "import { execute } from '../runtime';",
     );
+  });
+});
+
+describe('generateTargetForTagsOperations — per-tag angular.provideIn (issue #4425)', () => {
+  it('uses the tag-level value for the header of each tag', async () => {
+    const provideInByTag = new Map<string, unknown>();
+    const baseProps = createSplitModeProps('petstore.ts');
+    const output = createSplitModeOutput('petstore.ts', {
+      mode: OutputMode.TAGS_OPERATIONS,
+      client: OutputClient.ANGULAR,
+    });
+    output.override.angular.provideIn = 'root';
+    output.override.tags = {
+      Public: {
+        angular: { ...output.override.angular, provideIn: false },
+      },
+      'Admin Reports': {
+        angular: { ...output.override.angular, provideIn: 'any' },
+      },
+    };
+
+    await generateTargetForTagsOperations(
+      {
+        ...baseProps.builder,
+        header: async ({ tag, provideIn }) => {
+          provideInByTag.set(tag ?? '', provideIn);
+          return { implementation: '', implementationMock: '' };
+        },
+        operations: {
+          getPlans: createSplitModeOperation({
+            tags: ['Public'],
+            operationName: 'getPlans',
+          }),
+          listReports: createSplitModeOperation({
+            tags: ['Admin Reports'],
+            operationName: 'listReports',
+          }),
+          listUsers: createSplitModeOperation({
+            tags: ['Users'],
+            operationName: 'listUsers',
+          }),
+        },
+      },
+      output,
+    );
+
+    expect(provideInByTag.get('public')).toBe(false);
+    expect(provideInByTag.get('admin-reports')).toBe('any');
+    expect(provideInByTag.get('users')).toBe('root');
   });
 });

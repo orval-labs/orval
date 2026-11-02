@@ -6,6 +6,7 @@ import { styleText } from 'node:util';
 
 import {
   type AngularBaseUrlOptions,
+  type AngularOptions,
   type ConfigExternal,
   type EffectOptions,
   FormDataArrayHandling,
@@ -901,6 +902,7 @@ export async function normalizeOptions(
           outputWorkspace,
           {
             query: globalQueryOptions,
+            angularProvideIn: outputOptions.override?.angular?.provideIn,
           },
           'operations',
           resolveTsconfigPath,
@@ -910,6 +912,7 @@ export async function normalizeOptions(
           outputWorkspace,
           {
             query: globalQueryOptions,
+            angularProvideIn: outputOptions.override?.angular?.provideIn,
           },
           'tags',
           resolveTsconfigPath,
@@ -1535,6 +1538,7 @@ function normalizeOperationsAndTags(
   workspace: string,
   global: {
     query: NormalizedQueryOptions;
+    angularProvideIn?: AngularOptions['provideIn'];
   },
   source: 'operations' | 'tags',
   resolveTsconfigPath?: TsconfigPathsResolver,
@@ -1600,7 +1604,10 @@ function normalizeOperationsAndTags(
             ...(angular
               ? {
                   angular: {
-                    provideIn: angular.provideIn ?? 'root',
+                    // Fall back to the output-level value rather than 'root',
+                    // so a tag block that omits it keeps the global setting.
+                    provideIn:
+                      angular.provideIn ?? global.angularProvideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
                     runtimeValidation: normalizeAngularRuntimeValidation(

@@ -1,4 +1,4 @@
-import { DefaultTag } from '../types';
+import { DefaultTag, type NormalizedOperationOptions } from '../types';
 import { kebab } from './case';
 
 /**
@@ -52,4 +52,21 @@ export function isOperationInTagBucket(
 ): boolean {
   if (tagKey == null) return true;
   return getOperationTagKey(operation) === getTagKey(tagKey);
+}
+
+/**
+ * The `override.tags` entry that applies to a tag bucket.
+ *
+ * Config keys are written the way the tag appears in the spec (`Admin Users`),
+ * while bucket keys are canonical (`admin-users`), so both sides go through
+ * {@link getTagKey} before comparing.
+ */
+export function getTagOverride(
+  tags: Record<string, NormalizedOperationOptions | undefined>,
+  tagKey: string,
+): NormalizedOperationOptions | undefined {
+  const canonicalTagKey = getTagKey(tagKey);
+  return Object.entries(tags).find(
+    ([key]) => getTagKey(key) === canonicalTagKey,
+  )?.[1];
 }
