@@ -729,11 +729,19 @@ export function getObject({
   // allowed at all), and a `Partial<Record<K, never>>` form would still accept
   // `{ k: undefined, extra: 1 }` through a variable without
   // `exactOptionalPropertyTypes`, so it is ignored here. `patternProperties`
-  // still allows matching keys, so keep the permissive type there. See #4429.
+  // with at least one pattern still allows matching keys, so keep the
+  // permissive type there; an empty `patternProperties` map allows nothing.
+  // See #4429.
+  const patternProperties = schemaItem.patternProperties as
+    | Record<string, unknown>
+    | undefined;
+  const hasPatternProperties =
+    patternProperties !== undefined &&
+    Object.keys(patternProperties).length > 0;
   if (
     itemType === 'object' &&
     outerAdditionalProps === false &&
-    !schemaItem.patternProperties
+    !hasPatternProperties
   ) {
     return {
       value: '{ [key: string]: never }' + nullable,

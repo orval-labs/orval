@@ -202,6 +202,16 @@ describe('getObject', () => {
       );
     });
 
+    it('treats an empty patternProperties map as closed', () => {
+      expect(
+        render({
+          type: 'object',
+          additionalProperties: false,
+          patternProperties: {},
+        }),
+      ).toBe('{ [key: string]: never }');
+    });
+
     it('ignores propertyNames and still emits a string never index signature', () => {
       expect(
         render({
