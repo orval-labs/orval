@@ -157,9 +157,9 @@ export type GetUsersUserIdOrdersInfiniteQueryResult = NonNullable<
 export type GetUsersUserIdOrdersInfiniteQueryError = unknown;
 
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
-
 export function useGetUsersUserIdOrdersInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
@@ -256,9 +256,9 @@ export type GetUsersUserIdOrdersQueryResult = NonNullable<
 export type GetUsersUserIdOrdersQueryError = unknown;
 
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
-
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,

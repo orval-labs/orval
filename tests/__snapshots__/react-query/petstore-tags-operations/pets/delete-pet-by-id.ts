@@ -111,9 +111,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 export type DeletePetByIdMutationError = Error;
 export type DeletePetByIdMutationVariables = { petId: string };
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export const useDeletePetById = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<

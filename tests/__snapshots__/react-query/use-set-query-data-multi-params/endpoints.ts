@@ -144,6 +144,10 @@ export type GetUsersUserIdOrdersQueryResult = NonNullable<
 >;
 export type GetUsersUserIdOrdersQueryError = unknown;
 
+/**
+ * Retrieves a list of orders for a specific user with optional filtering
+ * @summary Get user orders
+ */
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
@@ -172,6 +176,10 @@ export function useGetUsersUserIdOrders<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * Retrieves a list of orders for a specific user with optional filtering
+ * @summary Get user orders
+ */
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
@@ -200,6 +208,10 @@ export function useGetUsersUserIdOrders<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * Retrieves a list of orders for a specific user with optional filtering
+ * @summary Get user orders
+ */
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
@@ -221,9 +233,9 @@ export function useGetUsersUserIdOrders<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
-
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
@@ -259,6 +271,7 @@ export function useGetUsersUserIdOrders<
 }
 
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
 export const useSetGetUsersUserIdOrdersQueryData = () => {

@@ -165,7 +165,6 @@ export function useGetDisplay<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetDisplay<
   TData = Awaited<ReturnType<typeof getDisplay>>,
   TError = unknown,

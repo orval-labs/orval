@@ -230,7 +230,6 @@ export function useGetOrderDetails<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetOrderDetails<
   TData = Awaited<ReturnType<typeof getOrderDetails>>,
   TError = unknown,
@@ -415,7 +414,6 @@ export function useGetPetProfile<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetPetProfile<
   TData = Awaited<ReturnType<typeof getPetProfile>>,
   TError = unknown,
@@ -600,7 +598,6 @@ export function useGetAuditRecord<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetAuditRecord<
   TData = Awaited<ReturnType<typeof getAuditRecord>>,
   TError = unknown,
@@ -798,7 +795,6 @@ export function useListShelterPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListShelterPets<
   TData = Awaited<ReturnType<typeof listShelterPets>>,
   TError = unknown,
@@ -996,7 +992,6 @@ export function useGetShelterLastInspection<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetShelterLastInspection<
   TData = Awaited<ReturnType<typeof getShelterLastInspection>>,
   TError = unknown,
@@ -1164,7 +1159,6 @@ export function useListOrderNumbers<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListOrderNumbers<
   TData = Awaited<ReturnType<typeof listOrderNumbers>>,
   TError = unknown,

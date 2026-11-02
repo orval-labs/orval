@@ -89,10 +89,7 @@ export type GetSomeEndpointQueryResult = NonNullable<
 >;
 export type GetSomeEndpointQueryError = AxiosError<unknown>;
 
-/**
- * @summary Get something with header parameters
- */
-
+/** @summary Get something with header parameters */
 export function useGetSomeEndpoint<
   TData = Awaited<ReturnType<typeof getSomeEndpoint>>,
   TError = AxiosError<unknown>,

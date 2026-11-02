@@ -1789,6 +1789,43 @@ Unlike `enabled`, this also covers `refetch()`: no request is sent with an unres
 
 React Query v5 only. Suspense queries are unaffected — TanStack excludes `SkipToken` from their `queryFn`.
 
+### docs
+
+**Type:** `Object`
+
+Generated query and mutation hooks always carry the operation's JSDoc (description, `@summary` and `@deprecated`), on every overload signature so it shows up on hover. A doc with a single line is written as `/** @summary ... */`. Use `docs` to add more to that block.
+
+#### route
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Add the HTTP method and the OpenAPI path of the operation as an `@route` line.
+
+```ts
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          docs: { route: true },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts
+/**
+ * Info for a specific pet
+ * @summary Info for a specific pet
+ * @route GET /pets/{petId}
+ */
+export function useShowPetById<...>(...)
+```
+
 ### mutationInvalidates
 
 **Type:** `Array`

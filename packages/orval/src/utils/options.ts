@@ -1937,6 +1937,12 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useSkipToken)
       ? {}
       : { useSkipToken: queryOptions.useSkipToken }),
+    // Only explicit fields: tag and operation overrides inherit through the
+    // output → tag → operation deep merge, so copying `globalOptions.docs`
+    // here would let the output value override a tag-level setting.
+    ...(isNullish(queryOptions.docs?.route)
+      ? {}
+      : { docs: { route: queryOptions.docs.route } }),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),

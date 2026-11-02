@@ -104,6 +104,7 @@ export function createTestGeneratorVerbOptions(
     route: overrides.route ?? '/',
     pathRoute: overrides.pathRoute ?? '/',
     summary: overrides.summary ?? '',
+    description: overrides.description,
     doc: overrides.doc ?? '',
     tags: overrides.tags ?? [],
     operationId: overrides.operationId ?? operationName,

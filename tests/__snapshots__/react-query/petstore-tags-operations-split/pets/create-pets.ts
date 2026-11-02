@@ -154,9 +154,7 @@ export type CreatePetsMutationVariables = {
   params: CreatePetsParams;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<

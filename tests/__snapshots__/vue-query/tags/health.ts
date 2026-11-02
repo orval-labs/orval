@@ -78,10 +78,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = AxiosError<Error>;
 
-/**
- * @summary health check
- */
-
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = AxiosError<Error>,

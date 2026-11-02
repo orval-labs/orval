@@ -156,10 +156,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -320,9 +317,7 @@ export type CreatePetsMutationVariables = {
   params: CreatePetsParams;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
@@ -430,10 +425,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -556,9 +548,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 export type DeletePetByIdMutationError = Error;
 export type DeletePetByIdMutationVariables = { petId: string };
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export const createDeletePetById = <
   TError = Error,
   TContext = unknown,
@@ -665,10 +655,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
-/**
- * @summary health check
- */
-
+/** @summary health check */
 export function createHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
@@ -782,10 +769,7 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = Error;
 
-/**
- * @summary combinate nullable and $ref
- */
-
+/** @summary combinate nullable and $ref */
 export function createShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,

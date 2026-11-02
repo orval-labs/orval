@@ -100,10 +100,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = AxiosError<Error>;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
@@ -218,9 +215,7 @@ export type CreatePetsMutationVariables = {
   params: CreatePetsParams;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = AxiosError<Error>, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -304,10 +299,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = AxiosError<Error>;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
@@ -411,9 +403,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 export type DeletePetByIdMutationError = AxiosError<Error>;
 export type DeletePetByIdMutationVariables = { petId: string };
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export const useDeletePetById = <
   TError = AxiosError<Error>,
   TContext = unknown,
@@ -510,10 +500,7 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = AxiosError<Error>;
 
-/**
- * @summary combinate nullable and $ref
- */
-
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,

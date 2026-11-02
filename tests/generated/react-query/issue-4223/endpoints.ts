@@ -239,7 +239,6 @@ export function useListChatsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListChatsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listChats>>,
@@ -370,7 +369,6 @@ export function useListChats<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListChats<
   TData = Awaited<ReturnType<typeof listChats>>,
   TError = unknown,
