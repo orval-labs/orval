@@ -1236,6 +1236,12 @@ describe('getHookDoc', () => {
     );
   });
 
+  it('inserts the route literally, without replacement patterns', () => {
+    expect(getHookDoc({ summary: 'Odd', route: 'GET /foo/$&' })).toBe(
+      '/**\n * @summary Odd\n * @route GET /foo/$&\n */\n',
+    );
+  });
+
   it('escapes a comment terminator in the route', () => {
     expect(getHookDoc({ route: 'GET /a*/b' })).toContain(
       String.raw`@route GET /a*\/b`,

@@ -1300,6 +1300,49 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('keeps only explicit query docs fields on tag and operation overrides (#4399)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              query: { docs: { route: true } },
+              tags: {
+                pets: { query: { docs: { route: false } } },
+              },
+              operations: {
+                listPets: { query: { useInfinite: true } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query.docs).toEqual({ route: true });
+      expect(normalized.output.override.tags.pets?.query?.docs).toEqual({
+        route: false,
+      });
+      // Not copied from the output level, so the later output → tag →
+      // operation merge keeps the tag's `route: false`.
+      expect(
+        normalized.output.override.operations.listPets?.query?.docs,
+      ).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes an explicit angular queryObjectSerialization: legacy override', async () => {
     const workspace = await createTempWorkspace();
 

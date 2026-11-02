@@ -73,7 +73,8 @@ export const getHookDoc = ({
   const routeLine = ` * @route ${route.replaceAll('*/', String.raw`*\/`)}\n`;
 
   return doc
-    ? doc.replace(/ \*\/\n$/, `${routeLine} */\n`)
+    ? // A callback keeps `$&`-style patterns in the path literal.
+      doc.replace(/ \*\/\n$/, () => `${routeLine} */\n`)
     : `/**\n${routeLine} */\n`;
 };
 
