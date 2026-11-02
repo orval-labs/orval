@@ -64,18 +64,23 @@ export const getHookDoc = ({
   deprecated?: boolean;
   route?: string;
 }): string => {
-  const doc = jsDoc({ description, summary, deprecated });
+  const baseDoc = jsDoc({ description, summary, deprecated });
+  const routeLine = route
+    ? ` * @route ${route.replaceAll('*/', String.raw`*\/`)}\n`
+    : '';
 
-  if (!route) {
-    return doc;
+  let doc = baseDoc;
+  if (routeLine) {
+    doc = baseDoc
+      ? // A callback keeps `$&`-style patterns in the path literal.
+        baseDoc.replace(/ \*\/\n$/, () => `${routeLine} */\n`)
+      : `/**\n${routeLine} */\n`;
   }
 
-  const routeLine = ` * @route ${route.replaceAll('*/', String.raw`*\/`)}\n`;
+  // A block with a single line reads better as `/** ... */`.
+  const singleLine = /^\/\*\*\n \* (.*)\n \*\/\n$/.exec(doc);
 
-  return doc
-    ? // A callback keeps `$&`-style patterns in the path literal.
-      doc.replace(/ \*\/\n$/, () => `${routeLine} */\n`)
-    : `/**\n${routeLine} */\n`;
+  return singleLine ? `/** ${singleLine[1]} */\n` : doc;
 };
 
 /**

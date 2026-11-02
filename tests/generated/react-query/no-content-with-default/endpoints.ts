@@ -105,9 +105,7 @@ export type CreateItemsQueryResult = NonNullable<
 >;
 export type CreateItemsQueryError = ErrorResponse;
 
-/**
- * @summary Get an Error Item
- */
+/** @summary Get an Error Item */
 export function useCreateItems<
   TData = Awaited<ReturnType<typeof createItems>>,
   TError = ErrorResponse,
@@ -130,9 +128,7 @@ export function useCreateItems<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Get an Error Item
- */
+/** @summary Get an Error Item */
 export function useCreateItems<
   TData = Awaited<ReturnType<typeof createItems>>,
   TError = ErrorResponse,
@@ -155,9 +151,7 @@ export function useCreateItems<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Get an Error Item
- */
+/** @summary Get an Error Item */
 export function useCreateItems<
   TData = Awaited<ReturnType<typeof createItems>>,
   TError = ErrorResponse,
@@ -172,9 +166,7 @@ export function useCreateItems<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Get an Error Item
- */
+/** @summary Get an Error Item */
 export function useCreateItems<
   TData = Awaited<ReturnType<typeof createItems>>,
   TError = ErrorResponse,

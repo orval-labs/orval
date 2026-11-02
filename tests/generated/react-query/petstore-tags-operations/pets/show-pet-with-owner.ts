@@ -113,9 +113,7 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = Error;
 
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
@@ -143,9 +141,7 @@ export function useShowPetWithOwner<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
@@ -173,9 +169,7 @@ export function useShowPetWithOwner<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
@@ -195,9 +189,7 @@ export function useShowPetWithOwner<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,

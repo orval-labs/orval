@@ -214,9 +214,7 @@ export type SearchPetsQueryResult = NonNullable<
 >;
 export type SearchPetsQueryError = ErrorType<Error>;
 
-/**
- * @summary search by query params
- */
+/** @summary search by query params */
 export function injectSearchPets<
   TData = Awaited<ReturnType<typeof searchPets>>,
   TError = ErrorType<Error>,
@@ -352,9 +350,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = ErrorType<Error>;
 
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function injectListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
@@ -462,9 +458,7 @@ export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = ErrorType<Error>;
 export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const injectCreatePets = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -540,9 +534,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = ErrorType<Error>;
 
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = ErrorType<Error>,
@@ -644,9 +636,7 @@ export type DeletePetMutationResult = NonNullable<
 export type DeletePetMutationError = ErrorType<Error>;
 export type DeletePetMutationVariables = { petId: string };
 
-/**
- * @summary Delete a pet
- */
+/** @summary Delete a pet */
 export const injectDeletePet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -737,9 +727,7 @@ export type UpdatePetMutationBody = Pet;
 export type UpdatePetMutationError = ErrorType<Error>;
 export type UpdatePetMutationVariables = { petId: string; data: Pet };
 
-/**
- * @summary Update a pet
- */
+/** @summary Update a pet */
 export const injectUpdatePet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -830,9 +818,7 @@ export type PatchPetMutationBody = PatchPetBody;
 export type PatchPetMutationError = ErrorType<Error>;
 export type PatchPetMutationVariables = { petId: string; data: PatchPetBody };
 
-/**
- * @summary Partially update a pet
- */
+/** @summary Partially update a pet */
 export const injectPatchPet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -908,9 +894,7 @@ export type ShowPetTextQueryResult = NonNullable<
 >;
 export type ShowPetTextQueryError = ErrorType<Error>;
 
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function injectShowPetText<
   TData = Awaited<ReturnType<typeof showPetText>>,
   TError = ErrorType<Error>,
@@ -1304,9 +1288,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = ErrorType<Error>;
 
-/**
- * @summary Health check
- */
+/** @summary Health check */
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<Error>,

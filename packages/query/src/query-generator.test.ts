@@ -1217,9 +1217,21 @@ describe('getHookDoc', () => {
     expect(getHookDoc({})).toBe('');
   });
 
-  it('renders a route-only block when there is nothing else to document', () => {
+  it('renders a single-line comment when there is only the route', () => {
     expect(getHookDoc({ route: 'GET /pets' })).toBe(
-      '/**\n * @route GET /pets\n */\n',
+      '/** @route GET /pets */\n',
+    );
+  });
+
+  it('renders a single-line comment when there is only a summary', () => {
+    expect(getHookDoc({ summary: 'List pets' })).toBe(
+      '/** @summary List pets */\n',
+    );
+  });
+
+  it('keeps a multi-line description in a block comment', () => {
+    expect(getHookDoc({ description: 'Line one.\nLine two.' })).toBe(
+      '/**\n * Line one.\n * Line two.\n */\n',
     );
   });
 

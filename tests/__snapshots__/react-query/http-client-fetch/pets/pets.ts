@@ -191,9 +191,7 @@ export type ListPetsQueryError = globalThis.Error & {
   status?: number;
 };
 
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -217,9 +215,7 @@ export function useListPets<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -243,9 +239,7 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -261,9 +255,7 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -431,9 +423,7 @@ export type CreatePetsMutationVariables = {
   params: CreatePetsParams;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <
   TError = globalThis.Error & { info?: Error; status?: number },
   TContext = unknown,
@@ -552,9 +542,7 @@ export type ShowPetByIdQueryError = globalThis.Error & {
   status?: number;
 };
 
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -578,9 +566,7 @@ export function useShowPetById<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -604,9 +590,7 @@ export function useShowPetById<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -622,9 +606,7 @@ export function useShowPetById<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -756,9 +738,7 @@ export type DeletePetByIdMutationError = globalThis.Error & {
 };
 export type DeletePetByIdMutationVariables = { petId: string };
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export const useDeletePetById = <
   TError = globalThis.Error & { info?: Error; status?: number },
   TContext = unknown,
@@ -885,9 +865,7 @@ export type ShowPetWithOwnerQueryError = globalThis.Error & {
   status?: number;
 };
 
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -915,9 +893,7 @@ export function useShowPetWithOwner<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -945,9 +921,7 @@ export function useShowPetWithOwner<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = globalThis.Error & { info?: Error; status?: number },
@@ -967,9 +941,7 @@ export function useShowPetWithOwner<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = globalThis.Error & { info?: Error; status?: number },

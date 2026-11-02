@@ -105,9 +105,7 @@ export type ListPetsInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsInfiniteQueryError = Error;
 
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function createListPetsInfinite<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -178,9 +176,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -281,9 +277,7 @@ export type CreatePetsQueryResult = NonNullable<
 >;
 export type CreatePetsQueryError = Error;
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export function createCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
@@ -379,9 +373,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -474,9 +466,7 @@ export type DeletePetByIdQueryResult = NonNullable<
 >;
 export type DeletePetByIdQueryError = Error;
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export function createDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
@@ -556,9 +546,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
-/**
- * @summary health check
- */
+/** @summary health check */
 export function createHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
@@ -650,9 +638,7 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = Error;
 
-/**
- * @summary combinate nullable and $ref
- */
+/** @summary combinate nullable and $ref */
 export function createShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
