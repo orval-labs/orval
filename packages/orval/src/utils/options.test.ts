@@ -105,7 +105,7 @@ describe('normalizeFormatType', () => {
       uuid: { type: 'UUID' },
     });
 
-    expect(Object.keys(result!)).toEqual(['date', 'date-time', 'uuid']);
+    expect(Object.keys(result ?? {})).toEqual(['date', 'date-time', 'uuid']);
   });
 
   it('allows transformImport without transform', () => {
@@ -123,7 +123,6 @@ describe('normalizeFormatType', () => {
     });
   });
 });
-
 
 describe('normalizeOptions', () => {
   it('keeps package mutator specifiers as imports', async () => {
@@ -3955,7 +3954,6 @@ describe('normalizeOptions', () => {
       }
     });
   });
-
 });
 
 describe('single-file schema options', () => {

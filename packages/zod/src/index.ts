@@ -17,6 +17,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getDynamicAnchorName,
+  getFormatTypeConfig,
   getFormDataFieldFileType,
   getKey,
   getNumberWord,
@@ -1638,7 +1639,7 @@ export const generateZodValidationSchemaDefinition = (
     const zodFormatConfig =
       schema.type === 'string' &&
       (schema.format === 'date' || schema.format === 'date-time')
-        ? context.output.override.formatType?.[schema.format]
+        ? getFormatTypeConfig(schema.format, context.output.override)
         : undefined;
     const isDateType =
       !!zodFormatConfig ||
@@ -1991,9 +1992,10 @@ export const generateZodValidationSchemaDefinition = (
         }
 
         // formatType: codec replacement or transform
-        const formatConfig = schema.format
-          ? context.output.override.formatType?.[schema.format]
-          : undefined;
+        const formatConfig = getFormatTypeConfig(
+          schema.format,
+          context.output.override,
+        );
         if (formatConfig?.zod?.codec) {
           // Replace entire schema with codec reference. Break (not return) so
           // the function's normal optional/nullable/default logic still runs.
@@ -5026,10 +5028,10 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
   const formatTypeImports: GeneratorImport[] = [];
   if (formatType) {
     for (const config of Object.values(formatType)) {
-      if (config.zod?.transformImport) {
+      if (config?.zod?.transformImport) {
         formatTypeImports.push({ ...config.zod.transformImport, values: true });
       }
-      if (config.zod?.codecImport) {
+      if (config?.zod?.codecImport) {
         formatTypeImports.push({ ...config.zod.codecImport, values: true });
       }
     }

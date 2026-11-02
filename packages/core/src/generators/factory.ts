@@ -1,5 +1,6 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
+import { getFormatTypeConfig } from '../getters/scalar';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -507,7 +508,10 @@ function buildDefaultPayload(
     // hand: an unescaped `'` closed it and appended expressions to the
     // `new Date(...)` argument, which the factory then evaluated on every call.
     const dateDefault = `new Date('${jsStringLiteralEscape(schema.default)}')`;
-    const formatConfig = context.output.override.formatType?.[schema.format];
+    const formatConfig = getFormatTypeConfig(
+      schema.format,
+      context.output.override,
+    );
     if (formatConfig) {
       return formatConfig.type === 'Date'
         ? dateDefault
@@ -551,7 +555,10 @@ function buildPrimitivePayload(
       return formatValue(enumValues[0]);
     }
     if (schema.format === 'date' || schema.format === 'date-time') {
-      const formatConfig = context.output.override.formatType?.[schema.format];
+      const formatConfig = getFormatTypeConfig(
+        schema.format,
+        context.output.override,
+      );
       if (formatConfig) {
         return formatConfig.type === 'Date'
           ? 'new Date(0)'

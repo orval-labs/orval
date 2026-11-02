@@ -4,6 +4,7 @@ import { resolveExampleRefs } from '../resolvers';
 import type {
   ContextSpec,
   GeneratorImport,
+  NormalizedFormatTypeConfig,
   NormalizedOverrideOutput,
   OpenApiPrimitiveSchemaType,
   OpenApiSchemaObject,
@@ -20,12 +21,26 @@ import { combineSchemas } from './combine';
 import type { FormDataContext } from './object';
 import { getObject } from './object';
 
+/**
+ * The `override.formatType` entry for a format. Formats come from the
+ * document, so `format: constructor` must not resolve an inherited member.
+ */
+export function getFormatTypeConfig(
+  format: string | undefined,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+): NormalizedFormatTypeConfig | undefined {
+  const { formatType } = override;
+  return format !== undefined && formatType && Object.hasOwn(formatType, format)
+    ? formatType[format]
+    : undefined;
+}
+
 export function resolveFormatType(
   format: string | undefined,
   override: NormalizedOverrideOutput,
 ): { type: string; import?: GeneratorImport } | undefined {
   if (!format) return undefined;
-  const config = override.formatType?.[format];
+  const config = getFormatTypeConfig(format, override);
   if (config) return { type: config.type, import: config.import };
   if (override.useDates && (format === 'date' || format === 'date-time')) {
     return { type: 'Date' };
@@ -342,15 +357,15 @@ export function getScalar({
       }
 
       const formatImports: GeneratorImport[] = [];
-      if (!isEnum) {
-        const formatResolved = resolveFormatType(
-          schemaFormat,
-          context.output.override,
-        );
-        if (formatResolved) {
-          value = formatResolved.type;
-          if (formatResolved.import) formatImports.push(formatResolved.import);
-        }
+      const formatResolved = resolveFormatType(
+        schemaFormat,
+        context.output.override,
+      );
+      // `useDates` types a date enum as `Date` too; a custom type keeps the
+      // enum's literals.
+      if (formatResolved && (!isEnum || formatResolved.type === 'Date')) {
+        value = formatResolved.type;
+        if (formatResolved.import) formatImports.push(formatResolved.import);
       }
 
       value += nullable;

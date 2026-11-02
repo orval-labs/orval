@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
-import type {
-  ContextSpec,
-  NormalizedOverrideOutput,
-  OpenApiSchemaObject,
-} from '../types';
+import type { NormalizedOverrideOutput, OpenApiSchemaObject } from '../types';
 import type { FormDataContext } from './object';
 import { getScalar, isBinaryScalarSchema, resolveFormatType } from './scalar';
 
@@ -721,18 +717,12 @@ describe('resolveFormatType', () => {
 
 describe('getScalar with formatType', () => {
   it('uses formatType type for date format', () => {
-    const ctx = {
-      output: {
-        override: {
-          formatType: {
-            date: { type: 'Temporal.PlainDate' },
-          },
-        },
-      },
-    } as ContextSpec;
+    const ctx = createTestContextSpec({
+      override: { formatType: { date: { type: 'Temporal.PlainDate' } } },
+    });
 
     const result = getScalar({
-      item: { type: 'string', format: 'date' } as OpenApiSchemaObject,
+      item: { type: 'string', format: 'date' },
       context: ctx,
     });
 
@@ -740,21 +730,19 @@ describe('getScalar with formatType', () => {
   });
 
   it('uses formatType for non-date formats like uuid', () => {
-    const ctx = {
-      output: {
-        override: {
-          formatType: {
-            uuid: {
-              type: 'UUID',
-              import: { name: 'UUID', importPath: '@company/types' },
-            },
+    const ctx = createTestContextSpec({
+      override: {
+        formatType: {
+          uuid: {
+            type: 'UUID',
+            import: { name: 'UUID', importPath: '@company/types' },
           },
         },
       },
-    } as ContextSpec;
+    });
 
     const result = getScalar({
-      item: { type: 'string', format: 'uuid' } as OpenApiSchemaObject,
+      item: { type: 'string', format: 'uuid' },
       context: ctx,
     });
 
@@ -765,26 +753,48 @@ describe('getScalar with formatType', () => {
   });
 
   it('preserves enum when formatType is configured', () => {
-    const ctx = {
-      output: {
-        override: {
-          formatType: {
-            'date-time': { type: 'Dayjs' },
-          },
-        },
-      },
-    } as ContextSpec;
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': { type: 'Dayjs' } } },
+    });
 
     const result = getScalar({
       item: {
         type: 'string',
         format: 'date-time',
         enum: ['2024-01-01T00:00:00Z', '2024-12-31T00:00:00Z'],
-      } as OpenApiSchemaObject,
+      },
       context: ctx,
     });
 
     expect(result.isEnum).toBe(true);
     expect(result.value).toContain('2024-01-01');
+  });
+
+  it('keeps typing a date enum as Date under useDates', () => {
+    const ctx = createTestContextSpec({ override: { useDates: true } });
+
+    const result = getScalar({
+      item: {
+        type: 'string',
+        format: 'date-time',
+        enum: ['2024-01-01T00:00:00Z'],
+      },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('Date');
+  });
+
+  it('ignores inherited members for document-supplied formats', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { uuid: { type: 'UUID' } } },
+    });
+
+    const result = getScalar({
+      item: { type: 'string', format: 'constructor' },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('string');
   });
 });

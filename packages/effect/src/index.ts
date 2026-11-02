@@ -10,6 +10,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getEnumMembers,
+  getFormatTypeConfig,
   getFormDataFieldFileType,
   getNumberWord,
   getRequiredKeys,
@@ -411,7 +412,7 @@ export const generateEffectValidationSchemaDefinition = (
     const effectFormatConfig =
       schema.type === 'string' &&
       (schema.format === 'date' || schema.format === 'date-time')
-        ? context.output.override.formatType?.[schema.format]
+        ? getFormatTypeConfig(schema.format, context.output.override)
         : undefined;
     const isDateType =
       !!effectFormatConfig ||
@@ -563,8 +564,10 @@ export const generateEffectValidationSchemaDefinition = (
           break;
         }
 
-        const effectSchemaFormatConfig =
-          context.output.override.formatType?.[schema.format ?? ''];
+        const effectSchemaFormatConfig = getFormatTypeConfig(
+          schema.format,
+          context.output.override,
+        );
         if (effectSchemaFormatConfig) {
           if (effectSchemaFormatConfig.type === 'Date') {
             functions.push(['date', undefined]);

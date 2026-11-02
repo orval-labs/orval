@@ -3,6 +3,7 @@ import {
   type ContextSpec,
   EnumGeneration,
   type GeneratorImport,
+  getFormatTypeConfig,
   getRefInfo,
   isInlineSchema,
   getStringLiteralType,
@@ -232,7 +233,10 @@ export function getMockScalar({
   // Mirrors the guard on the media-type map in core's `body.ts`.
   if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];
-    const formatConfig = context.output.override.formatType?.[item.format];
+    const formatConfig = getFormatTypeConfig(
+      item.format,
+      context.output.override,
+    );
     const mockImports: GeneratorImport[] = [];
 
     if (formatConfig) {

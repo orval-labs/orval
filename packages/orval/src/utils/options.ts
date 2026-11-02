@@ -97,10 +97,10 @@ export function normalizeFormatType(
 
   const normalized: NormalizedFormatTypeMap = {};
   for (const [format, config] of Object.entries(formatTypeConfig)) {
-    if (!config.type) {
+    if (!config?.type) {
       throw new Error(`override.formatType.${format}.type is required`);
     }
-    if (config.zod?.codec && config.zod?.transform) {
+    if (config.zod?.codec && config.zod.transform) {
       throw new Error(
         `override.formatType.${format}.zod: codec and transform are mutually exclusive`,
       );

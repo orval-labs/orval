@@ -1,12 +1,12 @@
-import { z } from 'zod';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { z } from 'zod';
 
-export const isoDatetimeCodec = z
-  .string()
-  .datetime()
-  .transform((v) => dayjs(v)) as unknown as z.ZodType<
-  Dayjs,
-  z.ZodTypeDef,
-  string
->;
+export const isoDatetimeCodec = z.codec(
+  z.iso.datetime(),
+  z.custom<Dayjs>((value) => dayjs.isDayjs(value)),
+  {
+    decode: (value) => dayjs(value),
+    encode: (value) => value.toISOString(),
+  },
+);
