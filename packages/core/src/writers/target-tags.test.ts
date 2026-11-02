@@ -87,7 +87,7 @@ describe('generateTargetForTags — tags that collide with Object.prototype', ()
   });
 });
 
-describe('generateTargetForTags — per-tag angular.provideIn (issue #4425)', () => {
+describe('generateTargetForTags: per-tag angular.provideIn (issue #4425)', () => {
   const generateProvideInByTag = async (mode: OutputMode) => {
     const provideInByTag = new Map<string, unknown>();
     const builder: WriteSpecBuilder = {

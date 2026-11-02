@@ -555,7 +555,7 @@ describe('writeTagsOperationsMode', () => {
   });
 });
 
-describe('generateTargetForTagsOperations — per-tag angular.provideIn (issue #4425)', () => {
+describe('generateTargetForTagsOperations: per-tag angular.provideIn (issue #4425)', () => {
   it('uses the tag-level value for the header of each tag', async () => {
     const provideInByTag = new Map<string, unknown>();
     const baseProps = createSplitModeProps('petstore.ts');
