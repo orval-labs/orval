@@ -1,7 +1,10 @@
-import { type ZodVariantOption } from '@orval/core';
+import { type ZodVariantOption, type ZodVersionOption } from '@orval/core';
 import type { BoundRefinement } from '@orval/core';
 
-import { serializeCallable } from './callable-serializer';
+import {
+  serializeCallable,
+  serializeCallableParts,
+} from './callable-serializer';
 import { getZodTypeName } from './compatible-v4';
 
 /** Marks a call as side-effect-free for bundlers' tree-shaking passes. */
@@ -171,6 +174,19 @@ const isBoundRefinement = (value: unknown): value is BoundRefinement => {
     return false;
   }
 
+  if ('message' in value) return false;
+  if ('options' in value && value.options !== undefined) {
+    const options = value.options;
+    if (
+      typeof options !== 'string' &&
+      typeof options !== 'function' &&
+      (typeof options !== 'object' ||
+        options === null ||
+        Array.isArray(options))
+    )
+      return false;
+  }
+
   return (
     value.bindings === null ||
     (typeof value.bindings === 'object' && !Array.isArray(value.bindings))
@@ -195,25 +211,53 @@ function assertBoundRefinements(
 /**
  * Serialize extension predicates into Zod refinements. Classic Zod uses
  * `.refine(predicate)`; Zod Mini uses `.check(zod.refine(predicate))`.
- * Supply `{ callable, bindings }` when a predicate closes over local values.
+ * Supply `{ callable, options, bindings }` to customize the entire second
+ * argument; option callbacks can share the callable's bound lexical scope.
  */
 export const renderZodRefine = (
   validators: unknown,
   variant: ZodVariantOption = 'classic',
+  version: ZodVersionOption = 'auto',
+  expression?: string,
 ): string => {
   assertBoundRefinements(validators);
 
   const refinements = Array.isArray(validators) ? validators : [validators];
 
-  let result = '';
+  let result = expression ?? '';
 
   for (const refinement of refinements) {
-    const predicate = serializeCallable(refinement);
+    if (version === 4 && typeof refinement.options === 'function') {
+      throw new TypeError(
+        'Zod 4 does not support a function as the second refine argument',
+      );
+    }
 
-    result +=
+    // Keep the public suffix-only renderer compatible with existing callers.
+    // When given an expression, however, scope bindings around the *entire*
+    // refinement call, not the callbacks. Zod can then contextually type both
+    // the predicate and any option callbacks, without OpenAPI type hints.
+    if (expression === undefined) {
+      const args = serializeCallable(refinement);
+      result +=
+        variant === 'mini'
+          ? `.check(${zodMiniCall('refine', args)})`
+          : `.refine(${args})`;
+      continue;
+    }
+
+    const { predicate, options, declarations } =
+      serializeCallableParts(refinement);
+    const args = options === undefined ? predicate : `${predicate}, ${options}`;
+    const suffix =
       variant === 'mini'
-        ? `.check(${zodMiniCall('refine', predicate)})`
-        : `.refine(${predicate})`;
+        ? `.check(${zodMiniCall('refine', args)})`
+        : `.refine(${args})`;
+    const refinedExpression = `${result}${suffix}`;
+    result =
+      declarations.length === 0
+        ? refinedExpression
+        : `(() => {\n${declarations.join('\n')}\n  return ${refinedExpression};\n})()`;
   }
 
   return result;
@@ -223,12 +267,13 @@ export const appendZodRefinements = (
   expression: string,
   functions: ReadonlyArray<readonly [string, unknown]>,
   variant: ZodVariantOption = 'classic',
+  version: ZodVersionOption = 'auto',
 ): string => {
   let result = expression;
 
   for (const [name, args] of functions) {
     if (name === 'refine') {
-      result += renderZodRefine(args, variant);
+      result = renderZodRefine(args, variant, version, result);
     }
   }
 

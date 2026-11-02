@@ -6,6 +6,7 @@ import {
   type OpenApiDocument,
   type OpenApiSchemaObject,
   type OutputOptions,
+  type ZodOptions,
 } from '@orval/core';
 import ts from 'typescript';
 import {
@@ -125,7 +126,7 @@ describe('primitive response runtime validation (#4138)', () => {
           override: {
             ...output.override,
             header: false,
-            zod: { version: 4, ...output.override?.zod },
+            zod: { version: 4, ...output.override?.zod } as ZodOptions,
           },
         },
       },

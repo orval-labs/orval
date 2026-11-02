@@ -25,7 +25,7 @@ export default defineConfig({
               format: 'decimal',
               validatorsGenerator: (openapi_object: DecimalSchemaObject) => {
                 const maxPrecision = openapi_object['x-max-precision'];
-                if (maxPrecision) {
+                if (maxPrecision !== undefined) {
                   return {
                     callable: (value: unknown) => {
                       if (
@@ -38,6 +38,15 @@ export default defineConfig({
                       const precision = value.split('.')[1]?.length ?? 0;
 
                       return precision === 0 || precision <= maxPrecision;
+                    },
+                    // Zod 4 Mini accepts the full options object through zod.refine().
+                    // The error callback runs at validation time and shares
+                    // maxPrecision with the predicate via bindings.
+                    options: {
+                      error: (issue: { input: unknown }) =>
+                        `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+                      abort: true,
+                      params: { maxPrecision, format: 'decimal' },
                     },
                     bindings: { maxPrecision },
                   };
