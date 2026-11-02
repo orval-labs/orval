@@ -169,4 +169,118 @@ describe('getObject', () => {
 
     expect(result.value).toContain('[key: string]: unknown;');
   });
+
+  // https://github.com/orval-labs/orval/issues/4429
+  describe('closed empty object', () => {
+    const render = (item: OpenApiSchemaObject, nullable = '') =>
+      getObject({
+        item,
+        name: 'ClosedEmpty',
+        context: createTestContextSpec({ spec: {} }),
+        nullable,
+      }).value;
+
+    it('renders additionalProperties: false with empty properties as a never index signature', () => {
+      expect(
+        render({
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        }),
+      ).toBe('{ [key: string]: never }');
+    });
+
+    it('renders additionalProperties: false with omitted properties as a never index signature', () => {
+      expect(render({ type: 'object', additionalProperties: false })).toBe(
+        '{ [key: string]: never }',
+      );
+    });
+
+    it('renders unevaluatedProperties: false as a never index signature', () => {
+      expect(render({ type: 'object', unevaluatedProperties: false })).toBe(
+        '{ [key: string]: never }',
+      );
+    });
+
+    it('keeps the nullable suffix', () => {
+      expect(
+        render({ type: 'object', additionalProperties: false }, ' | null'),
+      ).toBe('{ [key: string]: never } | null');
+    });
+
+    it('keeps the permissive type for additionalProperties: true', () => {
+      expect(
+        render({
+          type: 'object',
+          properties: {},
+          additionalProperties: true,
+        }),
+      ).toBe('{ [key: string]: unknown }');
+    });
+
+    it('keeps the permissive type for an unconstrained object', () => {
+      expect(render({ type: 'object' })).toBe('{ [key: string]: unknown }');
+    });
+
+    it('keeps the permissive type when patternProperties allows keys', () => {
+      expect(
+        render({
+          type: 'object',
+          additionalProperties: false,
+          patternProperties: { '^x-': { type: 'string' } },
+        }),
+      ).toBe('{ [key: string]: unknown }');
+    });
+
+    it('does not affect closed objects with declared properties', () => {
+      const value = render({
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        additionalProperties: false,
+      });
+      expect(value).toContain('id?: string');
+      expect(value).not.toContain('never');
+    });
+
+    it('does not intersect allOf siblings with a never index signature', () => {
+      const value = getObject({
+        item: {
+          allOf: [
+            { $ref: '#/components/schemas/Base' },
+            { type: 'object', additionalProperties: false },
+          ],
+        },
+        name: 'Extended',
+        context: createTestContextSpec({
+          spec: {
+            components: {
+              schemas: {
+                Base: {
+                  type: 'object',
+                  properties: { a: { type: 'string' } },
+                },
+              },
+            },
+          },
+        }),
+        nullable: '',
+      }).value;
+      expect(value).toBe('Base & { [key: string]: unknown }');
+    });
+
+    it('applies to oneOf members', () => {
+      const value = getObject({
+        item: {
+          oneOf: [
+            { type: 'object', additionalProperties: false },
+            { type: 'string' },
+          ],
+        },
+        name: 'Choice',
+        context: createTestContextSpec({ spec: {} }),
+        nullable: '',
+      }).value;
+      expect(value).toContain('{ [key: string]: never }');
+    });
+  });
 });

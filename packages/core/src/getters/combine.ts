@@ -62,6 +62,37 @@ function isScalarConst(value: unknown): boolean {
   );
 }
 
+/**
+ * An inline `allOf` member with no declared properties and
+ * `additionalProperties: false` (or `unevaluatedProperties: false`) would
+ * otherwise render as `{ [key: string]: never }`, and intersecting that with
+ * sibling members turns every sibling property into `never`. Specs commonly
+ * use such an overlay to mean "closed", so drop the closed flag for the member
+ * and keep the permissive `{ [key: string]: unknown }` intersection. See #4429.
+ */
+function openClosedEmptyAllOfOverlay(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): OpenApiSchemaObject | OpenApiReferenceObject {
+  if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
+    return schema;
+  }
+  const hasProperties =
+    schema.properties !== undefined &&
+    Object.keys(schema.properties).length > 0;
+  // Mirror getObject: `additionalProperties` takes precedence when present.
+  const closedFlag: unknown =
+    schema.additionalProperties ?? schema.unevaluatedProperties;
+  if (hasProperties || closedFlag !== false) {
+    return schema;
+  }
+  const {
+    additionalProperties: _additionalProperties,
+    unevaluatedProperties: _unevaluatedProperties,
+    ...rest
+  } = schema;
+  return rest as OpenApiSchemaObject;
+}
+
 function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
   if (isBooleanJsonSchema(schema)) {
     return false;
@@ -816,7 +847,10 @@ export function combineSchemas({
     }
 
     const resolvedValue = resolveObject({
-      schema: subSchema,
+      schema:
+        separator === 'allOf'
+          ? openClosedEmptyAllOfOverlay(subSchema)
+          : subSchema,
       propName,
       combined: true,
       context,
