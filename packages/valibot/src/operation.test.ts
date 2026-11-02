@@ -25,6 +25,7 @@ describe('operations', () => {
       components = {},
       requestBody,
       content,
+      responses,
     }: {
       code?: string;
       contentType?: string;
@@ -32,6 +33,7 @@ describe('operations', () => {
       components?: Record<string, OpenApiSchemaObject>;
       requestBody?: OpenApiRequestBodyObject;
       content?: OpenApiResponseObject['content'];
+      responses?: Record<string, OpenApiResponseObject>;
     } = {},
   ) => {
     const context = createTestContextSpec({
@@ -42,7 +44,7 @@ describe('operations', () => {
             get: {
               parameters,
               requestBody,
-              responses: {
+              responses: responses ?? {
                 [code]: {
                   description: 'ok',
                   content: content ?? { [contentType]: { schema } },
@@ -103,6 +105,41 @@ describe('operations', () => {
       { code: '201', contentType: 'application/hal+json; charset=utf-8' },
     );
     expect(implementation).toContain('ListPetsResponse = v.string()');
+  });
+
+  it('skips a 200 response without a schema for a 201 with one', async () => {
+    const implementation = await run(
+      {},
+      {
+        responses: {
+          '200': { description: 'ok' },
+          '201': {
+            description: 'created',
+            content: { 'application/json': { schema: { type: 'string' } } },
+          },
+        },
+      },
+    );
+    expect(implementation).toContain('ListPetsResponse = v.string()');
+  });
+
+  it('skips a 200 response with only an unsupported media type', async () => {
+    const implementation = await run(
+      {},
+      {
+        responses: {
+          '200': {
+            description: 'ok',
+            content: { 'text/plain': { schema: { type: 'string' } } },
+          },
+          '202': {
+            description: 'accepted',
+            content: { 'application/json': { schema: { type: 'number' } } },
+          },
+        },
+      },
+    );
+    expect(implementation).toContain('ListPetsResponse = v.number()');
   });
 
   it('emits an array response with its size limits', async () => {
@@ -558,6 +595,24 @@ describe('operations', () => {
 
     it('keeps it in a response', async () => {
       expect(await run(pet)).toContain('id: v.pipe(v.number(), v.integer())');
+    });
+
+    it('leaves a write-only property out of a response and keeps it in a body', async () => {
+      const user: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['password', 'name'],
+        properties: {
+          password: { type: 'string', writeOnly: true },
+          name: { type: 'string' },
+        },
+      };
+      const implementation = await run(user, {
+        requestBody: { content: { 'application/json': { schema: user } } },
+      });
+      expect(implementation).toContain(
+        'ListPetsResponse = v.object({\n  name: v.string()\n})',
+      );
+      expect(implementation).toContain('password: v.string()');
     });
 
     it('leaves it out of a referenced body, with its required entry', async () => {

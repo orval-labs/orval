@@ -1,11 +1,14 @@
 import type { OpenApiNonBooleanSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { omitReadOnly } from './read-only';
+import { omitDirectional } from './read-only';
 import { gen } from './test-helpers';
 
 const id: OpenApiNonBooleanSchemaObject = { type: 'integer', readOnly: true };
 const name: OpenApiNonBooleanSchemaObject = { type: 'string' };
+
+const omitReadOnly = (schema: OpenApiNonBooleanSchemaObject) =>
+  omitDirectional(schema, 'readOnly');
 
 describe('omitReadOnly', () => {
   it('removes a read-only property and its required entry', () => {

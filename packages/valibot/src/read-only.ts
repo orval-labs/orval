@@ -11,15 +11,23 @@ import {
   toCanonicalNullable,
 } from './schema-type';
 
-const isReadOnly = (schema: OpenApiSchemaObject | undefined): boolean =>
-  isNonBoolean(schema) && schema.readOnly === true;
+// `readOnly` properties are left out of requests, `writeOnly` ones of responses.
+type Direction = 'readOnly' | 'writeOnly';
 
-const readOnlyKeys = (schema: OpenApiNonBooleanSchemaObject): string[] => [
+const isHidden = (
+  schema: OpenApiSchemaObject | undefined,
+  direction: Direction,
+): boolean => isNonBoolean(schema) && schema[direction] === true;
+
+const hiddenKeys = (
+  schema: OpenApiNonBooleanSchemaObject,
+  direction: Direction,
+): string[] => [
   ...Object.entries(isObject(schema.properties) ? schema.properties : {})
-    .filter(([, property]) => isReadOnly(property))
+    .filter(([, property]) => isHidden(property, direction))
     .map(([key]) => key),
   ...(Array.isArray(schema.allOf) ? schema.allOf : []).flatMap((member) =>
-    isNonBoolean(member) ? readOnlyKeys(member) : [],
+    isNonBoolean(member) ? hiddenKeys(member, direction) : [],
   ),
 ];
 
@@ -65,23 +73,24 @@ const closeIfEmptied = (
 const strip = (
   input: OpenApiNonBooleanSchemaObject,
   inherited: ReadonlySet<string>,
+  direction: Direction,
 ): OpenApiNonBooleanSchemaObject => {
   const schema = toCanonicalNullable(input);
-  const hidden = new Set([...inherited, ...readOnlyKeys(schema)]);
+  const hidden = new Set([...inherited, ...hiddenKeys(schema, direction)]);
   // Hidden keys are also hidden from the `required` of sibling members.
   const nested = (
     member: OpenApiSchemaObject,
     shared: ReadonlySet<string> = new Set(),
   ): OpenApiSchemaObject =>
     isNonBoolean(member)
-      ? closeIfEmptied(member, strip(member, shared))
+      ? closeIfEmptied(member, strip(member, shared, direction))
       : member;
   const result: OpenApiNonBooleanSchemaObject = { ...schema };
 
   if (isObject(schema.properties)) {
     result.properties = Object.fromEntries(
       Object.entries(schema.properties)
-        .filter(([, property]) => !isReadOnly(property))
+        .filter(([, property]) => !isHidden(property, direction))
         .map(([key, property]) => [key, nested(property)]),
     );
   }
@@ -101,7 +110,7 @@ const strip = (
   if (Array.isArray(schema.allOf)) {
     // A member left with nothing is dropped, as it would be an open object.
     const members = schema.allOf.map((member) =>
-      isNonBoolean(member) ? strip(member, hidden) : member,
+      isNonBoolean(member) ? strip(member, hidden, direction) : member,
     );
     const kept = members.filter(
       (member, index) => !isEmptied(schema.allOf?.[index], member),
@@ -113,11 +122,12 @@ const strip = (
 };
 
 /**
- * A schema without its read-only properties, which a request must not send,
- * also removed from `required`. Goes beyond zod by handling nested objects and
- * composition members.
+ * A schema without the properties its direction must not carry: read-only ones
+ * for a request, write-only ones for a response. They are also removed from
+ * `required`, in nested objects and composition members too.
  */
-export const omitReadOnly = (
+export const omitDirectional = (
   schema: OpenApiNonBooleanSchemaObject,
+  direction: Direction,
 ): OpenApiNonBooleanSchemaObject =>
-  closeIfEmptied(schema, strip(schema, new Set()));
+  closeIfEmptied(schema, strip(schema, new Set(), direction));

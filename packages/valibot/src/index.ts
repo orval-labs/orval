@@ -83,7 +83,7 @@ const generateValibotRoute = (
   });
 
   const response = parseBodyAndResponse({
-    data: getSingleResponse(operation?.responses),
+    data: getSingleResponse(operation?.responses, context),
     context,
     strict: options.strict.response,
     generate: options.generate.response,

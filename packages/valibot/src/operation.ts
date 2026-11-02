@@ -12,7 +12,7 @@ import {
 import { dereference } from './dereference';
 import { withFileParts, type PartEncoding } from './form-data';
 import { plainNode, type ValibotNode } from './nodes';
-import { omitReadOnly } from './read-only';
+import { omitDirectional } from './read-only';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
 const JSON_TYPE = /^application\/([^/;]+\+)?json$/;
@@ -28,27 +28,17 @@ interface MediaSchema {
   encoding?: PartEncoding;
 }
 
-interface ParseBodyAndResponseOptions {
-  data:
-    | OpenApiResponseObject
-    | OpenApiRequestBodyObject
-    | OpenApiReferenceObject
-    | undefined;
-  context: ContextSpec;
-  strict: boolean;
-  generate: boolean;
-  isRequest: boolean;
-}
+type BodyOrResponse =
+  | OpenApiResponseObject
+  | OpenApiRequestBodyObject
+  | OpenApiReferenceObject;
 
-export const parseBodyAndResponse = ({
-  data,
-  context,
-  strict,
-  generate,
-  isRequest,
-}: ParseBodyAndResponseOptions): ValibotNode | undefined => {
-  if (!data || !generate) return;
-
+// The first content with a schema in a media type that gets one.
+const selectMedia = (
+  data: BodyOrResponse | undefined,
+  context: ContextSpec,
+): MediaSchema | undefined => {
+  if (!data) return;
   const { content } = resolveRef<
     OpenApiResponseObject | OpenApiRequestBodyObject
   >(data, context).schema;
@@ -66,14 +56,33 @@ export const parseBodyAndResponse = ({
           ]
         : [],
   );
-  const media = MEDIA_TYPES.map((pattern) =>
+  return MEDIA_TYPES.map((pattern) =>
     schemas.find(({ contentType }) => pattern.test(contentType)),
   ).find(Boolean);
+};
+
+interface ParseBodyAndResponseOptions {
+  data: BodyOrResponse | undefined;
+  context: ContextSpec;
+  strict: boolean;
+  generate: boolean;
+  isRequest: boolean;
+}
+
+export const parseBodyAndResponse = ({
+  data,
+  context,
+  strict,
+  generate,
+  isRequest,
+}: ParseBodyAndResponseOptions): ValibotNode | undefined => {
+  if (!generate) return;
+  const media = selectMedia(data, context);
   if (!media) return;
 
   const resolved = dereference(media.schema, context);
   const node = generateValibotValidationSchemaDefinition(
-    isRequest ? omitReadOnly(resolved) : resolved,
+    omitDirectional(resolved, isRequest ? 'readOnly' : 'writeOnly'),
     context,
     strict,
     { required: true, urlEncoded: URL_ENCODED_TYPE.test(media.contentType) },
@@ -83,17 +92,29 @@ export const parseBodyAndResponse = ({
     : node;
 };
 
+const isSuccessWithBody = (code: string) =>
+  code.startsWith('2') && code !== '204' && code !== '205';
+
+// `200`, then `2XX`, then the other 2xx codes, skipping one with no content
+// that gets a schema.
 export const getSingleResponse = (
-  responses:
-    | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
-    | undefined,
-) =>
-  responses?.['200'] ??
-  responses?.['2XX'] ??
-  responses?.['2xx'] ??
-  Object.entries(responses ?? {}).find(
-    ([code]) => code.startsWith('2') && code !== '204' && code !== '205',
-  )?.[1];
+  responses: Record<string, BodyOrResponse | undefined> | undefined,
+  context: ContextSpec,
+): BodyOrResponse | undefined => {
+  const codes = Object.keys(responses ?? {});
+  const ordered = [
+    '200',
+    '2XX',
+    '2xx',
+    ...codes.filter(
+      (code) =>
+        isSuccessWithBody(code) && !['200', '2XX', '2xx'].includes(code),
+    ),
+  ];
+  return ordered
+    .map((code) => responses?.[code])
+    .find((response) => selectMedia(response, context) !== undefined);
+};
 
 export type Locations<T> = Record<
   'param' | 'query' | 'header' | 'body' | 'response',
