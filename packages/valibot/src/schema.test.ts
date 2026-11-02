@@ -196,6 +196,27 @@ describe('objects', () => {
     },
   );
 
+  it.each([
+    [{ type: 'boolean', default: 'true' }],
+    [{ type: 'string', enum: ['a', 'b'], default: 'c' }],
+    [{ type: 'string', const: 'a', default: 'b' }],
+    [{ type: 'array', items: { type: 'string' }, default: 'a' }],
+  ] satisfies [OpenApiSchemaObject][])(
+    'leaves out a default the schema rejects (%j)',
+    (schema) => {
+      const { output } = gen({ type: 'object', properties: { n: schema } });
+      expect(output({})).toEqual({});
+    },
+  );
+
+  it('keeps a null default of a nullable schema', () => {
+    const { output } = gen({
+      type: 'object',
+      properties: { n: { type: ['string', 'null'], default: null } },
+    });
+    expect(output({})).toEqual({ n: null });
+  });
+
   it('does not apply a default to a required key without a property', () => {
     const { ok } = gen({
       type: 'object',

@@ -313,8 +313,56 @@ const numberType = (
     : undefined;
 };
 
-// .NET writes a `double` default as a string such as `"NaN"`. A default the
-// number schema rejects is left out, or every value without the key fails.
+const matchesType = (value: unknown, type: unknown): boolean => {
+  switch (type) {
+    case 'string': {
+      return isString(value);
+    }
+    case 'number': {
+      return typeof value === 'number';
+    }
+    case 'integer': {
+      return Number.isInteger(value);
+    }
+    case 'boolean': {
+      return isBoolean(value);
+    }
+    case 'null': {
+      return value === null;
+    }
+    case 'array': {
+      return Array.isArray(value);
+    }
+    case 'object': {
+      return isObject(value) && !Array.isArray(value);
+    }
+    default: {
+      return true;
+    }
+  }
+};
+
+// Checks the enum or const, else the type; other keywords are trusted. An enum
+// is generated as its values whatever the type says.
+const fitsSchema = (
+  value: unknown,
+  schema: OpenApiNonBooleanSchemaObject,
+): boolean => {
+  if (value === null && isSchemaNullable(schema)) return true;
+  const same = (other: unknown) =>
+    JSON.stringify(other) === JSON.stringify(value);
+  if (schema.const !== undefined) return same(schema.const);
+  if (Array.isArray(schema.enum)) return schema.enum.some(same);
+  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+  const declared = types.filter((type) => type !== undefined);
+  return (
+    declared.length === 0 || declared.some((type) => matchesType(value, type))
+  );
+};
+
+// valibot parses the default with the schema it wraps, so a default the schema
+// rejects is left out, or every value without the key fails. .NET writes a
+// `double` default as a string such as `"NaN"`, which is read as a number.
 const generateDefault = (
   schema: OpenApiNonBooleanSchemaObject,
 ): string | undefined => {
@@ -325,7 +373,11 @@ const generateDefault = (
     schema.enum === undefined &&
     schema.const === undefined;
   if (!isPlainNumber || !(isString(value) || typeof value === 'number')) {
-    return toJsLiteral(value);
+    if (fitsSchema(value, schema)) return toJsLiteral(value);
+    warnOnce(
+      `The default ${JSON.stringify(value)} does not fit its schema, it is left out.`,
+    );
+    return undefined;
   }
   const parsed =
     isString(value) && !JSON_NUMBER.test(value.trim())
