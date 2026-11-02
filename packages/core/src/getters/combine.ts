@@ -63,14 +63,17 @@ function isScalarConst(value: unknown): boolean {
 }
 
 /**
- * An inline `allOf` member with no declared properties and
+ * A schema part that is intersected with composition siblings — an inline
+ * `allOf` member, or the parent's own `properties` resolved next to its
+ * `allOf`/`oneOf`/`anyOf` — and that has no declared properties plus
  * `additionalProperties: false` (or `unevaluatedProperties: false`) would
- * otherwise render as `{ [key: string]: never }`, and intersecting that with
- * sibling members turns every sibling property into `never`. Specs commonly
- * use such an overlay to mean "closed", so drop the closed flag for the member
- * and keep the permissive `{ [key: string]: unknown }` intersection. See #4429.
+ * otherwise render as `{ [key: string]: never }`. Intersecting that with the
+ * siblings turns every sibling property into `never`, although the siblings
+ * are where the real keys come from (and `unevaluatedProperties` counts them
+ * as evaluated). Drop the closed flag for that part and keep the permissive
+ * `{ [key: string]: unknown }` intersection. See #4429.
  */
-function openClosedEmptyAllOfOverlay(
+function openClosedEmptyCompositionPart(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): OpenApiSchemaObject | OpenApiReferenceObject {
   if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
@@ -849,7 +852,7 @@ export function combineSchemas({
     const resolvedValue = resolveObject({
       schema:
         separator === 'allOf'
-          ? openClosedEmptyAllOfOverlay(subSchema)
+          ? openClosedEmptyCompositionPart(subSchema)
           : subSchema,
       propName,
       combined: true,
@@ -1107,9 +1110,14 @@ export function combineSchemas({
 
   if (normalizedProperties && !isDiscriminatedRefCycle) {
     resolvedValue = getScalar({
-      item: Object.fromEntries(
-        Object.entries(normalizedSchema).filter(([key]) => key !== separator),
-      ),
+      // The parent's own (possibly empty) properties are intersected with the
+      // composition members, which contribute the real keys, so a closed flag
+      // on an empty parent must not render as `{ [key: string]: never }`.
+      item: openClosedEmptyCompositionPart(
+        Object.fromEntries(
+          Object.entries(normalizedSchema).filter(([key]) => key !== separator),
+        ) as OpenApiSchemaObject,
+      ) as OpenApiSchemaObject,
       name,
       context,
       formDataContext,

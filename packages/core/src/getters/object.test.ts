@@ -308,6 +308,35 @@ describe('getObject', () => {
       expect(value).toBe('Base & { [key: string]: unknown }');
     });
 
+    it.each([
+      ['unevaluatedProperties', 'allOf'],
+      ['additionalProperties', 'allOf'],
+      ['unevaluatedProperties', 'oneOf'],
+    ] as const)(
+      'does not intersect a closed empty %s parent with its %s members as never',
+      (closedKey, separator) => {
+        const value = getObject({
+          item: {
+            type: 'object',
+            properties: {},
+            [closedKey]: false,
+            [separator]: [
+              {
+                type: 'object',
+                properties: { a: { type: 'string' } },
+                required: ['a'],
+              },
+            ],
+          },
+          name: 'Parent',
+          context: createTestContextSpec({ spec: {} }),
+          nullable: '',
+        }).value;
+        expect(value).toContain('a: string');
+        expect(value).not.toContain('never');
+      },
+    );
+
     it('applies to oneOf members', () => {
       const value = getObject({
         item: {
