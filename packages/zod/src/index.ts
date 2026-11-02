@@ -2859,7 +2859,12 @@ ${Object.entries(objectArgs)
       for (const part of allOfArgs) {
         rendered = {
           ...rendered,
-          expr: appendZodRefinements(rendered.expr, part.functions, variant),
+          expr: appendZodRefinements(
+            rendered.expr,
+            part.functions,
+            variant,
+            isZodV4 ? 4 : 3,
+          ),
         };
       }
       return rendered;
@@ -2875,7 +2880,12 @@ ${Object.entries(objectArgs)
           member.functions[0][1] as ZodValidationSchemaDefinition[],
         );
         if (merged !== null) {
-          return appendZodRefinements(merged.expr, member.functions, variant);
+          return appendZodRefinements(
+            merged.expr,
+            member.functions,
+            variant,
+            isZodV4 ? 4 : 3,
+          );
         }
       }
       appendConstsChunk(member.consts.join('\n'));
@@ -3036,7 +3046,7 @@ ${Object.entries(objectArgs)
         const value = requireCurrent(fn);
         current = {
           ...value,
-          expr: value.expr + renderZodRefine(args, variant),
+          expr: value.expr + renderZodRefine(args, variant, isZodV4 ? 4 : 3),
         };
         continue;
       }
@@ -3256,6 +3266,7 @@ ${Object.entries(mergedProperties)
         objectString,
         part.functions,
         variant,
+        isZodV4 ? 4 : 3,
       );
     }
     return objectString;
@@ -3276,7 +3287,12 @@ ${Object.entries(mergedProperties)
         fieldPath,
       );
       if (merged !== null) {
-        return appendZodRefinements(merged, member.functions, variant);
+        return appendZodRefinements(
+          merged,
+          member.functions,
+          variant,
+          isZodV4 ? 4 : 3,
+        );
       }
     }
     appendConstsChunk(member.consts.join('\n'));
@@ -3314,7 +3330,7 @@ ${Object.entries(mergedProperties)
     }
 
     if (fn === 'refine') {
-      return renderZodRefine(args, variant);
+      return renderZodRefine(args, variant, isZodV4 ? 4 : 3);
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)

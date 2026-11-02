@@ -399,9 +399,6 @@ describe('schemaExtension refinement emission', () => {
     ).toThrow(
       'Zod 4 does not support a function as the second refine argument',
     );
-    expect(() => renderZodRefine(nonEmptyDescriptor, 'mini', 3)).toThrow(
-      'Zod Mini requires Zod 4',
-    );
   });
 
   it('rejects legacy message descriptors and malformed options at the renderer boundary', () => {

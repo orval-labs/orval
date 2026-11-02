@@ -263,8 +263,7 @@ describe('serializeCallable', () => {
 
     const [callable, rawOptions] = evaluateRefinementArgs(source);
     expect(typeof callable).toBe('function');
-    if (typeof callable !== 'function')
-      throw new TypeError('Missing predicate');
+    if (!isCallable(callable)) throw new TypeError('Missing predicate');
     expect(callable(11)).toBe(false);
     expect(callable(10)).toBe(true);
 
@@ -297,10 +296,7 @@ describe('serializeCallable', () => {
     const source = serializeCallable(descriptor);
     expect(source).toContain('const prefix = "Quantity";');
     const [callable, optionsFactory] = evaluateRefinementArgs(source);
-    if (
-      typeof callable !== 'function' ||
-      typeof optionsFactory !== 'function'
-    ) {
+    if (!isCallable(callable) || !isCallable(optionsFactory)) {
       throw new TypeError('Serialized Zod 3 arguments must be callables');
     }
     expect(callable(-1)).toBe(false);
