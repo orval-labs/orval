@@ -620,7 +620,7 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('export function getPetByIdResource');
-      expect(header).toContain('petId: Signal<string>');
+      expect(header).toContain('petId: Signal<string | undefined>');
       expect(header).toContain(
         'options?: OrvalHttpResourceOptions<Pet, unknown>',
       );
@@ -798,9 +798,14 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('searchPetsBody?: Signal<SearchPetsBody>');
-      // Idle guard is emitted at the top of the request factory.
-      expect(header).toContain('if (!searchPetsBody) return undefined;');
+      expect(header).toContain(
+        'searchPetsBody?: Signal<SearchPetsBody | undefined>',
+      );
+      // Idle guard is emitted at the top of the request factory; it also
+      // covers a body signal that currently holds `undefined` (#4423).
+      expect(header).toContain(
+        'if (searchPetsBody?.() === undefined) return undefined;',
+      );
       // The body signal is invoked directly once past the guard.
       expect(header).toContain('body: searchPetsBody()');
       // The unconditional optional-call form must no longer be emitted.
@@ -2527,7 +2532,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('params?: Signal<GetPetByIdParams>');
+      expect(header).toContain('params?: Signal<GetPetByIdParams | undefined>');
       expect(header).toContain(
         'options?: OrvalHttpResourceOptions<Pet, unknown>',
       );
@@ -2572,8 +2577,10 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('pathParams: Signal<GetPetByIdPathParams>');
-      expect(header).toContain('pathParams().petId');
+      expect(header).toContain(
+        'pathParams: Signal<GetPetByIdPathParams | undefined>',
+      );
+      expect(header).toContain('pathParams()?.petId');
     });
   });
 
@@ -2671,9 +2678,141 @@ describe('angular httpResource generator', () => {
       // The `| undefined` belongs after the whole `Signal<...>`; a comma inside
       // the type must not end the rewrite early.
       expect(header).toContain(
-        'filter: Signal<Record<string, string>> | undefined',
+        'filter: Signal<Record<string, string> | undefined> | undefined',
       );
       expect(header).not.toContain('Record<string | undefined');
+    });
+  });
+
+  // ─── Idle inputs (#4423) ──────────────────────────────────────────
+
+  describe('idle inputs (#4423)', () => {
+    const generate = (verbOption: ReturnType<typeof createVerbOption>) => {
+      const header = asHeaderString(
+        generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never),
+      );
+      return header.slice(header.indexOf('export function getPetByIdResource'));
+    };
+
+    const queryParamsProp = (required: boolean) => ({
+      name: 'params',
+      definition: 'params: GetPetByIdParams',
+      implementation: 'params: GetPetByIdParams',
+      default: false,
+      required,
+      type: GetterPropType.QUERY_PARAM,
+    });
+
+    it('keeps the resource idle while a required input holds undefined', () => {
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const header = generate(
+        createVerbOption({
+          queryParams: createQueryParams({ isOptional: false }),
+          props: [
+            {
+              name: 'petId',
+              definition: 'petId: string',
+              implementation: 'petId: string',
+              default: false,
+              required: true,
+              type: GetterPropType.PARAM,
+            },
+            queryParamsProp(true),
+          ],
+        }),
+      );
+
+      expect(header).toContain('petId: Signal<string | undefined>');
+      expect(header).toContain('params: Signal<GetPetByIdParams | undefined>');
+      const guards = header.indexOf(
+        'if (petId() === undefined) return undefined;\n    if (params() === undefined) return undefined;',
+      );
+      expect(guards).toBeGreaterThan(-1);
+      expect(guards).toBeLessThan(header.indexOf('const request ='));
+    });
+
+    it('still sends without omitted optional query params, but waits while a passed signal holds undefined', () => {
+      routeRegistry.set('getPetById', '/api/pets');
+      const header = generate(
+        createVerbOption({
+          route: '/pets',
+          pathRoute: '/pets',
+          queryParams: createQueryParams(),
+          props: [queryParamsProp(false)],
+          params: [],
+        }),
+      );
+
+      expect(header).toContain('params?: Signal<GetPetByIdParams | undefined>');
+      expect(header).toContain(
+        'if (params && params() === undefined) return undefined;',
+      );
+    });
+
+    it('leaves path params with a default as they are', () => {
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const header = generate(
+        createVerbOption({
+          params: [
+            {
+              name: 'petId',
+              definition: 'petId?: string',
+              implementation: "petId: string = 'mine'",
+              default: 'mine',
+              required: false,
+              imports: [],
+            },
+          ],
+          props: [
+            {
+              name: 'petId',
+              definition: 'petId?: string',
+              implementation: "petId: string = 'mine'",
+              default: 'mine',
+              required: false,
+              type: GetterPropType.PARAM,
+            },
+          ],
+        }),
+      );
+
+      expect(header).toContain('petId?: Signal<string>');
+      expect(header).toContain("petId?.() ?? 'mine'");
+      expect(header).not.toContain('petId() === undefined');
+    });
+
+    it('does not guard multi-content resources, whose request is built eagerly', () => {
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const header = generate(
+        createVerbOption({
+          queryParams: createQueryParams(),
+          response: baseResponse({
+            definition: { success: 'string | Pet', errors: 'Error' },
+            types: {
+              success: [
+                createSuccessType('Pet', 'application/json'),
+                createSuccessType('string', 'text/plain'),
+              ],
+              errors: [],
+            },
+            contentTypes: ['application/json', 'text/plain'],
+          }),
+        }),
+      );
+
+      expect(header).toContain('petId?: Signal<string>,');
+      expect(header).not.toContain('Signal<string | undefined>');
+      expect(header).not.toContain('return undefined;');
     });
   });
 
@@ -2696,9 +2835,10 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      // URL-only: no request object, no "const request"
+      // URL-only: no request object, no "const request"; the path param
+      // keeps the resource idle while it holds `undefined` (#4423).
       expect(header).toContain(
-        'httpResource<Pet>(() => applyOrvalRequestExtension(`/api/pets/${petId()}`, options), options)',
+        'httpResource<Pet>(() => (petId() === undefined ? undefined : applyOrvalRequestExtension(`/api/pets/${petId()}`, options)), options)',
       );
       expect(header).not.toContain('const request');
     });
@@ -3062,10 +3202,12 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('searchPetsBody: Signal<SearchPetsBody>');
-      expect(header).not.toContain('searchPetsBody?: Signal<SearchPetsBody>');
-      expect(header).toContain('params: Signal<SearchPetsParams>');
-      expect(header).not.toContain('params?: Signal<SearchPetsParams>');
+      expect(header).toContain(
+        'searchPetsBody: Signal<SearchPetsBody | undefined>',
+      );
+      expect(header).not.toContain('searchPetsBody?: Signal<');
+      expect(header).toContain('params: Signal<SearchPetsParams | undefined>');
+      expect(header).not.toContain('params?: Signal<');
     });
 
     it('re-applies Accept after the extension in multi-content-type branches, without a shadowing outer `headers` const', () => {

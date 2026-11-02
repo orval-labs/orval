@@ -197,21 +197,22 @@ function filterParams(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options: OrvalHttpResourceOptions<PetsOutput, unknown, true> & {
     defaultValue: NoInfer<PetsOutput>;
   },
 ): HttpResourceRef<PetsOutput>;
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined>;
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined> {
   return httpResource<PetsOutput>(
     () => {
+      if (params() === undefined) return undefined;
       const request = {
         url: `/pets`,
         params: filterParams(params?.() ?? {}, new Set<string>([])),
@@ -239,21 +240,24 @@ export function listPetsResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<PetOutput, unknown, true> & {
     defaultValue: NoInfer<PetOutput>;
   },
 ): HttpResourceRef<PetOutput>;
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetOutput, unknown, true>,
 ): HttpResourceRef<PetOutput | undefined>;
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetOutput, unknown, true>,
 ): HttpResourceRef<PetOutput | undefined> {
   return httpResource<PetOutput>(
-    () => applyOrvalRequestExtension(`/pets/${petId()}`, options),
+    () =>
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`/pets/${petId()}`, options),
     {
       ...(options ?? {}),
       parse: (raw) => {
@@ -295,21 +299,24 @@ export function healthCheckResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<PetWithTagOutput, unknown, true> & {
     defaultValue: NoInfer<PetWithTagOutput>;
   },
 ): HttpResourceRef<PetWithTagOutput>;
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetWithTagOutput, unknown, true>,
 ): HttpResourceRef<PetWithTagOutput | undefined>;
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetWithTagOutput, unknown, true>,
 ): HttpResourceRef<PetWithTagOutput | undefined> {
   return httpResource<PetWithTagOutput>(
-    () => applyOrvalRequestExtension(`/pets/${petId()}/owner`, options),
+    () =>
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`/pets/${petId()}/owner`, options),
     {
       ...(options ?? {}),
       parse: (raw) => {

@@ -450,14 +450,17 @@ interface SignalProp {
 
 const withSignal = (
   prop: GeneratorVerbOptions['props'][number],
-  { hasDefault }: { readonly hasDefault: boolean },
+  {
+    hasDefault,
+    acceptsUndefined,
+  }: { readonly hasDefault: boolean; readonly acceptsUndefined: boolean },
 ): SignalProp => {
   const type = getTypeWithoutDefault(prop.definition);
   const nameMatch = /^([^:]+):/.exec(prop.definition);
   const namePart = nameMatch ? nameMatch[1] : prop.name;
   const hasOptionalMark = namePart.includes('?');
   const optional = prop.required && !hasDefault && !hasOptionalMark ? '' : '?';
-  const definition = `${prop.name}${optional}: Signal<${type}>`;
+  const definition = `${prop.name}${optional}: Signal<${type}${acceptsUndefined ? ' | undefined' : ''}>`;
 
   return {
     definition,
@@ -465,9 +468,79 @@ const withSignal = (
   };
 };
 
+const isDirectRequestBody = ({
+  body,
+  override,
+}: GeneratorVerbOptions): boolean => {
+  const hasFormData = !override.formData.disabled && !!body.formData;
+  const hasFormUrlEncoded =
+    override.formUrlEncoded !== false && !!body.formUrlEncoded;
+  return !!body.definition && !hasFormData && !hasFormUrlEncoded;
+};
+
+interface IdleInput {
+  readonly name: string;
+  readonly optional: boolean;
+  readonly isBody: boolean;
+}
+
+// The inputs a request can't be built without. Each one accepts `undefined`,
+// and while one holds it the request factory returns `undefined`, so the
+// resource stays idle like an Angular `resource` whose params are `undefined`
+// (#4423). Only the lazily built single content-type factory can return
+// `undefined` (see `buildResourceRequest`); path params with a default and
+// form bodies keep their current behaviour.
+const getIdleInputs = (
+  verbOption: GeneratorVerbOptions,
+  { supportsIdleGuard }: { readonly supportsIdleGuard: boolean },
+): IdleInput[] => {
+  if (!supportsIdleGuard) return [];
+  const routeDefaults = new Set(
+    verbOption.params
+      .filter(
+        (param) =>
+          getDefaultValueFromImplementation(param.implementation) !== undefined,
+      )
+      .map((param) => param.name),
+  );
+  return verbOption.props.flatMap((prop): IdleInput[] => {
+    switch (prop.type) {
+      case GetterPropType.NAMED_PATH_PARAMS: {
+        return [{ name: 'pathParams', optional: false, isBody: false }];
+      }
+      case GetterPropType.PARAM: {
+        return routeDefaults.has(prop.name)
+          ? []
+          : [{ name: prop.name, optional: false, isBody: false }];
+      }
+      case GetterPropType.QUERY_PARAM: {
+        return [{ name: prop.name, optional: !prop.required, isBody: false }];
+      }
+      case GetterPropType.BODY: {
+        return isDirectRequestBody(verbOption)
+          ? [{ name: prop.name, optional: !prop.required, isBody: true }]
+          : [];
+      }
+      default: {
+        return [];
+      }
+    }
+  });
+};
+
+// An omitted optional body keeps the resource idle (#3700); an omitted optional
+// query-params signal still sends the request without them.
+const buildIdleCondition = ({ name, optional, isBody }: IdleInput): string => {
+  if (!optional) return `${name}() === undefined`;
+  return isBody
+    ? `${name}?.() === undefined`
+    : `${name} && ${name}() === undefined`;
+};
+
 const buildSignalProps = (
   props: GeneratorVerbOptions['props'],
   params: GeneratorVerbOptions['params'],
+  idleInputs: readonly IdleInput[],
 ): GeneratorVerbOptions['props'] => {
   const paramDefaults = new Map<string, boolean>();
   for (const param of params) {
@@ -476,15 +549,17 @@ const buildSignalProps = (
       param.default !== undefined;
     paramDefaults.set(param.name, hasDefault);
   }
+  const acceptsUndefined = new Set(idleInputs.map((input) => input.name));
 
   return props.map((prop) => {
     switch (prop.type) {
       case GetterPropType.NAMED_PATH_PARAMS: {
+        const definition = `pathParams: Signal<${prop.schema.name}${acceptsUndefined.has('pathParams') ? ' | undefined' : ''}>`;
         return {
           ...prop,
           name: 'pathParams',
-          definition: `pathParams: Signal<${prop.schema.name}>`,
-          implementation: `pathParams: Signal<${prop.schema.name}>`,
+          definition,
+          implementation: definition,
         };
       }
       case GetterPropType.PARAM:
@@ -498,7 +573,10 @@ const buildSignalProps = (
           prop.type === GetterPropType.PARAM
             ? (paramDefaults.get(prop.name) ?? false)
             : false;
-        const signalProp = withSignal(prop, { hasDefault });
+        const signalProp = withSignal(prop, {
+          hasDefault,
+          acceptsUndefined: acceptsUndefined.has(prop.name),
+        });
         return {
           ...prop,
           definition: signalProp.definition,
@@ -516,6 +594,7 @@ const applySignalRoute = (
   route: string,
   params: GeneratorVerbOptions['params'],
   useNamedParams: boolean,
+  namedParamsMayBeUndefined: boolean,
 ): string => {
   const paramsByName = new Map(params.map((param) => [param.name, param]));
   // Rewrite the route's interpolations only. A plain `replaceAll('${x}', ...)`
@@ -530,7 +609,8 @@ const applySignalRoute = (
     );
     if (useNamedParams) {
       return defaultValue === undefined
-        ? 'pathParams().' + param.name
+        ? (namedParamsMayBeUndefined ? 'pathParams()?.' : 'pathParams().') +
+            param.name
         : 'pathParams()?.' + param.name + ' ?? ' + defaultValue;
     }
     return defaultValue === undefined
@@ -543,7 +623,7 @@ interface ResourceRequest {
   readonly bodyForm: string;
   readonly request: string;
   readonly isUrlOnly: boolean;
-  readonly bodyGuard?: string;
+  readonly idleGuards: readonly string[];
 }
 
 const buildResourceRequest = (
@@ -559,7 +639,7 @@ const buildResourceRequest = (
     formUrlEncoded,
   }: GeneratorVerbOptions,
   route: string,
-  { supportsIdleGuard }: { readonly supportsIdleGuard: boolean },
+  idleInputs: readonly IdleInput[],
 ): ResourceRequest => {
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -575,24 +655,19 @@ const buildResourceRequest = (
   const hasFormData = isFormData && body.formData;
   const hasFormUrlEncoded = isFormUrlEncoded && body.formUrlEncoded;
 
-  // An optional request body is exposed as an optional `Signal` parameter. When
-  // the caller omits it, the `httpResource` request factory must return
-  // `undefined` so the resource stays idle, rather than firing a request with an
-  // undefined body. This mirrors Angular's `undefined`-request contract (#3700).
-  //
-  // The guard is only emitted where the request is built lazily inside the
-  // factory (single response content-type). The multi-content path builds the
-  // request eagerly at the function-body level, where returning `undefined`
-  // would violate the function's `HttpResourceRef` return type — there we keep
-  // the optional-call (`?.()`) form, which is already runtime-safe.
-  const isDirectBody = !!body.definition && !hasFormData && !hasFormUrlEncoded;
-  const bodyGuard =
-    supportsIdleGuard && isDirectBody && body.isOptional
-      ? `if (!${body.implementation}) return undefined;`
-      : undefined;
+  // Idle guards (see `getIdleInputs`) are only emitted where the request is
+  // built lazily inside the factory (single response content-type). The
+  // multi-content path builds the request eagerly at the function-body level,
+  // where returning `undefined` would violate the function's `HttpResourceRef`
+  // return type — there an optional body keeps the optional-call (`?.()`) form,
+  // which is already runtime-safe.
+  const idleGuards = idleInputs.map(
+    (input) => `if (${buildIdleCondition(input)}) return undefined;`,
+  );
+  const isBodyGuarded = idleInputs.some((input) => input.isBody);
 
   const bodyAccess = body.definition
-    ? body.isOptional && !bodyGuard
+    ? body.isOptional && !isBodyGuarded
       ? `${body.implementation}?.()`
       : `${body.implementation}()`
     : undefined;
@@ -657,7 +732,7 @@ const buildResourceRequest = (
     bodyForm,
     request,
     isUrlOnly,
-    bodyGuard,
+    idleGuards,
   };
 };
 
@@ -1068,7 +1143,15 @@ const buildHttpResourceFunction = (
   const hasNamedParams = props.some(
     (prop) => prop.type === GetterPropType.NAMED_PATH_PARAMS,
   );
-  const signalRoute = applySignalRoute(route, params, hasNamedParams);
+  const idleInputs = getIdleInputs(verbOption, {
+    supportsIdleGuard: uniqueContentTypes.length <= 1,
+  });
+  const signalRoute = applySignalRoute(
+    route,
+    params,
+    hasNamedParams,
+    idleInputs.some((input) => input.name === 'pathParams'),
+  );
   // Opt-in URL-encoding of path parameters (`urlEncodeParameters`). Must run
   // AFTER `applySignalRoute`: that step matches the literal `${param}` template
   // to rewrite it to its signal form (e.g. `${param()}`), so encoding first
@@ -1092,13 +1175,13 @@ const buildHttpResourceFunction = (
     ? `const baseUrl = options?.injector ? options.injector.get(${getBaseUrlTokenName(baseUrlOption.apiId)}) : inject(${getBaseUrlTokenName(baseUrlOption.apiId)});\n  `
     : '';
 
-  const signalProps = buildSignalProps(props, params);
+  const signalProps = buildSignalProps(props, params, idleInputs);
   const args = toObjectString(signalProps, 'implementation');
 
-  const { bodyForm, request, isUrlOnly, bodyGuard } = buildResourceRequest(
+  const { bodyForm, request, isUrlOnly, idleGuards } = buildResourceRequest(
     verbOption,
     encodedRoute,
-    { supportsIdleGuard: uniqueContentTypes.length <= 1 },
+    idleInputs,
   );
 
   if (uniqueContentTypes.length > 1) {
@@ -1350,13 +1433,18 @@ export function ${resourceName}(
     : 'request';
 
   if (isUrlOnly && !isResourceCompatibleMutator) {
+    const extendedRequest = `applyOrvalRequestExtension(${request}, options)`;
+    const urlOnlyFactory =
+      idleInputs.length > 0
+        ? `(${idleInputs.map((input) => buildIdleCondition(input)).join(' || ')} ? undefined : ${extendedRequest})`
+        : extendedRequest;
     return {
       implementation: `/**
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
-  ${baseUrlDeclaration}return ${resourceFactory}<${parsedDataType}>(() => applyOrvalRequestExtension(${request}, options)${resourceCallOptions});
+  ${baseUrlDeclaration}return ${resourceFactory}<${parsedDataType}>(() => ${urlOnlyFactory}${resourceCallOptions});
 }
 `,
       resourceAlias,
@@ -1364,9 +1452,9 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
   }
 
   // Statements emitted at the top of the request factory, before the request
-  // object is assembled: the optional-body idle guard (when present) followed by
-  // any form-data/url-encoded body construction.
-  const factoryPrelude = [bodyGuard, bodyForm ? `${bodyForm};` : undefined]
+  // object is assembled: the idle guards (when present) followed by any
+  // form-data/url-encoded body construction.
+  const factoryPrelude = [...idleGuards, bodyForm ? `${bodyForm};` : undefined]
     .filter(Boolean)
     .join('\n    ');
 

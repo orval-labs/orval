@@ -196,23 +196,24 @@ function filterParams(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options: OrvalHttpResourceOptions<Pets, unknown> & {
     defaultValue: NoInfer<Pets>;
   },
 ): HttpResourceRef<Pets>;
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined>;
 export function listPetsResource(
-  params: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams | undefined>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
   const baseUrl = options?.injector
     ? options.injector.get(PETSTORE_API_BASE_URL)
     : inject(PETSTORE_API_BASE_URL);
   return httpResource<Pets>(() => {
+    if (params() === undefined) return undefined;
     const request = {
       url: `${baseUrl}/pets`,
       params: filterParams(params?.() ?? {}, new Set<string>([])),
@@ -225,24 +226,27 @@ export function listPetsResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<Pet, unknown> & {
     defaultValue: NoInfer<Pet>;
   },
 ): HttpResourceRef<Pet>;
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Pet, unknown>,
 ): HttpResourceRef<Pet | undefined>;
 export function showPetByIdResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Pet, unknown>,
 ): HttpResourceRef<Pet | undefined> {
   const baseUrl = options?.injector
     ? options.injector.get(PETSTORE_API_BASE_URL)
     : inject(PETSTORE_API_BASE_URL);
   return httpResource<Pet>(
-    () => applyOrvalRequestExtension(`${baseUrl}/pets/${petId()}`, options),
+    () =>
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`${baseUrl}/pets/${petId()}`, options),
     options,
   );
 }
@@ -274,17 +278,17 @@ export function healthCheckResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<PetWithTag, unknown> & {
     defaultValue: NoInfer<PetWithTag>;
   },
 ): HttpResourceRef<PetWithTag>;
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetWithTag, unknown>,
 ): HttpResourceRef<PetWithTag | undefined>;
 export function showPetWithOwnerResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<PetWithTag, unknown>,
 ): HttpResourceRef<PetWithTag | undefined> {
   const baseUrl = options?.injector
@@ -292,7 +296,12 @@ export function showPetWithOwnerResource(
     : inject(PETSTORE_API_BASE_URL);
   return httpResource<PetWithTag>(
     () =>
-      applyOrvalRequestExtension(`${baseUrl}/pets/${petId()}/owner`, options),
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(
+            `${baseUrl}/pets/${petId()}/owner`,
+            options,
+          ),
     options,
   );
 }
