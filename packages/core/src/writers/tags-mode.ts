@@ -74,7 +74,8 @@ export async function writeTagsMode({
   interface MockIndexEntry {
     ext: OutputMockType;
     mockDir: string;
-    tags: string[];
+    /** Tag directory → name of the tag's MSW handler list. */
+    tags: Map<string, string>;
   }
   const mockIndexEntries: MockIndexEntry[] = [];
 
@@ -338,12 +339,13 @@ export async function writeTagsMode({
               (e) => e.ext === mockExtension && e.mockDir === mockDir,
             );
             if (!indexEntry) {
-              indexEntry = { ext: mockExtension, mockDir, tags: [] };
+              indexEntry = { ext: mockExtension, mockDir, tags: new Map() };
               mockIndexEntries.push(indexEntry);
             }
-            if (!indexEntry.tags.includes(kebabTag)) {
-              indexEntry.tags.push(kebabTag);
-            }
+            indexEntry.tags.set(
+              kebabTag,
+              target.mockHandlersName ?? `get${pascal(kebabTag)}Mock`,
+            );
           }
         }
 
@@ -365,16 +367,16 @@ export async function writeTagsMode({
     const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-      const indexContent = tags
-        .toSorted((a, b) => a.localeCompare(b))
-        .map((kebabTag) => {
+      const indexContent = [...tags]
+        .toSorted(([a], [b]) => a.localeCompare(b))
+        .map(([kebabTag, handlersName]) => {
           const localMockPath = upath.joinSafe(
             './',
             kebabTag,
             kebabTag + '.' + ext + mockImportExtension,
           );
           return ext === OutputMockType.MSW
-            ? `export { get${pascal(kebabTag)}Mock } from '${localMockPath}'\n`
+            ? `export { ${handlersName} } from '${localMockPath}'\n`
             : `export * from '${localMockPath}'\n`;
         })
         .join('');
