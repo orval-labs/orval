@@ -25,7 +25,7 @@ import {
 import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey, getStringLiteralTypeUnion } from './keys';
-import type { FormDataContext } from './object';
+import { type FormDataContext, isClosedEmptyObjectSchema } from './object';
 import { getRefInfo, isComponentRef } from './ref';
 import { getScalar } from './scalar';
 
@@ -63,8 +63,8 @@ function isScalarConst(value: unknown): boolean {
 }
 
 /**
- * A schema part that is intersected with composition siblings — an inline
- * `allOf` member, or the parent's own `properties` resolved next to its
+ * A schema part that is intersected with composition siblings — an `allOf`
+ * member (inline or `$ref`), or the parent's own `properties` resolved next to its
  * `allOf`/`oneOf`/`anyOf` — and that has no declared properties plus
  * `additionalProperties: false` (or `unevaluatedProperties: false`) would
  * otherwise render as `{ [key: string]: never }`. Intersecting that with the
@@ -75,24 +75,27 @@ function isScalarConst(value: unknown): boolean {
  */
 function openClosedEmptyCompositionPart(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
 ): OpenApiSchemaObject | OpenApiReferenceObject {
-  if (!isInlineSchema(schema) || isBooleanJsonSchema(schema)) {
-    return schema;
-  }
-  const hasProperties =
-    schema.properties !== undefined &&
-    Object.keys(schema.properties).length > 0;
-  // Mirror getObject: `additionalProperties` takes precedence when present.
-  const closedFlag: unknown =
-    schema.additionalProperties ?? schema.unevaluatedProperties;
-  if (hasProperties || closedFlag !== false) {
+  // A `$ref` member pointing at a standalone closed empty component would
+  // otherwise intersect with that component's `never` type. Open it locally
+  // by inlining the referenced schema without its closed flag; the component
+  // itself keeps its `never` signature wherever it is used on its own.
+  const target = isInlineSchema(schema)
+    ? schema
+    : derefComponentSchema(schema.$ref, context, new Set());
+  if (
+    target === undefined ||
+    isBooleanJsonSchema(target) ||
+    !isClosedEmptyObjectSchema(target)
+  ) {
     return schema;
   }
   const {
     additionalProperties: _additionalProperties,
     unevaluatedProperties: _unevaluatedProperties,
     ...rest
-  } = schema;
+  } = target;
   return rest as OpenApiSchemaObject;
 }
 
@@ -852,7 +855,7 @@ export function combineSchemas({
     const resolvedValue = resolveObject({
       schema:
         separator === 'allOf'
-          ? openClosedEmptyCompositionPart(subSchema)
+          ? openClosedEmptyCompositionPart(subSchema, context)
           : subSchema,
       propName,
       combined: true,
@@ -1117,6 +1120,7 @@ export function combineSchemas({
         Object.fromEntries(
           Object.entries(normalizedSchema).filter(([key]) => key !== separator),
         ) as OpenApiSchemaObject,
+        context,
       ) as OpenApiSchemaObject,
       name,
       context,

@@ -16,6 +16,7 @@ import {
   compareNatural,
   getComponentBaseNameSet,
   isInlineSchema,
+  isObject,
   isString,
   jsDoc,
   jsStringLiteralEscape,
@@ -202,6 +203,45 @@ interface GetObjectOptions {
    * @see FormDataContext
    */
   formDataContext?: FormDataContext;
+}
+
+/**
+ * True when a schema is a closed object with no declared properties, i.e. it
+ * admits only `{}`: the effective `additionalProperties ??
+ * unevaluatedProperties` is `false`, and nothing else can contribute a key.
+ *
+ * - `patternProperties` with at least one pattern still allows matching keys;
+ *   an empty map allows nothing.
+ * - In-place conditional applicators (`if`/`then`/`else`, `dependentSchemas`)
+ *   can evaluate properties that `unevaluatedProperties: false` then allows,
+ *   and getObject does not model them.
+ * - Composition keywords (`allOf`/`oneOf`/`anyOf`) are resolved elsewhere and
+ *   contribute their own keys.
+ *
+ * See #4429.
+ */
+export function isClosedEmptyObjectSchema(
+  schema: OpenApiSchemaObject,
+): boolean {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  const item = schema as OpenApiNonBooleanSchemaObject &
+    Record<string, unknown>;
+  const hasKeys = (value: unknown): boolean =>
+    isObject(value) && Object.keys(value).length > 0;
+  return (
+    (item.additionalProperties ?? item.unevaluatedProperties) === false &&
+    !hasKeys(item.properties) &&
+    !hasKeys(item.patternProperties) &&
+    item.if === undefined &&
+    item.then === undefined &&
+    item.else === undefined &&
+    item.dependentSchemas === undefined &&
+    item.allOf === undefined &&
+    item.oneOf === undefined &&
+    item.anyOf === undefined
+  );
 }
 
 /**
@@ -723,35 +763,12 @@ export function getObject({
     };
   }
 
-  // A closed object (`additionalProperties: false` / `unevaluatedProperties:
-  // false`) with no declared properties admits only `{}`, so emit a `never`
-  // string index signature. `propertyNames` cannot widen that (no key is
-  // allowed at all), and a `Partial<Record<K, never>>` form would still accept
+  // A closed empty object admits only `{}`, so emit a `never` string index
+  // signature. `propertyNames` cannot widen that (no key is allowed at all),
+  // and a `Partial<Record<K, never>>` form would still accept
   // `{ k: undefined, extra: 1 }` through a variable without
-  // `exactOptionalPropertyTypes`, so it is ignored here. `patternProperties`
-  // with at least one pattern still allows matching keys, so keep the
-  // permissive type there; an empty `patternProperties` map allows nothing.
-  // See #4429.
-  const patternProperties = schemaItem.patternProperties as
-    | Record<string, unknown>
-    | undefined;
-  const hasPatternProperties =
-    patternProperties !== undefined &&
-    Object.keys(patternProperties).length > 0;
-  // In-place conditional applicators (`if`/`then`/`else`, `dependentSchemas`)
-  // can evaluate properties that `unevaluatedProperties: false` then allows,
-  // and getObject does not model them, so keep the permissive fallback.
-  const hasConditionalApplicator =
-    schemaItem.if !== undefined ||
-    schemaItem.then !== undefined ||
-    schemaItem.else !== undefined ||
-    schemaItem.dependentSchemas !== undefined;
-  if (
-    itemType === 'object' &&
-    outerAdditionalProps === false &&
-    !hasPatternProperties &&
-    !hasConditionalApplicator
-  ) {
+  // `exactOptionalPropertyTypes`, so it is ignored here. See #4429.
+  if (itemType === 'object' && isClosedEmptyObjectSchema(schemaItem)) {
     return {
       value: '{ [key: string]: never }' + nullable,
       imports: [],

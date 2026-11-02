@@ -337,6 +337,42 @@ describe('getObject', () => {
       },
     );
 
+    it('opens a referenced closed empty component inside allOf but keeps it closed standalone', () => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Base: {
+                type: 'object',
+                properties: { a: { type: 'string' } },
+              },
+              ClosedEmpty: { type: 'object', additionalProperties: false },
+            },
+          },
+        },
+      });
+      const extended = getObject({
+        item: {
+          allOf: [
+            { $ref: '#/components/schemas/Base' },
+            { $ref: '#/components/schemas/ClosedEmpty' },
+          ],
+        },
+        name: 'Extended',
+        context,
+        nullable: '',
+      }).value;
+      expect(extended).toBe('Base & { [key: string]: unknown }');
+
+      const standalone = getObject({
+        item: { type: 'object', additionalProperties: false },
+        name: 'ClosedEmpty',
+        context,
+        nullable: '',
+      }).value;
+      expect(standalone).toBe('{ [key: string]: never }');
+    });
+
     it('applies to oneOf members', () => {
       const value = getObject({
         item: {
