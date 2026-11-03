@@ -1060,8 +1060,16 @@ export const generateZodValidationSchemaDefinition = (
       const defaultVarName = `${name}Default${suffix}`;
       const defaultLiteral = stringify(siblingSchema.default);
       if (defaultLiteral !== undefined) {
-        consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
-        functions.push(['default', defaultVarName]);
+        if (
+          isObject(siblingSchema.default) ||
+          Array.isArray(siblingSchema.default)
+        ) {
+          // Keep the referenced schema's contextual type for tuples and enum properties.
+          functions.push(['default', defaultLiteral]);
+        } else {
+          consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
+          functions.push(['default', defaultVarName]);
+        }
       }
     }
 

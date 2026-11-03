@@ -33,6 +33,13 @@ components:
     Test:
       type: object
       properties:
+        range:
+          $ref: '#/components/schemas/ParameterRange'
+          default: [1, 300]
+        parameters:
+          $ref: '#/components/schemas/Parameters'
+          default:
+            method: option_a
         attr:
           allOf:
             - $ref: '#/components/schemas/Demo'
@@ -42,3 +49,19 @@ components:
             top_left:
               - 0
               - 0
+    ParameterRange:
+      type: array
+      prefixItems:
+        - type: integer
+        - type: integer
+      minItems: 2
+      maxItems: 2
+      items: false
+    Method:
+      type: string
+      enum: [option_a, option_b]
+    Parameters:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/Method'
