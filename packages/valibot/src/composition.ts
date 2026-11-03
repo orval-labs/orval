@@ -271,7 +271,7 @@ const isObjectNode = (node: ValibotNode): boolean =>
 const isOpenRecord = (node: ValibotNode): boolean =>
   node.schema.kind === 'record' &&
   node.schema.value.schema.kind === 'unknown' &&
-  node.actions.length === 0 &&
+  node.actions.every(({ kind }) => kind === 'describe') &&
   !node.nullable;
 
 const isAnnotationOnly = (node: ValibotNode): boolean =>

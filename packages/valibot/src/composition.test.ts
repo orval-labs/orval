@@ -520,6 +520,26 @@ describe('composition', () => {
       });
     });
 
+    it('keeps dates parsed next to a described open object member', () => {
+      const { output } = gen(
+        {
+          allOf: [
+            base,
+            {
+              type: 'object',
+              additionalProperties: true,
+              description: 'Extra fields',
+            },
+          ],
+        },
+        { useDates: true },
+      );
+      expect(output(input)).toEqual({
+        name: 'a',
+        createdAt: new Date('2020-01-01T00:00:00Z'),
+      });
+    });
+
     it('keeps an open object member next to a nullable object', () => {
       const { ok } = gen({
         allOf: [
