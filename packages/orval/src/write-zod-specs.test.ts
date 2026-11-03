@@ -5,6 +5,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
+  addFormatTypeImports,
   buildSiblingImports,
   generateZodSchemasInline,
   writeZodSchemas,
@@ -2159,5 +2160,83 @@ describe('writeZodSchemasFromVerbs — composed array item schemas', () => {
     );
 
     expect(files).not.toContain('Base.ts');
+  });
+});
+
+describe('formatType imports', () => {
+  const output = createOutputOptions();
+  output.override.formatType = {
+    'date-time': {
+      type: 'Dayjs',
+      decode: 'dayjs',
+      decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+    },
+  };
+  const { override } = output;
+  const schema =
+    'export const Event = zod.object({ "startsAt": zod.iso.datetime({}).transform((value) => dayjs(value)) })\n';
+
+  it('imports the functions a schema file references below its zod import', () => {
+    expect(
+      addFormatTypeImports(
+        `import * as zod from 'zod';\n\n${schema}`,
+        override,
+      ),
+    ).toBe(
+      `import * as zod from 'zod';\nimport dayjs from 'dayjs';\n\n${schema}`,
+    );
+    expect(
+      addFormatTypeImports(
+        "import * as zod from 'zod';\n\nexport const Id = zod.uuid()\n",
+        override,
+      ),
+    ).toBe("import * as zod from 'zod';\n\nexport const Id = zod.uuid()\n");
+  });
+
+  it('skips what the content before inlined schemas already imports', () => {
+    expect(addFormatTypeImports(schema, override, '')).toBe(
+      `import dayjs from 'dayjs';\n\n${schema}`,
+    );
+    expect(
+      addFormatTypeImports(schema, override, "import dayjs from 'dayjs';\n"),
+    ).toBe(schema);
+  });
+
+  it('writes the imports into a schema file', async () => {
+    const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    try {
+      await writeZodSchemas(
+        {
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'test', version: '1.0.0' },
+          },
+          target: '',
+          schemas: [
+            {
+              name: 'Event',
+              schema: {
+                type: 'object',
+                properties: {
+                  startsAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          ],
+        },
+        schemasPath,
+        '.ts',
+        '',
+        output,
+      );
+
+      expect(
+        await fs.promises.readFile(path.join(schemasPath, 'Event.ts'), 'utf8'),
+      ).toContain("import * as zod from 'zod';\nimport dayjs from 'dayjs';\n");
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
   });
 });

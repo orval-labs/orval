@@ -265,3 +265,55 @@ describe('McpServer cacheHints', () => {
     expect(generate({})).not.toContain('cacheHints');
   });
 });
+
+describe('formatType', () => {
+  it('imports the decode function into tool-schemas.zod.ts', async () => {
+    const formatTypeContext = createTestContextSpec({
+      spec: {
+        paths: {
+          '/': {
+            get: {
+              parameters: [
+                {
+                  name: 'from',
+                  in: 'query',
+                  schema: { type: 'string', format: 'date-time' },
+                },
+              ],
+              responses: { '200': { description: 'ok' } },
+            },
+          },
+        },
+      },
+      output: {
+        target: '/project/src/handlers.ts',
+        override: {
+          formatType: {
+            'date-time': {
+              type: 'Dayjs',
+              decode: 'dayjs',
+              decodeImport: {
+                name: 'dayjs',
+                importPath: 'dayjs',
+                default: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const files = await generateExtraFiles(
+      { listPets: verbOptions.listPets },
+      formatTypeContext.output,
+      formatTypeContext,
+    );
+    const content =
+      files.find((file) => file.path.endsWith('tool-schemas.zod.ts'))
+        ?.content ?? '';
+
+    expect(content).toContain('.transform((value) => dayjs(value))');
+    expect(content).toContain(
+      "import * as zod from 'zod';\nimport dayjs from 'dayjs';\n\n",
+    );
+  });
+});

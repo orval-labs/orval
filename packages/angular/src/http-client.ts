@@ -245,6 +245,30 @@ export const getRequestBodySchema = (
   };
 };
 
+/**
+ * Fails for a parsed request body that holds a `formatType` value: the schema
+ * decodes the format's wire string, so it rejects the value the caller passes.
+ */
+export const assertRequestBodyParsable = (
+  { body, operationName }: Pick<GeneratorVerbOptions, 'body' | 'operationName'>,
+  context: ContextSpec,
+) => {
+  const requestBody = isInlineSchema(body.originalSchema)
+    ? body.originalSchema
+    : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema;
+  const found = findCustomFormatType(
+    requestBody.content[body.contentType]?.schema,
+    context,
+  );
+  if (found) {
+    throw getFormatTypeError(
+      found.format,
+      found.config,
+      `\`runtimeValidation.requestBodies\` cannot parse the ${operationName} request body`,
+    );
+  }
+};
+
 /** `rxjs`'s `defer`, which a method that parses its request body returns. */
 export const DEFER_IMPORT: GeneratorImport = {
   name: 'defer',
@@ -692,25 +716,6 @@ export const generateHttpClientImplementation = (
     { body, mutator, override },
     context.output,
   );
-  // The schema decodes a mapped format's wire string, so it rejects the mapped
-  // value the caller passes.
-  const bodyFormatType =
-    validatedBody &&
-    findCustomFormatType(
-      (isInlineSchema(body.originalSchema)
-        ? body.originalSchema
-        : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context)
-            .schema
-      ).content[body.contentType]?.schema,
-      context,
-    );
-  if (bodyFormatType) {
-    throw getFormatTypeError(
-      bodyFormatType.format,
-      bodyFormatType.config,
-      `\`runtimeValidation.requestBodies\` cannot parse the ${operationName} request body`,
-    );
-  }
   // This builder runs once per emitted method, so the warning does too.
   if (
     !validatedBody &&
@@ -1292,6 +1297,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     verbOptions,
     options.context.output,
   );
+  if (validatedBody) assertRequestBodyParsable(verbOptions, options.context);
   const verbImports = generateVerbImports(
     validatedBody
       ? withValueBodyImport(normalizedVerbOptions, validatedBody.importName)

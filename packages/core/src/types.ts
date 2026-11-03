@@ -2861,7 +2861,8 @@ export interface WriteModeProps {
   projectName?: string;
   header: string;
   needSchema: boolean;
-  generateSchemasInline?: () => string;
+  /** `precedingContent` is the file content written before the schemas. */
+  generateSchemasInline?: (precedingContent?: string) => string;
   // Schema-to-tag map computed by `getApiBuilder` when `schemas.splitByTags` is
   // enabled. Mode writers forward it to `generateImportsForBuilder` so the
   // `indexFiles: false` branch can route each schema import into its tag

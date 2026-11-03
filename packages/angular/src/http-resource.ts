@@ -55,6 +55,7 @@ import {
   ANGULAR_HTTP_RESOURCE_DEPENDENCIES,
 } from './constants';
 import {
+  assertRequestBodyParsable,
   buildAcceptHelpers,
   DEFER_IMPORT,
   generateHttpClientImplementation,
@@ -1821,6 +1822,7 @@ export const generateHttpResourceClient: ClientBuilder = (
   const validatedBody = isMutation
     ? getRequestBodySchema(verbOptions, options.context.output)
     : undefined;
+  if (validatedBody) assertRequestBodyParsable(verbOptions, options.context);
   const mutationImports = isMutation
     ? [
         getAngularHttpResponseImport(

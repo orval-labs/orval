@@ -1055,7 +1055,7 @@ async function writeSpecsInternal(
       schemaTagMap,
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
-        ? () =>
+        ? (precedingContent) =>
             // oxlint-disable-next-line typescript/no-non-null-assertion
             zodWriters!.addFormatTypeImports(
               // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -1067,6 +1067,7 @@ async function writeSpecsInternal(
                 includeParamsImport,
               ),
               output.override,
+              precedingContent,
             )
         : undefined,
     });

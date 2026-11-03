@@ -6,6 +6,7 @@ import type {
   GeneratorImport,
   NormalizedFormatTypeConfig,
   NormalizedOverrideOutput,
+  OpenApiNonBooleanSchemaObject,
   OpenApiPrimitiveSchemaType,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
@@ -95,22 +96,28 @@ export function findCustomFormatType(
 ):
   | { format: string | undefined; config: NormalizedFormatTypeConfig }
   | undefined {
-  if (schemaOrRef === undefined || isBooleanJsonSchema(schemaOrRef)) {
+  if (
+    !context.output.override.formatType ||
+    schemaOrRef === undefined ||
+    isBooleanJsonSchema(schemaOrRef)
+  ) {
     return undefined;
   }
   if ('$ref' in schemaOrRef && typeof schemaOrRef.$ref === 'string') {
     if (seenRefs.has(schemaOrRef.$ref)) return undefined;
     seenRefs.add(schemaOrRef.$ref);
     return findCustomFormatType(
-      resolveRef<OpenApiSchemaObject>(schemaOrRef, context).schema,
+      resolveRef<OpenApiSchemaObject>(
+        schemaOrRef as OpenApiReferenceObject,
+        context,
+      ).schema,
       context,
       seenRefs,
     );
   }
-  const schema = schemaOrRef as OpenApiSchemaObject;
+  const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
   const config = getCustomFormatType(schema, context.output.override);
   if (config) return { format: schema.format, config };
-  if (isBooleanJsonSchema(schema)) return undefined;
   const children: unknown[] = [
     ...Object.values(schema.properties ?? {}),
     ...(Array.isArray(schema.items) ? schema.items : [schema.items]),

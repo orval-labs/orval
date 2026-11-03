@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vite-plus/test';
 import { createTestContextSpec } from '../test-utils';
 import type { NormalizedOverrideOutput, OpenApiSchemaObject } from '../types';
 import type { FormDataContext } from './object';
-import { getScalar, isBinaryScalarSchema, resolveFormatType } from './scalar';
+import {
+  findCustomFormatType,
+  getScalar,
+  isBinaryScalarSchema,
+  resolveFormatType,
+} from './scalar';
 
 const context = createTestContextSpec({
   override: {
@@ -796,5 +801,53 @@ describe('getScalar with formatType', () => {
     });
 
     expect(result.value).toBe('string');
+  });
+});
+
+describe('findCustomFormatType', () => {
+  const dayjs = { type: 'Dayjs', decode: 'dayjs' };
+  const ctx = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          Event: {
+            type: 'object',
+            properties: {
+              startsAt: { type: 'string', format: 'date-time' },
+              next: { $ref: '#/components/schemas/Event' },
+            },
+          },
+          Day: { type: 'string', format: 'date' },
+        },
+      },
+    },
+    override: {
+      formatType: { 'date-time': dayjs, date: { type: 'Date' } },
+    },
+  });
+
+  it('finds a mapped format through properties, items and refs', () => {
+    expect(
+      findCustomFormatType(
+        { type: 'array', items: { $ref: '#/components/schemas/Event' } },
+        ctx,
+      ),
+    ).toEqual({ format: 'date-time', config: dayjs });
+  });
+
+  it('skips Date mappings, enums and unmapped formats', () => {
+    expect(
+      findCustomFormatType(
+        {
+          type: 'object',
+          properties: {
+            day: { $ref: '#/components/schemas/Day' },
+            fixed: { type: 'string', format: 'date-time', enum: ['x'] },
+            email: { type: 'string', format: 'email' },
+          },
+        },
+        ctx,
+      ),
+    ).toBeUndefined();
   });
 });

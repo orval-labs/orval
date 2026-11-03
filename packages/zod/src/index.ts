@@ -4,12 +4,15 @@ import {
   buildDynamicScope,
   buildInlineDynamicScope,
   assertSafeNumericConstraint,
+  callFormatTypeFunction,
   camel,
   conventionName,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
+  escapeRegExp,
+  findCustomFormatType,
   generateMutator,
   type GeneratorDependency,
   type GeneratorImport,
@@ -17,7 +20,6 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getDynamicAnchorName,
-  callFormatTypeFunction,
   getCustomFormatType,
   getFormatTypeError,
   getFormDataFieldFileType,
@@ -29,7 +31,6 @@ import {
   getRequiredKeys,
   isBindingIdentifier,
   isBoolean,
-  escapeRegExp,
   isDateFormatType,
   isDynamicReference,
   isNumber,
@@ -2518,15 +2519,13 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (hasDefault) {
-    // The spec default is wire-shaped (original keys, a mapped format's
-    // string). Zod v4 `.default()` short-circuits with an OUTPUT value, which
-    // would skip the key renaming or the format's transform and not
+    // The spec default is wire-shaped (original keys, mapped formats as
+    // strings). Zod v4 `.default()` short-circuits with an OUTPUT value, which
+    // would skip the key renaming or the formats' conversion and not
     // type-check; `.prefault()` feeds the value through them as input
     // instead. Zod v3 `.default()` already behaves that way.
     const isWireDefault =
-      renamesKeys ||
-      !!formatTypeTransform ||
-      functions.some(([fn]) => fn === 'codec');
+      renamesKeys || !!findCustomFormatType(schema, context);
     functions.push([
       isWireDefault && isZodV4 ? 'prefault' : 'default',
       defaultVarName,
@@ -2704,11 +2703,6 @@ export const parseZodValidationSchemaDefinition = (
 
   let consts = '';
   const usedRefs = new Set<string>();
-  // `date` names both `zod.date()` and Zod 3's `zod.string().date()`; only
-  // the former coerces, and it exists only for `Date`-typed date formats.
-  const hasDateSchemas =
-    isDateFormatType('date', context.output.override) ||
-    isDateFormatType('date-time', context.output.override);
 
   const appendConstsChunk = (chunk: string) => {
     if (!chunk) {
@@ -2761,6 +2755,10 @@ export const parseZodValidationSchemaDefinition = (
     (Array.isArray(coerceTypes)
       ? coerceTypes.includes(fn as ZodCoerceType)
       : COERCIBLE_TYPES.has(fn));
+  // `date` also names Zod 3's `zod.string().date()` check, which follows the
+  // string it validates; only a `zod.date()` schema coerces.
+  const coercesType = (fn: string, isBase: boolean) =>
+    !!shouldCoerce(fn) && (fn !== 'date' || isZodV4 || isBase);
 
   // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
   // branches strip unknown keys, so a subtype payload also matches its
@@ -2780,7 +2778,7 @@ export const parseZodValidationSchemaDefinition = (
       ? !!coerceTypes && (!Array.isArray(coerceTypes) || coerceTypes.length > 0)
       : fn === 'int'
         ? !!shouldCoerce('number')
-        : !!shouldCoerce(fn) && (fn !== 'date' || hasDateSchemas);
+        : !!shouldCoerce(fn);
   const containsCoercion = (value: unknown): boolean => {
     if (Array.isArray(value)) return value.some(containsCoercion);
     if (!isObject(value)) return false;
@@ -3242,10 +3240,7 @@ ${Object.entries(objectArgs)
         continue;
       }
 
-      if (
-        (fn !== 'date' && shouldCoerce(fn)) ||
-        (fn === 'date' && shouldCoerce(fn) && hasDateSchemas)
-      ) {
+      if (coercesType(fn, current === undefined)) {
         current = {
           expr: zodMiniCoerceCall(fn, combinedArgs),
           kind: fn,
@@ -3367,6 +3362,7 @@ ${Object.entries(mergedProperties)
   const parseProperty = (
     property: readonly [string, unknown],
     fieldPath: readonly string[] = [],
+    isBase = false,
   ): string => {
     const [fn, args = ''] = property;
 
@@ -3578,12 +3574,6 @@ ${Object.entries(objectArgs)
       }
       return `.rest(${restValue.startsWith('.') ? 'zod' : ''}${restValue})`;
     }
-    const shouldCoerceType =
-      coerceTypes &&
-      (Array.isArray(coerceTypes)
-        ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCIBLE_TYPES.has(fn));
-
     const formattedArgs = formatFunctionArgs(args);
     const paramsArg = buildParamsArg(fn, fieldPath);
     let combinedArgs: string;
@@ -3611,10 +3601,7 @@ ${Object.entries(objectArgs)
       }
     }
 
-    if (
-      (fn !== 'date' && shouldCoerceType) ||
-      (fn === 'date' && shouldCoerceType && hasDateSchemas)
-    ) {
+    if (coercesType(fn, isBase)) {
       assertZodMethodName(fn);
       return `.coerce.${fn}(${combinedArgs})`;
     }
@@ -3650,7 +3637,7 @@ ${Object.entries(objectArgs)
           `${expression.startsWith('.') ? 'zod' : ''}${expression}`,
         );
       } else {
-        expression += parseProperty(property, fieldPath);
+        expression += parseProperty(property, fieldPath, expression === '');
       }
     }
     return expression;

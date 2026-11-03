@@ -79,26 +79,28 @@ const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
   `import * as zod from '${getZodImportSource(variant)}';`;
 
 /**
- * Adds the imports of the `formatType` functions a Zod schema file references
- * below its `zod` import. Schemas inlined into a single-mode operations file
- * have no import of their own to anchor them.
+ * Adds the imports of the `formatType` functions Zod schema `content`
+ * references below its `zod` import, or above the content when it has none.
+ * Schemas inlined into a file skip the imports of `precedingContent`, the
+ * part of the file written before them.
  */
 export function addFormatTypeImports(
   content: string,
   override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
+  precedingContent = '',
 ): string {
-  const imports = getFormatTypeZodImports(content, override);
-  if (imports.length === 0) return content;
-  const zodImport = getZodSchemaImportStatement(override.zod.variant);
-  if (!content.includes(zodImport)) {
-    throw new Error(
-      `override.formatType: Zod schemas inlined into the operations file cannot import ${imports.map(({ name }) => `\`${name}\``).join(', ')}; generate them into their own file with \`output.schemas\`.`,
-    );
-  }
-  return content.replace(
-    zodImport,
-    `${zodImport}\n${generateImports({ imports })}`,
+  const imported = new Set(
+    getFormatTypeZodImports(precedingContent, override).map(({ name }) => name),
   );
+  const imports = getFormatTypeZodImports(content, override).filter(
+    ({ name }) => !imported.has(name),
+  );
+  if (imports.length === 0) return content;
+  const statements = generateImports({ imports });
+  const zodImport = getZodSchemaImportStatement(override.zod.variant);
+  return content.includes(zodImport)
+    ? content.replace(zodImport, () => `${zodImport}\n${statements}`)
+    : `${statements}\n\n${content}`;
 }
 
 interface WriteZodOutputOptions {
