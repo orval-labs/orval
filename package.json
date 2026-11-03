@@ -103,6 +103,9 @@
     "effect4": {
       "effect": "4.0.0"
     },
+    "valibot": {
+      "valibot": "1.5.0"
+    },
     "swr": {
       "swr": "2.3.6"
     },

@@ -25,6 +25,7 @@
     "client-with-zod",
     "effect",
     "client-with-effect",
+    "valibot",
     "msw",
     "faker",
     "fixtures",
