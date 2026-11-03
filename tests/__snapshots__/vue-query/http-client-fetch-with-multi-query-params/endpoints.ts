@@ -122,7 +122,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersQueryResult = NonNullable<
@@ -160,10 +160,16 @@ export function useGetUsersUserIdOrders<
     options,
   );
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof getUsersUserIdOrders>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

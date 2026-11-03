@@ -1307,6 +1307,7 @@ ${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(
     operationPrefix,
     type,
     queryOptionsVarName,
+    queryOptionsType: queryOptionFnReturnType,
     optionalQueryClientArgument,
   });
 

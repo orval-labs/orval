@@ -118,7 +118,7 @@ export const getListPetsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ListPetsParams['limit']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ListPetsInfiniteQueryResult = NonNullable<
@@ -158,7 +158,13 @@ export function useListPetsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData,
+      QueryKey,
+      ListPetsParams['limit']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -200,7 +206,9 @@ export const getListPetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -226,10 +234,16 @@ export function useListPets<
 } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -294,7 +308,11 @@ export const getCreatePetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type CreatePetsQueryResult = NonNullable<
@@ -324,10 +342,16 @@ export function useCreatePets<
     options,
   );
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -394,7 +418,11 @@ export const getShowPetByIdQueryOptions = <
         toValue(petId) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -420,10 +448,16 @@ export function useShowPetById<
 } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -473,7 +507,7 @@ export const getPostApiV1UserLogoutQueryOptions = <
     Awaited<ReturnType<typeof postApiV1UserLogout>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type PostApiV1UserLogoutQueryResult = NonNullable<
@@ -501,10 +535,16 @@ export function usePostApiV1UserLogout<
 } {
   const queryOptions = getPostApiV1UserLogoutQueryOptions(options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof postApiV1UserLogout>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

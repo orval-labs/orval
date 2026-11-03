@@ -123,7 +123,7 @@ export const getListChatsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ListChatsParams['before']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ListChatsInfiniteQueryResult = NonNullable<
@@ -158,7 +158,13 @@ export function useListChatsInfinite<
   const queryOptions = getListChatsInfiniteQueryOptions(params, options);
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listChats>>,
+      TError,
+      TData,
+      QueryKey,
+      ListChatsParams['before']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -201,7 +207,7 @@ export const getListChatsQueryOptions = <
     Awaited<ReturnType<typeof listChats>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ListChatsQueryResult = NonNullable<
@@ -226,10 +232,16 @@ export function useListChats<
 } {
   const queryOptions = getListChatsQueryOptions(params, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof listChats>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
