@@ -202,16 +202,11 @@ export const createVueAdapter = ({
   },
 
   generateQueryInvocationArgs({
-    type,
     queryOptionsVarName,
     queryOptionsType,
     optionalQueryClientArgument,
   }: QueryInvocationContext): string {
-    const options =
-      type === QueryType.INFINITE
-        ? `${queryOptionsVarName} as ${queryOptionsType}`
-        : queryOptionsVarName;
-    return `${options}${optionalQueryClientArgument ? ', queryClient' : ''}`;
+    return `${queryOptionsVarName} as ${queryOptionsType}${optionalQueryClientArgument ? ', queryClient' : ''}`;
   },
 
   getRequestUnrefStatements(props: GetterProps): string {
