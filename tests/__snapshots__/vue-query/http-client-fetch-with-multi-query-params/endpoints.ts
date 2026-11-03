@@ -122,7 +122,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersQueryResult = NonNullable<

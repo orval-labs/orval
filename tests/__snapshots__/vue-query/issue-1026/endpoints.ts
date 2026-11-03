@@ -81,7 +81,7 @@ export const getGetSomeEndpointQueryOptions = <
     Awaited<ReturnType<typeof getSomeEndpoint>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetSomeEndpointQueryResult = NonNullable<

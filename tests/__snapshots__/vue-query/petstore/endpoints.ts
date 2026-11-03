@@ -138,7 +138,7 @@ export const getListPetsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ListPetsParams['limit']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ListPetsInfiniteQueryResult = NonNullable<
@@ -179,7 +179,13 @@ export function useListPetsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData,
+      QueryKey,
+      ListPetsParams['limit']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -222,7 +228,9 @@ export const getListPetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -345,7 +353,11 @@ export const getCreatePetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type CreatePetsQueryResult = NonNullable<
@@ -462,7 +474,11 @@ export const getShowPetByIdQueryOptions = <
         toValue(petId) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -577,7 +593,7 @@ export const getDeletePetByIdQueryOptions = <
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type DeletePetByIdQueryResult = NonNullable<
@@ -679,7 +695,11 @@ export const getHealthCheckQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type HealthCheckQueryResult = NonNullable<
@@ -798,7 +818,7 @@ export const getShowPetWithOwnerQueryOptions = <
     Awaited<ReturnType<typeof showPetWithOwner>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ShowPetWithOwnerQueryResult = NonNullable<

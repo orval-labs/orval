@@ -148,7 +148,7 @@ export const getGetUsersUserIdOrdersInfiniteQueryOptions = <
     TData,
     QueryKey,
     GetUsersUserIdOrdersParams['limit']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersInfiniteQueryResult = NonNullable<
@@ -192,7 +192,13 @@ export function useGetUsersUserIdOrdersInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof getUsersUserIdOrders>>,
+      TError,
+      TData,
+      QueryKey,
+      GetUsersUserIdOrdersParams['limit']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -247,7 +253,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersQueryResult = NonNullable<

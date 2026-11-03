@@ -99,7 +99,7 @@ export const useGetProductQueryOptions = <
     Awaited<ReturnType<ReturnType<typeof useGetProductHook>>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetProductQueryResult = NonNullable<

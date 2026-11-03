@@ -16,6 +16,7 @@ import type {
   MutationHookBodyContext,
   MutationOnSuccessContext,
   MutationReturnTypeContext,
+  QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
@@ -200,9 +201,17 @@ export const createVueAdapter = ({
     return getRouteAsArray(route);
   },
 
-  shouldAnnotateQueryKey(): boolean {
-    // Vue skips DataTag annotation
-    return false;
+  generateQueryInvocationArgs({
+    type,
+    queryOptionsVarName,
+    queryOptionsType,
+    optionalQueryClientArgument,
+  }: QueryInvocationContext): string {
+    const options =
+      type === QueryType.INFINITE
+        ? `${queryOptionsVarName} as ${queryOptionsType}`
+        : queryOptionsVarName;
+    return `${options}${optionalQueryClientArgument ? ', queryClient' : ''}`;
   },
 
   getRequestUnrefStatements(props: GetterProps): string {

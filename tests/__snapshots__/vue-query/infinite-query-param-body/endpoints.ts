@@ -145,7 +145,7 @@ export const getSearchElementsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ElementFilter['offset']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type SearchElementsInfiniteQueryResult = NonNullable<
@@ -183,7 +183,13 @@ export function useSearchElementsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof searchElements>>,
+      TError,
+      TData,
+      QueryKey,
+      ElementFilter['offset']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -222,7 +228,7 @@ export const getSearchElementsQueryOptions = <
     Awaited<ReturnType<typeof searchElements>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type SearchElementsQueryResult = NonNullable<
@@ -395,7 +401,7 @@ export const getSearchGroupElementsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ElementFilter['offset']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type SearchGroupElementsInfiniteQueryResult = NonNullable<
@@ -435,7 +441,13 @@ export function useSearchGroupElementsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof searchGroupElements>>,
+      TError,
+      TData,
+      QueryKey,
+      ElementFilter['offset']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -570,7 +582,7 @@ export const getSearchTaggedElementsInfiniteQueryOptions = <
     TData,
     QueryKey,
     SearchTaggedElementsBody['offset']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type SearchTaggedElementsInfiniteQueryResult = NonNullable<
@@ -608,7 +620,13 @@ export function useSearchTaggedElementsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof searchTaggedElements>>,
+      TError,
+      TData,
+      QueryKey,
+      SearchTaggedElementsBody['offset']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
