@@ -44,6 +44,7 @@ import {
   flattenMockOutput,
 } from './mock-outputs';
 import {
+  assertUniqueMockHandlerNames,
   getFakerEntry,
   getMockDir,
   resolveMockSchemasPath,
@@ -422,6 +423,9 @@ export async function writeSplitTagsMode({
     const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
+      if (ext === OutputMockType.MSW) {
+        assertUniqueMockHandlerNames(indexPath, tags);
+      }
       const indexContent = [...tags]
         .toSorted(([a], [b]) => a.localeCompare(b))
         .map(([tag, handlersName]) => {

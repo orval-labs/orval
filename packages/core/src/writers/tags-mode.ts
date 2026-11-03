@@ -33,7 +33,11 @@ import {
   mergeGeneratorImports,
 } from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
-import { getMockDir, resolveMockSchemasPath } from './mock-utils';
+import {
+  assertUniqueMockHandlerNames,
+  getMockDir,
+  resolveMockSchemasPath,
+} from './mock-utils';
 import { generateTargetForTags } from './target-tags';
 
 export async function writeTagsMode({
@@ -367,6 +371,9 @@ export async function writeTagsMode({
     const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
+      if (ext === OutputMockType.MSW) {
+        assertUniqueMockHandlerNames(indexPath, tags);
+      }
       const indexContent = [...tags]
         .toSorted(([a], [b]) => a.localeCompare(b))
         .map(([kebabTag, handlersName]) => {

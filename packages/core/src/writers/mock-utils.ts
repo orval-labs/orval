@@ -84,3 +84,28 @@ export function resolveMockSchemasPath(
     !SOURCE_FILE_EXTENSIONS.has(targetExt),
   );
 }
+
+/**
+ * Throws when two tags of one MSW mock index share a handler list name. The
+ * index re-exports each list by name, and a repeated named export does not
+ * compile.
+ */
+export function assertUniqueMockHandlerNames(
+  indexPath: string,
+  handlerNamesByTag: ReadonlyMap<string, string>,
+): void {
+  const tagsByName = new Map<string, string>();
+  const sorted = [...handlerNamesByTag].toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  for (const [tag, name] of sorted) {
+    const otherTag = tagsByName.get(name);
+    if (otherTag !== undefined) {
+      throw new Error(
+        `Mock index ${indexPath} would export '${name}' for both tag '${otherTag}' and tag '${tag}'. ` +
+          'Their `override.title` results match; give each tag its own title.',
+      );
+    }
+    tagsByName.set(name, tag);
+  }
+}

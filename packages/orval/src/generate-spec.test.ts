@@ -4919,6 +4919,56 @@ describe('generateSpec - MSW mock index with a custom title (#4432)', () => {
       }
     },
   );
+
+  const TWO_TAGS_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Two tags', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        get: {
+          operationId: 'listPets',
+          tags: ['pets'],
+          responses: { '204': { description: 'Listed' } },
+        },
+      },
+      '/stores': {
+        get: {
+          operationId: 'listStores',
+          tags: ['stores'],
+          responses: { '204': { description: 'Listed' } },
+        },
+      },
+    },
+  };
+
+  it.each(['tags', 'tags-split'] as const)(
+    'rejects two tags whose titles give one handler list name in %s mode',
+    async (mode) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: TWO_TAGS_SPEC },
+            output: {
+              target: './src/client/api.ts',
+              mode,
+              client: 'fetch',
+              mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+              override: { title: () => 'Shared' },
+            },
+          },
+          workspace,
+        );
+
+        await expect(generateSpec(workspace, options)).rejects.toThrow(
+          /for both tag 'pets' and tag 'stores'/,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe('generateSpec - clean prunes configured mock directories', () => {
