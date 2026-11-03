@@ -29,18 +29,12 @@ export const GetSomethingResponse = v.object({
       }),
     ),
   ]),
-  emptyObjectMember: v.intersect([
-    v.object({
-      a: v.string(),
-    }),
-    v.record(v.string(), v.unknown()),
-  ]),
-  openRecordMember: v.intersect([
-    v.object({
-      a: v.string(),
-    }),
-    v.record(v.string(), v.unknown()),
-  ]),
+  emptyObjectMember: v.object({
+    a: v.string(),
+  }),
+  openRecordMember: v.object({
+    a: v.string(),
+  }),
   unionWithOpenMember: v.intersect([
     v.union([
       v.object({
@@ -56,7 +50,6 @@ export const GetSomethingResponse = v.object({
     v.object({
       a: v.string(),
     }),
-    v.record(v.string(), v.unknown()),
     v.object({
       b: v.optional(v.number()),
     }),
