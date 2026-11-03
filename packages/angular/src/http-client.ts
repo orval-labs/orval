@@ -10,6 +10,8 @@ import {
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
+  findCustomFormatType,
+  getFormatTypeError,
   getZodNamespaceImport,
   getArrayResponseSchema,
   generateBodyOptions,
@@ -24,7 +26,10 @@ import {
   getEnumImplementation,
   getIsBodyVerb,
   type GetterProp,
+  isInlineSchema,
   isTextContentType,
+  type OpenApiRequestBodyObject,
+  resolveRef,
   GetterPropType,
   jsStringLiteralEscape,
   makeRouteSafe,
@@ -687,6 +692,25 @@ export const generateHttpClientImplementation = (
     { body, mutator, override },
     context.output,
   );
+  // The schema decodes a mapped format's wire string, so it rejects the mapped
+  // value the caller passes.
+  const bodyFormatType =
+    validatedBody &&
+    findCustomFormatType(
+      (isInlineSchema(body.originalSchema)
+        ? body.originalSchema
+        : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context)
+            .schema
+      ).content[body.contentType]?.schema,
+      context,
+    );
+  if (bodyFormatType) {
+    throw getFormatTypeError(
+      bodyFormatType.format,
+      bodyFormatType.config,
+      `\`runtimeValidation.requestBodies\` cannot parse the ${operationName} request body`,
+    );
+  }
   // This builder runs once per emitted method, so the warning does too.
   if (
     !validatedBody &&

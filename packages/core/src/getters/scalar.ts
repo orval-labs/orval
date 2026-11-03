@@ -1,12 +1,13 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { resolveExampleRefs } from '../resolvers';
+import { resolveExampleRefs, resolveRef } from '../resolvers';
 import type {
   ContextSpec,
   GeneratorImport,
   NormalizedFormatTypeConfig,
   NormalizedOverrideOutput,
   OpenApiPrimitiveSchemaType,
+  OpenApiReferenceObject,
   OpenApiSchemaObject,
   ScalarValue,
 } from '../types';
@@ -81,6 +82,54 @@ export function getCustomFormatType(
     return undefined;
   }
   return getFormatTypeConfig(schema.format, override);
+}
+
+/**
+ * The first schema in a tree whose values take a custom `formatType`, for
+ * paths that can only pass such values through unconverted.
+ */
+export function findCustomFormatType(
+  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+  seenRefs = new Set<string>(),
+):
+  | { format: string | undefined; config: NormalizedFormatTypeConfig }
+  | undefined {
+  if (schemaOrRef === undefined || isBooleanJsonSchema(schemaOrRef)) {
+    return undefined;
+  }
+  if ('$ref' in schemaOrRef && typeof schemaOrRef.$ref === 'string') {
+    if (seenRefs.has(schemaOrRef.$ref)) return undefined;
+    seenRefs.add(schemaOrRef.$ref);
+    return findCustomFormatType(
+      resolveRef<OpenApiSchemaObject>(schemaOrRef, context).schema,
+      context,
+      seenRefs,
+    );
+  }
+  const schema = schemaOrRef as OpenApiSchemaObject;
+  const config = getCustomFormatType(schema, context.output.override);
+  if (config) return { format: schema.format, config };
+  if (isBooleanJsonSchema(schema)) return undefined;
+  const children: unknown[] = [
+    ...Object.values(schema.properties ?? {}),
+    ...(Array.isArray(schema.items) ? schema.items : [schema.items]),
+    ...((schema.prefixItems as unknown[] | undefined) ?? []),
+    schema.additionalProperties,
+    ...(schema.allOf ?? []),
+    ...(schema.oneOf ?? []),
+    ...(schema.anyOf ?? []),
+  ];
+  for (const child of children) {
+    if (child === null || typeof child !== 'object') continue;
+    const found = findCustomFormatType(
+      child as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+      seenRefs,
+    );
+    if (found) return found;
+  }
+  return undefined;
 }
 
 /** A call of a `formatType` function expression such as `decode`. */

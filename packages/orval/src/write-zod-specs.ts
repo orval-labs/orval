@@ -8,6 +8,7 @@ import {
   DefaultTag,
   escapeRegExp,
   findMediaType,
+  generateImports,
   type GeneratorMutator,
   getImportExtension,
   getRefInfo,
@@ -15,6 +16,7 @@ import {
   isComponentRef,
   kebab,
   type NamingConvention,
+  type NormalizedFormatTypeMap,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
@@ -38,6 +40,7 @@ import {
   dereference,
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
+  getFormatTypeZodImports,
   getZodImportSource,
   parseZodValidationSchemaDefinition,
   renderZodExport,
@@ -75,6 +78,29 @@ type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
 const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
   `import * as zod from '${getZodImportSource(variant)}';`;
 
+/**
+ * Adds the imports of the `formatType` functions a Zod schema file references
+ * below its `zod` import. Schemas inlined into a single-mode operations file
+ * have no import of their own to anchor them.
+ */
+export function addFormatTypeImports(
+  content: string,
+  override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
+): string {
+  const imports = getFormatTypeZodImports(content, override);
+  if (imports.length === 0) return content;
+  const zodImport = getZodSchemaImportStatement(override.zod.variant);
+  if (!content.includes(zodImport)) {
+    throw new Error(
+      `override.formatType: Zod schemas inlined into the operations file cannot import ${imports.map(({ name }) => `\`${name}\``).join(', ')}; generate them into their own file with \`output.schemas\`.`,
+    );
+  }
+  return content.replace(
+    zodImport,
+    `${zodImport}\n${generateImports({ imports })}`,
+  );
+}
+
 interface WriteZodOutputOptions {
   namingConvention: NamingConvention;
   indexFiles: boolean;
@@ -82,6 +108,7 @@ interface WriteZodOutputOptions {
   tsconfig?: Tsconfig;
   override: {
     useNamedParameters?: boolean;
+    formatType?: NormalizedFormatTypeMap;
     zod: {
       variant: ZodVariantOption;
       version: ZodVersionOption;
@@ -1049,7 +1076,10 @@ export async function writeZodSchemas(
       output.override.zod.variant,
     );
 
-    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(
+      schemaGroup[0].filePath,
+      addFormatTypeImports(fileContent, output.override),
+    );
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(
@@ -1216,7 +1246,10 @@ async function writeZodSchemasReusable(
       (imports ? `${imports}\n\n` : '\n') +
       `${rendered.content}\n`;
 
-    await writeGeneratedFile(filePath, fileContent);
+    await writeGeneratedFile(
+      filePath,
+      addFormatTypeImports(fileContent, output.override),
+    );
   }
 
   if (
@@ -1700,7 +1733,10 @@ export async function writeZodSchemasFromVerbs(
       output.override.zod.variant,
     );
 
-    await writeGeneratedFile(schemaGroup[0].filePath, fileContent);
+    await writeGeneratedFile(
+      schemaGroup[0].filePath,
+      addFormatTypeImports(fileContent, output.override),
+    );
   }
 
   const writtenSchemaNames = groupedSchemasToWrite.map(
@@ -1800,6 +1836,9 @@ export async function writeZodSchemasSingle(
     namesAFile(schemasPath)
       ? schemasPath
       : path.join(schemasPath, `index${fileExtension}`),
-    `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n\n${components}${operations}`,
+    addFormatTypeImports(
+      `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n\n${components}${operations}`,
+      output.override,
+    ),
   );
 }
