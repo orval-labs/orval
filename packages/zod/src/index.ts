@@ -3107,8 +3107,18 @@ ${Object.entries(objectArgs)
 
       if (fn === 'optional' || fn === 'nullable' || fn === 'nullish') {
         const value = requireCurrent(fn);
-        const miniFn =
-          exactOptional && isZodV4 && fn === 'optional' ? 'exactOptional' : fn;
+        const exact = exactOptional && isZodV4;
+        if (exact && fn === 'nullish') {
+          current = {
+            expr: zodMiniCall(
+              'exactOptional',
+              zodMiniCall('nullable', value.expr),
+            ),
+            kind: value.kind,
+          };
+          continue;
+        }
+        const miniFn = exact && fn === 'optional' ? 'exactOptional' : fn;
         current = { expr: zodMiniCall(miniFn, value.expr), kind: value.kind };
         continue;
       }
@@ -3550,9 +3560,13 @@ ${Object.entries(objectArgs)
 
     // `.exactOptional()` (zod v4 only) narrows an optional property to `{ x?: T }`
     // for `exactOptionalPropertyTypes` consumers. Zod v3 has no such method, so
-    // the flag no-ops there and a plain `.optional()` is emitted.
+    // the flag no-ops there and a plain `.optional()` is emitted. A nullish
+    // property becomes `{ x?: T | null }`.
     if (exactOptional && isZodV4 && fn === 'optional') {
       return '.exactOptional()';
+    }
+    if (exactOptional && isZodV4 && fn === 'nullish') {
+      return '.nullable().exactOptional()';
     }
 
     assertZodMethodName(fn);

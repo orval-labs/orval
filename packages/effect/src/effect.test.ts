@@ -381,12 +381,15 @@ describe('nullable and optional', () => {
     expect(gen(schema).effect).toContain('"name": S.optional(S.String)');
   });
 
-  it('leaves a nullish property as S.optional even with exactOptional (nullish admits undefined; only .optional() narrows)', () => {
+  it('narrows a nullish property with exactOptional', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: { name: { type: ['string', 'null'] } },
     };
     expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"name": S.optionalWith(S.NullOr(S.String), { exact: true })',
+    );
+    expect(gen(schema).effect).toContain(
       '"name": S.optional(S.NullOr(S.String))',
     );
   });
@@ -731,6 +734,35 @@ describe('Effect 4 output', () => {
       '"name": S.optionalKey(S.String)',
     );
     expect(genV4(schema).effect).toContain('"name": S.optional(S.String)');
+  });
+
+  it('emits S.optionalKey for an exact optional nullable property (#4440)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { name: { type: ['string', 'null'] } },
+    };
+    expect(genV4(schema, { exactOptional: true }).effect).toContain(
+      '"name": S.optionalKey(S.NullOr(S.String))',
+    );
+  });
+
+  // `S.Unknown` would admit a present `undefined` despite `S.optionalKey`.
+  it('renders S.Null for a null-only property under exactOptional', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        typeNull: { type: 'null' },
+        typeArrayNull: { type: ['null'] },
+        constNull: { const: null },
+      },
+    };
+    const { effect } = genV4(schema, { exactOptional: true });
+    expect(effect).toContain('"typeNull": S.optionalKey(S.Null)');
+    expect(effect).toContain('"typeArrayNull": S.optionalKey(S.Null)');
+    expect(effect).toContain('"constNull": S.optionalKey(S.Null)');
+    expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"typeArrayNull": S.optionalWith(S.Null, { exact: true })',
+    );
   });
 
   it('emits a decoding default through Effect.succeed', () => {
