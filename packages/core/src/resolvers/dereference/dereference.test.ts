@@ -348,6 +348,45 @@ describe('dereference', () => {
     });
   });
 
+  describe('deep chains', () => {
+    const chain = (depth: number, wrap: (next: unknown) => unknown): Schemas =>
+      Object.fromEntries(
+        Array.from({ length: depth + 1 }, (_, index) => [
+          `S${index}`,
+          index === depth ? { type: 'string' } : wrap(ref(`S${index + 1}`)),
+        ]),
+      );
+
+    it('expands a 4000-deep chain of properties', () => {
+      const depth = 4000;
+      const context = createContext(
+        chain(depth, (next) => ({
+          type: 'object',
+          properties: { next },
+        })),
+      );
+
+      let node: unknown = dereference(ref('S0'), context);
+      for (let level = 0; level < depth; level++) {
+        node = (node as { properties: { next: unknown } }).properties.next;
+      }
+      expect(node).toEqual({ type: 'string' });
+    });
+
+    it('expands a 1200-deep chain of allOf', () => {
+      const depth = 1200;
+      const context = createContext(
+        chain(depth, (next) => ({ allOf: [next] })),
+      );
+
+      let node: unknown = dereference(ref('S0'), context);
+      for (let level = 0; level < depth; level++) {
+        node = (node as { allOf: unknown[] }).allOf[0];
+      }
+      expect(node).toEqual({ type: 'string' });
+    });
+  });
+
   describe('options', () => {
     it('keepBooleanProperties keeps booleans under properties', () => {
       const context = createContext({});

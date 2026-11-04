@@ -75,5 +75,7 @@ export const storeExpansion = (
   entry: CachedExpansion,
 ): void => {
   const cache = getExpansionCache(spec, options);
-  cache.set(ref, [...(cache.get(ref) ?? []), entry]);
+  const entries = cache.get(ref);
+  if (entries) entries.push(entry);
+  else cache.set(ref, [entry]);
 };

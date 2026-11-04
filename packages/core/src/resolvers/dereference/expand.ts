@@ -27,28 +27,38 @@ const emptyFor = (ref: string): Expansion => ({
   scopeFree: true,
 });
 
+// Merges the refs of all parts plus `ownRef` without copying more than once.
 const unionRefs = (
-  expansions: readonly Expansion<unknown>[],
+  parts: readonly Expansion<unknown>[],
+  ownRef?: string,
 ): ReadonlySet<string> => {
-  const nonEmpty = expansions.filter(({ refs }) => refs.size > 0);
-  if (nonEmpty.length === 0) return NO_REFS;
-  if (nonEmpty.length === 1) return nonEmpty[0].refs;
-  return new Set(nonEmpty.flatMap(({ refs }) => [...refs]));
+  let single: ReadonlySet<string> | undefined;
+  let merged: Set<string> | undefined;
+  for (const { refs } of parts) {
+    if (refs.size === 0) continue;
+    if (!single && !merged) {
+      single = refs;
+      continue;
+    }
+    merged ??= new Set(single);
+    for (const part of refs) merged.add(part);
+  }
+  if (ownRef === undefined) return merged ?? single ?? NO_REFS;
+  // `single` may be shared with a cached expansion, so it is copied first.
+  merged ??= new Set(single);
+  merged.add(ownRef);
+  return merged;
 };
 
-const combine = <TValue>(
-  value: TValue,
-  parts: readonly Expansion<unknown>[],
-): Expansion<TValue> => ({
-  value,
-  refs: unionRefs(parts),
-  scopeFree: parts.every((part) => part.scopeFree),
-});
-
-const withRef = (expansion: Expansion, ref: string): Expansion => ({
-  ...expansion,
-  refs: new Set([...expansion.refs, ref]),
-});
+// Own data property, so a `__proto__` key cannot change the prototype.
+const setOwn = (target: object, key: string | number, value: unknown): void => {
+  Object.defineProperty(target, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+};
 
 const isVerbatimKey = (key: string, options: DereferenceOptions): boolean =>
   ALWAYS_VERBATIM_KEYS.has(key) || (options.isVerbatimKey?.(key) ?? false);
@@ -59,89 +69,120 @@ const withoutKey = (
 ): Record<string, unknown> =>
   Object.fromEntries(Object.entries(record).filter(([key]) => key !== omitted));
 
-const collectEntries = (
-  entries: (readonly [string, Expansion<unknown>])[],
-): Expansion<Record<string, unknown>> =>
-  combine(
-    Object.fromEntries(entries.map(([key, { value }]) => [key, value])),
-    entries.map(([, expansion]) => expansion),
-  );
-
 const hasEmptyDynamicScope = (context: ContextSpec): boolean =>
   Object.keys(context.dynamicScope ?? {}).length === 0;
 
-function expandValue(
+/** A nested schema still to be expanded, and where its expansion goes. */
+interface Job {
+  target: Record<string, unknown> | unknown[];
+  key: string | number;
+  schema: unknown;
+}
+
+/** A schema whose entries are being expanded; children run on the explicit stack. */
+interface Frame {
+  context: ContextSpec;
+  options: DereferenceOptions;
+  ownRef: string | undefined;
+  result: Record<string, unknown>;
+  jobs: Job[];
+  next: number;
+  parts: Expansion<unknown>[];
+  scopeFree: boolean;
+  /** Set for a bare `{ $ref }` whose expansion may be cached. */
+  cacheable?: { ref: string; parents: readonly string[] };
+}
+
+// Splits a value into its final shape plus jobs for the nested schemas.
+function planValue(
   value: unknown,
-  context: ContextSpec,
-  options: DereferenceOptions,
-): Expansion<unknown> {
-  if (isObject(value)) return expandSchema(value, context, options);
-  if (!Array.isArray(value)) return leaf(value);
-
-  const items = value.map((item: unknown) =>
-    expandValue(item, context, options),
-  );
-  return combine(
-    items.map(({ value: itemValue }) => itemValue),
-    items,
-  );
+  target: Record<string, unknown> | unknown[],
+  key: string | number,
+  jobs: Job[],
+): void {
+  if (isObject(value)) {
+    jobs.push({ target, key, schema: value });
+    setOwn(target, key, undefined);
+  } else if (Array.isArray(value)) {
+    const items: unknown[] = [];
+    for (const [index, item] of (value as unknown[]).entries()) {
+      planValue(item, items, index, jobs);
+    }
+    setOwn(target, key, items);
+  } else {
+    setOwn(target, key, value);
+  }
 }
 
-function expandProperties(
-  properties: Record<string, unknown>,
-  context: ContextSpec,
-  options: DereferenceOptions,
-): Expansion<Record<string, unknown>> {
-  return collectEntries(
-    Object.entries(properties).map(([name, property]) => [
-      name,
-      options.keepBooleanProperties && isBoolean(property)
-        ? leaf(property)
-        : expandSchema(property, context, options),
-    ]),
-  );
-}
-
-function expandEntries(
+/**
+ * Starts expanding the entries of a schema. `ownRef` is the `$ref` the schema
+ * was reached through; it is added to the met refs.
+ */
+function openFrame(
   schema: Record<string, unknown>,
   context: ContextSpec,
   options: DereferenceOptions,
-): Expansion {
-  const expansion = collectEntries(
-    Object.entries(schema).map(([key, value]) => {
-      if (key === 'properties' && isObject(value)) {
-        const properties = expandProperties(value, context, options);
-        return [key, properties];
-      }
-      return [
-        key,
-        isVerbatimKey(key, options)
-          ? leaf(value)
-          : expandValue(value, context, options),
-      ];
-    }),
-  );
+  ownRef: string | undefined,
+  scopeFree: boolean,
+): Frame {
+  const result: Record<string, unknown> = {};
+  const jobs: Job[] = [];
 
-  // The entries are rebuilt from a JSON document, so the compiler cannot see
-  // that the result is still a schema.
+  for (const key of Object.keys(schema)) {
+    const value = schema[key];
+    if (key === 'properties' && isObject(value)) {
+      const properties: Record<string, unknown> = {};
+      for (const name of Object.keys(value)) {
+        const property = value[name];
+        if (options.keepBooleanProperties && isBoolean(property)) {
+          setOwn(properties, name, property);
+        } else {
+          setOwn(properties, name, undefined);
+          jobs.push({ target: properties, key: name, schema: property });
+        }
+      }
+      setOwn(result, key, properties);
+    } else if (isVerbatimKey(key, options)) {
+      setOwn(result, key, value);
+    } else {
+      planValue(value, result, key, jobs);
+    }
+  }
+
   return {
-    ...expansion,
-    value: expansion.value as OpenApiNonBooleanSchemaObject,
+    context,
+    options,
+    ownRef,
+    result,
+    jobs,
+    next: 0,
+    parts: [],
+    scopeFree,
   };
 }
 
-function expandDynamicRef(
-  schema: object & { $dynamicRef: string },
-  context: ContextSpec,
-  options: DereferenceOptions,
-): Expansion {
-  const plan = planDynamicRef(schema, context);
-  // Dynamic resolution depends on the scope, so it is never reused.
-  if (plan.kind === 'empty') return { ...leaf({}), scopeFree: false };
-  return {
-    ...expandEntries(plan.schema, plan.context, options),
-    scopeFree: false,
+function closeFrame(frame: Frame): Expansion {
+  let scopeFree = frame.scopeFree;
+  for (const part of frame.parts) {
+    if (!part.scopeFree) scopeFree = false;
+  }
+
+  // The entries are rebuilt from a JSON document, so the compiler cannot see
+  // that the result is still a schema.
+  const expansion: Expansion = {
+    value: frame.result as OpenApiNonBooleanSchemaObject,
+    refs: unionRefs(frame.parts, frame.ownRef),
+    scopeFree,
   };
+  const { cacheable } = frame;
+  if (!cacheable || !scopeFree) return expansion;
+
+  storeExpansion(frame.context.spec, frame.options, cacheable.ref, {
+    value: expansion.value,
+    refs: expansion.refs,
+    cutByAncestors: ancestorsAmong(expansion.refs, cacheable.parents),
+  });
+  return { ...expansion, value: { ...expansion.value } };
 }
 
 /** Merges a `$ref` node with its target; `undefined` when the target is not a schema. */
@@ -166,77 +207,6 @@ function mergeWithTarget(
   return { ...target, ...withoutKey(schema, '$ref') };
 }
 
-function expandNode(
-  schema: Record<string, unknown>,
-  ref: string | undefined,
-  context: ContextSpec,
-  options: DereferenceOptions,
-): Expansion {
-  if (ref === undefined) return expandResolved(schema, ref, context, options);
-
-  const resolved = mergeWithTarget(schema, ref, context, options);
-  if (!resolved) return emptyFor(ref);
-
-  const childContext: ContextSpec = {
-    ...context,
-    parents: [...(context.parents ?? []), ref],
-  };
-  return withRef(expandResolved(resolved, ref, childContext, options), ref);
-}
-
-function expandResolved(
-  resolved: Record<string, unknown>,
-  ref: string | undefined,
-  childContext: ContextSpec,
-  options: DereferenceOptions,
-): Expansion {
-  if (!options.dynamicRefs) {
-    return expandEntries(resolved, childContext, options);
-  }
-
-  const scopedContext = buildScopedContext(
-    childContext,
-    ref,
-    resolved as OpenApiNonBooleanSchemaObject,
-  );
-  if (isDynamicReference(resolved)) {
-    return expandDynamicRef(resolved, scopedContext, options);
-  }
-
-  const expansion = expandEntries(resolved, scopedContext, options);
-  // A freshly attached dynamic scope can change what nested refs resolve to.
-  return scopedContext === childContext
-    ? expansion
-    : { ...expansion, scopeFree: false };
-}
-
-/**
- * Expands a bare `{ $ref }`, reusing a cached expansion when the ancestors cut
- * the same refs it met. Returns a fresh top-level object.
- */
-function expandBareRef(
-  ref: string,
-  schema: Record<string, unknown>,
-  context: ContextSpec,
-  options: DereferenceOptions,
-): Expansion {
-  const parents = context.parents ?? [];
-  const cached = findExpansion(context.spec, options, ref, parents);
-  if (cached) {
-    return { value: { ...cached.value }, refs: cached.refs, scopeFree: true };
-  }
-
-  const expansion = expandNode(schema, ref, context, options);
-  if (!expansion.scopeFree) return expansion;
-
-  storeExpansion(context.spec, options, ref, {
-    value: expansion.value,
-    refs: expansion.refs,
-    cutByAncestors: ancestorsAmong(expansion.refs, parents),
-  });
-  return { ...expansion, value: { ...expansion.value } };
-}
-
 const isBareRef = (schema: Record<string, unknown>): boolean =>
   Object.keys(schema).length === 1;
 
@@ -245,11 +215,15 @@ const canReuseExpansions = (
   options: DereferenceOptions,
 ): boolean => !options.dynamicRefs || hasEmptyDynamicScope(context);
 
-export function expandSchema(
+/**
+ * Expands a schema that needs no nested work (a leaf, a cut or cached ref, an
+ * unresolved target) or opens a frame for the entries of one that does.
+ */
+function begin(
   schema: unknown,
   context: ContextSpec,
   options: DereferenceOptions,
-): Expansion {
+): Expansion | Frame {
   // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
   // bodies carry `null` property values, which must pass through untouched.
   if (!isObject(schema)) {
@@ -264,12 +238,107 @@ export function expandSchema(
   }
 
   if (options.dynamicRefs && isDynamicReference(schema)) {
-    return expandDynamicRef(schema, context, options);
+    return beginDynamicRef(schema, context, options, undefined);
   }
 
-  return ref !== undefined &&
+  // A bare `{ $ref }` reuses a cached expansion when the ancestors cut the
+  // same refs it met. Every result is a fresh top-level object.
+  const bare =
+    ref !== undefined &&
     isBareRef(schema) &&
-    canReuseExpansions(context, options)
-    ? expandBareRef(ref, schema, context, options)
-    : expandNode(schema, ref, context, options);
+    canReuseExpansions(context, options);
+  const parents = context.parents ?? [];
+  if (bare) {
+    const cached = findExpansion(context.spec, options, ref, parents);
+    if (cached) {
+      return { value: { ...cached.value }, refs: cached.refs, scopeFree: true };
+    }
+  }
+
+  let resolved = schema;
+  let childContext = context;
+  if (ref !== undefined) {
+    const merged = mergeWithTarget(schema, ref, context, options);
+    if (!merged) return emptyFor(ref);
+    resolved = merged;
+    childContext = { ...context, parents: [...parents, ref] };
+  }
+
+  let frame: Frame;
+  if (options.dynamicRefs) {
+    const scopedContext = buildScopedContext(
+      childContext,
+      ref,
+      resolved as OpenApiNonBooleanSchemaObject,
+    );
+    if (isDynamicReference(resolved)) {
+      return beginDynamicRef(resolved, scopedContext, options, ref);
+    }
+    // A freshly attached dynamic scope can change what nested refs resolve to.
+    frame = openFrame(
+      resolved,
+      scopedContext,
+      options,
+      ref,
+      scopedContext === childContext,
+    );
+  } else {
+    frame = openFrame(resolved, childContext, options, ref, true);
+  }
+  if (bare) frame.cacheable = { ref, parents };
+  return frame;
+}
+
+function beginDynamicRef(
+  schema: object & { $dynamicRef: string },
+  context: ContextSpec,
+  options: DereferenceOptions,
+  ownRef: string | undefined,
+): Expansion | Frame {
+  const plan = planDynamicRef(schema, context);
+  // Dynamic resolution depends on the scope, so it is never reused.
+  if (plan.kind === 'empty') {
+    return {
+      value: {},
+      refs: ownRef === undefined ? NO_REFS : new Set([ownRef]),
+      scopeFree: false,
+    };
+  }
+  return openFrame(plan.schema, plan.context, options, ownRef, false);
+}
+
+// Runs on an explicit stack, so the nesting depth of a document is not
+// limited by the call stack.
+export function expandSchema(
+  schema: unknown,
+  context: ContextSpec,
+  options: DereferenceOptions,
+): Expansion {
+  const root = begin(schema, context, options);
+  if (!('jobs' in root)) return root;
+
+  const stack: Frame[] = [root];
+  for (;;) {
+    // The stack is never empty inside the loop: the root returns directly.
+    const frame = stack[stack.length - 1] as Frame;
+    if (frame.next < frame.jobs.length) {
+      const job = frame.jobs[frame.next++];
+      const started = begin(job.schema, frame.context, options);
+      if ('jobs' in started) {
+        stack.push(started);
+      } else {
+        frame.parts.push(started);
+        setOwn(job.target, job.key, started.value);
+      }
+      continue;
+    }
+
+    const done = closeFrame(frame);
+    stack.pop();
+    const parent = stack.at(-1);
+    if (!parent) return done;
+    const job = parent.jobs[parent.next - 1];
+    parent.parts.push(done);
+    setOwn(job.target, job.key, done.value);
+  }
 }
