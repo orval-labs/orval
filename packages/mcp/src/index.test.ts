@@ -372,7 +372,7 @@ describe('header parameters', () => {
       'mcp',
     );
 
-    expect(implementation).toContain('  headerParams: UpdateItemHeaders;');
+    expect(implementation).toContain('  headerParams?: UpdateItemHeaders;');
     expect(implementation).toContain(
       'await updateItem(args.pathParams.id, args.bodyParams, args.headerParams, options);',
     );
@@ -390,7 +390,92 @@ describe('header parameters', () => {
 
     expect(zodFile?.content).toContain('export const UpdateItemHeader = ');
     expect(zodFile?.content).toContain(
-      'export const UpdateItemInput = zod.object({\n  pathParams: UpdateItemParams,\n  headerParams: UpdateItemHeader,\n  bodyParams: UpdateItemBody.optional(),\n});',
+      'export const UpdateItemInput = zod.object({\n  pathParams: UpdateItemParams,\n  headerParams: UpdateItemHeader.optional(),\n  bodyParams: UpdateItemBody.optional(),\n});',
+    );
+  });
+
+  it('keeps the header input required when the client requires it', async () => {
+    const requiredContext = createTestContextSpec({
+      spec: headerContext.spec,
+      output: {
+        target: '/project/src/handlers.ts',
+        headers: true,
+        optionsParamRequired: true,
+      },
+    });
+
+    const { implementation } = await generateMcp(
+      updateItem,
+      {
+        route: updateItem.route,
+        pathRoute: updateItem.pathRoute,
+        override: requiredContext.output.override,
+        context: requiredContext,
+        output: requiredContext.output.target,
+      },
+      'mcp',
+    );
+    const files = await generateExtraFiles(
+      { updateItem },
+      requiredContext.output,
+      requiredContext,
+    );
+    const zodFile = files.find((file) =>
+      file.path.endsWith('tool-schemas.zod.ts'),
+    );
+
+    expect(implementation).toContain('  headerParams: UpdateItemHeaders;');
+    expect(zodFile?.content).toContain('  headerParams: UpdateItemHeader,\n');
+  });
+
+  it('passes a defaulted path param after a required header', async () => {
+    const versionParam = {
+      name: 'version',
+      definition: 'version?: number',
+      implementation: 'version: number = 1',
+      default: 1,
+      required: true,
+      imports: [],
+    };
+    const getItem = createTestGeneratorVerbOptions({
+      verb: 'get',
+      operationName: 'getItem',
+      typeName: 'getItem',
+      route: '/items/${version}',
+      pathRoute: '/items/{version}',
+      params: [versionParam],
+      headers: {
+        schema: { name: 'GetItemHeaders', model: '', imports: [] },
+        deps: [],
+        isOptional: false,
+      },
+      props: [
+        {
+          name: 'headers',
+          definition: 'headers: GetItemHeaders',
+          implementation: 'headers: GetItemHeaders',
+          default: undefined,
+          required: true,
+          type: GetterPropType.HEADER,
+        },
+        { ...versionParam, type: GetterPropType.PARAM },
+      ],
+    });
+
+    const { implementation } = await generateMcp(
+      getItem,
+      {
+        route: getItem.route,
+        pathRoute: getItem.pathRoute,
+        override: headerContext.output.override,
+        context: headerContext,
+        output: headerContext.output.target,
+      },
+      'mcp',
+    );
+
+    expect(implementation).toContain(
+      'await getItem(args.headerParams, args.pathParams.version, options);',
     );
   });
 });

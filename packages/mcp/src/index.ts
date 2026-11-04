@@ -102,13 +102,24 @@ const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
     version: '1.0.0',
   };
 
+// Mirrors the `headers?` prop of the generated client (see `getProps`).
+const isOptionalHeaders = (
+  verbOption: GeneratorVerbOptions,
+  context: ContextSpec,
+) => !!verbOption.headers?.isOptional && !context.output.optionsParamRequired;
+
 // Entries of the per-tool `XInput` object schema; empty means the tool takes
 // no arguments and its callback receives only `ctx`.
-const getInputShape = (verbOption: GeneratorVerbOptions) => {
+const getInputShape = (
+  verbOption: GeneratorVerbOptions,
+  context: ContextSpec,
+) => {
   const name = pascal(verbOption.typeName);
   const pathParams = verbOption.params.length > 0 ? `${name}Params` : undefined;
   const queryParams = verbOption.queryParams ? `${name}QueryParams` : undefined;
-  const headerParams = verbOption.headers ? `${name}Header` : undefined;
+  const headerParams = verbOption.headers
+    ? `${name}Header${isOptionalHeaders(verbOption, context) ? '.optional()' : ''}`
+    : undefined;
   const bodyParams = verbOption.body.definition
     ? `${name}Body${verbOption.body.isOptional ? '.optional()' : ''}`
     : undefined;
@@ -245,7 +256,7 @@ export const generateMcp: ClientBuilder = (verbOptions, options) => {
   }
   if (verbOptions.headers) {
     handlerArgsTypes.push(
-      `  headerParams: ${verbOptions.headers.schema.name};`,
+      `  headerParams${isOptionalHeaders(verbOptions, options.context) ? '?' : ''}: ${verbOptions.headers.schema.name};`,
     );
   }
   if (verbOptions.body.definition) {
@@ -265,25 +276,44 @@ ${handlerArgsTypes.join('\n')}
       : '';
 
   const fetchParams = [];
-  if (verbOptions.params.length > 0) {
-    const pathParamsArgs = originalParamNames
-      .map((paramName) => `args.pathParams${getPropertyAccessor(paramName)}`)
-      .join(', ');
-
-    fetchParams.push(pathParamsArgs);
-  }
-  // Body, query and header args must follow the same order as the generated client
-  // function signature, which sorts required params before optional ones (see
-  // `getProps`/`sortByPriority`). Emitting a fixed body-then-query order would
-  // swap the two arguments whenever the query param is required and the body is
-  // optional, sending the body as the query string and vice versa.
+  // Args must follow the same order as the generated client function
+  // signature, which sorts required params before optional ones and params
+  // with a default last (see `getProps`/`sortByPriority`). Emitting a fixed
+  // order would swap arguments, e.g. a required query param with an optional
+  // body, or a defaulted path param with a required header.
   for (const prop of verbOptions.props) {
-    if (prop.type === GetterPropType.BODY) {
-      fetchParams.push('args.bodyParams');
-    } else if (prop.type === GetterPropType.QUERY_PARAM) {
-      fetchParams.push('args.queryParams');
-    } else if (prop.type === GetterPropType.HEADER) {
-      fetchParams.push('args.headerParams');
+    switch (prop.type) {
+      case GetterPropType.PARAM: {
+        const index = verbOptions.params.findIndex(
+          (param) => param.name === prop.name,
+        );
+        fetchParams.push(
+          `args.pathParams${getPropertyAccessor(originalParamNames[index])}`,
+        );
+        break;
+      }
+      case GetterPropType.NAMED_PATH_PARAMS: {
+        fetchParams.push(
+          originalParamNames
+            .map(
+              (paramName) => `args.pathParams${getPropertyAccessor(paramName)}`,
+            )
+            .join(', '),
+        );
+        break;
+      }
+      case GetterPropType.BODY: {
+        fetchParams.push('args.bodyParams');
+        break;
+      }
+      case GetterPropType.QUERY_PARAM: {
+        fetchParams.push('args.queryParams');
+        break;
+      }
+      case GetterPropType.HEADER: {
+        fetchParams.push('args.headerParams');
+        break;
+      }
     }
   }
 
@@ -367,7 +397,7 @@ export const generateServer = (
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
       const pascalOperationName = pascal(verbOption.typeName);
-      const hasInputSchema = getInputShape(verbOption).length > 0;
+      const hasInputSchema = getInputShape(verbOption, context).length > 0;
       const inputSchemaImplementation = hasInputSchema
         ? `\n    inputSchema: ${pascalOperationName}Input,`
         : '';
@@ -433,7 +463,7 @@ tools.${verbOption.operationName} = server.registerTool(
 
       const pascalOperationName = pascal(verbOption.typeName);
 
-      if (getInputShape(verbOption).length > 0)
+      if (getInputShape(verbOption, context).length > 0)
         imports.push(`  ${pascalOperationName}Input`);
       if (hasResponseSchema(verbOption, context))
         imports.push(
@@ -578,7 +608,7 @@ const generateZodFiles = async (
         },
       );
       const name = pascal(verbOption.typeName);
-      const shape = getInputShape(verbOption);
+      const shape = getInputShape(verbOption, context);
       const inputSchema =
         shape.length > 0
           ? `export const ${name}Input = zod.object({\n  ${shape.join(',\n  ')},\n});`
