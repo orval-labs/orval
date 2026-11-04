@@ -746,6 +746,25 @@ describe('Effect 4 output', () => {
     );
   });
 
+  // `S.Unknown` would admit a present `undefined` despite `S.optionalKey`.
+  it('renders S.Null for a null-only property under exactOptional', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        typeNull: { type: 'null' },
+        typeArrayNull: { type: ['null'] },
+        constNull: { const: null },
+      },
+    };
+    const { effect } = genV4(schema, { exactOptional: true });
+    expect(effect).toContain('"typeNull": S.optionalKey(S.Null)');
+    expect(effect).toContain('"typeArrayNull": S.optionalKey(S.Null)');
+    expect(effect).toContain('"constNull": S.optionalKey(S.Null)');
+    expect(gen(schema, { exactOptional: true }).effect).toContain(
+      '"typeArrayNull": S.optionalWith(S.Null, { exact: true })',
+    );
+  });
+
   it('emits a decoding default through Effect.succeed', () => {
     const { effect } = genV4({
       type: 'object',

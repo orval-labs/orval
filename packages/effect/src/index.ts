@@ -110,6 +110,10 @@ const resolveEffectType = (schema: OpenApiSchemaObject): ResolvedEffectType => {
       return { multiType: nonNullTypes };
     }
 
+    if (nonNullTypes.length === 0 && schemaTypeValue.includes('null')) {
+      return 'null';
+    }
+
     const type = nonNullTypes[0];
 
     if (type === 'array' && 'prefixItems' in schema) {
@@ -120,6 +124,10 @@ const resolveEffectType = (schema: OpenApiSchemaObject): ResolvedEffectType => {
   }
 
   const type = isString(schemaTypeValue) ? schemaTypeValue : undefined;
+
+  if (type === undefined && 'const' in schema && schema.const === null) {
+    return 'null';
+  }
 
   if (schema.type === 'array' && 'prefixItems' in schema) {
     return 'tuple';
@@ -311,7 +319,11 @@ export const generateEffectValidationSchemaDefinition = (
   const type = resolveEffectType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
+  // A null-only type already renders `S.Null`; `S.NullOr` around it is redundant.
+  const nullable =
+    type !== 'null' &&
+    Array.isArray(schema.type) &&
+    schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
