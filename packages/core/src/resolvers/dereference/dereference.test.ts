@@ -686,4 +686,38 @@ describe('dereference', () => {
 
     expect(dereference(ref('Pet'), detached)).toEqual({});
   });
+
+  describe('__proto__ keys', () => {
+    const schemas = (): Schemas => ({
+      Pet: JSON.parse(
+        '{"type":"object","properties":{"__proto__":{"type":"string"},"id":{"type":"string"}},"__proto__":{"type":"number"}}',
+      ) as Schemas,
+    });
+
+    it('drops them without touching the prototype', () => {
+      const result = dereference(ref('Pet'), createContext(schemas()));
+
+      expect(Object.keys(result)).toEqual(['type', 'properties']);
+      expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+      expect(Object.keys(result.properties ?? {})).toEqual(['id']);
+      expect(Object.getPrototypeOf(result.properties)).toBe(Object.prototype);
+    });
+
+    it('keepProtoKey defines them as own properties', () => {
+      const result = dereference(ref('Pet'), createContext(schemas()), {
+        keepProtoKey: true,
+      });
+
+      expect(Object.getOwnPropertyNames(result)).toEqual([
+        'type',
+        'properties',
+        '__proto__',
+      ]);
+      expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+      expect(Object.getOwnPropertyNames(result.properties)).toEqual([
+        '__proto__',
+        'id',
+      ]);
+    });
+  });
 });

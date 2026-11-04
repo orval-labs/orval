@@ -13,6 +13,7 @@ import { logger, warnOnce } from './logger';
 const dereferenceOptions: DereferenceOptions = {
   keepBooleanProperties: true,
   keepSiblingsOfBooleanTarget: true,
+  keepProtoKey: true,
   isVerbatimKey: (key) => key.startsWith('x-'),
   onCircularRef: (ref) =>
     warnOnce(`Circular $ref "${ref}" is validated as unknown.`),

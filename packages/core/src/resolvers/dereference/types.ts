@@ -12,6 +12,8 @@ export interface DereferenceOptions {
   keepBooleanProperties?: boolean;
   /** Keep siblings of a `$ref` whose target is a boolean schema. */
   keepSiblingsOfBooleanTarget?: boolean;
+  /** Define a `__proto__` key as an own property instead of dropping it. */
+  keepProtoKey?: boolean;
   /** Keys whose values are copied without being dereferenced. */
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */

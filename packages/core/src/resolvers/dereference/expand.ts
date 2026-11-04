@@ -56,14 +56,24 @@ const unionRefs = (
   return merged;
 };
 
-// Own data property, so a `__proto__` key cannot change the prototype.
-const setOwn = (target: object, key: string | number, value: unknown): void => {
-  Object.defineProperty(target, key, {
-    value,
-    writable: true,
-    enumerable: true,
-    configurable: true,
-  });
+// Plain assignment, except for `__proto__`: assigning it would swap the
+// prototype of the result, so it is dropped or defined as an own property.
+const setOwn = (
+  target: object,
+  key: string | number,
+  value: unknown,
+  options: DereferenceOptions,
+): void => {
+  if (key !== '__proto__') {
+    (target as Record<string | number, unknown>)[key] = value;
+  } else if (options.keepProtoKey) {
+    Object.defineProperty(target, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
 };
 
 const isVerbatimKey = (key: string, options: DereferenceOptions): boolean =>
@@ -106,18 +116,19 @@ function planValue(
   target: Record<string, unknown> | unknown[],
   key: string | number,
   jobs: Job[],
+  options: DereferenceOptions,
 ): void {
   if (isObject(value)) {
     jobs.push({ target, key, schema: value });
-    setOwn(target, key, undefined);
+    setOwn(target, key, undefined, options);
   } else if (Array.isArray(value)) {
     const items: unknown[] = [];
     for (const [index, item] of (value as unknown[]).entries()) {
-      planValue(item, items, index, jobs);
+      planValue(item, items, index, jobs, options);
     }
-    setOwn(target, key, items);
+    setOwn(target, key, items, options);
   } else {
-    setOwn(target, key, value);
+    setOwn(target, key, value, options);
   }
 }
 
@@ -143,17 +154,17 @@ function openFrame(
       for (const name of Object.keys(value)) {
         const property = value[name];
         if (options.keepBooleanProperties && isBoolean(property)) {
-          setOwn(properties, name, property);
+          setOwn(properties, name, property, options);
         } else {
-          setOwn(properties, name, undefined);
+          setOwn(properties, name, undefined, options);
           jobs.push({ target: properties, key: name, schema: property });
         }
       }
-      setOwn(result, key, properties);
+      setOwn(result, key, properties, options);
     } else if (isVerbatimKey(key, options)) {
-      setOwn(result, key, value);
+      setOwn(result, key, value, options);
     } else {
-      planValue(value, result, key, jobs);
+      planValue(value, result, key, jobs, options);
     }
   }
 
@@ -352,7 +363,7 @@ export function expandSchema(
         stack.push(started.frame);
       } else {
         frame.parts.push(started.expansion);
-        setOwn(job.target, job.key, started.expansion.value);
+        setOwn(job.target, job.key, started.expansion.value, options);
       }
       continue;
     }
@@ -363,6 +374,6 @@ export function expandSchema(
     if (!parent) return finished;
     const job = parent.jobs[parent.next - 1];
     parent.parts.push(finished);
-    setOwn(job.target, job.key, finished.value);
+    setOwn(job.target, job.key, finished.value, options);
   }
 }
