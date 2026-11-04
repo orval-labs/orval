@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateMutatorImports } from '../generators';
+import { generateMutatorImports, isMutatorUsed } from '../generators';
 import type {
   GeneratorDependency,
   GeneratorImport,
@@ -81,8 +81,10 @@ export interface TargetMutators {
 
 /**
  * Import statements for every mutator kind a target carries, in the order
- * the generated file declares them. Only the plain `mutators` are matched
- * against `implementation`; the other kinds are always imported.
+ * the generated file declares them. Every kind is matched against
+ * `implementation`: a configured `paramsSerializer`, `paramsFilter`,
+ * `formUrlEncoded` or `fetch.jsonReviver` is attached to every operation, so
+ * a file whose operations never call it would otherwise import it unused.
  */
 export function generateTargetMutatorImports(
   target: TargetMutators,
@@ -108,7 +110,12 @@ export function generateTargetMutatorImports(
     target.fetchReviver,
   ]) {
     if (mutators) {
-      data += generateMutatorImports({ mutators, oneMore });
+      data += generateMutatorImports({
+        mutators: mutators.filter((mutator) =>
+          isMutatorUsed(mutator, implementation),
+        ),
+        oneMore,
+      });
     }
   }
 

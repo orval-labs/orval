@@ -94,6 +94,17 @@ interface GenerateMutatorImportsOptions {
   oneMore?: boolean;
 }
 
+/**
+ * Whether `implementation` references the mutator's import binding, so a
+ * file only imports the mutators its own code calls.
+ */
+export function isMutatorUsed(
+  mutator: GeneratorMutator,
+  implementation: string,
+): boolean {
+  return implementation.split(/[^\w$]+/).includes(mutator.name);
+}
+
 export function generateMutatorImports({
   mutators,
   implementation,
@@ -104,10 +115,7 @@ export function generateMutatorImports({
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   )) {
-    if (
-      implementation &&
-      !implementation.split(/[^\w$]+/).includes(mutator.name)
-    ) {
+    if (implementation && !isMutatorUsed(mutator, implementation)) {
       continue;
     }
     // Relative mutator paths are written relative to the output root, so in

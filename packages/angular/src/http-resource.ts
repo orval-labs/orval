@@ -26,6 +26,7 @@ import {
   getOperationTagKey,
   getSchemasImportPath,
   getTagKey,
+  isMutatorUsed,
   isObject,
   isSyntheticDefaultImportsAllow,
   isTextContentType,
@@ -2171,14 +2172,21 @@ const buildHttpResourceExtraFile = (
           ? verbOption.mutator
           : undefined;
 
-      return [
-        resourceMutator,
-        verbOption.formData,
-        verbOption.formUrlEncoded,
-        verbOption.paramsSerializer,
-        verbOption.paramsFilter,
-      ].filter(
-        (value): value is NonNullable<typeof value> => value !== undefined,
+      return (
+        [
+          resourceMutator,
+          verbOption.formData,
+          verbOption.formUrlEncoded,
+          verbOption.paramsSerializer,
+          verbOption.paramsFilter,
+        ]
+          .filter(
+            (value): value is NonNullable<typeof value> => value !== undefined,
+          )
+          // `paramsSerializer` and `paramsFilter` are attached to every
+          // operation, so a resource file without query params would
+          // otherwise import them unused.
+          .filter((mutator) => isMutatorUsed(mutator, implementation))
       );
     });
 
