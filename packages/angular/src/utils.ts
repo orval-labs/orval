@@ -175,7 +175,9 @@ ${
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
 ${hasQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
-    : ''
+    : hasQueryParams
+      ? getAngularFilteredParamsHelperBody({ hasObjectParams })
+      : ''
 }
 
 ${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
