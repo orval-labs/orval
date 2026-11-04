@@ -3647,7 +3647,16 @@ const dereferenceOptions: DereferenceOptions = {
 /**
  * Recursively inlines all `$ref` and `$dynamicRef` references in an OpenAPI
  * schema tree, producing a fully-resolved schema suitable for Zod code generation.
- * Circular references become `{}`.
+ *
+ * Tracks visited `$ref` paths via `context.parents` to break circular
+ * references (returning `{}` for cycles).
+ *
+ * `$dynamicRef` is resolved using the dynamic scope attached to `context`:
+ *  1. Look up the anchor name in `context.dynamicScope`.
+ *  2. If not found, fall back to scanning `components.schemas` for a schema
+ *     that declares `$dynamicAnchor` with the same name.
+ *  3. If resolved to a concrete schema, inline it (same as `$ref`).
+ *  4. If unresolved, external, or a generic parameter → return `{}`.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,

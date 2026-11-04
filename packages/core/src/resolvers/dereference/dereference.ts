@@ -10,13 +10,9 @@ import type { DereferenceOptions } from './types';
 const DEFAULT_OPTIONS: DereferenceOptions = {};
 
 /**
- * Recursively inlines every `$ref` in a schema tree. A `$ref` already being
- * expanded (a cycle) becomes an empty schema, and a `$ref` that cannot be
- * resolved does too.
- *
- * A component referenced from many places is expanded once per document and
- * options object; callers receive a fresh top-level object each time. Nested
- * objects may be shared between results, so treat them as read-only.
+ * Recursively inlines every `$ref` in a schema tree. Cycles and unresolved refs
+ * become `{}`. Expansions are cached per document and options; nested objects
+ * may be shared between results, so treat them as read-only.
  */
 export function dereference(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,

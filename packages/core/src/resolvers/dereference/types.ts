@@ -23,9 +23,8 @@ export interface DereferenceOptions {
 }
 
 /**
- * An expanded value with what it depends on: `refs` holds every `$ref` met
- * while expanding it, cut or not, and `scopeFree` is false when a dynamic
- * scope took part, which makes the value unsafe to reuse.
+ * An expanded value plus every `$ref` met while expanding it; `scopeFree` is
+ * false when a dynamic scope took part, so the value must not be reused.
  */
 export interface Expansion<TValue = OpenApiNonBooleanSchemaObject> {
   value: TValue;

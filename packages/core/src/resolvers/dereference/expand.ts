@@ -122,8 +122,8 @@ function expandEntries(
     }),
   );
 
-  // Entries are rebuilt from a JSON document, so the compiler cannot see that
-  // the result is still a schema.
+  // The entries are rebuilt from a JSON document, so the compiler cannot see
+  // that the result is still a schema.
   return {
     ...expansion,
     value: expansion.value as OpenApiNonBooleanSchemaObject,
@@ -211,15 +211,8 @@ function expandResolved(
 }
 
 /**
- * Expands a node that is exactly `{ $ref }`, reusing an earlier expansion of the
- * same ref when it is still valid.
- *
- * An expansion only depends on the ancestors through the refs it meets: a ref
- * is cut exactly when it is already being expanded. So an earlier expansion is
- * reused when the current ancestors are expanding the same subset of the refs
- * it met, which makes every cut, and so the whole result, come out the same.
- *
- * Every caller gets a fresh top-level object so it may set properties on it.
+ * Expands a bare `{ $ref }`, reusing a cached expansion when the ancestors cut
+ * the same refs it met. Returns a fresh top-level object.
  */
 function expandBareRef(
   ref: string,

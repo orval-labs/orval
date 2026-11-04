@@ -55,11 +55,7 @@ const sameRefs = (left: readonly string[], right: readonly string[]) =>
   left.every((ref) => right.includes(ref)) &&
   right.every((ref) => left.includes(ref));
 
-/**
- * An expansion of `ref` computed under ancestors that cut the same refs as
- * `parents` would. An expansion only changes where an ancestor cuts a ref it
- * meets, so such an entry is exactly what expanding again would produce.
- */
+/** A cached expansion of `ref` whose cuts match what `parents` would cut. */
 export const findExpansion = (
   spec: OpenApiDocument,
   options: DereferenceOptions,
