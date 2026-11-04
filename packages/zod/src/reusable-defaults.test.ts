@@ -45,9 +45,14 @@ describe('defaults on reusable schema references', () => {
     },
   );
 
-  it.each([false, true])(
-    'keeps enum properties in object defaults contextually typed (Zod 4: %s)',
-    (isZodV4) => {
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
+    'keeps enum defaults contextually typed (Zod 4: %s, extra key: %s)',
+    (isZodV4, extraKey) => {
       const context = createTestContextSpec({
         spec: {
           components: {
@@ -65,7 +70,7 @@ describe('defaults on reusable schema references', () => {
       const definition = generateZodValidationSchemaDefinition(
         {
           $ref: '#/components/schemas/Parameters',
-          default: { method: 'option_a' },
+          default: { method: 'option_a', ...(extraKey ? { extra: 42 } : {}) },
         },
         context,
         'exampleParameters',
@@ -80,7 +85,11 @@ describe('defaults on reusable schema references', () => {
         false,
         isZodV4,
       );
-      expect(result.zod).toContain(".default({ method: 'option_a', })");
+      expect(result.zod).toContain(
+        extraKey
+          ? ".default({ ...{ method: 'option_a', extra: 42, } })"
+          : ".default({ ...{ method: 'option_a', } })",
+      );
       expect(result.consts).not.toContain('exampleParametersDefault');
     },
   );

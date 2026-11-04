@@ -1064,8 +1064,13 @@ export const generateZodValidationSchemaDefinition = (
           isObject(siblingSchema.default) ||
           Array.isArray(siblingSchema.default)
         ) {
-          // Keep the referenced schema's contextual type for tuples and enum properties.
-          functions.push(['default', defaultLiteral]);
+          // Spreading object defaults preserves contextual types without excess-property checks.
+          functions.push([
+            'default',
+            Array.isArray(siblingSchema.default)
+              ? defaultLiteral
+              : `{ ...${defaultLiteral} }`,
+          ]);
         } else {
           consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
           functions.push(['default', defaultVarName]);

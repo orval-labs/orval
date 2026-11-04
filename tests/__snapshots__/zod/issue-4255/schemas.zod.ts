@@ -27,6 +27,7 @@ export type MethodOutput = zod.output<typeof Method>;
 
 export const Parameters = zod.object({
   method: Method.optional(),
+  range: ParameterRange.optional(),
 });
 
 export type Parameters = zod.input<typeof Parameters>;
@@ -34,7 +35,9 @@ export type ParametersOutput = zod.output<typeof Parameters>;
 
 export const Test = zod.object({
   range: ParameterRange.default([1, 300]),
-  parameters: Parameters.default({ method: 'option_a' }),
+  parameters: Parameters.default({
+    ...{ method: 'option_a', range: [2, 400], extra: 42 },
+  }),
   attr: Demo.default({
     height: 100 as const,
     width: 200 as const,

@@ -40,6 +40,8 @@ components:
           $ref: '#/components/schemas/Parameters'
           default:
             method: option_a
+            range: [2, 400]
+            extra: 42
         attr:
           allOf:
             - $ref: '#/components/schemas/Demo'
@@ -65,3 +67,5 @@ components:
       properties:
         method:
           $ref: '#/components/schemas/Method'
+        range:
+          $ref: '#/components/schemas/ParameterRange'

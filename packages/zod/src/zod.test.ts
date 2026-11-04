@@ -6491,7 +6491,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { required: true, useReusableSchemas: true },
       );
       expect(result.consts).toEqual([]);
-      expect(result.functions.at(-1)).toEqual(['default', '{ items: {}, }']);
+      expect(result.functions.at(-1)).toEqual([
+        'default',
+        '{ ...{ items: {}, } }',
+      ]);
     });
 
     it('chains .optional() when the parent does not list the ref as required', () => {
