@@ -279,10 +279,7 @@ const decodeResponseBody = async (
   return body ? JSON.parse(body) : {};
 };
 
-export const execute = async <R>(
-  args: ExecuteArgs,
-  config?: ClientConfig,
-): Promise<R> => {
+export const prepareRequest = (args: ExecuteArgs) => {
   const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
   const init: RequestInit = {
     ...options,
@@ -296,6 +293,15 @@ export const execute = async <R>(
     },
     body: encodeRequestBody(args),
   };
+
+  return { fetchFn, init };
+};
+
+export const execute = async <R>(
+  args: ExecuteArgs,
+  config?: ClientConfig,
+): Promise<R> => {
+  const { fetchFn, init } = prepareRequest(args);
 
   if (config?.mutator) {
     return config.mutator<R>(
@@ -321,15 +327,36 @@ export const clientConfigTemplate = ({
   runtimeImportPath,
   mutatorImport,
   mutatorName,
+  inferred = false,
+  hasSecondArg = true,
 }: {
   runtimeImportPath: string;
   mutatorImport: string;
   mutatorName: string;
-}) => `import * as runtime from '${runtimeImportPath}';
+  inferred?: boolean;
+  hasSecondArg?: boolean;
+}) => {
+  const imports = `import * as runtime from '${runtimeImportPath}';
 import type { ExecuteArgs } from '${runtimeImportPath}';
 ${mutatorImport}
-const config = { mutator: ${mutatorName} };
+`;
+  if (inferred) {
+    return `${imports}export type CallOptions = ${hasSecondArg ? `Parameters<typeof ${mutatorName}>[1]` : 'RequestInit'};
+
+export const execute = <R>(args: ExecuteArgs) => {
+  ${
+    hasSecondArg
+      ? `const { init } = runtime.prepareRequest(args);
+  const options = args.schema === undefined ? init : { ...init, schema: args.schema as never };
+  return ${mutatorName}<R>(args.url, options);`
+      : `return ${mutatorName}<R>(args.url);`
+  }
+};
+`;
+  }
+  return `${imports}const config = { mutator: ${mutatorName} };
 
 export const execute = <R>(args: ExecuteArgs) =>
   runtime.execute<R>(args, config);
 `;
+};

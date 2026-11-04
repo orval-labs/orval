@@ -114,7 +114,13 @@ export const getSharedRuntimeImports = (
   return [
     { name: 'execute', values: true, importPath: executePath },
     { name: 'serializeQuery', values: true, importPath: runtimePath },
-    { name: 'CallOptions', importPath: runtimePath },
+    {
+      name: 'CallOptions',
+      importPath:
+        mutator?.inferred && usesClientConfig(output, mutator)
+          ? executePath
+          : runtimePath,
+    },
     { name: 'ResponseOf', importPath: runtimePath },
     ...(hasStream ? [{ name: 'Stream', importPath: runtimePath }] : []),
   ];
@@ -225,6 +231,7 @@ export const generateSharedRequestFunction = (
     formData,
     formUrlEncoded,
     headers,
+    mutator,
     operationName,
     override,
     params,
@@ -361,8 +368,16 @@ export const generateSharedRequestFunction = (
     'options',
   ];
 
+  const resultType =
+    mutator?.inferred &&
+    usesClientConfig(context.output, mutator) &&
+    !override.fetch.includeHttpResponseReturnType
+      ? hasStream
+        ? 'Response'
+        : response.definition.success
+      : `${typeName}Response`;
   const fetchImplementation = `export const ${operationName} = (${toObjectString(props, 'implementation')} options?: CallOptions) =>
-  execute<${typeName}Response>({
+  execute<${resultType}>({
     ${executeArgs.join(',\n    ')},
   });
 `;
@@ -440,6 +455,8 @@ export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
           ),
           mutatorImport: `import ${mutator.default ? mutator.name : `{ ${mutator.name} }`} from '${mutatorPath}';\n`,
           mutatorName: mutator.name,
+          inferred: mutator.inferred,
+          hasSecondArg: mutator.hasSecondArg,
         }),
     });
   }

@@ -300,10 +300,7 @@ const decodeResponseBody = async (
   return body ? JSON.parse(body) : {};
 };
 
-export const execute = async <R>(
-  args: ExecuteArgs,
-  config?: ClientConfig,
-): Promise<R> => {
+export const prepareRequest = (args: ExecuteArgs) => {
   const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
   const init: RequestInit = {
     ...options,
@@ -317,6 +314,15 @@ export const execute = async <R>(
     },
     body: encodeRequestBody(args),
   };
+
+  return { fetchFn, init };
+};
+
+export const execute = async <R>(
+  args: ExecuteArgs,
+  config?: ClientConfig,
+): Promise<R> => {
+  const { fetchFn, init } = prepareRequest(args);
 
   if (config?.mutator) {
     return config.mutator<R>(
