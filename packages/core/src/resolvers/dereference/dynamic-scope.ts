@@ -19,12 +19,8 @@ function hasDynamicAnchors(schema: Record<string, unknown>): boolean {
   if (typeof schema.$dynamicAnchor === 'string') return true;
   const defs = schema.$defs;
   return (
-    typeof defs === 'object' &&
-    defs !== null &&
-    Object.values(defs).some(
-      (def) =>
-        typeof def === 'object' && def !== null && '$dynamicAnchor' in def,
-    )
+    isObject(defs) &&
+    Object.values(defs).some((def) => isObject(def) && '$dynamicAnchor' in def)
   );
 }
 
