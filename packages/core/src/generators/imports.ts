@@ -102,7 +102,7 @@ export function isMutatorUsed(
   mutator: GeneratorMutator,
   implementation: string,
 ): boolean {
-  return implementation.split(/[^\w$]+/).includes(mutator.name);
+  return getReferencedIdentifiers(implementation).has(mutator.name);
 }
 
 export function generateMutatorImports({
