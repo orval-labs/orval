@@ -14,6 +14,11 @@ export interface CachedExpansion {
   cutByAncestors: readonly string[];
 }
 
+// Variants of one ref differ by which of its refs the ancestors cut, so a
+// densely connected graph can produce one per ancestor set. Past this many a
+// ref is expanded again instead of stored, which keeps lookups cheap.
+export const MAX_VARIANTS_PER_REF = 8;
+
 type ExpansionCache = Map<string, CachedExpansion[]>;
 
 // Keyed by document and options identity so entries die with the document and
@@ -76,6 +81,13 @@ export const storeExpansion = (
 ): void => {
   const cache = getExpansionCache(spec, options);
   const entries = cache.get(ref);
-  if (entries) entries.push(entry);
-  else cache.set(ref, [entry]);
+  if (!entries) cache.set(ref, [entry]);
+  else if (entries.length < MAX_VARIANTS_PER_REF) entries.push(entry);
 };
+
+/** How many variants of `ref` are cached. */
+export const countExpansions = (
+  spec: OpenApiDocument,
+  options: DereferenceOptions,
+  ref: string,
+): number => getExpansionCache(spec, options).get(ref)?.length ?? 0;

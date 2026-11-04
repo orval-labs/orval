@@ -6,6 +6,7 @@ import type {
   OpenApiDocument,
   OpenApiSchemaObject,
 } from '../../types';
+import { countExpansions, MAX_VARIANTS_PER_REF } from './cache';
 import { dereference } from './dereference';
 import type { DereferenceOptions } from './types';
 
@@ -750,6 +751,128 @@ describe('dereference', () => {
         '__proto__',
         'id',
       ]);
+    });
+  });
+
+  describe('strongly connected graphs', () => {
+    const refName = (name: string) => `#/components/schemas/${name}`;
+
+    // Plain recursive expansion, the behavior every optimization must keep.
+    const expandNaive = (
+      schemas: Schemas,
+      value: unknown,
+      parents: readonly string[] = [],
+    ): unknown => {
+      if (Array.isArray(value)) {
+        return value.map((item) => expandNaive(schemas, item, parents));
+      }
+      if (typeof value !== 'object' || value === null) return value;
+      const node = value as Record<string, unknown>;
+      if (typeof node.$ref === 'string') {
+        if (parents.includes(node.$ref)) return {};
+        const name = node.$ref.replace('#/components/schemas/', '');
+        return expandNaive(schemas, schemas[name], [...parents, node.$ref]);
+      }
+      return Object.fromEntries(
+        Object.entries(node).map(([key, child]) => [
+          key,
+          key === 'properties'
+            ? Object.fromEntries(
+                Object.entries(child as Schemas).map(([name, property]) => [
+                  name,
+                  expandNaive(schemas, property, parents),
+                ]),
+              )
+            : expandNaive(schemas, child, parents),
+        ]),
+      );
+    };
+
+    const graph = (
+      size: number,
+      targets: (index: number) => number[],
+    ): Schemas =>
+      Object.fromEntries(
+        Array.from({ length: size }, (_, index) => [
+          `S${index}`,
+          {
+            type: 'object',
+            properties: Object.fromEntries(
+              targets(index).map((target, slot) => [
+                `p${slot}`,
+                ref(`S${target}`),
+              ]),
+            ),
+          },
+        ]),
+      );
+
+    it('stores a bounded number of variants per ref', () => {
+      const count = MAX_VARIANTS_PER_REF + 4;
+      const schemas: Schemas = {
+        X: {
+          type: 'object',
+          properties: Object.fromEntries(
+            Array.from({ length: count }, (_, index) => [
+              `a${index}`,
+              ref(`A${index}`),
+            ]),
+          ),
+        },
+        ...Object.fromEntries(
+          Array.from({ length: count }, (_, index) => [
+            `A${index}`,
+            { type: 'object', properties: { x: ref('X') } },
+          ]),
+        ),
+      };
+      const context = createContext(schemas);
+      const shared: DereferenceOptions = {};
+
+      for (let index = 0; index < count; index++) {
+        const name = `A${index}`;
+        expect(dereference(ref(name), context, shared)).toEqual(
+          expandNaive(schemas, ref(name)),
+        );
+      }
+
+      expect(countExpansions(context.spec, shared, refName('X'))).toBe(
+        MAX_VARIANTS_PER_REF,
+      );
+    });
+
+    it('matches plain expansion on a moderate random graph', () => {
+      let seed = 7;
+      const next = () => {
+        seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+        return seed;
+      };
+      const schemas = graph(30, () => [next() % 30, next() % 30]);
+      const shared: DereferenceOptions = {};
+      const context = createContext(schemas);
+
+      for (let index = 0; index < 30; index++) {
+        expect(dereference(ref(`S${index}`), context, shared)).toEqual(
+          expandNaive(schemas, ref(`S${index}`)),
+        );
+      }
+    });
+
+    it('matches plain expansion on a fully connected graph', () => {
+      const size = 8;
+      const schemas = graph(size, (index) =>
+        Array.from({ length: size }, (_, i) => i).filter(
+          (other) => other !== index,
+        ),
+      );
+      const shared: DereferenceOptions = {};
+      const context = createContext(schemas);
+
+      for (const index of [0, 5]) {
+        expect(dereference(ref(`S${index}`), context, shared)).toEqual(
+          expandNaive(schemas, ref(`S${index}`)),
+        );
+      }
     });
   });
 });

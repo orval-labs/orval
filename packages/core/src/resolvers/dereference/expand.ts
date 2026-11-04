@@ -23,20 +23,34 @@ const NO_REFS: ReadonlySet<string> = new Set();
 const leaf = <TValue>(value: TValue): Expansion<TValue> => ({
   value,
   refs: NO_REFS,
-  scopeFree: true,
+  reusable: true,
 });
 
 // A cut or unresolved ref still counts as met: whether it is cut decides the value.
 const emptyFor = (ref: string): Expansion => ({
   value: {},
   refs: new Set([ref]),
-  scopeFree: true,
+  reusable: true,
 });
+
+// Upper bound on the set elements copied while tracking met refs in one call.
+// Tracking costs time proportional to the refs met per schema, so on a densely
+// connected graph it is given up instead of growing faster than the expansion.
+const TRACKING_BUDGET = 30_000;
+
+/** State shared by every schema expanded in one `expandSchema` call. */
+interface Run {
+  /** False once the budget is spent: refs are no longer collected or cached. */
+  tracking: boolean;
+  /** Set elements copied so far. */
+  copied: number;
+}
 
 // Merges the refs of all parts plus `ownRef` without copying more than once.
 const unionRefs = (
   parts: readonly Expansion<unknown>[],
-  ownRef?: string,
+  ownRef: string | undefined,
+  run: Run,
 ): ReadonlySet<string> => {
   let single: ReadonlySet<string> | undefined;
   let merged: Set<string> | undefined;
@@ -46,12 +60,19 @@ const unionRefs = (
       single = refs;
       continue;
     }
-    merged ??= new Set(single);
+    if (!merged) {
+      merged = new Set(single);
+      run.copied += merged.size;
+    }
     for (const part of refs) merged.add(part);
+    run.copied += refs.size;
   }
   if (ownRef === undefined) return merged ?? single ?? NO_REFS;
   // `single` may be shared with a cached expansion, so it is copied first.
-  merged ??= new Set(single);
+  if (!merged) {
+    merged = new Set(single);
+    run.copied += merged.size;
+  }
   merged.add(ownRef);
   return merged;
 };
@@ -93,12 +114,13 @@ interface Job {
 interface Frame {
   context: ContextSpec;
   options: DereferenceOptions;
+  run: Run;
   ownRef: string | undefined;
   result: Record<string, unknown>;
   jobs: Job[];
   next: number;
   parts: Expansion<unknown>[];
-  scopeFree: boolean;
+  reusable: boolean;
   /** Set for a bare `{ $ref }` whose expansion may be cached. */
   cacheable: { ref: string; parents: readonly string[] } | undefined;
 }
@@ -140,8 +162,9 @@ function openFrame(
   schema: Record<string, unknown>,
   context: ContextSpec,
   options: DereferenceOptions,
+  run: Run,
   ownRef: string | undefined,
-  scopeFree: boolean,
+  reusable: boolean,
   cacheable?: Frame['cacheable'],
 ): Frame {
   const result: Record<string, unknown> = {};
@@ -171,31 +194,42 @@ function openFrame(
   return {
     context,
     options,
+    run,
     ownRef,
     result,
     jobs,
     next: 0,
     parts: [],
-    scopeFree,
+    reusable,
     cacheable,
   };
 }
 
 function closeFrame(frame: Frame): Expansion {
-  let scopeFree = frame.scopeFree;
+  const { run } = frame;
+  let reusable = frame.reusable && run.tracking;
   for (const part of frame.parts) {
-    if (!part.scopeFree) scopeFree = false;
+    if (!part.reusable) reusable = false;
+  }
+
+  let refs = NO_REFS;
+  if (reusable) {
+    refs = unionRefs(frame.parts, frame.ownRef, run);
+    if (run.copied > TRACKING_BUDGET) {
+      run.tracking = false;
+      reusable = false;
+    }
   }
 
   // The entries are rebuilt from a JSON document, so the compiler cannot see
   // that the result is still a schema.
   const expansion: Expansion = {
     value: frame.result as OpenApiNonBooleanSchemaObject,
-    refs: unionRefs(frame.parts, frame.ownRef),
-    scopeFree,
+    refs,
+    reusable,
   };
   const { cacheable } = frame;
-  if (!cacheable || !scopeFree) return expansion;
+  if (!cacheable || !reusable) return expansion;
 
   storeExpansion(frame.context.spec, frame.options, cacheable.ref, {
     value: expansion.value,
@@ -250,6 +284,7 @@ function begin(
   schema: unknown,
   context: ContextSpec,
   options: DereferenceOptions,
+  run: Run,
 ): Started {
   // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
   // bodies carry `null` property values, which must pass through untouched.
@@ -268,7 +303,7 @@ function begin(
   }
 
   if (options.dynamicRefs && isDynamicReference(schema)) {
-    return beginDynamicRef(schema, context, options, undefined);
+    return beginDynamicRef(schema, context, options, run, undefined);
   }
 
   // A bare `{ $ref }` reuses a cached expansion when the ancestors cut the
@@ -278,13 +313,13 @@ function begin(
     isBareRef(schema) &&
     canReuseExpansions(context, options);
   const parents = context.parents ?? [];
-  if (bare) {
+  if (bare && run.tracking) {
     const cached = findExpansion(context.spec, options, ref, parents);
     if (cached) {
       return done({
         value: { ...cached.value },
         refs: cached.refs,
-        scopeFree: true,
+        reusable: true,
       });
     }
   }
@@ -298,11 +333,19 @@ function begin(
     childContext = { ...context, parents: [...parents, ref] };
   }
 
-  const cacheable = bare ? { ref, parents } : undefined;
+  const cacheable = bare && run.tracking ? { ref, parents } : undefined;
   if (!options.dynamicRefs) {
     return {
       kind: 'frame',
-      frame: openFrame(resolved, childContext, options, ref, true, cacheable),
+      frame: openFrame(
+        resolved,
+        childContext,
+        options,
+        run,
+        ref,
+        true,
+        cacheable,
+      ),
     };
   }
 
@@ -312,7 +355,7 @@ function begin(
     resolved as OpenApiNonBooleanSchemaObject,
   );
   if (isDynamicReference(resolved)) {
-    return beginDynamicRef(resolved, scopedContext, options, ref);
+    return beginDynamicRef(resolved, scopedContext, options, run, ref);
   }
   // A freshly attached dynamic scope can change what nested refs resolve to.
   return {
@@ -321,6 +364,7 @@ function begin(
       resolved,
       scopedContext,
       options,
+      run,
       ref,
       scopedContext === childContext,
       cacheable,
@@ -332,6 +376,7 @@ function beginDynamicRef(
   schema: object & { $dynamicRef: string },
   context: ContextSpec,
   options: DereferenceOptions,
+  run: Run,
   ownRef: string | undefined,
 ): Started {
   const plan = planDynamicRef(schema, context);
@@ -340,12 +385,12 @@ function beginDynamicRef(
     return done({
       value: {},
       refs: ownRef === undefined ? NO_REFS : new Set([ownRef]),
-      scopeFree: false,
+      reusable: false,
     });
   }
   return {
     kind: 'frame',
-    frame: openFrame(plan.schema, plan.context, options, ownRef, false),
+    frame: openFrame(plan.schema, plan.context, options, run, ownRef, false),
   };
 }
 
@@ -356,7 +401,8 @@ export function expandSchema(
   context: ContextSpec,
   options: DereferenceOptions,
 ): Expansion {
-  const root = begin(schema, context, options);
+  const run: Run = { tracking: true, copied: 0 };
+  const root = begin(schema, context, options, run);
   if (root.kind === 'done') return root.expansion;
 
   const stack: Frame[] = [root.frame];
@@ -365,7 +411,7 @@ export function expandSchema(
     const frame = stack[stack.length - 1] as Frame;
     if (frame.next < frame.jobs.length) {
       const job = frame.jobs[frame.next++];
-      const started = begin(job.schema, frame.context, options);
+      const started = begin(job.schema, frame.context, options, run);
       if (started.kind === 'frame') {
         stack.push(started.frame);
       } else {
