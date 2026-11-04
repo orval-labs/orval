@@ -108,11 +108,12 @@ const getInputShape = (verbOption: GeneratorVerbOptions) => {
   const name = pascal(verbOption.typeName);
   const pathParams = verbOption.params.length > 0 ? `${name}Params` : undefined;
   const queryParams = verbOption.queryParams ? `${name}QueryParams` : undefined;
+  const headerParams = verbOption.headers ? `${name}Header` : undefined;
   const bodyParams = verbOption.body.definition
     ? `${name}Body${verbOption.body.isOptional ? '.optional()' : ''}`
     : undefined;
 
-  return Object.entries({ pathParams, queryParams, bodyParams })
+  return Object.entries({ pathParams, queryParams, headerParams, bodyParams })
     .filter(([, schema]) => schema !== undefined)
     .map(([key, schema]) => `${key}: ${schema}`);
 };
@@ -161,6 +162,10 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
 
       if (verbOption.queryParams) {
         imports.push(`${pascalOperationName}Params`);
+      }
+
+      if (verbOption.headers) {
+        imports.push(verbOption.headers.schema.name);
       }
 
       imports.push(
@@ -238,6 +243,11 @@ export const generateMcp: ClientBuilder = (verbOptions, options) => {
       `  queryParams: ${verbOptions.queryParams.schema.name};`,
     );
   }
+  if (verbOptions.headers) {
+    handlerArgsTypes.push(
+      `  headerParams: ${verbOptions.headers.schema.name};`,
+    );
+  }
   if (verbOptions.body.definition) {
     handlerArgsTypes.push(
       `  bodyParams${verbOptions.body.isOptional ? '?' : ''}: ${verbOptions.body.definition};`,
@@ -262,7 +272,7 @@ ${handlerArgsTypes.join('\n')}
 
     fetchParams.push(pathParamsArgs);
   }
-  // Body and query args must follow the same order as the generated client
+  // Body, query and header args must follow the same order as the generated client
   // function signature, which sorts required params before optional ones (see
   // `getProps`/`sortByPriority`). Emitting a fixed body-then-query order would
   // swap the two arguments whenever the query param is required and the body is
@@ -272,6 +282,8 @@ ${handlerArgsTypes.join('\n')}
       fetchParams.push('args.bodyParams');
     } else if (prop.type === GetterPropType.QUERY_PARAM) {
       fetchParams.push('args.queryParams');
+    } else if (prop.type === GetterPropType.HEADER) {
+      fetchParams.push('args.headerParams');
     }
   }
 

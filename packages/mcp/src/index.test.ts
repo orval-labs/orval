@@ -6,7 +6,12 @@ import {
   createTestContextSpec,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { generateExtraFiles, generateServer, getMcpHeader } from './index';
+import {
+  generateExtraFiles,
+  generateMcp,
+  generateServer,
+  getMcpHeader,
+} from './index';
 
 const spec: CreateTestContextSpecOptions['spec'] = {
   paths: {
@@ -263,5 +268,129 @@ describe('McpServer cacheHints', () => {
 
   it('omits the hints by default', () => {
     expect(generate({})).not.toContain('cacheHints');
+  });
+});
+
+describe('header parameters', () => {
+  const headerContext = createTestContextSpec({
+    spec: {
+      paths: {
+        '/items/{id}': {
+          patch: {
+            parameters: [
+              {
+                name: 'id',
+                in: 'path',
+                required: true,
+                schema: { type: 'string' },
+              },
+              { name: 'If-Match', in: 'header', schema: { type: 'string' } },
+            ],
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { name: { type: 'string' } },
+                  },
+                },
+              },
+            },
+            responses: { '200': { description: 'ok' } },
+          },
+        },
+      },
+    },
+    output: { target: '/project/src/handlers.ts', headers: true },
+  });
+
+  const updateItem = createTestGeneratorVerbOptions({
+    verb: 'patch',
+    operationName: 'updateItem',
+    typeName: 'updateItem',
+    override: generateAllZodSchemas,
+    route: '/items/${id}',
+    pathRoute: '/items/{id}',
+    params: [
+      {
+        name: 'id',
+        definition: 'id: string',
+        implementation: 'id: string',
+        default: undefined,
+        required: true,
+        imports: [],
+      },
+    ],
+    body: {
+      definition: 'UpdateItemBody',
+      implementation: 'updateItemBody',
+      isOptional: true,
+    },
+    headers: {
+      schema: { name: 'UpdateItemHeaders', model: '', imports: [] },
+      deps: [],
+      isOptional: true,
+    },
+    props: [
+      {
+        name: 'id',
+        definition: 'id: string',
+        implementation: 'id: string',
+        default: undefined,
+        required: true,
+        type: GetterPropType.PARAM,
+      },
+      {
+        name: 'updateItemBody',
+        definition: 'updateItemBody?: UpdateItemBody',
+        implementation: 'updateItemBody?: UpdateItemBody',
+        default: undefined,
+        required: false,
+        type: GetterPropType.BODY,
+      },
+      {
+        name: 'headers',
+        definition: 'headers?: UpdateItemHeaders',
+        implementation: 'headers?: UpdateItemHeaders',
+        default: undefined,
+        required: false,
+        type: GetterPropType.HEADER,
+      },
+    ],
+  });
+
+  it('passes the headers to the client before the request options', async () => {
+    const { implementation } = await generateMcp(
+      updateItem,
+      {
+        route: updateItem.route,
+        pathRoute: updateItem.pathRoute,
+        override: headerContext.output.override,
+        context: headerContext,
+        output: headerContext.output.target,
+      },
+      'mcp',
+    );
+
+    expect(implementation).toContain('  headerParams: UpdateItemHeaders;');
+    expect(implementation).toContain(
+      'await updateItem(args.pathParams.id, args.bodyParams, args.headerParams, options);',
+    );
+  });
+
+  it('adds the header schema to the tool input', async () => {
+    const files = await generateExtraFiles(
+      { updateItem },
+      headerContext.output,
+      headerContext,
+    );
+    const zodFile = files.find((file) =>
+      file.path.endsWith('tool-schemas.zod.ts'),
+    );
+
+    expect(zodFile?.content).toContain('export const UpdateItemHeader = ');
+    expect(zodFile?.content).toContain(
+      'export const UpdateItemInput = zod.object({\n  pathParams: UpdateItemParams,\n  headerParams: UpdateItemHeader,\n  bodyParams: UpdateItemBody.optional(),\n});',
+    );
   });
 });
