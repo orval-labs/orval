@@ -6,7 +6,7 @@ import type {
   OpenApiDocument,
   OpenApiSchemaObject,
 } from '../../types';
-import { countExpansions, MAX_VARIANTS_PER_REF } from './cache';
+import { MAX_VARIANTS_PER_REF } from './cache';
 import { dereference } from './dereference';
 import type { DereferenceOptions } from './types';
 
@@ -755,8 +755,6 @@ describe('dereference', () => {
   });
 
   describe('strongly connected graphs', () => {
-    const refName = (name: string) => `#/components/schemas/${name}`;
-
     // Plain recursive expansion, the behavior every optimization must keep.
     const expandNaive = (
       schemas: Schemas,
@@ -807,7 +805,47 @@ describe('dereference', () => {
         ]),
       );
 
-    it('stores a bounded number of variants per ref', () => {
+    // Counts how often each schema is looked up, the unit of expansion work.
+    const countReads = (schemas: Schemas) => {
+      let reads = 0;
+      const counted = new Proxy(schemas, {
+        get: (target, key, receiver): unknown => {
+          if (typeof key === 'string' && key in target) reads++;
+          return Reflect.get(target, key, receiver);
+        },
+      });
+      return {
+        context: createContext(counted),
+        reads: () => reads,
+        reset: () => {
+          reads = 0;
+        },
+      };
+    };
+
+    const layered = (width: number, depth: number): Schemas =>
+      Object.fromEntries(
+        Array.from({ length: width * depth }, (_, index) => {
+          const layer = Math.floor(index / width);
+          return [
+            `N${index}`,
+            {
+              type: 'object',
+              properties:
+                layer === depth - 1
+                  ? { leaf: { type: 'string' } }
+                  : Object.fromEntries(
+                      Array.from({ length: width }, (_, slot) => [
+                        `p${slot}`,
+                        ref(`N${(layer + 1) * width + slot}`),
+                      ]),
+                    ),
+            },
+          ];
+        }),
+      );
+
+    it('keeps results right and reuses them past the variant cap', () => {
       const count = MAX_VARIANTS_PER_REF + 4;
       const schemas: Schemas = {
         X: {
@@ -826,19 +864,77 @@ describe('dereference', () => {
           ]),
         ),
       };
-      const context = createContext(schemas);
+      const counted = countReads(schemas);
       const shared: DereferenceOptions = {};
 
       for (let index = 0; index < count; index++) {
         const name = `A${index}`;
-        expect(dereference(ref(name), context, shared)).toEqual(
+        expect(dereference(ref(name), counted.context, shared)).toEqual(
           expandNaive(schemas, ref(name)),
         );
       }
 
-      expect(countExpansions(context.spec, shared, refName('X'))).toBe(
-        MAX_VARIANTS_PER_REF,
+      counted.reset();
+      for (let index = 0; index < count; index++) {
+        dereference(ref(`A${index}`), counted.context, shared);
+      }
+      expect(counted.reads()).toBe(0);
+    });
+
+    it('matches plain expansion on a small layered graph', () => {
+      const schemas = layered(3, 4);
+      const context = createContext(schemas);
+      expect(dereference(ref('N0'), context, {})).toEqual(
+        expandNaive(schemas, ref('N0')),
       );
+    });
+
+    it('reads each schema of a wide layered graph a bounded number of times', () => {
+      const width = 20;
+      const depth = 8;
+      const counted = countReads(layered(width, depth));
+      const shared: DereferenceOptions = {};
+
+      dereference(ref('N0'), counted.context, shared);
+
+      // Without reuse this is width^depth reads.
+      expect(counted.reads()).toBeLessThanOrEqual(width * depth * 2);
+    });
+
+    it('reads each schema of a random acyclic graph a bounded number of times', () => {
+      const size = 200;
+      let seed = 11;
+      const next = () => {
+        seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+        return seed;
+      };
+      const counted = countReads(
+        graph(size, (index) =>
+          Array.from({ length: Math.min(4, size - index - 1) }, () =>
+            Math.min(size - 1, index + 1 + (next() % 25)),
+          ),
+        ),
+      );
+      const shared: DereferenceOptions = {};
+
+      for (let index = size - 1; index >= 0; index--) {
+        dereference(ref(`S${index}`), counted.context, shared);
+      }
+
+      expect(counted.reads()).toBeLessThanOrEqual(size * 4 * 2);
+    });
+
+    it('reuses results across calls on a wide layered graph', () => {
+      const width = 40;
+      const depth = 6;
+      const counted = countReads(layered(width, depth));
+      const shared: DereferenceOptions = {};
+
+      dereference(ref('N0'), counted.context, shared);
+      counted.reset();
+      dereference(ref('N1'), counted.context, shared);
+
+      expect(counted.reads()).toBeLessThanOrEqual(width * depth);
     });
 
     it('matches plain expansion on a moderate random graph', () => {

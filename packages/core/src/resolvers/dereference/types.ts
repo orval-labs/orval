@@ -31,12 +31,19 @@ export interface DereferenceOptions {
 }
 
 /**
+ * A set of refs as a bitset over the ids the expansion cache hands out, so a
+ * union costs a few words and a cached expansion stays small on large graphs.
+ */
+export type RefSet = Uint32Array;
+
+/**
  * An expanded value plus every `$ref` met while expanding it; `reusable` is
  * false when a dynamic scope took part or `refs` is incomplete, so the value
- * must not be reused.
+ * must not be reused. `refs` is only filled in for schemas an enclosing
+ * cacheable `$ref` can store.
  */
 export interface Expansion<TValue = OpenApiNonBooleanSchemaObject> {
   value: TValue;
-  refs: ReadonlySet<string>;
+  refs: RefSet;
   reusable: boolean;
 }
