@@ -14,6 +14,7 @@ const dereferenceOptions: DereferenceOptions = {
   keepBooleanProperties: true,
   keepSiblingsOfBooleanTarget: true,
   keepProtoKey: true,
+  ignoreEmptyRef: true,
   isVerbatimKey: (key) => key.startsWith('x-'),
   onCircularRef: (ref) =>
     warnOnce(`Circular $ref "${ref}" is validated as unknown.`),

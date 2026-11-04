@@ -254,7 +254,10 @@ function begin(
     return done(leaf(toObjectSchema(schema as OpenApiSchemaObject)));
   }
 
-  const ref = isString(schema.$ref) ? schema.$ref : undefined;
+  const ref =
+    isString(schema.$ref) && !(options.ignoreEmptyRef && schema.$ref === '')
+      ? schema.$ref
+      : undefined;
   if (ref && context.parents?.includes(ref)) {
     options.onCircularRef?.(ref);
     return done(emptyFor(ref));

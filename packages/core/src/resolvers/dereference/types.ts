@@ -14,6 +14,8 @@ export interface DereferenceOptions {
   keepSiblingsOfBooleanTarget?: boolean;
   /** Define a `__proto__` key as an own property instead of dropping it. */
   keepProtoKey?: boolean;
+  /** Pass a node with an empty `$ref` through as an inline schema. */
+  ignoreEmptyRef?: boolean;
   /** Keys whose values are copied without being dereferenced. */
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */

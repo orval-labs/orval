@@ -412,6 +412,16 @@ describe('dereference', () => {
       ).toEqual({ not: {}, description: 'd' });
     });
 
+    it('ignoreEmptyRef passes a node with an empty $ref through', () => {
+      const context = createContext({});
+      const schema = { $ref: '', type: 'string' };
+
+      expect(dereference(asSchema(schema), context)).toEqual({});
+      expect(
+        dereference(asSchema(schema), context, { ignoreEmptyRef: true }),
+      ).toEqual({ $ref: '', type: 'string' });
+    });
+
     it('isVerbatimKey copies matching keys untouched', () => {
       const context = createContext({ Other: { type: 'string' } });
       const schema = {
