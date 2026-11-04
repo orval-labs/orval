@@ -1064,12 +1064,17 @@ export const generateZodValidationSchemaDefinition = (
           isObject(siblingSchema.default) ||
           Array.isArray(siblingSchema.default)
         ) {
+          // Keep literal values and keys out of the subsequent reference-sentinel rewrite.
+          const inlineDefault = defaultLiteral.replaceAll(
+            '__REF_',
+            '\\u005f_REF_',
+          );
           // Spreading object defaults preserves contextual types without excess-property checks.
           functions.push([
             'default',
             Array.isArray(siblingSchema.default)
-              ? defaultLiteral
-              : `{ ...${defaultLiteral} }`,
+              ? inlineDefault
+              : `{ ...${inlineDefault} }`,
           ]);
         } else {
           consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);

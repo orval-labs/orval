@@ -36,7 +36,13 @@ export type ParametersOutput = zod.output<typeof Parameters>;
 export const Test = zod.object({
   range: ParameterRange.default([1, 300]),
   parameters: Parameters.default({
-    ...{ method: 'option_a', range: [2, 400], extra: 42 },
+    ...{
+      method: 'option_a',
+      range: [2, 400],
+      extra: 42,
+      marker: '\u005f_REF_Method__',
+      __REF_Method__: 'literal-key',
+    },
   }),
   attr: Demo.default({
     height: 100 as const,

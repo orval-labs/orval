@@ -42,6 +42,8 @@ components:
             method: option_a
             range: [2, 400]
             extra: 42
+            marker: '__REF_Method__'
+            __REF_Method__: literal-key
         attr:
           allOf:
             - $ref: '#/components/schemas/Demo'
