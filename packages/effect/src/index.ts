@@ -1079,12 +1079,11 @@ export const parseEffectValidationSchemaDefinition = (
           ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
           : `S.optionalWith(${out}, { default: () => ${defaultValue as string} })`;
       } else if (isOptional || isNullish) {
-        // `{ exact: true }` narrows a plain optional property to `{ x?: T }` for
+        // `{ exact: true }` narrows an optional property to `{ x?: T }` for
         // `exactOptionalPropertyTypes` consumers instead of `{ x?: T | undefined }`.
-        // Only `.optional()` is narrowed (matching the zod generator): a nullish
-        // field intentionally admits `undefined`, which is legal under the flag, so
-        // it keeps `S.optional`.
-        if (exactOptional && isOptional) {
+        // A nullish property is narrowed to `{ x?: T | null }`, so the
+        // schema's type stays assignable to the generated model.
+        if (exactOptional) {
           out = isEffectV4
             ? `S.optionalKey(${out})`
             : `S.optionalWith(${out}, { exact: true })`;
