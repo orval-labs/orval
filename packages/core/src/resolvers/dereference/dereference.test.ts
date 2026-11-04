@@ -496,6 +496,141 @@ describe('dereference', () => {
 
         expect(second).toEqual(first);
       });
+
+      describe('expansion reuse', () => {
+        const options: DereferenceOptions = { dynamicRefs: true };
+
+        // Two sibling refs to the same component: a reused expansion would
+        // share its nested objects, a fresh one would not.
+        const expandTwice = (schemas: Schemas, name: string) => {
+          const result = dereference(
+            {
+              type: 'object',
+              properties: { first: ref(name), second: ref(name) },
+            },
+            createContext(schemas),
+            options,
+          );
+          return [result.properties?.first, result.properties?.second] as [
+            { properties: object },
+            { properties: object },
+          ];
+        };
+
+        it('does not reuse a component that declares an anchor', () => {
+          const [first, second] = expandTwice(
+            {
+              Anchored: {
+                $dynamicAnchor: 'anchored',
+                type: 'object',
+                properties: { id: { type: 'string' } },
+              },
+            },
+            'Anchored',
+          );
+
+          expect(second).toEqual(first);
+          expect(second.properties).not.toBe(first.properties);
+        });
+
+        it('does not reuse a component with a $dynamicRef', () => {
+          const [first, second] = expandTwice(
+            {
+              Anchor: { $dynamicAnchor: 'item', type: 'string' },
+              Holder: {
+                type: 'object',
+                properties: { value: { $dynamicRef: '#item' } },
+              },
+            },
+            'Holder',
+          );
+
+          expect(first.properties).toEqual({
+            value: { $dynamicAnchor: 'item', type: 'string' },
+          });
+          expect(second.properties).not.toBe(first.properties);
+        });
+
+        it('does not reuse a component with an unresolved $dynamicRef', () => {
+          const [first, second] = expandTwice(
+            {
+              Holder: {
+                type: 'object',
+                properties: { value: { $dynamicRef: '#missing' } },
+              },
+            },
+            'Holder',
+          );
+
+          expect(first.properties).toEqual({ value: {} });
+          expect(second.properties).not.toBe(first.properties);
+        });
+
+        it('does not reuse a scope-free component inside a dynamic scope', () => {
+          const result = dereference(
+            {
+              type: 'object',
+              properties: { outside: ref('Plain'), inside: ref('Scoped') },
+            },
+            createContext({
+              Plain: { type: 'object', properties: { n: { type: 'string' } } },
+              Scoped: {
+                $dynamicAnchor: 'scoped',
+                type: 'object',
+                properties: { plain: ref('Plain') },
+              },
+            }),
+            options,
+          );
+          const inside = result.properties?.inside as {
+            properties: { plain: { properties: object } };
+          };
+          const outside = result.properties?.outside as {
+            properties: object;
+          };
+
+          expect(inside.properties.plain).toEqual(outside);
+          expect(inside.properties.plain.properties).not.toBe(
+            outside.properties,
+          );
+        });
+
+        it('resolves a shared component per binding of a generic template', () => {
+          const bind = (type: string) => ({
+            $defs: { T: { $dynamicAnchor: 'T', type } },
+            type: 'object',
+            properties: { inner: ref('Inner') },
+          });
+          const result = dereference(
+            asSchema({
+              type: 'object',
+              properties: {
+                plain: ref('Inner'),
+                str: bind('string'),
+                num: bind('number'),
+                again: ref('Inner'),
+              },
+            }),
+            createContext({
+              Inner: {
+                type: 'object',
+                properties: { value: { $dynamicRef: '#T' } },
+              },
+            }),
+            options,
+          );
+          const valueOf = (name: string) => {
+            const holder = result.properties?.[name] as {
+              properties: { inner: { properties: { value: unknown } } };
+            };
+            return holder.properties.inner.properties.value;
+          };
+
+          expect(valueOf('str')).toMatchObject({ type: 'string' });
+          expect(valueOf('num')).toMatchObject({ type: 'number' });
+          expect(result.properties?.again).toEqual(result.properties?.plain);
+        });
+      });
     });
   });
 
