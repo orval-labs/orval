@@ -40,18 +40,32 @@ const emptyFor = (ref: string, run: Run, wantsRefs: boolean): Expansion => ({
   reusable: true,
 });
 
-// Tracking met refs costs words copied per schema. It is given up once that
-// exceeds this many words per schema visited (plus a fixed allowance), so it
-// can never outgrow the expansion itself. Lookups of cached results go on.
-const WORDS_PER_VISIT = 16;
-const BASE_WORD_ALLOWANCE = 100_000;
+/**
+ * Tracking met refs costs bitset words read and written. It is given up once
+ * that exceeds `base` plus `perVisit` per schema visited plus `perWord` per
+ * schema visited and bitset word of the document, so it stays proportional to
+ * the expansion itself however many refs the document has. Lookups of cached
+ * results go on.
+ */
+export interface TrackingBudget {
+  base: number;
+  perVisit: number;
+  perWord: number;
+}
+
+const DEFAULT_BUDGET: TrackingBudget = {
+  base: 100_000,
+  perVisit: 16,
+  perWord: 1,
+};
 
 /** State shared by every schema expanded in one `expandSchema` call. */
 interface Run {
   cache: ExpansionCache;
   /** False once the budget is spent: refs are no longer collected or stored. */
   tracking: boolean;
-  /** Bitset words copied so far. */
+  budget: TrackingBudget;
+  /** Bitset words read and written so far. */
   copied: number;
   /** Schemas begun so far, the measure of work the budget is relative to. */
   visits: number;
@@ -198,15 +212,10 @@ function closeFrame(frame: Frame): Expansion {
 
   let refs = NO_REFS;
   if (reusable && frame.wantsRefs) {
-    refs = unionRefs(
-      run.cache,
-      frame.parts.map((part) => part.refs),
-      frame.ownRef,
-      (words) => {
-        run.copied += words;
-      },
-    );
-    if (run.copied > WORDS_PER_VISIT * run.visits + BASE_WORD_ALLOWANCE) {
+    refs = unionRefs(run.cache, frame.parts, frame.ownRef, run);
+    const { base, perVisit, perWord } = run.budget;
+    const width = (run.cache.ids.size >>> 5) + 1;
+    if (run.copied > base + run.visits * (perVisit + perWord * width)) {
       run.tracking = false;
       reusable = false;
     }
@@ -281,6 +290,8 @@ function begin(
   wantsRefs: boolean,
 ): Started {
   run.visits++;
+  // Once tracking stops, nothing reads the met refs any more.
+  wantsRefs &&= run.tracking;
   // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
   // bodies carry `null` property values, which must pass through untouched.
   if (!isObject(schema)) {
@@ -417,12 +428,14 @@ export function expandSchema(
   schema: unknown,
   context: ContextSpec,
   options: DereferenceOptions,
+  budget: TrackingBudget = DEFAULT_BUDGET,
 ): Expansion {
   const run: Run = {
     cache: isObject(context.spec)
       ? getExpansionCache(context.spec, options)
       : createExpansionCache(),
     tracking: true,
+    budget,
     copied: 0,
     visits: 0,
   };

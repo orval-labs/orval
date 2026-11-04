@@ -8,6 +8,7 @@ import type {
 } from '../../types';
 import { MAX_VARIANTS_PER_REF } from './cache';
 import { dereference } from './dereference';
+import { expandSchema } from './expand';
 import type { DereferenceOptions } from './types';
 
 type Schemas = Record<string, unknown>;
@@ -935,6 +936,127 @@ describe('dereference', () => {
       dereference(ref('N1'), counted.context, shared);
 
       expect(counted.reads()).toBeLessThanOrEqual(width * depth);
+    });
+
+    it('stops storing a ref once it has too many variants', () => {
+      const count = MAX_VARIANTS_PER_REF + 4;
+      const schemas: Schemas = {
+        X: {
+          type: 'object',
+          properties: Object.fromEntries(
+            Array.from({ length: count }, (_, index) => [
+              `a${index}`,
+              ref(`A${index}`),
+            ]),
+          ),
+        },
+        ...Object.fromEntries(
+          Array.from({ length: count }, (_, index) => [
+            `A${index}`,
+            { type: 'object', properties: { x: ref('X') } },
+          ]),
+        ),
+      };
+      const counted = countReads(schemas);
+
+      // Each root stores X under a different ancestor, up to the cap.
+      const full: DereferenceOptions = {};
+      for (let index = 0; index < count; index++) {
+        dereference(ref(`A${index}`), counted.context, full);
+      }
+      counted.reset();
+      expect(dereference(ref('X'), counted.context, full)).toEqual(
+        expandNaive(schemas, ref('X')),
+      );
+      counted.reset();
+      dereference(ref('X'), counted.context, full);
+      expect(counted.reads()).toBeGreaterThan(0);
+
+      // With room left, the second lookup is served from the cache.
+      const roomy: DereferenceOptions = {};
+      dereference(ref('X'), counted.context, roomy);
+      counted.reset();
+      dereference(ref('X'), counted.context, roomy);
+      expect(counted.reads()).toBe(0);
+    });
+
+    it('reads a chain of inline unions of refs a bounded number of times', () => {
+      const size = 60;
+      const schemas: Schemas = {
+        Leaf: { type: 'string' },
+        ...Object.fromEntries(
+          Array.from({ length: size }, (_, index) => [
+            `U${index}`,
+            {
+              type: 'object',
+              properties: {
+                list: {
+                  type: 'array',
+                  items: {
+                    oneOf: [
+                      ref(index === size - 1 ? 'Leaf' : `U${index + 1}`),
+                      ref('Leaf'),
+                    ],
+                  },
+                },
+              },
+            },
+          ]),
+        ),
+      };
+      const counted = countReads(schemas);
+      const shared: DereferenceOptions = {};
+
+      for (let index = size - 1; index >= 0; index--) {
+        dereference(ref(`U${index}`), counted.context, shared);
+      }
+
+      expect(counted.reads()).toBeLessThanOrEqual(size * 4);
+    });
+
+    it('reads a large acyclic document a bounded number of times', () => {
+      const size = 3000;
+      let seed = 5;
+      const next = () => {
+        seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+        return seed;
+      };
+      const counted = countReads(
+        graph(size, (index) =>
+          Array.from({ length: Math.min(3, size - index - 1) }, () =>
+            Math.min(size - 1, index + 1 + (next() % 40)),
+          ),
+        ),
+      );
+
+      dereference(ref('S0'), counted.context, {});
+
+      // Without reuse this grows exponentially with the depth of the graph.
+      expect(counted.reads()).toBeLessThanOrEqual(size * 2);
+    });
+
+    it('matches plain expansion once the tracking budget is spent', () => {
+      let seed = 3;
+      const next = () => {
+        seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+        return seed;
+      };
+      const schemas = graph(25, () => [next() % 25, next() % 25]);
+      const spent = { base: 0, perVisit: 0, perWord: 0 };
+      const options: DereferenceOptions = {};
+      const context = createContext(schemas);
+
+      for (let index = 0; index < 25; index++) {
+        expect(
+          expandSchema(ref(`S${index}`), context, options, spent).value,
+        ).toEqual(expandNaive(schemas, ref(`S${index}`)));
+      }
+      // Entries stored before the budget ran out stay valid for later calls.
+      for (let index = 0; index < 25; index++) {
+        expect(dereference(ref(`S${index}`), context, options)).toEqual(
+          expandNaive(schemas, ref(`S${index}`)),
+        );
+      }
     });
 
     it('matches plain expansion on a moderate random graph', () => {

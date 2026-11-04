@@ -11,8 +11,7 @@ import type { DereferenceOptions, RefSet } from './types';
 export interface CachedExpansion {
   value: OpenApiNonBooleanSchemaObject;
   refs: RefSet;
-  cut: readonly number[];
-  cutSet: RefSet;
+  cut: ReadonlySet<number>;
 }
 
 // Variants of one ref differ by which of its refs the ancestors cut, so a
@@ -88,33 +87,39 @@ export const singleRef = (cache: ExpansionCache, ref: string): RefSet => {
 
 /**
  * The union of all parts plus `ownRef`. Returns a part itself when nothing is
- * added to it. `cost` receives the number of words written.
+ * added to it. `work.copied` grows by the words read and written.
  */
 export const unionRefs = (
   cache: ExpansionCache,
-  parts: readonly RefSet[],
+  parts: readonly { refs: RefSet }[],
   ownRef: string | undefined,
-  cost: (words: number) => void,
+  work: { copied: number },
 ): RefSet => {
-  const ownId = ownRef === undefined ? -1 : internRef(cache, ownRef);
+  const ownId = ownRef === undefined ? undefined : internRef(cache, ownRef);
   let widest: RefSet = NO_REFS;
   let nonEmpty = 0;
-  for (const part of parts) {
-    if (part.length === 0) continue;
+  let total = 0;
+  for (const { refs } of parts) {
+    if (refs.length === 0) continue;
     nonEmpty++;
-    if (part.length > widest.length) widest = part;
+    total += refs.length;
+    if (refs.length > widest.length) widest = refs;
   }
   if (nonEmpty === 0)
     return ownRef === undefined ? NO_REFS : singleRef(cache, ownRef);
-  if (nonEmpty === 1 && (ownId === -1 || hasId(widest, ownId))) return widest;
+  if (nonEmpty === 1 && (ownId === undefined || hasId(widest, ownId)))
+    return widest;
 
-  const length = Math.max(widest.length, (ownId >>> 5) + 1);
+  const length =
+    ownId === undefined
+      ? widest.length
+      : Math.max(widest.length, (ownId >>> 5) + 1);
   const merged = new Uint32Array(length);
-  for (const part of parts) {
-    for (let word = 0; word < part.length; word++) merged[word] |= part[word];
+  for (const { refs } of parts) {
+    for (let word = 0; word < refs.length; word++) merged[word] |= refs[word];
   }
-  if (ownId !== -1) merged[ownId >>> 5] |= 1 << (ownId & 31);
-  cost(length * nonEmpty);
+  if (ownId !== undefined) merged[ownId >>> 5] |= 1 << (ownId & 31);
+  work.copied += length + total;
   return merged;
 };
 
@@ -131,14 +136,6 @@ const knownIds = (
   return found;
 };
 
-const toSet = (ids: readonly number[]): RefSet => {
-  const set = new Uint32Array(
-    ids.length === 0 ? 0 : (Math.max(...ids) >>> 5) + 1,
-  );
-  for (const id of ids) set[id >>> 5] |= 1 << (id & 31);
-  return set;
-};
-
 /** A cached expansion of `ref` whose cuts match what `parents` would cut. */
 export const findExpansion = (
   cache: ExpansionCache,
@@ -148,16 +145,19 @@ export const findExpansion = (
   const entries = cache.entries.get(ref);
   if (!entries) return undefined;
   const parentIds = knownIds(cache, parents);
-  let parentSet: RefSet | undefined;
+  let parentSet: ReadonlySet<number> | undefined;
   return entries.find((entry) => {
     // Every ancestor the expansion met must have been cut back then...
     for (const id of parentIds) {
-      if (hasId(entry.refs, id) && !hasId(entry.cutSet, id)) return false;
+      if (hasId(entry.refs, id) && !entry.cut.has(id)) return false;
     }
     // ...and every ancestor cut back then must still be one.
-    parentSet ??= toSet(parentIds);
-    const present = parentSet;
-    return entry.cut.every((id) => hasId(present, id));
+    if (entry.cut.size === 0) return true;
+    parentSet ??= new Set(parentIds);
+    for (const id of entry.cut) {
+      if (!parentSet.has(id)) return false;
+    }
+    return true;
   });
 };
 
@@ -170,10 +170,8 @@ export const storeExpansion = (
 ): void => {
   const entries = cache.entries.get(ref);
   if (entries && entries.length >= MAX_VARIANTS_PER_REF) return;
-  const cut = [
-    ...new Set(knownIds(cache, parents).filter((id) => hasId(refs, id))),
-  ];
-  const entry: CachedExpansion = { value, refs, cut, cutSet: toSet(cut) };
+  const cut = new Set(knownIds(cache, parents).filter((id) => hasId(refs, id)));
+  const entry: CachedExpansion = { value, refs, cut };
   if (entries) entries.push(entry);
   else cache.entries.set(ref, [entry]);
 };
