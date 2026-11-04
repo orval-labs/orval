@@ -90,8 +90,15 @@ interface Frame {
   parts: Expansion<unknown>[];
   scopeFree: boolean;
   /** Set for a bare `{ $ref }` whose expansion may be cached. */
-  cacheable?: { ref: string; parents: readonly string[] };
+  cacheable: { ref: string; parents: readonly string[] } | undefined;
 }
+
+/** The outcome of starting a schema: finished already, or a frame still to run. */
+type Started =
+  | { kind: 'done'; expansion: Expansion }
+  | { kind: 'frame'; frame: Frame };
+
+const done = (expansion: Expansion): Started => ({ kind: 'done', expansion });
 
 // Splits a value into its final shape plus jobs for the nested schemas.
 function planValue(
@@ -124,6 +131,7 @@ function openFrame(
   options: DereferenceOptions,
   ownRef: string | undefined,
   scopeFree: boolean,
+  cacheable?: Frame['cacheable'],
 ): Frame {
   const result: Record<string, unknown> = {};
   const jobs: Job[] = [];
@@ -158,6 +166,7 @@ function openFrame(
     next: 0,
     parts: [],
     scopeFree,
+    cacheable,
   };
 }
 
@@ -223,18 +232,18 @@ function begin(
   schema: unknown,
   context: ContextSpec,
   options: DereferenceOptions,
-): Expansion | Frame {
+): Started {
   // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
   // bodies carry `null` property values, which must pass through untouched.
   if (!isObject(schema)) {
     // Bridge: boolean and null schemas arrive here from untyped JSON.
-    return leaf(toObjectSchema(schema as OpenApiSchemaObject));
+    return done(leaf(toObjectSchema(schema as OpenApiSchemaObject)));
   }
 
   const ref = isString(schema.$ref) ? schema.$ref : undefined;
   if (ref && context.parents?.includes(ref)) {
     options.onCircularRef?.(ref);
-    return emptyFor(ref);
+    return done(emptyFor(ref));
   }
 
   if (options.dynamicRefs && isDynamicReference(schema)) {
@@ -251,7 +260,11 @@ function begin(
   if (bare) {
     const cached = findExpansion(context.spec, options, ref, parents);
     if (cached) {
-      return { value: { ...cached.value }, refs: cached.refs, scopeFree: true };
+      return done({
+        value: { ...cached.value },
+        refs: cached.refs,
+        scopeFree: true,
+      });
     }
   }
 
@@ -259,34 +272,39 @@ function begin(
   let childContext = context;
   if (ref !== undefined) {
     const merged = mergeWithTarget(schema, ref, context, options);
-    if (!merged) return emptyFor(ref);
+    if (!merged) return done(emptyFor(ref));
     resolved = merged;
     childContext = { ...context, parents: [...parents, ref] };
   }
 
-  let frame: Frame;
-  if (options.dynamicRefs) {
-    const scopedContext = buildScopedContext(
-      childContext,
-      ref,
-      resolved as OpenApiNonBooleanSchemaObject,
-    );
-    if (isDynamicReference(resolved)) {
-      return beginDynamicRef(resolved, scopedContext, options, ref);
-    }
-    // A freshly attached dynamic scope can change what nested refs resolve to.
-    frame = openFrame(
+  const cacheable = bare ? { ref, parents } : undefined;
+  if (!options.dynamicRefs) {
+    return {
+      kind: 'frame',
+      frame: openFrame(resolved, childContext, options, ref, true, cacheable),
+    };
+  }
+
+  const scopedContext = buildScopedContext(
+    childContext,
+    ref,
+    resolved as OpenApiNonBooleanSchemaObject,
+  );
+  if (isDynamicReference(resolved)) {
+    return beginDynamicRef(resolved, scopedContext, options, ref);
+  }
+  // A freshly attached dynamic scope can change what nested refs resolve to.
+  return {
+    kind: 'frame',
+    frame: openFrame(
       resolved,
       scopedContext,
       options,
       ref,
       scopedContext === childContext,
-    );
-  } else {
-    frame = openFrame(resolved, childContext, options, ref, true);
-  }
-  if (bare) frame.cacheable = { ref, parents };
-  return frame;
+      cacheable,
+    ),
+  };
 }
 
 function beginDynamicRef(
@@ -294,17 +312,20 @@ function beginDynamicRef(
   context: ContextSpec,
   options: DereferenceOptions,
   ownRef: string | undefined,
-): Expansion | Frame {
+): Started {
   const plan = planDynamicRef(schema, context);
   // Dynamic resolution depends on the scope, so it is never reused.
   if (plan.kind === 'empty') {
-    return {
+    return done({
       value: {},
       refs: ownRef === undefined ? NO_REFS : new Set([ownRef]),
       scopeFree: false,
-    };
+    });
   }
-  return openFrame(plan.schema, plan.context, options, ownRef, false);
+  return {
+    kind: 'frame',
+    frame: openFrame(plan.schema, plan.context, options, ownRef, false),
+  };
 }
 
 // Runs on an explicit stack, so the nesting depth of a document is not
@@ -315,30 +336,30 @@ export function expandSchema(
   options: DereferenceOptions,
 ): Expansion {
   const root = begin(schema, context, options);
-  if (!('jobs' in root)) return root;
+  if (root.kind === 'done') return root.expansion;
 
-  const stack: Frame[] = [root];
+  const stack: Frame[] = [root.frame];
   for (;;) {
     // The stack is never empty inside the loop: the root returns directly.
     const frame = stack[stack.length - 1] as Frame;
     if (frame.next < frame.jobs.length) {
       const job = frame.jobs[frame.next++];
       const started = begin(job.schema, frame.context, options);
-      if ('jobs' in started) {
-        stack.push(started);
+      if (started.kind === 'frame') {
+        stack.push(started.frame);
       } else {
-        frame.parts.push(started);
-        setOwn(job.target, job.key, started.value);
+        frame.parts.push(started.expansion);
+        setOwn(job.target, job.key, started.expansion.value);
       }
       continue;
     }
 
-    const done = closeFrame(frame);
+    const finished = closeFrame(frame);
     stack.pop();
     const parent = stack.at(-1);
-    if (!parent) return done;
+    if (!parent) return finished;
     const job = parent.jobs[parent.next - 1];
-    parent.parts.push(done);
-    setOwn(job.target, job.key, done.value);
+    parent.parts.push(finished);
+    setOwn(job.target, job.key, finished.value);
   }
 }
