@@ -24,6 +24,8 @@ const dereferenceOptions: DereferenceOptions = {
 /**
  * Inlines every `$ref`. A circular `$ref` becomes an empty schema, which is
  * validated as `unknown`.
+ *
+ * The result may share nested objects between calls, so treat it as read-only.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,

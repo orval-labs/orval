@@ -1386,6 +1386,11 @@ const dereferenceOptions: DereferenceOptions = {
   onResolveError: (message) => logger.verbose(message),
 };
 
+/**
+ * Inlines every `$ref`. A circular `$ref` becomes an empty schema.
+ *
+ * The result may share nested objects between calls, so treat it as read-only.
+ */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,

@@ -3649,6 +3649,8 @@ const tryResolveRefSchema = ($ref: string, context: ContextSpec) =>
  *     that declares `$dynamicAnchor` with the same name.
  *  3. If resolved to a concrete schema, inline it (same as `$ref`).
  *  4. If unresolved, external, or a generic parameter → return `{}`.
+ *
+ * The result may share nested objects between calls, so treat it as read-only.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
