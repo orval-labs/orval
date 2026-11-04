@@ -222,7 +222,10 @@ const isBareRef = (schema: Record<string, unknown>): boolean =>
 const canReuseExpansions = (
   context: ContextSpec,
   options: DereferenceOptions,
-): boolean => !options.dynamicRefs || hasEmptyDynamicScope(context);
+): boolean =>
+  // The cache is keyed by the document, so a context without one skips it.
+  isObject(context.spec) &&
+  (!options.dynamicRefs || hasEmptyDynamicScope(context));
 
 /**
  * Expands a schema that needs no nested work (a leaf, a cut or cached ref, an

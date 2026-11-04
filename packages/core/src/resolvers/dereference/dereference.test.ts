@@ -679,4 +679,11 @@ describe('dereference', () => {
 
     expect(dereference({ $ref: '' }, context)).toEqual({});
   });
+
+  it('expands a bare ref when the context has no document', () => {
+    const context = createContext({ Pet: { type: 'string' } });
+    const detached = { ...context, spec: undefined } as unknown as ContextSpec;
+
+    expect(dereference(ref('Pet'), detached)).toEqual({});
+  });
 });
