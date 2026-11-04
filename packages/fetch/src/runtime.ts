@@ -58,7 +58,7 @@ export type HttpMethod =
 
 export type CallOptions = RequestInit & { fetch?: typeof globalThis.fetch };
 
-export interface ExecuteArgs {
+export interface ExecuteArgs<Options extends object = CallOptions> {
   url: string;
   method: HttpMethod;
   body?: unknown;
@@ -67,7 +67,7 @@ export interface ExecuteArgs {
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   schema?: unknown;
-  options?: CallOptions;
+  options?: Options & CallOptions;
 }
 
 export interface ClientConfig {
@@ -279,7 +279,7 @@ const decodeResponseBody = async (
   return body ? JSON.parse(body) : {};
 };
 
-export const prepareRequest = (args: ExecuteArgs) => {
+export const prepareRequest = <Options extends object = CallOptions>(args: ExecuteArgs<Options>) => {
   const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
   const init: RequestInit = {
     ...options,
@@ -289,7 +289,7 @@ export const prepareRequest = (args: ExecuteArgs) => {
         ? { 'Content-Type': args.contentType }
         : {}),
       ...getHeaders(args.headers),
-      ...getHeaders(options.headers),
+      ...getHeaders(args.options?.headers),
     },
     body: encodeRequestBody(args),
   };
@@ -323,33 +323,45 @@ export const execute = async <R>(
 };
 `;
 
+/**
+ * Builds the global-mutator adapter. Inferred mutators are specialized by each
+ * endpoint, so this module preserves their constraints and actual return types.
+ */
 export const clientConfigTemplate = ({
   runtimeImportPath,
   mutatorImport,
   mutatorName,
   inferred = false,
   hasSecondArg = true,
+  mutatorAlias = `${mutatorName}Fetcher`,
 }: {
   runtimeImportPath: string;
   mutatorImport: string;
   mutatorName: string;
   inferred?: boolean;
   hasSecondArg?: boolean;
+  mutatorAlias?: string;
 }) => {
   const imports = `import * as runtime from '${runtimeImportPath}';
 import type { ExecuteArgs } from '${runtimeImportPath}';
 ${mutatorImport}
 `;
   if (inferred) {
-    return `${imports}export type CallOptions = ${hasSecondArg ? `Parameters<typeof ${mutatorName}>[1]` : 'RequestInit'};
+    return `${imports}export { ${mutatorName} as ${mutatorAlias} };
 
-export const execute = <R>(args: ExecuteArgs) => {
+export type CallOptions = ${hasSecondArg ? `Parameters<typeof ${mutatorName}>[1]` : 'RequestInit'};
+${hasSecondArg ? '\ntype MutatorOptions = RequestInit & Partial<NonNullable<CallOptions>>;\n' : ''}
+export const execute = <Result>(
+  args: ExecuteArgs<NonNullable<CallOptions>>,
+  fetcher: (url: string${hasSecondArg ? ', options: MutatorOptions' : ''}) => Result,
+) => {
   ${
     hasSecondArg
       ? `const { init } = runtime.prepareRequest(args);
-  const options = args.schema === undefined ? init : { ...init, schema: args.schema as never };
-  return ${mutatorName}<R>(args.url, options);`
-      : `return ${mutatorName}<R>(args.url);`
+  const options = { ...args.options, ...init };
+  const mutatorOptions = args.schema === undefined ? options : { ...options, schema: args.schema as never };
+  return fetcher(args.url, mutatorOptions);`
+      : 'return fetcher(args.url);'
   }
 };
 `;

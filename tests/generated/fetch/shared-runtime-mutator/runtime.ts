@@ -58,7 +58,7 @@ export type HttpMethod =
 
 export type CallOptions = RequestInit & { fetch?: typeof globalThis.fetch };
 
-export interface ExecuteArgs {
+export interface ExecuteArgs<Options extends object = CallOptions> {
   url: string;
   method: HttpMethod;
   body?: unknown;
@@ -67,7 +67,7 @@ export interface ExecuteArgs {
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   schema?: unknown;
-  options?: CallOptions;
+  options?: Options & CallOptions;
 }
 
 export interface ClientConfig {
@@ -300,7 +300,9 @@ const decodeResponseBody = async (
   return body ? JSON.parse(body) : {};
 };
 
-export const prepareRequest = (args: ExecuteArgs) => {
+export const prepareRequest = <Options extends object = CallOptions>(
+  args: ExecuteArgs<Options>,
+) => {
   const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
   const init: RequestInit = {
     ...options,
@@ -310,7 +312,7 @@ export const prepareRequest = (args: ExecuteArgs) => {
         ? { 'Content-Type': args.contentType }
         : {}),
       ...getHeaders(args.headers),
-      ...getHeaders(options.headers),
+      ...getHeaders(args.options?.headers),
     },
     body: encodeRequestBody(args),
   };

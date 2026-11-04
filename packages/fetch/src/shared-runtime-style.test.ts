@@ -10,6 +10,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import {
+  generateMutatorImports,
   GetterPropType,
   OutputClient,
   PropertySortOrder,
@@ -191,10 +192,12 @@ describe('generateFetchExtraFiles', () => {
     style = 'shared',
     mutator,
     hook = false,
+    operationInferred,
   }: {
     style?: 'inline' | 'shared';
     mutator?: { name: string; default: boolean };
     hook?: boolean;
+    operationInferred?: boolean[];
   } = {}) => {
     const context = makeContext();
     context.output.target = '/proj/src/api/endpoints.ts';
@@ -220,7 +223,16 @@ describe('generateFetchExtraFiles', () => {
       isHook: hook,
     };
     return generateFetchExtraFiles(
-      { listPets: makeVerbOptions({ mutator: verbMutator }) },
+      operationInferred
+        ? Object.fromEntries(
+            operationInferred.map((inferred, index) => [
+              `operation${index}`,
+              makeVerbOptions({
+                mutator: verbMutator && { ...verbMutator, inferred },
+              }),
+            ]),
+          )
+        : { listPets: makeVerbOptions({ mutator: verbMutator }) },
       context.output,
       context,
     );
@@ -278,6 +290,21 @@ export const execute = <R>(args: ExecuteArgs) =>
 
     expect(files.map((file) => file.path)).toEqual(['/proj/src/runtime.ts']);
   });
+
+  it.each([
+    [false, true],
+    [true, false],
+  ])(
+    'rejects mixed inferred mutators in either operation order: %s, %s',
+    async (first, second) => {
+      await expect(async () =>
+        extraFiles({
+          mutator: { name: 'customFetch', default: false },
+          operationInferred: [first, second],
+        }),
+      ).rejects.toThrow(/shared.*inferred|inferred.*shared/i);
+    },
+  );
 });
 
 describe('generateSharedRequestFunction', () => {
@@ -892,13 +919,25 @@ function typeCheckFiles(
 }
 
 describe('shared inferred mutators (#4453)', () => {
+  const assertNotAny = `
+type IsAny<T> = 0 extends 1 & T ? true : false;
+const requestIsAny: IsAny<typeof request> = false;
+const resultIsAny: IsAny<Awaited<typeof request>> = false;
+void requestIsAny;
+void resultIsAny;
+`;
   const generateClient = async (
     defaultExport = false,
-    { includeHttpResponseReturnType = false, hasSecondArg = true } = {},
+    {
+      includeHttpResponseReturnType = false,
+      hasSecondArg = true,
+      mutatorName = 'customFetch',
+      omitMutatorName = false,
+    } = {},
   ) => {
     const options = makeSharedOptions([], { mutator: true });
     const mutator = {
-      name: 'customFetch',
+      name: mutatorName,
       path: '../custom-fetch',
       default: defaultExport,
       inferred: true,
@@ -910,7 +949,7 @@ describe('shared inferred mutators (#4453)', () => {
     };
     options.context.output.override.mutator = {
       path: '/proj/src/custom-fetch.ts',
-      name: mutator.name,
+      ...(omitMutatorName ? {} : { name: mutator.name }),
       default: defaultExport,
       inferred: true,
     };
@@ -956,11 +995,99 @@ describe('shared inferred mutators (#4453)', () => {
     const files = Object.fromEntries(
       extraFiles.map(({ path, content }) => [path, content]),
     );
+    const mutatorImports = generateMutatorImports({
+      mutators: [mutator],
+      implementation: client.implementation,
+    });
     files['/proj/src/api/endpoints.ts'] = `${imports}
+${mutatorImports}
 type Pet = { id: number; name: string };
 ${client.implementation}`;
-    return { client, files };
+    return { client, files, verbOptions, options, mutator };
   };
+
+  it('shares an unnamed default mutator across operations with different local names', async () => {
+    const { files, verbOptions, options, mutator } = await generateClient(
+      true,
+      {
+        mutatorName: 'listPetsMutator',
+        omitMutatorName: true,
+      },
+    );
+    const secondMutator = { ...mutator, name: 'getPetMutator' };
+    options.context.output.target = '/proj/src/api/other.ts';
+    const secondClient = generateSharedClient(
+      {
+        ...verbOptions,
+        operationName: 'getPet',
+        operationId: 'getPet',
+        typeName: 'getPet',
+        mutator: secondMutator,
+      },
+      options,
+    );
+    const imports = secondClient.imports
+      .map(
+        ({ name, values, importPath }) =>
+          `import ${values ? '' : 'type '}{ ${name} } from '${importPath}';`,
+      )
+      .join('\n');
+    const mutatorImports = generateMutatorImports({
+      mutators: [secondMutator],
+      implementation: secondClient.implementation,
+    });
+    files['/proj/src/api/other.ts'] = `${imports}
+${mutatorImports}
+type Pet = { id: number; name: string };
+${secondClient.implementation}`;
+    files['/proj/src/custom-fetch.ts'] = `
+export default async function customFetch<T>(url: string, options: RequestInit & { baseUrl?: string }): Promise<{ data: T }> {
+  return { data: await (await fetch((options.baseUrl ?? '') + url, options)).json() as T };
+}
+`;
+    files['/proj/src/consumer.ts'] = `
+import { listPets } from './api/endpoints';
+import { getPet } from './api/other';
+const request = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
+const otherRequest = getPet({ id: 2, name: 'Other' }, { baseUrl: 'https://api.test' });
+const expected: Promise<{ data: { id: number; name: string }[] }> = request;
+const otherExpected: typeof request = otherRequest;
+void expected;
+void otherExpected;
+${assertNotAny}
+const otherIsAny: IsAny<Awaited<typeof otherRequest>> = false;
+void otherIsAny;
+`;
+
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+  });
+
+  it('avoids duplicate writer imports when the custom function is named mutator', async () => {
+    const { files } = await generateClient(false, { mutatorName: 'mutator' });
+    files['/proj/src/custom-fetch.ts'] = `
+export const mutator = async <T>(url: string, options: RequestInit): Promise<{ data: T }> => ({ data: await (await fetch(url, options)).json() as T });
+`;
+    files['/proj/src/consumer.ts'] = `
+import { listPets } from './api/endpoints';
+const request = listPets({ id: 1, name: 'Pet' });
+const expected: Promise<{ data: { id: number; name: string }[] }> = request;
+void expected;
+`;
+
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+  });
 
   it.each([false, true])(
     'preserves custom options and a transport result with default export %s',
@@ -975,12 +1102,14 @@ ${defaultExport ? 'export default customFetch;' : 'export { customFetch };'}
       files['/proj/src/consumer.ts'] = `
 import { listPets } from './api/endpoints';
 import type { TransportResult } from './custom-fetch';
-const request: Promise<TransportResult> = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
-const sameType: ReturnType<typeof listPets> = request;
+const request = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
+const expected: Promise<TransportResult> = request;
+const sameType: typeof request = expected;
 // @ts-expect-error the mutator owns the return type, rather than the payload
 const payload: Promise<{ id: number; name: string }[]> = request;
 void sameType;
 void payload;
+${assertNotAny}
 `;
 
       expect(client.imports).toContainEqual({
@@ -1014,12 +1143,16 @@ export const customFetch = async <T>(url: string, options: RequestInit & { baseU
 import { listPets, type listPetsResponse } from './api/endpoints';
 import type { Envelope } from './custom-fetch';
 type Pet = { id: number; name: string };
-const request: Promise<Envelope<${includeHttpResponseReturnType ? 'listPetsResponse' : 'Pet[]'}>> = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
-const sameType: ReturnType<typeof listPets> = request;
+const request = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
+const expected: Promise<Envelope<${includeHttpResponseReturnType ? 'listPetsResponse' : 'Pet[]'}>> = request;
+const sameType: typeof request = expected;
 // @ts-expect-error the envelope's body follows includeHttpResponseReturnType
 const otherMode: Promise<Envelope<${includeHttpResponseReturnType ? 'Pet[]' : 'listPetsResponse'}>> = request;
 void sameType;
 void otherMode;
+${assertNotAny}
+const dataIsAny: IsAny<Awaited<typeof request>['data']> = false;
+void dataIsAny;
 `;
 
       expect(
@@ -1041,18 +1174,21 @@ export const customFetch = async <T>(url: string): Promise<{ data: T }> => ({ da
 import { listPets } from './api/endpoints';
 import type { CallOptions } from './api/client-config';
 const options: CallOptions = { credentials: 'include' };
-const request: Promise<{ data: { id: number; name: string }[] }> = listPets({ id: 1, name: 'Pet' }, options);
+const request = listPets({ id: 1, name: 'Pet' }, options);
+const expected: Promise<{ data: { id: number; name: string }[] }> = request;
+const sameType: typeof request = expected;
 const init: RequestInit = options;
 // @ts-expect-error a one-argument mutator contributes no custom options
 const customOptions: CallOptions = { baseUrl: 'https://api.test' };
 void request;
+void sameType;
 void init;
 void customOptions;
+${assertNotAny}
+const dataIsAny: IsAny<Awaited<typeof request>['data']> = false;
+void dataIsAny;
 `;
 
-    expect(files['/proj/src/api/client-config.ts']).toContain(
-      'return customFetch<R>(args.url);',
-    );
     expect(
       typeCheckFiles(files, [
         'lib.es2022.d.ts',
@@ -1061,6 +1197,57 @@ void customOptions;
       ]),
     ).toEqual([]);
   });
+
+  it.each([
+    [
+      'a constrained generic',
+      'T extends object',
+      'RequestInit & { baseUrl?: string }',
+      false,
+    ],
+    ['custom-only options', 'T', '{ baseUrl?: string }', false],
+    [
+      'optional request options',
+      'T',
+      'RequestInit & { baseUrl?: string }',
+      true,
+    ],
+  ])(
+    'preserves an inferred envelope for %s',
+    async (_, generic, optionsType, optional) => {
+      const { files } = await generateClient();
+      files['/proj/src/custom-fetch.ts'] = `
+export type Envelope<T> = { data: T; response: Response };
+export const customFetch = async <${generic}>(url: string, options${optional ? '?' : ''}: ${optionsType}): Promise<Envelope<T>> => {
+  const response = await fetch((options?.baseUrl ?? '') + url);
+  return { data: await response.json() as T, response };
+};
+`;
+      files['/proj/src/consumer.ts'] = `
+import { listPets } from './api/endpoints';
+import type { Envelope } from './custom-fetch';
+type Pet = { id: number; name: string };
+const request = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
+const expected: Promise<Envelope<Pet[]>> = request;
+const sameType: typeof request = expected;
+// @ts-expect-error the envelope contains an array of pets
+const wrongPayload: Promise<Envelope<string>> = request;
+void sameType;
+void wrongPayload;
+${assertNotAny}
+const dataIsAny: IsAny<Awaited<typeof request>['data']> = false;
+void dataIsAny;
+`;
+
+      expect(
+        typeCheckFiles(files, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+    },
+  );
 
   it.each([false, true])(
     'passes request options through and preserves an asynchronous=%s result',
@@ -1092,11 +1279,14 @@ void customOptions;
       };
       const envelope = { response: new Response('[]'), data: [{ id: 1 }] };
       const result = asynchronous ? Promise.resolve(envelope) : envelope;
+      const fetchOverride: typeof fetch = async () => new Response('[]');
       let receivedUrl: string | undefined;
-      let receivedOptions: (RequestInit & { baseUrl?: string }) | undefined;
+      let receivedOptions:
+        | (RequestInit & { baseUrl?: string; fetch?: typeof fetch })
+        | undefined;
       const customFetch = (
         url: string,
-        options: RequestInit & { baseUrl?: string },
+        options: RequestInit & { baseUrl?: string; fetch?: typeof fetch },
       ) => {
         receivedUrl = url;
         receivedOptions = options;
@@ -1113,12 +1303,13 @@ void customOptions;
       });
       const listPets = endpoints.listPets as (
         body: { id: number; name: string },
-        options: RequestInit & { baseUrl?: string },
+        options: RequestInit & { baseUrl?: string; fetch?: typeof fetch },
       ) => typeof result;
       const actual = listPets(
         { id: 1, name: 'Pet' },
         {
           baseUrl: 'https://api.test',
+          fetch: fetchOverride,
           headers: new Headers({ 'X-Trace': 'trace' }),
         },
       );
@@ -1126,6 +1317,7 @@ void customOptions;
       expect(actual).toBe(result);
       expect(await actual).toBe(envelope);
       expect(receivedUrl).toBe('/pets');
+      expect(receivedOptions?.fetch).toBe(fetchOverride);
       expect(receivedOptions).toMatchObject({
         baseUrl: 'https://api.test',
         method: 'POST',
@@ -1184,6 +1376,12 @@ declare class URLSearchParams {
         inferred,
       }),
     };
+    if (inferred) {
+      files['/proj/consumer.ts'] = `
+import { execute, customFetchFetcher } from './client-config';
+execute({ url: '/pets', method: 'GET' }, customFetchFetcher<object>);
+`;
+    }
     return typeCheckFiles(files);
   };
 
