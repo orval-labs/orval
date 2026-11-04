@@ -53,7 +53,13 @@ import {
   type SchemaExtension,
   isOctetStreamContentType,
 } from '@orval/core';
-import { dereference as coreDereference, unique } from '@orval/core';
+import {
+  COMPONENT_SCHEMAS_PREFIX,
+  dereference as coreDereference,
+  encodeJsonPointerSegment,
+  tryResolveRefSchema as coreTryResolveRefSchema,
+  unique,
+} from '@orval/core';
 import jsesc from 'jsesc';
 
 import {
@@ -1182,7 +1188,7 @@ export const generateZodValidationSchemaDefinition = (
         const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
         if (allSiblingsChainable) {
-          const sourceRef = `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`;
+          const sourceRef = `${COMPONENT_SCHEMAS_PREFIX}${encodeJsonPointerSegment(schemaName)}`;
           const functions: [string, unknown][] = [
             ['namedRef', { name: resolvedTypeName, sourceRef }],
           ];
@@ -3615,34 +3621,20 @@ ${Object.entries(objectArgs)
   return { zod, consts, usedRefs };
 };
 
+const logResolveError = (message: string) => logger.verbose(message);
+
+const dereferenceOptions: DereferenceOptions = {
+  dynamicRefs: true,
+  onResolveError: logResolveError,
+};
+
 /**
  * Attempts to resolve a `$ref` to its target schema. Returns `undefined`
  * instead of throwing when the ref cannot be found (e.g. external refs
  * not yet bundled). Logs a verbose warning on failure to aid debugging.
  */
-function tryResolveRefSchema(
-  $ref: string,
-  context: ContextSpec,
-): OpenApiSchemaObject | undefined {
-  try {
-    return resolveRef({ $ref } as OpenApiReferenceObject, context)
-      .schema as OpenApiSchemaObject;
-  } catch (error) {
-    logger.verbose(
-      `Failed to resolve $ref "${$ref}": ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    return;
-  }
-}
-
-const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
-
-const dereferenceOptions: DereferenceOptions = {
-  dynamicRefs: true,
-  onResolveError: (message) => logger.verbose(message),
-};
+const tryResolveRefSchema = ($ref: string, context: ContextSpec) =>
+  coreTryResolveRefSchema($ref, context, logResolveError);
 
 /**
  * Recursively inlines all `$ref` and `$dynamicRef` references in an OpenAPI
@@ -3663,10 +3655,6 @@ export const dereference = (
   context: ContextSpec,
 ): OpenApiNonBooleanSchemaObject =>
   coreDereference(schema, context, dereferenceOptions);
-
-function encodeSegment(segment: string): string {
-  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
-}
 
 /**
  * Generate zod schema for form-data request body.

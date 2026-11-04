@@ -15,6 +15,8 @@ import type {
 import { getAtPath } from '../utils';
 import { isInlineSchema, isObject, sanitize } from '../utils';
 
+export const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
+
 /** Convert a `$dynamicAnchor` name to a valid TypeScript generic parameter identifier. */
 export function dynamicAnchorToParamName(anchor: string): string {
   return sanitize(anchor, {
@@ -369,7 +371,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
 /* oxlint-enable typescript/no-unnecessary-type-parameters */
 
-function encodeJsonPointerSegment(segment: string): string {
+export function encodeJsonPointerSegment(segment: string): string {
   return segment.replaceAll('~', '~0').replaceAll('/', '~1');
 }
 
@@ -386,7 +388,7 @@ export function buildDynamicScope(
 
   const getSchemaScopeEntry = (name: string): DynamicScopeEntry => {
     const refInfo = getRefInfo(
-      `#/components/schemas/${encodeJsonPointerSegment(name)}`,
+      `${COMPONENT_SCHEMAS_PREFIX}${encodeJsonPointerSegment(name)}`,
       context,
     );
 
@@ -414,7 +416,7 @@ export function buildDynamicScope(
         const anchorName = defRecord.$dynamicAnchor;
         const refInDef = (defSchema as OpenApiReferenceObject).$ref;
         // oxlint-disable-next-line typescript/no-unnecessary-condition
-        if (refInDef?.startsWith('#/components/schemas/')) {
+        if (refInDef?.startsWith(COMPONENT_SCHEMAS_PREFIX)) {
           const { name, originalName } = getRefInfo(refInDef, context);
           scope[anchorName] = { name, schemaName: originalName };
         } else if (!refInDef) {
@@ -577,7 +579,7 @@ export function resolveDynamicRef(
       entry?.exactName ?? (entry?.count === 1 ? entry?.firstName : undefined);
     if (match) {
       const refInfo = getRefInfo(
-        `#/components/schemas/${encodeJsonPointerSegment(match)}`,
+        `${COMPONENT_SCHEMAS_PREFIX}${encodeJsonPointerSegment(match)}`,
         context,
       );
       scopeEntry = {
@@ -615,7 +617,7 @@ export function resolveDynamicRef(
   }
 
   const resolvedTypeName = scopeEntry.name;
-  const schemaRef = `#/components/schemas/${encodeJsonPointerSegment(scopeEntry.schemaName)}`;
+  const schemaRef = `${COMPONENT_SCHEMAS_PREFIX}${encodeJsonPointerSegment(scopeEntry.schemaName)}`;
 
   try {
     const { schema: resolvedSchema, imports: resolvedImports } =

@@ -3,7 +3,13 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../../types';
-import { isBoolean, isDynamicReference, isObject, isString } from '../../utils';
+import {
+  isBoolean,
+  isDynamicReference,
+  isObject,
+  isString,
+  omitBy,
+} from '../../utils';
 import { toObjectSchema } from '../../utils/object-schema';
 import { ancestorsAmong, findExpansion, storeExpansion } from './cache';
 import { buildScopedContext, planDynamicRef } from './dynamic-scope';
@@ -62,12 +68,6 @@ const setOwn = (target: object, key: string | number, value: unknown): void => {
 
 const isVerbatimKey = (key: string, options: DereferenceOptions): boolean =>
   ALWAYS_VERBATIM_KEYS.has(key) || (options.isVerbatimKey?.(key) ?? false);
-
-const withoutKey = (
-  record: Record<string, unknown>,
-  omitted: string,
-): Record<string, unknown> =>
-  Object.fromEntries(Object.entries(record).filter(([key]) => key !== omitted));
 
 const hasEmptyDynamicScope = (context: ContextSpec): boolean =>
   Object.keys(context.dynamicScope ?? {}).length === 0;
@@ -197,14 +197,14 @@ function mergeWithTarget(
   if (isBoolean(target)) {
     const targetSchema = toObjectSchema(target);
     return options.keepSiblingsOfBooleanTarget
-      ? { ...targetSchema, ...withoutKey(schema, '$ref') }
+      ? { ...targetSchema, ...omitBy(schema, (_, key) => key === '$ref') }
       : targetSchema;
   }
   if (!isObject(target)) {
     options.onUnresolvedRef?.(ref);
     return;
   }
-  return { ...target, ...withoutKey(schema, '$ref') };
+  return { ...target, ...omitBy(schema, (_, key) => key === '$ref') };
 }
 
 const isBareRef = (schema: Record<string, unknown>): boolean =>

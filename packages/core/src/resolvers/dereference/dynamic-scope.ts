@@ -1,22 +1,18 @@
 import { getDynamicAnchorName } from '../../getters/ref';
 import type { ContextSpec, OpenApiNonBooleanSchemaObject } from '../../types';
-import { isObject } from '../../utils';
+import { isObject, omitBy } from '../../utils';
 import {
+  COMPONENT_SCHEMAS_PREFIX,
   buildDynamicScope,
   buildInlineDynamicScope,
+  encodeJsonPointerSegment,
   resolveDynamicRef,
 } from '../ref';
-
-const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
 
 function extractSchemaNameFromRef($ref: string): string | undefined {
   if (!$ref.startsWith(COMPONENT_SCHEMAS_PREFIX)) return undefined;
   const raw = $ref.slice(COMPONENT_SCHEMAS_PREFIX.length);
   return decodeURIComponent(raw.replaceAll('~1', '/').replaceAll('~0', '~'));
-}
-
-function encodeSegment(segment: string): string {
-  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
 }
 
 function hasDynamicAnchors(schema: Record<string, unknown>): boolean {
@@ -115,14 +111,12 @@ export function planDynamicRef(
   const scopedContext = buildScopedContext(
     childContext,
     schemaName
-      ? `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`
+      ? `${COMPONENT_SCHEMAS_PREFIX}${encodeJsonPointerSegment(schemaName)}`
       : undefined,
     resolvedSchema,
   );
 
-  const siblings = Object.fromEntries(
-    Object.entries(schema).filter(([key]) => key !== '$dynamicRef'),
-  );
+  const siblings = omitBy(schema, (_, key) => key === '$dynamicRef');
 
   return {
     kind: 'expand',
