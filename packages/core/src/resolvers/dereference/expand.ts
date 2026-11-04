@@ -214,6 +214,7 @@ function mergeWithTarget(
 ): Record<string, unknown> | undefined {
   const target = tryResolveRefSchema(ref, context, options.onResolveError);
 
+  if (options.falseTargetIsUnresolved && target === false) return;
   if (isBoolean(target)) {
     const targetSchema = toObjectSchema(target);
     return options.keepSiblingsOfBooleanTarget

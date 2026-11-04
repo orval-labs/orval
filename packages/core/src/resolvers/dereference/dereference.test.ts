@@ -432,6 +432,18 @@ describe('dereference', () => {
       ).toEqual({ 0: 'a', 1: { type: 'string' }, description: 'd' });
     });
 
+    it('falseTargetIsUnresolved empties a ref to the false schema', () => {
+      const context = createContext({ Never: false, Any: true });
+
+      expect(dereference(ref('Never'), context)).toEqual({ not: {} });
+      expect(
+        dereference(ref('Never'), context, { falseTargetIsUnresolved: true }),
+      ).toEqual({});
+      expect(
+        dereference(ref('Any'), context, { falseTargetIsUnresolved: true }),
+      ).toEqual({});
+    });
+
     it('isVerbatimKey copies matching keys untouched', () => {
       const context = createContext({ Other: { type: 'string' } });
       const schema = {

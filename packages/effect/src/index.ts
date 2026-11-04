@@ -1383,6 +1383,7 @@ const dereferenceOptions: DereferenceOptions = {
   // `dereference(false)` returns `{ not: {} }`, which the generator renders as
   // unknown. A boolean property is kept so it renders `S.Never`.
   keepBooleanProperties: true,
+  falseTargetIsUnresolved: true,
   mergeArrayTargets: true,
   onResolveError: (message) => logger.verbose(message),
 };

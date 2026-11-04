@@ -18,6 +18,8 @@ export interface DereferenceOptions {
   ignoreEmptyRef?: boolean;
   /** Spread an array target into the node instead of treating it as unresolved. */
   mergeArrayTargets?: boolean;
+  /** Treat a `$ref` to the boolean schema `false` as unresolved. */
+  falseTargetIsUnresolved?: boolean;
   /** Keys whose values are copied without being dereferenced. */
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */
