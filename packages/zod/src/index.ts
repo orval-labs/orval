@@ -3625,6 +3625,7 @@ const logResolveError = (message: string) => logger.verbose(message);
 
 const dereferenceOptions: DereferenceOptions = {
   dynamicRefs: true,
+  mergeArrayTargets: true,
   onResolveError: logResolveError,
 };
 

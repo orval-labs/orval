@@ -220,7 +220,10 @@ function mergeWithTarget(
       ? { ...targetSchema, ...omitBy(schema, (_, key) => key === '$ref') }
       : targetSchema;
   }
-  if (!isObject(target)) {
+  if (
+    !isObject(target) &&
+    !(options.mergeArrayTargets && Array.isArray(target))
+  ) {
     options.onUnresolvedRef?.(ref);
     return;
   }

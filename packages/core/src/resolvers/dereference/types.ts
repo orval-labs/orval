@@ -16,6 +16,8 @@ export interface DereferenceOptions {
   keepProtoKey?: boolean;
   /** Pass a node with an empty `$ref` through as an inline schema. */
   ignoreEmptyRef?: boolean;
+  /** Spread an array target into the node instead of treating it as unresolved. */
+  mergeArrayTargets?: boolean;
   /** Keys whose values are copied without being dereferenced. */
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */

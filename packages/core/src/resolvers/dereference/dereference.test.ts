@@ -422,6 +422,16 @@ describe('dereference', () => {
       ).toEqual({ $ref: '', type: 'string' });
     });
 
+    it('mergeArrayTargets spreads an array target into the node', () => {
+      const context = createContext({ Odd: ['a', { type: 'string' }] });
+      const schema = { ...ref('Odd'), description: 'd' };
+
+      expect(dereference(asSchema(schema), context)).toEqual({});
+      expect(
+        dereference(asSchema(schema), context, { mergeArrayTargets: true }),
+      ).toEqual({ 0: 'a', 1: { type: 'string' }, description: 'd' });
+    });
+
     it('isVerbatimKey copies matching keys untouched', () => {
       const context = createContext({ Other: { type: 'string' } });
       const schema = {
