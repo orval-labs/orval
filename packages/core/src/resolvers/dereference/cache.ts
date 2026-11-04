@@ -61,7 +61,7 @@ export const getExpansionCache = (
   return created;
 };
 
-export const NO_REFS: RefSet = new Uint32Array(0);
+export const NO_REFS: RefSet = { lo: 0, words: new Uint32Array(0) };
 
 const internRef = (cache: ExpansionCache, ref: string): number => {
   const existing = cache.ids.get(ref);
@@ -72,15 +72,17 @@ const internRef = (cache: ExpansionCache, ref: string): number => {
 };
 
 const hasId = (refs: RefSet, id: number): boolean =>
-  ((refs[id >>> 5] ?? 0) & (1 << (id & 31))) !== 0;
+  ((refs.words[(id >>> 5) - refs.lo] ?? 0) & (1 << (id & 31))) !== 0;
 
 /** The set holding only `ref`; shared, so it must not be mutated. */
 export const singleRef = (cache: ExpansionCache, ref: string): RefSet => {
   const id = internRef(cache, ref);
   const existing = cache.singles[id] as RefSet | undefined;
   if (existing) return existing;
-  const created = new Uint32Array((id >>> 5) + 1);
-  created[id >>> 5] = 1 << (id & 31);
+  const created: RefSet = {
+    lo: id >>> 5,
+    words: new Uint32Array([1 << (id & 31)]),
+  };
   cache.singles[id] = created;
   return created;
 };
@@ -96,31 +98,33 @@ export const unionRefs = (
   work: { copied: number },
 ): RefSet => {
   const ownId = ownRef === undefined ? undefined : internRef(cache, ownRef);
-  let widest: RefSet = NO_REFS;
+  let only: RefSet = NO_REFS;
   let nonEmpty = 0;
   let total = 0;
+  let lo = ownId === undefined ? Infinity : ownId >>> 5;
+  let hi = ownId === undefined ? 0 : (ownId >>> 5) + 1;
   for (const { refs } of parts) {
-    if (refs.length === 0) continue;
+    if (refs.words.length === 0) continue;
     nonEmpty++;
-    total += refs.length;
-    if (refs.length > widest.length) widest = refs;
+    total += refs.words.length;
+    only = refs;
+    lo = Math.min(lo, refs.lo);
+    hi = Math.max(hi, refs.lo + refs.words.length);
   }
   if (nonEmpty === 0)
     return ownRef === undefined ? NO_REFS : singleRef(cache, ownRef);
-  if (nonEmpty === 1 && (ownId === undefined || hasId(widest, ownId)))
-    return widest;
+  if (nonEmpty === 1 && (ownId === undefined || hasId(only, ownId)))
+    return only;
 
-  const length =
-    ownId === undefined
-      ? widest.length
-      : Math.max(widest.length, (ownId >>> 5) + 1);
-  const merged = new Uint32Array(length);
+  const merged = new Uint32Array(hi - lo);
   for (const { refs } of parts) {
-    for (let word = 0; word < refs.length; word++) merged[word] |= refs[word];
+    const offset = refs.lo - lo;
+    for (let word = 0; word < refs.words.length; word++)
+      merged[offset + word] |= refs.words[word];
   }
-  if (ownId !== undefined) merged[ownId >>> 5] |= 1 << (ownId & 31);
-  work.copied += length + total;
-  return merged;
+  if (ownId !== undefined) merged[(ownId >>> 5) - lo] |= 1 << (ownId & 31);
+  work.copied += merged.length + total;
+  return { lo, words: merged };
 };
 
 /** Ids of the parents the cache has seen; others are in no expansion. */

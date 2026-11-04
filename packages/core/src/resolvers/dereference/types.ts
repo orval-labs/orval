@@ -24,17 +24,21 @@ export interface DereferenceOptions {
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */
   onCircularRef?: (ref: string) => void;
-  /** Called when a `$ref` target is missing or is not a schema. */
+  /** Called when a `$ref` target is missing, or is not an object, a boolean or (with `mergeArrayTargets`) an array. Object targets are merged without a schema-shape check. */
   onUnresolvedRef?: (ref: string) => void;
   /** Called with a diagnostic message when resolving a `$ref` throws. */
   onResolveError?: (message: string) => void;
 }
 
 /**
- * A set of refs as a bitset over the ids the expansion cache hands out, so a
- * union costs a few words and a cached expansion stays small on large graphs.
+ * A set of refs as a bitset over the ids the expansion cache hands out,
+ * starting at word `lo`, so a union costs a few words and a set of nearby ids
+ * stays small however many refs the document has.
  */
-export type RefSet = Uint32Array;
+export interface RefSet {
+  readonly lo: number;
+  readonly words: Uint32Array;
+}
 
 /**
  * An expanded value plus every `$ref` met while expanding it; `reusable` is
