@@ -310,6 +310,33 @@ describe('angular HttpClient generator', () => {
       expect(header).toContain('type HttpClientResponseOptions');
     });
 
+    it.each([
+      ['disabled first', [false, true]],
+      ['enabled first', [true, false]],
+    ])(
+      'keeps event and response option types when only some operations disable observeOverloads (%s)',
+      (_, settings) => {
+        const verbOptions = Object.fromEntries(
+          settings.map((observeOverloads, index) => {
+            const operationName = `operation${index}`;
+            const verbOption = createVerbOption({
+              operationId: operationName,
+              operationName,
+            });
+            verbOption.override.angular.observeOverloads = observeOverloads;
+            return [operationName, verbOption];
+          }),
+        );
+
+        const header = generateAngularHeader(
+          createHeaderParams({ verbOptions }),
+        );
+
+        expect(header).toContain('type HttpClientEventOptions');
+        expect(header).toContain('type HttpClientResponseOptions');
+      },
+    );
+
     it('omits HttpClientOptions when isRequestOptions is false', () => {
       const header = generateAngularHeader(
         createHeaderParams({
