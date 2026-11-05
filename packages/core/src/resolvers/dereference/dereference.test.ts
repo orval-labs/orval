@@ -6,10 +6,17 @@ import type {
   OpenApiDocument,
   OpenApiSchemaObject,
 } from '../../types';
-import { MAX_VARIANTS_PER_REF } from './cache';
+import {
+  createExpansionCache,
+  getExpansionCache,
+  MAX_VARIANTS_PER_REF,
+  NO_REFS,
+  singleRef,
+  unionRefs,
+} from './cache';
 import { dereference } from './dereference';
 import { expandSchema } from './expand';
-import type { DereferenceOptions } from './types';
+import type { DereferenceOptions, RefSet } from './types';
 
 type Schemas = Record<string, unknown>;
 
@@ -1092,5 +1099,128 @@ describe('dereference', () => {
         );
       }
     });
+
+    it('matches plain expansion with offset sets on a cyclic graph past 32 refs', () => {
+      let seed = 11;
+      const next = () => {
+        seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+        return seed;
+      };
+      // A chain with sparse back edges: cyclic, yet small enough to expand
+      // plainly from every start.
+      const size = 70;
+      const schemas = graph(size, (index) => {
+        const forward = index + 1 < size ? [index + 1] : [];
+        return index % 7 === 6
+          ? [...forward, index - 1 - (next() % 5)]
+          : forward;
+      });
+      const shared: DereferenceOptions = {};
+      const context = createContext(schemas);
+      // Interning unrelated refs first moves every real id past word 0.
+      const cache = getExpansionCache(context.spec, shared);
+      for (let index = 0; index < 40; index++) {
+        singleRef(cache, `#/dummy/${index}`);
+      }
+
+      for (let index = 0; index < size; index++) {
+        expect(dereference(ref(`S${index}`), context, shared)).toEqual(
+          expandNaive(schemas, ref(`S${index}`)),
+        );
+      }
+    });
+  });
+});
+
+describe('ref sets', () => {
+  const setup = (count: number) => {
+    const cache = createExpansionCache();
+    const sets = Array.from({ length: count }, (_, id) =>
+      singleRef(cache, `r${id}`),
+    );
+    return { cache, sets };
+  };
+  const members = (refs: RefSet): number[] =>
+    [...refs.words].flatMap((word, index) =>
+      Array.from({ length: 32 }, (_, bit) => bit)
+        .filter((bit) => (word & (1 << bit)) !== 0)
+        .map((bit) => (refs.lo + index) * 32 + bit),
+    );
+  const union = (
+    cache: ReturnType<typeof createExpansionCache>,
+    parts: RefSet[],
+    own?: string,
+  ) =>
+    unionRefs(
+      cache,
+      parts.map((refs) => ({ refs })),
+      own,
+      { copied: 0 },
+    );
+
+  it('stores a singleton at a high id as one word', () => {
+    const { sets } = setup(100);
+    expect(sets[99]).toMatchObject({ lo: 3 });
+    expect(sets[99].words).toHaveLength(1);
+    expect(members(sets[99])).toEqual([99]);
+  });
+
+  it('keeps ids at bits 31 and 32 apart', () => {
+    const { cache, sets } = setup(40);
+    const merged = union(cache, [sets[31], sets[32]]);
+    expect(merged.lo).toBe(0);
+    expect(merged.words).toHaveLength(2);
+    expect(members(merged)).toEqual([31, 32]);
+  });
+
+  it('unions sets that start past word 0', () => {
+    const { cache, sets } = setup(140);
+    const merged = union(cache, [sets[70], sets[130]]);
+    expect(merged.lo).toBe(2);
+    expect(members(merged)).toEqual([70, 130]);
+  });
+
+  it('spans the gap between distant sets', () => {
+    const { cache, sets } = setup(200);
+    const merged = union(cache, [sets[40], sets[199]]);
+    expect(merged.lo).toBe(1);
+    expect(merged.words).toHaveLength(6);
+    expect(members(merged)).toEqual([40, 199]);
+  });
+
+  it('adds an own id below, inside and above the parts', () => {
+    const { cache, sets } = setup(200);
+    const parts = [sets[70], sets[130]];
+    expect(members(union(cache, parts, 'r5'))).toEqual([5, 70, 130]);
+    expect(members(union(cache, parts, 'r100'))).toEqual([70, 100, 130]);
+    expect(members(union(cache, parts, 'r190'))).toEqual([70, 130, 190]);
+    expect(union(cache, parts, 'r5').lo).toBe(0);
+    expect(union(cache, parts, 'r190').lo).toBe(2);
+  });
+
+  it('adds an own id to a single part past word 0', () => {
+    const { cache, sets } = setup(100);
+    expect(members(union(cache, [sets[80]], 'r33'))).toEqual([33, 80]);
+  });
+
+  it('returns a part itself when nothing is added', () => {
+    const { cache, sets } = setup(100);
+    expect(union(cache, [sets[80], NO_REFS], 'r80')).toBe(sets[80]);
+    expect(union(cache, [sets[80], sets[80], sets[80]])).toBe(sets[80]);
+    expect(union(cache, [sets[80], sets[80]], 'r80')).toBe(sets[80]);
+    expect(union(cache, [sets[80], sets[80]], 'r81')).not.toBe(sets[80]);
+  });
+
+  it('charges no work when it returns a part', () => {
+    const { cache, sets } = setup(10);
+    const work = { copied: 0 };
+    unionRefs(cache, [{ refs: sets[3] }, { refs: sets[3] }], undefined, work);
+    expect(work.copied).toBe(0);
+  });
+
+  it('returns the shared singleton for an own id alone', () => {
+    const { cache, sets } = setup(50);
+    expect(union(cache, [NO_REFS], 'r45')).toBe(sets[45]);
+    expect(union(cache, [])).toBe(NO_REFS);
   });
 });

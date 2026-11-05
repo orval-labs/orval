@@ -71,25 +71,28 @@ const internRef = (cache: ExpansionCache, ref: string): number => {
   return id;
 };
 
+const wordOf = (id: number): number => id >>> 5;
+const bitOf = (id: number): number => 1 << (id & 31);
+
 const hasId = (refs: RefSet, id: number): boolean =>
-  ((refs.words[(id >>> 5) - refs.lo] ?? 0) & (1 << (id & 31))) !== 0;
+  ((refs.words[wordOf(id) - refs.lo] ?? 0) & bitOf(id)) !== 0;
 
 /** The set holding only `ref`; shared, so it must not be mutated. */
 export const singleRef = (cache: ExpansionCache, ref: string): RefSet => {
   const id = internRef(cache, ref);
   const existing = cache.singles[id] as RefSet | undefined;
   if (existing) return existing;
-  const created: RefSet = {
-    lo: id >>> 5,
-    words: new Uint32Array([1 << (id & 31)]),
-  };
+  const words = new Uint32Array(1);
+  words[0] = bitOf(id);
+  const created: RefSet = { lo: wordOf(id), words };
   cache.singles[id] = created;
   return created;
 };
 
 /**
- * The union of all parts plus `ownRef`. Returns a part itself when nothing is
- * added to it. `work.copied` grows by the words read and written.
+ * The union of all parts plus `ownRef`. Returns a part itself when every
+ * non-empty part is that same set and already holds `ownRef`. `work.copied`
+ * grows by the words read and written.
  */
 export const unionRefs = (
   cache: ExpansionCache,
@@ -99,22 +102,21 @@ export const unionRefs = (
 ): RefSet => {
   const ownId = ownRef === undefined ? undefined : internRef(cache, ownRef);
   let only: RefSet = NO_REFS;
-  let nonEmpty = 0;
+  let allSame = true;
   let total = 0;
-  let lo = ownId === undefined ? Infinity : ownId >>> 5;
-  let hi = ownId === undefined ? 0 : (ownId >>> 5) + 1;
+  let lo = ownId === undefined ? Infinity : wordOf(ownId);
+  let hi = ownId === undefined ? 0 : wordOf(ownId) + 1;
   for (const { refs } of parts) {
     if (refs.words.length === 0) continue;
-    nonEmpty++;
+    if (only !== NO_REFS && only !== refs) allSame = false;
     total += refs.words.length;
     only = refs;
     lo = Math.min(lo, refs.lo);
     hi = Math.max(hi, refs.lo + refs.words.length);
   }
-  if (nonEmpty === 0)
+  if (only === NO_REFS)
     return ownRef === undefined ? NO_REFS : singleRef(cache, ownRef);
-  if (nonEmpty === 1 && (ownId === undefined || hasId(only, ownId)))
-    return only;
+  if (allSame && (ownId === undefined || hasId(only, ownId))) return only;
 
   const merged = new Uint32Array(hi - lo);
   for (const { refs } of parts) {
@@ -122,7 +124,7 @@ export const unionRefs = (
     for (let word = 0; word < refs.words.length; word++)
       merged[offset + word] |= refs.words[word];
   }
-  if (ownId !== undefined) merged[(ownId >>> 5) - lo] |= 1 << (ownId & 31);
+  if (ownId !== undefined) merged[wordOf(ownId) - lo] |= bitOf(ownId);
   work.copied += merged.length + total;
   return { lo, words: merged };
 };

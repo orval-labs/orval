@@ -24,7 +24,7 @@ export interface DereferenceOptions {
   isVerbatimKey?: (key: string) => boolean;
   /** Called when a `$ref` is cut because it is already being expanded. */
   onCircularRef?: (ref: string) => void;
-  /** Called when a `$ref` target is missing, or is not an object, a boolean or (with `mergeArrayTargets`) an array. Object targets are merged without a schema-shape check. */
+  /** Called when a `$ref` target cannot be merged: missing, or not an object, boolean or (with `mergeArrayTargets`) array. A `false` target under `falseTargetIsUnresolved` is emptied without this call. */
   onUnresolvedRef?: (ref: string) => void;
   /** Called with a diagnostic message when resolving a `$ref` throws. */
   onResolveError?: (message: string) => void;

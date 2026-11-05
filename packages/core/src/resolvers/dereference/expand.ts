@@ -241,7 +241,11 @@ function closeFrame(frame: Frame): Expansion {
   return { ...expansion, value: { ...expansion.value } };
 }
 
-/** Merges a `$ref` node with its target; `undefined` when the target is missing or of a type that cannot be merged. */
+/**
+ * Merges a `$ref` node with its target. Returns `undefined` for a `false`
+ * target under `falseTargetIsUnresolved` (silently) or for a target that
+ * cannot be merged (after `onUnresolvedRef`).
+ */
 function mergeWithTarget(
   schema: Record<string, unknown>,
   ref: string,
