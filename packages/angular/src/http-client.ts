@@ -453,6 +453,9 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
       ? `private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});`
       : undefined,
     hasObjectParams,
+    hasObserveOverloads: relevantVerbs.some(
+      (v) => v.override.angular.observeOverloads !== false,
+    ),
     acceptHelpers: `${acceptHelpers}\n\n`,
   });
 };

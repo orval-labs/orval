@@ -748,6 +748,33 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('body: searchPetsBody()');
     });
 
+    it('omits event and response option types for mutations when observeOverloads is false (#4458)', () => {
+      const verbOption = createVerbOption({
+        operationId: 'deletePet',
+        operationName: 'deletePet',
+        verb: 'delete',
+      });
+      verbOption.override.angular.observeOverloads = false;
+      routeRegistry.set('deletePet', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { deletePet: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('export class PetService');
+      expect(header).toContain('type HttpClientBodyOptions');
+      expect(header).not.toContain('HttpClientEventOptions');
+      expect(header).not.toContain('HttpClientResponseOptions');
+    });
+
     // Regression for #3700: an optional retrieval POST body maps to an optional
     // Signal parameter. When the caller omits it, the request factory must
     // return `undefined` so the resource stays idle, instead of firing a request
