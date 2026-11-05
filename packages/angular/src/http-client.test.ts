@@ -289,6 +289,27 @@ describe('angular HttpClient generator', () => {
       expect(header).toContain('type HttpClientObserveOptions');
     });
 
+    it('omits event and response option types when observeOverloads is false (#4458)', () => {
+      const verbOption = createVerbOption();
+      verbOption.override.angular.observeOverloads = false;
+
+      const header = generateAngularHeader(
+        createHeaderParams({ verbOptions: { getPetById: verbOption } }),
+      );
+
+      expect(header).toContain('type HttpClientBodyOptions');
+      expect(header).toContain('type HttpClientObserveOptions');
+      expect(header).not.toContain('HttpClientEventOptions');
+      expect(header).not.toContain('HttpClientResponseOptions');
+    });
+
+    it('keeps event and response option types when observeOverloads is enabled', () => {
+      const header = generateAngularHeader(createHeaderParams());
+
+      expect(header).toContain('type HttpClientEventOptions');
+      expect(header).toContain('type HttpClientResponseOptions');
+    });
+
     it('omits HttpClientOptions when isRequestOptions is false', () => {
       const header = generateAngularHeader(
         createHeaderParams({

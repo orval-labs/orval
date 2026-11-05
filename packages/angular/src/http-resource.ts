@@ -1748,6 +1748,9 @@ ${buildServiceClassOpen({
     ? `private readonly baseUrl = inject(${getBaseUrlTokenName(baseUrlOption.apiId)});`
     : undefined,
   hasObjectParams: mutations.some(hasGatedObjectQueryParamStrategies),
+  hasObserveOverloads: mutations.some(
+    (v) => v.override.angular.observeOverloads !== false,
+  ),
 })}
 ${mutationImplementation}
 };
