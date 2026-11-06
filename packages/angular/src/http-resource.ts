@@ -894,7 +894,6 @@ const getParseExpression = (
   factory: HttpResourceFactoryName,
   output: NormalizedOutputOptions,
   operationName: string,
-  standardSchema: boolean | undefined,
   responseTypeOverride?: string,
 ): string | undefined => {
   const resolved = resolveParseSchema(
@@ -910,7 +909,8 @@ const getParseExpression = (
         operationName,
         strategy: output.override.angular.runtimeValidation.strategy,
         context: 'parse-fn',
-        standardSchema,
+        standardSchema:
+          output.override.angular.runtimeValidation.standardSchema,
       })
     : undefined;
 };
@@ -937,7 +937,6 @@ const buildHttpResourceOptionsLiteral = (
     factory,
     output,
     verbOption.operationName,
-    verbOption.override.angular.runtimeValidation.standardSchema,
     responseTypeOverride,
   );
 

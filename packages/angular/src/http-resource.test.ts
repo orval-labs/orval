@@ -3369,7 +3369,7 @@ describe('angular httpResource generator', () => {
           path: '/tmp/schemas',
         } as NormalizedOutputOptions['schemas'],
       });
-      verbOption.override.angular.runtimeValidation = {
+      output.override.angular.runtimeValidation = {
         enabled: true,
         strategy: 'throw',
         standardSchema: true,
