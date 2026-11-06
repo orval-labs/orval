@@ -3,7 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { mergeDeep, noopReporter, withReporter } from '@orval/core';
-import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
+import type {
+  NormalizedSchemaOptions,
+  OutputMocksConfig,
+  OverrideOutput,
+} from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -3981,15 +3985,7 @@ describe('single-file schema output combinations', () => {
   });
 
   describe('flag-only runtimeValidation overrides', () => {
-    const normalizeWithOverride = async (
-      override: NonNullable<
-        Parameters<typeof normalizeOptionsImpl>[0]['output']
-      > extends infer O
-        ? O extends { override?: infer V }
-          ? V
-          : never
-        : never,
-    ) => {
+    const normalizeWithOverride = async (override: OverrideOutput) => {
       const workspace = await createTempWorkspace();
       try {
         const specPath = path.join(workspace, 'petstore.yaml');
@@ -4024,7 +4020,7 @@ describe('single-file schema output combinations', () => {
         },
       });
 
-      expect(normalized.output.override.tags.pets.angular).toMatchObject({
+      expect(normalized.output.override.tags.pets?.angular).toMatchObject({
         runtimeValidation: {
           enabled: true,
           strategy: 'both',
@@ -4045,8 +4041,8 @@ describe('single-file schema output combinations', () => {
       });
       const operation = normalized.output.override.operations.listPets;
 
-      expect(operation.angular?.runtimeValidation.enabled).toBe(false);
-      expect(operation.query?.runtimeValidation?.enabled).toBe(false);
+      expect(operation?.angular?.runtimeValidation.enabled).toBe(false);
+      expect(operation?.query?.runtimeValidation?.enabled).toBe(false);
     });
 
     it('keeps the global strategy of query operations', async () => {
@@ -4058,7 +4054,8 @@ describe('single-file schema output combinations', () => {
       });
 
       expect(
-        normalized.output.override.operations.listPets.query?.runtimeValidation,
+        normalized.output.override.operations.listPets?.query
+          ?.runtimeValidation,
       ).toEqual({ enabled: true, strategy: 'both', standardSchema: true });
     });
   });
