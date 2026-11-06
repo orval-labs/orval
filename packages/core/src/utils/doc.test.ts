@@ -149,7 +149,7 @@ describe('jsDoc', () => {
 `);
   });
 
-  it('escapes */ in values returned by the jsDoc filter', () => {
+  it('escapes */ in keys and values returned by the jsDoc filter', () => {
     const context = createTestContextSpec({
       override: {
         jsDoc: {
@@ -165,6 +165,10 @@ describe('jsDoc', () => {
     expect(jsDoc({ pattern: '^/files/.*/raw$' }, false, context))
       .toBe(String.raw`/**
  * @pattern ^/files/.*\/raw$
+ */
+`);
+    expect(jsDoc({ 'x-a*/b': 'c' }, false, context)).toBe(String.raw`/**
+ * @x-a*\/b c
  */
 `);
   });
