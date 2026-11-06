@@ -9,4 +9,5 @@ export * from './options';
 export * from './parameter-definition';
 export * from './runtime-validation';
 export * from './schema-definition';
+export * from './standard-schema-helper';
 export * from './verbs-options';
