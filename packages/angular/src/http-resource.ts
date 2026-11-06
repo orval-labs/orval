@@ -19,6 +19,7 @@ import {
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
   getAngularObjectParamStrategies,
+  getQueryParamsEncoding,
   getFileInfo,
   getImportExtension,
   getFullRoute,
@@ -641,13 +642,23 @@ const buildResourceRequest = (
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
 
-  const bodyForm = generateFormDataAndUrlEncodedFunction({
-    formData,
-    formUrlEncoded,
-    body,
-    isFormData,
-    isFormUrlEncoded,
-  });
+  // A `paramsFilter` or `paramsSerializer` takes the values as they are.
+  const paramsEncoding =
+    paramsFilter || paramsSerializer
+      ? undefined
+      : getQueryParamsEncoding(queryParams, 'params?.()');
+  const bodyForm = [
+    paramsEncoding,
+    generateFormDataAndUrlEncodedFunction({
+      formData,
+      formUrlEncoded,
+      body,
+      isFormData,
+      isFormUrlEncoded,
+    }),
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const hasFormData = isFormData && body.formData;
   const hasFormUrlEncoded = isFormUrlEncoded && body.formUrlEncoded;
@@ -687,7 +698,9 @@ const buildResourceRequest = (
   });
   const filteredParamsValue = paramsAccess
     ? buildAngularParamsFilterExpression({
-        paramsExpression: `${paramsAccess} ?? {}`,
+        paramsExpression: paramsEncoding
+          ? 'encodedParams'
+          : `${paramsAccess} ?? {}`,
         requiredNullableParamKeys: queryParams?.requiredNullableKeys ?? [],
         preserveRequiredNullables: !!paramsSerializer,
         // Only pass non-primitive params through the built-in `filterParams`

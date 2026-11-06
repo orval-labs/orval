@@ -25,6 +25,7 @@ import {
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
+  getQueryParamsEncoding,
   type GetterProp,
   isInlineSchema,
   isTextContentType,
@@ -792,10 +793,17 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
+    // A `paramsFilter` or `paramsSerializer` takes the values as they are.
+    const paramsEncoding =
+      paramsFilter || paramsSerializer
+        ? undefined
+        : getQueryParamsEncoding(queryParams, 'params');
     const filterExpr = buildAngularParamsFilterExpression({
       paramsExpression: isRequestOptions
-        ? '{...params, ...options?.params}'
-        : 'params ?? {}',
+        ? `{...${paramsEncoding ? 'encodedParams' : 'params'}, ...options?.params}`
+        : paramsEncoding
+          ? 'encodedParams'
+          : 'params ?? {}',
       requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
       preserveRequiredNullables: !!paramsSerializer,
       // Only pass non-primitive params through the built-in `filterParams`
@@ -815,7 +823,7 @@ export const generateHttpClientImplementation = (
     });
     paramsDeclaration = paramsSerializer
       ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
-      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
+      : `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {

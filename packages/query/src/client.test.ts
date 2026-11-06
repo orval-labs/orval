@@ -1279,6 +1279,27 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
     expect(implementation).toContain('): Promise<Pets> =>');
     expect(implementation).not.toContain('PetsOutput');
   });
+
+  it('filters an encoded copy of formatType query values', () => {
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions({
+        queryParams: {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+      }),
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain(
+      'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+    );
+    expect(implementation).toContain('fromObject: filterParams(encodedParams');
+  });
 });
 
 describe('getQueryErrorType with response envelopes', () => {

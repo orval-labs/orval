@@ -14,6 +14,7 @@ import {
   type GetterResponse,
   type OpenApiEncodingObject,
   type OpenApiMediaTypeObject,
+  type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
@@ -36,6 +37,12 @@ import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 import type { FormDataContext } from './object';
 import { getPropertyNamingConvention } from './property-renames';
+import {
+  callFormatTypeFunction,
+  findCustomFormatType,
+  getCustomFormatType,
+  getFormatTypeError,
+} from './scalar';
 
 const getSchemaType = (s: OpenApiSchemaObject) =>
   isBooleanJsonSchema(s)
@@ -643,6 +650,17 @@ function getSchemaFormDataAndUrlEncoded({
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
       if (shouldCast) {
+        const variantFormatType = findCustomFormatType(
+          { anyOf: combinedSchemas } as OpenApiSchemaObject,
+          context,
+        );
+        if (variantFormatType) {
+          throw getFormatTypeError(
+            variantFormatType.format,
+            variantFormatType.config,
+            `the oneOf/anyOf form body \`${propName}\` can't encode it`,
+          );
+        }
         // If the outer schema also has direct properties, those are handled
         // below by the dedicated properties branch. Skip them here to avoid
         // appending the same key twice. Exclude readOnly direct properties
@@ -777,11 +795,14 @@ function getSchemaFormDataAndUrlEncoded({
       const { schema: resolvedItem } = resolveSchemaRef(schemaItems, context);
       const itemSchema = unwrapNullableSchema(resolvedItem, context);
       const itemType = getSchemaType(resolvedItem);
+      const itemEncode = getFormValueEncode(itemSchema, context, 'data');
       if (
         isEffectivelyObjectSchema(itemSchema, context) ||
         isEffectivelyArraySchema(itemSchema, context)
       ) {
         valueStr = 'JSON.stringify(value)';
+      } else if (itemEncode) {
+        valueStr = callFormatTypeFunction(itemEncode, 'value');
       } else if (
         usesFormValueHelper(context) &&
         getDateFormat(itemSchema, context)
@@ -799,6 +820,11 @@ function getSchemaFormDataAndUrlEncoded({
     return withFormValueHelper(
       `${form}${propName}.forEach(value => ${variableName}.append('data', ${valueStr}))\n`,
     );
+  }
+
+  const encode = getFormValueEncode(schema, context, 'data');
+  if (encode) {
+    return `${form}${variableName}.append('data', ${callFormatTypeFunction(encode, propName)})\n`;
   }
 
   if (usesFormValueHelper(context) && getDateFormat(schema, context)) {
@@ -990,6 +1016,27 @@ const isDateOnlySchema = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ) => getDateFormat(schema, context) === 'date';
+
+/**
+ * The `encode` function of a form value that takes a `formatType`, or
+ * undefined for any other value. Fails for such a value without `encode`.
+ */
+const getFormValueEncode = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+  field: string,
+) => {
+  const { schema: resolved } = resolveSchemaRef(schema, context);
+  const formatType = getCustomFormatType(resolved, context.output.override);
+  if (formatType && !formatType.encode) {
+    throw getFormatTypeError(
+      (resolved as OpenApiNonBooleanSchemaObject).format,
+      formatType,
+      `form field \`${field}\` needs \`encode\``,
+    );
+  }
+  return formatType?.encode;
+};
 
 /** A {@link FORM_VALUE_HELPER} call for a value whose schema is known. */
 const formValue = (
@@ -1211,6 +1258,11 @@ function resolveSchemaPropertiesToFormData({
     // form value helper.
     const isDateValue =
       usesFormValueHelper(context) && !!getDateFormat(property, context);
+    const encode = getFormValueEncode(
+      valueSchema,
+      context,
+      `${keyPrefix}${key}`,
+    );
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
       // url-encoded: file/binary fields are plain strings (URLSearchParams)
@@ -1233,6 +1285,14 @@ function resolveSchemaPropertiesToFormData({
         isUrlEncoded && fieldEncoding?.style === 'deepObject';
 
       if (isDeepObject) {
+        const nestedFormatType = findCustomFormatType(valueSchema, context);
+        if (nestedFormatType) {
+          throw getFormatTypeError(
+            nestedFormatType.format,
+            nestedFormatType.config,
+            `the deepObject form field \`${keyPrefix}${key}\` can't encode it`,
+          );
+        }
         // style: deepObject — emit each property as `key[subkey]=value`
         const inner = `${nonOptionalValueKey} && Object.entries(${nonOptionalValueKey}).forEach(([k, v]) => {
           if (v !== undefined && v !== null) {
@@ -1305,7 +1365,15 @@ function resolveSchemaPropertiesToFormData({
           }
         } else {
           const itemType = getSchemaType(resolvedItem);
-          if (
+          const itemEncode = getFormValueEncode(
+            itemSchema,
+            context,
+            `${keyPrefix}${key}`,
+          );
+          if (itemEncode) {
+            valueStr = callFormatTypeFunction(itemEncode, 'value');
+            skipNullItems = isItemNullable(resolvedItem, context);
+          } else if (
             usesFormValueHelper(context) &&
             getDateFormat(resolvedItem, context)
           ) {
@@ -1337,6 +1405,8 @@ function resolveSchemaPropertiesToFormData({
       } else {
         formDataValue = `${valueKey}.forEach(value => ${appendItem(`${variableName}.append(\`${keyPrefix}${escapedKey}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr})`)});\n`;
       }
+    } else if (encode) {
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${callFormatTypeFunction(encode, nonOptionalValueKey)});\n`;
     } else if (isDateValue) {
       formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${formValue(nonOptionalValueKey, property, context)})\n`;
     } else if (

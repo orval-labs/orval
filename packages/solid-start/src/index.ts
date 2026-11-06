@@ -17,6 +17,7 @@ import {
   getFormObjectQueryImplementation,
   getIsBodyVerb,
   getQueryDelimiter,
+  getQueryParamsEncoding,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
@@ -436,10 +437,12 @@ const generateImplementation = (
   const formObjectImplementation =
     formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
 
+  const paramsEncoding = getQueryParamsEncoding(queryParams, 'params');
+
   const queryParamsCode = queryParams
-    ? `const normalizedParams = new URLSearchParams();
+    ? `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const normalizedParams = new URLSearchParams();
 ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '    ')}
-    Object.entries(params || {}).forEach(([key, value]) => {
+    Object.entries(${paramsEncoding ? 'encodedParams' : 'params || {}'}).forEach(([key, value]) => {
       ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}${formObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values

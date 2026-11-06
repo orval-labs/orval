@@ -2725,6 +2725,12 @@ export interface GetterQueryParam {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  /**
+   * Statements encoding the `formatType` values of a copy of the params named
+   * `encodedParams`, or the error for a value without `encode`. Read it
+   * through `getQueryParamsEncoding`.
+   */
+  formatTypeEncoding?: { statements: string[] } | { error: string };
   paramNames?: string[];
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];

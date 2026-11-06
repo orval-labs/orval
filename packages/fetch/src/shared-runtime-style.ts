@@ -20,6 +20,7 @@ import {
   getFormObjectParameters,
   getExplodeParameters,
   getOperationParameters,
+  getQueryParamsEncoding,
   getSchemaValueRef,
   getZodNamespaceImport,
   GetterPropType,
@@ -293,14 +294,17 @@ export const generateSharedRequestFunction = (
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);
+  const paramsEncoding = paramsSerializer
+    ? undefined
+    : getQueryParamsEncoding(queryParams, 'params');
   const serializeCall = paramsSerializer
     ? `${paramsSerializer.name}(params)`
-    : `serializeQuery(params${meta.length > 0 ? `, { ${meta.join(', ')} }` : ''})`;
+    : `serializeQuery(${paramsEncoding ? 'encodedParams' : 'params'}${meta.length > 0 ? `, { ${meta.join(', ')} }` : ''})`;
 
   // Same slot layout as the inline builder: a path-only builder stays byte-identical.
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {\n
 
-  ${queryParams ? `const stringifiedParams = ${serializeCall};` : ''}
+  ${paramsEncoding ? `${paramsEncoding}\n` : ''}${queryParams ? `const stringifiedParams = ${serializeCall};` : ''}
 
   ${
     queryParams

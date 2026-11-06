@@ -457,6 +457,31 @@ describe('generateSharedRequestFunction', () => {
     );
   });
 
+  it('serializes an encoded copy of formatType query values', () => {
+    const implementation = generateSharedRequestFunction(
+      makeVerbOptions({
+        queryParams: {
+          ...STUB_QUERY_PARAMS,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+        props: params,
+      }),
+      makeSharedOptions([
+        { name: 'after', in: 'query', schema: { type: 'string' } },
+      ]),
+    );
+
+    expect(implementation).toContain(
+      [
+        'const encodedParams = { ...params };',
+        'encodedParams.after = toIso(encodedParams.after);',
+        'const stringifiedParams = serializeQuery(encodedParams);',
+      ].join('\n'),
+    );
+  });
+
   it('omits the meta when no query param needs special serialization', () => {
     const implementation = generateSharedRequestFunction(
       makeVerbOptions({ queryParams: STUB_QUERY_PARAMS, props: params }),

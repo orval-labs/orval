@@ -15,6 +15,8 @@ import {
   buildRequestDateSerializeStatements,
   generateRequestDateSerializer,
   generateResponseDateDeserializer,
+  getQueryParamsEncoding,
+  getQueryParamsFormatTypeEncoding,
 } from './date-transform';
 
 const makeContext = (
@@ -6483,5 +6485,85 @@ describe('formatType values', () => {
         contextWith({ date: { type: 'Temporal.PlainDate' } }),
       ),
     ).toBe('');
+  });
+});
+
+describe('query parameter formatType values', () => {
+  const parameter = (name: string, schema: OpenApiSchemaObject) => ({
+    parameter: { name, in: 'query' as const, schema },
+    imports: [],
+  });
+  const contextWith = (
+    formatType: ContextSpec['output']['override']['formatType'],
+  ) => {
+    const context = makeContext();
+    context.output.override.formatType = formatType;
+    return context;
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+
+  it('encodes a copy of the params', () => {
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [
+        parameter('after', dateTime),
+        parameter('days', { type: 'array', items: dateTime }),
+        parameter('page', { type: 'integer' }),
+      ],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs', encode: 'toIso' } }),
+    });
+    expect(
+      getQueryParamsEncoding(
+        {
+          schema: { name: '', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: encoding,
+        },
+        'params',
+      ),
+    ).toBe(
+      [
+        'const encodedParams = { ...params };',
+        'if (encodedParams.after != null) {',
+        "  encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (toIso(encodedParams.after) as unknown as typeof encodedParams.after);",
+        '}',
+        'if (encodedParams.days != null) {',
+        '  encodedParams.days = encodedParams.days.map((item0) => {',
+        '    let value0 = item0;',
+        "    value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('reports a value without encode only when read', () => {
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [parameter('after', dateTime)],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs' } }),
+    });
+    expect(() =>
+      getQueryParamsEncoding(
+        {
+          schema: { name: '', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: encoding,
+        },
+        'params',
+      ),
+    ).toThrow(
+      'override.formatType.date-time (Dayjs): operation `listEvents`, query parameter `after` needs `encode`',
+    );
+    expect(
+      getQueryParamsFormatTypeEncoding({
+        parameters: [parameter('after', dateTime)],
+        operationName: 'listEvents',
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
   });
 });

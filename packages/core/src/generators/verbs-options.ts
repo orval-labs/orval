@@ -39,6 +39,7 @@ import {
   mergeDeep,
   sanitize,
 } from '../utils';
+import { getQueryParamsFormatTypeEncoding } from './date-transform';
 import { filteredVerbs } from './input-filters';
 import { generateMutator } from './mutator';
 
@@ -172,11 +173,20 @@ async function buildVerbOption({
     context,
   });
 
-  const queryParams = getQueryParams({
+  const queryParamsTypes = getQueryParams({
     queryParams: parameters.query,
     operationName: typeName,
     context,
   });
+  const formatTypeEncoding = getQueryParamsFormatTypeEncoding({
+    parameters: parameters.query,
+    operationName: typeName,
+    context,
+  });
+  const queryParams =
+    queryParamsTypes && formatTypeEncoding
+      ? { ...queryParamsTypes, formatTypeEncoding }
+      : queryParamsTypes;
 
   const headers = output.headers
     ? getQueryParams({

@@ -6,11 +6,14 @@ import {
   getFormatTypeConfig,
   getFormatTypeError,
   hasNarrowedPropertyNames,
+  isSchemaParameter,
 } from '../getters';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   GetterBody,
+  GetterParameters,
+  GetterQueryParam,
   GetterResponse,
   OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
@@ -1766,6 +1769,73 @@ export const buildRequestDateSerializeStatements = ({
     depth,
     mode: requestMode,
   }).statements;
+
+/**
+ * The {@link GetterQueryParam.formatTypeEncoding} of an operation's query
+ * parameters. A value without `encode` is an error only for the clients that
+ * read it, since HTTP libraries stringify params themselves.
+ */
+export const getQueryParamsFormatTypeEncoding = ({
+  parameters,
+  operationName,
+  context,
+}: {
+  parameters: GetterParameters['query'];
+  operationName: string;
+  context: ContextSpec;
+}): GetterQueryParam['formatTypeEncoding'] => {
+  let error: string | undefined;
+  const statements = parameters.flatMap(({ parameter }) => {
+    if (!isSchemaParameter(parameter)) return [];
+    const mode: DateTransformMode = {
+      ...requestMode,
+      isLeaf: (schema, context) =>
+        getCustomFormatType(schema, context.output.override) !== undefined,
+      leafStatement: (read, write, schema, context) => {
+        const formatType = getCustomFormatType(schema, context.output.override);
+        if (formatType && !formatType.encode) {
+          error ??= getFormatTypeError(
+            (schema as OpenApiNonBooleanSchemaObject).format,
+            formatType,
+            `operation \`${operationName}\`, query parameter \`${parameter.name}\` needs \`encode\``,
+          ).message;
+        }
+        return requestMode.leafStatement(read, write, schema, context);
+      },
+    };
+    return buildStatements({
+      schema: {
+        type: 'object',
+        properties: { [parameter.name]: parameter.schema },
+      },
+      accessor: 'encodedParams',
+      context,
+      visitedRefs: new Set(),
+      depth: 0,
+      mode,
+    }).statements;
+  });
+  if (error) return { error };
+  return statements.length > 0 ? { statements } : undefined;
+};
+
+/**
+ * Statements declaring `encodedParams`, a copy of the query params
+ * `paramsExpression` with their `formatType` values encoded, for clients that
+ * build the query string themselves. Returns undefined when none needs it.
+ */
+export const getQueryParamsEncoding = (
+  queryParams: GetterQueryParam | undefined,
+  paramsExpression: string,
+): string | undefined => {
+  const encoding = queryParams?.formatTypeEncoding;
+  if (!encoding) return undefined;
+  if ('error' in encoding) throw new Error(encoding.error);
+  return [
+    `const encodedParams = { ...${paramsExpression} };`,
+    ...encoding.statements,
+  ].join('\n');
+};
 
 /**
  * Resolves a request body down to its single JSON content schema. Returns

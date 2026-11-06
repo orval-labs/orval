@@ -1070,3 +1070,31 @@ describe('generateSolidStart — mutator body type', () => {
     );
   });
 });
+
+describe('formatType query values', () => {
+  it('builds the query from an encoded copy of the params', async () => {
+    const verbOptions = makeVerbOptions({
+      queryParams: {
+        ...STUB_QUERY_PARAMS,
+        formatTypeEncoding: {
+          statements: ['encodedParams.after = toIso(encodedParams.after);'],
+        },
+      },
+    });
+    const implementation = await generateImplementation(
+      verbOptions,
+      makeOptions(
+        makeContext([
+          { name: 'after', in: 'query', schema: { type: 'string' } },
+        ]),
+      ),
+    );
+
+    expect(implementation).toContain(
+      'encodedParams.after = toIso(encodedParams.after);',
+    );
+    expect(implementation).toContain(
+      'Object.entries(encodedParams).forEach(([key, value]) => {',
+    );
+  });
+});

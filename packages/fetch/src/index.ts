@@ -22,6 +22,7 @@ import {
   getFormObjectParameters,
   getFormObjectParametersDeclaration,
   getFormObjectQueryImplementation,
+  getQueryParamsEncoding,
   getExplodeParameters,
   getOperationParameters,
   getQueryDelimiter,
@@ -486,6 +487,10 @@ const generateRequestFunctionParts = (
   const formObjectImplementation =
     formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
 
+  const paramsEncoding = paramsSerializer
+    ? undefined
+    : getQueryParamsEncoding(queryParams, 'params');
+
   const normalParamsImplementation = `if (value !== undefined) {
       normalizedParams.append(key, ${stringifyItem('value', hasDateTimeParams(parameterObjects))})
     }`;
@@ -511,9 +516,9 @@ const generateRequestFunctionParts = (
 }\n`
     : `${getUrlExportKeyword} ${getUrlFnName} = (${getUrlFnProps}) => {\n${
         queryParams
-          ? `  const normalizedParams = new URLSearchParams();
+          ? `${paramsEncoding ? `${paramsEncoding}\n` : ''}  const normalizedParams = new URLSearchParams();
 ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n  const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '  const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '  ')}
-  Object.entries(params || {}).forEach(([key, value]) => {
+  Object.entries(${paramsEncoding ? 'encodedParams' : 'params || {}'}).forEach(([key, value]) => {
     ${delimitedArrayImplementation}${explodeArrayImplementation}${arrayFormatImplementation}${deepObjectImplementation}${formObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`

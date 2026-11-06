@@ -1168,6 +1168,37 @@ describe('angular httpResource generator', () => {
         expect(header).not.toContain('new Set<string>(["filters"])');
       });
 
+      it('filters an encoded copy of formatType query values', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            formatTypeEncoding: {
+              statements: ['encodedParams.after = toIso(encodedParams.after);'],
+            },
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(header).toContain(
+          'const encodedParams = { ...params?.() };\nencodedParams.after = toIso(encodedParams.after);',
+        );
+        expect(header).toContain('params: filterParams(encodedParams');
+      });
+
       it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
         const verbOption = createVerbOption({
           queryParams: {

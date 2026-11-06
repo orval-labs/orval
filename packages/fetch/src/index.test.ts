@@ -2043,3 +2043,39 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
     }
   });
 });
+
+describe('generateRequestFunction — formatType query values', () => {
+  const encodedQueryParams = {
+    ...STUB_QUERY_PARAMS,
+    formatTypeEncoding: {
+      statements: ['encodedParams.after = toIso(encodedParams.after);'],
+    },
+  };
+
+  it('builds the query from an encoded copy of the params', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({ queryParams: encodedQueryParams }),
+      makeOptions(makeContext([])),
+    );
+    expect(implementation).toContain(
+      'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+    );
+    expect(implementation).toContain(
+      'Object.entries(encodedParams).forEach(([key, value]) => {',
+    );
+  });
+
+  it('fails for a value without encode', () => {
+    expect(() =>
+      generateImplementation(
+        makeVerbOptions({
+          queryParams: {
+            ...STUB_QUERY_PARAMS,
+            formatTypeEncoding: { error: 'needs `encode`' },
+          },
+        }),
+        makeOptions(makeContext([])),
+      ),
+    ).toThrow('needs `encode`');
+  });
+});

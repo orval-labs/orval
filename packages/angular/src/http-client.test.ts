@@ -715,6 +715,31 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('new Set<string>(["filters"])');
     });
 
+    it('filters an encoded copy of formatType query values', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain(
+        'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+      );
+      expect(impl).toContain(
+        'filterParams({...encodedParams, ...options?.params}',
+      );
+    });
+
     it('replaces the built-in filter with the user-supplied paramsFilter', () => {
       const verbOption = createVerbOption({
         queryParams: {
