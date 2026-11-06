@@ -3979,4 +3979,87 @@ describe('single-file schema output combinations', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  describe('flag-only runtimeValidation overrides', () => {
+    const normalizeWithOverride = async (
+      override: NonNullable<
+        Parameters<typeof normalizeOptionsImpl>[0]['output']
+      > extends infer O
+        ? O extends { override?: infer V }
+          ? V
+          : never
+        : never,
+    ) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const specPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          specPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+        return await normalizeOptions(
+          {
+            input: { target: specPath },
+            output: { target: './generated.ts', override },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it('keeps the global strategy and enabled state of angular tags', async () => {
+      const normalized = await normalizeWithOverride({
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: {
+            strategy: 'both',
+            standardSchema: true,
+            requestBodies: true,
+          },
+        },
+        tags: {
+          pets: { angular: { runtimeValidation: { standardSchema: false } } },
+        },
+      });
+
+      expect(normalized.output.override.tags.pets.angular).toMatchObject({
+        runtimeValidation: {
+          enabled: true,
+          strategy: 'both',
+          standardSchema: false,
+          requestBodies: true,
+        },
+      });
+    });
+
+    it('does not enable validation that is off globally', async () => {
+      const normalized = await normalizeWithOverride({
+        operations: {
+          listPets: {
+            angular: { runtimeValidation: { standardSchema: true } },
+            query: { runtimeValidation: { standardSchema: true } },
+          },
+        },
+      });
+      const operation = normalized.output.override.operations.listPets;
+
+      expect(operation.angular?.runtimeValidation.enabled).toBe(false);
+      expect(operation.query?.runtimeValidation?.enabled).toBe(false);
+    });
+
+    it('keeps the global strategy of query operations', async () => {
+      const normalized = await normalizeWithOverride({
+        query: { runtimeValidation: { strategy: 'both' } },
+        operations: {
+          listPets: { query: { runtimeValidation: { standardSchema: true } } },
+        },
+      });
+
+      expect(
+        normalized.output.override.operations.listPets.query?.runtimeValidation,
+      ).toEqual({ enabled: true, strategy: 'both', standardSchema: true });
+    });
+  });
 });

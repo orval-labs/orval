@@ -37,6 +37,7 @@ import {
   type OperationManifestOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedAngularRuntimeValidation,
   type NormalizedEffectOptions,
   type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
@@ -57,6 +58,8 @@ import {
   type NormalizedSchemaOptions,
   normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
+  resolveAngularRuntimeValidationOverride,
+  resolveRuntimeValidationOverride,
   type OperationOptions,
   operationZodOverrideKeys,
   type OperationZodOverrideKey,
@@ -928,6 +931,9 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
+            angularRuntimeValidation: normalizeAngularRuntimeValidation(
+              outputOptions.override?.angular?.runtimeValidation,
+            ),
           },
           'operations',
           resolveTsconfigPath,
@@ -938,6 +944,9 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
+            angularRuntimeValidation: normalizeAngularRuntimeValidation(
+              outputOptions.override?.angular?.runtimeValidation,
+            ),
           },
           'tags',
           resolveTsconfigPath,
@@ -1596,6 +1605,7 @@ function normalizeOperationsAndTags(
   global: {
     query: NormalizedQueryOptions;
     angularProvideIn?: AngularOptions['provideIn'];
+    angularRuntimeValidation: NormalizedAngularRuntimeValidation;
   },
   source: 'operations' | 'tags',
   resolveTsconfigPath?: TsconfigPathsResolver,
@@ -1668,8 +1678,9 @@ function normalizeOperationsAndTags(
                       angular.provideIn ?? global.angularProvideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
-                    runtimeValidation: normalizeAngularRuntimeValidation(
+                    runtimeValidation: resolveAngularRuntimeValidationOverride(
                       angular.runtimeValidation,
+                      global.angularRuntimeValidation,
                     ),
                     queryObjectSerialization:
                       angular.queryObjectSerialization ?? 'spec',
@@ -2119,7 +2130,11 @@ function normalizeQueryOptions(
     runtimeValidation: isNullish(queryOptions.runtimeValidation)
       ? (globalOptions.runtimeValidation ??
         normalizeRuntimeValidation(undefined))
-      : normalizeRuntimeValidation(queryOptions.runtimeValidation),
+      : resolveRuntimeValidationOverride(
+          queryOptions.runtimeValidation,
+          globalOptions.runtimeValidation ??
+            normalizeRuntimeValidation(undefined),
+        ),
   };
 }
 
