@@ -26,6 +26,14 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
             encodedParams.after,
           ) as unknown as typeof encodedParams.after);
   }
+  if (encodedParams.before != null) {
+    encodedParams.before =
+      typeof encodedParams.before === 'string'
+        ? encodedParams.before
+        : (String(
+            encodedParams.before,
+          ) as unknown as typeof encodedParams.before);
+  }
   if (encodedParams.days != null) {
     encodedParams.days = encodedParams.days.map((item0) => {
       let value0 = item0;
@@ -101,6 +109,12 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
       typeof item0.date === 'string'
         ? Temporal.PlainDate.from(item0.date as unknown as string)
         : item0.date;
+    if (item0.endsAt != null) {
+      item0.endsAt =
+        typeof item0.endsAt === 'string'
+          ? Temporal.Instant.from(item0.endsAt as unknown as string)
+          : item0.endsAt;
+    }
   }
   return data;
 };
@@ -177,6 +191,12 @@ const deserializeCreateEventResponse = (data: Event): Event => {
     typeof data.date === 'string'
       ? Temporal.PlainDate.from(data.date as unknown as string)
       : data.date;
+  if (data.endsAt != null) {
+    data.endsAt =
+      typeof data.endsAt === 'string'
+        ? Temporal.Instant.from(data.endsAt as unknown as string)
+        : data.endsAt;
+  }
   return data;
 };
 
@@ -198,6 +218,12 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
       typeof copy.publishAt === 'string'
         ? copy.publishAt
         : (String(copy.publishAt) as unknown as typeof copy.publishAt);
+  }
+  if (copy.endsAt != null) {
+    copy.endsAt =
+      typeof copy.endsAt === 'string'
+        ? copy.endsAt
+        : (String(copy.endsAt) as unknown as typeof copy.endsAt);
   }
   return copy;
 };
@@ -248,6 +274,12 @@ const deserializeGetEventAtResponse = (data: Event): Event => {
     typeof data.date === 'string'
       ? Temporal.PlainDate.from(data.date as unknown as string)
       : data.date;
+  if (data.endsAt != null) {
+    data.endsAt =
+      typeof data.endsAt === 'string'
+        ? Temporal.Instant.from(data.endsAt as unknown as string)
+        : data.endsAt;
+  }
   return data;
 };
 
@@ -276,6 +308,9 @@ export const addReminders = async (
     reminders.alsoAt.forEach((value) =>
       formData.append(`alsoAt`, String(value)),
     );
+  }
+  if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+    formData.append(`snoozeUntil`, String(reminders.snoozeUntil));
   }
 
   const res = await fetch(getAddRemindersUrl(eventId), {

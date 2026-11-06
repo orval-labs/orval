@@ -16093,6 +16093,15 @@ describe('formatType', () => {
     );
   });
 
+  it('leaves a mapped format unmapped in a union with other types', () => {
+    expect(
+      render(
+        { type: ['string', 'number'], format: 'date-time' },
+        { 'date-time': dayjs },
+      ).zod,
+    ).toBe('zod.union([zod.iso.datetime({}),zod.number()])');
+  });
+
   it('coerces only a zod.date() schema, not the Zod 3 string date check', () => {
     const formatType = { 'date-time': { type: 'Date' } };
     const options = { isZodV4: false, coerce: true };

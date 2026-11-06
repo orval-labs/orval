@@ -10,4 +10,6 @@ export interface CreateEvent {
   startsAt: Temporal.Instant;
   date?: Temporal.PlainDate;
   publishAt?: Temporal.Instant;
+  /** @nullable */
+  endsAt?: Temporal.Instant | null;
 }

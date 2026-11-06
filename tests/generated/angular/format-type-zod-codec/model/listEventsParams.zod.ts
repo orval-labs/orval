@@ -9,6 +9,7 @@ import { isoDatetimeCodec } from '../../../../mutators/zod-codec';
 
 export const ListEventsParams = zod.object({
   after: isoDatetimeCodec.optional(),
+  before: isoDatetimeCodec.nullish(),
   days: zod.array(zod.iso.date()).optional(),
 });
 

@@ -93,6 +93,40 @@ export function getCustomFormatType(
 }
 
 /**
+ * The context for the members of a `type: [...]` union such as
+ * `['string', 'number']`, which keeps a custom `formatType` format a plain
+ * string: only string schemas take a custom type (see
+ * {@link getCustomFormatType}), so nothing converts the union's values.
+ */
+export function getUnionMemberContext(
+  context: ContextSpec,
+  format: string | undefined,
+): ContextSpec {
+  const { override } = context.output;
+  if (
+    !getFormatTypeConfig(format, override) ||
+    isDateFormatType(format, override)
+  ) {
+    return context;
+  }
+  return {
+    ...context,
+    output: {
+      ...context.output,
+      override: {
+        ...override,
+        useDates: false,
+        formatType: Object.fromEntries(
+          Object.entries(override.formatType ?? {}).filter(
+            ([key]) => key !== format,
+          ),
+        ),
+      },
+    },
+  };
+}
+
+/**
  * The first schema in a tree whose values take a custom `formatType` that
  * `matches`, for paths that can only pass such values through unconverted.
  */
@@ -630,7 +664,7 @@ export function getScalar({
           schema: { anyOf: anyOfVariants } as OpenApiSchemaObject,
           name,
           separator: 'anyOf',
-          context,
+          context: getUnionMemberContext(context, schemaFormat),
           nullable,
         });
       }

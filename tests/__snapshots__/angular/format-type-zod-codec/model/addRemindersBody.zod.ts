@@ -10,6 +10,7 @@ import { isoDatetimeCodec } from '../../../../mutators/zod-codec';
 export const AddRemindersBody = zod.object({
   remindAt: isoDatetimeCodec,
   alsoAt: zod.array(isoDatetimeCodec).optional(),
+  snoozeUntil: isoDatetimeCodec.nullish(),
 });
 
 export type AddRemindersBody = zod.input<typeof AddRemindersBody>;

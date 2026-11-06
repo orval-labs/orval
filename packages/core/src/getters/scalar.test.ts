@@ -804,6 +804,23 @@ describe('getScalar with formatType', () => {
 
     expect(result.value).toBe('string');
   });
+
+  it('maps a nullable string but leaves a union with other types unmapped', () => {
+    const ctx = createTestContextSpec({
+      override: {
+        useDates: true,
+        formatType: { 'date-time': { type: 'Dayjs' }, date: { type: 'Date' } },
+      },
+    });
+    const value = (
+      type: ('string' | 'number' | 'null')[],
+      format = 'date-time',
+    ) => getScalar({ item: { type, format }, context: ctx }).value;
+
+    expect(value(['string', 'null'])).toBe('Dayjs | null');
+    expect(value(['string', 'number'])).toBe('string | number');
+    expect(value(['string', 'number'], 'date')).toBe('Date | number');
+  });
 });
 
 describe('findCustomFormatType', () => {

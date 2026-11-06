@@ -13,4 +13,6 @@ export interface Event {
   startsAt: Dayjs;
   date: string;
   status?: EventStatus;
+  /** @nullable */
+  endsAt?: Dayjs | null;
 }

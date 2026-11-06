@@ -355,6 +355,9 @@ export class DateTypeTestService {
     if (reminders.alsoAt !== undefined) {
       reminders.alsoAt.forEach((value) => formData.append(`alsoAt`, value));
     }
+    if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+      formData.append(`snoozeUntil`, reminders.snoozeUntil);
+    }
 
     if (options?.observe === 'events') {
       return this.http.post<TData>(`/events/${eventId}/reminders`, formData, {

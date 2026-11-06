@@ -24,6 +24,7 @@ export const getListEventsResponseMock = (): Event[] =>
       faker.helpers.arrayElement(Object.values(EventStatus)),
       undefined,
     ]),
+    endsAt: faker.helpers.arrayElement([dayjs(faker.date.past()), null]),
   }));
 
 export const getCreateEventResponseMock = (
@@ -37,6 +38,7 @@ export const getCreateEventResponseMock = (
     faker.helpers.arrayElement(Object.values(EventStatus)),
     undefined,
   ]),
+  endsAt: faker.helpers.arrayElement([dayjs(faker.date.past()), null]),
   ...overrideResponse,
 });
 
@@ -51,5 +53,6 @@ export const getGetEventAtResponseMock = (
     faker.helpers.arrayElement(Object.values(EventStatus)),
     undefined,
   ]),
+  endsAt: faker.helpers.arrayElement([dayjs(faker.date.past()), null]),
   ...overrideResponse,
 });

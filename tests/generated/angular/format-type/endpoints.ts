@@ -165,6 +165,14 @@ export class DateTypeTestService {
               encodedParams.after,
             ) as unknown as typeof encodedParams.after);
     }
+    if (encodedParams.before != null) {
+      encodedParams.before =
+        typeof encodedParams.before === 'string'
+          ? encodedParams.before
+          : (((value) => value.toISOString())(
+              encodedParams.before,
+            ) as unknown as typeof encodedParams.before);
+    }
     const filteredParams = filterParams(
       { ...encodedParams, ...options?.params },
       new Set<string>([]),
@@ -302,6 +310,12 @@ export class DateTypeTestService {
     if (reminders.alsoAt !== undefined) {
       reminders.alsoAt.forEach((value) =>
         formData.append(`alsoAt`, ((value) => value.toISOString())(value)),
+      );
+    }
+    if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+      formData.append(
+        `snoozeUntil`,
+        ((value) => value.toISOString())(reminders.snoozeUntil),
       );
     }
 

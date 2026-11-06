@@ -13,6 +13,7 @@ export const CreateEvent = zod.object({
   startsAt: isoDatetimeCodec,
   date: zod.iso.date().optional(),
   publishAt: isoDatetimeCodec.prefault(createEventPublishAtDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 
 export type CreateEvent = zod.input<typeof CreateEvent>;

@@ -16,6 +16,10 @@ export const Reminders = zod.object({
       zod.iso.datetime({ offset: true }).transform((value) => dayjs(value)),
     )
     .optional(),
+  snoozeUntil: zod.iso
+    .datetime({ offset: true })
+    .transform((value) => dayjs(value))
+    .nullish(),
 });
 
 export type Reminders = zod.input<typeof Reminders>;

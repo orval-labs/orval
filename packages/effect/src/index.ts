@@ -17,6 +17,7 @@ import {
   getNumberWord,
   getReferencedFormatTypeImports,
   getRequiredKeys,
+  getUnionMemberContext,
   isBoolean,
   isDateFormatType,
   isNumber,
@@ -483,7 +484,7 @@ export const generateEffectValidationSchemaDefinition = (
             ...(schema as Record<string, unknown>),
             type: t,
           } as OpenApiSchemaObject,
-          context,
+          getUnionMemberContext(context, schema.format),
           name,
           strict,
           {

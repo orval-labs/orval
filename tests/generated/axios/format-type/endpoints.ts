@@ -88,6 +88,12 @@ export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
         formData.append(`alsoAt`, ((value) => value.toISOString())(value)),
       );
     }
+    if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+      formData.append(
+        `snoozeUntil`,
+        ((value) => value.toISOString())(reminders.snoozeUntil),
+      );
+    }
 
     return axiosInstance.post(
       `/events/${eventId}/reminders`,

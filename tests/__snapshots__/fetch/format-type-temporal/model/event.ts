@@ -12,4 +12,6 @@ export interface Event {
   startsAt: Temporal.Instant;
   date: Temporal.PlainDate;
   status?: EventStatus;
+  /** @nullable */
+  endsAt?: Temporal.Instant | null;
 }

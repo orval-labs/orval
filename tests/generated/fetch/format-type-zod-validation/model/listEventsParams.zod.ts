@@ -12,6 +12,10 @@ export const ListEventsParams = zod.object({
     .datetime({ offset: true })
     .transform((value) => dayjs(value))
     .optional(),
+  before: zod.iso
+    .datetime({ offset: true })
+    .transform((value) => dayjs(value))
+    .nullish(),
   days: zod.array(zod.date()).optional(),
 });
 

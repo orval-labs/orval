@@ -87,6 +87,12 @@ export const addReminders = (
       formData.append(`alsoAt`, ((value) => value.toISOString())(value)),
     );
   }
+  if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+    formData.append(
+      `snoozeUntil`,
+      ((value) => value.toISOString())(reminders.snoozeUntil),
+    );
+  }
 
   return axios.post(`/events/${eventId}/reminders`, formData, options);
 };

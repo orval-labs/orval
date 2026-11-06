@@ -18,6 +18,10 @@ export const Event = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(eventStatusDefault),
+  endsAt: zod.iso
+    .datetime({ offset: true })
+    .transform((value) => dayjs(value))
+    .nullish(),
 });
 
 export type Event = zod.input<typeof Event>;

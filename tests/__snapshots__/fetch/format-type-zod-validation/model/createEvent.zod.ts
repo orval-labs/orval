@@ -18,6 +18,10 @@ export const CreateEvent = zod.object({
     .datetime({ offset: true })
     .transform((value) => dayjs(value))
     .prefault(createEventPublishAtDefault),
+  endsAt: zod.iso
+    .datetime({ offset: true })
+    .transform((value) => dayjs(value))
+    .nullish(),
 });
 
 export type CreateEvent = zod.input<typeof CreateEvent>;

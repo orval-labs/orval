@@ -10,6 +10,7 @@ import * as zod from 'zod';
 
 export const ListEventsQueryParams = zod.object({
   after: zod.iso.datetime({ offset: true }).transform(dayjs).optional(),
+  before: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
   days: zod.array(zod.iso.date()).optional(),
 });
 
@@ -23,6 +24,7 @@ export const ListEventsResponseItem = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(listEventsResponseStatusDefault),
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 export const ListEventsResponse = zod.array(ListEventsResponseItem);
 
@@ -36,6 +38,7 @@ export const CreateEventBody = zod.object({
     .datetime({ offset: true })
     .transform(dayjs)
     .prefault(createEventBodyPublishAtDefault),
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 
 export const createEventResponseStatusDefault = `DRAFT`;
@@ -48,6 +51,7 @@ export const CreateEventResponse = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(createEventResponseStatusDefault),
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 
 export const GetEventAtParams = zod.object({
@@ -64,6 +68,7 @@ export const GetEventAtResponse = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(getEventAtResponseStatusDefault),
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 
 export const AddRemindersParams = zod.object({
@@ -75,6 +80,7 @@ export const AddRemindersBody = zod.object({
   alsoAt: zod
     .array(zod.iso.datetime({ offset: true }).transform(dayjs))
     .optional(),
+  snoozeUntil: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 
 export const AddRemindersResponse = zod.void();

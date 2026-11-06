@@ -8,4 +8,6 @@
 export interface Reminders {
   remindAt: Temporal.Instant;
   alsoAt?: Temporal.Instant[];
+  /** @nullable */
+  snoozeUntil?: Temporal.Instant | null;
 }

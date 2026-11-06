@@ -7,5 +7,7 @@
 
 export type ListEventsParams = {
   after?: Temporal.Instant;
+  /** @nullable */
+  before?: Temporal.Instant | null;
   days?: Temporal.PlainDate[];
 };

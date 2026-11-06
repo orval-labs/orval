@@ -8,5 +8,7 @@ import type { Dayjs } from 'dayjs';
 
 export type ListEventsParams = {
   after?: Dayjs;
+  /** @nullable */
+  before?: Dayjs | null;
   days?: string[];
 };

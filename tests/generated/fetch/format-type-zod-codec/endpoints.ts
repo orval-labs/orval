@@ -10,6 +10,7 @@ import { isoDatetimeCodec } from '../../../mutators/zod-codec';
 
 export const ListEventsQueryParams = zod.object({
   after: isoDatetimeCodec.optional(),
+  before: isoDatetimeCodec.nullish(),
   days: zod.array(zod.iso.date()).optional(),
 });
 
@@ -23,6 +24,7 @@ export const ListEventsResponseItem = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(listEventsResponseStatusDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 export const ListEventsResponse = zod.array(ListEventsResponseItem);
 
@@ -33,6 +35,7 @@ export const CreateEventBody = zod.object({
   startsAt: isoDatetimeCodec,
   date: zod.iso.date().optional(),
   publishAt: isoDatetimeCodec.prefault(createEventBodyPublishAtDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 
 export const createEventResponseStatusDefault = `DRAFT`;
@@ -45,6 +48,7 @@ export const CreateEventResponse = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(createEventResponseStatusDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 
 export const GetEventAtParams = zod.object({
@@ -61,6 +65,7 @@ export const GetEventAtResponse = zod.object({
   status: zod
     .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
     .default(getEventAtResponseStatusDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 
 export const AddRemindersParams = zod.object({
@@ -70,6 +75,7 @@ export const AddRemindersParams = zod.object({
 export const AddRemindersBody = zod.object({
   remindAt: isoDatetimeCodec,
   alsoAt: zod.array(isoDatetimeCodec).optional(),
+  snoozeUntil: isoDatetimeCodec.nullish(),
 });
 
 export const AddRemindersResponse = zod.void();

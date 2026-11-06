@@ -271,6 +271,9 @@ export const addReminders = async (
       formData.append(`alsoAt`, toFormValue(value)),
     );
   }
+  if (reminders.snoozeUntil !== undefined && reminders.snoozeUntil !== null) {
+    formData.append(`snoozeUntil`, toFormValue(reminders.snoozeUntil));
+  }
 
   const res = await fetch(getAddRemindersUrl(eventId), {
     ...options,

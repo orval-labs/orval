@@ -12,6 +12,11 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: before
+          in: query
+          schema:
+            type: [string, 'null']
+            format: date-time
         - name: days
           in: query
           schema:
@@ -100,6 +105,9 @@ components:
           format: date
         status:
           $ref: '#/components/schemas/EventStatus'
+        endsAt:
+          type: [string, 'null']
+          format: date-time
     CreateEvent:
       type: object
       required:
@@ -118,6 +126,9 @@ components:
           type: string
           format: date-time
           default: '2025-01-01T09:00:00Z'
+        endsAt:
+          type: [string, 'null']
+          format: date-time
     Reminders:
       type: object
       required:
@@ -131,6 +142,9 @@ components:
           items:
             type: string
             format: date-time
+        snoozeUntil:
+          type: [string, 'null']
+          format: date-time
     EventStatus:
       type: string
       enum: [DRAFT, PUBLISHED, CANCELLED]

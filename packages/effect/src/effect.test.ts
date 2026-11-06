@@ -1349,6 +1349,15 @@ describe('formatType', () => {
     );
   });
 
+  it('leaves a mapped format unmapped in a union with other types', () => {
+    const union = render(
+      { type: ['string', 'number'], format: 'date-time' },
+      { 'date-time': dayjs },
+    ).effect;
+    expect(union).toContain('S.Number');
+    expect(union).not.toContain('DayjsFromString');
+  });
+
   it('decodes a default that holds a mapped format', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',

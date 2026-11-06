@@ -13,6 +13,7 @@ export const CreateEventBody = zod.object({
   startsAt: isoDatetimeCodec,
   date: zod.iso.date().optional(),
   publishAt: isoDatetimeCodec.prefault(createEventBodyPublishAtDefault),
+  endsAt: isoDatetimeCodec.nullish(),
 });
 
 export type CreateEventBody = zod.input<typeof CreateEventBody>;

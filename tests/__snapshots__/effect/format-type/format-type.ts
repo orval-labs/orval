@@ -10,6 +10,7 @@ import { DayjsFromString } from '../../../mutators/effect-dayjs';
 
 export const ListEventsQueryParams = S.Struct({
   after: S.optional(DayjsFromString),
+  before: S.optional(S.NullOr(DayjsFromString)),
   days: S.optional(S.Array(S.String.check(S.isPattern(/^\d{4}-\d{2}-\d{2}$/)))),
 });
 
@@ -23,6 +24,7 @@ export const ListEventsResponseItem = S.Struct({
   status: S.Literals(['DRAFT', 'PUBLISHED', 'CANCELLED']).pipe(
     S.withDecodingDefaultType(Effect.succeed(listEventsResponseStatusDefault)),
   ),
+  endsAt: S.optional(S.NullOr(DayjsFromString)),
 });
 export const ListEventsResponse = S.Array(ListEventsResponseItem);
 
@@ -35,6 +37,7 @@ export const CreateEventBody = S.Struct({
   publishAt: DayjsFromString.pipe(
     S.withDecodingDefault(Effect.succeed(createEventBodyPublishAtDefault)),
   ),
+  endsAt: S.optional(S.NullOr(DayjsFromString)),
 });
 
 export const GetEventAtParams = S.Struct({
@@ -51,6 +54,7 @@ export const GetEventAtResponse = S.Struct({
   status: S.Literals(['DRAFT', 'PUBLISHED', 'CANCELLED']).pipe(
     S.withDecodingDefaultType(Effect.succeed(getEventAtResponseStatusDefault)),
   ),
+  endsAt: S.optional(S.NullOr(DayjsFromString)),
 });
 
 export const AddRemindersParams = S.Struct({
@@ -60,4 +64,5 @@ export const AddRemindersParams = S.Struct({
 export const AddRemindersBody = S.Struct({
   remindAt: DayjsFromString,
   alsoAt: S.optional(S.Array(DayjsFromString)),
+  snoozeUntil: S.optional(S.NullOr(DayjsFromString)),
 });

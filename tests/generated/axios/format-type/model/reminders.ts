@@ -9,4 +9,6 @@ import type { Dayjs } from 'dayjs';
 export interface Reminders {
   remindAt: Dayjs;
   alsoAt?: Dayjs[];
+  /** @nullable */
+  snoozeUntil?: Dayjs | null;
 }

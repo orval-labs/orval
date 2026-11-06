@@ -11,4 +11,6 @@ export interface CreateEvent {
   startsAt: Dayjs;
   date?: string;
   publishAt?: Dayjs;
+  /** @nullable */
+  endsAt?: Dayjs | null;
 }
