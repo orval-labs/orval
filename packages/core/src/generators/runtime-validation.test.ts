@@ -13,6 +13,8 @@ import {
   isPrimitiveResponseType,
   normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
+  resolveAngularRuntimeValidationOverride,
+  resolveRuntimeValidationOverride,
   rewriteImportsForResponseValidation,
 } from './runtime-validation';
 import { getStandardSchemaHelper } from './standard-schema-helper';
@@ -639,5 +641,31 @@ describe('standard schema helper source', () => {
 
   it('uses no shadowable global type names', () => {
     expect(helper).not.toMatch(/\b(PropertyKey|ReadonlyArray|PromiseLike)\b/);
+  });
+});
+
+describe('runtime validation overrides without a standardSchema value', () => {
+  const off = { enabled: false, strategy: 'throw' } as const;
+
+  it('treats an empty override as a new enabled configuration', () => {
+    expect(resolveRuntimeValidationOverride({}, off)).toEqual({
+      enabled: true,
+      strategy: 'throw',
+    });
+    expect(
+      resolveAngularRuntimeValidationOverride(
+        {},
+        {
+          ...off,
+          requestBodies: false,
+        },
+      ),
+    ).toEqual({ enabled: true, strategy: 'throw', requestBodies: false });
+  });
+
+  it('keeps inheriting for an explicit standardSchema flag', () => {
+    expect(
+      resolveRuntimeValidationOverride({ standardSchema: true }, off),
+    ).toEqual({ enabled: false, strategy: 'throw', standardSchema: true });
   });
 });

@@ -269,21 +269,16 @@ export const normalizeAngularRuntimeValidation = (
 };
 
 /**
- * A tag or operation override that carries only the `standardSchema` flag
- * leaves the enabled state and strategy to the value it overrides.
+ * A tag or operation override that carries only an explicit `standardSchema`
+ * flag leaves the enabled state and strategy to the value it overrides.
  */
 const isFlagOnlyOverride = (
   value: RuntimeValidation | AngularRuntimeValidation,
-): value is { standardSchema?: boolean } =>
+): value is { standardSchema: boolean } =>
   typeof value === 'object' &&
+  value.standardSchema !== undefined &&
   value.strategy === undefined &&
   !('requestBodies' in value && value.requestBodies !== undefined);
-
-const withStandardSchemaFlag = <T extends NormalizedRuntimeValidation>(
-  inherited: T,
-  standardSchema: boolean | undefined,
-): T =>
-  standardSchema === undefined ? inherited : { ...inherited, standardSchema };
 
 /**
  * Normalizes a per-tag or per-operation `runtimeValidation` override against
@@ -295,7 +290,7 @@ export const resolveRuntimeValidationOverride = (
   inherited: NormalizedRuntimeValidation,
 ): NormalizedRuntimeValidation =>
   value !== undefined && isFlagOnlyOverride(value)
-    ? withStandardSchemaFlag(inherited, value.standardSchema)
+    ? { ...inherited, standardSchema: value.standardSchema }
     : normalizeRuntimeValidation(value);
 
 /**
@@ -306,7 +301,7 @@ export const resolveAngularRuntimeValidationOverride = (
   inherited: NormalizedAngularRuntimeValidation,
 ): NormalizedAngularRuntimeValidation =>
   value !== undefined && isFlagOnlyOverride(value)
-    ? withStandardSchemaFlag(inherited, value.standardSchema)
+    ? { ...inherited, standardSchema: value.standardSchema }
     : normalizeAngularRuntimeValidation(value);
 
 /**
