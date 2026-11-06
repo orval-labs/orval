@@ -553,6 +553,22 @@ describe('standardSchema parse-fn with a composed schema', () => {
 });
 
 describe('getStandardSchemaHelper detection', () => {
+  it('ignores a call quoted in a JSDoc description', () => {
+    expect(
+      getStandardSchemaHelper(
+        '/**\n * Use orvalParseStandardSchema(Pets, value) here\n */\nexport const listPets = () => 1;',
+      ),
+    ).toBe('');
+  });
+
+  it('still finds a call after a JSDoc block', () => {
+    expect(
+      getStandardSchemaHelper(
+        '/** doc */\nconst x = orvalParseStandardSchema(P, y);',
+      ),
+    ).toContain('function orvalParseStandardSchema');
+  });
+
   it('ignores a longer identifier that ends in a helper name', () => {
     expect(getStandardSchemaHelper('myorvalParseStandardSchema(P, x)')).toBe(
       '',

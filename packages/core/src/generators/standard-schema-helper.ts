@@ -99,14 +99,18 @@ const STANDARD_SCHEMA_PARSE_HELPER = `function ${PARSE_NAME}<O>(
 const callPattern = (name: string): RegExp =>
   new RegExp(`(?<![A-Za-z0-9_$])${name}\\(`);
 
+// An operation description is emitted as a JSDoc block and may quote a call.
+const JSDOC_BLOCK = /\/\*\*[\s\S]*?\*\//g;
+
 /**
  * The helper declarations a generated file needs, from the calls its source
  * makes: the safe variant for any call (the throwing variant is built on it),
  * the throwing variant only when called, so no unused local is emitted.
  */
 export const getStandardSchemaHelper = (implementation: string): string => {
-  const callsParse = callPattern(PARSE_NAME).test(implementation);
-  const callsSafeParse = callPattern(SAFE_NAME).test(implementation);
+  const code = implementation.replaceAll(JSDOC_BLOCK, '');
+  const callsParse = callPattern(PARSE_NAME).test(code);
+  const callsSafeParse = callPattern(SAFE_NAME).test(code);
 
   if (!callsParse && !callsSafeParse) return '';
 
