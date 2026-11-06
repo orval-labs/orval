@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import { jsDoc } from './doc';
 
 describe('jsDoc', () => {
@@ -144,6 +145,26 @@ describe('jsDoc', () => {
     ).toBe(String.raw`/**
  * line with /* comment
  * line with *\/ end
+ */
+`);
+  });
+
+  it('escapes */ in values returned by the jsDoc filter', () => {
+    const context = createTestContextSpec({
+      override: {
+        jsDoc: {
+          filter: (schema) =>
+            Object.entries(schema).map(([key, value]) => ({
+              key,
+              value: String(value),
+            })),
+        },
+      },
+    });
+
+    expect(jsDoc({ pattern: '^/files/.*/raw$' }, false, context))
+      .toBe(String.raw`/**
+ * @pattern ^/files/.*\/raw$
  */
 `);
   });

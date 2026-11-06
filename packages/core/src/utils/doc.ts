@@ -216,6 +216,6 @@ export function keyValuePairsToJsDoc(
   }[],
 ) {
   return renderJsDocBlock(
-    keyValues.map(({ key, value }) => `@${key} ${value}`),
+    keyValues.map(({ key, value }) => `@${key} ${escapeJsDoc(String(value))}`),
   );
 }
