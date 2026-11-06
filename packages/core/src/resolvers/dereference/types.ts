@@ -31,6 +31,12 @@ export interface DereferenceOptions {
 }
 
 /**
+ * Called for each schema reached, with the enclosing `$ref`s. A cache hit
+ * reports its own node but not the nodes inside it. May throw to stop.
+ */
+export type VisitListener = (parents: readonly string[] | undefined) => void;
+
+/**
  * A set of refs as a bitset over the ids the expansion cache hands out,
  * starting at word `lo`, so a union costs a few words and a set of nearby ids
  * stays small however many refs the document has.
