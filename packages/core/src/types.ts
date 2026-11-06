@@ -1625,12 +1625,8 @@ export type RuntimeValidation =
       /** @default 'throw' */
       strategy?: RuntimeValidationStrategy;
       /**
-       * Validate through the Standard Schema interface (`schema['~standard']`)
-       * instead of Zod's `parse`/`safeParse`, so a Standard Schema compliant
-       * value works at the call site. Failures throw a `StandardSchemaError`
-       * with the spec's `issues`. Orval's generated schemas stay Zod, and an
-       * inline array response is still composed with `zod.array()`, so Zod
-       * remains a runtime dependency of the generated client.
+       * Validate through the Standard Schema interface instead of Zod's
+       * `parse`/`safeParse`. Failures throw a `StandardSchemaError` with `issues`.
        */
       standardSchema?: boolean;
     };
