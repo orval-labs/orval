@@ -2192,8 +2192,10 @@ const buildHttpResourceExtraFile = (
       );
     });
 
-  // `paramsSerializer` and `paramsFilter` are attached to every operation, so
-  // a resource file without query params would otherwise import them unused.
+  // Only the mutators the file references are imported. A configured
+  // `paramsSerializer` or `paramsFilter` is attached to every operation, so a
+  // resource file without query params would otherwise import it unused; the
+  // same filter covers the resource mutator, `formData` and `formUrlEncoded`.
   const mutators = filterUsedMutators(candidateMutators, implementation);
 
   const mutatorImports =

@@ -95,8 +95,10 @@ interface GenerateMutatorImportsOptions {
 }
 
 /**
- * The mutators whose import binding `implementation` references, so a file
- * only imports the mutators its own code calls. Scans the source once.
+ * The mutators whose name `implementation` references as an identifier, so a
+ * file only imports the mutators its own code uses. Matching is by name: the
+ * same name inside a comment or string literal also counts, which can only
+ * keep an import, never drop one. Scans the source once.
  */
 export function filterUsedMutators(
   mutators: GeneratorMutator[],
