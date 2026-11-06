@@ -4045,6 +4045,18 @@ describe('single-file schema output combinations', () => {
       expect(operation?.query?.runtimeValidation?.enabled).toBe(false);
     });
 
+    it('enables validation from an output-level standardSchema flag alone', async () => {
+      const normalized = await normalizeWithOverride({
+        query: { runtimeValidation: { standardSchema: true } },
+      });
+
+      expect(normalized.output.override.query.runtimeValidation).toEqual({
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      });
+    });
+
     it('keeps the global strategy of query operations', async () => {
       const normalized = await normalizeWithOverride({
         query: { runtimeValidation: { strategy: 'both' } },

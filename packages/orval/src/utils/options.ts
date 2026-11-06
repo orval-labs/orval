@@ -2127,14 +2127,17 @@ function normalizeQueryOptions(
       : {}),
     // `globalOptions` is already a NormalizedQueryOptions, so an inherited value
     // is preserved as-is; only a per-operation/per-tag raw override is normalized.
+    // Without an inherited value this is the output-level setting, which is new
+    // configuration rather than an override of one.
     runtimeValidation: isNullish(queryOptions.runtimeValidation)
       ? (globalOptions.runtimeValidation ??
         normalizeRuntimeValidation(undefined))
-      : resolveRuntimeValidationOverride(
-          queryOptions.runtimeValidation,
-          globalOptions.runtimeValidation ??
-            normalizeRuntimeValidation(undefined),
-        ),
+      : globalOptions.runtimeValidation
+        ? resolveRuntimeValidationOverride(
+            queryOptions.runtimeValidation,
+            globalOptions.runtimeValidation,
+          )
+        : normalizeRuntimeValidation(queryOptions.runtimeValidation),
   };
 }
 
