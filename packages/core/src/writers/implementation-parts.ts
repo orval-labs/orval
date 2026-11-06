@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateMutatorImports, isMutatorUsed } from '../generators';
+import { filterUsedMutators, generateMutatorImports } from '../generators';
 import type {
   GeneratorDependency,
   GeneratorImport,
@@ -101,22 +101,20 @@ export function generateTargetMutatorImports(
     });
   }
 
-  for (const mutators of [
+  const optionalMutators = [
     target.clientMutators,
     target.formData,
     target.formUrlEncoded,
     target.paramsSerializer,
     target.paramsFilter,
     target.fetchReviver,
-  ]) {
-    if (mutators) {
-      data += generateMutatorImports({
-        mutators: mutators.filter((mutator) =>
-          isMutatorUsed(mutator, implementation),
-        ),
-        oneMore,
-      });
-    }
+  ].flatMap((mutators) => mutators ?? []);
+
+  if (optionalMutators.length > 0) {
+    data += generateMutatorImports({
+      mutators: filterUsedMutators(optionalMutators, implementation),
+      oneMore,
+    });
   }
 
   return data;

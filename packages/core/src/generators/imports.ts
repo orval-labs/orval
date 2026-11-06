@@ -95,14 +95,16 @@ interface GenerateMutatorImportsOptions {
 }
 
 /**
- * Whether `implementation` references the mutator's import binding, so a
- * file only imports the mutators its own code calls.
+ * The mutators whose import binding `implementation` references, so a file
+ * only imports the mutators its own code calls. Scans the source once.
  */
-export function isMutatorUsed(
-  mutator: GeneratorMutator,
+export function filterUsedMutators(
+  mutators: GeneratorMutator[],
   implementation: string,
-): boolean {
-  return getReferencedIdentifiers(implementation).has(mutator.name);
+): GeneratorMutator[] {
+  const referencedIdentifiers = getReferencedIdentifiers(implementation);
+
+  return mutators.filter((mutator) => referencedIdentifiers.has(mutator.name));
 }
 
 export function generateMutatorImports({
@@ -112,12 +114,9 @@ export function generateMutatorImports({
 }: GenerateMutatorImportsOptions) {
   let imports = '';
   for (const mutator of uniqueWith(
-    mutators,
+    implementation ? filterUsedMutators(mutators, implementation) : mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   )) {
-    if (implementation && !isMutatorUsed(mutator, implementation)) {
-      continue;
-    }
     // Relative mutator paths are written relative to the output root, so in
     // tags-split mode (`oneMore`) they need an extra `../` to reach the file
     // from the deeper per-tag directory. Bare specifiers (e.g. `@scope/axios`)

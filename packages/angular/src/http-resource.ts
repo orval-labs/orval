@@ -26,7 +26,7 @@ import {
   getOperationTagKey,
   getSchemasImportPath,
   getTagKey,
-  isMutatorUsed,
+  filterUsedMutators,
   isObject,
   isSyntheticDefaultImportsAllow,
   isTextContentType,
@@ -2156,7 +2156,7 @@ const buildHttpResourceExtraFile = (
     isSyntheticDefaultImportsAllow(output.tsconfig),
   );
 
-  const mutators = Object.values(verbOptions)
+  const candidateMutators = Object.values(verbOptions)
     .filter((verbOption) =>
       isRetrievalVerb(
         verbOption.verb,
@@ -2172,23 +2172,20 @@ const buildHttpResourceExtraFile = (
           ? verbOption.mutator
           : undefined;
 
-      return (
-        [
-          resourceMutator,
-          verbOption.formData,
-          verbOption.formUrlEncoded,
-          verbOption.paramsSerializer,
-          verbOption.paramsFilter,
-        ]
-          .filter(
-            (value): value is NonNullable<typeof value> => value !== undefined,
-          )
-          // `paramsSerializer` and `paramsFilter` are attached to every
-          // operation, so a resource file without query params would
-          // otherwise import them unused.
-          .filter((mutator) => isMutatorUsed(mutator, implementation))
+      return [
+        resourceMutator,
+        verbOption.formData,
+        verbOption.formUrlEncoded,
+        verbOption.paramsSerializer,
+        verbOption.paramsFilter,
+      ].filter(
+        (value): value is NonNullable<typeof value> => value !== undefined,
       );
     });
+
+  // `paramsSerializer` and `paramsFilter` are attached to every operation, so
+  // a resource file without query params would otherwise import them unused.
+  const mutators = filterUsedMutators(candidateMutators, implementation);
 
   const mutatorImports =
     mutators.length > 0
