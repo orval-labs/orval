@@ -2197,7 +2197,7 @@ Force a specific version for generated hooks.
 
 ### runtimeValidation
 
-**Type:** `boolean | { strategy: 'throw' | 'both' }`
+**Type:** `boolean | { strategy?: 'throw' | 'both'; standardSchema?: boolean }`
 **Default:** `false`
 
 Enable Zod runtime validation for `angular-query` responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for primitive types and custom mutators.
@@ -2206,7 +2206,9 @@ This option only drives the Angular `HttpClient` pipeline that `angular-query` g
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
-The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown — so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
+The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown — so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
+
+Set `standardSchema: true` to validate through the Standard Schema interface instead; see [`standardSchema`](#standardschema) under `override.fetch`.
 
 ---
 
@@ -2757,7 +2759,7 @@ scope clearer.
 
 ### runtimeValidation
 
-**Type:** `boolean | { strategy?: 'throw' | 'both'; requestBodies?: boolean }`
+**Type:** `boolean | { strategy?: 'throw' | 'both'; requestBodies?: boolean; standardSchema?: boolean }`
 **Default:** `false`
 
 Enable Zod runtime validation for Angular output. Requires
@@ -2775,7 +2777,7 @@ log before re-throwing.
 The boolean form is preserved for backward compatibility: `true` ≡
 `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first
 logged through `console.error('[orval] <operation> response validation failed', error)`
-with the raw `ZodError`, then re-thrown — so the failure still surfaces through
+with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown — so the failure still surfaces through
 the client's native error channel (RxJS error / `resource.error()` signal) while
 giving production visibility into contract drift.
 
@@ -2827,6 +2829,8 @@ Zod schema outputs the converted keys, and the server expects the spec's keys.
 Orval sends such a body exactly as the caller passed it, without validation,
 defaults or transforms. The parameter type already uses the spec's keys.
 Bodies whose keys already match the convention are parsed as usual.
+
+Set `standardSchema: true` to validate through the Standard Schema interface instead; see [`standardSchema`](#standardschema) under `override.fetch`. Request bodies use the same helper.
 
 ### queryObjectSerialization
 
@@ -3435,16 +3439,47 @@ touches only the schema-declared `format: date`/`date-time` fields.
 
 ### runtimeValidation
 
-**Type:** `boolean | { strategy: 'throw' | 'both' }`
+**Type:** `boolean | { strategy?: 'throw' | 'both'; standardSchema?: boolean }`
 **Default:** `false`
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
 
 This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for primitive response types (`number`, `string`, `boolean`) and for ndjson streams, neither of which has a generated schema to parse against.
 
-The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
+The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
+
+#### standardSchema
+
+**Type:** `boolean`
+**Default:** `false`
+
+Validate through the [Standard Schema](https://standardschema.dev) interface instead of Zod's `parse`/`safeParse`. Generated code calls `schema['~standard'].validate()` through a small helper that is declared once per generated file and needs no import. The flag is available on every `runtimeValidation` option and leaves the default output unchanged when off. It can be switched off again for a tag or an operation with `standardSchema: false`.
+
+Which option each client reads:
+
+| Client | Option |
+|--------|--------|
+| `fetch`, `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` (with `httpClient: 'fetch'`) | `override.fetch.runtimeValidation` |
+| `angular-query` | `override.query.runtimeValidation` |
+| `angular` | `override.angular.runtimeValidation` (also covers `requestBodies`) |
+
+```ts
+override: {
+  fetch: {
+    runtimeValidation: { strategy: 'both', standardSchema: true },
+  },
+}
+```
+
+A failure throws an `Error` named `StandardSchemaError` with the spec's `issues` array and a message of the form `0.id: <issue message>`. Under `strategy: 'both'` that error is what gets logged through `console.error`. Validation must be synchronous: a schema that returns a promise throws a `TypeError`.
+
+Limitations:
+
+- Orval still generates Zod schemas (`schemas: { type: 'zod' }`). Calling a Valibot or ArkType value means supplying the schema values yourself.
+- An inline array response is validated through `zod.array(Item)`, and `useDatesTransform` wraps a mutator's schema with `zod.pipe(...)`. Zod therefore remains a runtime dependency of the generated client even with the flag on.
+- A custom mutator receives the schema value as before and has to validate it on its own, through `~standard` for a non-Zod schema.
 
 ### arrayFormat
 

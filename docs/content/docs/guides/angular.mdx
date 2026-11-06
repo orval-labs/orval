@@ -1089,6 +1089,10 @@ passed, without validation, defaults or transforms. See
 [`runtimeValidation.requestBodies`](/docs/reference/configuration/output#requestbodies)
 for the details.
 
+To validate through the Standard Schema interface instead of Zod's `parse`, add
+`standardSchema: true` to the same object. See
+[`standardSchema`](/docs/reference/configuration/output#standardschema).
+
 Without the option, validate before calling the generated client:
 
 ```ts
