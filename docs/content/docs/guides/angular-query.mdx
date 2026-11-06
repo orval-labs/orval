@@ -394,8 +394,8 @@ const request$ = http.get<PetsOutput>(url, { params: httpParams }).pipe(
 
 Use `runtimeValidation: true` to keep the existing `Schema.parse()` behavior.
 Add `standardSchema: true` to validate through the Standard Schema interface; see [`standardSchema`](/docs/reference/configuration/output#standardschema).
-Validation is automatically skipped for primitive response types (`string`,
-`void`, etc.) and for operations using a custom mutator.
+Validation is automatically skipped for `void`/`unknown` responses, non-JSON
+responses and operations using a custom mutator.
 
 A validated request function is typed with the schema's `zod.output` alias
 (`Promise<PetsOutput>` above), since that is what the parse returns at runtime —
