@@ -1225,6 +1225,8 @@ void resultIsAny;
     {
       includeHttpResponseReturnType = false,
       hasSecondArg = true,
+      hasThirdArg = false,
+      includeHttpErrorResponse = false,
       mutatorName = 'customFetch',
       omitMutatorName = false,
     } = {},
@@ -1238,7 +1240,7 @@ void resultIsAny;
       hasErrorType: false,
       errorTypeName: 'ErrorType',
       hasSecondArg,
-      hasThirdArg: false,
+      hasThirdArg,
       isHook: false,
     };
     options.context.output.override.mutator = {
@@ -1250,7 +1252,15 @@ void resultIsAny;
     const verbOptions = makeVerbOptions({
       mutator,
       verb: Verbs.POST,
-      override: { fetch: { includeHttpResponseReturnType } },
+      override: {
+        fetch: includeHttpErrorResponse
+          ? {
+              includeHttpResponseReturnType: true,
+              forceSuccessResponse: true,
+              includeHttpErrorResponse,
+            }
+          : { includeHttpResponseReturnType },
+      },
       body: {
         definition: 'Pet',
         implementation: 'pet',
@@ -1271,7 +1281,20 @@ void resultIsAny;
         contentTypes: ['application/json'],
         types: {
           success: [successType({ key: '200', value: 'Pet[]' })],
+          errors: includeHttpErrorResponse
+            ? [successType({ key: '404', value: 'unknown' })]
+            : [],
         },
+        ...(includeHttpErrorResponse
+          ? {
+              originalSchema: {
+                404: {
+                  description: 'Not found',
+                  content: { 'application/json': { schema: {} } },
+                },
+              },
+            }
+          : {}),
       },
     });
     const client = generateSharedClient(verbOptions, options);
@@ -1542,6 +1565,37 @@ void dataIsAny;
       ).toEqual([]);
     },
   );
+
+  it('hands the error responses to a three-argument inferred mutator', async () => {
+    const { client, files } = await generateClient(false, {
+      hasThirdArg: true,
+      includeHttpErrorResponse: true,
+    });
+    files['/proj/src/custom-fetch.ts'] = `
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit,
+  meta: { errorResponses: readonly { status: number; contentType: string }[] },
+): Promise<T> => {
+  void meta;
+  return (await fetch(url, options)).json() as Promise<T>;
+};
+`;
+
+    expect(client.implementation).toContain(
+      'errorResponses: [{"status":404,"contentType":"application/json"}]',
+    );
+    expect(files['/proj/src/api/client-config.ts']).toContain(
+      'fetcher(args.url, mutatorOptions, { errorResponses: args.errorResponses ?? [] })',
+    );
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+  });
 
   it.each([false, true])(
     'passes request options through and preserves an asynchronous=%s result',

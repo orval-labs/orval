@@ -384,6 +384,7 @@ export const clientConfigTemplate = ({
   mutatorName,
   inferred = false,
   hasSecondArg = true,
+  hasThirdArg = false,
   mutatorAlias = `${mutatorName}Fetcher`,
 }: {
   runtimeImportPath: string;
@@ -391,10 +392,14 @@ export const clientConfigTemplate = ({
   mutatorName: string;
   inferred?: boolean;
   hasSecondArg?: boolean;
+  hasThirdArg?: boolean;
   mutatorAlias?: string;
 }) => {
+  // Like the non-inferred config, a three-argument mutator always receives the
+  // error responses, empty when the operation declares none.
+  const passesErrorResponses = inferred && hasSecondArg && hasThirdArg;
   const imports = `import * as runtime from '${runtimeImportPath}';
-import type { ExecuteArgs } from '${runtimeImportPath}';
+import type { ${passesErrorResponses ? 'ErrorResponseMeta, ' : ''}ExecuteArgs } from '${runtimeImportPath}';
 ${mutatorImport}
 `;
   if (inferred) {
@@ -404,14 +409,14 @@ export type CallOptions = ${hasSecondArg ? `Parameters<typeof ${mutatorName}>[1]
 ${hasSecondArg ? '\ntype MutatorOptions = RequestInit & Partial<NonNullable<CallOptions>>;\n' : ''}
 export const execute = <Result>(
   args: ExecuteArgs<NonNullable<CallOptions>>,
-  fetcher: (url: string${hasSecondArg ? ', options: MutatorOptions' : ''}) => Result,
+  fetcher: (url: string${hasSecondArg ? ', options: MutatorOptions' : ''}${passesErrorResponses ? ', meta: { errorResponses: readonly ErrorResponseMeta[] }' : ''}) => Result,
 ) => {
   ${
     hasSecondArg
       ? `const { init } = runtime.prepareRequest(args);
   const options = { ...args.options, ...init };
   const mutatorOptions = args.schema === undefined ? options : { ...options, schema: args.schema as never };
-  return fetcher(args.url, mutatorOptions);`
+  return fetcher(args.url, mutatorOptions${passesErrorResponses ? ', { errorResponses: args.errorResponses ?? [] }' : ''});`
       : 'return fetcher(args.url);'
   }
 };

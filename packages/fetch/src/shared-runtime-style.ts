@@ -632,6 +632,7 @@ export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
           mutatorName: mutator.name,
           inferred: mutator.inferred,
           hasSecondArg: mutator.hasSecondArg,
+          hasThirdArg: mutator.hasThirdArg,
           mutatorAlias: getSharedMutatorAlias(output),
         }),
     });
