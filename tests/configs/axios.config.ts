@@ -506,6 +506,7 @@ export default defineConfig({
           'date-time': {
             type: 'Dayjs',
             import: { name: 'Dayjs', importPath: 'dayjs' },
+            encode: '(value) => value.toISOString()',
           },
           date: {
             type: 'Temporal.PlainDate',

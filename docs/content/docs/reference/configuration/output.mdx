@@ -4813,30 +4813,65 @@ is handed to the caller unparsed, and a blob has no parsed fields to walk.
 **Type:** `{ [format: string]: FormatTypeConfig }`
 **Default:** `undefined`
 
-Map any OpenAPI string format (e.g. `date`, `date-time`, `time`, `uuid`, `email`) to a custom TypeScript type. Each format can specify its own type, import, Zod schema (transform or codec), and mock expression.
+Map an OpenAPI string format (e.g. `date`, `date-time`, `time`, `uuid`) to a custom TypeScript type. Each entry also says how generated code converts between the wire string and that type.
 
-`formatType` takes precedence over `useDates` when both are set. You do not need `useDates: true` when using `formatType`.
+`formatType` takes precedence over `useDates` for the formats it lists. You do not need `useDates: true` when using `formatType`.
 
 #### Config shape
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `type` | `string` | Yes | — | TypeScript type name (e.g. `'Dayjs'`, `'Temporal.PlainDate'`, `'UUID'`) |
-| `import` | `{ name, importPath, default? }` | No | — | Import for the type. Omit for globals like `Temporal`. |
-| `zod.transform` | `string` | No | — | Expression appended as `.transform(expr)` to Zod schemas |
-| `zod.transformImport` | `{ name, importPath, default? }` | No | — | Import for the transform function |
-| `zod.codec` | `string` | No | — | Replace entire Zod schema chain with a custom codec reference |
-| `zod.codecImport` | `{ name, importPath, default? }` | No | — | Import for the codec |
-| `mock` | `string` | No | — | Faker mock expression override |
-| `mockImport` | `{ name, importPath, default? }` | No | — | Runtime import for the mock expression |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | Yes | TypeScript type name (e.g. `'Dayjs'`, `'Temporal.PlainDate'`, `'UUID'`) |
+| `import` | `{ name, importPath, default? }` | No | Import for the type. Omit for globals like `Temporal`. |
+| `decode` / `decodeImport` | `string` / import | No | Function turning a wire string into `type` (e.g. `'dayjs'`) |
+| `encode` / `encodeImport` | `string` / import | No | Function turning a `type` value into its wire string |
+| `zod.transform` / `zod.transformImport` | `string` / import | No | Expression appended as `.transform(expr)` to Zod schemas |
+| `zod.codec` / `zod.codecImport` | `string` / import | No | Zod 4 codec replacing the whole Zod schema of the format |
+| `effect.schema` / `effect.schemaImport` | `string` / import | No | Effect schema decoding the wire string into `type` |
+| `mock` / `mockImport` | `string` / import | No | Faker mock expression |
 
-> `formatType` currently handles **type mapping** — emitting custom TypeScript types, Zod schemas, and mock expressions. Runtime response/request transforms (deserializing date strings in HTTP responses, serializing custom types in request bodies) are planned for a follow-up.
->
-> **Current limitations:**
-> - `zod.transform` is only applied for `date`, `date-time`, and `time` formats. Other formats (e.g. `uuid`) support type mapping and codec replacement but not `.transform()`.
-> - The Effect client emits `S.String` for non-`Date` formatType values — Effect transform support is not yet implemented.
+#### Where values are converted
 
-#### Temporal API example
+A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for that format. For any other type, every place Orval generates code that handles the value uses the entry, and generation fails with an error naming the format when what it needs is missing:
+
+- **Mocks, examples and factory methods:** `mock`, otherwise `decode` applied to the generated string.
+- **Zod schemas:** `zod.codec` (Zod 4 only), `zod.transform`, otherwise `decode`. Defaults are applied to the wire string. Angular `runtimeValidation.requestBodies` fails for a body holding a mapped value.
+- **Effect schemas:** `effect.schema`. Defaults are decoded through the schema.
+- **`useDatesTransform`:** responses are decoded with `decode`. Request bodies are encoded with `encode`; without it the value is sent through its `toJSON`.
+- **Query parameters** built by the fetch, solid-start and Angular (built-in `filterParams`) clients, and **form-data / url-encoded bodies:** `encode`. The error names the operation and parameter. Values written key by key at runtime (`oneOf`/`anyOf` form bodies, `deepObject` form fields) are rejected.
+
+Axios `params`, a `paramsSerializer` and an Angular `paramsFilter` receive mapped values as they are, so the HTTP library or your function stringifies them, as with `Date`.
+
+With `schemas: { type: 'zod' }` the generated types are the Zod schemas' input, where a mapped value is still its wire string, so only the Zod schemas convert it. Only `type: string` schemas take a mapped type; enums and constants keep their literal types.
+
+#### dayjs example
+
+```ts title="orval.config.ts"
+const dayjsImport = { name: 'dayjs', importPath: 'dayjs', default: true };
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            decode: 'dayjs',
+            decodeImport: dayjsImport,
+            encode: '(value) => value.toISOString()',
+            mock: 'dayjs(faker.date.past())',
+            mockImport: dayjsImport,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+#### Temporal example
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -4846,9 +4881,13 @@ export default defineConfig({
         formatType: {
           date: {
             type: 'Temporal.PlainDate',
+            decode: 'Temporal.PlainDate.from',
+            encode: 'String',
           },
           'date-time': {
             type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
           },
         },
       },
@@ -4857,36 +4896,9 @@ export default defineConfig({
 });
 ```
 
-This generates `Temporal.Instant` and `Temporal.PlainDate` in model files instead of `string`.
+#### Zod codec
 
-#### dayjs with Zod transform
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      override: {
-        formatType: {
-          'date-time': {
-            type: 'Dayjs',
-            import: { name: 'Dayjs', importPath: 'dayjs' },
-            zod: {
-              transform: 'dayjs',
-              transformImport: { name: 'dayjs', importPath: 'dayjs', default: true },
-            },
-            mock: 'dayjs(faker.date.past())',
-            mockImport: { name: 'dayjs', importPath: 'dayjs', default: true },
-          },
-        },
-      },
-    },
-  },
-});
-```
-
-#### Zod codec replacement
-
-For full control over the Zod schema, use `zod.codec` to replace the entire validation chain with a custom codec:
+`zod.codec` replaces the Zod schema of the format with your own codec:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -4908,8 +4920,6 @@ export default defineConfig({
   },
 });
 ```
-
-> Formats not listed in `formatType` fall back to `string`. You can configure only the formats you need. When both `formatType` and `useDates` are set, `formatType` entries take precedence for their configured formats; `useDates` still applies to `date` and `date-time` formats that have no `formatType` entry.
 
 ### useBigInt
 

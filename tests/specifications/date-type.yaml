@@ -12,6 +12,13 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: days
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: date
       responses:
         '200':
           description: OK
@@ -36,6 +43,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+  /events/{eventId}/reminders:
+    post:
+      operationId: addReminders
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reminders'
+      responses:
+        '204':
+          description: No Content
 components:
   schemas:
     Event:
@@ -72,6 +97,23 @@ components:
         date:
           type: string
           format: date
+        publishAt:
+          type: string
+          format: date-time
+          default: '2025-01-01T09:00:00Z'
+    Reminders:
+      type: object
+      required:
+        - remindAt
+      properties:
+        remindAt:
+          type: string
+          format: date-time
+        alsoAt:
+          type: array
+          items:
+            type: string
+            format: date-time
     EventStatus:
       type: string
       enum: [DRAFT, PUBLISHED, CANCELLED]

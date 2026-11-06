@@ -281,10 +281,11 @@ export default defineConfig({
             import: { name: 'Dayjs', importPath: 'dayjs' },
             mock: 'dayjs(faker.date.past())',
             mockImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            encode: '(value) => value.toISOString()',
           },
           date: {
             type: 'Temporal.PlainDate',
-            mock: "Temporal.PlainDate.from(faker.date.past().toISOString().split('T')[0])",
+            decode: 'Temporal.PlainDate.from',
           },
         },
       },
