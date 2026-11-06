@@ -14,8 +14,8 @@ import {
   type ValibotEntry,
   type ValibotNode,
 } from './nodes';
+import { type CompositionKey } from './schema-keys';
 import {
-  type CompositionKey,
   getCompositionKeys,
   getMultiTypes,
   hasProperties,

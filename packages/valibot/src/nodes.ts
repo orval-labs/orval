@@ -50,7 +50,9 @@ export type ValibotSchema =
   | ObjectSchema
   | ObjectWithRestSchema
   | { kind: 'union' | 'intersect'; members: ValibotNode[] }
-  | VariantSchema;
+  | VariantSchema
+  // A reusable component schema, by the name of its constant.
+  | { kind: 'ref'; name: string };
 
 export type FlagActionKind =
   | 'integer'
