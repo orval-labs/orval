@@ -18,8 +18,8 @@ import * as throwing from './generated/runtime-validation/fetch-standard-schema/
  * generated fetch clients that call it for both strategies.
  */
 interface StandardSchemaHelpers {
-  parseStandardSchema: (schema: unknown, value: unknown) => unknown;
-  safeParseStandardSchema: (
+  orvalParseStandardSchema: (schema: unknown, value: unknown) => unknown;
+  orvalSafeParseStandardSchema: (
     schema: unknown,
     value: unknown,
   ) => { success: boolean; data?: unknown; error?: Error };
@@ -28,24 +28,27 @@ interface StandardSchemaHelpers {
 const isHelpers = (value: unknown): value is StandardSchemaHelpers =>
   typeof value === 'object' &&
   value !== null &&
-  'parseStandardSchema' in value &&
-  typeof value.parseStandardSchema === 'function' &&
-  'safeParseStandardSchema' in value &&
-  typeof value.safeParseStandardSchema === 'function';
+  'orvalParseStandardSchema' in value &&
+  typeof value.orvalParseStandardSchema === 'function' &&
+  'orvalSafeParseStandardSchema' in value &&
+  typeof value.orvalSafeParseStandardSchema === 'function';
 
 const loadHelpers = (): StandardSchemaHelpers => {
   const { outputText } = ts.transpileModule(
-    getStandardSchemaHelper('parseStandardSchema(Schema, value)'),
+    getStandardSchemaHelper('orvalParseStandardSchema(Schema, value)'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   );
-  const loaded: unknown = vm.runInThisContext(
-    `${outputText}\n({ parseStandardSchema, safeParseStandardSchema });`,
-  );
+  // Compiled as a function body so the declarations stay local instead of
+  // becoming globals of the test worker.
+  const loaded: unknown = vm.compileFunction(
+    `${outputText}\nreturn { orvalParseStandardSchema, orvalSafeParseStandardSchema };`,
+  )();
   if (!isHelpers(loaded)) throw new Error('helpers were not declared');
   return loaded;
 };
 
-const { parseStandardSchema, safeParseStandardSchema } = loadHelpers();
+const { orvalParseStandardSchema, orvalSafeParseStandardSchema } =
+  loadHelpers();
 
 const schemas = {
   zod: zod.array(zod.object({ id: zod.number() })),
@@ -56,20 +59,22 @@ describe.each(Object.entries(schemas))(
   'emitted helper with %s',
   (_, schema) => {
     it('returns the parsed value on success', () => {
-      expect(parseStandardSchema(schema, [{ id: 1 }])).toEqual([{ id: 1 }]);
-      expect(safeParseStandardSchema(schema, [{ id: 1 }])).toEqual({
+      expect(orvalParseStandardSchema(schema, [{ id: 1 }])).toEqual([
+        { id: 1 },
+      ]);
+      expect(orvalSafeParseStandardSchema(schema, [{ id: 1 }])).toEqual({
         success: true,
         data: [{ id: 1 }],
       });
     });
 
     it('throws a StandardSchemaError with a path message and issues', () => {
-      const error = safeParseStandardSchema(schema, [{ id: 'one' }]).error;
+      const error = orvalSafeParseStandardSchema(schema, [{ id: 'one' }]).error;
 
       expect(error?.name).toBe('StandardSchemaError');
       expect(error?.message).toMatch(/^0\.id: /);
       expect(error).toHaveProperty('issues');
-      expect(() => parseStandardSchema(schema, [{ id: 'one' }])).toThrow(
+      expect(() => orvalParseStandardSchema(schema, [{ id: 'one' }])).toThrow(
         /^0\.id: /,
       );
     });
@@ -86,11 +91,22 @@ describe('emitted helper with an async schema', () => {
       },
     };
 
-    expect(() => parseStandardSchema(asyncSchema, 1)).toThrow(TypeError);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    process.off('unhandledRejection', unhandled);
+    try {
+      expect(() => orvalParseStandardSchema(asyncSchema, 1)).toThrow(TypeError);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
 
     expect(unhandled).not.toHaveBeenCalled();
+  });
+});
+
+describe('emitted helper with a schema lacking ~standard', () => {
+  it('throws a TypeError naming the Zod requirement', () => {
+    expect(() => orvalParseStandardSchema({ parse: () => 1 }, 1)).toThrow(
+      /Zod 3\.24/,
+    );
   });
 });
 
@@ -124,8 +140,8 @@ describe('generated fetch clients', () => {
       'utf8',
     );
 
-    expect(source.match(/function parseStandardSchema/g)).toHaveLength(1);
-    expect(source).toContain('parseStandardSchema(Pets, parsedBody)');
+    expect(source.match(/function orvalParseStandardSchema/g)).toHaveLength(1);
+    expect(source).toContain('orvalParseStandardSchema(Pets, parsedBody)');
     expect(source).not.toContain('Pets.parse(');
   });
 
