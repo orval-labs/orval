@@ -114,7 +114,9 @@ describe('getBody', () => {
       date: { type: 'Temporal.PlainDate', decode: 'Temporal.PlainDate.from' },
       'date-time': { type: 'Dayjs', zod: { codec: 'isoDatetimeCodec' } },
     };
-    const formatTypeCodecs = (properties: OpenApiSchemaObject['properties']) =>
+    const formatTypeCodecs = (
+      properties: Record<string, OpenApiSchemaObject>,
+    ) =>
       getBody({
         requestBody: {
           content: {

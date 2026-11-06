@@ -576,6 +576,7 @@ describe('angular httpResource generator', () => {
     });
 
     it('imports the zod namespace to encode a parsed body back through its formatType codecs', async () => {
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
       const zodImport = expect.objectContaining({
         name: 'zod',
         namespaceImport: true,
