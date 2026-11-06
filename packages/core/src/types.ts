@@ -1462,6 +1462,9 @@ export interface FormatTypeConfig {
   /** Function expression turning a wire string into `type` (e.g. 'dayjs') */
   decode?: string;
   decodeImport?: FormatTypeImport;
+  /** Function expression turning a `type` value into its wire string */
+  encode?: string;
+  encodeImport?: FormatTypeImport;
   /** Zod schema config */
   zod?: {
     /** Expression appended as .transform() (e.g. 'dayjs') */
@@ -1493,6 +1496,8 @@ export interface NormalizedFormatTypeConfig {
   import?: GeneratorImport;
   decode?: string;
   decodeImport?: GeneratorImport;
+  encode?: string;
+  encodeImport?: GeneratorImport;
   zod?: {
     transform?: string;
     transformImport?: GeneratorImport;

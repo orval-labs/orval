@@ -20,6 +20,7 @@ import {
   asyncReduce,
   generateDependencyImports,
   getBaseUrlRuntimeImports,
+  getFormatTypeFunctionImports,
   isFunction,
   OutputClient,
   OutputMockType,
@@ -561,7 +562,15 @@ export const generateOperations = (
         implementation: hasImplementation
           ? (client.docComment ?? verbOption.doc) + client.implementation
           : client.implementation,
-        imports: [...baseUrlImports, ...client.imports],
+        imports: [
+          ...baseUrlImports,
+          ...client.imports,
+          // `useDatesTransform` and parameter serialization call these.
+          ...getFormatTypeFunctionImports(
+            client.implementation,
+            output.override,
+          ),
+        ],
         mockOutputs,
         tags: verbOption.tags,
         mutator: verbOption.mutator,

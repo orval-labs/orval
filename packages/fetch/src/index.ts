@@ -199,7 +199,9 @@ const getIsDatesTransformEnabled = (
 
 /**
  * Builds the `deserialize{Op}Response` function for a verb's response, or
- * returns `undefined` when its dates are not converted.
+ * returns `undefined` when its dates are not converted. A response a Zod
+ * schema validates afterwards keeps its `formatType` values as strings: the
+ * schema decodes them.
  */
 const getResponseDateDeserializer = (
   {
@@ -212,6 +214,7 @@ const getResponseDateDeserializer = (
     'operationName' | 'response' | 'mutator' | 'override'
   >,
   context: ContextSpec,
+  isValidated: boolean,
 ) => {
   // ndjson is excluded explicitly: its media type contains `json`, which the
   // core deserializer's content-type check accepts.
@@ -224,7 +227,12 @@ const getResponseDateDeserializer = (
   return getIsDatesTransformEnabled(override, context) &&
     !isNdJson &&
     !mutator?.inferred
-    ? generateResponseDateDeserializer({ operationName, response, context })
+    ? generateResponseDateDeserializer({
+        operationName,
+        response,
+        context,
+        formatTypes: !isValidated,
+      })
     : undefined;
 };
 
@@ -530,49 +538,9 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   const isBlob = response.isBlob;
 
   const isDatesTransformEnabled = getIsDatesTransformEnabled(override, context);
-  const dateDeserializer = getResponseDateDeserializer(
-    { operationName, response, mutator, override },
-    context,
-  );
-  const successStatusCondition = dateDeserializer
-    ? getResponseStatusCondition({
-        key: response.types.success[0].key,
-        declaredKeys: [...response.types.success, ...response.types.errors].map(
-          ({ key }) => key,
-        ),
-        accessor: 'res.status',
-      })
-    : undefined;
   const requestSerializer = isDatesTransformEnabled
     ? generateRequestDateSerializer({ operationName, body, context })
     : undefined;
-  // Error responses are returned rather than thrown by default, so the parsed
-  // body is converted only when the status is the declared success one.
-  // `body` guards the `{}` fallback of an empty response, and the JSON check
-  // skips a non-JSON body under mixed content types.
-  //
-  // The core deserializer both mutates in place and returns the value, and the
-  // result is assigned back rather than discarded: a response whose root is
-  // itself a date has no property, index or key to write `new Date(...)`
-  // through, so the conversion escapes the deserializer only via its return
-  // value. Discarding it handed the caller the raw string typed `Date`, which
-  // still compiles. This mirrors the axios client's
-  // `res.data = deserialize…(res.data)`.
-  const convertParsedBody = (
-    expression: string,
-    { checkContentType }: { checkContentType: boolean },
-  ) =>
-    dateDeserializer
-      ? `
-  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
-    ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
-  }`
-      : '';
-
-  // Reassigning the converted body needs a mutable binding, but only when a
-  // deserializer is actually emitted — otherwise the `useDatesTransform`-off
-  // output would change.
-  const parsedBodyBinding = dateDeserializer ? 'let' : 'const';
 
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
@@ -637,6 +605,48 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
+  const dateDeserializer = getResponseDateDeserializer(
+    { operationName, response, mutator, override },
+    context,
+    isValidateResponse &&
+      (!mutator || passesZodSchemaToMutator(mutator, context)),
+  );
+  const successStatusCondition = dateDeserializer
+    ? getResponseStatusCondition({
+        key: response.types.success[0].key,
+        declaredKeys: [...response.types.success, ...response.types.errors].map(
+          ({ key }) => key,
+        ),
+        accessor: 'res.status',
+      })
+    : undefined;
+  // Error responses are returned rather than thrown by default, so the parsed
+  // body is converted only when the status is the declared success one.
+  // `body` guards the `{}` fallback of an empty response, and the JSON check
+  // skips a non-JSON body under mixed content types.
+  //
+  // The core deserializer both mutates in place and returns the value, and the
+  // result is assigned back rather than discarded: a response whose root is
+  // itself a date has no property, index or key to write `new Date(...)`
+  // through, so the conversion escapes the deserializer only via its return
+  // value. Discarding it handed the caller the raw string typed `Date`, which
+  // still compiles. This mirrors the axios client's
+  // `res.data = deserialize…(res.data)`.
+  const convertParsedBody = (
+    expression: string,
+    { checkContentType }: { checkContentType: boolean },
+  ) =>
+    dateDeserializer
+      ? `
+  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
+    ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
+  }`
+      : '';
+
+  // Reassigning the converted body needs a mutable binding, but only when a
+  // deserializer is actually emitted — otherwise the `useDatesTransform`-off
+  // output would change.
+  const parsedBodyBinding = dateDeserializer ? 'let' : 'const';
   const isZodSchemasOutput =
     isObject(context.output.schemas) && context.output.schemas.type === 'zod';
   // The generated parse returns the schema's zod output type, so the declared
@@ -1172,6 +1182,7 @@ export const getFetchResponseValidationImports = (
         getResponseDateDeserializer(
           { operationName, response, mutator, override },
           context,
+          true,
         ) !== undefined),
   };
 };

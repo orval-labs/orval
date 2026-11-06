@@ -114,6 +114,8 @@ export function normalizeFormatType(
       import: normalizeImport(config.import),
       decode: config.decode,
       decodeImport: normalizeImport(config.decodeImport),
+      encode: config.encode,
+      encodeImport: normalizeImport(config.encodeImport),
       zod: config.zod
         ? {
             transform: config.zod.transform,

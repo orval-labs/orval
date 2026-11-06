@@ -1543,6 +1543,56 @@ describe('generateRequestFunction — useDatesTransform', () => {
       'serializeUpdateAppointmentRequest(appointment)',
     );
   });
+
+  describe('with a formatType value in the response', () => {
+    const MAPPED = {
+      type: 'object',
+      required: ['startsAt'],
+      properties: { startsAt: { type: 'string', format: 'date-time' } },
+    } satisfies OpenApiSchemaObject;
+
+    const mappedVerbOptions = (fetch = {}) => {
+      const verbOptions = datedVerbOptions({ fetch });
+      verbOptions.response.types.success = [
+        entry('200', 'Appointment', MAPPED),
+      ];
+      verbOptions.response.imports = [
+        { name: 'Appointment', schemaName: 'Appointment', values: true },
+      ];
+      return verbOptions;
+    };
+
+    const mappedContext = () => {
+      const context = makeContext([], false, {
+        path: './model',
+        type: 'zod',
+        splitByTags: false,
+      });
+      context.output.override.formatType = {
+        'date-time': { type: 'Dayjs', decode: 'dayjs' },
+      };
+      return context;
+    };
+
+    it('decodes it', () => {
+      expect(generate(mappedVerbOptions(), mappedContext())).toContain(
+        "data.startsAt = typeof data.startsAt === 'string' ? dayjs(data.startsAt as unknown as string) : data.startsAt;",
+      );
+    });
+
+    it('leaves it to the zod schema that validates the response', () => {
+      const implementation = generate(
+        mappedVerbOptions({
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        }),
+        mappedContext(),
+      );
+      expect(implementation).toContain('Appointment.parse(parsedBody)');
+      expect(implementation).not.toContain(
+        'deserializeUpdateAppointmentResponse',
+      );
+    });
+  });
 });
 
 describe('httpClientInjection: factory', () => {

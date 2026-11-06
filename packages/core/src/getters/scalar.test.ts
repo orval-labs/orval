@@ -5,6 +5,7 @@ import type { NormalizedOverrideOutput, OpenApiSchemaObject } from '../types';
 import type { FormDataContext } from './object';
 import {
   findCustomFormatType,
+  getFormatTypeFunctionImports,
   getScalar,
   isBinaryScalarSchema,
   resolveFormatType,
@@ -835,7 +836,7 @@ describe('findCustomFormatType', () => {
     ).toEqual({ format: 'date-time', config: dayjs });
   });
 
-  it('skips Date mappings, enums and unmapped formats', () => {
+  it('skips Date mappings, enums, non-strings and unmapped formats', () => {
     expect(
       findCustomFormatType(
         {
@@ -843,11 +844,36 @@ describe('findCustomFormatType', () => {
           properties: {
             day: { $ref: '#/components/schemas/Day' },
             fixed: { type: 'string', format: 'date-time', enum: ['x'] },
+            count: { type: 'integer', format: 'date-time' },
             email: { type: 'string', format: 'email' },
           },
         },
         ctx,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('getFormatTypeFunctionImports', () => {
+  const dayjs = { name: 'dayjs', importPath: 'dayjs', default: true };
+  const toIso = { name: 'toIso', importPath: './dates' };
+  const override = {
+    formatType: {
+      'date-time': {
+        type: 'Dayjs',
+        decodeImport: dayjs,
+        encode: 'toIso',
+        encodeImport: toIso,
+      },
+    },
+  };
+
+  it('returns the decode and encode imports the code references', () => {
+    expect(
+      getFormatTypeFunctionImports('data.at = dayjs(data.at);', override),
+    ).toEqual([{ ...dayjs, values: true }]);
+    expect(
+      getFormatTypeFunctionImports('const toIsoString = 1; Dayjs', override),
+    ).toEqual([]);
   });
 });

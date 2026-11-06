@@ -6368,3 +6368,120 @@ describe('buildDateTransformStatements — property guards are unchanged', () =>
     );
   });
 });
+
+describe('formatType values', () => {
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const contextWith = (
+    formatType: ContextSpec['output']['override']['formatType'],
+  ) => {
+    const context = makeContext();
+    context.output.override.formatType = formatType;
+    return context;
+  };
+  const dayjs = contextWith({
+    'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    money: { type: 'Money', decode: 'parseMoney' },
+  });
+  const deserialize = (schema: OpenApiSchemaObject, context = dayjs) =>
+    buildDateTransformStatements({ schema, accessor: 'data', context }).join(
+      '\n',
+    );
+  const serialize = (schema: OpenApiSchemaObject, context = dayjs) =>
+    buildRequestDateSerializeStatements({
+      schema,
+      accessor: 'copy',
+      context,
+    }).join('\n');
+
+  it('decodes a response value with decode', () => {
+    expect(
+      deserialize({
+        type: 'object',
+        required: ['startsAt'],
+        properties: {
+          startsAt: dateTime,
+          amounts: {
+            type: 'array',
+            items: { type: 'string', format: 'money' },
+          },
+        },
+      }),
+    ).toBe(
+      [
+        "data.startsAt = typeof data.startsAt === 'string' ? dayjs(data.startsAt as unknown as string) : data.startsAt;",
+        'if (data.amounts != null) {',
+        '  for (let i0 = 0; i0 < data.amounts.length; i0++) {',
+        "    data.amounts[i0] = typeof data.amounts[i0]! === 'string' ? parseMoney(data.amounts[i0]! as unknown as string) : data.amounts[i0]!;",
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('converts a `Date` mapping like useDates and leaves enums alone', () => {
+    expect(
+      deserialize(dateTime, contextWith({ 'date-time': { type: 'Date' } })),
+    ).toBe('data = new Date(data);');
+    expect(deserialize({ ...dateTime, enum: ['2025-01-01T00:00:00Z'] })).toBe(
+      '',
+    );
+  });
+
+  it('fails for a response value without decode', () => {
+    expect(() =>
+      deserialize(dateTime, contextWith({ 'date-time': { type: 'Dayjs' } })),
+    ).toThrow(
+      'override.formatType.date-time (Dayjs): `useDatesTransform` needs `decode`',
+    );
+  });
+
+  it('leaves the values to a schema that decodes them', () => {
+    expect(
+      buildDateTransformStatements({
+        schema: {
+          type: 'object',
+          required: ['startsAt', 'day'],
+          properties: {
+            startsAt: dateTime,
+            day: { type: 'string', format: 'date' },
+          },
+        },
+        accessor: 'data',
+        context: dayjs,
+        formatTypes: false,
+      }),
+    ).toEqual(['data.day = new Date(data.day);']);
+  });
+
+  it('encodes a request value with encode and leaves the rest to toJSON', () => {
+    expect(
+      serialize({
+        type: 'object',
+        required: ['startsAt', 'amount'],
+        properties: {
+          startsAt: dateTime,
+          amount: { type: 'string', format: 'money' },
+        },
+      }),
+    ).toBe(
+      "copy.startsAt = typeof copy.startsAt === 'string' ? copy.startsAt : (toIso(copy.startsAt) as unknown as typeof copy.startsAt);",
+    );
+  });
+
+  it('serializes a `date` mapped to `Date` as a calendar day', () => {
+    expect(
+      serialize(
+        { type: 'string', format: 'date' },
+        contextWith({ date: { type: 'Date' } }),
+      ),
+    ).toBe(
+      'copy = copy instanceof Date ? (copy.toISOString().slice(0, 10) as unknown as Date) : copy;',
+    );
+    expect(
+      serialize(
+        { type: 'string', format: 'date' },
+        contextWith({ date: { type: 'Temporal.PlainDate' } }),
+      ),
+    ).toBe('');
+  });
+});

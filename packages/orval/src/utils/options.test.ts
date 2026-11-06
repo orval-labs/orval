@@ -88,6 +88,25 @@ describe('normalizeFormatType', () => {
     });
   });
 
+  it('normalizes decode, encode and their imports', () => {
+    expect(
+      normalizeFormatType({
+        'date-time': {
+          type: 'Dayjs',
+          decode: 'dayjs',
+          decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+          encode: 'toIso',
+          encodeImport: { name: 'toIso', importPath: './dates' },
+        },
+      })?.['date-time'],
+    ).toMatchObject({
+      decode: 'dayjs',
+      decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+      encode: 'toIso',
+      encodeImport: { name: 'toIso', importPath: './dates' },
+    });
+  });
+
   it('normalizes imports', () => {
     const result = normalizeFormatType({
       'date-time': {

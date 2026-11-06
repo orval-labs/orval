@@ -1,6 +1,12 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { hasNarrowedPropertyNames } from '../getters';
+import {
+  callFormatTypeFunction,
+  getCustomFormatType,
+  getFormatTypeConfig,
+  getFormatTypeError,
+  hasNarrowedPropertyNames,
+} from '../getters';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -26,6 +32,17 @@ interface NormalizedSchema {
 const isDateSchema = (schema: OpenApiSchemaObject): boolean =>
   !isBooleanJsonSchema(schema) &&
   (schema.format === 'date' || schema.format === 'date-time');
+
+/** A date typed as `Date`: unmapped, or mapped to `Date` by `formatType`. */
+const isDateTypedSchema = (
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): boolean =>
+  isDateSchema(schema) &&
+  (getFormatTypeConfig(
+    (schema as OpenApiNonBooleanSchemaObject).format,
+    context.output.override,
+  )?.type ?? 'Date') === 'Date';
 
 const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
   if (!isInlineSchema(schemaOrRef) || isBooleanJsonSchema(schemaOrRef))
@@ -368,9 +385,16 @@ const buildResolvedStatements = ({
     ? undefined
     : mapValueSchema(schema, context);
 
-  if (mode.isLeaf(schema)) {
+  if (mode.isLeaf(schema, context)) {
     result = {
-      statements: [mode.leafStatement(accessor, writeAccessor ?? accessor)],
+      statements: [
+        mode.leafStatement(
+          accessor,
+          writeAccessor ?? accessor,
+          schema,
+          context,
+        ),
+      ],
       cyclicRefs: new Set(),
     };
   } else if (
@@ -497,7 +521,7 @@ const buildResolvedStatements = ({
  * or dereferenced before the caller can handle it. Every use asks the same
  * question — "does this write straight to the accessor, or into something
  * reached through it?" — regardless of which formats a given direction
- * converts, so it checks `isDateSchema` directly rather than taking a `mode`
+ * converts, so it checks the format directly rather than taking a `mode`
  * parameter.
  */
 const writesToAccessorItself = (
@@ -510,7 +534,12 @@ const writesToAccessorItself = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (isDateSchema(schema)) return true;
+  if (
+    isDateSchema(schema) ||
+    getCustomFormatType(schema, context.output.override)
+  ) {
+    return true;
+  }
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
     writesToAccessorItself(branch, context, seenRefs),
   );
@@ -526,9 +555,14 @@ const writesToAccessorItself = (
  */
 interface DateTransformMode {
   /** Schemas this direction converts. */
-  isLeaf: (schema: OpenApiSchemaObject) => boolean;
+  isLeaf: (schema: OpenApiSchemaObject, context: ContextSpec) => boolean;
   /** Conversion statement. `write` differs from `read` only for readOnly props. */
-  leafStatement: (read: string, write: string) => string;
+  leafStatement: (
+    read: string,
+    write: string,
+    schema: OpenApiSchemaObject,
+    context: ContextSpec,
+  ) => string;
   /**
    * Statements emitted once per property whose subtree produced statements,
    * immediately before those statements. Never invoked for the root
@@ -739,8 +773,24 @@ const buildInPlaceMapStatements = ({
 };
 
 const responseMode: DateTransformMode = {
-  isLeaf: isDateSchema,
-  leafStatement: (read, write) => `${write} = new Date(${read});`,
+  isLeaf: (schema, context) =>
+    isDateTypedSchema(schema, context) ||
+    getCustomFormatType(schema, context.output.override) !== undefined,
+  leafStatement: (read, write, schema, context) => {
+    const formatType = getCustomFormatType(schema, context.output.override);
+    if (!formatType) return `${write} = new Date(${read});`;
+    if (!formatType.decode) {
+      throw getFormatTypeError(
+        (schema as OpenApiNonBooleanSchemaObject).format,
+        formatType,
+        '`useDatesTransform` needs `decode`',
+      );
+    }
+    // The value is typed as the mapped type already, hence the cast. The check
+    // leaves one decoded already (an accessor reached twice, see
+    // `serializeLeafStatement`) as it is.
+    return `${write} = typeof ${read} === 'string' ? ${callFormatTypeFunction(formatType.decode, `${read} as unknown as string`)} : ${read};`;
+  },
   objectPrelude: () => [],
   arrayStatements: buildInPlaceItemsStatements,
   mapStatements: buildInPlaceMapStatements,
@@ -1429,6 +1479,12 @@ const buildUnionStatements = (params: {
     ? buildMappedUnionStatements(params)
     : buildUndiscriminatedUnionStatements(params);
 
+/** For a payload a Zod schema validates next, which decodes `formatType` values. */
+const datesOnlyResponseMode: DateTransformMode = {
+  ...responseMode,
+  isLeaf: isDateTypedSchema,
+};
+
 export interface BuildDateTransformParams {
   schema: SchemaOrRef;
   /** Expression the statements mutate in place, e.g. `data.log` */
@@ -1437,6 +1493,8 @@ export interface BuildDateTransformParams {
   visitedRefs?: Set<string>;
   /** Nesting level, used for unique loop index names (i0, i1, …) */
   depth?: number;
+  /** False to leave `formatType` values as strings. */
+  formatTypes?: boolean;
 }
 
 export const buildDateTransformStatements = ({
@@ -1445,6 +1503,7 @@ export const buildDateTransformStatements = ({
   context,
   visitedRefs = new Set(),
   depth = 0,
+  formatTypes = true,
 }: BuildDateTransformParams): string[] =>
   buildStatements({
     schema,
@@ -1452,7 +1511,7 @@ export const buildDateTransformStatements = ({
     context,
     visitedRefs,
     depth,
-    mode: responseMode,
+    mode: formatTypes ? responseMode : datesOnlyResponseMode,
   }).statements;
 
 const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
@@ -1656,8 +1715,17 @@ const buildCopyingMapStatements = ({
 };
 
 const requestMode: DateTransformMode = {
-  isLeaf: isDateOnlySchema,
-  leafStatement: serializeLeafStatement,
+  isLeaf: (schema, context) =>
+    (isDateOnlySchema(schema) && isDateTypedSchema(schema, context)) ||
+    getCustomFormatType(schema, context.output.override)?.encode !== undefined,
+  // A `formatType` value without `encode` is left to its `toJSON`. A string
+  // is encoded already, see `serializeLeafStatement`.
+  leafStatement: (read, write, schema, context) => {
+    const encode = getCustomFormatType(schema, context.output.override)?.encode;
+    return encode
+      ? `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`
+      : serializeLeafStatement(read, write);
+  },
   objectPrelude: (accessor, schema, context) =>
     needsObjectCopy(schema, context)
       ? [`${accessor} = { ...${accessor} };`]
@@ -1731,10 +1799,11 @@ export interface GeneratedDateSerializer {
 
 /**
  * Builds a `serialize{Op}Request` function rendering schema-declared
- * `format: date` fields of a JSON request body as `YYYY-MM-DD`. `format:
- * date-time` is left alone — `Date.prototype.toJSON()` already produces the
- * right thing for an instant. Returns undefined when there is nothing to
- * serialize, so callers emit no code.
+ * `format: date` fields of a JSON request body as `YYYY-MM-DD`, and
+ * `formatType` values with their `encode`. `format: date-time` is left
+ * alone — `Date.prototype.toJSON()` already produces the right thing for an
+ * instant. Returns undefined when there is nothing to serialize, so callers
+ * emit no code.
  *
  * The returned value is still typed as the model type (`Date` fields and
  * all), but at runtime those `format: date` fields hold `YYYY-MM-DD`
@@ -1829,10 +1898,13 @@ export const generateResponseDateDeserializer = ({
   operationName,
   response,
   context,
+  formatTypes,
 }: {
   operationName: string;
   response: GetterResponse;
   context: ContextSpec;
+  /** False when a Zod schema validates the result, decoding these itself. */
+  formatTypes?: boolean;
 }): GeneratedDateDeserializer | undefined => {
   if (response.isBlob) return undefined;
 
@@ -1853,6 +1925,7 @@ export const generateResponseDateDeserializer = ({
     schema: successType.originalSchema,
     accessor: 'data',
     context,
+    formatTypes,
   });
   if (statements.length === 0) return undefined;
 

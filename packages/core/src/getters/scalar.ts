@@ -72,8 +72,8 @@ export const isDateFormatType = (
 /**
  * The `formatType` entry behind the type `getScalar` gives this schema when
  * that type is not a built-in `Date`, so generated code has to convert its
- * values with the entry's own functions. Enums and constants keep their
- * literal types.
+ * values with the entry's own functions. Only strings take a mapped type, and
+ * enums and constants keep their literal types.
  */
 export function getCustomFormatType(
   schema: OpenApiSchemaObject,
@@ -81,6 +81,7 @@ export function getCustomFormatType(
 ): NormalizedFormatTypeConfig | undefined {
   if (
     isBooleanJsonSchema(schema) ||
+    !isStringLikeSchema(schema) ||
     schema.enum ||
     schema.const !== undefined ||
     isDateFormatType(schema.format, override)
@@ -159,6 +160,19 @@ export const getReferencedFormatTypeImports = (
         new RegExp(String.raw`\b${escapeRegExp(imp.name)}\b`).test(code),
     )
     .map((imp) => ({ ...imp, values: true }));
+
+/** The `decode` and `encode` imports that generated `code` references. */
+export const getFormatTypeFunctionImports = (
+  code: string,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+): GeneratorImport[] =>
+  getReferencedFormatTypeImports(
+    code,
+    Object.values(override.formatType ?? {}).flatMap((config) => [
+      config?.decodeImport,
+      config?.encodeImport,
+    ]),
+  );
 
 /** A call of a `formatType` function expression such as `decode`. */
 export const callFormatTypeFunction = (fn: string, argument: string) =>
